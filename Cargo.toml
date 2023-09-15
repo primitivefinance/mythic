@@ -1,0 +1,15 @@
+[package]
+name = "portfolio-in-a-box"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "portfolio-in-a-box"
+path = "src/main.rs"
+
+[workspace]
+members = ["box-core", "box-simulation"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
