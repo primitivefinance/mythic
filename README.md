@@ -1,6 +1,14 @@
 # Portfolio in a box
 
-Construct, implement, and watch a portfolio strategy using this binary.
+Construct, implement, and model a portfolio strategy.
+
+## Installation
+
+```bash
+./build.sh
+
+cargo run
+```
 
 ## Crates
 - Core - Abstractions for portfolio management in rust
