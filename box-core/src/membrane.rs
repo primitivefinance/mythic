@@ -66,7 +66,11 @@ pub trait Membrane: Sync + Send + Debug {
     /// - returns: Amount of the second asset received.
     /// - errors: If the swap fails, an error is returned.
     /// - notes: The middleware should handle the slippage tolerance and minimum output amount.
-    async fn rebalance(&self, swap_direction: bool, amount: f64) -> Result<f64, String>;
+    async fn rebalance(
+        &self,
+        swap_direction: bool,
+        amount: f64,
+    ) -> anyhow::Result<f64, anyhow::Error>;
 
     /// Action for adding liquidity to the portfolio
     /// - asset_1: First asset to add liquidity for.
@@ -80,7 +84,7 @@ pub trait Membrane: Sync + Send + Debug {
         asset_2: &str,
         amount_1: f64,
         amount_2: f64,
-    ) -> Result<f64, String>;
+    ) -> anyhow::Result<f64, anyhow::Error>;
 
     /// Action for removing liquidity from the portfolio.
     /// - asset_1: First asset to remove liquidity for.
@@ -93,7 +97,7 @@ pub trait Membrane: Sync + Send + Debug {
         asset_1: &str,
         asset_2: &str,
         amount: f64,
-    ) -> Result<(f64, f64), String>;
+    ) -> anyhow::Result<(f64, f64), anyhow::Error>;
 
     /// Action for updating the portfolio's weight composition.
     /// Setting the weight for asset will implicitly set the weight for asset_2,
@@ -105,14 +109,14 @@ pub trait Membrane: Sync + Send + Debug {
         &self,
         asset: &str,
         weight: f64,
-    ) -> Result<(&str, f64, &str, f64), String>;
+    ) -> anyhow::Result<(&str, f64, &str, f64), anyhow::Error>;
 
     /// Fetches the current price of the primary asset.
-    async fn get_spot_price(&self) -> Result<f64, String>;
+    async fn get_spot_price(&self) -> anyhow::Result<f64, anyhow::Error>;
 
     /// Fetches the weights of the assets in the portfolio.
     /// - returns: Primary (base) asset weight and secondary (quote) asset weight.
-    async fn get_weights(&self) -> Result<(f64, f64), String>;
+    async fn get_weights(&self) -> anyhow::Result<(f64, f64), anyhow::Error>;
 }
 
 #[cfg(test)]
@@ -152,17 +156,13 @@ mod tests {
         /// - errors: If the deployment fails, an error is returned.
         /// - notes: This is only used for testing.
         pub async fn deploy(mut self) -> Self {
-            let counter_factory = ContractFactory::new(
-                COUNTER_ABI.clone(),
-                COUNTER_BYTECODE.clone(),
-                self.client.clone(),
-            );
-
-            let instance = counter_factory.deploy(()).unwrap().send().await.unwrap();
-            let address = instance.address();
+            let contract = Counter::deploy(self.client.clone(), ())
+                .unwrap()
+                .send()
+                .await
+                .unwrap();
 
             // Override contract to use the address.
-            let contract = Counter::new(address, self.client.clone());
             self.contract = contract;
 
             self
@@ -179,21 +179,18 @@ mod tests {
     #[async_trait]
     impl Membrane for MockMembrane<SignerMiddleware<Provider<Http>, LocalWallet>> {
         type Client = Arc<SignerMiddleware<Provider<Http>, LocalWallet>>;
-        async fn rebalance(&self, _swap_direction: bool, _amount: f64) -> Result<f64, String> {
+        async fn rebalance(
+            &self,
+            _swap_direction: bool,
+            _amount: f64,
+        ) -> anyhow::Result<f64, anyhow::Error> {
             // Increments the counter by 1.
-            let res = self
-                .contract
-                .increment()
-                .send()
-                .await
-                .unwrap()
-                .await
-                .unwrap();
+            let res = self.contract.increment().send().await?.await?;
 
             // Returns "1.0" if success, errors otherwise.
             let outcome = match res {
                 Some(_) => Ok(1.0),
-                None => Err(anyhow!("No result returned from contract call.").to_string()),
+                None => Err(anyhow!("No result returned from contract call.")),
             }?;
 
             Ok(outcome)
@@ -205,7 +202,7 @@ mod tests {
             asset_2: &str,
             amount_1: f64,
             amount_2: f64,
-        ) -> Result<f64, String> {
+        ) -> anyhow::Result<f64, anyhow::Error> {
             Ok(0.0)
         }
 
@@ -214,7 +211,7 @@ mod tests {
             asset_1: &str,
             asset_2: &str,
             amount: f64,
-        ) -> Result<(f64, f64), String> {
+        ) -> anyhow::Result<(f64, f64), anyhow::Error> {
             Ok((0.0, 0.0))
         }
 
@@ -222,18 +219,18 @@ mod tests {
             &self,
             asset: &str,
             weight: f64,
-        ) -> Result<(&str, f64, &str, f64), String> {
+        ) -> anyhow::Result<(&str, f64, &str, f64), anyhow::Error> {
             Ok(("", 0.0, "", 0.0))
         }
 
-        async fn get_spot_price(&self) -> Result<f64, String> {
+        async fn get_spot_price(&self) -> anyhow::Result<f64, anyhow::Error> {
             let count = self.contract.clone().number().await.unwrap();
             let count = count.as_u64() as f64;
 
             Ok(count)
         }
 
-        async fn get_weights(&self) -> Result<(f64, f64), String> {
+        async fn get_weights(&self) -> anyhow::Result<(f64, f64), anyhow::Error> {
             Ok((0.0, 0.0))
         }
     }
