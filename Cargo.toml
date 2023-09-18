@@ -12,4 +12,5 @@ members = ["box-core", "box-simulation"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[workspace.dependencies]
+bindings = { path = "./box-contracts/out/bindings", version = "0.1.0" }

@@ -6,4 +6,4 @@ forge clean
 
 forge install
 
-forge bind
+forge bind --crate-name bindings
