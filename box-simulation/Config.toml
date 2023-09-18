@@ -1,6 +1,7 @@
 [environment_parameters]
 label = "g3m" 
-block_rate = 10.0
+block_settings = { RandomlySampled = { block_rate = 10.0, block_time = 12.0, seed = 0 }}
+gas_settings = { UserControlled = true }
 seed = 0
 
 [price_process_parameters]
@@ -42,10 +43,8 @@ decimals = 18
 
 # We need to set the parameters for the Portfolio pool
 [portfolio_pool_parameters]
-volatility_basis_points = 10
-strike_price = 1.0
-time_remaining_years = 1
-is_perpetual = true
+weight_token_0 = 0.5
+weight_token_1 = 0.5
 fee_basis_points = 3
 priority_fee_basis_points = 0
 
