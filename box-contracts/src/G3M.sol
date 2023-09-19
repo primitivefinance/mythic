@@ -27,6 +27,7 @@ contract G3M is IG3M {
         tokenX = tokenX_;
         tokenY = tokenY_;
         primaryWeight = primaryWeight_;
+        admin = msg.sender;
     }
 
     function updatePrimaryWeight(uint256 newPrimaryWeight) external onlyAdmin {
