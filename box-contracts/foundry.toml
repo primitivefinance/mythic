@@ -1,7 +1,7 @@
 [profile.default]
 libs = ["lib"]
 out = "out"
+remappings = ["/solmate=/lib/solmate/src"]
 solc_version = "0.8.19"
 src = "src"
-
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

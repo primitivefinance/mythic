@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "solmate/tokens/ERC20.sol";
 import "./IG3M.sol";
-
-interface IERC20 {
-    function transfer(address to, uint256 amount) external returns (bool);
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
 
 contract G3M is IG3M {
     address public admin;
@@ -42,8 +37,8 @@ contract G3M is IG3M {
     function addLiquidity(uint256 liquidity) external returns (uint256 amountX, uint256 amountY) {
         (amountX, amountY) = calculateAmounts(liquidity);
 
-        IERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
-        IERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
+        ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
+        ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
 
         reserveX += amountX * WAD;
         reserveY += amountY * WAD;
@@ -61,15 +56,15 @@ contract G3M is IG3M {
         reserveX -= amountX * WAD;
         reserveY -= amountY * WAD;
 
-        IERC20(tokenX).transfer(msg.sender, amountX);
-        IERC20(tokenY).transfer(msg.sender, amountY);
+        ERC20(tokenX).transfer(msg.sender, amountX);
+        ERC20(tokenY).transfer(msg.sender, amountY);
 
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
     }
 
     function swap(bool swapDirection, uint256 input, uint256 output) external {
-        IERC20(swapDirection ? tokenX : tokenY).transferFrom(msg.sender, address(this), input);
-        IERC20(swapDirection ? tokenX : tokenY).transfer(msg.sender, output);
+        ERC20(swapDirection ? tokenX : tokenY).transferFrom(msg.sender, address(this), input);
+        ERC20(swapDirection ? tokenX : tokenY).transfer(msg.sender, output);
 
         reserveX += (swapDirection ? input : output) * WAD;
         reserveY += (swapDirection ? output : input) * WAD;
