@@ -51,6 +51,18 @@ contract G3M is IG3M {
         emit AddLiquidity(msg.sender, liquidity, amount1, amount2);
     }
 
+    function removeLiquidity(uint256 liquidity) external returns (uint256 amount1, uint256 amount2) {
+        require(balanceOf[msg.sender] >= liquidity, "Insufficient liquidity");
+        balanceOf[msg.sender] -= liquidity;
+
+        (amount1, amount2) = calculateAmounts(liquidity);
+
+        IERC20(token1).transfer(msg.sender, amount1);
+        IERC20(token2).transfer(msg.sender, amount2);
+
+        emit RemoveLiquidity(msg.sender, liquidity, amount1, amount2);
+    }
+
     function updateWeights(uint256 newPrimaryWeight) external onlyAdmin {
         emit UpdateWeight(primaryWeight, newPrimaryWeight);
         primaryWeight = newPrimaryWeight;
