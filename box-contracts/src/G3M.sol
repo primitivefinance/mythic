@@ -29,8 +29,8 @@ contract G3M is IG3M {
         primaryWeight = primaryWeight_;
     }
 
-    function updateWeight(uint256 newPrimaryWeight) external onlyAdmin {
-        emit UpdateWeight(primaryWeight, newPrimaryWeight);
+    function updatePrimaryWeight(uint256 newPrimaryWeight) external onlyAdmin {
+        emit UpdatePrimaryWeight(primaryWeight, newPrimaryWeight);
         primaryWeight = newPrimaryWeight;
     }
 
@@ -72,11 +72,6 @@ contract G3M is IG3M {
         require((reserveX * WAD) / reserveY == primaryWeight, "Invalid swap");
 
         emit Swap(msg.sender, swapDirection, input, output);
-    }
-
-    function updateWeights(uint256 newPrimaryWeight) external onlyAdmin {
-        emit UpdateWeight(primaryWeight, newPrimaryWeight);
-        primaryWeight = newPrimaryWeight;
     }
 
     function getPrimaryWeight() external view returns (uint256) {
