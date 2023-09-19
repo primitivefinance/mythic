@@ -36,4 +36,10 @@ contract G3M is IG3M {
         primaryWeight = primaryWeight_;
         secondaryWeight = 10_000 - primaryWeight;
     }
+
+    function updateWeights(uint256 newPrimaryWeight) external onlyAdmin {
+        emit UpdateWeight(primaryWeight, newPrimaryWeight);
+        primaryWeight = newPrimaryWeight;
+        secondaryWeight = 10_000 - newPrimaryWeight;
+    }
 }
