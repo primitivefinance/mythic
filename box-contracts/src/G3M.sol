@@ -21,7 +21,6 @@ contract G3M is IG3M {
     address public token1;
     address public token2;
     uint256 public primaryWeight;
-    uint256 public secondaryWeight;
 
     mapping(address => uint256) public balanceOf;
 
@@ -34,12 +33,18 @@ contract G3M is IG3M {
         token1 = token1_;
         token2 = token2_;
         primaryWeight = primaryWeight_;
-        secondaryWeight = 10_000 - primaryWeight;
     }
 
     function updateWeights(uint256 newPrimaryWeight) external onlyAdmin {
         emit UpdateWeight(primaryWeight, newPrimaryWeight);
         primaryWeight = newPrimaryWeight;
-        secondaryWeight = 10_000 - newPrimaryWeight;
+    }
+
+    function getPrimaryWeight() external view returns (uint256) {
+        return primaryWeight;
+    }
+
+    function getSecondaryWeight() external view returns (uint256) {
+        return 10_000 - primaryWeight;
     }
 }
