@@ -22,7 +22,7 @@ contract G3M is IG3M {
     }
 
     constructor(address tokenX_, address tokenY_, uint256 primaryWeight_) {
-        require(tokenX != tokenY, "Invalid tokens");
+        require(tokenX == tokenY, "Invalid tokens");
         require(primaryWeight_ <= WAD, "Invalid weight");
         tokenX = tokenX_;
         tokenY = tokenY_;
