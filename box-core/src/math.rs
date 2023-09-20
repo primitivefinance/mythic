@@ -1,7 +1,8 @@
 //! Math functions for portfolio optimization and management.
 
 /// Compute the returns of a series of values.
-/// Which is defined as the ratio of the current value to the previous value minus 1.
+/// Which is defined as the ratio of the current value to the previous value
+/// minus 1.
 pub fn compute_returns(values: Vec<f64>) -> Vec<f64> {
     let mut returns = Vec::new();
     for i in 1..values.len() {
@@ -10,7 +11,8 @@ pub fn compute_returns(values: Vec<f64>) -> Vec<f64> {
     returns
 }
 
-/// Computes the mean of a series of values (arithmetic average), finds the mean of the summed differences of the values vs. the mean.
+/// Computes the mean of a series of values (arithmetic average), finds the mean
+/// of the summed differences of the values vs. the mean.
 pub fn compute_variance(values: Vec<f64>) -> f64 {
     let mean = values.iter().sum::<f64>() / values.len() as f64;
     let variance = values
@@ -27,7 +29,8 @@ pub fn compute_std_deviation(values: Vec<f64>) -> f64 {
     variance.sqrt()
 }
 
-/// The sharpe ratio is the ratio of the mean of the returns to the standard deviation of the returns.
+/// The sharpe ratio is the ratio of the mean of the returns to the standard
+/// deviation of the returns.
 pub fn compute_sharpe_ratio(values: Vec<f64>) -> f64 {
     let returns = compute_returns(values);
     let mean = returns.iter().sum::<f64>() / returns.len() as f64;
@@ -35,11 +38,13 @@ pub fn compute_sharpe_ratio(values: Vec<f64>) -> f64 {
     mean / std_deviation
 }
 
-/// Finds the volatility delta to match the target volatility, with respect to the current volatility difference between the assets.
+/// Finds the volatility delta to match the target volatility, with respect to
+/// the current volatility difference between the assets.
 /// - current_volatility: Current volatility of portfolio of assets.
 /// - target_volatility: Target volatility of portfolio of assets.
 /// - current_delta: Current volatility difference between the assets.
-/// - returns: Volatility delta to match the target volatility, in percentage units.
+/// - returns: Volatility delta to match the target volatility, in percentage
+///   units.
 pub fn compute_target_volatility_delta(
     current_volatility_pct: f64,
     target_volatility_pct: f64,
