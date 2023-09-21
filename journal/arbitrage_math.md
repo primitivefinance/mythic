@@ -58,7 +58,7 @@ $$
 p' =k^{1/w_y} \left(\frac{x+\delta_x}{w_x}\right)^{-1-w_x/w_y}
 $$
 $$
-\implies \boxed{ \delta_x = w_x\left(\frac{p'}{k^{1/w_y}}\right)^{1+w_x/w_y}-x}
+\implies \boxed{ \delta_x = w_x\left(\frac{p'}{k^{1/w_y}}\right)^{\frac{-1}{1+w_x/w_y}}-x}
 $$
 
 ### For Raising Price
@@ -76,5 +76,89 @@ $$
 p' = k^{-1/w_x} \left(\frac{y+\delta_y}{w_y}\right)^{1+w_y/w_x}
 $$
 $$
-\implies \boxed{ \delta_y = w_y\left(p'k^{1/w_x}\right)^{-1-w_y/w_x}-y}
+\implies \boxed{ \delta_y = w_y\left(p'k^{1/w_x}\right)^{\frac{1}{1+w_y/w_x}}-y}
+$$
+
+--- 
+
+# Using the other version of the equation
+
+## Starting work
+If instead the trading function is defined by:
+$$
+\psi(x,y) = x^{w_x} y^{w_y} = k
+$$
+where $w_x+w_y = 1$.
+
+We can solve for each variable in terms of the other and the invariant $k$:
+
+First, $x$:
+$$
+x^{w_x} = k y^{-w_y}\\
+$$
+
+$$
+\implies \boxed{ x = k^{1/w_x} y^{-w_y/w_x} }
+$$
+
+The work is analogous for $y$:
+$$
+\implies \boxed{y = k^{1/w_y} x^{-w_x/w_y}}
+$$
+
+Then we can get the price of the pool (for $x$ in terms of $y$):
+$$
+p = \frac{\nabla_x \psi}{\nabla_y \psi}
+$$
+for which:
+$$
+\begin{align*}
+\nabla_x \psi &= w_xx^{w_x-1}y^{w_y}\\
+\nabla_y \psi &= w_yx^{w_x}y^{w_y-1}
+\end{align*}
+$$
+therefore:
+$$
+p  = \frac{w_x}{w_y}\frac{y}{x}
+$$
+which is the same as before, which we expect since the difference was the trading function was just modified by a scalar.
+
+---
+
+## Getting the arbitrage calculation
+
+### For Lowering Price
+Suppose that we need the price to move $p\mapsto p'$ with $p'<p$. 
+This means we tender $x$ in the swap so $x\mapsto x+\delta_x$. 
+Then using our equation for $y$, we can write
+$$
+\begin{align*}
+p &= \frac{w_x}{w_y}\frac{k^{1/w_y} x^{-w_x/w_y} }{x}\\
+&=  \frac{w_x}{w_y}\frac{k^{1/w_y}}{ x^{1+w_x/w_y}}
+\end{align*}
+$$
+Then we want $p'$ and $x\mapsto x+\delta_x$:
+$$
+p' = \frac{w_x}{w_y}\frac{k^{1/w_y}}{ (x+\delta_x)^{1+w_x/w_y}}
+$$
+$$
+\implies \boxed{ \delta_x = \left(\frac{p' w_y}{k^{1/w_y}w_x}\right)^{\frac{-1}{1+w_x/w_y}} -x }
+$$
+
+### For Raising Price
+Suppose that we need the price to move $p\mapsto p'$ with $p'>p$. 
+This means we tender $x$ in the swap so $y\mapsto y+\delta_x$. 
+Then using our equation for $x$, we can write
+$$
+\begin{align*}
+p &= \frac{w_x}{w_y}\frac{y}{k^{1/w_x} y^{-w_y/w_x}}\\
+&= \frac{w_x}{w_y}\frac{y^{1+w_y/w_x}}{k^{1/w_x}}
+\end{align*}
+$$
+Then we want $p'$ and $y\mapsto y+\delta_y$:
+$$
+p' = \frac{w_x}{w_y}\frac{(y+\delta_y)^{1+w_y/w_x}}{k^{1/w_x}}
+$$
+$$
+\implies \boxed{ \delta_y = \left(\frac{p' w_yk^{1/w_x}}{w_x}\right)^{\frac{1}{1+w_y/w_x}} -y }
 $$
