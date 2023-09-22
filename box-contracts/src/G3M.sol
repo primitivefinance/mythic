@@ -44,22 +44,37 @@ library G3MMath {
     }
 
     /**
-     * @dev Computes the required amount of tokens to mint an exact amount of liquidity using the following formula:
+     * @dev Computes the required amount of tokens needed to mint an exact amount of liquidity using the following formula:
      *
-     *      ⎛⎛t + l⎞    ⎞
-     *  d = ⎜⎜─────⎟ - 1⎟ ⋅ r
-     *      ⎝⎝  t  ⎠    ⎠
+     *     ⎛⎛t + l⎞    ⎞
+     * d = ⎜⎜─────⎟ - 1⎟ ⋅ r
+     *     ⎝⎝  t  ⎠    ⎠
      *
      * @param t Total amount of liquidity in the pool
      * @param l Exact amount of liquidity to deposit
      * @param r Reserve of the input token
-     * @return d Required amount of tokens
+     * @return i Required amount of tokens
      */
-    function computeAmountInGivenExactLiquidity(uint256 t, uint256 l, uint256 r) internal pure returns (uint256 d) {
-        return (
-            FixedPoint.mulDown(FixedPoint.sub(FixedPoint.divDown(FixedPoint.add(t, l), t), FixedPoint.ONE), r)
-                / FixedPoint.ONE
-        );
+    function computeAmountInGivenExactLiquidity(uint256 t, uint256 l, uint256 r) internal pure returns (uint256 i) {
+        i = FixedPoint.mulDown(FixedPoint.sub(FixedPoint.divDown(FixedPoint.add(t, l), t), FixedPoint.ONE), r)
+            / FixedPoint.ONE;
+    }
+
+    /**
+     * @dev Computes the received amount of tokens after removing an exact amount of liquidity using the following formula:
+     *
+     *     ⎛    ⎛t - l⎞⎞
+     * o = ⎜1 - ⎜─────⎟⎟ ⋅ r
+     *     ⎝    ⎝  t  ⎠⎠
+     *
+     * @param t Total amount of liquidity in the pool
+     * @param l Exact amount of liquidity to withdraw
+     * @param r Reserve amount of output token
+     * @return o Received amount of tokens
+     */
+    function computeAmountOutGivenExactLiquidity(uint256 t, uint256 l, uint256 r) internal pure returns (uint256 o) {
+        o = FixedPoint.mulDown(FixedPoint.sub(FixedPoint.ONE, FixedPoint.divDown(FixedPoint.sub(t, l), t)), r)
+            / FixedPoint.ONE;
     }
 }
 
@@ -131,15 +146,16 @@ contract G3M is IG3M {
     function removeLiquidity(uint256 liquidity) external returns (uint256 amountX, uint256 amountY) {
         require(balanceOf[msg.sender] >= liquidity, "Insufficient liquidity");
 
-        // (amountX, amountY) = calculateRemoveAmounts(liquidity);
-
-        balanceOf[msg.sender] -= liquidity;
-        totalLiquidity -= liquidity;
-        // reserveX -= amountX * WAD;
-        // reserveY -= amountY * WAD;
+        amountX = G3MMath.computeAmountOutGivenExactLiquidity(totalLiquidity, liquidity, reserveX);
+        amountY = G3MMath.computeAmountOutGivenExactLiquidity(totalLiquidity, liquidity, reserveY);
 
         ERC20(tokenX).transfer(msg.sender, amountX);
         ERC20(tokenY).transfer(msg.sender, amountY);
+
+        balanceOf[msg.sender] -= liquidity;
+        totalLiquidity -= liquidity;
+        reserveX -= amountX * FixedPoint.ONE;
+        reserveY -= amountY * FixedPoint.ONE;
 
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
     }
