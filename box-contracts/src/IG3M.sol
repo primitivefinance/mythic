@@ -9,10 +9,7 @@ interface IG3M {
 
     function addLiquidity(uint256 liquidity) external returns (uint256 amountX, uint256 amountY);
     function removeLiquidity(uint256 liquidity) external returns (uint256 amountX, uint256 amountY);
-    function swap(bool swapDirection, uint256 input, uint256 output) external;
+    function swap(bool swapDirection, uint256 amountIn) external;
     function updatePrimaryWeight(uint256 newPrimaryWeight) external;
-    function getSpotPriceX() external view returns (uint256);
-    function getSpotPriceY() external view returns (uint256);
-    function getPrimaryWeight() external view returns (uint256);
-    function getSecondaryWeight() external view returns (uint256);
+    function getSpotPrice() external view returns (uint256);
 }
