@@ -69,10 +69,18 @@ contract G3MTest is Test {
         tokenX.approve(address(g3m), 100 ether);
         tokenY.approve(address(g3m), 100 ether);
 
-        g3m.addLiquidity(10 ether);
-        g3m.removeLiquidity(5 ether);
+        uint256 liquidity = g3m.initPool(5 ether, 5 ether);
+        (uint256 amountX, uint256 amountY) = g3m.removeLiquidity(liquidity / 2);
 
-        assertEq(g3m.balanceOf(address(this)), 5 ether);
+        assertEq(g3m.reserveX(), (5 ether * 10 ** 18) / 2);
+        assertEq(g3m.reserveY(), (5 ether * 10 ** 18) / 2);
+        assertApproxEqRel(g3m.totalLiquidity(), liquidity / 2, 1_000);
+
+        assertEq(amountX, 2.5 ether);
+        assertEq(amountY, 2.5 ether);
+
+        assertEq(tokenX.balanceOf(address(g3m)), 2.5 ether);
+        assertEq(tokenY.balanceOf(address(g3m)), 2.5 ether);
     }
 
     function test_swap() public {
