@@ -2,81 +2,8 @@
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
-import "./FixedPoint.sol";
+import "./G3MMath.sol";
 import "./IG3M.sol";
-
-library G3MMath {
-    /**
-     * @dev Computes the invariant of the pool using the following formula:
-     *
-     *        ⎛  wX⎞   ⎛  wY⎞
-     *    k = ⎝rX  ⎠ ⋅ ⎝rY  ⎠
-     *
-     * @param rX Reserve of token X
-     * @param wX Weight of token X
-     * @param rY Reserve of token Y
-     * @param wY Weight of token Y
-     * @return k Invariant of the pool
-     */
-    function computeInvariant(uint256 rX, uint256 wX, uint256 rY, uint256 wY) internal pure returns (uint256 k) {
-        k = FixedPoint.mulDown(FixedPoint.powDown(rX, wX), FixedPoint.powDown(rY, wY));
-    }
-
-    /**
-     * @dev Computes the spot price of a pool using the following formula:
-     *
-     *       rI
-     *       ──
-     *       wI
-     * p =  ────
-     *       rO
-     *       ──
-     *       wO
-     *
-     * @param rI Reserve of the input token
-     * @param wI Weight of the input token
-     * @param rO Reserve of the output token
-     * @param wO Weight of the output token
-     * @return p Spot price of the pool
-     */
-    function computeSpotPrice(uint256 rI, uint256 wI, uint256 rO, uint256 wO) internal pure returns (uint256 p) {
-        p = FixedPoint.divDown(FixedPoint.divDown(rI, wI), FixedPoint.divDown(rO, wO));
-    }
-
-    /**
-     * @dev Computes the required amount of tokens needed to mint an exact amount of liquidity using the following formula:
-     *
-     *     ⎛⎛t + l⎞    ⎞
-     * d = ⎜⎜─────⎟ - 1⎟ ⋅ r
-     *     ⎝⎝  t  ⎠    ⎠
-     *
-     * @param t Total amount of liquidity in the pool
-     * @param l Exact amount of liquidity to deposit
-     * @param r Reserve of the input token
-     * @return i Required amount of tokens
-     */
-    function computeAmountInGivenExactLiquidity(uint256 t, uint256 l, uint256 r) internal pure returns (uint256 i) {
-        i = FixedPoint.mulDown(FixedPoint.sub(FixedPoint.divDown(FixedPoint.add(t, l), t), FixedPoint.ONE), r)
-            / FixedPoint.ONE;
-    }
-
-    /**
-     * @dev Computes the received amount of tokens after removing an exact amount of liquidity using the following formula:
-     *
-     *     ⎛    ⎛t - l⎞⎞
-     * o = ⎜1 - ⎜─────⎟⎟ ⋅ r
-     *     ⎝    ⎝  t  ⎠⎠
-     *
-     * @param t Total amount of liquidity in the pool
-     * @param l Exact amount of liquidity to withdraw
-     * @param r Reserve amount of output token
-     * @return o Received amount of tokens
-     */
-    function computeAmountOutGivenExactLiquidity(uint256 t, uint256 l, uint256 r) internal pure returns (uint256 o) {
-        o = FixedPoint.mulDown(FixedPoint.sub(FixedPoint.ONE, FixedPoint.divDown(FixedPoint.sub(t, l), t)), r)
-            / FixedPoint.ONE;
-    }
-}
 
 contract G3M is IG3M {
     error InvalidSwap(uint256 expectedInvariant, uint256 actualInvariant);
@@ -88,6 +15,9 @@ contract G3M is IG3M {
     uint256 public totalLiquidity;
     uint256 public reserveX;
     uint256 public reserveY;
+
+    uint256 public constant MAX_INVARIANT_DELTA = 3e25;
+    uint256 public constant SWAP_FEE = 30; // 0.3%
 
     mapping(address => uint256) public balanceOf;
 
@@ -132,13 +62,14 @@ contract G3M is IG3M {
 
         amountX = G3MMath.computeAmountInGivenExactLiquidity(totalLiquidity, liquidity, reserveX);
         amountY = G3MMath.computeAmountInGivenExactLiquidity(totalLiquidity, liquidity, reserveY);
+
         ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
+
         emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
 
-        reserveX += amountX * FixedPoint.ONE;
-        reserveY += amountY * FixedPoint.ONE;
-
+        reserveX += G3MMath.toWad(amountX);
+        reserveY += G3MMath.toWad(amountY);
         balanceOf[msg.sender] += liquidity;
         totalLiquidity += liquidity;
     }
@@ -154,30 +85,90 @@ contract G3M is IG3M {
 
         balanceOf[msg.sender] -= liquidity;
         totalLiquidity -= liquidity;
-        reserveX -= amountX * FixedPoint.ONE;
-        reserveY -= amountY * FixedPoint.ONE;
+        reserveX -= G3MMath.toWad(amountX);
+        reserveY -= G3MMath.toWad(amountY);
 
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
     }
 
-    function swap(bool swapDirection, uint256 amountIn) external {
-        uint256 invariant;
+    function swapAmountIn(bool swapDirection, uint256 amountIn) external returns (uint256 amountOut) {
+        uint256 fees = amountIn * SWAP_FEE / 10_000;
+        uint256 amountInWithoutFees = amountIn - fees;
 
-        if (swapDirection) {} else {}
+        amountOut = G3MMath.computeOutGivenIn(
+            G3MMath.toWad(amountInWithoutFees),
+            swapDirection ? reserveX : reserveY,
+            swapDirection ? reserveY : reserveX,
+            swapDirection ? primaryWeight : FixedPoint.ONE - primaryWeight,
+            swapDirection ? FixedPoint.ONE - primaryWeight : primaryWeight
+        );
 
-        uint256 newInvariant;
+        uint256 invariant = G3MMath.computeInvariant(reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight);
 
-        if (invariant != newInvariant) {
+        if (swapDirection) {
+            reserveX += G3MMath.toWad(amountIn);
+            reserveY -= G3MMath.toWad(amountOut);
+        } else {
+            reserveX -= G3MMath.toWad(amountOut);
+            reserveY += G3MMath.toWad(amountIn);
+        }
+
+        uint256 newInvariant =
+            G3MMath.computeInvariant(reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight);
+
+        uint256 delta;
+
+        if (invariant > newInvariant) delta = invariant - newInvariant;
+        else delta = newInvariant - invariant;
+
+        if (delta > MAX_INVARIANT_DELTA) {
             revert InvalidSwap(invariant, newInvariant);
         }
 
         ERC20(swapDirection ? tokenX : tokenY).transferFrom(msg.sender, address(this), amountIn);
-        // ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
+        ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
 
-        // emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
     }
 
-    function getPriWeight() external view returns (uint256) {
+    function swapAmountOut(bool swapDirection, uint256 amountOut) external returns (uint256 amountIn) {
+        amountIn = G3MMath.computeInGivenOut(
+            G3MMath.toWad(amountOut),
+            swapDirection ? reserveX : reserveY,
+            swapDirection ? reserveY : reserveX,
+            swapDirection ? primaryWeight : FixedPoint.ONE - primaryWeight,
+            swapDirection ? FixedPoint.ONE - primaryWeight : primaryWeight
+        );
+
+        uint256 invariant = G3MMath.computeInvariant(reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight);
+
+        if (swapDirection) {
+            reserveX += G3MMath.toWad(amountIn);
+            reserveY -= G3MMath.toWad(amountOut);
+        } else {
+            reserveX -= G3MMath.toWad(amountOut);
+            reserveY += G3MMath.toWad(amountIn);
+        }
+
+        uint256 newInvariant =
+            G3MMath.computeInvariant(reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight);
+
+        uint256 delta;
+
+        if (invariant > newInvariant) delta = invariant - newInvariant;
+        else delta = newInvariant - invariant;
+
+        if (delta > MAX_INVARIANT_DELTA) {
+            revert InvalidSwap(invariant, newInvariant);
+        }
+
+        ERC20(swapDirection ? tokenX : tokenY).transferFrom(msg.sender, address(this), amountIn);
+        ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
+
+        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+    }
+
+    function getPrimaryWeight() external view returns (uint256) {
         return primaryWeight;
     }
 

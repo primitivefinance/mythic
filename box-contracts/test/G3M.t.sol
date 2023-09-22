@@ -13,80 +13,119 @@ contract G3MTest is Test {
     function setUp() public {
         tokenX = new MockERC20("TokenX", "X", 18);
         tokenY = new MockERC20("TokenY", "Y", 18);
+
+        tokenX.mint(address(this), 2000 ether);
+        tokenY.mint(address(this), 2000 ether);
+
         g3m = new G3M(address(tokenX), address(tokenY), 0.5 ether);
+
+        tokenX.approve(address(g3m), 2000 ether);
+        tokenY.approve(address(g3m), 2000 ether);
     }
 
-    /*
-    function test_updatePrimaryWeight(uint256 newPrimaryWeight) public {
-        vm.assume(newPrimaryWeight <= FixedPoint.ONE);
-        g3m.updatePrimaryWeight(newPrimaryWeight);
-        assertEq(g3m.weightX(), newPrimaryWeight);
-        assertEq(g3m.weightY(), FixedPoint.ONE - newPrimaryWeight);
-    }*/
-
     function test_computeInvariant() public {
-        uint256 invariant = G3MMath.computeInvariant(5 ether, 0.5 ether, 5 ether, 0.5 ether);
+        uint256 invariant = G3MMath.computeInvariant(750 ether, 0.5 ether, 250 ether, 0.5 ether);
         console.log(invariant);
     }
 
+    function test_computeSpotPrice() public {
+        uint256 spotPrice = G3MMath.computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
+        console.log(spotPrice);
+    }
+
     function test_initPool() public {
-        tokenX.mint(address(this), 100 ether);
-        tokenY.mint(address(this), 100 ether);
-        tokenX.approve(address(g3m), 100 ether);
-        tokenY.approve(address(g3m), 100 ether);
+        uint256 amountX = 750 ether;
+        uint256 amountY = 250 ether;
 
-        uint256 invariant = G3MMath.computeInvariant(5 ether, 0.5 ether, 5 ether, 0.5 ether);
-        uint256 liquidity = g3m.initPool(5 ether, 5 ether);
+        uint256 invariant = G3MMath.computeInvariant(amountX, 0.5 ether, amountY, 0.5 ether);
+        uint256 liquidity = g3m.initPool(amountX, amountY);
 
-        assertEq(tokenX.balanceOf(address(g3m)), 5 ether);
-        assertEq(tokenY.balanceOf(address(g3m)), 5 ether);
-        assertEq(g3m.reserveX(), 5 ether * 10 ** 18);
-        assertEq(g3m.reserveY(), 5 ether * 10 ** 18);
+        assertEq(tokenX.balanceOf(address(g3m)), amountX);
+        assertEq(tokenY.balanceOf(address(g3m)), amountY);
+        assertEq(g3m.reserveX(), amountX * 10 ** 18);
+        assertEq(g3m.reserveY(), amountY * 10 ** 18);
         assertEq(g3m.totalLiquidity(), liquidity);
         assertApproxEqRel(g3m.totalLiquidity(), invariant * 2, 1_000);
-        assertEq(g3m.getSpotPrice(), FixedPoint.ONE);
+        assertEq(g3m.getSpotPrice(), 3 * FixedPoint.ONE);
+    }
+
+    function test_computeAmountInGivenExactLiquidity() public {
+        uint256 amountX = 750 ether;
+        uint256 amountY = 250 ether;
+
+        uint256 liquidity = g3m.initPool(amountX, amountY);
+
+        uint256 amountIn = G3MMath.computeAmountInGivenExactLiquidity(g3m.totalLiquidity(), liquidity, g3m.reserveX());
+        console.log(amountIn);
     }
 
     function test_addLiquidity() public {
-        tokenX.mint(address(this), 100 ether);
-        tokenY.mint(address(this), 100 ether);
-        tokenX.approve(address(g3m), 100 ether);
-        tokenY.approve(address(g3m), 100 ether);
+        uint256 initAmountX = 750 ether;
+        uint256 initAmountY = 250 ether;
 
-        uint256 liquidity = g3m.initPool(5 ether, 5 ether);
+        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
 
         (uint256 amountX, uint256 amountY) = g3m.addLiquidity(liquidity);
-        assertEq(g3m.reserveX(), 10 ether * 10 ** 18);
-        assertEq(g3m.reserveY(), 10 ether * 10 ** 18);
+        assertEq(g3m.reserveX(), (initAmountX + amountX) * 10 ** 18);
+        assertEq(g3m.reserveY(), (initAmountY + amountY) * 10 ** 18);
         assertEq(g3m.totalLiquidity(), liquidity * 2);
-        assertEq(amountX, 5 ether);
-        assertEq(amountY, 5 ether);
+        assertEq(amountX, 750 ether);
+        assertEq(amountY, 250 ether);
+    }
+
+    function test_computeAmountOutGivenExactLiquidity() public {
+        uint256 amountX = 750 ether;
+        uint256 amountY = 250 ether;
+
+        uint256 liquidity = g3m.initPool(amountX, amountY);
+
+        uint256 amountOut =
+            G3MMath.computeAmountOutGivenExactLiquidity(g3m.totalLiquidity(), liquidity / 2, g3m.reserveX());
+        console.log(amountOut);
     }
 
     function test_removeLiquidity() public {
-        tokenX.mint(address(this), 100 ether);
-        tokenY.mint(address(this), 100 ether);
-        tokenX.approve(address(g3m), 100 ether);
-        tokenY.approve(address(g3m), 100 ether);
+        uint256 initAmountX = 750 ether;
+        uint256 initAmountY = 250 ether;
 
-        uint256 liquidity = g3m.initPool(5 ether, 5 ether);
+        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
         (uint256 amountX, uint256 amountY) = g3m.removeLiquidity(liquidity / 2);
 
-        assertEq(g3m.reserveX(), (5 ether * 10 ** 18) / 2);
-        assertEq(g3m.reserveY(), (5 ether * 10 ** 18) / 2);
+        assertEq(g3m.reserveX(), (initAmountX * 10 ** 18) / 2);
+        assertEq(g3m.reserveY(), (initAmountY * 10 ** 18) / 2);
         assertApproxEqRel(g3m.totalLiquidity(), liquidity / 2, 1_000);
 
-        assertEq(amountX, 2.5 ether);
-        assertEq(amountY, 2.5 ether);
+        assertEq(amountX, initAmountX / 2);
+        assertEq(amountY, initAmountY / 2);
 
-        assertEq(tokenX.balanceOf(address(g3m)), 2.5 ether);
-        assertEq(tokenY.balanceOf(address(g3m)), 2.5 ether);
+        assertEq(tokenX.balanceOf(address(g3m)), initAmountX / 2);
+        assertEq(tokenY.balanceOf(address(g3m)), initAmountY / 2);
     }
 
-    function test_swap() public {
-        test_addLiquidity();
+    function test_computeOutGivenIn() public {
+        g3m.initPool(750 ether, 250 ether);
+        uint256 amountOut = G3MMath.computeOutGivenIn(
+            50 ether * FixedPoint.ONE, g3m.reserveX(), g3m.reserveY(), g3m.getPrimaryWeight(), g3m.getSecondaryWeight()
+        );
 
-        g3m.updatePrimaryWeight(0.75 ether);
-        g3m.swap(true, 2.5 ether);
+        console.log(amountOut);
+    }
+
+    function test_swapAmountIn() public {
+        g3m.initPool(750 ether, 250 ether);
+        assertEq(tokenX.balanceOf(address(g3m)), 750 ether);
+        assertEq(tokenY.balanceOf(address(g3m)), 250 ether);
+        uint256 amountOut = g3m.swapAmountIn(true, 50 ether);
+        assertEq(tokenX.balanceOf(address(g3m)), 750 ether + 50 ether);
+        assertEq(tokenY.balanceOf(address(g3m)), 250 ether - amountOut);
+    }
+
+    function test_swapAmountOut() public {
+        g3m.initPool(750 ether, 250 ether);
+        assertEq(tokenX.balanceOf(address(g3m)), 750 ether);
+        assertEq(tokenY.balanceOf(address(g3m)), 250 ether);
+        uint256 amountIn = g3m.swapAmountOut(true, 50 ether);
+        assertEq(tokenX.balanceOf(address(g3m)), 750 ether + amountIn);
+        assertEq(tokenY.balanceOf(address(g3m)), 250 ether - 50 ether);
     }
 }
