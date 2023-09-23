@@ -24,12 +24,14 @@ contract G3MTest is Test {
     }
 
     function test_computeInvariant() public {
-        uint256 invariant = G3MMath.computeInvariant(750 ether, 0.5 ether, 250 ether, 0.5 ether);
+        uint256 invariant =
+            G3MMath.computeInvariant(750 ether, 0.5 ether, 250 ether, 0.5 ether);
         console.log(invariant);
     }
 
     function test_computeSpotPrice() public {
-        uint256 spotPrice = G3MMath.computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
+        uint256 spotPrice =
+            G3MMath.computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
         console.log(spotPrice);
     }
 
@@ -37,7 +39,8 @@ contract G3MTest is Test {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;
 
-        uint256 invariant = G3MMath.computeInvariant(amountX, 0.5 ether, amountY, 0.5 ether);
+        uint256 invariant =
+            G3MMath.computeInvariant(amountX, 0.5 ether, amountY, 0.5 ether);
         uint256 liquidity = g3m.initPool(amountX, amountY);
 
         assertEq(tokenX.balanceOf(address(g3m)), amountX);
@@ -55,7 +58,9 @@ contract G3MTest is Test {
 
         uint256 liquidity = g3m.initPool(amountX, amountY);
 
-        uint256 amountIn = G3MMath.computeAmountInGivenExactLiquidity(g3m.totalLiquidity(), liquidity, g3m.reserveX());
+        uint256 amountIn = G3MMath.computeAmountInGivenExactLiquidity(
+            g3m.totalLiquidity(), liquidity, g3m.reserveX()
+        );
         console.log(amountIn);
     }
 
@@ -79,8 +84,9 @@ contract G3MTest is Test {
 
         uint256 liquidity = g3m.initPool(amountX, amountY);
 
-        uint256 amountOut =
-            G3MMath.computeAmountOutGivenExactLiquidity(g3m.totalLiquidity(), liquidity / 2, g3m.reserveX());
+        uint256 amountOut = G3MMath.computeAmountOutGivenExactLiquidity(
+            g3m.totalLiquidity(), liquidity / 2, g3m.reserveX()
+        );
         console.log(amountOut);
     }
 
@@ -105,7 +111,11 @@ contract G3MTest is Test {
     function test_computeOutGivenIn() public {
         g3m.initPool(750 ether, 250 ether);
         uint256 amountOut = G3MMath.computeOutGivenIn(
-            50 ether * FixedPoint.ONE, g3m.reserveX(), g3m.reserveY(), g3m.getPrimaryWeight(), g3m.getSecondaryWeight()
+            50 ether * FixedPoint.ONE,
+            g3m.reserveX(),
+            g3m.reserveY(),
+            g3m.getPrimaryWeight(),
+            g3m.getSecondaryWeight()
         );
 
         console.log(amountOut);
@@ -115,9 +125,25 @@ contract G3MTest is Test {
         g3m.initPool(750 ether, 250 ether);
         assertEq(tokenX.balanceOf(address(g3m)), 750 ether);
         assertEq(tokenY.balanceOf(address(g3m)), 250 ether);
+        console.log(
+            G3MMath.computeInvariant(
+                g3m.reserveX(),
+                g3m.getPrimaryWeight(),
+                g3m.reserveY(),
+                g3m.getSecondaryWeight()
+            )
+        );
         uint256 amountOut = g3m.swapAmountIn(true, 50 ether);
         assertEq(tokenX.balanceOf(address(g3m)), 750 ether + 50 ether);
         assertEq(tokenY.balanceOf(address(g3m)), 250 ether - amountOut);
+        console.log(
+            G3MMath.computeInvariant(
+                g3m.reserveX(),
+                g3m.getPrimaryWeight(),
+                g3m.reserveY(),
+                g3m.getSecondaryWeight()
+            )
+        );
     }
 
     function test_swapAmountOut() public {

@@ -14,6 +14,7 @@ import "./IG3M.sol";
 // - Add min amounts on withdraw
 // - Add burnt liquidity on first deposit
 // - Fix invariant check on swap
+// - Merge `initPool` with `addLiquidity`
 contract G3M is IG3M {
     error InvalidSwap(uint256 expectedInvariant, uint256 actualInvariant);
 
@@ -124,6 +125,13 @@ contract G3M is IG3M {
         uint256 amountIn
     ) external returns (uint256 amountOut) {
         uint256 fees = amountIn * SWAP_FEE / 10_000;
+
+        if (swapDirection) {
+            reserveX += G3MMath.toWad(fees);
+        } else {
+            reserveY += G3MMath.toWad(fees);
+        }
+
         uint256 amountInWithoutFees = amountIn - fees;
 
         amountOut = G3MMath.computeOutGivenIn(
@@ -139,23 +147,18 @@ contract G3M is IG3M {
         );
 
         if (swapDirection) {
-            reserveX += G3MMath.toWad(amountIn);
+            reserveX += G3MMath.toWad(amountInWithoutFees);
             reserveY -= G3MMath.toWad(amountOut);
         } else {
             reserveX -= G3MMath.toWad(amountOut);
-            reserveY += G3MMath.toWad(amountIn);
+            reserveY += G3MMath.toWad(amountInWithoutFees);
         }
 
         uint256 newInvariant = G3MMath.computeInvariant(
             reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
         );
 
-        uint256 delta;
-
-        if (invariant > newInvariant) delta = invariant - newInvariant;
-        else delta = newInvariant - invariant;
-
-        if (delta > MAX_INVARIANT_DELTA) {
+        if (invariant >= newInvariant) {
             revert InvalidSwap(invariant, newInvariant);
         }
 
