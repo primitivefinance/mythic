@@ -5,16 +5,16 @@ import "solmate/tokens/ERC20.sol";
 import "./G3MMath.sol";
 import "./IG3M.sol";
 
-// TODO:
-// - Fix fees on swap
-// - Add single asset deposit
-// - Add single asset withdraw
-// - Add min or max amounts on swap
-// - Add max amounts on deposit
-// - Add min amounts on withdraw
-// - Add burnt liquidity on first deposit
-// - Fix invariant check on swap
-// - Merge `initPool` with `addLiquidity`
+/**
+ * @custom:todo A couple of things to consider:
+ * - Single asset deposits / withdrawals?
+ * - Min / max amounts on swaps?
+ * - Min amounts on deposits?
+ * - Max amounts on withdrawals?
+ * - Burnt liquidity on first deposit?
+ * - Invariant check on swaps?
+ * - Merge `initPool` with `addLiquidity`?
+ */
 contract G3M is IG3M {
     error InvalidSwap(uint256 expectedInvariant, uint256 actualInvariant);
 
@@ -26,7 +26,7 @@ contract G3M is IG3M {
     uint256 public reserveX;
     uint256 public reserveY;
 
-    uint256 public constant MAX_INVARIANT_DELTA = 3e25;
+    uint256 public constant MAX_INVARIANT_DELTA = 3e20;
     uint256 public constant SWAP_FEE = 30; // 0.3%
 
     mapping(address => uint256) public balanceOf;
@@ -61,7 +61,7 @@ contract G3M is IG3M {
         amountX *= FixedPoint.ONE;
         amountY *= FixedPoint.ONE;
 
-        uint256 invariant = G3MMath.computeInvariant(
+        uint256 invariant = G3MMath.computeInvariantDown(
             amountX, primaryWeight, amountY, FixedPoint.ONE - primaryWeight
         );
         liquidity = FixedPoint.mulDown(invariant, 2);
@@ -120,18 +120,21 @@ contract G3M is IG3M {
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
     }
 
+    /**
+     * @notice Swaps exactly `amountIn` tokens.
+     * @param swapDirection True to swap tokenX for tokenY, false otherwise.
+     * @param amountIn Exact amount sent by the sender.
+     * @return amountOut Amount received by the user.
+     */
     function swapAmountIn(
         bool swapDirection,
         uint256 amountIn
     ) external returns (uint256 amountOut) {
+        uint256 invariant = G3MMath.computeInvariantDown(
+            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+        );
+
         uint256 fees = amountIn * SWAP_FEE / 10_000;
-
-        if (swapDirection) {
-            reserveX += G3MMath.toWad(fees);
-        } else {
-            reserveY += G3MMath.toWad(fees);
-        }
-
         uint256 amountInWithoutFees = amountIn - fees;
 
         amountOut = G3MMath.computeOutGivenIn(
@@ -142,24 +145,27 @@ contract G3M is IG3M {
             swapDirection ? FixedPoint.ONE - primaryWeight : primaryWeight
         );
 
-        uint256 invariant = G3MMath.computeInvariant(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+        uint256 newInvariant = G3MMath.computeInvariantUp(
+            swapDirection
+                ? reserveX + G3MMath.toWad(amountInWithoutFees)
+                : reserveX - G3MMath.toWad(amountOut),
+            primaryWeight,
+            swapDirection
+                ? reserveY - G3MMath.toWad(amountOut)
+                : reserveY + G3MMath.toWad(amountInWithoutFees),
+            FixedPoint.ONE - primaryWeight
         );
 
+        if (invariant > newInvariant) {
+            revert InvalidSwap(invariant, newInvariant);
+        }
+
         if (swapDirection) {
-            reserveX += G3MMath.toWad(amountInWithoutFees);
+            reserveX += G3MMath.toWad(amountIn);
             reserveY -= G3MMath.toWad(amountOut);
         } else {
             reserveX -= G3MMath.toWad(amountOut);
-            reserveY += G3MMath.toWad(amountInWithoutFees);
-        }
-
-        uint256 newInvariant = G3MMath.computeInvariant(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
-        );
-
-        if (invariant >= newInvariant) {
-            revert InvalidSwap(invariant, newInvariant);
+            reserveY += G3MMath.toWad(amountIn);
         }
 
         ERC20(swapDirection ? tokenX : tokenY).transferFrom(
@@ -173,8 +179,12 @@ contract G3M is IG3M {
     function swapAmountOut(
         bool swapDirection,
         uint256 amountOut
-    ) external returns (uint256 amountIn) {
-        amountIn = G3MMath.computeInGivenOut(
+    ) external returns (uint256 amountInWithFees) {
+        uint256 invariant = G3MMath.computeInvariantUp(
+            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+        );
+
+        uint256 amountIn = G3MMath.computeInGivenOut(
             G3MMath.toWad(amountOut),
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
@@ -182,37 +192,37 @@ contract G3M is IG3M {
             swapDirection ? FixedPoint.ONE - primaryWeight : primaryWeight
         );
 
-        uint256 invariant = G3MMath.computeInvariant(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+        uint256 newInvariant = G3MMath.computeInvariantUp(
+            swapDirection
+                ? reserveX + G3MMath.toWad(amountIn)
+                : reserveX - G3MMath.toWad(amountOut),
+            primaryWeight,
+            swapDirection
+                ? reserveY - G3MMath.toWad(amountOut)
+                : reserveY + G3MMath.toWad(amountIn),
+            FixedPoint.ONE - primaryWeight
         );
 
-        if (swapDirection) {
-            reserveX += G3MMath.toWad(amountIn);
-            reserveY -= G3MMath.toWad(amountOut);
-        } else {
-            reserveX -= G3MMath.toWad(amountOut);
-            reserveY += G3MMath.toWad(amountIn);
-        }
-
-        uint256 newInvariant = G3MMath.computeInvariant(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
-        );
-
-        uint256 delta;
-
-        if (invariant > newInvariant) delta = invariant - newInvariant;
-        else delta = newInvariant - invariant;
-
-        if (delta > MAX_INVARIANT_DELTA) {
+        if (invariant > newInvariant) {
             revert InvalidSwap(invariant, newInvariant);
         }
 
+        amountInWithFees = amountIn * 10_000 / (10_000 - SWAP_FEE);
+
+        if (swapDirection) {
+            reserveX += G3MMath.toWad(amountInWithFees);
+            reserveY -= G3MMath.toWad(amountOut);
+        } else {
+            reserveX -= G3MMath.toWad(amountOut);
+            reserveY += G3MMath.toWad(amountInWithFees);
+        }
+
         ERC20(swapDirection ? tokenX : tokenY).transferFrom(
-            msg.sender, address(this), amountIn
+            msg.sender, address(this), amountInWithFees
         );
         ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
 
-        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+        emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
     }
 
     function getPrimaryWeight() external view returns (uint256) {
