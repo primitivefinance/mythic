@@ -2,9 +2,7 @@
 pragma solidity ^0.8.13;
 
 interface IG3M {
-    /**
-     * @notice Emitted when liquidity is added to the pool.
-     */
+    /// @notice Emitted when liquidity is added to the pool.
     event AddLiquidity(
         address indexed sender,
         uint256 liquidity,
@@ -12,9 +10,7 @@ interface IG3M {
         uint256 amountY
     );
 
-    /**
-     * @notice Emitted when liquidity is removed from the pool.
-     */
+    /// @notice Emitted when liquidity is removed from the pool.
     event RemoveLiquidity(
         address indexed sender,
         uint256 liquidity,
@@ -22,9 +18,7 @@ interface IG3M {
         uint256 amountY
     );
 
-    /**
-     * @notice Emitted when a swap occurs.
-     */
+    /// @notice Emitted when a swap occurs.
     event Swap(
         address indexed sender,
         bool swapDirection,
@@ -32,9 +26,7 @@ interface IG3M {
         uint256 output
     );
 
-    /**
-     * @notice Emitted when the weight of token X is updated.
-     */
+    /// @notice Emitted when the weight of token X is updated.
     event UpdateWeightX(uint256 oldWeightX, uint256 newWeightX);
 
     /**
@@ -85,48 +77,30 @@ interface IG3M {
      */
     function updateWeightX(uint256 newWeightX) external;
 
-    /**
-     * @notice Computes the spot price of token X in terms of token Y.
-     */
+    /// @notice Computes the spot price of token X in terms of token Y.
     function getSpotPrice() external view returns (uint256);
 
-    /**
-     * @notice Address of token X.
-     */
+    /// @notice Address of token X.
     function tokenX() external view returns (address);
 
-    /**
-     * @notice Address of token Y.
-     */
+    /// @notice Address of token Y.
     function tokenY() external view returns (address);
 
-    /**
-     * @notice Reserve of token X, stored in WAD.
-     */
+    /// @notice Reserve of token X, stored in WAD.
     function reserveX() external view returns (uint256);
 
-    /**
-     * @notice Reserve of token Y, stored in WAD.
-     */
+    /// @notice Reserve of token Y, stored in WAD.
     function reserveY() external view returns (uint256);
 
-    /**
-     * @notice Total units of liquidity in the pool.
-     */
+    /// @notice Total units of liquidity in the pool.
     function totalLiquidity() external view returns (uint256);
 
-    /**
-     * @notice Units of liquidity owned by `account`.
-     */
+    /// @notice Units of liquidity owned by `account`.
     function balanceOf(address account) external view returns (uint256);
 
-    /**
-     * @notice Weight of token X, expressed in WAD.
-     */
+    /// @notice Weight of token X, expressed in WAD.
     function weightX() external view returns (uint256);
 
-    /**
-     * @notice Weight of token Y, expressed in WAD.
-     */
+    /// @notice Weight of token Y, expressed in WAD.
     function weightY() external view returns (uint256);
 }

@@ -17,26 +17,46 @@ import "./IG3M.sol";
  * - Merge `initPool` with `addLiquidity`?
  */
 contract G3M is IG3M {
-    error InvalidSwap(uint256 expectedInvariant, uint256 actualInvariant);
+    /// @notice Thrown when the old invariant is greater than the new one.
+    error InvalidSwap(uint256 oldInvariant, uint256 newInvariant);
 
+    /// @notice Address of the admin of the contract. Note that the current
+    /// only access  control is to update the weights of the pool.
     address public admin;
+
+    /// @inheritdoc IG3M
     address public tokenX;
+
+    /// @inheritdoc IG3M
     address public tokenY;
+
+    /// @inheritdoc IG3M
     uint256 public weightX;
-    uint256 public totalLiquidity;
+
+    /// @inheritdoc IG3M
     uint256 public reserveX;
+
+    /// @inheritdoc IG3M
     uint256 public reserveY;
 
-    uint256 public constant MAX_INVARIANT_DELTA = 3e20;
-    uint256 public constant SWAP_FEE = 30; // 0.3%
+    /// @inheritdoc IG3M
+    uint256 public totalLiquidity;
 
     mapping(address => uint256) public balanceOf;
 
+    /// @notice Current swap fee (expressed in 10,000).
+    uint256 public constant SWAP_FEE = 30; // 0.3%
+
+    /// @dev Reverts if the sender is not the admin.
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not admin");
         _;
     }
 
+    /// @param tokenX_ Address of token X.
+    /// @param tokenY_ Address of token Y.
+    /// @param weightX_ Weight of token X, expressed in WAD (note that `weightY`
+    /// will be computed as `1 WAD - weightX`).
     constructor(address tokenX_, address tokenY_, uint256 weightX_) {
         require(tokenX == tokenY, "Invalid tokens");
         require(weightX_ <= FixedPoint.ONE, "Invalid weight");
@@ -46,11 +66,20 @@ contract G3M is IG3M {
         admin = msg.sender;
     }
 
+    /// @inheritdoc IG3M
     function updateWeightX(uint256 newWeightX) external onlyAdmin {
         emit UpdateWeightX(weightX, newWeightX);
         weightX = newWeightX;
     }
 
+    /// @notice Initializes the pool before any liquidity is added. This function
+    /// can only be called one.
+    /// @dev The reason why this function exists is that we need some initial
+    /// values before we can actually compute the liquidity and the related
+    /// tokens. Hence we simply compute the arbitrary amount of liquidity for
+    /// the first liquidity deposit.
+    /// Note that this function could be merged with `addLiquidity` but this
+    /// requires a little refactoring.
     function initPool(
         uint256 amountX,
         uint256 amountY
@@ -73,6 +102,7 @@ contract G3M is IG3M {
         reserveY += amountY;
     }
 
+    /// @inheritdoc IG3M
     function addLiquidity(uint256 liquidity)
         external
         returns (uint256 amountX, uint256 amountY)
@@ -97,6 +127,7 @@ contract G3M is IG3M {
         totalLiquidity += liquidity;
     }
 
+    /// @inheritdoc IG3M
     function removeLiquidity(uint256 liquidity)
         external
         returns (uint256 amountX, uint256 amountY)
@@ -121,12 +152,7 @@ contract G3M is IG3M {
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
     }
 
-    /**
-     * @notice Swaps exactly `amountIn` tokens.
-     * @param swapDirection True to swap tokenX for tokenY, false otherwise.
-     * @param amountIn Exact amount sent by the sender.
-     * @return amountOut Amount received by the user.
-     */
+    /// @inheritdoc IG3M
     function swapAmountIn(
         bool swapDirection,
         uint256 amountIn
@@ -177,6 +203,7 @@ contract G3M is IG3M {
         emit Swap(msg.sender, swapDirection, amountIn, amountOut);
     }
 
+    /// @inheritdoc IG3M
     function swapAmountOut(
         bool swapDirection,
         uint256 amountOut
@@ -226,10 +253,12 @@ contract G3M is IG3M {
         emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
     }
 
+    /// @inheritdoc IG3M
     function weightY() external view returns (uint256) {
-        return FixedPoint.ONE - weightY;
+        return FixedPoint.ONE - weightX;
     }
 
+    /// @inheritdoc IG3M
     function getSpotPrice() external view returns (uint256) {
         return G3MMath.computeSpotPrice(
             reserveX, weightX, reserveY, FixedPoint.ONE - weightX
