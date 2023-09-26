@@ -6,6 +6,7 @@ import "./G3MMath.sol";
 import "./IG3M.sol";
 
 /**
+ * @notice Geometric Mean Market Maker.
  * @custom:todo A couple of things to consider:
  * - Single asset deposits / withdrawals?
  * - Min / max amounts on swaps?
@@ -21,7 +22,7 @@ contract G3M is IG3M {
     address public admin;
     address public tokenX;
     address public tokenY;
-    uint256 public primaryWeight;
+    uint256 public weightX;
     uint256 public totalLiquidity;
     uint256 public reserveX;
     uint256 public reserveY;
@@ -36,18 +37,18 @@ contract G3M is IG3M {
         _;
     }
 
-    constructor(address tokenX_, address tokenY_, uint256 primaryWeight_) {
+    constructor(address tokenX_, address tokenY_, uint256 weightX_) {
         require(tokenX == tokenY, "Invalid tokens");
-        require(primaryWeight_ <= FixedPoint.ONE, "Invalid weight");
+        require(weightX_ <= FixedPoint.ONE, "Invalid weight");
         tokenX = tokenX_;
         tokenY = tokenY_;
-        primaryWeight = primaryWeight_;
+        weightX = weightX_;
         admin = msg.sender;
     }
 
-    function updatePrimaryWeight(uint256 newPrimaryWeight) external onlyAdmin {
-        emit UpdatePrimaryWeight(primaryWeight, newPrimaryWeight);
-        primaryWeight = newPrimaryWeight;
+    function updateWeightX(uint256 newWeightX) external onlyAdmin {
+        emit UpdateWeightX(weightX, newWeightX);
+        weightX = newWeightX;
     }
 
     function initPool(
@@ -62,7 +63,7 @@ contract G3M is IG3M {
         amountY *= FixedPoint.ONE;
 
         uint256 invariant = G3MMath.computeInvariantDown(
-            amountX, primaryWeight, amountY, FixedPoint.ONE - primaryWeight
+            amountX, weightX, amountY, FixedPoint.ONE - weightX
         );
         liquidity = FixedPoint.mulDown(invariant, 2);
 
@@ -131,7 +132,7 @@ contract G3M is IG3M {
         uint256 amountIn
     ) external returns (uint256 amountOut) {
         uint256 invariant = G3MMath.computeInvariantDown(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+            reserveX, weightX, reserveY, FixedPoint.ONE - weightX
         );
 
         uint256 fees = amountIn * SWAP_FEE / 10_000;
@@ -141,19 +142,19 @@ contract G3M is IG3M {
             G3MMath.toWad(amountInWithoutFees),
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
-            swapDirection ? primaryWeight : FixedPoint.ONE - primaryWeight,
-            swapDirection ? FixedPoint.ONE - primaryWeight : primaryWeight
+            swapDirection ? weightX : FixedPoint.ONE - weightX,
+            swapDirection ? FixedPoint.ONE - weightX : weightX
         );
 
         uint256 newInvariant = G3MMath.computeInvariantUp(
             swapDirection
                 ? reserveX + G3MMath.toWad(amountInWithoutFees)
                 : reserveX - G3MMath.toWad(amountOut),
-            primaryWeight,
+            weightX,
             swapDirection
                 ? reserveY - G3MMath.toWad(amountOut)
                 : reserveY + G3MMath.toWad(amountInWithoutFees),
-            FixedPoint.ONE - primaryWeight
+            FixedPoint.ONE - weightX
         );
 
         if (invariant > newInvariant) {
@@ -181,26 +182,26 @@ contract G3M is IG3M {
         uint256 amountOut
     ) external returns (uint256 amountInWithFees) {
         uint256 invariant = G3MMath.computeInvariantUp(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+            reserveX, weightX, reserveY, FixedPoint.ONE - weightX
         );
 
         uint256 amountIn = G3MMath.computeInGivenOut(
             G3MMath.toWad(amountOut),
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
-            swapDirection ? primaryWeight : FixedPoint.ONE - primaryWeight,
-            swapDirection ? FixedPoint.ONE - primaryWeight : primaryWeight
+            swapDirection ? weightX : FixedPoint.ONE - weightX,
+            swapDirection ? FixedPoint.ONE - weightX : weightX
         );
 
         uint256 newInvariant = G3MMath.computeInvariantUp(
             swapDirection
                 ? reserveX + G3MMath.toWad(amountIn)
                 : reserveX - G3MMath.toWad(amountOut),
-            primaryWeight,
+            weightX,
             swapDirection
                 ? reserveY - G3MMath.toWad(amountOut)
                 : reserveY + G3MMath.toWad(amountIn),
-            FixedPoint.ONE - primaryWeight
+            FixedPoint.ONE - weightX
         );
 
         if (invariant > newInvariant) {
@@ -225,17 +226,13 @@ contract G3M is IG3M {
         emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
     }
 
-    function getPrimaryWeight() external view returns (uint256) {
-        return primaryWeight;
-    }
-
-    function getSecondaryWeight() external view returns (uint256) {
-        return FixedPoint.ONE - primaryWeight;
+    function weightY() external view returns (uint256) {
+        return FixedPoint.ONE - weightY;
     }
 
     function getSpotPrice() external view returns (uint256) {
         return G3MMath.computeSpotPrice(
-            reserveX, primaryWeight, reserveY, FixedPoint.ONE - primaryWeight
+            reserveX, weightX, reserveY, FixedPoint.ONE - weightX
         );
     }
 }
