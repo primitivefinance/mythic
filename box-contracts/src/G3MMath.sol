@@ -111,7 +111,7 @@ library G3MMath {
      * The following formula is used:
      *
      *     ⎛⎛t + l⎞    ⎞
-     * d = ⎜⎜─────⎟ - 1⎟ ⋅ r
+     * i = ⎜⎜─────⎟ - 1⎟ ⋅ r
      *     ⎝⎝  t  ⎠    ⎠
      *
      * @param t Total amount of liquidity in the pool
