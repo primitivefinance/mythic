@@ -2,8 +2,21 @@
 
 ## Overview
 
-A few notes:
+This contract is very basic implementation of an Automated Market Maker using the
+Geometric Mean formula.
+
+## Usage
+
+First deploy the contract with the following parameters:
+- Two different tokens (X and Y) for the pool
+- The weight for the token X (expressed in WAD). Note that the weight of token Y will be 1 - weight of token X.
+
+Then, the pool needs to be initialized with an initial amount of liquidity. This is done by calling the `initPool` function and sending liquidity for both tokens. This will set the spot price of the pool and mint the initial amount of liquidity tokens.
+
+## Notes
+
 - Balancer FixedPoint library is used, it would be interesting to swap it for a more efficient one.
+- WAD units are often used but not explicitly mentioned in the code. This should be fixed.
 
 The following things are missing:
 - Single asset deposits / withdrawals
