@@ -7,14 +7,6 @@ import "./IG3M.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
- * @custom:todo A couple of things to consider:
- * - Single asset deposits / withdrawals?
- * - Min / max amounts on swaps?
- * - Min amounts on deposits?
- * - Max amounts on withdrawals?
- * - Burnt liquidity on first deposit?
- * - Invariant check on swaps?
- * - Merge `initPool` with `addLiquidity`?
  */
 contract G3M is IG3M {
     /// @notice Thrown when the old invariant is greater than the new one.
