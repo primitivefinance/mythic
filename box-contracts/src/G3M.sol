@@ -76,7 +76,7 @@ contract G3M is IG3M {
         uint256 amountX,
         uint256 amountY
     ) external returns (uint256 liquidity) {
-        require(totalLiquidity == 0, "Pool not initialized");
+        require(totalLiquidity == 0, "Pool already initialized");
         ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
 
