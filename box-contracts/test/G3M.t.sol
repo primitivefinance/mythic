@@ -67,6 +67,14 @@ contract G3MTest is Test {
         assertEq(g3m.getSpotPrice(), 3 * FixedPoint.ONE);
     }
 
+    function test_initPool_reverts_if_already_called() public {
+        uint256 amountX = 750 ether;
+        uint256 amountY = 250 ether;
+        g3m.initPool(amountX, amountY);
+        vm.expectRevert("Pool already initialized");
+        g3m.initPool(amountX, amountY);
+    }
+
     function test_computeAmountInGivenExactLiquidity() public {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;
@@ -77,6 +85,11 @@ contract G3MTest is Test {
             g3m.totalLiquidity(), liquidity, g3m.reserveX()
         );
         console.log(amountIn);
+    }
+
+    function test_addLiquidity_reverts_if_pool_not_initialized() public {
+        vm.expectRevert("Pool not initialized");
+        g3m.addLiquidity(100 ether);
     }
 
     function test_addLiquidity() public {
