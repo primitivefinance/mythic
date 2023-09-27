@@ -115,8 +115,8 @@ contract G3MTest is Test {
             50 ether * FixedPoint.ONE,
             g3m.reserveX(),
             g3m.reserveY(),
-            g3m.getPrimaryWeight(),
-            g3m.getSecondaryWeight()
+            g3m.weightX(),
+            g3m.weightY()
         );
 
         console.log(amountOut);
