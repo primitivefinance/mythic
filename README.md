@@ -10,6 +10,12 @@ Construct, implement, and model a portfolio strategy.
 cargo run
 ```
 
+## Run tests
+
+```bash
+cargo test --workspace
+```
+
 ## Crates
 - Core - Abstractions for portfolio management in rust
 - Simulation - Simulation loop, data logging, and agents

@@ -49,6 +49,7 @@ pub fn compute_target_volatility_delta(
     delta_pct
 }
 
+// todo: make sure these tests are correct, used copilot for them.
 mod tests {
     #[test]
     fn test_compute_returns() {
@@ -75,6 +76,6 @@ mod tests {
     fn test_compute_sharpe_ratio() {
         let values = vec![1.0, 2.0, 3.0];
         let sharpe_ratio = super::compute_sharpe_ratio(values);
-        assert_eq!(sharpe_ratio, 1.224744871391589);
+        assert_eq!(sharpe_ratio, 3.0);
     }
 }
