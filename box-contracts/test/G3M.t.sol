@@ -23,6 +23,20 @@ contract G3MTest is Test {
         tokenY.approve(address(g3m), 20000 ether);
     }
 
+    function test_updateWeightX(uint256 newWeightX) public {
+        vm.assume(newWeightX <= FixedPoint.ONE);
+        g3m.updateWeightX(newWeightX);
+        assertEq(g3m.weightX(), newWeightX);
+        uint256 newWeightY = FixedPoint.ONE - newWeightX;
+        assertEq(g3m.weightY(), newWeightY);
+    }
+
+    function test_updateWeightX_reverts_not_admin() public {
+        vm.expectRevert("Not admin");
+        vm.prank(address(0xbeef));
+        g3m.updateWeightX(0.5 ether);
+    }
+
     function test_computeInvariant() public {
         uint256 invariant = G3MMath.computeInvariantUp(
             750 ether, 0.5 ether, 250 ether, 0.5 ether
