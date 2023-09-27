@@ -79,6 +79,15 @@ contract G3MTest is Test {
         assertEq(amountY, 250 ether);
     }
 
+    function test_addLiquidity_maintains_spot_price() public {
+        uint256 initAmountX = 750 ether;
+        uint256 initAmountY = 250 ether;
+        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
+        uint256 oldSpotPrice = g3m.getSpotPrice();
+        g3m.addLiquidity(liquidity);
+        assertEq(g3m.getSpotPrice(), oldSpotPrice);
+    }
+
     function test_computeAmountOutGivenExactLiquidity() public {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;
@@ -107,6 +116,15 @@ contract G3MTest is Test {
 
         assertEq(tokenX.balanceOf(address(g3m)), initAmountX / 2);
         assertEq(tokenY.balanceOf(address(g3m)), initAmountY / 2);
+    }
+
+    function test_removeLiquidity_maintain_spot_price() public {
+        uint256 initAmountX = 750 ether;
+        uint256 initAmountY = 250 ether;
+        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
+        uint256 oldSpotPrice = g3m.getSpotPrice();
+        g3m.removeLiquidity(liquidity / 2);
+        assertEq(g3m.getSpotPrice(), oldSpotPrice);
     }
 
     function test_computeOutGivenIn() public {
