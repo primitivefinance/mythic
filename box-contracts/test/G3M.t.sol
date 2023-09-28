@@ -57,7 +57,7 @@ contract G3MTest is Test {
     }
 
     function test_updateWeightX(uint256 newWeightX) public {
-        vm.assume(newWeightX <= MAX_WEIGHT);
+        vm.assume(newWeightX >= MIN_WEIGHT && newWeightX <= MAX_WEIGHT);
         g3m.updateWeightX(newWeightX);
         assertEq(g3m.weightX(), newWeightX);
         uint256 newWeightY = FixedPoint.ONE - newWeightX;
