@@ -48,16 +48,17 @@ contract G3M is IG3M {
     /// will be computed as `1 WAD - weightX`).
     constructor(address tokenX_, address tokenY_, uint256 weightX_) {
         require(tokenX_ != tokenY_, "Invalid tokens");
-        require(weightX_ >= MIN_WEIGHT, "Weight X too low");
-        require(weightX_ <= MAX_WEIGHT, "Weight X too high");
         tokenX = tokenX_;
         tokenY = tokenY_;
-        weightX = weightX_;
         admin = msg.sender;
+        updateWeightX(weightX_);
     }
 
     /// @inheritdoc IG3M
-    function updateWeightX(uint256 newWeightX) external onlyAdmin {
+    function updateWeightX(uint256 newWeightX) public onlyAdmin {
+        require(newWeightX >= MIN_WEIGHT, "Weight X too low");
+        require(newWeightX <= MAX_WEIGHT, "Weight X too high");
+        weightX = newWeightX;
         emit UpdateWeightX(weightX, newWeightX);
         weightX = newWeightX;
     }
