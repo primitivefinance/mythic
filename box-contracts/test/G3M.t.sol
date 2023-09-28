@@ -24,21 +24,21 @@ contract G3MTest is Test {
     }
 
     function test_constructor_max_weight() public {
-        g3m =
-            new G3M(address(tokenX), address(tokenY), FixedPoint.ONE - 0.01e18);
-        assertEq(g3m.weightX(), FixedPoint.ONE - 0.01e18);
-        assertEq(g3m.weightY(), 0.01e18);
+        g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT);
+        assertEq(g3m.weightX(), MAX_WEIGHT);
+        assertEq(g3m.weightY(), MIN_WEIGHT);
     }
 
     function test_constructor_min_weight() public {
-        g3m = new G3M(address(tokenX), address(tokenY), 0.01e18);
-        assertEq(g3m.weightX(), 0.01e18);
-        assertEq(g3m.weightY(), FixedPoint.ONE - 0.01e18);
+        g3m = new G3M(address(tokenX), address(tokenY), MIN_WEIGHT);
+        assertEq(g3m.weightX(), MIN_WEIGHT);
+        assertEq(g3m.weightY(), MAX_WEIGHT);
     }
 
     function test_constructor_weights(uint256 weightX) public {
-        vm.assume(weightX >= 0.01e18 && weightX <= FixedPoint.ONE - 0.01e18);
+        vm.assume(weightX >= MIN_WEIGHT && weightX <= MAX_WEIGHT);
         assertEq(g3m.weightX() + g3m.weightY(), FixedPoint.ONE);
+        assertEq(MIN_WEIGHT + MAX_WEIGHT, FixedPoint.ONE);
     }
 
     function test_constructor_reverts_invalid_tokens() public {
@@ -48,17 +48,16 @@ contract G3MTest is Test {
 
     function test_constructor_reverts_invalid_max_weight() public {
         vm.expectRevert("Weight X too high");
-        g3m =
-        new G3M(address(tokenX), address(tokenY), FixedPoint.ONE - 0.01e18 + 1);
+        g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT + 1);
     }
 
     function test_constructor_reverts_invalid_min_weight() public {
         vm.expectRevert("Weight X too low");
-        g3m = new G3M(address(tokenX), address(tokenY), 0.01e18 - 1);
+        g3m = new G3M(address(tokenX), address(tokenY), MIN_WEIGHT - 1);
     }
 
     function test_updateWeightX(uint256 newWeightX) public {
-        vm.assume(newWeightX <= FixedPoint.ONE);
+        vm.assume(newWeightX <= MAX_WEIGHT);
         g3m.updateWeightX(newWeightX);
         assertEq(g3m.weightX(), newWeightX);
         uint256 newWeightY = FixedPoint.ONE - newWeightX;
@@ -96,7 +95,7 @@ contract G3MTest is Test {
         assertEq(g3m.reserveX(), amountX * 10 ** 18);
         assertEq(g3m.reserveY(), amountY * 10 ** 18);
         assertEq(g3m.totalLiquidity(), liquidity + BURNT_LIQUIDITY);
-        assertEq(g3m.getSpotPrice(), 3 * FixedPoint.ONE);
+        assertEq(g3m.getSpotPrice(), toWad(3));
         assertEq(g3m.balanceOf(address(this)), liquidity);
         assertEq(g3m.balanceOf(address(0)), 1_000);
 
@@ -199,7 +198,7 @@ contract G3MTest is Test {
     function test_computeOutGivenIn() public {
         g3m.initPool(750 ether, 250 ether);
         uint256 amountOut = computeOutGivenIn(
-            50 ether * FixedPoint.ONE,
+            toWad(50 ether),
             g3m.reserveX(),
             g3m.reserveY(),
             g3m.weightX(),
