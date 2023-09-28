@@ -34,6 +34,7 @@ contract G3M is IG3M {
     /// @inheritdoc IG3M
     uint256 public totalLiquidity;
 
+    /// @inheritdoc IG3M
     mapping(address => uint256) public balanceOf;
 
     /// @dev Reverts if the sender is not the admin.
