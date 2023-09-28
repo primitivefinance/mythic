@@ -36,6 +36,14 @@ contract G3M is IG3M {
 
     mapping(address => uint256) public balanceOf;
 
+    /**
+     * @notice Amount of liquidity burnt when a pool is initialized for the
+     * first time. Main reason is mainly to avoid the case where the pool
+     * gets totally drained and someone calls `initPool` again.
+     * @custom:todo Check if the amount is correct?
+     */
+    uint256 public constant BURNT_LIQUIDITY = 1000;
+
     /// @notice Current swap fee (expressed in 10,000).
     uint256 public constant SWAP_FEE = 30; // 0.3%
 
