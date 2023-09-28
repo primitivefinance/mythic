@@ -42,10 +42,16 @@ contract G3M is IG3M {
      * gets totally drained and someone calls `initPool` again.
      * @custom:todo Check if the amount is correct?
      */
-    uint256 public constant BURNT_LIQUIDITY = 1000;
+    uint256 public constant BURNT_LIQUIDITY = 1_000;
 
     /// @notice Current swap fee (expressed in 10,000).
     uint256 public constant SWAP_FEE = 30; // 0.3%
+
+    /// @notice Minimum weight of a token in the pool.
+    uint256 public constant MIN_WEIGHT = 0.01e18;
+
+    /// @notice Maximum weight of a token in the pool.
+    uint256 public constant MAX_WEIGHT = FixedPoint.ONE - MIN_WEIGHT;
 
     /// @dev Reverts if the sender is not the admin.
     modifier onlyAdmin() {
@@ -58,8 +64,9 @@ contract G3M is IG3M {
     /// @param weightX_ Weight of token X, expressed in WAD (note that `weightY`
     /// will be computed as `1 WAD - weightX`).
     constructor(address tokenX_, address tokenY_, uint256 weightX_) {
-        require(tokenX == tokenY, "Invalid tokens");
-        require(weightX_ <= FixedPoint.ONE, "Invalid weight");
+        require(tokenX_ != tokenY_, "Invalid tokens");
+        require(weightX_ >= MIN_WEIGHT, "Weight X too low");
+        require(weightX_ <= MAX_WEIGHT, "Weight X too high");
         tokenX = tokenX_;
         tokenY = tokenY_;
         weightX = weightX_;
