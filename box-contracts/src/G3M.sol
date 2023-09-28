@@ -76,7 +76,7 @@ contract G3M is IG3M {
     function initPool(
         uint256 amountX,
         uint256 amountY
-    ) external returns (uint256 liquidity) {
+    ) external returns (uint256) {
         require(totalLiquidity == 0, "Pool already initialized");
         ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
@@ -87,12 +87,15 @@ contract G3M is IG3M {
         uint256 invariant = G3MMath.computeInvariantDown(
             amountX, weightX, amountY, FixedPoint.ONE - weightX
         );
-        liquidity = FixedPoint.mulDown(invariant, 2);
+        uint256 liquidity = FixedPoint.mulDown(invariant, 2);
 
         totalLiquidity += liquidity;
-        balanceOf[msg.sender] += liquidity;
+        balanceOf[msg.sender] += liquidity - BURNT_LIQUIDITY;
+        balanceOf[address(0)] += BURNT_LIQUIDITY;
         reserveX += amountX;
         reserveY += amountY;
+
+        return liquidity - BURNT_LIQUIDITY;
     }
 
     /// @inheritdoc IG3M
