@@ -30,6 +30,25 @@ interface IG3M {
     event UpdateWeightX(uint256 oldWeightX, uint256 newWeightX);
 
     /**
+     * @notice Initializes the pool before any liquidity can be added. This
+     * function can only be called once. Note that the ratio between `amountX`
+     * and `amountY` will determine the initial spot price of the pool.
+     * @dev The reason why this function exists is that we need some initial
+     * values before we can actually compute anything. Hence we calculate the
+     * initial quantity of liquidity by multiplying the invariant by 2.
+     * Note that this function could be merged with `addLiquidity` but this
+     * requires a little bit of refactoring.
+     * @param amountX Amount of token X to deposit
+     * @param amountY Amount of token Y to deposit
+     * @return liquidity Amount of liquidity received by the sender (minus the
+     * initial burnt liquidity)
+     */
+    function initPool(
+        uint256 amountX,
+        uint256 amountY
+    ) external returns (uint256 liquidity);
+
+    /**
      * @notice Adds `liquidity` units of liquidity to the pool.
      * @param liquidity Amount of liquidity to add
      * @return amountX Amount of token X used to add liquidity

@@ -72,14 +72,7 @@ contract G3M is IG3M {
         weightX = newWeightX;
     }
 
-    /// @notice Initializes the pool before any liquidity is added. This function
-    /// can only be called one.
-    /// @dev The reason why this function exists is that we need some initial
-    /// values before we can actually compute the liquidity and the related
-    /// tokens. Hence we simply compute the arbitrary amount of liquidity for
-    /// the first liquidity deposit.
-    /// Note that this function could be merged with `addLiquidity` but this
-    /// requires a little refactoring.
+    /// @inheritdoc IG3M
     function initPool(
         uint256 amountX,
         uint256 amountY
