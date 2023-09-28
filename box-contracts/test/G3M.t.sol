@@ -23,6 +23,24 @@ contract G3MTest is Test {
         tokenY.approve(address(g3m), 20000 ether);
     }
 
+    function test_constructor_max_weight() public {
+        g3m =
+            new G3M(address(tokenX), address(tokenY), FixedPoint.ONE - 0.01e18);
+        assertEq(g3m.weightX(), FixedPoint.ONE - 0.01e18);
+        assertEq(g3m.weightY(), 0.01e18);
+    }
+
+    function test_constructor_min_weight() public {
+        g3m = new G3M(address(tokenX), address(tokenY), 0.01e18);
+        assertEq(g3m.weightX(), 0.01e18);
+        assertEq(g3m.weightY(), FixedPoint.ONE - 0.01e18);
+    }
+
+    function test_constructor_weights(uint256 weightX) public {
+        vm.assume(weightX >= 0.01e18 && weightX <= FixedPoint.ONE - 0.01e18);
+        assertEq(g3m.weightX() + g3m.weightY(), FixedPoint.ONE);
+    }
+
     function test_constructor_reverts_invalid_tokens() public {
         vm.expectRevert("Invalid tokens");
         g3m = new G3M(address(tokenX), address(tokenX), 0.5 ether);
