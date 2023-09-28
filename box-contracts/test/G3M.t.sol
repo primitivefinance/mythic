@@ -72,15 +72,14 @@ contract G3MTest is Test {
     }
 
     function test_computeInvariant() public view {
-        uint256 invariant = G3MMath.computeInvariantUp(
-            750 ether, 0.5 ether, 250 ether, 0.5 ether
-        );
+        uint256 invariant =
+            computeInvariantUp(750 ether, 0.5 ether, 250 ether, 0.5 ether);
         console.log(invariant);
     }
 
     function test_computeSpotPrice() public view {
         uint256 spotPrice =
-            G3MMath.computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
+            computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
         console.log(spotPrice);
     }
 
@@ -89,7 +88,7 @@ contract G3MTest is Test {
         uint256 amountY = 250 ether;
 
         uint256 invariant =
-            G3MMath.computeInvariantDown(amountX, 0.5 ether, amountY, 0.5 ether);
+            computeInvariantDown(amountX, 0.5 ether, amountY, 0.5 ether);
         uint256 liquidity = g3m.initPool(amountX, amountY);
 
         assertEq(tokenX.balanceOf(address(g3m)), amountX);
@@ -125,7 +124,7 @@ contract G3MTest is Test {
 
         uint256 liquidity = g3m.initPool(amountX, amountY);
 
-        uint256 amountIn = G3MMath.computeAmountInGivenExactLiquidity(
+        uint256 amountIn = computeAmountInGivenExactLiquidity(
             g3m.totalLiquidity(), liquidity, g3m.reserveX()
         );
         console.log(amountIn);
@@ -166,7 +165,7 @@ contract G3MTest is Test {
 
         uint256 liquidity = g3m.initPool(amountX, amountY);
 
-        uint256 amountOut = G3MMath.computeAmountOutGivenExactLiquidity(
+        uint256 amountOut = computeAmountOutGivenExactLiquidity(
             g3m.totalLiquidity(), liquidity / 2, g3m.reserveX()
         );
         console.log(amountOut);
@@ -201,7 +200,7 @@ contract G3MTest is Test {
 
     function test_computeOutGivenIn() public {
         g3m.initPool(750 ether, 250 ether);
-        uint256 amountOut = G3MMath.computeOutGivenIn(
+        uint256 amountOut = computeOutGivenIn(
             50 ether * FixedPoint.ONE,
             g3m.reserveX(),
             g3m.reserveY(),
