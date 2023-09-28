@@ -36,23 +36,6 @@ contract G3M is IG3M {
 
     mapping(address => uint256) public balanceOf;
 
-    /**
-     * @notice Amount of liquidity burnt when a pool is initialized for the
-     * first time. Main reason is mainly to avoid the case where the pool
-     * gets totally drained and someone calls `initPool` again.
-     * @custom:todo Check if the amount is correct?
-     */
-    uint256 public constant BURNT_LIQUIDITY = 1_000;
-
-    /// @notice Current swap fee (expressed in 10,000).
-    uint256 public constant SWAP_FEE = 30; // 0.3%
-
-    /// @notice Minimum weight of a token in the pool.
-    uint256 public constant MIN_WEIGHT = 0.01e18;
-
-    /// @notice Maximum weight of a token in the pool.
-    uint256 public constant MAX_WEIGHT = FixedPoint.ONE - MIN_WEIGHT;
-
     /// @dev Reverts if the sender is not the admin.
     modifier onlyAdmin() {
         require(msg.sender == admin, "Not admin");

@@ -4,6 +4,23 @@ pragma solidity ^0.8.13;
 import "./FixedPoint.sol";
 
 /**
+ * @dev Amount of liquidity burnt when a pool is initialized for the
+ * first time. Main reason is mainly to avoid the case where the pool
+ * gets totally drained and someone calls `initPool` again.
+ * @custom:todo Check if the amount is correct?
+ */
+uint256 constant BURNT_LIQUIDITY = 1_000;
+
+/// @dev Current swap fee (expressed in 10,000).
+uint256 constant SWAP_FEE = 30; // 0.3%
+
+/// @dev Minimum weight of a token in the pool.
+uint256 constant MIN_WEIGHT = 0.01e18;
+
+/// @dev Maximum weight of a token in the pool.
+uint256 constant MAX_WEIGHT = FixedPoint.ONE - MIN_WEIGHT;
+
+/**
  * @dev Converts a fixed-point number to an unsigned integer.
  * @param a Fixed-point number to convert
  * @return b Unsigned integer representation of the fixed-point number
