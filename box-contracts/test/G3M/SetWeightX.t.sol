@@ -16,11 +16,24 @@ contract SetWeightX is SetUp {
     }
     */
 
-    function test_setWeightX_UpdatesLastWeightX() public {
+    function test_setWeightX_ReachesTargetWeightAfterTargetDate() public {
         uint256 newTargetWeightX = 0.75 ether;
         g3m.setWeightX(newTargetWeightX, block.timestamp + 1 weeks);
         assertEq(g3m.weightX(), 0.5 ether);
         assertEq(g3m.weightY(), 0.5 ether);
+        vm.warp(block.timestamp + 1 weeks);
+        assertEq(g3m.weightX(), 0.75 ether);
+        assertEq(g3m.weightY(), 0.25 ether);
+    }
+
+    function test_setWeightX_UpdatesWeightGradually() public {
+        uint256 newTargetWeightX = 0.7 ether;
+        g3m.setWeightX(newTargetWeightX, block.timestamp + 20_000);
+        assertEq(g3m.weightX(), 0.5 ether);
+        assertEq(g3m.weightY(), 0.5 ether);
+        vm.warp(block.timestamp + 10_000);
+        assertEq(g3m.weightX(), 0.6 ether);
+        assertEq(g3m.weightY(), 0.4 ether);
     }
 
     function test_setWeightX_Revert_NotAdmin() public {
