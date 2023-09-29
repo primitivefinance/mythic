@@ -35,7 +35,7 @@ contract G3M is IG3M {
     mapping(address => uint256) public balanceOf;
 
     uint256 private lastWeightX;
-    uint256 private lastWeightXUpdate;
+    uint256 private lastWeightXSync;
 
     uint256 private targetWeightX;
     uint256 private weightXUpdateEnd;
@@ -59,9 +59,13 @@ contract G3M is IG3M {
         updateWeightX(weightX_, block.timestamp, 0);
     }
 
+    /**
+     * @dev Computes and stores the current weight of token X, as well as the
+     * timestamp of the last weight sync.
+     */
     function _syncWeightX() private {
         lastWeightX = weightX();
-        lastWeightXUpdate = block.timestamp;
+        lastWeightXSync = block.timestamp;
     }
 
     function updateWeightX(
@@ -271,7 +275,7 @@ contract G3M is IG3M {
             return targetWeightX;
         }
 
-        uint256 timeElapsed = block.timestamp - lastWeightXUpdate;
+        uint256 timeElapsed = block.timestamp - lastWeightXSync;
         uint256 weightXDelta = timeElapsed * weightXUpdatePerSecond;
 
         if (lastWeightX > targetWeightX) {
