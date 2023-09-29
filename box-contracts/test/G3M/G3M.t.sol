@@ -39,17 +39,4 @@ contract G3MTest is Setup {
         );
         console.log(amountOut);
     }
-
-    function test_computeOutGivenIn() public {
-        g3m.initPool(750 ether, 250 ether);
-        uint256 amountOut = computeOutGivenIn(
-            toWad(50 ether),
-            g3m.reserveX(),
-            g3m.reserveY(),
-            g3m.weightX(),
-            g3m.weightY()
-        );
-
-        console.log(amountOut);
-    }
 }
