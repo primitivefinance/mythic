@@ -30,6 +30,11 @@ contract SetWeightX is SetUp {
         g3m.setWeightX(0.5 ether, block.timestamp);
     }
 
+    function test_Revert_UpdateEndPasted() public {
+        vm.expectRevert("Update end pasted");
+        g3m.setWeightX(0.5 ether, block.timestamp - 1);
+    }
+
     function testFuzz_setWeightX_Revert_WeightXTooLow(uint256 newTargetWeightX)
         public
     {
