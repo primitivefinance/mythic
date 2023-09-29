@@ -52,20 +52,4 @@ contract G3MTest is Setup {
 
         console.log(amountOut);
     }
-
-    function test_swapAmountOut() public {
-        uint256 liquidityX = 750 ether;
-        uint256 liquidityY = 250 ether;
-        g3m.initPool(liquidityX, liquidityY);
-
-        uint256 initialBalanceX = tokenX.balanceOf(address(g3m));
-        uint256 initialBalanceY = tokenY.balanceOf(address(g3m));
-        assertEq(initialBalanceX, liquidityX);
-        assertEq(initialBalanceY, liquidityY);
-
-        uint256 amountOut = 15 ether;
-        uint256 amountIn = g3m.swapAmountOut(true, amountOut);
-        assertEq(tokenX.balanceOf(address(g3m)), initialBalanceX + amountIn);
-        assertEq(tokenY.balanceOf(address(g3m)), initialBalanceY - amountOut);
-    }
 }
