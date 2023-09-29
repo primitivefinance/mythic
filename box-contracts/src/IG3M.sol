@@ -102,8 +102,7 @@ interface IG3M {
      */
     function updateWeightX(
         uint256 newTargetWeightX,
-        uint256 newWeightXUpdateEnd,
-        uint256 newWeightXUpdatePerSecond
+        uint256 newWeightXUpdateEnd
     ) external;
 
     /// @notice Computes the spot price of token X in terms of token Y.

@@ -56,7 +56,19 @@ contract G3M is IG3M {
         tokenX = tokenX_;
         tokenY = tokenY_;
         admin = msg.sender;
-        updateWeightX(weightX_, block.timestamp, 0);
+
+        // TODO: Maybe we can reuse an existing function to replace these lines?
+        // It's a bit annoying because we need to initialize these values before
+        // we can actually call `updateWeightX`.
+        require(weightX_ >= MIN_WEIGHT, "Weight X too low");
+        require(weightX_ <= MAX_WEIGHT, "Weight X too high");
+        targetWeightX = weightX_;
+        weightXUpdateEnd = block.timestamp;
+
+        // TODO: Not sure if we need to initialize these two values since the
+        // `_syncWeightX` function will update them anyway?
+        lastWeightX = weightX_;
+        lastWeightXSync = block.timestamp;
     }
 
     /**
@@ -70,21 +82,21 @@ contract G3M is IG3M {
 
     function updateWeightX(
         uint256 newTargetWeightX,
-        uint256 newWeightXUpdateEnd,
-        uint256 newWeightXUpdatePerSecond
+        uint256 newWeightXUpdateEnd
     ) public onlyAdmin {
         require(newTargetWeightX >= MIN_WEIGHT, "Weight X too low");
         require(newTargetWeightX <= MAX_WEIGHT, "Weight X too high");
+        require(newWeightXUpdateEnd >= block.timestamp, "Update end pasted");
 
         _syncWeightX();
 
+        uint256 weightXDelta = lastWeightX > newTargetWeightX
+            ? lastWeightX - newTargetWeightX
+            : newTargetWeightX - lastWeightX;
+        weightXUpdatePerSecond =
+            weightXDelta / (newWeightXUpdateEnd - block.timestamp);
         targetWeightX = newTargetWeightX;
         weightXUpdateEnd = newWeightXUpdateEnd;
-        weightXUpdatePerSecond = newWeightXUpdatePerSecond;
-
-        emit SetTargetWeightX(
-            newTargetWeightX, newWeightXUpdateEnd, newWeightXUpdatePerSecond
-        );
     }
 
     /// @inheritdoc IG3M
