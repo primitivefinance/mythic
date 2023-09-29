@@ -27,7 +27,7 @@ interface IG3M {
     );
 
     /// @notice Emitted when the weight of token X is updated.
-    event UpdateWeightX(uint256 oldWeightX, uint256 newWeightX);
+    event SetWeightX(uint256 oldWeightX, uint256 newWeightX);
 
     event SetTargetWeightX(
         uint256 newTargetWeightX,
@@ -100,7 +100,7 @@ interface IG3M {
      * @notice Updates the weight of token X.
      * @param newTargetWeightX New weight of token X expressed in WAD
      */
-    function updateWeightX(
+    function setWeightX(
         uint256 newTargetWeightX,
         uint256 newWeightXUpdateEnd
     ) external;

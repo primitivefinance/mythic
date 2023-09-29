@@ -59,7 +59,7 @@ contract G3M is IG3M {
 
         // TODO: Maybe we can reuse an existing function to replace these lines?
         // It's a bit annoying because we need to initialize these values before
-        // we can actually call `updateWeightX`.
+        // we can actually call `setWeightX`.
         require(weightX_ >= MIN_WEIGHT, "Weight X too low");
         require(weightX_ <= MAX_WEIGHT, "Weight X too high");
         targetWeightX = weightX_;
@@ -80,7 +80,7 @@ contract G3M is IG3M {
         lastWeightXSync = block.timestamp;
     }
 
-    function updateWeightX(
+    function setWeightX(
         uint256 newTargetWeightX,
         uint256 newWeightXUpdateEnd
     ) public onlyAdmin {
