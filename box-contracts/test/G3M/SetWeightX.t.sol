@@ -4,18 +4,6 @@ pragma solidity ^0.8.13;
 import "./SetUp.t.sol";
 
 contract SetWeightX is SetUp {
-    /*
-    function test_setWeightX_InstantaneousUpdatesWeights(uint256 newWeightX)
-        public
-    {
-        vm.assume(newWeightX >= MIN_WEIGHT && newWeightX <= MAX_WEIGHT);
-        g3m.setWeightX(newWeightX, block.timestamp);
-        assertEq(g3m.weightX(), newWeightX);
-        uint256 newWeightY = FixedPoint.ONE - newWeightX;
-        assertEq(g3m.weightY(), newWeightY);
-    }
-    */
-
     function test_setWeightX_ReachesTargetWeightAfterTargetDate() public {
         uint256 newTargetWeightX = 0.75 ether;
         g3m.setWeightX(newTargetWeightX, block.timestamp + 1 weeks);
@@ -40,5 +28,21 @@ contract SetWeightX is SetUp {
         vm.expectRevert("Not admin");
         vm.prank(address(0xbeef));
         g3m.setWeightX(0.5 ether, block.timestamp);
+    }
+
+    function testFuzz_setWeightX_Revert_WeightXTooLow(uint256 newTargetWeightX)
+        public
+    {
+        vm.assume(newTargetWeightX < MIN_WEIGHT);
+        vm.expectRevert("Weight X too low");
+        g3m.setWeightX(newTargetWeightX, block.timestamp);
+    }
+
+    function testFuzz_setWeightX_Revert_WeightXTooHigh(uint256 newTargetWeightX)
+        public
+    {
+        vm.assume(newTargetWeightX > MAX_WEIGHT);
+        vm.expectRevert("Weight X too high");
+        g3m.setWeightX(newTargetWeightX, block.timestamp);
     }
 }
