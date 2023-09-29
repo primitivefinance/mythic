@@ -3,26 +3,53 @@
 ## Overview
 
 This contract is very basic implementation of an Automated Market Maker using the
-Geometric Mean formula.
+Geometric Mean formula. Here are some of the current specifications (likely to change):
+- One pool per contract
+- Two tokens per pool (X and Y)
+- Real-time weights update
+- Fixed swap fee
 
 ## Usage
 
-First deploy the contract with the following parameters:
-- Two different tokens (X and Y) for the pool
-- The weight for the token X (expressed in WAD). Note that the weight of token Y will be 1 - weight of token X.
+### Pool Creation
 
-Then, the pool needs to be initialized with an initial amount of liquidity. This is done by calling the `initPool` function and sending liquidity for both tokens. This will set the spot price of the pool and mint the initial amount of liquidity tokens.
+A pool can be created by deploying the G3M contract with the following parameters:
+- Two different token addresses (X and Y)
+- The weight of token X (the weight of token Y will be calculated automatically
+using `1 - weightX`)
+
+*Note that the weights are expressed in WAD units (10^18).*
+
+### Pool Initialization
+
+Then, the pool needs to be initialized with an initial amount of liquidity. This is done by calling the `initPool` function and sending arbitrary amounts for both tokens. These two amounts are important and will be used for two specific things:
+- Set the initial spot price of the pool (see [Spot Price](#spot-price) for details)
+- Compute the initial amount of liquidity in the pool (currently set to two times
+the invariant)
+
+Additionally, a small amount of liquidity is burnt, this is done to prevent the
+pool from being completely drained and initialized again with a different spot
+price.
+
+### Pool Lifecycle
+
+Once a pool is initialized, liquidity providers can supply or withdraw liquidity
+and arbitrageurs can swap tokens.
+The admin of the pool can also update the weights of the tokens. This action is
+currently instantaneous but could be made gradual in the future.
 
 ## Notes
 
-- Balancer FixedPoint library is used, it would be interesting to swap it for a more efficient one.
-- WAD units are often used but not explicitly mentioned in the code. This should be fixed.
+Here a few things to note about the current implementation:
+- Balancer FixedPoint library is used, it would be interesting to swap it for a
+more precise / efficient one
+- WAD units are often used but not explicitly mentioned in the code. This should be fixed
 
-The following things are missing:
+Also, some extra features could be added:
 - Single asset deposits / withdrawals
 - Minimum / maximum amounts for swaps, liquidity deposits and withdrawals
-- Burnt liquidity on first deposit
-- Updatable swap fee?
+- Updatable swap fee
+- Gradual weights update
 
 ## G3M Math
 
