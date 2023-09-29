@@ -4,12 +4,6 @@ pragma solidity ^0.8.13;
 import "./Setup.t.sol";
 
 contract G3MTest is Setup {
-    function test_computeSpotPrice() public view {
-        uint256 spotPrice =
-            computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
-        console.log(spotPrice);
-    }
-
     function test_computeAmountInGivenExactLiquidity() public {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;
