@@ -29,6 +29,12 @@ interface IG3M {
     /// @notice Emitted when the weight of token X is updated.
     event UpdateWeightX(uint256 oldWeightX, uint256 newWeightX);
 
+    event SetTargetWeightX(
+        uint256 newTargetWeightX,
+        uint256 newWeightXUpdateEnd,
+        uint256 newWeightXUpdatePerSecond
+    );
+
     /**
      * @notice Initializes the pool before any liquidity can be added. This
      * function can only be called once. Note that the ratio between `amountX`
@@ -92,9 +98,13 @@ interface IG3M {
 
     /**
      * @notice Updates the weight of token X.
-     * @param newWeightX New weight of token X expressed in WAD
+     * @param newTargetWeightX New weight of token X expressed in WAD
      */
-    function updateWeightX(uint256 newWeightX) external;
+    function updateWeightX(
+        uint256 newTargetWeightX,
+        uint256 newWeightXUpdateEnd,
+        uint256 newWeightXUpdatePerSecond
+    ) external;
 
     /// @notice Computes the spot price of token X in terms of token Y.
     function getSpotPrice() external view returns (uint256);

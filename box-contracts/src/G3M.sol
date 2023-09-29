@@ -23,9 +23,6 @@ contract G3M is IG3M {
     address public tokenY;
 
     /// @inheritdoc IG3M
-    uint256 public weightX;
-
-    /// @inheritdoc IG3M
     uint256 public reserveX;
 
     /// @inheritdoc IG3M
@@ -36,6 +33,13 @@ contract G3M is IG3M {
 
     /// @inheritdoc IG3M
     mapping(address => uint256) public balanceOf;
+
+    uint256 private lastWeightX;
+    uint256 private lastWeightXUpdate;
+
+    uint256 private targetWeightX;
+    uint256 private weightXUpdateEnd;
+    uint256 private weightXUpdatePerSecond;
 
     /// @dev Reverts if the sender is not the admin.
     modifier onlyAdmin() {
@@ -52,16 +56,31 @@ contract G3M is IG3M {
         tokenX = tokenX_;
         tokenY = tokenY_;
         admin = msg.sender;
-        updateWeightX(weightX_);
+        updateWeightX(weightX_, block.timestamp, 0);
     }
 
-    /// @inheritdoc IG3M
-    function updateWeightX(uint256 newWeightX) public onlyAdmin {
-        require(newWeightX >= MIN_WEIGHT, "Weight X too low");
-        require(newWeightX <= MAX_WEIGHT, "Weight X too high");
-        weightX = newWeightX;
-        emit UpdateWeightX(weightX, newWeightX);
-        weightX = newWeightX;
+    function _syncWeightX() private {
+        lastWeightX = weightX();
+        lastWeightXUpdate = block.timestamp;
+    }
+
+    function updateWeightX(
+        uint256 newTargetWeightX,
+        uint256 newWeightXUpdateEnd,
+        uint256 newWeightXUpdatePerSecond
+    ) public onlyAdmin {
+        require(newTargetWeightX >= MIN_WEIGHT, "Weight X too low");
+        require(newTargetWeightX <= MAX_WEIGHT, "Weight X too high");
+
+        _syncWeightX();
+
+        targetWeightX = newTargetWeightX;
+        weightXUpdateEnd = newWeightXUpdateEnd;
+        weightXUpdatePerSecond = newWeightXUpdatePerSecond;
+
+        emit SetTargetWeightX(
+            newTargetWeightX, newWeightXUpdateEnd, newWeightXUpdatePerSecond
+        );
     }
 
     /// @inheritdoc IG3M
@@ -77,7 +96,7 @@ contract G3M is IG3M {
         amountY *= FixedPoint.ONE;
 
         uint256 invariant = computeInvariantDown(
-            amountX, weightX, amountY, FixedPoint.ONE - weightX
+            amountX, weightX(), amountY, FixedPoint.ONE - weightX()
         );
         uint256 liquidity = FixedPoint.mulDown(invariant, 2);
 
@@ -145,8 +164,11 @@ contract G3M is IG3M {
         bool swapDirection,
         uint256 amountIn
     ) external returns (uint256 amountOut) {
+        uint256 currentWeightX = weightX();
+        uint256 currentWeightY = FixedPoint.ONE - currentWeightX;
+
         uint256 invariant = computeInvariantDown(
-            reserveX, weightX, reserveY, FixedPoint.ONE - weightX
+            reserveX, currentWeightX, reserveY, currentWeightY
         );
 
         uint256 fees = amountIn * SWAP_FEE / 10_000;
@@ -156,19 +178,19 @@ contract G3M is IG3M {
             toWad(amountInWithoutFees),
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
-            swapDirection ? weightX : FixedPoint.ONE - weightX,
-            swapDirection ? FixedPoint.ONE - weightX : weightX
+            swapDirection ? currentWeightX : currentWeightY,
+            swapDirection ? currentWeightY : currentWeightX
         );
 
         uint256 newInvariant = computeInvariantUp(
             swapDirection
                 ? reserveX + toWad(amountInWithoutFees)
                 : reserveX - toWad(amountOut),
-            weightX,
+            currentWeightX,
             swapDirection
                 ? reserveY - toWad(amountOut)
                 : reserveY + toWad(amountInWithoutFees),
-            FixedPoint.ONE - weightX
+            currentWeightY
         );
 
         if (invariant > newInvariant) {
@@ -196,27 +218,30 @@ contract G3M is IG3M {
         bool swapDirection,
         uint256 amountOut
     ) external returns (uint256 amountInWithFees) {
+        uint256 currentWeightX = weightX();
+        uint256 currentWeightY = FixedPoint.ONE - currentWeightX;
+
         uint256 invariant = computeInvariantUp(
-            reserveX, weightX, reserveY, FixedPoint.ONE - weightX
+            reserveX, currentWeightX, reserveY, currentWeightY
         );
 
         uint256 amountIn = computeInGivenOut(
             toWad(amountOut),
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
-            swapDirection ? weightX : FixedPoint.ONE - weightX,
-            swapDirection ? FixedPoint.ONE - weightX : weightX
+            swapDirection ? currentWeightX : currentWeightY,
+            swapDirection ? currentWeightY : currentWeightX
         );
 
         uint256 newInvariant = computeInvariantUp(
             swapDirection
                 ? reserveX + toWad(amountIn)
                 : reserveX - toWad(amountOut),
-            weightX,
+            currentWeightX,
             swapDirection
                 ? reserveY - toWad(amountOut)
                 : reserveY + toWad(amountIn),
-            FixedPoint.ONE - weightX
+            currentWeightY
         );
 
         if (invariant > newInvariant) {
@@ -241,15 +266,30 @@ contract G3M is IG3M {
         emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
     }
 
+    function weightX() public view returns (uint256) {
+        if (block.timestamp >= weightXUpdateEnd) {
+            return targetWeightX;
+        }
+
+        uint256 timeElapsed = block.timestamp - lastWeightXUpdate;
+        uint256 weightXDelta = timeElapsed * weightXUpdatePerSecond;
+
+        if (lastWeightX > targetWeightX) {
+            return lastWeightX - weightXDelta;
+        } else {
+            return lastWeightX + weightXDelta;
+        }
+    }
+
     /// @inheritdoc IG3M
     function weightY() external view returns (uint256) {
-        return FixedPoint.ONE - weightX;
+        return FixedPoint.ONE - weightX();
     }
 
     /// @inheritdoc IG3M
     function getSpotPrice() external view returns (uint256) {
         return computeSpotPrice(
-            reserveX, weightX, reserveY, FixedPoint.ONE - weightX
+            reserveX, weightX(), reserveY, FixedPoint.ONE - weightX()
         );
     }
 }
