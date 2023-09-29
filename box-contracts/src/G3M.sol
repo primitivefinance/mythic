@@ -86,13 +86,14 @@ contract G3M is IG3M {
     ) public onlyAdmin {
         require(newTargetWeightX >= MIN_WEIGHT, "Weight X too low");
         require(newTargetWeightX <= MAX_WEIGHT, "Weight X too high");
-        require(newWeightXUpdateEnd >= block.timestamp, "Update end pasted");
+        require(newWeightXUpdateEnd > block.timestamp, "Update end pasted");
 
         _syncWeightX();
 
         uint256 weightXDelta = lastWeightX > newTargetWeightX
             ? lastWeightX - newTargetWeightX
             : newTargetWeightX - lastWeightX;
+
         weightXUpdatePerSecond =
             weightXDelta / (newWeightXUpdateEnd - block.timestamp);
         targetWeightX = newTargetWeightX;
