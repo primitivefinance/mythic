@@ -1,75 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "solmate/test/utils/mocks/MockERC20.sol";
-import "../src/G3M.sol";
+import "./Setup.t.sol";
 
-contract G3MTest is Test {
-    G3M public g3m;
-    MockERC20 public tokenX;
-    MockERC20 public tokenY;
-
-    function setUp() public {
-        tokenX = new MockERC20("TokenX", "X", 18);
-        tokenY = new MockERC20("TokenY", "Y", 18);
-
-        tokenX.mint(address(this), 20000 ether);
-        tokenY.mint(address(this), 20000 ether);
-
-        g3m = new G3M(address(tokenX), address(tokenY), 0.5 ether);
-
-        tokenX.approve(address(g3m), 20000 ether);
-        tokenY.approve(address(g3m), 20000 ether);
-    }
-
-    function test_constructor_max_weight() public {
-        g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT);
-        assertEq(g3m.weightX(), MAX_WEIGHT);
-        assertEq(g3m.weightY(), MIN_WEIGHT);
-    }
-
-    function test_constructor_min_weight() public {
-        g3m = new G3M(address(tokenX), address(tokenY), MIN_WEIGHT);
-        assertEq(g3m.weightX(), MIN_WEIGHT);
-        assertEq(g3m.weightY(), MAX_WEIGHT);
-    }
-
-    function test_constructor_weights(uint256 weightX) public {
-        vm.assume(weightX >= MIN_WEIGHT && weightX <= MAX_WEIGHT);
-        assertEq(g3m.weightX() + g3m.weightY(), FixedPoint.ONE);
-        assertEq(MIN_WEIGHT + MAX_WEIGHT, FixedPoint.ONE);
-    }
-
-    function test_constructor_reverts_invalid_tokens() public {
-        vm.expectRevert("Invalid tokens");
-        g3m = new G3M(address(tokenX), address(tokenX), 0.5 ether);
-    }
-
-    function test_constructor_reverts_invalid_max_weight() public {
-        vm.expectRevert("Weight X too high");
-        g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT + 1);
-    }
-
-    function test_constructor_reverts_invalid_min_weight() public {
-        vm.expectRevert("Weight X too low");
-        g3m = new G3M(address(tokenX), address(tokenY), MIN_WEIGHT - 1);
-    }
-
-    function test_updateWeightX(uint256 newWeightX) public {
-        vm.assume(newWeightX >= MIN_WEIGHT && newWeightX <= MAX_WEIGHT);
-        g3m.updateWeightX(newWeightX);
-        assertEq(g3m.weightX(), newWeightX);
-        uint256 newWeightY = FixedPoint.ONE - newWeightX;
-        assertEq(g3m.weightY(), newWeightY);
-    }
-
-    function test_updateWeightX_reverts_not_admin() public {
-        vm.expectRevert("Not admin");
-        vm.prank(address(0xbeef));
-        g3m.updateWeightX(0.5 ether);
-    }
-
+contract G3MTest is Setup {
     function test_computeInvariant() public view {
         uint256 invariant =
             computeInvariantUp(750 ether, 0.5 ether, 250 ether, 0.5 ether);
