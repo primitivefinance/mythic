@@ -97,8 +97,9 @@ interface IG3M {
     ) external returns (uint256 amountIn);
 
     /**
-     * @notice Updates the weight of token X.
-     * @param newTargetWeightX New weight of token X expressed in WAD
+     * @notice Gradually updates the weight of token X.
+     * @param newTargetWeightX New weight of token X (expressed in WAD)
+     * @param newWeightXUpdateEnd Timestamp at which the weight update ends
      */
     function setWeightX(
         uint256 newTargetWeightX,
@@ -126,7 +127,11 @@ interface IG3M {
     /// @notice Units of liquidity owned by `account`.
     function balanceOf(address account) external view returns (uint256);
 
-    /// @notice Weight of token X, expressed in WAD.
+    /**
+     * @notice Weight of token X, expressed in WAD.
+     * @dev This value is calculated in real time and takes into account any on-
+     * going gradual weight update.
+     */
     function weightX() external view returns (uint256);
 
     /// @notice Weight of token Y, expressed in WAD.

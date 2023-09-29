@@ -12,8 +12,10 @@ contract G3M is IG3M {
     /// @notice Thrown when the old invariant is greater than the new one.
     error InvalidSwap(uint256 oldInvariant, uint256 newInvariant);
 
-    /// @notice Address of the admin of the contract. Note that the current
-    /// only access  control is to update the weights of the pool.
+    /**
+     * @notice Address of the admin of the contract. Note that the current only
+     * access control is to update the weights of the pool.
+     */
     address public admin;
 
     /// @inheritdoc IG3M
@@ -34,11 +36,22 @@ contract G3M is IG3M {
     /// @inheritdoc IG3M
     mapping(address => uint256) public balanceOf;
 
+    /// @dev Last computed weight of token X.
     uint256 private lastWeightX;
+
+    /// @dev Timestamp of the last weight X sync.
     uint256 private lastWeightXSync;
 
+    /// @dev Target weight of token X.
     uint256 private targetWeightX;
+
+    /// @dev Timestamp of the end of the weight X update.
     uint256 private weightXUpdateEnd;
+
+    /**
+     * @dev This value is used to increase or decrease the last weight X to
+     * gradually reach the target weight X.
+     */
     uint256 private weightXUpdatePerSecond;
 
     /// @dev Reverts if the sender is not the admin.
@@ -47,10 +60,13 @@ contract G3M is IG3M {
         _;
     }
 
-    /// @param tokenX_ Address of token X.
-    /// @param tokenY_ Address of token Y.
-    /// @param weightX_ Weight of token X, expressed in WAD (note that `weightY`
-    /// will be computed as `1 WAD - weightX`).
+    /**
+     *
+     * @param tokenX_ Address of token X.
+     * @param tokenY_ Address of token Y.
+     * @param weightX_ Weight of token X, expressed in WAD (note that `weightY`
+     * will be computed as `1 WAD - weightX`).
+     */
     constructor(address tokenX_, address tokenY_, uint256 weightX_) {
         require(tokenX_ != tokenY_, "Invalid tokens");
         tokenX = tokenX_;
@@ -80,6 +96,7 @@ contract G3M is IG3M {
         lastWeightXSync = block.timestamp;
     }
 
+    /// @inheritdoc IG3M
     function setWeightX(
         uint256 newTargetWeightX,
         uint256 newWeightXUpdateEnd
@@ -283,6 +300,7 @@ contract G3M is IG3M {
         emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
     }
 
+    /// @inheritdoc IG3M
     function weightX() public view returns (uint256) {
         if (block.timestamp >= weightXUpdateEnd) {
             return targetWeightX;
