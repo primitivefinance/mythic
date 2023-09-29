@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
-import "./G3MMath.sol";
+import "./lib/G3MMath.sol";
 import "./IG3M.sol";
 
 /**

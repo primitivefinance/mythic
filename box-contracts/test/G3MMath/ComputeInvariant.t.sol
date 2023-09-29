@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../../src/G3MMath.sol";
+import "../../src/lib/G3MMath.sol";
 
 contract ComputeInvariant is Test {
     function test_computeInvariant_ComputesInvariant() public view {
