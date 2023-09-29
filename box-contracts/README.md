@@ -47,6 +47,7 @@ more precise / efficient one
 
 Also, some extra features could be added:
 - Single asset deposits / withdrawals
+- Tokenized liquidity shares
 - Minimum / maximum amounts for swaps, liquidity deposits and withdrawals
 - Updatable swap fee
 - Gradual weights update
