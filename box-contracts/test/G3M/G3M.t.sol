@@ -4,12 +4,6 @@ pragma solidity ^0.8.13;
 import "./Setup.t.sol";
 
 contract G3MTest is Setup {
-    function test_computeInvariant() public view {
-        uint256 invariant =
-            computeInvariantUp(750 ether, 0.5 ether, 250 ether, 0.5 ether);
-        console.log(invariant);
-    }
-
     function test_computeSpotPrice() public view {
         uint256 spotPrice =
             computeSpotPrice(750 ether, 0.5 ether, 250 ether, 0.5 ether);
