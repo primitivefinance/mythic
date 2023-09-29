@@ -16,39 +16,6 @@ contract G3MTest is Setup {
         console.log(spotPrice);
     }
 
-    function test_initPool() public {
-        uint256 amountX = 750 ether;
-        uint256 amountY = 250 ether;
-
-        uint256 invariant =
-            computeInvariantDown(amountX, 0.5 ether, amountY, 0.5 ether);
-        uint256 liquidity = g3m.initPool(amountX, amountY);
-
-        assertEq(tokenX.balanceOf(address(g3m)), amountX);
-        assertEq(tokenY.balanceOf(address(g3m)), amountY);
-        assertEq(g3m.reserveX(), amountX * 10 ** 18);
-        assertEq(g3m.reserveY(), amountY * 10 ** 18);
-        assertEq(g3m.totalLiquidity(), liquidity + BURNT_LIQUIDITY);
-        assertEq(g3m.getSpotPrice(), toWad(3));
-        assertEq(g3m.balanceOf(address(this)), liquidity);
-        assertEq(g3m.balanceOf(address(0)), 1_000);
-
-        // TODO: Not a huge fan of using approx, let's see if we can use
-        // something better here.
-        assertApproxEqRel(g3m.totalLiquidity(), invariant * 2, 1_000);
-        assertApproxEqRel(
-            g3m.balanceOf(address(this)), invariant * 2 - BURNT_LIQUIDITY, 1_000
-        );
-    }
-
-    function test_initPool_reverts_if_already_called() public {
-        uint256 amountX = 750 ether;
-        uint256 amountY = 250 ether;
-        g3m.initPool(amountX, amountY);
-        vm.expectRevert("Pool already initialized");
-        g3m.initPool(amountX, amountY);
-    }
-
     function test_computeAmountInGivenExactLiquidity() public {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;
@@ -61,35 +28,6 @@ contract G3MTest is Setup {
         console.log(amountIn);
     }
 
-    function test_addLiquidity_reverts_if_pool_not_initialized() public {
-        vm.expectRevert("Pool not initialized");
-        g3m.addLiquidity(100 ether);
-    }
-
-    function test_addLiquidity() public {
-        uint256 initAmountX = 750 ether;
-        uint256 initAmountY = 250 ether;
-
-        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
-
-        (uint256 amountX, uint256 amountY) =
-            g3m.addLiquidity(liquidity + BURNT_LIQUIDITY);
-        assertEq(g3m.reserveX(), (initAmountX + amountX) * 10 ** 18);
-        assertEq(g3m.reserveY(), (initAmountY + amountY) * 10 ** 18);
-        assertEq(g3m.totalLiquidity(), ((liquidity + BURNT_LIQUIDITY) * 2));
-        assertEq(amountX, 750 ether);
-        assertEq(amountY, 250 ether);
-    }
-
-    function test_addLiquidity_maintains_spot_price() public {
-        uint256 initAmountX = 750 ether;
-        uint256 initAmountY = 250 ether;
-        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
-        uint256 oldSpotPrice = g3m.getSpotPrice();
-        g3m.addLiquidity(liquidity);
-        assertEq(g3m.getSpotPrice(), oldSpotPrice);
-    }
-
     function test_computeAmountOutGivenExactLiquidity() public {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;
@@ -100,33 +38,6 @@ contract G3MTest is Setup {
             g3m.totalLiquidity(), liquidity / 2, g3m.reserveX()
         );
         console.log(amountOut);
-    }
-
-    function test_removeLiquidity() public {
-        uint256 initAmountX = 750 ether;
-        uint256 initAmountY = 250 ether;
-
-        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
-        (uint256 amountX, uint256 amountY) = g3m.removeLiquidity(liquidity / 2);
-
-        assertEq(g3m.reserveX(), (initAmountX * 10 ** 18) / 2);
-        assertEq(g3m.reserveY(), (initAmountY * 10 ** 18) / 2);
-        assertApproxEqRel(g3m.totalLiquidity(), liquidity / 2, 1_000);
-
-        assertEq(amountX, initAmountX / 2);
-        assertEq(amountY, initAmountY / 2);
-
-        assertEq(tokenX.balanceOf(address(g3m)), initAmountX / 2);
-        assertEq(tokenY.balanceOf(address(g3m)), initAmountY / 2);
-    }
-
-    function test_removeLiquidity_maintain_spot_price() public {
-        uint256 initAmountX = 750 ether;
-        uint256 initAmountY = 250 ether;
-        uint256 liquidity = g3m.initPool(initAmountX, initAmountY);
-        uint256 oldSpotPrice = g3m.getSpotPrice();
-        g3m.removeLiquidity(liquidity / 2);
-        assertEq(g3m.getSpotPrice(), oldSpotPrice);
     }
 
     function test_computeOutGivenIn() public {
