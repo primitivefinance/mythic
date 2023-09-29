@@ -55,6 +55,8 @@ Also, some extra features could be added:
 
 The following formulas are used in the G3M contract:
 
+*Note that these formulas are mathematical representations and do not necessarily reflect the actual Solidity implementation, for example, amounts in the contract are stored in WAD units.*
+
 ### Invariant
 
 Computes $k$, the invariant of the pool:
