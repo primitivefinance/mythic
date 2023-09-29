@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Setup.t.sol";
+import "./SetUp.t.sol";
 
-contract AddLiquidity is Setup {
+contract AddLiquidity is SetUp {
     function test_addLiquidity_IncreasesReservesAndTotalLiquidity() public {
         uint256 initAmountX = 750 ether;
         uint256 initAmountY = 250 ether;

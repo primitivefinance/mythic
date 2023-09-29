@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../../src/G3M.sol";
 
-contract Setup is Test {
+contract SetUp is Test {
     G3M public g3m;
     MockERC20 public tokenX;
     MockERC20 public tokenY;

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Setup.t.sol";
+import "./SetUp.t.sol";
 
-contract SwapAmountIn is Setup {
+contract SwapAmountIn is SetUp {
     function test_swapAmountIn_UpdatesBalances() public {
         g3m.initPool(750 ether, 250 ether);
         assertEq(tokenX.balanceOf(address(g3m)), 750 ether);

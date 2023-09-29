@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Setup.t.sol";
+import "./SetUp.t.sol";
 
-contract InitPool is Setup {
+contract InitPool is SetUp {
     function test_initPool_InitializesPool() public {
         uint256 amountX = 750 ether;
         uint256 amountY = 250 ether;

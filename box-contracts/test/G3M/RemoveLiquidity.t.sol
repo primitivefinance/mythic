@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Setup.t.sol";
+import "./SetUp.t.sol";
 
-contract RemoveLiquidity is Setup {
+contract RemoveLiquidity is SetUp {
     function test_removeLiquidity_DecreasesReservesAndTotalLiquidity() public {
         uint256 initAmountX = 750 ether;
         uint256 initAmountY = 250 ether;

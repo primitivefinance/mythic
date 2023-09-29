@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Setup.t.sol";
+import "./SetUp.t.sol";
 
-contract SwapAmountOut is Setup {
+contract SwapAmountOut is SetUp {
     function test_swapAmountOut_UpdatesBalances() public {
         uint256 liquidityX = 750 ether;
         uint256 liquidityY = 250 ether;

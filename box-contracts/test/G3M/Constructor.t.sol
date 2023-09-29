@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./Setup.t.sol";
+import "./SetUp.t.sol";
 
-contract ConstructorTest is Setup {
+contract ConstructorTest is SetUp {
     function test_constructor_MaxWeight() public {
         g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT);
         assertEq(g3m.weightX(), MAX_WEIGHT);
