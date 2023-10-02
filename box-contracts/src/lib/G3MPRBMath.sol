@@ -138,13 +138,13 @@ function computeAmountOutGivenExactLiquidity(
  * @param wO Weight of the output token
  */
 function computeOutGivenIn(
-    UD60x18 aI,
+    uint256 aI,
     UD60x18 bI,
     UD60x18 bO,
     UD60x18 wI,
     UD60x18 wO
 ) pure returns (uint256 aO) {
-    aO = convert(bO * (UNIT - (bI / (bI + aI)).pow(wI / wO)));
+    aO = convert(bO * (UNIT - (bI / (bI + convert(aI))).pow(wI / wO)));
 }
 
 /**
