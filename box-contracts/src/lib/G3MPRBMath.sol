@@ -117,3 +117,32 @@ function computeAmountOutGivenExactLiquidity(
 ) pure returns (uint256 o) {
     o = convert((UNIT - (t - l) / t) * r);
 }
+
+/**
+ * @dev Computes the amount of output tokens received for an exact amount of
+ * input tokens. Amounts are rounded down in favor of the contract.
+ *
+ * The following formula is used:
+ *
+ *           ⎛             wI⎞
+ *           ⎜             ──⎟
+ *           ⎜             wO⎟
+ *           ⎜    ⎛  bI   ⎞  ⎟
+ * aO = bO ⋅ ⎜1 - ⎜───────⎟  ⎟
+ *           ⎝    ⎝bI + aI⎠  ⎠
+ *
+ * @param aI Amount of input token
+ * @param bI Balance of the input token
+ * @param bO Balance of the output token
+ * @param wI Weight of the input token
+ * @param wO Weight of the output token
+ */
+function computeOutGivenIn(
+    UD60x18 aI,
+    UD60x18 bI,
+    UD60x18 bO,
+    UD60x18 wI,
+    UD60x18 wO
+) pure returns (uint256 aO) {
+    aO = convert(bO * (UNIT - (bI / (bI + aI)).pow(wI / wO)));
+}
