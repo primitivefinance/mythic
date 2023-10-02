@@ -71,3 +71,26 @@ function computeSpotPrice(
     UD60x18 d = rO / wO;
     p = convert(n / d);
 }
+
+/**
+ * @dev Computes the required amount of tokens needed to mint an exact
+ * amount of liquidity. Amounts are rounded up in favor of the contract.
+ *
+ * The following formula is used:
+ *
+ *     ⎛⎛t + l⎞    ⎞
+ * i = ⎜⎜─────⎟ - 1⎟ ⋅ r
+ *     ⎝⎝  t  ⎠    ⎠
+ *
+ * @param t Total amount of liquidity in the pool
+ * @param l Exact amount of liquidity to deposit
+ * @param r Reserve of the input token
+ * @return i Required amount of tokens
+ */
+function computeAmountInGivenExactLiquidity(
+    UD60x18 t,
+    UD60x18 l,
+    UD60x18 r
+) pure returns (uint256 i) {
+    i = convert(((t + l) / t - UNIT) * r);
+}
