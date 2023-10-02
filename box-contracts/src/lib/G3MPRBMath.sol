@@ -94,3 +94,26 @@ function computeAmountInGivenExactLiquidity(
 ) pure returns (uint256 i) {
     i = convert(((t + l) / t - UNIT) * r);
 }
+
+/**
+ * @dev Computes the received amount of tokens after removing an exact
+ * amount of liquidity. Amounts are rounded down in favor of the contract.
+ *
+ * The following formula is used:
+ *
+ *     ⎛    ⎛t - l⎞⎞
+ * o = ⎜1 - ⎜─────⎟⎟ ⋅ r
+ *     ⎝    ⎝  t  ⎠⎠
+ *
+ * @param t Total amount of liquidity in the pool
+ * @param l Exact amount of liquidity to withdraw
+ * @param r Reserve amount of output token
+ * @return o Received amount of tokens
+ */
+function computeAmountOutGivenExactLiquidity(
+    UD60x18 t,
+    UD60x18 l,
+    UD60x18 r
+) pure returns (uint256 o) {
+    o = convert((UNIT - (t - l) / t) * r);
+}
