@@ -41,7 +41,7 @@ function computeInvariant(
 ) pure returns (UD60x18 k) {
     UD60x18 n = rX.pow(wX);
     UD60x18 d = rY.pow(wY);
-    k = n.mul(d);
+    k = n * d;
 }
 
 /**
