@@ -146,3 +146,33 @@ function computeOutGivenIn(
 ) pure returns (uint256 aO) {
     aO = convert(bO * (UNIT - (bI / (bI + aI)).pow(wI / wO)));
 }
+
+/**
+ * @dev Computes the amount of input tokens required for an exact amount of
+ * output tokens. Amounts are rounded up in favor of the contract.
+ *
+ * The following formula is used:
+ *
+ *           ⎛         wO    ⎞
+ *           ⎜         ──    ⎟
+ *           ⎜         wI    ⎟
+ *           ⎜⎛  bO   ⎞      ⎟
+ * aI = bI ⋅ ⎜⎜───────⎟   - 1⎟
+ *           ⎝⎝bO - aO⎠      ⎠
+ *
+ * @param aO Exact amount of expected output tokens
+ * @param bI Balance of the input token
+ * @param bO Balance of the output token
+ * @param wI Weight of the input token
+ * @param wO Weight of the output token
+ * @return aI Amount of input tokens required
+ */
+function computeInGivenOut(
+    uint256 aO,
+    UD60x18 bI,
+    UD60x18 bO,
+    UD60x18 wI,
+    UD60x18 wO
+) pure returns (uint256 aI) {
+    aI = convert(bI * ((bO / (bO - convert(aO))).pow(wO / wI) - UNIT));
+}
