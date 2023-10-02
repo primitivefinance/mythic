@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import { UD60x18, ud, UNIT } from "@prb/math/UD60x18.sol";
+import { UD60x18, ud, UNIT, convert } from "@prb/math/UD60x18.sol";
 
 /**
  * @dev Amount of liquidity burnt when a pool is initialized for the
@@ -42,4 +42,32 @@ function computeInvariant(
     UD60x18 n = rX.pow(wX);
     UD60x18 d = rY.pow(wY);
     k = n.mul(d);
+}
+
+/**
+ * @dev Computes the spot price of a pool using the following formula:
+ *
+ *       rI
+ *       ──
+ *       wI
+ * p =  ────
+ *       rO
+ *       ──
+ *       wO
+ *
+ * @param rI Reserve of the input token
+ * @param wI Weight of the input token
+ * @param rO Reserve of the output token
+ * @param wO Weight of the output token
+ * @return p Spot price of the pool
+ */
+function computeSpotPrice(
+    UD60x18 rI,
+    UD60x18 wI,
+    UD60x18 rO,
+    UD60x18 wO
+) pure returns (uint256 p) {
+    UD60x18 n = rI / wI;
+    UD60x18 d = rO / wO;
+    p = convert(n / d);
 }
