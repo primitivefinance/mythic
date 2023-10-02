@@ -19,3 +19,27 @@ UD60x18 constant MIN_WEIGHT = UD60x18.wrap(0.01e18);
 
 /// @dev Maximum weight of a token in the pool.
 UD60x18 constant MAX_WEIGHT = UD60x18.wrap(990000000000000000);
+
+/**
+ * @dev Computes the invariant of the pool (rounding down) using the
+ * following formula:
+ *
+ *        ⎛  wX⎞   ⎛  wY⎞
+ *    k = ⎝rX  ⎠ ⋅ ⎝rY  ⎠
+ *
+ * @param rX Reserve of token X
+ * @param wX Weight of token X
+ * @param rY Reserve of token Y
+ * @param wY Weight of token Y
+ * @return k Invariant of the pool
+ */
+function computeInvariant(
+    UD60x18 rX,
+    UD60x18 wX,
+    UD60x18 rY,
+    UD60x18 wY
+) pure returns (UD60x18 k) {
+    UD60x18 n = rX.pow(wX);
+    UD60x18 d = rY.pow(wY);
+    k = n.mul(d);
+}
