@@ -133,18 +133,18 @@ function computeAmountOutGivenExactLiquidity(
  *
  * @param aI Amount of input token
  * @param bI Balance of the input token
- * @param bO Balance of the output token
  * @param wI Weight of the input token
+ * @param bO Balance of the output token
  * @param wO Weight of the output token
  */
 function computeOutGivenIn(
     uint256 aI,
     UD60x18 bI,
-    UD60x18 bO,
     UD60x18 wI,
+    UD60x18 bO,
     UD60x18 wO
 ) pure returns (uint256 aO) {
-    UD60x18 f = bI * (bI + convert(aI));
+    UD60x18 f = bI / (bI + convert(aI));
     aO = convert(bO * (UNIT - f.pow(wI / wO)));
 }
 
@@ -163,16 +163,16 @@ function computeOutGivenIn(
  *
  * @param aO Exact amount of expected output tokens
  * @param bI Balance of the input token
- * @param bO Balance of the output token
  * @param wI Weight of the input token
+ * @param bO Balance of the output token
  * @param wO Weight of the output token
  * @return aI Amount of input tokens required
  */
 function computeInGivenOut(
     uint256 aO,
     UD60x18 bI,
-    UD60x18 bO,
     UD60x18 wI,
+    UD60x18 bO,
     UD60x18 wO
 ) pure returns (uint256 aI) {
     UD60x18 f = bO / (bO - convert(aO));
