@@ -6,8 +6,8 @@ import "../../src/lib/G3MPRBMath.sol";
 
 contract ComputeInvariant is Test {
     function test_computeInvariant_ComputesInvariant() public view {
-        UD60x18 reserveX = convert(750);
-        UD60x18 reserveY = convert(250);
+        UD60x18 reserveX = convert(750 ether);
+        UD60x18 reserveY = convert(250 ether);
         UD60x18 weightX = ud(0.5 ether);
         UD60x18 weightY = ud(0.5 ether);
 
