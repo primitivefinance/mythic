@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./SetUp.t.sol";
 
-contract ConstructorTest is SetUp {
+contract Constructor is SetUp {
     function test_constructor_MaxWeight() public {
         g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT);
         assertEq(g3m.weightX(), MAX_WEIGHT);
@@ -17,23 +17,23 @@ contract ConstructorTest is SetUp {
     }
 
     function test_constructor_WeightsSumEqualsOne(uint256 weightX) public {
-        vm.assume(weightX >= MIN_WEIGHT && weightX <= MAX_WEIGHT);
-        assertEq(g3m.weightX() + g3m.weightY(), FixedPoint.ONE);
-        assertEq(MIN_WEIGHT + MAX_WEIGHT, FixedPoint.ONE);
+        vm.assume(ud(weightX) >= MIN_WEIGHT && ud(weightX) <= MAX_WEIGHT);
+        g3m = new G3M(address(tokenX), address(tokenY), ud(weightX));
+        assertEq(g3m.weightX() + g3m.weightY(), UNIT);
     }
 
     function test_constructor_Revert_InvalidTokens() public {
         vm.expectRevert("Invalid tokens");
-        g3m = new G3M(address(tokenX), address(tokenX), 0.5 ether);
+        g3m = new G3M(address(tokenX), address(tokenX), ud(0.5 ether));
     }
 
     function test_constructor_Revert_WeightXTooHigh() public {
         vm.expectRevert("Weight X too high");
-        g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT + 1);
+        g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT + ud(1));
     }
 
     function test_constructor_Revert_WeightXTooLow() public {
         vm.expectRevert("Weight X too low");
-        g3m = new G3M(address(tokenX), address(tokenY), MIN_WEIGHT - 1);
+        g3m = new G3M(address(tokenX), address(tokenY), MIN_WEIGHT - ud(1));
     }
 }
