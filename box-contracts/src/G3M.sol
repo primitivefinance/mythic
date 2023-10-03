@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
-import "./lib/G3MMath.sol";
+import "./lib/G3MPRBMath.sol";
 import "./IG3M.sol";
 
 /**
@@ -10,7 +10,7 @@ import "./IG3M.sol";
  */
 contract G3M is IG3M {
     /// @notice Thrown when the old invariant is greater than the new one.
-    error InvalidSwap(uint256 oldInvariant, uint256 newInvariant);
+    error InvalidSwap(UD60x18 oldInvariant, UD60x18 newInvariant);
 
     /**
      * @notice Address of the admin of the contract. Note that the current only
@@ -25,25 +25,25 @@ contract G3M is IG3M {
     address public tokenY;
 
     /// @inheritdoc IG3M
-    uint256 public reserveX;
+    UD60x18 public reserveX;
 
     /// @inheritdoc IG3M
-    uint256 public reserveY;
+    UD60x18 public reserveY;
 
     /// @inheritdoc IG3M
-    uint256 public totalLiquidity;
+    UD60x18 public totalLiquidity;
 
     /// @inheritdoc IG3M
-    mapping(address => uint256) public balanceOf;
+    mapping(address => UD60x18) public balanceOf;
 
     /// @dev Last computed weight of token X.
-    uint256 private lastWeightX;
+    UD60x18 private lastWeightX;
 
     /// @dev Timestamp of the last weight X sync.
     uint256 private lastWeightXSync;
 
     /// @dev Target weight of token X.
-    uint256 private targetWeightX;
+    UD60x18 private targetWeightX;
 
     /// @dev Timestamp of the end of the weight X update.
     uint256 private weightXUpdateEnd;
@@ -52,7 +52,7 @@ contract G3M is IG3M {
      * @dev This value is used to increase or decrease the last weight X to
      * gradually reach the target weight X.
      */
-    uint256 private weightXUpdatePerSecond;
+    UD60x18 private weightXUpdatePerSecond;
 
     /// @dev Reverts if the sender is not the admin.
     modifier onlyAdmin() {
@@ -67,7 +67,7 @@ contract G3M is IG3M {
      * @param weightX_ Weight of token X, expressed in WAD (note that `weightY`
      * will be computed as `1 WAD - weightX`).
      */
-    constructor(address tokenX_, address tokenY_, uint256 weightX_) {
+    constructor(address tokenX_, address tokenY_, UD60x18 weightX_) {
         require(tokenX_ != tokenY_, "Invalid tokens");
         tokenX = tokenX_;
         tokenY = tokenY_;
@@ -98,7 +98,7 @@ contract G3M is IG3M {
 
     /// @inheritdoc IG3M
     function setWeightX(
-        uint256 newTargetWeightX,
+        UD60x18 newTargetWeightX,
         uint256 newWeightXUpdateEnd
     ) public onlyAdmin {
         require(newTargetWeightX >= MIN_WEIGHT, "Weight X too low");
@@ -107,12 +107,12 @@ contract G3M is IG3M {
 
         _syncWeightX();
 
-        uint256 weightXDelta = lastWeightX > newTargetWeightX
+        UD60x18 weightXDelta = lastWeightX > newTargetWeightX
             ? lastWeightX - newTargetWeightX
             : newTargetWeightX - lastWeightX;
 
         weightXUpdatePerSecond =
-            weightXDelta / (newWeightXUpdateEnd - block.timestamp);
+            weightXDelta / convert(newWeightXUpdateEnd - block.timestamp);
         targetWeightX = newTargetWeightX;
         weightXUpdateEnd = newWeightXUpdateEnd;
     }
@@ -121,34 +121,35 @@ contract G3M is IG3M {
     function initPool(
         uint256 amountX,
         uint256 amountY
-    ) external returns (uint256) {
-        require(totalLiquidity == 0, "Pool already initialized");
+    ) external returns (UD60x18) {
+        require(totalLiquidity.isZero(), "Pool already initialized");
+
+        UD60x18 amountXUD60x18 = convert(amountX);
+        UD60x18 amountYUD60x18 = convert(amountY);
+
+        UD60x18 invariant = computeInvariant(
+            convert(amountX), weightX(), convert(amountY), weightY()
+        );
+        UD60x18 liquidity = invariant * ud(2);
+
+        totalLiquidity = totalLiquidity + liquidity;
+        balanceOf[msg.sender] = liquidity - BURNT_LIQUIDITY;
+        balanceOf[address(0)] = BURNT_LIQUIDITY;
+        reserveX = amountXUD60x18;
+        reserveY = amountYUD60x18;
+
         ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
-
-        amountX *= FixedPoint.ONE;
-        amountY *= FixedPoint.ONE;
-
-        uint256 invariant = computeInvariantDown(
-            amountX, weightX(), amountY, FixedPoint.ONE - weightX()
-        );
-        uint256 liquidity = FixedPoint.mulDown(invariant, 2);
-
-        totalLiquidity += liquidity;
-        balanceOf[msg.sender] += liquidity - BURNT_LIQUIDITY;
-        balanceOf[address(0)] += BURNT_LIQUIDITY;
-        reserveX += amountX;
-        reserveY += amountY;
 
         return liquidity - BURNT_LIQUIDITY;
     }
 
     /// @inheritdoc IG3M
-    function addLiquidity(uint256 liquidity)
+    function addLiquidity(UD60x18 liquidity)
         external
         returns (uint256 amountX, uint256 amountY)
     {
-        require(totalLiquidity > 0, "Pool not initialized");
+        require(!totalLiquidity.isZero(), "Pool not initialized");
 
         amountX = computeAmountInGivenExactLiquidity(
             totalLiquidity, liquidity, reserveX
@@ -162,14 +163,14 @@ contract G3M is IG3M {
 
         emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
 
-        reserveX += toWad(amountX);
-        reserveY += toWad(amountY);
-        balanceOf[msg.sender] += liquidity;
-        totalLiquidity += liquidity;
+        reserveX = reserveX + convert(amountX);
+        reserveY = reserveY + convert(amountY);
+        balanceOf[msg.sender] = balanceOf[msg.sender] + liquidity;
+        totalLiquidity = totalLiquidity + liquidity;
     }
 
     /// @inheritdoc IG3M
-    function removeLiquidity(uint256 liquidity)
+    function removeLiquidity(UD60x18 liquidity)
         external
         returns (uint256 amountX, uint256 amountY)
     {
@@ -185,10 +186,10 @@ contract G3M is IG3M {
         ERC20(tokenX).transfer(msg.sender, amountX);
         ERC20(tokenY).transfer(msg.sender, amountY);
 
-        balanceOf[msg.sender] -= liquidity;
-        totalLiquidity -= liquidity;
-        reserveX -= toWad(amountX);
-        reserveY -= toWad(amountY);
+        balanceOf[msg.sender] = balanceOf[msg.sender] - liquidity;
+        totalLiquidity = totalLiquidity - liquidity;
+        reserveX = reserveX - convert(amountX);
+        reserveY = reserveY - convert(amountY);
 
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
     }
@@ -198,32 +199,31 @@ contract G3M is IG3M {
         bool swapDirection,
         uint256 amountIn
     ) external returns (uint256 amountOut) {
-        uint256 currentWeightX = weightX();
-        uint256 currentWeightY = FixedPoint.ONE - currentWeightX;
+        UD60x18 currentWeightX = weightX();
+        UD60x18 currentWeightY = weightY();
 
-        uint256 invariant = computeInvariantDown(
-            reserveX, currentWeightX, reserveY, currentWeightY
-        );
+        UD60x18 invariant =
+            computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
 
         uint256 fees = amountIn * SWAP_FEE / 10_000;
         uint256 amountInWithoutFees = amountIn - fees;
 
         amountOut = computeOutGivenIn(
-            toWad(amountInWithoutFees),
+            amountInWithoutFees,
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
             swapDirection ? currentWeightX : currentWeightY,
             swapDirection ? currentWeightY : currentWeightX
         );
 
-        uint256 newInvariant = computeInvariantUp(
+        UD60x18 newInvariant = computeInvariant(
             swapDirection
-                ? reserveX + toWad(amountInWithoutFees)
-                : reserveX - toWad(amountOut),
+                ? reserveX + convert(amountInWithoutFees)
+                : reserveX - convert(amountOut),
             currentWeightX,
             swapDirection
-                ? reserveY - toWad(amountOut)
-                : reserveY + toWad(amountInWithoutFees),
+                ? reserveY - convert(amountOut)
+                : reserveY + convert(amountInWithoutFees),
             currentWeightY
         );
 
@@ -232,11 +232,11 @@ contract G3M is IG3M {
         }
 
         if (swapDirection) {
-            reserveX += toWad(amountIn);
-            reserveY -= toWad(amountOut);
+            reserveX = reserveX + convert(amountIn);
+            reserveY = reserveY - convert(amountOut);
         } else {
-            reserveX -= toWad(amountOut);
-            reserveY += toWad(amountIn);
+            reserveX = reserveX - convert(amountOut);
+            reserveY = reserveY + convert(amountIn);
         }
 
         ERC20(swapDirection ? tokenX : tokenY).transferFrom(
@@ -252,29 +252,28 @@ contract G3M is IG3M {
         bool swapDirection,
         uint256 amountOut
     ) external returns (uint256 amountInWithFees) {
-        uint256 currentWeightX = weightX();
-        uint256 currentWeightY = FixedPoint.ONE - currentWeightX;
+        UD60x18 currentWeightX = weightX();
+        UD60x18 currentWeightY = weightY();
 
-        uint256 invariant = computeInvariantUp(
-            reserveX, currentWeightX, reserveY, currentWeightY
-        );
+        UD60x18 invariant =
+            computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
 
         uint256 amountIn = computeInGivenOut(
-            toWad(amountOut),
+            amountOut,
             swapDirection ? reserveX : reserveY,
             swapDirection ? reserveY : reserveX,
             swapDirection ? currentWeightX : currentWeightY,
             swapDirection ? currentWeightY : currentWeightX
         );
 
-        uint256 newInvariant = computeInvariantUp(
+        UD60x18 newInvariant = computeInvariant(
             swapDirection
-                ? reserveX + toWad(amountIn)
-                : reserveX - toWad(amountOut),
+                ? reserveX + convert(amountIn)
+                : reserveX - convert(amountOut),
             currentWeightX,
             swapDirection
-                ? reserveY - toWad(amountOut)
-                : reserveY + toWad(amountIn),
+                ? reserveY - convert(amountOut)
+                : reserveY + convert(amountIn),
             currentWeightY
         );
 
@@ -285,11 +284,11 @@ contract G3M is IG3M {
         amountInWithFees = amountIn * 10_000 / (10_000 - SWAP_FEE);
 
         if (swapDirection) {
-            reserveX += toWad(amountInWithFees);
-            reserveY -= toWad(amountOut);
+            reserveX = reserveX + convert(amountInWithFees);
+            reserveY = reserveY - convert(amountOut);
         } else {
-            reserveX -= toWad(amountOut);
-            reserveY += toWad(amountInWithFees);
+            reserveX = reserveX - convert(amountOut);
+            reserveY = reserveY + convert(amountInWithFees);
         }
 
         ERC20(swapDirection ? tokenX : tokenY).transferFrom(
@@ -301,13 +300,13 @@ contract G3M is IG3M {
     }
 
     /// @inheritdoc IG3M
-    function weightX() public view returns (uint256) {
+    function weightX() public view returns (UD60x18) {
         if (block.timestamp >= weightXUpdateEnd) {
             return targetWeightX;
         }
 
         uint256 timeElapsed = block.timestamp - lastWeightXSync;
-        uint256 weightXDelta = timeElapsed * weightXUpdatePerSecond;
+        UD60x18 weightXDelta = convert(timeElapsed) * weightXUpdatePerSecond;
 
         if (lastWeightX > targetWeightX) {
             return lastWeightX - weightXDelta;
@@ -317,14 +316,12 @@ contract G3M is IG3M {
     }
 
     /// @inheritdoc IG3M
-    function weightY() external view returns (uint256) {
-        return FixedPoint.ONE - weightX();
+    function weightY() public view returns (UD60x18) {
+        return UNIT - weightX();
     }
 
     /// @inheritdoc IG3M
     function getSpotPrice() external view returns (uint256) {
-        return computeSpotPrice(
-            reserveX, weightX(), reserveY, FixedPoint.ONE - weightX()
-        );
+        return computeSpotPrice(reserveX, weightX(), reserveY, weightY());
     }
 }
