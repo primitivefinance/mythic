@@ -144,7 +144,8 @@ function computeOutGivenIn(
     UD60x18 wI,
     UD60x18 wO
 ) pure returns (uint256 aO) {
-    aO = convert(bO * (UNIT - (bI / (bI + convert(aI))).pow(wI / wO)));
+    UD60x18 f = bI * (bI + convert(aI));
+    aO = convert(bO * (UNIT - f.pow(wI / wO)));
 }
 
 /**
@@ -174,5 +175,6 @@ function computeInGivenOut(
     UD60x18 wI,
     UD60x18 wO
 ) pure returns (uint256 aI) {
-    aI = convert(bI * ((bO / (bO - convert(aO))).pow(wO / wI) - UNIT));
+    UD60x18 f = bO / (bO - convert(aO));
+    aI = convert(bI * (f.pow(wO / wI) - UNIT));
 }
