@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../../src/lib/G3MPRBMath.sol";
 
 contract ComputeAmountOutGivenExactLiquidity is Test {
-    function test_computeAmountInGivenExactLiquidity_ComputesTokenXAmountIn()
+    function test_computeAmountOutGivenExactLiquidity_ComputesTokenXAmountOut()
         public
     {
         UD60x18 reserveX = convert(750 ether);
@@ -16,12 +16,12 @@ contract ComputeAmountOutGivenExactLiquidity is Test {
         UD60x18 liquidity =
             computeInvariant(reserveX, weightX, reserveY, weightY) * ud(2);
 
-        uint256 amountIn =
-            computeAmountInGivenExactLiquidity(liquidity, liquidity, reserveX);
-        assertEq(amountIn, convert(reserveX));
+        uint256 amountOut =
+            computeAmountOutGivenExactLiquidity(liquidity, liquidity, reserveX);
+        assertEq(amountOut, convert(reserveX));
     }
 
-    function test_computeAmountInGivenExactLiquidity_ComputesTokenYAmountIn()
+    function test_computeAmountOutGivenExactLiquidity_ComputesTokenYAmountOut()
         public
     {
         UD60x18 reserveX = convert(750 ether);
@@ -32,8 +32,8 @@ contract ComputeAmountOutGivenExactLiquidity is Test {
         UD60x18 liquidity =
             computeInvariant(reserveX, weightX, reserveY, weightY) * ud(2);
 
-        uint256 amountIn =
-            computeAmountInGivenExactLiquidity(liquidity, liquidity, reserveY);
-        assertEq(amountIn, convert(reserveY));
+        uint256 amountOut =
+            computeAmountOutGivenExactLiquidity(liquidity, liquidity, reserveY);
+        assertEq(amountOut, convert(reserveY));
     }
 }
