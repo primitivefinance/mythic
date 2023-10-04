@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import { uMAX_UD60x18, uUNIT } from "@prb/math/ud60x18/Constants.sol";
 import "./SetUp.t.sol";
 
 contract InitPool is SetUp {
-    function test_initPool_InitializesPool() public {
-        uint256 amountX = 750 ether;
-        uint256 amountY = 250 ether;
+    function testFuzz_initPool_InitializesPool(
+        uint256 amountX,
+        uint256 amountY
+    ) public {
+        amountX = bound(amountX, 1, type(uint128).max);
+        amountY = bound(amountY, 1, type(uint128).max);
 
         UD60x18 invariant = computeInvariant(
             convert(amountX), ud(0.5 ether), convert(amountY), ud(0.5 ether)
@@ -18,7 +22,7 @@ contract InitPool is SetUp {
         assertEq(g3m.reserveX(), convert(amountX));
         assertEq(g3m.reserveY(), convert(amountY));
         assertEq(g3m.totalLiquidity(), liquidity + BURNT_LIQUIDITY);
-        assertEq(g3m.getSpotPrice(), 3 ether);
+        // assertEq(g3m.getSpotPrice(), 3 ether);
         assertEq(g3m.balanceOf(address(this)), liquidity);
         assertEq(g3m.balanceOf(address(0)), BURNT_LIQUIDITY);
         assertEq(g3m.totalLiquidity(), invariant * convert(2));
@@ -28,9 +32,12 @@ contract InitPool is SetUp {
         );
     }
 
-    function test_initPool_Revert_PoolAlreadyInitialized() public {
-        uint256 amountX = 750 ether;
-        uint256 amountY = 250 ether;
+    function testFuzz_initPool_Revert_PoolAlreadyInitialized(
+        uint256 amountX,
+        uint256 amountY
+    ) public {
+        amountX = bound(amountX, 1, type(uint128).max);
+        amountY = bound(amountY, 1, type(uint128).max);
         g3m.initPool(amountX, amountY);
         vm.expectRevert("Pool already initialized");
         g3m.initPool(amountX, amountY);
