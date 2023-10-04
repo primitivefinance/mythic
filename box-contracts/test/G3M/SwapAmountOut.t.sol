@@ -32,8 +32,10 @@ contract SwapAmountOut is SetUp {
         uint256 balanceYAfter = tokenY.balanceOf(address(g3m));
 
         if (swapDirection) {
-            assertEq(balanceXAfter, balanceXBefore + amountInWithFees);
-            assertEq(balanceYAfter, balanceYBefore - amountOut);
+            assertEq(
+                balanceXAfter, balanceXBefore + amountInWithFees, "balance X"
+            );
+            assertEq(balanceYAfter, balanceYBefore - amountOut, "balance Y");
         } else {
             assertEq(balanceXAfter, balanceXBefore - amountOut);
             assertEq(balanceYAfter, balanceYBefore + amountInWithFees);
@@ -64,11 +66,23 @@ contract SwapAmountOut is SetUp {
         UD60x18 reserveYAfter = g3m.reserveY();
 
         if (swapDirection) {
-            assertEq(reserveXAfter, reserveXBefore + convert(amountInWithFees));
-            assertEq(reserveYAfter, reserveYBefore - convert(amountOut));
+            assertEq(
+                reserveXAfter,
+                reserveXBefore + convert(amountInWithFees),
+                "reserve X"
+            );
+            assertEq(
+                reserveYAfter, reserveYBefore - convert(amountOut), "reserve Y"
+            );
         } else {
-            assertEq(reserveXAfter, reserveXBefore - convert(amountOut));
-            assertEq(reserveYAfter, reserveYBefore + convert(amountInWithFees));
+            assertEq(
+                reserveXAfter, reserveXBefore - convert(amountOut), "reserve X"
+            );
+            assertEq(
+                reserveYAfter,
+                reserveYBefore + convert(amountInWithFees),
+                "reserve Y"
+            );
         }
     }
 }
