@@ -16,7 +16,7 @@ contract Constructor is SetUp {
         assertEq(g3m.weightY(), MAX_WEIGHT);
     }
 
-    function test_constructor_WeightsSumEqualsOne(uint256 weightX) public {
+    function testFuzz_constructor_WeightsSumEqualsOne(uint256 weightX) public {
         vm.assume(ud(weightX) >= MIN_WEIGHT && ud(weightX) <= MAX_WEIGHT);
         g3m = new G3M(address(tokenX), address(tokenY), ud(weightX));
         assertEq(g3m.weightX() + g3m.weightY(), UNIT);
