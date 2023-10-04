@@ -1,27 +1,21 @@
 import argparse
 import pandas as pd
-import analysis.data_processor as data_processor
-import visualization
-import statistical_visualization
+from analysis.data_processor import DataProcessor
+from analysis.visualization import Visualizer
 
 def main():
-    parser = argparse.ArgumentParser(description='Run different types of visualizations.')
-    parser.add_argument('--type', type=str, choices=['statistical', 'single', 'analysis'], required=True,
-                        help='Type of visualization to run. Choose "statistical" for mean and std, "single" for individual runs.')
+    data = DataProcessor("data", {"timestamp": int, "value": float})
+    dfs = data.import_csvs()
 
-    args = parser.parse_args()
+    viz = Visualizer(nrows=2, ncols=2, figsize=(16, 10))
 
-    if args.type == 'statistical':
-        simulation_data = data_processor.import_all_csvs('../output')
-        [means, stds] = data_processor.compute_mean_and_std(simulation_data)
-        statistical_visualization.plot_all(means.astype(float), stds.astype(float), 'combined_plot_statistical.png')
-    elif args.type == 'single':
-        simulation_data = data_processor.import_wad_csv('../output/portfolio_0.csv')
-        visualization.plot_all(simulation_data, 'combined_plot_single.png')
-    elif args.type == 'analysis':
-        data = data_processor.read_in_sweep('../output')
-        # data = pd.read_csv('sweep_results.csv')
-        statistical_visualization.plot_heatmaps(data)
+    # For a 2x2 layout, you'll specify the row and col index where you want each plot.
+    viz.plot_statistical(0, 0, x1, y1, "Label 1")
+    viz.plot_statistical(0, 1, x2, y2, "Label 2")
+    viz.plot_statistical(1, 0, x3, y3, "Label 3")
+
+    viz.save("output.png")
+
 
 if __name__ == "__main__":
     main()
