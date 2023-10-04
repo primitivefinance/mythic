@@ -255,33 +255,33 @@ contract G3M is IG3M {
         UD60x18 currentWeightX = weightX();
         UD60x18 currentWeightY = weightY();
 
-        UD60x18 invariant =
+        UD60x18 invariantBefore =
             computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
 
         uint256 amountIn = computeInGivenOut(
             amountOut,
             swapDirection ? reserveX : reserveY,
-            swapDirection ? reserveY : reserveX,
             swapDirection ? currentWeightX : currentWeightY,
+            swapDirection ? reserveY : reserveX,
             swapDirection ? currentWeightY : currentWeightX
         );
 
-        UD60x18 newInvariant = computeInvariant(
+        amountInWithFees = amountIn * 10_000 / (10_000 - SWAP_FEE);
+
+        UD60x18 invariantAfter = computeInvariant(
             swapDirection
-                ? reserveX + convert(amountIn)
+                ? reserveX + convert(amountInWithFees)
                 : reserveX - convert(amountOut),
             currentWeightX,
             swapDirection
                 ? reserveY - convert(amountOut)
-                : reserveY + convert(amountIn),
+                : reserveY + convert(amountInWithFees),
             currentWeightY
         );
 
-        if (invariant > newInvariant) {
-            revert InvalidSwap(invariant, newInvariant);
+        if (invariantBefore > invariantAfter) {
+            revert InvalidSwap(invariantBefore, invariantAfter);
         }
-
-        amountInWithFees = amountIn * 10_000 / (10_000 - SWAP_FEE);
 
         if (swapDirection) {
             reserveX = reserveX + convert(amountInWithFees);
