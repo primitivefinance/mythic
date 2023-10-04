@@ -1,6 +1,6 @@
 use std::ops::Div;
 
-use super::{atomic_arbitrage::AtomicArbitrage, *};
+use super::*;
 
 pub struct Arbitrageur {
     /// The arbitrageur's client connection to the liquid exchange.

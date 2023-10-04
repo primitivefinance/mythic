@@ -4,19 +4,14 @@ use anyhow::Result;
 use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
 };
-use bindings::atomic_arbitrage;
 use ethers::types::{Address, U256};
-use tokio::task::JoinHandle;
-use tracing::event;
-use tracing_subscriber;
 
-use bindings::g3m::G3M;
+use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
 
+mod agents;
 mod settings;
 mod setup;
 mod utils;
-use std::sync::Arc;
-mod agents;
 
 /// The number 10^18.
 pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);
