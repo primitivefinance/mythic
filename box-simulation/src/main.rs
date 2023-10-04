@@ -1,13 +1,16 @@
 use std::time::Instant;
 
 use anyhow::Result;
-use tokio::task::JoinHandle;
-use tracing::event;
-use tracing_subscriber;
 use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
 };
+use bindings::atomic_arbitrage;
 use ethers::types::{Address, U256};
+use tokio::task::JoinHandle;
+use tracing::event;
+use tracing_subscriber;
+
+use bindings::g3m::G3M;
 
 mod settings;
 mod setup;
