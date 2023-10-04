@@ -138,4 +138,10 @@ interface IG3M {
 
     /// @notice Weight of token Y, expressed in WAD.
     function weightY() external view returns (UD60x18);
+
+    /**
+     * @notice Address of the admin of the contract. Note that the current only
+     * access control is to update the weights of the pool.
+     */
+    function admin() external view returns (address);
 }

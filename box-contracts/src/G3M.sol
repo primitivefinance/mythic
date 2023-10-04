@@ -12,10 +12,7 @@ contract G3M is IG3M {
     /// @notice Thrown when the old invariant is greater than the new one.
     error InvalidSwap(UD60x18 invariantBefore, UD60x18 invariantAfter);
 
-    /**
-     * @notice Address of the admin of the contract. Note that the current only
-     * access control is to update the weights of the pool.
-     */
+    /// @inheritdoc IG3M
     address public admin;
 
     /// @inheritdoc IG3M
