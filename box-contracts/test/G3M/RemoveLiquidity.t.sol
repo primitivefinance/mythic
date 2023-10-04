@@ -17,10 +17,7 @@ contract RemoveLiquidity is SetUp {
 
         assertEq(g3m.reserveX(), convert(initAmountX) / convert(2));
         assertEq(g3m.reserveY(), convert(initAmountY) / convert(2));
-        assertEq(
-            g3m.totalLiquidity(),
-            BURNT_LIQUIDITY + liquidity / convert(2) + ud(1) // Small hack to fix the rounding error
-        );
+        assertEq(g3m.totalLiquidity(), BURNT_LIQUIDITY + liquidity / convert(2));
 
         assertEq(amountX, initAmountX / 2);
         assertEq(amountY, initAmountY / 2);
