@@ -15,12 +15,12 @@ contract SetUp is G3MTest {
         tokenX = new MockERC20("TokenX", "X", 18);
         tokenY = new MockERC20("TokenY", "Y", 18);
 
-        tokenX.mint(address(this), 20000 ether);
-        tokenY.mint(address(this), 20000 ether);
+        tokenX.mint(address(this), type(uint256).max);
+        tokenY.mint(address(this), type(uint256).max);
 
         g3m = new G3M(address(tokenX), address(tokenY), ud(0.5 ether));
 
-        tokenX.approve(address(g3m), 20000 ether);
-        tokenY.approve(address(g3m), 20000 ether);
+        tokenX.approve(address(g3m), type(uint256).max);
+        tokenY.approve(address(g3m), type(uint256).max);
     }
 }
