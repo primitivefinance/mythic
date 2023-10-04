@@ -299,6 +299,77 @@ contract G3M is IG3M {
         emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
     }
 
+    function _swap(
+        bool swapDirection,
+        bool inOrOut,
+        uint256 amount
+    ) private returns (uint256) {
+        UD60x18 currentWeightX = weightX();
+        UD60x18 currentWeightY = weightY();
+
+        UD60x18 invariantBefore =
+            computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
+
+        uint256 amountIn;
+        uint256 amountOut;
+
+        if (inOrOut) {
+            amountIn = amount;
+            uint256 fees = amountIn * SWAP_FEE / 10_000;
+            uint256 amountInWithoutFees = amountIn - fees;
+
+            amountOut = computeOutGivenIn(
+                amountInWithoutFees,
+                swapDirection ? reserveX : reserveY,
+                swapDirection ? currentWeightX : currentWeightY,
+                swapDirection ? reserveY : reserveX,
+                swapDirection ? currentWeightY : currentWeightX
+            );
+        } else {
+            uint256 amountInWithoutFees = computeInGivenOut(
+                amount,
+                swapDirection ? reserveX : reserveY,
+                swapDirection ? currentWeightX : currentWeightY,
+                swapDirection ? reserveY : reserveX,
+                swapDirection ? currentWeightY : currentWeightX
+            );
+
+            amountIn = amountInWithoutFees * 10_000 / (10_000 - SWAP_FEE);
+        }
+
+        UD60x18 invariantAfter = computeInvariant(
+            swapDirection
+                ? reserveX + convert(amountIn)
+                : reserveX - convert(amountOut),
+            currentWeightX,
+            swapDirection
+                ? reserveY - convert(amountOut)
+                : reserveY + convert(amountIn),
+            currentWeightY
+        );
+
+        if (invariantBefore > invariantAfter) {
+            revert InvalidSwap(invariantBefore, invariantAfter);
+        }
+
+        if (swapDirection) {
+            reserveX = reserveX + convert(amountIn);
+            reserveY = reserveY - convert(amountOut);
+        } else {
+            reserveX = reserveX - convert(amountOut);
+            reserveY = reserveY + convert(amountIn);
+        }
+
+        ERC20(swapDirection ? tokenX : tokenY).transferFrom(
+            msg.sender, address(this), amountIn
+        );
+        ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
+
+        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+
+        return inOrOut ? amountOut : amountIn;
+    }
+
     /// @inheritdoc IG3M
     function weightX() public view returns (UD60x18) {
         if (block.timestamp >= weightXUpdateEnd) {
