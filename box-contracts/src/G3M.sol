@@ -198,110 +198,37 @@ contract G3M is IG3M {
     function swapAmountIn(
         bool swapDirection,
         uint256 amountIn
-    ) external returns (uint256 amountOut) {
-        UD60x18 currentWeightX = weightX();
-        UD60x18 currentWeightY = weightY();
-
-        UD60x18 invariantBefore =
-            computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
-
-        uint256 fees = amountIn * SWAP_FEE / 10_000;
-        uint256 amountInWithoutFees = amountIn - fees;
-
-        amountOut = computeOutGivenIn(
-            amountInWithoutFees,
-            swapDirection ? reserveX : reserveY,
-            swapDirection ? currentWeightX : currentWeightY,
-            swapDirection ? reserveY : reserveX,
-            swapDirection ? currentWeightY : currentWeightX
-        );
-
-        UD60x18 invariantAfter = computeInvariant(
-            swapDirection
-                ? reserveX + convert(amountIn)
-                : reserveX - convert(amountOut),
-            currentWeightX,
-            swapDirection
-                ? reserveY - convert(amountOut)
-                : reserveY + convert(amountIn),
-            currentWeightY
-        );
-
-        if (invariantBefore > invariantAfter) {
-            revert InvalidSwap(invariantBefore, invariantAfter);
-        }
-
-        if (swapDirection) {
-            reserveX = reserveX + convert(amountIn);
-            reserveY = reserveY - convert(amountOut);
-        } else {
-            reserveX = reserveX - convert(amountOut);
-            reserveY = reserveY + convert(amountIn);
-        }
-
-        ERC20(swapDirection ? tokenX : tokenY).transferFrom(
-            msg.sender, address(this), amountIn
-        );
-        ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
-
-        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+    ) external returns (uint256) {
+        return _swap(swapDirection, true, amountIn);
     }
 
     /// @inheritdoc IG3M
     function swapAmountOut(
         bool swapDirection,
         uint256 amountOut
-    ) external returns (uint256 amountInWithFees) {
-        UD60x18 currentWeightX = weightX();
-        UD60x18 currentWeightY = weightY();
-
-        UD60x18 invariantBefore =
-            computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
-
-        uint256 amountIn = computeInGivenOut(
-            amountOut,
-            swapDirection ? reserveX : reserveY,
-            swapDirection ? currentWeightX : currentWeightY,
-            swapDirection ? reserveY : reserveX,
-            swapDirection ? currentWeightY : currentWeightX
-        );
-
-        amountInWithFees = amountIn * 10_000 / (10_000 - SWAP_FEE);
-
-        UD60x18 invariantAfter = computeInvariant(
-            swapDirection
-                ? reserveX + convert(amountInWithFees)
-                : reserveX - convert(amountOut),
-            currentWeightX,
-            swapDirection
-                ? reserveY - convert(amountOut)
-                : reserveY + convert(amountInWithFees),
-            currentWeightY
-        );
-
-        if (invariantBefore > invariantAfter) {
-            revert InvalidSwap(invariantBefore, invariantAfter);
-        }
-
-        if (swapDirection) {
-            reserveX = reserveX + convert(amountInWithFees);
-            reserveY = reserveY - convert(amountOut);
-        } else {
-            reserveX = reserveX - convert(amountOut);
-            reserveY = reserveY + convert(amountInWithFees);
-        }
-
-        ERC20(swapDirection ? tokenX : tokenY).transferFrom(
-            msg.sender, address(this), amountInWithFees
-        );
-        ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
-
-        emit Swap(msg.sender, swapDirection, amountInWithFees, amountOut);
+    ) external returns (uint256) {
+        return _swap(swapDirection, false, amountOut);
     }
 
+    /**
+     * @dev Performs all the checks and takes care of all the logic that happens
+     * during a swap:
+     * - Invariant check (before and after the swap)
+     * - Update of the reserves
+     * - Transfer of the tokens
+     *
+     * Note that this function works for both directions (X for Y and Y for X),
+     * but also for both exact in and exact out swaps.
+     * @param swapDirection True to swap token X for token Y, false otherwise
+     * @param exactIn True if `amount` is the exact input amount, false otherwise
+     * @param amount Amount of tokens to swap, can be expressed either in token
+     * X or token Y, exact in or exact out
+     * @return Computed amount of tokens, can be expressed either in token X or
+     * token Y, expected in or expected out
+     */
     function _swap(
         bool swapDirection,
-        bool inOrOut,
+        bool exactIn,
         uint256 amount
     ) private returns (uint256) {
         UD60x18 currentWeightX = weightX();
@@ -313,7 +240,7 @@ contract G3M is IG3M {
         uint256 amountIn;
         uint256 amountOut;
 
-        if (inOrOut) {
+        if (exactIn) {
             amountIn = amount;
             uint256 fees = amountIn * SWAP_FEE / 10_000;
             uint256 amountInWithoutFees = amountIn - fees;
@@ -326,6 +253,7 @@ contract G3M is IG3M {
                 swapDirection ? currentWeightY : currentWeightX
             );
         } else {
+            amountOut = amount;
             uint256 amountInWithoutFees = computeInGivenOut(
                 amount,
                 swapDirection ? reserveX : reserveY,
@@ -337,27 +265,19 @@ contract G3M is IG3M {
             amountIn = amountInWithoutFees * 10_000 / (10_000 - SWAP_FEE);
         }
 
-        UD60x18 invariantAfter = computeInvariant(
-            swapDirection
-                ? reserveX + convert(amountIn)
-                : reserveX - convert(amountOut),
-            currentWeightX,
-            swapDirection
-                ? reserveY - convert(amountOut)
-                : reserveY + convert(amountIn),
-            currentWeightY
-        );
-
-        if (invariantBefore > invariantAfter) {
-            revert InvalidSwap(invariantBefore, invariantAfter);
-        }
-
         if (swapDirection) {
             reserveX = reserveX + convert(amountIn);
             reserveY = reserveY - convert(amountOut);
         } else {
             reserveX = reserveX - convert(amountOut);
             reserveY = reserveY + convert(amountIn);
+        }
+
+        UD60x18 invariantAfter =
+            computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
+
+        if (invariantBefore > invariantAfter) {
+            revert InvalidSwap(invariantBefore, invariantAfter);
         }
 
         ERC20(swapDirection ? tokenX : tokenY).transferFrom(
@@ -367,7 +287,7 @@ contract G3M is IG3M {
 
         emit Swap(msg.sender, swapDirection, amountIn, amountOut);
 
-        return inOrOut ? amountOut : amountIn;
+        return exactIn ? amountOut : amountIn;
     }
 
     /// @inheritdoc IG3M
