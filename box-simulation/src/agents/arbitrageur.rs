@@ -80,8 +80,7 @@ impl Arbitrageur {
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
         let g3m_price_wad = self.g3m.get_spot_price().call().await?;
 
-        // TODO: Get the right gamma from ExchangeParameters.
-        let gamma_wad = WAD - self.g3m.get_swap_fee().call().await?;
+        let gamma_wad = WAD - self.g3m.swap_fee().call().await?;
 
         // Compute the no-arbitrage bounds.
         let upper_arb_bound = WAD * g3m_price_wad / gamma_wad;
@@ -106,29 +105,29 @@ impl Arbitrageur {
         }
     }
 
-    async fn get_y_input(&mut self, target_price_wad: U256) -> Result<U256> {
-        let weight_x = self.g3m.weight_x().call().await?;
-        let weight_y = self.g3m.weight_y().call().await?;
-        let reserve_x = self.g3m.reserve_x().call().await?;
-        let invariant = self.g3m.get_invariant().call().await?; // TODO: This is probably not the right call.
-
-        Ok(weight_x
-            * target_price_wad
-                .div(invariant.pow(U256::from(1).div(weight_y)))
-                .pow(U256::from(1) + weight_x.div(weight_y))
-            - reserve_x)
-    }
-
     async fn get_x_input(&mut self, target_price_wad: U256) -> Result<U256> {
         let weight_x = self.g3m.weight_x().call().await?;
         let weight_y = self.g3m.weight_y().call().await?;
         let reserve_y = self.g3m.reserve_y().call().await?;
-        let invariant = self.g3m.get_invariant().call().await?; // TODO: This is probably not the right call.
+        let invariant = self.g3m.get_invariant().call().await?;
 
         Ok(weight_y
             * U256::from(1)
                 .div(target_price_wad * invariant.pow(U256::from(1).div(weight_x)))
                 .pow(U256::from(1) + weight_y.div(weight_x))
             - reserve_y)
+    }
+
+    async fn get_y_input(&mut self, target_price_wad: U256) -> Result<U256> {
+        let weight_x = self.g3m.weight_x().call().await?;
+        let weight_y = self.g3m.weight_y().call().await?;
+        let reserve_x = self.g3m.reserve_x().call().await?;
+        let invariant = self.g3m.get_invariant().call().await?;
+
+        Ok(weight_x
+            * target_price_wad
+                .div(invariant.pow(U256::from(1).div(weight_y)))
+                .pow(U256::from(1) + weight_x.div(weight_y))
+            - reserve_x)
     }
 }
