@@ -21,9 +21,10 @@ contract InitPool is SetUp {
         assertEq(g3m.getSpotPrice(), 3 ether);
         assertEq(g3m.balanceOf(address(this)), liquidity);
         assertEq(g3m.balanceOf(address(0)), BURNT_LIQUIDITY);
-        assertEq(g3m.totalLiquidity(), invariant * ud(2));
+        assertEq(g3m.totalLiquidity(), invariant * convert(2));
         assertEq(
-            g3m.balanceOf(address(this)), invariant * ud(2) - BURNT_LIQUIDITY
+            g3m.balanceOf(address(this)),
+            invariant * convert(2) - BURNT_LIQUIDITY
         );
     }
 
