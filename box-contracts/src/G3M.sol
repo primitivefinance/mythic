@@ -130,7 +130,7 @@ contract G3M is IG3M {
         UD60x18 invariant = computeInvariant(
             convert(amountX), weightX(), convert(amountY), weightY()
         );
-        UD60x18 liquidity = invariant * ud(2);
+        UD60x18 liquidity = invariant * convert(2);
 
         totalLiquidity = totalLiquidity + liquidity;
         balanceOf[msg.sender] = liquidity - BURNT_LIQUIDITY;
