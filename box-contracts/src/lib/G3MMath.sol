@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./FixedPoint.sol";
+import { UD60x18, ud, UNIT, convert } from "@prb/math/UD60x18.sol";
 
 /**
  * @dev Amount of liquidity burnt when a pool is initialized for the
@@ -9,34 +9,16 @@ import "./FixedPoint.sol";
  * gets totally drained and someone calls `initPool` again.
  * @custom:todo Check if the amount is correct?
  */
-uint256 constant BURNT_LIQUIDITY = 1_000;
+UD60x18 constant BURNT_LIQUIDITY = UD60x18.wrap(1_000);
 
 /// @dev Current swap fee (expressed in 10,000).
 uint256 constant SWAP_FEE = 30; // 0.3%
 
 /// @dev Minimum weight of a token in the pool.
-uint256 constant MIN_WEIGHT = 0.01e18;
+UD60x18 constant MIN_WEIGHT = UD60x18.wrap(0.01e18);
 
 /// @dev Maximum weight of a token in the pool.
-uint256 constant MAX_WEIGHT = FixedPoint.ONE - MIN_WEIGHT;
-
-/**
- * @dev Converts a fixed-point number to an unsigned integer.
- * @param a Fixed-point number to convert
- * @return b Unsigned integer representation of the fixed-point number
- */
-function fromWad(uint256 a) pure returns (uint256 b) {
-    b = a / FixedPoint.ONE;
-}
-
-/**
- * @dev Converts an unsigned integer to a fixed-point number.
- * @param a Unsigned integer to convert
- * @return b Fixed-point representation of the unsigned integer
- */
-function toWad(uint256 a) pure returns (uint256 b) {
-    b = a * FixedPoint.ONE;
-}
+UD60x18 constant MAX_WEIGHT = UD60x18.wrap(990000000000000000);
 
 /**
  * @dev Computes the invariant of the pool (rounding down) using the
@@ -51,37 +33,15 @@ function toWad(uint256 a) pure returns (uint256 b) {
  * @param wY Weight of token Y
  * @return k Invariant of the pool
  */
-function computeInvariantDown(
-    uint256 rX,
-    uint256 wX,
-    uint256 rY,
-    uint256 wY
-) pure returns (uint256 k) {
-    k = FixedPoint.mulDown(
-        FixedPoint.powDown(rX, wX), FixedPoint.powDown(rY, wY)
-    );
-}
-
-/**
- * @dev Computes the invariant of the pool (rounding up) using the following
- * formula:
- *
- *        ⎛  wX⎞   ⎛  wY⎞
- *    k = ⎝rX  ⎠ ⋅ ⎝rY  ⎠
- *
- * @param rX Reserve of token X
- * @param wX Weight of token X
- * @param rY Reserve of token Y
- * @param wY Weight of token Y
- * @return k Invariant of the pool
- */
-function computeInvariantUp(
-    uint256 rX,
-    uint256 wX,
-    uint256 rY,
-    uint256 wY
-) pure returns (uint256 k) {
-    k = FixedPoint.mulUp(FixedPoint.powUp(rX, wX), FixedPoint.powUp(rY, wY));
+function computeInvariant(
+    UD60x18 rX,
+    UD60x18 wX,
+    UD60x18 rY,
+    UD60x18 wY
+) pure returns (UD60x18 k) {
+    UD60x18 n = rX.pow(wX);
+    UD60x18 d = rY.pow(wY);
+    k = n * d;
 }
 
 /**
@@ -102,14 +62,14 @@ function computeInvariantUp(
  * @return p Spot price of the pool
  */
 function computeSpotPrice(
-    uint256 rI,
-    uint256 wI,
-    uint256 rO,
-    uint256 wO
+    UD60x18 rI,
+    UD60x18 wI,
+    UD60x18 rO,
+    UD60x18 wO
 ) pure returns (uint256 p) {
-    p = FixedPoint.divDown(
-        FixedPoint.divDown(rI, wI), FixedPoint.divDown(rO, wO)
-    );
+    UD60x18 n = rI / wI;
+    UD60x18 d = rO / wO;
+    p = UD60x18.unwrap(n / d);
 }
 
 /**
@@ -128,18 +88,11 @@ function computeSpotPrice(
  * @return i Required amount of tokens
  */
 function computeAmountInGivenExactLiquidity(
-    uint256 t,
-    uint256 l,
-    uint256 r
+    UD60x18 t,
+    UD60x18 l,
+    UD60x18 r
 ) pure returns (uint256 i) {
-    i = fromWad(
-        FixedPoint.mulUp(
-            FixedPoint.sub(
-                FixedPoint.divUp(FixedPoint.add(t, l), t), FixedPoint.ONE
-            ),
-            r
-        )
-    );
+    i = convert(((t + l) / t - UNIT) * r);
 }
 
 /**
@@ -158,18 +111,11 @@ function computeAmountInGivenExactLiquidity(
  * @return o Received amount of tokens
  */
 function computeAmountOutGivenExactLiquidity(
-    uint256 t,
-    uint256 l,
-    uint256 r
+    UD60x18 t,
+    UD60x18 l,
+    UD60x18 r
 ) pure returns (uint256 o) {
-    o = fromWad(
-        FixedPoint.mulDown(
-            FixedPoint.sub(
-                FixedPoint.ONE, FixedPoint.divDown(FixedPoint.sub(t, l), t)
-            ),
-            r
-        )
-    );
+    o = convert((UNIT - (t - l) / t) * r);
 }
 
 /**
@@ -187,29 +133,19 @@ function computeAmountOutGivenExactLiquidity(
  *
  * @param aI Amount of input token
  * @param bI Balance of the input token
- * @param bO Balance of the output token
  * @param wI Weight of the input token
+ * @param bO Balance of the output token
  * @param wO Weight of the output token
  */
 function computeOutGivenIn(
     uint256 aI,
-    uint256 bI,
-    uint256 bO,
-    uint256 wI,
-    uint256 wO
+    UD60x18 bI,
+    UD60x18 wI,
+    UD60x18 bO,
+    UD60x18 wO
 ) pure returns (uint256 aO) {
-    aO = fromWad(
-        FixedPoint.mulDown(
-            bO,
-            FixedPoint.sub(
-                FixedPoint.ONE,
-                FixedPoint.powDown(
-                    FixedPoint.divDown(bI, FixedPoint.add(bI, aI)),
-                    FixedPoint.divDown(wI, wO)
-                )
-            )
-        )
-    );
+    UD60x18 f = bI / (bI + convert(aI));
+    aO = convert(bO * (UNIT - f.pow(wI / wO)));
 }
 
 /**
@@ -227,28 +163,18 @@ function computeOutGivenIn(
  *
  * @param aO Exact amount of expected output tokens
  * @param bI Balance of the input token
- * @param bO Balance of the output token
  * @param wI Weight of the input token
+ * @param bO Balance of the output token
  * @param wO Weight of the output token
  * @return aI Amount of input tokens required
  */
 function computeInGivenOut(
     uint256 aO,
-    uint256 bI,
-    uint256 bO,
-    uint256 wI,
-    uint256 wO
+    UD60x18 bI,
+    UD60x18 wI,
+    UD60x18 bO,
+    UD60x18 wO
 ) pure returns (uint256 aI) {
-    aI = fromWad(
-        FixedPoint.mulDown(
-            bI,
-            FixedPoint.sub(
-                FixedPoint.powUp(
-                    FixedPoint.divUp(bO, FixedPoint.sub(bO, aO)),
-                    FixedPoint.divUp(wO, wI)
-                ),
-                FixedPoint.ONE
-            )
-        )
-    );
+    UD60x18 f = bO / (bO - convert(aO));
+    aI = convert(bI * (f.pow(wO / wI) - UNIT));
 }

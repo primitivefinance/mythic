@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "../../src/lib/G3MPRBMath.sol";
+import "../G3MTest.t.sol";
 
-contract ComputeInvariant is Test {
+contract ComputeInvariant is G3MTest {
     function test_computeInvariant_ComputesInvariant() public view {
         UD60x18 reserveX = convert(750 ether);
         UD60x18 reserveY = convert(250 ether);

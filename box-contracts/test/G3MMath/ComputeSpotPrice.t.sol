@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "../../src/lib/G3MPRBMath.sol";
+import "../G3MTest.t.sol";
 
-contract ComputeSpotPrice is Test {
+contract ComputeSpotPrice is G3MTest {
     function test_computeSpotPrice_ComputesSpotPrice() public {
         UD60x18 reserveX = convert(833_000 ether);
         UD60x18 reserveY = convert(500 ether);
