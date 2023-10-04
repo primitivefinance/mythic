@@ -108,6 +108,12 @@ interface IG3M {
         uint256 newWeightXUpdateEnd
     ) external;
 
+    /**
+     * @notice Updates the swap fee of the pool.
+     * @param newSwapFee New swap fee of the pool, expressed in 10,000%
+     */
+    function setSwapFee(uint256 newSwapFee) external;
+
     /// @notice Computes the spot price of token X in terms of token Y.
     function getSpotPrice() external view returns (uint256);
 
