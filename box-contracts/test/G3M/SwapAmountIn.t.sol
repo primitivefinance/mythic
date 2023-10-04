@@ -40,26 +40,35 @@ contract SwapAmountIn is SetUp {
         }
     }
 
-    function test_swapAmountIn_UpdatesReserves() public {
-        g3m.initPool(750 ether, 250 ether);
-        UD60x18 reserveX = g3m.reserveX();
-        UD60x18 reserveY = g3m.reserveY();
+    function testFuzz_swapAmountIn_UpdatesReserves(
+        uint256 initialDepositX,
+        uint256 initialDepositY,
+        bool swapDirection,
+        uint256 amountIn
+    ) public {
+        initialDepositX = bound(initialDepositX, uUNIT, 600_000 ether);
+        initialDepositY = bound(initialDepositY, uUNIT, 600_000 ether);
 
-        uint256 amountIn = 50 ether;
-        uint256 amountOut = g3m.swapAmountIn(true, amountIn);
+        uint256 maxSwap =
+            (swapDirection ? initialDepositX : initialDepositY) / 3;
+        vm.assume(amountIn > 1 ether && amountIn <= maxSwap);
 
-        assertEq(g3m.reserveX(), reserveX + convert(amountIn));
-        assertEq(g3m.reserveY(), reserveY - convert(amountOut));
-    }
+        g3m.initPool(initialDepositX, initialDepositY);
 
-    function test_swapAmountIn_IncreasesSpotPrice() public {
-        g3m.initPool(750 ether, 250 ether);
-        uint256 spotPriceBefore = g3m.getSpotPrice();
+        UD60x18 reserveXBefore = g3m.reserveX();
+        UD60x18 reserveYBefore = g3m.reserveY();
 
-        uint256 amountIn = 50 ether;
-        g3m.swapAmountIn(true, amountIn);
+        uint256 amountOut = g3m.swapAmountIn(swapDirection, amountIn);
 
-        uint256 spotPriceAfter = g3m.getSpotPrice();
-        assertTrue(spotPriceAfter > spotPriceBefore);
+        UD60x18 reserveXAfter = g3m.reserveX();
+        UD60x18 reserveYAfter = g3m.reserveY();
+
+        if (swapDirection) {
+            assertEq(reserveXAfter, reserveXBefore + convert(amountIn));
+            assertEq(reserveYAfter, reserveYBefore - convert(amountOut));
+        } else {
+            assertEq(reserveXAfter, reserveXBefore - convert(amountOut));
+            assertEq(reserveYAfter, reserveYBefore + convert(amountIn));
+        }
     }
 }
