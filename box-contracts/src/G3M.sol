@@ -10,7 +10,7 @@ import "./IG3M.sol";
  */
 contract G3M is IG3M {
     /// @notice Thrown when the old invariant is greater than the new one.
-    error InvalidSwap(UD60x18 oldInvariant, UD60x18 newInvariant);
+    error InvalidSwap(UD60x18 invariantBefore, UD60x18 invariantAfter);
 
     /**
      * @notice Address of the admin of the contract. Note that the current only
@@ -202,7 +202,7 @@ contract G3M is IG3M {
         UD60x18 currentWeightX = weightX();
         UD60x18 currentWeightY = weightY();
 
-        UD60x18 invariant =
+        UD60x18 invariantBefore =
             computeInvariant(reserveX, currentWeightX, reserveY, currentWeightY);
 
         uint256 fees = amountIn * SWAP_FEE / 10_000;
@@ -211,24 +211,24 @@ contract G3M is IG3M {
         amountOut = computeOutGivenIn(
             amountInWithoutFees,
             swapDirection ? reserveX : reserveY,
-            swapDirection ? reserveY : reserveX,
             swapDirection ? currentWeightX : currentWeightY,
+            swapDirection ? reserveY : reserveX,
             swapDirection ? currentWeightY : currentWeightX
         );
 
-        UD60x18 newInvariant = computeInvariant(
+        UD60x18 invariantAfter = computeInvariant(
             swapDirection
-                ? reserveX + convert(amountInWithoutFees)
+                ? reserveX + convert(amountIn)
                 : reserveX - convert(amountOut),
             currentWeightX,
             swapDirection
                 ? reserveY - convert(amountOut)
-                : reserveY + convert(amountInWithoutFees),
+                : reserveY + convert(amountIn),
             currentWeightY
         );
 
-        if (invariant > newInvariant) {
-            revert InvalidSwap(invariant, newInvariant);
+        if (invariantBefore > invariantAfter) {
+            revert InvalidSwap(invariantBefore, invariantAfter);
         }
 
         if (swapDirection) {
