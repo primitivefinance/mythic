@@ -1,4 +1,7 @@
 /target
 .env
-Cargo.lock
 cache/
+.DS_store
+__pycache__
+*.png
+*.csv
