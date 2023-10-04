@@ -312,4 +312,9 @@ contract G3M is IG3M {
     function getSpotPrice() external view returns (uint256) {
         return computeSpotPrice(reserveX, weightX(), reserveY, weightY());
     }
+
+    /// @inheritdoc IG3M
+    function getInvariant() external view returns (UD60x18) {
+        return computeInvariant(reserveX, weightX(), reserveY, weightY());
+    }
 }
