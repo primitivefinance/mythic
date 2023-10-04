@@ -6,24 +6,25 @@ import "./SetUp.t.sol";
 
 contract SwapAmountIn is SetUp {
     function testFuzz_swapAmountIn_UpdatesBalances(
-        uint256 reserveX,
-        uint256 reserveY,
+        uint256 initialDepositX,
+        uint256 initialDepositY,
         bool swapDirection,
         uint256 amountIn
     ) public {
-        reserveX = bound(reserveX, uUNIT, 600_000 ether);
-        reserveY = bound(reserveY, uUNIT, 600_000 ether);
+        initialDepositX = bound(initialDepositX, uUNIT, 600_000 ether);
+        initialDepositY = bound(initialDepositY, uUNIT, 600_000 ether);
 
-        uint256 maxSwap = (swapDirection ? reserveY : reserveX) / 3;
+        uint256 maxSwap =
+            (swapDirection ? initialDepositX : initialDepositY) / 3;
         vm.assume(amountIn > 1 ether && amountIn <= maxSwap);
 
-        g3m.initPool(reserveX, reserveY);
+        g3m.initPool(initialDepositX, initialDepositY);
 
         uint256 balanceXBefore = tokenX.balanceOf(address(g3m));
         uint256 balanceYBefore = tokenY.balanceOf(address(g3m));
 
-        assertEq(balanceXBefore, reserveX);
-        assertEq(balanceYBefore, reserveY);
+        assertEq(balanceXBefore, initialDepositX);
+        assertEq(balanceYBefore, initialDepositY);
 
         uint256 amountOut = g3m.swapAmountIn(swapDirection, amountIn);
 
