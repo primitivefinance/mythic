@@ -39,4 +39,36 @@ contract SwapAmountOut is SetUp {
             assertEq(balanceYAfter, balanceYBefore + amountInWithFees);
         }
     }
+
+    function testFuzz_swapAmountOut_UpdatesReserves(
+        uint256 initialDepositX,
+        uint256 initialDepositY,
+        bool swapDirection,
+        uint256 amountOut
+    ) public {
+        initialDepositX = bound(initialDepositX, uUNIT, 600_000 ether);
+        initialDepositY = bound(initialDepositY, uUNIT, 600_000 ether);
+
+        uint256 maxSwap =
+            (swapDirection ? initialDepositY : initialDepositX) / 3;
+        vm.assume(amountOut > 1 ether && amountOut <= maxSwap);
+
+        g3m.initPool(initialDepositX, initialDepositY);
+
+        UD60x18 reserveXBefore = g3m.reserveX();
+        UD60x18 reserveYBefore = g3m.reserveY();
+
+        uint256 amountInWithFees = g3m.swapAmountOut(swapDirection, amountOut);
+
+        UD60x18 reserveXAfter = g3m.reserveX();
+        UD60x18 reserveYAfter = g3m.reserveY();
+
+        if (swapDirection) {
+            assertEq(reserveXAfter, reserveXBefore + convert(amountInWithFees));
+            assertEq(reserveYAfter, reserveYBefore - convert(amountOut));
+        } else {
+            assertEq(reserveXAfter, reserveXBefore - convert(amountOut));
+            assertEq(reserveYAfter, reserveYBefore + convert(amountInWithFees));
+        }
+    }
 }
