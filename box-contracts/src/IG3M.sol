@@ -120,6 +120,9 @@ interface IG3M {
     /// @notice Address of token Y.
     function tokenY() external view returns (address);
 
+    /// @notice Swap fee of the pool, expressed in 10,000%.
+    function swapFee() external view returns (uint256);
+
     /// @notice Reserve of token X, stored in WAD.
     function reserveX() external view returns (UD60x18);
 

@@ -22,6 +22,9 @@ contract G3M is IG3M {
     address public tokenY;
 
     /// @inheritdoc IG3M
+    uint256 public swapFee;
+
+    /// @inheritdoc IG3M
     UD60x18 public reserveX;
 
     /// @inheritdoc IG3M
@@ -64,7 +67,12 @@ contract G3M is IG3M {
      * @param weightX_ Weight of token X, expressed in WAD (note that `weightY`
      * will be computed as `1 WAD - weightX`).
      */
-    constructor(address tokenX_, address tokenY_, UD60x18 weightX_) {
+    constructor(
+        address tokenX_,
+        address tokenY_,
+        UD60x18 weightX_,
+        uint256 swapFee_
+    ) {
         require(tokenX_ != tokenY_, "Invalid tokens");
         tokenX = tokenX_;
         tokenY = tokenY_;
@@ -82,6 +90,9 @@ contract G3M is IG3M {
         // `_syncWeightX` function will update them anyway?
         lastWeightX = weightX_;
         lastWeightXSync = block.timestamp;
+
+        require(swapFee <= 10_000, "Swap fee too high");
+        swapFee = swapFee_;
     }
 
     /**
@@ -239,7 +250,7 @@ contract G3M is IG3M {
 
         if (exactIn) {
             amountIn = amount;
-            uint256 fees = amountIn * SWAP_FEE / 10_000;
+            uint256 fees = amountIn * swapFee / 10_000;
             uint256 amountInWithoutFees = amountIn - fees;
 
             amountOut = computeOutGivenIn(
@@ -259,7 +270,7 @@ contract G3M is IG3M {
                 swapDirection ? currentWeightY : currentWeightX
             );
 
-            amountIn = amountInWithoutFees * 10_000 / (10_000 - SWAP_FEE);
+            amountIn = amountInWithoutFees * 10_000 / (10_000 - swapFee);
         }
 
         if (swapDirection) {

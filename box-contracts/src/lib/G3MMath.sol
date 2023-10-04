@@ -11,9 +11,6 @@ import { UD60x18, ud, UNIT, convert } from "@prb/math/UD60x18.sol";
  */
 UD60x18 constant BURNT_LIQUIDITY = UD60x18.wrap(1_000);
 
-/// @dev Current swap fee (expressed in 10,000).
-uint256 constant SWAP_FEE = 30; // 0.3%
-
 /// @dev Minimum weight of a token in the pool.
 UD60x18 constant MIN_WEIGHT = UD60x18.wrap(0.01e18);
 
