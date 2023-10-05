@@ -5,6 +5,10 @@ use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
 };
 use ethers::types::{Address, U256};
+use arbiter_core::environment::builder::EnvironmentBuilder;
+use tokio::task::JoinHandle;
+use tracing::event;
+use tracing_subscriber;
 
 use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
 
@@ -25,11 +29,10 @@ async fn main() -> Result<()> {
         .with_max_level(tracing::Level::TRACE)
         .init();
 
-    let start = Instant::now();
-
     let config = settings::params::SimulationConfig::new()?;
 
-    println!("Config: {:#?}", config);
+    let env = EnvironmentBuilder::new().build();
+    let contracts = setup::deploy::deploy_contracts(&env).await?;
 
     Ok(())
 }
