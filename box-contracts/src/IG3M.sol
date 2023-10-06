@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import { UD60x18 } from "@prb/math/UD60x18.sol";
+
 interface IG3M {
     /// @notice Emitted when liquidity is added to the pool.
     event AddLiquidity(
         address indexed sender,
-        uint256 liquidity,
+        UD60x18 liquidity,
         uint256 amountX,
         uint256 amountY
     );
@@ -13,7 +15,7 @@ interface IG3M {
     /// @notice Emitted when liquidity is removed from the pool.
     event RemoveLiquidity(
         address indexed sender,
-        uint256 liquidity,
+        UD60x18 liquidity,
         uint256 amountX,
         uint256 amountY
     );
@@ -27,12 +29,12 @@ interface IG3M {
     );
 
     /// @notice Emitted when the weight of token X is updated.
-    event SetWeightX(uint256 oldWeightX, uint256 newWeightX);
+    event SetWeightX(UD60x18 oldWeightX, UD60x18 newWeightX);
 
     event SetTargetWeightX(
-        uint256 newTargetWeightX,
+        UD60x18 newTargetWeightX,
         uint256 newWeightXUpdateEnd,
-        uint256 newWeightXUpdatePerSecond
+        UD60x18 newWeightXUpdatePerSecond
     );
 
     /**
@@ -52,7 +54,7 @@ interface IG3M {
     function initPool(
         uint256 amountX,
         uint256 amountY
-    ) external returns (uint256 liquidity);
+    ) external returns (UD60x18 liquidity);
 
     /**
      * @notice Adds `liquidity` units of liquidity to the pool.
@@ -60,7 +62,7 @@ interface IG3M {
      * @return amountX Amount of token X used to add liquidity
      * @return amountY Amount of token Y used to add liquidity
      */
-    function addLiquidity(uint256 liquidity)
+    function addLiquidity(UD60x18 liquidity)
         external
         returns (uint256 amountX, uint256 amountY);
 
@@ -70,7 +72,7 @@ interface IG3M {
      * @return amountX Amount of token X received
      * @return amountY Amount of token Y received
      */
-    function removeLiquidity(uint256 liquidity)
+    function removeLiquidity(UD60x18 liquidity)
         external
         returns (uint256 amountX, uint256 amountY);
 
@@ -102,12 +104,21 @@ interface IG3M {
      * @param newWeightXUpdateEnd Timestamp at which the weight update ends
      */
     function setWeightX(
-        uint256 newTargetWeightX,
+        UD60x18 newTargetWeightX,
         uint256 newWeightXUpdateEnd
     ) external;
 
+    /**
+     * @notice Updates the swap fee of the pool.
+     * @param newSwapFee New swap fee of the pool, expressed in 10,000%
+     */
+    function setSwapFee(uint256 newSwapFee) external;
+
     /// @notice Computes the spot price of token X in terms of token Y.
     function getSpotPrice() external view returns (uint256);
+
+    /// @notice Computes the invariant of the pool.
+    function getInvariant() external view returns (UD60x18);
 
     /// @notice Address of token X.
     function tokenX() external view returns (address);
@@ -115,25 +126,34 @@ interface IG3M {
     /// @notice Address of token Y.
     function tokenY() external view returns (address);
 
+    /// @notice Swap fee of the pool, expressed in 10,000%.
+    function swapFee() external view returns (uint256);
+
     /// @notice Reserve of token X, stored in WAD.
-    function reserveX() external view returns (uint256);
+    function reserveX() external view returns (UD60x18);
 
     /// @notice Reserve of token Y, stored in WAD.
-    function reserveY() external view returns (uint256);
+    function reserveY() external view returns (UD60x18);
 
     /// @notice Total units of liquidity in the pool.
-    function totalLiquidity() external view returns (uint256);
+    function totalLiquidity() external view returns (UD60x18);
 
     /// @notice Units of liquidity owned by `account`.
-    function balanceOf(address account) external view returns (uint256);
+    function balanceOf(address account) external view returns (UD60x18);
 
     /**
      * @notice Weight of token X, expressed in WAD.
      * @dev This value is calculated in real time and takes into account any on-
      * going gradual weight update.
      */
-    function weightX() external view returns (uint256);
+    function weightX() external view returns (UD60x18);
 
     /// @notice Weight of token Y, expressed in WAD.
-    function weightY() external view returns (uint256);
+    function weightY() external view returns (UD60x18);
+
+    /**
+     * @notice Address of the admin of the contract. Note that the current only
+     * access control is to update the weights of the pool.
+     */
+    function admin() external view returns (address);
 }
