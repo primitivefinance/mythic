@@ -107,6 +107,34 @@ Think of the swap as a two step process:
 
 1. Adding liquidity. E.g., $\delta_x \coloneqq (1-\gamma)\Delta_x$. 
 This is the amount of the input token that is added to the pool and it is what is used to calculate the change in liquidity $\delta_L$.
+From here, we can imagine that the swapper then takes temporary debt in adding $\delta_y$ to the pool where the $\delta_y$ is given by:
+$$
+\delta_y = K\cdot L(\delta_x,S)\cdot \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+$$
 2. Computing a no-fee swap with the remaining amount of the input token. E.g., $\widetilde{\Delta_x} \coloneqq \gamma\Delta_x$.
-
+Note at this point, the reserves are then $x+\delta_x$ and $y+\delta_y$ and the liquidity $L+\delta_L$. 
+So we must use these in the swap calculation.
 Then we can use all of the rules we defined here.
+
+##### Example
+Suppose that the user wants to swap $x$ for $y$ and the price is $S$.
+They specifically tender $\Delta_x$ and the fee parameter is $\gamma$.
+Now $\delta_x=(1-\gamma)\Delta_x$ and $\widetilde{\Delta_x}=\gamma\Delta_x$.
+From this we get 
+$$
+\delta_L=\frac{\delta_x}{1-\Phi^{-1}\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
+$$
+and we also get 
+$$
+\delta_y=K\cdot L(\delta_x,S)\cdot \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right).
+$$
+
+Now we can compute the no-fee swap with $\widetilde{\Delta_x}$. 
+For consistency, we can let $\Delta_y=\delta_y + \widetilde{\Delta_y}$ and note that the user's output will be this $\widetilde{\Delta_y}$.
+Using the trading function, we solve for $\widetilde{\Delta_y}$:
+$$
+\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\delta_y+\widetilde{\Delta_y}}{K(L+\delta_L)}\right)=-\sigma\\
+\frac{y+\delta_y+\widetilde{\Delta_y}}{K(L+\delta_L)} = \Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)\\
+y+\delta_y+\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)\\
+\boxed{\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y-\delta_y}
+$$
