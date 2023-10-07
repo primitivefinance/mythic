@@ -5,8 +5,8 @@
 This contract is very basic implementation of an Automated Market Maker using the
 Geometric Mean formula. Here are some of the current specifications (likely to change):
 - One pool per contract
-- Two tokens per pool (X and Y)
-- Real-time weights update
+- Two tokens per pool
+- Gradual weights update
 - Fixed swap fee
 
 ## Usage
@@ -18,7 +18,7 @@ A pool can be created by deploying the G3M contract with the following parameter
 - The weight of token X (the weight of token Y will be calculated automatically
 using `1 - weightX`)
 
-*Note that the weights are expressed in WAD units (10^18).*
+*Note that the weights are expressed in [UD60x18](https://github.com/paulrberg/prb-math/#ud60x18) units.*
 
 ### Pool Initialization
 
@@ -27,36 +27,29 @@ Then, the pool needs to be initialized with an initial amount of liquidity. This
 - Compute the initial amount of liquidity in the pool (currently set to two times
 the invariant)
 
-Additionally, a small amount of liquidity is burnt, this is done to prevent the
-pool from being completely drained and initialized again with a different spot
-price.
+> Note that a small amount of liquidity is burnt during the initialization, this is done to prevent the pool from being completely drained and initialized again with a different spot price.
 
 ### Pool Lifecycle
 
 Once a pool is initialized, liquidity providers can supply or withdraw liquidity
 and arbitrageurs can swap tokens.
 The admin of the pool can also update the weights of the tokens. This action is
-currently instantaneous but could be made gradual in the future.
+gradual and will result in both weights (X and Y) increasing or decreasing until
+they reach their target values.
 
 ## Notes
 
-Here a few things to note about the current implementation:
-- Balancer FixedPoint library is used, it would be interesting to swap it for a
-more precise / efficient one
-- WAD units are often used but not explicitly mentioned in the code. This should be fixed
-
-Also, some extra features could be added:
+Some extra features could be added:
 - Single asset deposits / withdrawals
 - Tokenized liquidity shares
 - Minimum / maximum amounts for swaps, liquidity deposits and withdrawals
 - Updatable swap fee
-- Gradual weights update
 
 ## G3M Math
 
 The following formulas are used in the G3M contract:
 
-*Note that these formulas are mathematical representations and do not necessarily reflect the actual Solidity implementation, for example, amounts in the contract are stored in WAD units.*
+*Note that these formulas are mathematical representations and do not necessarily reflect the actual Solidity implementation, for example, some amounts in the contract are stored in `UD60x18` units.*
 
 ### Invariant
 
