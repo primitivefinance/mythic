@@ -33,3 +33,21 @@ function computeLGivenX(
     int256 denominator = int256(1e18) - cdf;
     L = FixedPointMathLib.divWadUp(x, uint256(denominator));
 }
+
+function computeYGivenL(
+    uint256 L,
+    uint256 S,
+    uint256 K,
+    uint256 sigma
+) pure returns (uint256 y) {
+    int256 lnSDivK =
+        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
+    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
+        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
+    );
+    int256 cdf =
+        Gaussian.cdf((lnSDivK - int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
+    y = FixedPointMathLib.mulWadUp(
+        K, FixedPointMathLib.mulWadUp(L, uint256(cdf))
+    );
+}
