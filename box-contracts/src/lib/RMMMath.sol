@@ -64,7 +64,7 @@ function computeLGivenY(
         HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
     );
     int256 cdf =
-        Gaussian.cdf((lnSDivK + int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
+        Gaussian.cdf((lnSDivK - int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
     L = FixedPointMathLib.divWadUp(
         y, FixedPointMathLib.mulWadUp(K, uint256(cdf))
     );
