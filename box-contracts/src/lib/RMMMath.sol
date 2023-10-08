@@ -69,3 +69,19 @@ function computeLGivenY(
         y, FixedPointMathLib.mulWadUp(K, uint256(cdf))
     );
 }
+
+function computeXGivenL(
+    uint256 L,
+    uint256 S,
+    uint256 K,
+    uint256 sigma
+) pure returns (uint256 x) {
+    int256 lnSDivK =
+        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
+    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
+        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
+    );
+    int256 cdf =
+        Gaussian.cdf((lnSDivK + int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
+    x = FixedPointMathLib.mulWadUp(L, uint256(ONE - uint256(cdf)));
+}
