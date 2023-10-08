@@ -83,5 +83,5 @@ function computeXGivenL(
     );
     int256 cdf =
         Gaussian.cdf((lnSDivK + int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
-    x = FixedPointMathLib.mulWadUp(L, uint256(ONE - uint256(cdf)));
+    x = FixedPointMathLib.mulWadUp(L, uint256(int256(ONE) - cdf));
 }
