@@ -1,19 +1,44 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "solmate/tokens/ERC20.sol";
 import "./lib/RMMMath.sol";
 
 contract RMM {
     uint256 public sigma;
-    address public tokenX;
-    address public tokenY;
+    uint256 public strikePrice;
+    ERC20 public tokenX;
+    ERC20 public tokenY;
     uint256 public reserveX;
     uint256 public reserveY;
     uint256 public liquidity;
 
-    constructor(address tokenX_, address tokenY_, uint256 sigma_) {
+    constructor(
+        ERC20 tokenX_,
+        ERC20 tokenY_,
+        uint256 sigma_,
+        uint256 strikePrice_
+    ) {
         tokenX = tokenX_;
         tokenY = tokenY_;
         sigma = sigma_;
+        strikePrice = strikePrice_;
+    }
+
+    function initExactX(
+        uint256 amountX,
+        uint256 price
+    ) external returns (uint256, uint256) {
+        uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
+        uint256 amountY = computeYGivenL(liquidity, price, strikePrice, sigma);
+
+        liquidity = l;
+        reserveX = amountX;
+        reserveY = amountY;
+
+        tokenX.transferFrom(msg.sender, address(this), amountX);
+        tokenY.transferFrom(msg.sender, address(this), amountY);
+
+        return (l, amountY);
     }
 }
