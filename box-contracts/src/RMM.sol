@@ -41,4 +41,21 @@ contract RMM {
 
         return (l, amountY);
     }
+
+    function initExactY(
+        uint256 amountY,
+        uint256 price
+    ) external returns (uint256, uint256) {
+        uint256 l = computeLGivenY(amountY, price, strikePrice, sigma);
+        uint256 amountX = computeXGivenL(liquidity, price, strikePrice, sigma);
+
+        liquidity = l;
+        reserveX = amountX;
+        reserveY = amountY;
+
+        tokenX.transferFrom(msg.sender, address(this), amountX);
+        tokenY.transferFrom(msg.sender, address(this), amountY);
+
+        return (l, amountX);
+    }
 }
