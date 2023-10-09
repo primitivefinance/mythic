@@ -14,5 +14,28 @@ contract RMMTest is Test {
         tokenX = new MockERC20("TokenX", "X", 18);
         tokenY = new MockERC20("TokenY", "Y", 18);
         rmm = new RMM(tokenX, tokenY, 0.10 ether, 2000 ether);
+
+        tokenX.mint(address(this), type(uint256).max);
+        tokenY.mint(address(this), type(uint256).max);
+        tokenX.approve(address(rmm), type(uint256).max);
+        tokenY.approve(address(rmm), type(uint256).max);
+    }
+
+    function test_initExactX() public {
+        uint256 amountX = 2000 ether;
+        (uint256 l, uint256 amountY) = rmm.initExactX(amountX, 2000 ether);
+
+        assertEq(rmm.liquidity(), l);
+        assertEq(rmm.reserveX(), amountX);
+        assertEq(rmm.reserveY(), amountY);
+    }
+
+    function test_initExactY() public {
+        uint256 amountY = 2000 ether;
+        (uint256 l, uint256 amountX) = rmm.initExactY(amountY, 2000 ether);
+
+        assertEq(rmm.liquidity(), l);
+        assertEq(rmm.reserveX(), amountX);
+        assertEq(rmm.reserveY(), amountY);
     }
 }
