@@ -8,4 +8,9 @@ contract RMM {
     address public tokenY;
     uint256 public reserveX;
     uint256 public reserveY;
+
+    constructor(address tokenX_, address tokenY_) {
+        tokenX = tokenX_;
+        tokenY = tokenY_;
+    }
 }
