@@ -9,6 +9,7 @@ use ethers::types::{Address, U256};
 use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
 
 mod agents;
+mod engine;
 mod settings;
 mod setup;
 mod utils;
