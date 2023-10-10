@@ -1,6 +1,6 @@
 use anyhow::Result;
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
-use arbiter_core::bindings::liquid_exchange::LiquidExchange;
+use arbiter_core::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
+use arbiter_core::data_collection::EventLogger;
 use arbiter_core::environment::Environment;
 use arbiter_core::middleware::RevmMiddleware;
 use arbiter_derive::Deploy;

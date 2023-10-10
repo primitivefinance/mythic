@@ -14,3 +14,4 @@ members = ["box-core", "box-simulation"]
 
 [workspace.dependencies]
 bindings = { path = "./box-contracts/out/bindings", version = "0.1.0" }
+box_core = { path = "./box-core", version = "0.1.0" }

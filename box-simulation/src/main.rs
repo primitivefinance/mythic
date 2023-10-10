@@ -39,5 +39,7 @@ async fn main() -> Result<()> {
     .await?;
     setup::init::init(&contracts).await;
 
+    let init = setup::init::init(&contracts).await?;
+
     Ok(())
 }
