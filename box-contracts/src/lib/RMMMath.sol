@@ -9,6 +9,8 @@ uint256 constant HALF = 0.5e18;
 
 uint256 constant TWO = 2e18;
 
+uint256 constant E = 2718281828459045235;
+
 function toWad(uint256 a) pure returns (uint256) {
     return a * ONE;
 }
@@ -84,4 +86,36 @@ function computeXGivenL(
     int256 cdf =
         Gaussian.cdf((lnSDivK + int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
     x = FixedPointMathLib.mulWadUp(L, uint256(int256(ONE) - cdf));
+}
+
+function computeSpotPrice(
+    uint256 strikePrice,
+    uint256 sigma,
+    uint256 reserveX,
+    uint256 liquidity,
+    uint256 tau
+) pure returns (uint256) {
+    uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
+    uint256 oneMinusR1 = ONE - R1;
+
+    uint256 sigmaSqrtTau =
+        FixedPointMathLib.mulWadDown(sigma, FixedPointMathLib.sqrt(tau));
+
+    uint256 halfSigmaSquareTau = FixedPointMathLib.mulWadDown(
+        HALF,
+        FixedPointMathLib.mulWadDown(
+            uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
+        )
+    );
+
+    int256 cdf = Gaussian.cdf(
+        int256(
+            FixedPointMathLib.mulWadDown(oneMinusR1, sigmaSqrtTau)
+                - halfSigmaSquareTau
+        )
+    );
+
+    return FixedPointMathLib.mulWadUp(
+        strikePrice, uint256(FixedPointMathLib.powWad(int256(E), cdf))
+    );
 }
