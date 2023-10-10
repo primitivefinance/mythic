@@ -167,8 +167,33 @@ mod tests {
 
     #[tokio::test]
     /// Should return the correct constructor arguments of the contracts.
+    /// Since the constructor arguments are derived from the simulation config,
+    /// this is a good test for making sure the config is integrated correctly.
     async fn test_constructor_args() -> Result<(), anyhow::Error> {
-        todo!()
+        let (contracts, env, config) = setup_test_environment().await?;
+        init(&contracts, &config).await?;
+
+        let initial_weight_x_wad = parse_ether(config.portfolio_pool_parameters.weight_token_0)?;
+        let initial_swap_fee_bps = U256::from(config.portfolio_pool_parameters.fee_basis_points);
+        let initial_admin = contracts.deployer.address();
+        let initial_token_x = contracts.tokens.arbx.address();
+        let initial_token_y = contracts.tokens.arby.address();
+
+        let actual_token_x = contracts.exchanges.g3m.token_x().call().await?;
+        let actual_token_y = contracts.exchanges.g3m.token_y().call().await?;
+        let actual_weight_x = contracts.exchanges.g3m.weight_x().call().await?;
+        let actual_weight_y = contracts.exchanges.g3m.weight_y().call().await?;
+        let actual_swap_fee_bps = contracts.exchanges.g3m.swap_fee().call().await?;
+        let actual_admin = contracts.exchanges.g3m.admin().call().await?;
+
+        assert_eq!(actual_token_x, initial_token_x);
+        assert_eq!(actual_token_y, initial_token_y);
+        assert_eq!(actual_weight_x, initial_weight_x_wad);
+        assert_eq!(actual_weight_y, parse_ether(1)? - initial_weight_x_wad);
+        assert_eq!(actual_swap_fee_bps, initial_swap_fee_bps);
+        assert_eq!(actual_admin, initial_admin);
+
+        Ok(())
     }
 
     #[tokio::test]
