@@ -10,6 +10,7 @@ use ethers::types::{Address, U256};
 use tracing_subscriber;
 
 use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
+use setup::init::init;
 
 mod agents;
 mod engine;
@@ -62,7 +63,7 @@ async fn main() -> Result<()> {
         rebalancer,
     };
 
-    let init = setup::init::init(&contracts, agents, &config).await?;
+    init(&contracts, agents, &config).await?;
 
     Ok(())
 }
