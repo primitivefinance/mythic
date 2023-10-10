@@ -196,6 +196,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "arbiter-derive"
+version = "0.1.0"
+source = "git+https://github.com/primitivefinance/arbiter.git?branch=arbiter/version#1ee29f9b868eee2ef4d6902da475a02780223d1a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.38",
+]
+
+[[package]]
 name = "arrayvec"
 version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -418,6 +428,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "arbiter-core",
+ "arbiter-derive",
  "bindings",
  "config",
  "ethers",
