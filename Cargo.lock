@@ -422,6 +422,7 @@ dependencies = [
  "box_core",
  "config",
  "ethers",
+ "futures",
  "serde",
  "serde_json",
  "tokio",
