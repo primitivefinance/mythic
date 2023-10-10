@@ -65,5 +65,9 @@ async fn main() -> Result<()> {
 
     init(&contracts, agents, &config).await?;
 
+    engine::builder::EngineBuilder::new()
+        .run(&contracts, &env, &config)
+        .await?;
+
     Ok(())
 }
