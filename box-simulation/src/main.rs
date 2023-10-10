@@ -37,6 +37,7 @@ async fn main() -> Result<()> {
         contracts.exchanges.g3m.address(),
     )
     .await?;
+    setup::init::init(&contracts).await;
 
     Ok(())
 }

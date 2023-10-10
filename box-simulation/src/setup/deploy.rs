@@ -26,6 +26,7 @@ pub struct Exchanges {
 }
 
 pub struct Contracts {
+    pub deployer: Arc<RevmMiddleware>,
     pub tokens: TokensDeployed,
     pub exchanges: ExchangesDeployed,
 }
@@ -63,7 +64,7 @@ pub async fn deploy_contracts(env: &Environment) -> Result<Contracts, anyhow::Er
     .deploy()
     .await?;
 
-    let contracts = Contracts { tokens, exchanges };
+    let contracts = Contracts { deployer, tokens, exchanges };
 
     let listener = EventLogger::builder()
         .add(contracts.exchanges.lex.events(), "lex")
