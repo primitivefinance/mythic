@@ -171,8 +171,8 @@ dependencies = [
 
 [[package]]
 name = "arbiter-core"
-version = "0.5.3"
-source = "git+https://github.com/primitivefinance/arbiter.git?branch=arbiter/version#1ee29f9b868eee2ef4d6902da475a02780223d1a"
+version = "0.6.0"
+source = "git+https://github.com/primitivefinance/arbiter.git?branch=arbiter/version#3c908aed7b2d66d703e5101a41dbf63b23900846"
 dependencies = [
  "RustQuant",
  "async-trait",
@@ -198,7 +198,7 @@ dependencies = [
 [[package]]
 name = "arbiter-derive"
 version = "0.1.0"
-source = "git+https://github.com/primitivefinance/arbiter.git?branch=arbiter/version#1ee29f9b868eee2ef4d6902da475a02780223d1a"
+source = "git+https://github.com/primitivefinance/arbiter.git?branch=arbiter/version#3c908aed7b2d66d703e5101a41dbf63b23900846"
 dependencies = [
  "proc-macro2",
  "quote",
