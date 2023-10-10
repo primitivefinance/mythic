@@ -1,10 +1,13 @@
 use agents::arbitrageur::Arbitrageur;
+use agents::liquidity_provider::LiquidityProvider;
+use agents::rebalancer::Rebalancer;
 use anyhow::Result;
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
 };
 use ethers::types::{Address, U256};
+use tracing_subscriber;
 
 use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
 
@@ -16,6 +19,11 @@ mod utils;
 
 /// The number 10^18.
 pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);
+
+pub struct Agents {
+    pub liquidity_provider: LiquidityProvider,
+    pub rebalancer: Rebalancer,
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -38,9 +46,23 @@ async fn main() -> Result<()> {
         contracts.exchanges.g3m.address(),
     )
     .await?;
-    setup::init::init(&contracts).await;
 
-    let init = setup::init::init(&contracts, &config).await?;
+    let lp = LiquidityProvider::new("lp", &env, contracts.exchanges.g3m.address()).await?;
+    let rebalancer = Rebalancer::new(
+        "rebalancer",
+        &env,
+        contracts.exchanges.lex.address(),
+        contracts.exchanges.g3m.address(),
+        0.15,
+    )
+    .await?;
+
+    let agents = Agents {
+        liquidity_provider: lp,
+        rebalancer,
+    };
+
+    let init = setup::init::init(&contracts, agents, &config).await?;
 
     Ok(())
 }

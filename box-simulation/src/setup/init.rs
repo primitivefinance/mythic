@@ -1,119 +1,48 @@
 use crate::settings::params::SimulationConfig;
+use crate::Agents;
 
 use super::deploy::Contracts;
-use ethers::types::U256;
 use ethers::utils::parse_ether;
 
 // Initial balances of the deployer and portfolio where (arbx, arby)
-pub const INITIAL_BALANCES: (u64, u64) = (250, 250);
-pub const INITIAL_PORTFOLIO_BALANCES: (u64, u64) = (100, 100);
+pub const INITIAL_PORTFOLIO_BALANCES: (u64, u64) = (100_000, 100_000);
 
 /// Initialize the pools
 /// In initialize we add liquidity and seed actors with tokens
-pub async fn init(contracts: &Contracts, config: &SimulationConfig) -> Result<(), anyhow::Error> {
-    // Setup the initial token state by minting tokens to the deployer and approving the G3M contract to spend them.
-    setup_token_state(&contracts).await?;
-
-    // Setup initial contract state of G3M by initializing the pool.
-    setup_pool_state(&contracts, config).await?;
-
-    Ok(())
-}
-
 /// All the stateful calls to the tokens used in the simulation.
-pub async fn setup_token_state(contracts: &Contracts) -> Result<(), anyhow::Error> {
-    // Mint INITIAL_BALANCES of tokens to deployer.
-    contracts
-        .tokens
-        .arbx
-        .mint(
-            contracts.deployer.address(),
-            parse_ether(INITIAL_BALANCES.0).unwrap(),
-        )
-        .send()
-        .await?
-        .await?;
-    contracts
-        .tokens
-        .arby
-        .mint(
-            contracts.deployer.address(),
-            parse_ether(INITIAL_BALANCES.1).unwrap(),
-        )
-        .send()
-        .await?
-        .await?;
-
-    // Get the parsed amounts for the portfolio deposit.
+pub async fn init(
+    contracts: &Contracts,
+    agents: Agents,
+    config: &SimulationConfig,
+) -> Result<(), anyhow::Error> {
     let amounts = (
         parse_ether(INITIAL_PORTFOLIO_BALANCES.0).unwrap(),
         parse_ether(INITIAL_PORTFOLIO_BALANCES.1).unwrap(),
     );
 
-    // Approve tokens to be spent by the G3M contract.
-    contracts
-        .tokens
-        .arbx
-        .approve(contracts.exchanges.g3m.address(), amounts.0)
-        .send()
-        .await?
-        .await?;
-    contracts
-        .tokens
-        .arby
-        .approve(contracts.exchanges.g3m.address(), amounts.1)
-        .send()
-        .await?
-        .await?;
+    let agent_addrs = vec![
+        agents.liquidity_provider.client.address(),
+        agents.rebalancer.client.address(),
+    ];
 
-    Ok(())
-}
-
-/// Initializes the pool with the desired amounts of tokens, making it have an initial spot price.
-pub async fn setup_pool_state(
-    contracts: &Contracts,
-    config: &SimulationConfig,
-) -> Result<(), anyhow::Error> {
-    // Initial weight is set in the simulation config, but it can be overridden with setWeightX() function.
-    let initial_weight_0 = parse_ether(config.portfolio_pool_parameters.weight_token_0).unwrap();
-    let initial_weight_1 = parse_ether(1)
-        .unwrap()
-        .checked_sub(initial_weight_0)
-        .unwrap();
-    // Using the initial weight, initial price, and initial reserve x, we can compute reserve y.
-    let initial_price = config.portfolio_pool_parameters.initial_price;
-    let initial_reserve_x = parse_ether(INITIAL_PORTFOLIO_BALANCES.0).unwrap();
-
-    // p = (x / w_x) / (y / w_y)
-    // y / w_y = (x / w_x) / p
-    // y = (x / w_x) / p * w_y
-    let one_ether = parse_ether(1).unwrap();
-    let initial_reserve_y = initial_reserve_x
-        .checked_mul(one_ether)
-        .unwrap()
-        .checked_div(initial_weight_0)
-        .unwrap()
-        .checked_mul(one_ether)
-        .unwrap()
-        .checked_div(parse_ether(initial_price).unwrap())
-        .unwrap()
-        .checked_mul(initial_weight_1)
-        .unwrap()
-        .checked_div(one_ether)
-        .unwrap();
-
-    // Get the parsed amounts for the portfolio deposit.
-    let amounts = (initial_reserve_x, initial_reserve_y);
-
-    // Call init pool to setup the portfolio
-    // Needs an amount of both tokens, the amounts can be anything but note that they affect the spot price.
-    let init_pool = contracts
-        .exchanges
-        .g3m
-        .init_pool(amounts.0.into(), amounts.1.into())
-        .send()
-        .await?
-        .await?;
+    for addr in agent_addrs {
+        // Mint INITIAL_PORTFOLIO_BALANCES of tokens to agents.
+        contracts
+            .tokens
+            .arbx
+            .mint(addr, amounts.0)
+            .send()
+            .await?
+            .await?;
+        contracts
+            .tokens
+            .arby
+            .mint(addr, amounts.1)
+            .send()
+            .await?
+            .await?;
+    }
+    agents.liquidity_provider.add_liquidity(config).await?;
 
     Ok(())
 }
@@ -142,25 +71,47 @@ mod tests {
     /// Should return the correct initial token balances of the contracts + agents.
     async fn test_initial_balances() -> Result<(), anyhow::Error> {
         let (contracts, env, config) = setup_test_environment().await?;
+        let agents = Agents {
+            liquidity_provider: crate::agents::liquidity_provider::LiquidityProvider::new(
+                "lp",
+                &env,
+                contracts.exchanges.g3m.address(),
+            )
+            .await?,
+            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+                "rebalancer",
+                &env,
+                contracts.exchanges.lex.address(),
+                contracts.exchanges.g3m.address(),
+                0.15,
+            )
+            .await?,
+        };
 
         // Setup the token state to assert the balances are set and spent correctly.
-        setup_token_state(&contracts).await?;
+        init(&contracts, agents, &config).await?;
 
         let balance_0 = contracts
             .tokens
             .arbx
-            .balance_of(contracts.deployer.address())
+            .balance_of(contracts.exchanges.g3m.address())
             .call()
             .await?;
         let balance_1 = contracts
             .tokens
             .arby
-            .balance_of(contracts.deployer.address())
+            .balance_of(contracts.exchanges.g3m.address())
             .call()
             .await?;
 
-        assert_eq!(balance_0, parse_ether(INITIAL_BALANCES.0).unwrap());
-        assert_eq!(balance_1, parse_ether(INITIAL_BALANCES.1).unwrap());
+        assert_eq!(
+            balance_0,
+            parse_ether(INITIAL_PORTFOLIO_BALANCES.0).unwrap()
+        );
+        assert_eq!(
+            balance_1,
+            parse_ether(INITIAL_PORTFOLIO_BALANCES.1).unwrap()
+        );
 
         Ok(())
     }
@@ -170,8 +121,25 @@ mod tests {
     /// Since the constructor arguments are derived from the simulation config,
     /// this is a good test for making sure the config is integrated correctly.
     async fn test_constructor_args() -> Result<(), anyhow::Error> {
+        use ethers::types::U256;
         let (contracts, env, config) = setup_test_environment().await?;
-        init(&contracts, &config).await?;
+        let agents = Agents {
+            liquidity_provider: crate::agents::liquidity_provider::LiquidityProvider::new(
+                "lp",
+                &env,
+                contracts.exchanges.g3m.address(),
+            )
+            .await?,
+            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+                "rebalancer",
+                &env,
+                contracts.exchanges.lex.address(),
+                contracts.exchanges.g3m.address(),
+                0.15,
+            )
+            .await?,
+        };
+        init(&contracts, agents, &config).await?;
 
         let initial_weight_x_wad = parse_ether(config.portfolio_pool_parameters.weight_token_0)?;
         let initial_swap_fee_bps = U256::from(config.portfolio_pool_parameters.fee_basis_points);
@@ -200,7 +168,23 @@ mod tests {
     /// Should return the desired start price of the pool.
     async fn test_initial_pool_price() -> Result<(), anyhow::Error> {
         let (contracts, env, config) = setup_test_environment().await?;
-        init(&contracts, &config).await?;
+        let agents = Agents {
+            liquidity_provider: crate::agents::liquidity_provider::LiquidityProvider::new(
+                "lp",
+                &env,
+                contracts.exchanges.g3m.address(),
+            )
+            .await?,
+            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+                "rebalancer",
+                &env,
+                contracts.exchanges.lex.address(),
+                contracts.exchanges.g3m.address(),
+                0.15,
+            )
+            .await?,
+        };
+        init(&contracts, agents, &config).await?;
 
         let price = contracts.exchanges.g3m.get_spot_price().call().await?;
         println!("Price: {}", price);
@@ -216,24 +200,26 @@ mod tests {
     /// Should return the correct balances of the pool after initialization.
     async fn test_initial_pool_balances() -> Result<(), anyhow::Error> {
         let (contracts, env, config) = setup_test_environment().await?;
+        let agents = Agents {
+            liquidity_provider: crate::agents::liquidity_provider::LiquidityProvider::new(
+                "lp",
+                &env,
+                contracts.exchanges.g3m.address(),
+            )
+            .await?,
+            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+                "rebalancer",
+                &env,
+                contracts.exchanges.lex.address(),
+                contracts.exchanges.g3m.address(),
+                0.15,
+            )
+            .await?,
+        };
 
         // Setup the token state to assert the balances are set and spent correctly.
-        setup_token_state(&contracts).await?;
-        // Setup the pool state to assert the tokens are sent into the pool on initialization.
-        setup_pool_state(&contracts, &config).await?;
+        init(&contracts, agents, &config).await?;
 
-        let balance_0 = contracts
-            .tokens
-            .arbx
-            .balance_of(contracts.deployer.address())
-            .call()
-            .await?;
-        let balance_1 = contracts
-            .tokens
-            .arby
-            .balance_of(contracts.deployer.address())
-            .call()
-            .await?;
         let balance_2 = contracts
             .tokens
             .arbx
@@ -247,14 +233,6 @@ mod tests {
             .call()
             .await?;
 
-        assert_eq!(
-            balance_0,
-            parse_ether(INITIAL_BALANCES.0 - INITIAL_PORTFOLIO_BALANCES.0).unwrap()
-        );
-        assert_eq!(
-            balance_1,
-            parse_ether(INITIAL_BALANCES.1 - INITIAL_PORTFOLIO_BALANCES.1).unwrap()
-        );
         assert_eq!(
             balance_2,
             parse_ether(INITIAL_PORTFOLIO_BALANCES.0).unwrap()
