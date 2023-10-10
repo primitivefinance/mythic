@@ -44,9 +44,10 @@ pub async fn deploy_contracts(env: &Environment) -> Result<Contracts, anyhow::Er
     .await?;
 
     let g3m_args = (
-        tokens.arbx.address(),
-        tokens.arby.address(),
-        U256::from(10u64.pow(18) / 2),
+        tokens.arbx.address(), //tokena
+        tokens.arby.address(), //tokenb
+        U256::from(10u64.pow(18) / 2), //weight
+        U256::from(100)
     );
 
     let lex_args = (
@@ -64,7 +65,15 @@ pub async fn deploy_contracts(env: &Environment) -> Result<Contracts, anyhow::Er
 
     let contracts = Contracts { tokens, exchanges };
 
-    // let g3m_listener = EventLogger::builder().add(g3m.events(), "g3m").run().await?;
+    let listener = EventLogger::builder()
+        .add(contracts.exchanges.lex.events(), "lex")
+        .add(contracts.tokens.arbx.events(), "arbx")
+        .add(contracts.tokens.arby.events(), "arby")
+        .run();
+
+    // agents 
+    // 1. arbitraguer :check:
+    // 2. rebalancer
 
     Ok(contracts)
 }
