@@ -1,5 +1,5 @@
 use box_core::math::ComputeReturns;
-use ethers::utils::format_ether;
+use ethers::utils::{format_ether, parse_ether};
 use std::ops::Div;
 use std::sync::Arc;
 
@@ -66,6 +66,7 @@ impl Rebalancer {
             self.portfolio_prices
                 .push((portfolio_price_float, timestamp));
             self.calculate_rv()?;
+            self.execute_smooth_rebalance().await?;
         }
         Ok(())
     }
@@ -116,7 +117,31 @@ impl Rebalancer {
         Ok(())
     }
 
-    fn execute_smooth_rebalance(&mut self) -> Result<()> {
+    // dumb poc, this just checks if the portfolio rv is greater than the target rv
+    // then changes weight by 1% over the course of a day depending on if rv is greater or less than target
+    async fn execute_smooth_rebalance(&mut self) -> Result<()> {
+        let portfolio_rv = self.portfolio_rv.last().unwrap().0;
+        let current_weight_x = self.g3m.weight_x().call().await?;
+        let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
+        if portfolio_rv < self.target_volatility {
+            let new_weight = current_weight_float + 0.01;
+            self.g3m
+                .set_weight_x(
+                    parse_ether(new_weight.to_string()).unwrap(),
+                    U256::from(86400),
+                )
+                .send()
+                .await?;
+        } else {
+            let new_weight = current_weight_float - 0.01;
+            self.g3m
+                .set_weight_x(
+                    parse_ether(new_weight.to_string()).unwrap(),
+                    U256::from(86400),
+                )
+                .send()
+                .await?;
+        }
         Ok(())
     }
 }
