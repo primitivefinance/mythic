@@ -100,4 +100,51 @@ contract RMMMathTest is Test {
         uint256 x = FixedPointMathLib.mulWadUp(L, uint256(int256(ONE) - cdf));
         console.log(x);
     }
+
+    function test_computeSpotPrice() public {
+        uint256 strikePrice = 2000 ether;
+        uint256 reserveX = 5_000 ether;
+        uint256 tau = 0.5 ether;
+
+        uint256 liquidity =
+            computeLGivenX(reserveX, 1800 ether, strikePrice, uint256(sigma));
+
+        console.log(liquidity);
+
+        uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
+        console.log(R1);
+        uint256 oneMinusR1 = ONE - R1;
+        console.log(oneMinusR1);
+
+        console.log("sqrt tau:", FixedPointMathLib.sqrt(tau));
+
+        uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
+            uint256(sigma), FixedPointMathLib.sqrt(tau)
+        ) * 10 ** 9;
+
+        console.log("sigmaSqrtTau:", sigmaSqrtTau);
+
+        uint256 halfSigmaSquareTau = FixedPointMathLib.mulWadDown(
+            HALF,
+            FixedPointMathLib.mulWadDown(
+                uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))),
+                tau
+            )
+        );
+        console.log("halfSigmaSquareTau:", halfSigmaSquareTau);
+
+        uint256 preCdf = FixedPointMathLib.mulWadDown(oneMinusR1, sigmaSqrtTau)
+            - halfSigmaSquareTau;
+
+        console.log("preCdf:", preCdf);
+
+        int256 cdf = Gaussian.cdf(int256(preCdf));
+        console.logInt(cdf);
+
+        uint256 price = FixedPointMathLib.mulWadUp(
+            strikePrice, uint256(FixedPointMathLib.powWad(int256(E), cdf))
+        );
+
+        console.log(price);
+    }
 }
