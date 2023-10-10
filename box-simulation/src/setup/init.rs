@@ -101,16 +101,9 @@ pub async fn setup_pool_state(
         .unwrap()
         .checked_div(one_ether)
         .unwrap();
-    println!(
-        "initial reserves: {}, {}",
-        initial_reserve_x, initial_reserve_y
-    );
 
     // Get the parsed amounts for the portfolio deposit.
-    let amounts = (
-        parse_ether(initial_reserve_x).unwrap(),
-        parse_ether(initial_reserve_y).unwrap(),
-    );
+    let amounts = (initial_reserve_x, initial_reserve_y);
 
     // Call init pool to setup the portfolio
     // Needs an amount of both tokens, the amounts can be anything but note that they affect the spot price.
