@@ -16,7 +16,7 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn new(asset: &str, balance: f64, cost: f64) -> Position {
+    pub fn new(_asset: &str, balance: f64, cost: f64) -> Position {
         Position { balance, cost }
     }
 }
