@@ -1,10 +1,12 @@
 use box_core::math::ComputeReturns;
 use ethers::utils::format_ether;
 use std::ops::Div;
+use std::sync::Arc;
 
 use super::*;
 
 pub struct Rebalancer {
+    pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
     pub next_update_timestamp: u64,
@@ -28,6 +30,7 @@ impl Rebalancer {
         let g3m = G3M::new(exchange_address, client.clone());
 
         Ok(Self {
+            client,
             lex,
             g3m,
             target_volatility,
@@ -67,7 +70,7 @@ impl Rebalancer {
         Ok(())
     }
 
-    pub fn calculate_rv(&mut self) -> Result<()> {
+    fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calcualte for the last 15 elements
         if self.asset_prices.len() > 15 {
             let asset_rv = self
@@ -110,6 +113,10 @@ impl Rebalancer {
                 .push((portfolio_rv, self.next_update_timestamp));
         }
 
+        Ok(())
+    }
+
+    fn execute_smooth_rebalance(&mut self) -> Result<()> {
         Ok(())
     }
 }
