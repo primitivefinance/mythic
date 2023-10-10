@@ -1,4 +1,3 @@
-use arbiter_core::environment::EnvironmentParameters;
 use config::{Config, ConfigError};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -66,11 +65,6 @@ pub struct LinspaceParameters {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig {
-    /// This struct contains some basic settings for the environment such its
-    /// label, average number of transactions per block, and a seed for the
-    /// transactions per block randomness.
-    pub environment_parameters: EnvironmentParameters,
-
     /// Contains all the necessary data for the Orstein-Uhlenbeck process used
     /// in this simulation.]
     pub price_process_parameters: PriceProcessParameters,

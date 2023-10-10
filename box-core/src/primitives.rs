@@ -1,9 +1,12 @@
 //! Most basic types for managing portfolios.
 
-use std::collections::HashMap;
-use std::fmt::{self, Display, Formatter};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+};
 
-/// Most simple representation of all positions in a portfolio: balance and cost.
+/// Most simple representation of all positions in a portfolio: balance and
+/// cost.
 /// - balance: Amount of asset held.
 /// - cost: Cost of asset held.
 #[derive(Debug, Clone, Default)]

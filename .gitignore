@@ -1,2 +1,4 @@
 /target
 .env
+Cargo.lock
+cache/

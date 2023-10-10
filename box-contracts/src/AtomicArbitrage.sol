@@ -1,0 +1,62 @@
+pragma solidity ^0.8.14;
+
+interface ExchangeLike {
+    function swap(address token, uint256 amount) external;
+}
+
+interface TokenLike {
+    function transferFrom(address, address, uint256) external;
+    function transfer(address, uint256) external;
+    function approve(address, uint256) external;
+    function balanceOf(address) external view returns (uint256);
+}
+
+contract AtomicArbitrage {
+    address public exchange;
+    address public liquidExchange;
+    address public asset;
+    address public quote;
+
+    function lower_exchange_price(
+        uint256 input
+    ) external {
+        // pull in tokens from arbitrageur
+        TokenLike(quote).transferFrom(msg.sender, address(this), input);
+
+        // exchange quote for asset on LiquidExchange
+        TokenLike(quote).approve(liquidExchange, input);
+        ExchangeLike(liquidExchange).swap(quote, input);
+
+        // do swap on Exchange
+        uint256 asset_balance = TokenLike(asset).balanceOf(address(this));
+        TokenLike(asset).approve(exchange, asset_balance);
+        ExchangeLike(exchange).swap(asset, asset_balance);
+
+        // send quote tokens to arbitrageur if we have tokens and the trade is profitable
+        uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
+        if (quote_balance > 0) TokenLike(quote).transfer(msg.sender, quote_balance);
+        require(quote_balance > input, "Not profitable");
+    }
+
+    function raise_exchange_price(
+        uint256 input
+    ) external {
+        // pull in tokens from arbitrageur
+        TokenLike(quote).transferFrom(msg.sender, address(this), input);
+
+        // exchange quote for asset on Exchange
+        TokenLike(quote).approve(exchange, input);
+        ExchangeLike(exchange).swap(quote, input);
+
+        // do swap on LiquidExchange
+        uint256 asset_balance = TokenLike(asset).balanceOf(address(this));
+        TokenLike(asset).approve(liquidExchange, asset_balance);
+        ExchangeLike(liquidExchange).swap(asset, asset_balance);
+
+        // send quote tokens to arbitrageur if we have tokens and the trade is profitable
+        uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
+        if (quote_balance > 0) TokenLike(quote).transfer(msg.sender, quote_balance);
+        require(quote_balance > input, "Not profitable");
+    }
+
+}

@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "arbiter/version" }
+bindings.workspace = true
 tokio = { version = "1.11.0", features = ["full"] }
 anyhow = "1.0.75"
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "arbiter/version" }
 ethers = "2.0.10"
 serde = "1.0.188"
 serde_json = "1.0.107"
