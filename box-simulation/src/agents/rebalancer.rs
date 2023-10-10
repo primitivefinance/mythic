@@ -62,6 +62,7 @@ impl Rebalancer {
             self.asset_prices.push((asset_price_float, timestamp));
             self.portfolio_prices
                 .push((portfolio_price_float, timestamp));
+            self.calculate_rv()?;
         }
         Ok(())
     }
@@ -69,43 +70,42 @@ impl Rebalancer {
     pub fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calcualte for the last 15 elements
         if self.asset_prices.len() > 15 {
-            let asset_prices = self
+            let asset_rv = self
                 .asset_prices
                 .iter()
                 .skip(self.asset_prices.len() - 15)
                 .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>();
-
-            let asset_rv = asset_prices.compute_realized_volatility();
+                .collect::<Vec<f64>>()
+                .compute_realized_volatility();
             self.asset_rv.push((asset_rv, self.next_update_timestamp));
         } else {
-            let asset_prices = self
+            let asset_rv = self
                 .asset_prices
                 .iter()
                 .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>();
-            let asset_rv = asset_prices.compute_realized_volatility();
+                .collect::<Vec<f64>>()
+                .compute_realized_volatility();
             self.asset_rv.push((asset_rv, self.next_update_timestamp));
         }
 
         if self.portfolio_prices.len() > 15 {
-            let portfolio_prices = self
+            let portfolio_rv = self
                 .portfolio_prices
                 .iter()
                 .skip(self.portfolio_prices.len() - 15)
                 .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>();
+                .collect::<Vec<f64>>()
+                .compute_realized_volatility();
 
-            let portfolio_rv = portfolio_prices.compute_realized_volatility();
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         } else {
-            let portfolio_prices = self
+            let portfolio_rv = self
                 .portfolio_prices
                 .iter()
                 .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>();
-            let portfolio_rv = portfolio_prices.compute_realized_volatility();
+                .collect::<Vec<f64>>()
+                .compute_realized_volatility();
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
