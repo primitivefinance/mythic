@@ -6,6 +6,7 @@ use arbiter_core::environment::Environment;
 use arbiter_core::middleware::RevmMiddleware;
 use bindings::g3m::G3M;
 use ethers::types::U256;
+use ethers::utils::parse_ether;
 
 pub struct ContractInstances {
     pub arbx: ArbiterToken<RevmMiddleware>,
@@ -19,13 +20,13 @@ pub async fn deploy_contracts(env: &Environment) -> Result<ContractInstances, an
 
     let arbx = ArbiterToken::deploy(
         deployer.clone(),
-        ("Arbiter Token X".to_string(), "arbx".to_string(), 18),
+        ("Arbiter Token X".to_string(), "arbx".to_string(), u8::from(18)),
     )?
     .send()
     .await?;
     let arby = ArbiterToken::deploy(
         deployer.clone(),
-        ("Arbiter Token Y".to_string(), "arby".to_string(), 18),
+        ("Arbiter Token Y".to_string(), "arby".to_string(), u8::from(18)),
     )?
     .send()
     .await?;
@@ -42,7 +43,7 @@ pub async fn deploy_contracts(env: &Environment) -> Result<ContractInstances, an
     .await?;
     let lex = LiquidExchange::deploy(
         deployer.clone(),
-        (arbx.address(), arby.address(), g3m.address()),
+        (arbx.address(), arby.address(), parse_ether(1).unwrap()),
     )?
     .send()
     .await?;
