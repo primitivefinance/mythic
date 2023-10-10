@@ -1,11 +1,11 @@
 use std::time::Instant;
 
 use anyhow::Result;
+use arbiter_core::environment::builder::EnvironmentBuilder;
 use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
 };
 use ethers::types::{Address, U256};
-use arbiter_core::environment::builder::EnvironmentBuilder;
 use tokio::task::JoinHandle;
 use tracing::event;
 use tracing_subscriber;
