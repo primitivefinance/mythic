@@ -13,6 +13,7 @@ pub fn compute_returns(values: Vec<f64>) -> Vec<f64> {
 
 pub trait ComputeReturns {
     fn compute_log_returns(self) -> Vec<f64>;
+    fn compute_simple_returns(self) -> Vec<f64>;
     fn compute_variance(self) -> f64;
     fn compute_std_deviation(self) -> f64;
     fn compute_realized_volatility(self) -> f64;
@@ -29,6 +30,17 @@ where
         for value in self {
             if previous_value != 0.0 {
                 returns.push((value / previous_value).ln());
+            }
+            previous_value = value;
+        }
+        returns
+    }
+    fn compute_simple_returns(self) -> Vec<f64> {
+        let mut previous_value = 0.0_f64;
+        let mut returns = Vec::new();
+        for value in self {
+            if previous_value != 0.0 {
+                returns.push(value / previous_value - 1.0);
             }
             previous_value = value;
         }
@@ -54,8 +66,9 @@ where
         let rv = returns.compute_std_deviation() / (len as f64 / 365.0);
         rv
     }
+    // TODO: don't use log returns here, use simple returns
     fn compute_sharpe_ratio(self) -> f64 {
-        let returns = self.compute_log_returns();
+        let returns = self.compute_simple_returns();
         let mean = returns.iter().sum::<f64>() / returns.len() as f64;
         let std_deviation = returns.compute_std_deviation();
         mean / std_deviation
@@ -84,9 +97,15 @@ mod tests {
         use super::ComputeReturns;
         let values = vec![1.0, 2.0, 3.0];
         let returns = values.compute_log_returns();
-        //let returns = super::compute_returns(values);
-        //assert_eq!(returns, vec![1.0, 0.5]);
         assert_eq!(returns, [0.6931471805599453, 0.4054651081081644]);
+    }
+
+    #[test]
+    fn test_compute_simple_returns() {
+        use super::ComputeReturns;
+        let values = vec![1.0, 2.0, 3.0];
+        let returns = values.compute_simple_returns();
+        assert_eq!(returns, [1.0, 0.5]);
     }
 
     #[test]
@@ -126,6 +145,6 @@ mod tests {
         use super::ComputeReturns;
         let values = vec![1.0, 2.0, 3.0];
         let sharpe_ratio = values.compute_sharpe_ratio();
-        assert_eq!(sharpe_ratio, 3.8188416793064177);
+        assert_eq!(sharpe_ratio, 3.0);
     }
 }
