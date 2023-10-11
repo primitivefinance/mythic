@@ -91,11 +91,11 @@ pub async fn deploy_contracts(
         exchanges,
     };
 
-    let listener = EventLogger::builder()
+    EventLogger::builder()
         .add(contracts.exchanges.lex.events(), "lex")
         .add(contracts.tokens.arbx.events(), "arbx")
         .add(contracts.tokens.arby.events(), "arby")
-        .run();
+        .run()?;
 
     // agents
     // 1. arbitraguer :check:

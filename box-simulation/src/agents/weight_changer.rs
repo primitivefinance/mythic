@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use super::*;
 
-pub struct Rebalancer {
+pub struct WeightChanger {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
@@ -17,7 +17,7 @@ pub struct Rebalancer {
     pub asset_rv: Vec<(f64, u64)>,
 }
 
-impl Rebalancer {
+impl WeightChanger {
     pub async fn new(
         label: &str,
         environment: &Environment,

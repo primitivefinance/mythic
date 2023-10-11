@@ -24,6 +24,7 @@ pub async fn init(
         agents.liquidity_provider.client.address(),
         agents.rebalancer.client.address(),
     ];
+    println!("get here????");
 
     for addr in agent_addrs {
         // Mint INITIAL_PORTFOLIO_BALANCES of tokens to agents.
@@ -78,7 +79,7 @@ mod tests {
                 contracts.exchanges.g3m.address(),
             )
             .await?,
-            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+            rebalancer: crate::agents::weight_changer::WeightChanger::new(
                 "rebalancer",
                 &env,
                 contracts.exchanges.lex.address(),
@@ -130,7 +131,7 @@ mod tests {
                 contracts.exchanges.g3m.address(),
             )
             .await?,
-            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+            rebalancer: crate::agents::weight_changer::WeightChanger::new(
                 "rebalancer",
                 &env,
                 contracts.exchanges.lex.address(),
@@ -175,7 +176,7 @@ mod tests {
                 contracts.exchanges.g3m.address(),
             )
             .await?,
-            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+            rebalancer: crate::agents::weight_changer::WeightChanger::new(
                 "rebalancer",
                 &env,
                 contracts.exchanges.lex.address(),
@@ -207,7 +208,7 @@ mod tests {
                 contracts.exchanges.g3m.address(),
             )
             .await?,
-            rebalancer: crate::agents::rebalancer::Rebalancer::new(
+            rebalancer: crate::agents::weight_changer::WeightChanger::new(
                 "rebalancer",
                 &env,
                 contracts.exchanges.lex.address(),

@@ -1,6 +1,6 @@
 use agents::arbitrageur::Arbitrageur;
 use agents::liquidity_provider::LiquidityProvider;
-use agents::rebalancer::Rebalancer;
+use agents::weight_changer::WeightChanger;
 use anyhow::Result;
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use arbiter_core::{
@@ -23,7 +23,7 @@ pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 
 
 pub struct Agents {
     pub liquidity_provider: LiquidityProvider,
-    pub rebalancer: Rebalancer,
+    pub rebalancer: WeightChanger,
 }
 
 #[tokio::main]
@@ -48,8 +48,11 @@ async fn main() -> Result<()> {
     )
     .await?;
 
+    // have the loop iterate blcoks and block timestamps
+    // draw random # from poisson distribution which determines how long we wait for price to change
+    // loop that causes price change -> arbitrageur -> check if weightchanger needs to run
     let lp = LiquidityProvider::new("lp", &env, contracts.exchanges.g3m.address()).await?;
-    let rebalancer = Rebalancer::new(
+    let rebalancer = WeightChanger::new(
         "rebalancer",
         &env,
         contracts.exchanges.lex.address(),
