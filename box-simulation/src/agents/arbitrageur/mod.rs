@@ -116,7 +116,7 @@ impl<S: Strategy> Arbitrageur<S> {
         let g3m_price_wad = self.strategy.get_spot_price().await?;
         info!("g3m_price_wad: {:?}", g3m_price_wad);
 
-        let gamma_wad = WAD - self.strategy.swap_fee().await?;
+        let gamma_wad = WAD - (self.strategy.swap_fee().await?) * U256::from(10u128.pow(14));
         info!("gamma_wad: {:?}", gamma_wad);
 
         // Compute the no-arbitrage bounds.
