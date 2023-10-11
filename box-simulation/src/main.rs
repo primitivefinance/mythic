@@ -35,10 +35,10 @@ async fn main() -> Result<()> {
         .with_max_level(tracing::Level::TRACE)
         .init();
 
-    let _config = settings::params::SimulationConfig::new()?;
+    let config = settings::params::SimulationConfig::new()?;
 
     let env = EnvironmentBuilder::new().build();
-    let contracts = setup::deploy::deploy_contracts(&env).await?;
+    let contracts = setup::deploy::deploy_contracts(&env, &config).await?;
 
     let _arbitrageur = Arbitrageur::<G3M<RevmMiddleware>>::new(
         "arbitrageur",
