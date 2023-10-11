@@ -6,6 +6,7 @@ use arbiter_core::{
     math::{float_to_wad, OrnsteinUhlenbeck, StochasticProcess, Trajectories},
     middleware::RevmMiddleware,
 };
+use ethers::types::Address;
 use tracing::info;
 
 use crate::settings::params::PriceProcessParameters;
@@ -33,13 +34,21 @@ impl PriceChanger {
     pub async fn new(
         label: &str,
         environment: &Environment,
+        token_x_address: Address,
+        token_y_address: Address,
         price_process_params: PriceProcessParameters,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, Some(label)).unwrap();
-        let liquid_exchange =
-            LiquidExchange::deploy(client, float_to_wad(price_process_params.initial_price))?
-                .send()
-                .await?;
+        let liquid_exchange = LiquidExchange::deploy(
+            client,
+            (
+                token_x_address,
+                token_y_address,
+                float_to_wad(price_process_params.initial_price),
+            ),
+        )?
+        .send()
+        .await?;
         let PriceProcessParameters {
             initial_price,
             mean,
