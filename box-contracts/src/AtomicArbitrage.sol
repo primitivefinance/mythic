@@ -4,6 +4,10 @@ interface ExchangeLike {
     function swap(address token, uint256 amount) external;
 }
 
+interface StrategyLike {
+    function swapAmountIn(bool swapDirection, uint256 amount) external;
+}
+
 interface TokenLike {
     function transferFrom(address, address, uint256) external;
     function transfer(address, uint256) external;
@@ -38,7 +42,7 @@ contract AtomicArbitrage {
         // do swap on Exchange
         uint256 asset_balance = TokenLike(asset).balanceOf(address(this));
         TokenLike(asset).approve(exchange, asset_balance);
-        ExchangeLike(exchange).swap(asset, asset_balance);
+        StrategyLike(exchange).swapAmountIn(true, asset_balance);
 
         // send quote tokens to arbitrageur if we have tokens and the trade is profitable
         uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
@@ -54,7 +58,7 @@ contract AtomicArbitrage {
 
         // exchange quote for asset on Exchange
         TokenLike(quote).approve(exchange, input);
-        ExchangeLike(exchange).swap(quote, input);
+        StrategyLike(exchange).swapAmountIn(false, input);
 
         // do swap on LiquidExchange
         uint256 asset_balance = TokenLike(asset).balanceOf(address(this));

@@ -67,20 +67,24 @@ impl<S: Strategy> Arbitrageur<S> {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Detected the need to raise price to {:?}", target_price);
                 let input = self.strategy.get_y_input(target_price).await?;
+                info!("Got input: {:?}", input);
                 self.atomic_arbitrage
                     .raise_exchange_price(input)
                     .send()
                     .await?
                     .await?;
+                info!("Sent arbitrage.");
             }
             Swap::LowerExchangePrice(target_price) => {
                 info!("Detected the need to lower price to {:?}", target_price);
                 let input = self.strategy.get_x_input(target_price).await?;
+                info!("Got input: {:?}", input);
                 self.atomic_arbitrage
                     .lower_exchange_price(input)
                     .send()
                     .await?
                     .await?;
+                info!("Sent arbitrage.");
             }
             Swap::None => {
                 info!("No arbitrage opportunity");
