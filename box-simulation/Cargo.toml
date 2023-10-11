@@ -10,7 +10,7 @@ bindings.workspace = true
 box_core.workspace = true
 tokio = { version = "1.11.0", features = ["full"] }
 anyhow = "1.0.75"
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "main" }
+arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "main", features = ["contracts"] }
 arbiter-derive = { git = "https://github.com/primitivefinance/arbiter.git", branch = "main" }
 ethers = "2.0.10"
 serde = "1.0.188"
