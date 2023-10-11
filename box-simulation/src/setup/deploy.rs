@@ -1,7 +1,6 @@
 use anyhow::Result;
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
 use arbiter_core::bindings::liquid_exchange::LiquidExchange;
-use arbiter_core::data_collection::EventLogger;
 use arbiter_core::environment::Environment;
 use arbiter_core::middleware::RevmMiddleware;
 use arbiter_derive::Deploy;
@@ -32,8 +31,8 @@ pub struct Contracts {
 }
 
 pub async fn deploy_contracts(env: &Environment) -> Result<Contracts, anyhow::Error> {
-    let deployer = RevmMiddleware::new(&env, "deployer".into())?;
-    let decimals = u8::from(18);
+    let deployer = RevmMiddleware::new(env, "deployer".into())?;
+    let decimals = 18u8;
     let arbx_args = ("Arbiter Token X".to_string(), "arbx".to_string(), decimals);
     let arby_args = ("Arbiter Token Y".to_string(), "arby".to_string(), decimals);
 

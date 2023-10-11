@@ -50,8 +50,7 @@ pub fn compute_target_volatility_delta(
     target_volatility_pct: f64,
     current_delta_pct: f64,
 ) -> f64 {
-    let delta_pct = (target_volatility_pct - current_volatility_pct) / current_delta_pct;
-    delta_pct
+    (target_volatility_pct - current_volatility_pct) / current_delta_pct
 }
 
 // todo: make sure these tests are correct, used copilot for them.

@@ -1,14 +1,10 @@
-use std::time::Instant;
-
+use agents::arbitrageur::Arbitrageur;
 use anyhow::Result;
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
 };
 use ethers::types::{Address, U256};
-use tokio::task::JoinHandle;
-use tracing::event;
-use tracing_subscriber;
 
 use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
 
@@ -29,10 +25,18 @@ async fn main() -> Result<()> {
         .with_max_level(tracing::Level::TRACE)
         .init();
 
-    let config = settings::params::SimulationConfig::new()?;
+    let _config = settings::params::SimulationConfig::new()?;
 
     let env = EnvironmentBuilder::new().build();
     let contracts = setup::deploy::deploy_contracts(&env).await?;
+
+    let _arbitrageur = Arbitrageur::<G3M<RevmMiddleware>>::new(
+        "arbitrageur",
+        &env,
+        contracts.exchanges.lex.address(),
+        contracts.exchanges.g3m.address(),
+    )
+    .await?;
 
     Ok(())
 }
