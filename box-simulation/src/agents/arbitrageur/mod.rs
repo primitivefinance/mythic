@@ -39,10 +39,14 @@ impl<S: Strategy> Arbitrageur<S> {
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
         let strategy = Strategy::new(strategy_address, client.clone());
-        let atomic_arbitrage =
-            AtomicArbitrage::deploy(client, (strategy_address, liquid_exchange_address))?
-                .send()
-                .await?;
+        let arbx = liquid_exchange.arbiter_token_x().call().await?;
+        let arby = liquid_exchange.arbiter_token_y().call().await?;
+        let atomic_arbitrage = AtomicArbitrage::deploy(
+            client,
+            (strategy_address, liquid_exchange_address, arbx, arby),
+        )?
+        .send()
+        .await?;
 
         Ok(Self {
             liquid_exchange,

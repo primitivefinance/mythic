@@ -35,8 +35,8 @@ pub struct TokenParameters {
 pub struct PortfolioPoolParameters {
     /// fee in bips
     pub fee_basis_points: u16,
-    pub weight_token_0: u16,
-    pub weight_token_1: u16,
+    pub weight_token_0: f64,
+    pub weight_token_1: f64,
 
     pub liquidity_mantissa: u64,
     pub liquidity_exponent: u32,
