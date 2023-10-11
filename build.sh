@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd box-contracts
+cd contracts
 
 forge clean
 

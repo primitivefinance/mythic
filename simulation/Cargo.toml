@@ -1,5 +1,5 @@
 [package]
-name = "box-simulation"
+name = "simulation"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 bindings.workspace = true
-box_core.workspace = true
+utils.workspace = true
 tokio = { version = "1.11.0", features = ["full"] }
 anyhow = "1.0.75"
 arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "main", features = ["contracts"] }
