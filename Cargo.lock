@@ -344,6 +344,7 @@ name = "bindings"
 version = "0.1.0"
 dependencies = [
  "ethers",
+ "serde",
 ]
 
 [[package]]

@@ -95,6 +95,7 @@ pub async fn deploy_contracts(
         .add(contracts.exchanges.lex.events(), "lex")
         .add(contracts.tokens.arbx.events(), "arbx")
         .add(contracts.tokens.arby.events(), "arby")
+        .add(contracts.exchanges.g3m.events(), "g3m")
         .run()?;
 
     // agents

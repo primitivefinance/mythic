@@ -17,6 +17,14 @@ contract AtomicArbitrage {
     address public asset;
     address public quote;
 
+    constructor(address exchangeAddress, address liquidExchangeAddress, address assetAddress, address quoteAddress) {
+        exchange = exchangeAddress;
+        liquidExchange = liquidExchangeAddress;
+        asset = assetAddress;
+        quote = quoteAddress;
+    }
+
+
     function lower_exchange_price(
         uint256 input
     ) external {
