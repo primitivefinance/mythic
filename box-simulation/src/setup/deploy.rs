@@ -23,8 +23,8 @@ pub struct Tokens {
 #[derive(Deploy)]
 pub struct Exchanges {
     pub g3m: ContractDeploymentTx<Arc<RevmMiddleware>, RevmMiddleware, G3M<RevmMiddleware>>,
-    pub lex:
-        ContractDeploymentTx<Arc<RevmMiddleware>, RevmMiddleware, LiquidExchange<RevmMiddleware>>,
+    // pub lex:
+    //     ContractDeploymentTx<Arc<RevmMiddleware>, RevmMiddleware, LiquidExchange<RevmMiddleware>>,
 }
 
 pub struct Contracts {
@@ -80,7 +80,7 @@ pub async fn deploy_contracts(
 
     let exchanges = Exchanges {
         g3m: G3M::deploy(deployer.clone(), g3m_args)?,
-        lex: LiquidExchange::deploy(deployer.clone(), lex_args)?,
+        // lex: LiquidExchange::deploy(deployer.clone(), lex_args)?,
     }
     .deploy()
     .await?;
@@ -90,13 +90,6 @@ pub async fn deploy_contracts(
         tokens,
         exchanges,
     };
-
-    EventLogger::builder()
-        .add(contracts.exchanges.lex.events(), "lex")
-        .add(contracts.tokens.arbx.events(), "arbx")
-        .add(contracts.tokens.arby.events(), "arby")
-        .add(contracts.exchanges.g3m.events(), "g3m")
-        .run()?;
 
     // agents
     // 1. arbitraguer :check:

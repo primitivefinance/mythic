@@ -1,12 +1,16 @@
 use std::{ops::Div, sync::Arc};
 
+use tracing::info;
+
 use super::*;
 
 #[allow(clippy::all)]
 pub mod atomic_arbitrage;
 pub mod g3m;
 
+#[derive(Clone)]
 pub struct Arbitrageur<S: Strategy> {
+    pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
 
@@ -42,13 +46,14 @@ impl<S: Strategy> Arbitrageur<S> {
         let arbx = liquid_exchange.arbiter_token_x().call().await?;
         let arby = liquid_exchange.arbiter_token_y().call().await?;
         let atomic_arbitrage = AtomicArbitrage::deploy(
-            client,
+            client.clone(),
             (strategy_address, liquid_exchange_address, arbx, arby),
         )?
         .send()
         .await?;
 
         Ok(Self {
+            client,
             liquid_exchange,
             atomic_arbitrage,
             strategy,
@@ -60,6 +65,7 @@ impl<S: Strategy> Arbitrageur<S> {
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
+                info!("Detected the need to raise price to {:?}", target_price);
                 let input = self.strategy.get_y_input(target_price).await?;
                 self.atomic_arbitrage
                     .raise_exchange_price(input)
@@ -68,6 +74,7 @@ impl<S: Strategy> Arbitrageur<S> {
                     .await?;
             }
             Swap::LowerExchangePrice(target_price) => {
+                info!("Detected the need to lower price to {:?}", target_price);
                 let input = self.strategy.get_x_input(target_price).await?;
                 self.atomic_arbitrage
                     .lower_exchange_price(input)
@@ -76,7 +83,7 @@ impl<S: Strategy> Arbitrageur<S> {
                     .await?;
             }
             Swap::None => {
-                // info!("No arbitrage opportunity");
+                info!("No arbitrage opportunity");
             }
         }
         Ok(())
@@ -89,13 +96,18 @@ impl<S: Strategy> Arbitrageur<S> {
     async fn detect_arbitrage(&mut self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
+        info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
         let g3m_price_wad = self.strategy.get_spot_price().await?;
+        info!("g3m_price_wad: {:?}", g3m_price_wad);
 
         let gamma_wad = WAD - self.strategy.swap_fee().await?;
+        info!("gamma_wad: {:?}", gamma_wad);
 
         // Compute the no-arbitrage bounds.
         let upper_arb_bound = WAD * g3m_price_wad / gamma_wad;
+        info!("upper_arb_bound: {:?}", upper_arb_bound);
         let lower_arb_bound = g3m_price_wad * gamma_wad / WAD;
+        info!("lower_arb_bound: {:?}", lower_arb_bound);
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.

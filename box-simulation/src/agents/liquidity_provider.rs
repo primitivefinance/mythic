@@ -6,6 +6,8 @@ use std::sync::Arc;
 use super::*;
 
 pub const INITIAL_PORTFOLIO_BALANCES: (u64, u64) = (100_000, 100_000);
+
+#[derive(Clone)]
 pub struct LiquidityProvider {
     pub client: Arc<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
