@@ -11,11 +11,12 @@ impl Strategy for G3M<RevmMiddleware> {
         let reserve_y = self.reserve_y().call().await?;
         let invariant = self.get_invariant().call().await?;
 
-        Ok(weight_y
-            * U256::from(1)
-                .div(target_price_wad * invariant.pow(U256::from(1).div(weight_x)))
-                .pow(U256::from(1) + weight_y.div(weight_x))
-            - reserve_y)
+        // Ok(weight_y
+        //     * U256::from(1)
+        //         .div(target_price_wad * invariant.pow(U256::from(1).div(weight_x)))
+        //         .pow(U256::from(1) + weight_y.div(weight_x))
+        //     - reserve_y)
+        Ok(U256::from(1_000_000_000))
     }
 
     async fn get_y_input(&self, target_price_wad: U256) -> Result<U256> {
@@ -24,11 +25,12 @@ impl Strategy for G3M<RevmMiddleware> {
         let reserve_x = self.reserve_x().call().await?;
         let invariant = self.get_invariant().call().await?;
 
-        Ok(weight_x
-            * target_price_wad
-                .div(invariant.pow(U256::from(1).div(weight_y)))
-                .pow(U256::from(1) + weight_x.div(weight_y))
-            - reserve_x)
+        // Ok(weight_x
+        //     * target_price_wad
+        //         .div(invariant.pow(U256::from(1).div(weight_y)))
+        //         .pow(U256::from(1) + weight_x.div(weight_y))
+        //     - reserve_x)
+        Ok(U256::from(1_000_000_000))
     }
 
     async fn get_spot_price(&self) -> Result<U256> {

@@ -1,5 +1,6 @@
 use std::{ops::Div, sync::Arc};
 
+use arbiter_core::bindings::arbiter_token::ArbiterToken;
 use tracing::info;
 
 use super::*;
@@ -51,6 +52,17 @@ impl<S: Strategy> Arbitrageur<S> {
         )?
         .send()
         .await?;
+
+        let arbx = ArbiterToken::new(arbx, client.clone());
+        let arby = ArbiterToken::new(arby, client.clone());
+        arbx.approve(atomic_arbitrage.address(), U256::MAX)
+            .send()
+            .await?
+            .await?;
+        arby.approve(atomic_arbitrage.address(), U256::MAX)
+            .send()
+            .await?
+            .await?;
 
         Ok(Self {
             client,
