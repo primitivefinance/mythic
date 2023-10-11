@@ -13,6 +13,7 @@ use settings::params::PriceProcessParameters;
 use tracing_subscriber;
 
 use bindings::{atomic_arbitrage::AtomicArbitrage, g3m::G3M};
+use ethers::utils::format_ether;
 use setup::init::init;
 
 mod agents;
@@ -60,14 +61,8 @@ async fn main() -> Result<()> {
         num_steps: 2,
         seed: Some(1),
     };
-    let mut price_changer = PriceChanger::new(
-        "price_changer",
-        &env,
-        contracts.tokens.arbx.address(),
-        contracts.tokens.arby.address(),
-        price_process_params,
-    )
-    .await?;
+    let mut price_changer =
+        PriceChanger::new("price_changer", &env, &contracts, price_process_params).await?;
 
     let lex_address = price_changer.liquid_exchange.address();
 
@@ -105,13 +100,19 @@ async fn main() -> Result<()> {
 
     for index in 0..price_process_params.num_steps {
         println!("index: {}", index);
+        let init_price = contracts.exchanges.g3m.get_spot_price().call().await?;
+        println!(
+            "init price: {}",
+            format_ether(init_price).parse::<f64>().unwrap()
+        );
         price_changer.update_price().await?;
         agents.arbitrageur.step().await?;
+        let new_price = contracts.exchanges.g3m.get_spot_price().call().await?;
+        println!(
+            "new price: {}",
+            format_ether(new_price).parse::<f64>().unwrap()
+        );
     }
-
-    // engine::builder::EngineBuilder::new()
-    //     .run(&contracts, &env, &config)
-    //     .await?;
 
     Ok(())
 }

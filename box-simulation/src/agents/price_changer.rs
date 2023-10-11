@@ -6,10 +6,12 @@ use arbiter_core::{
     math::{float_to_wad, OrnsteinUhlenbeck, StochasticProcess, Trajectories},
     middleware::RevmMiddleware,
 };
-use ethers::types::Address;
+use ethers::utils::parse_ether;
 use tracing::info;
 
-use crate::settings::params::PriceProcessParameters;
+use crate::{settings::params::PriceProcessParameters, setup::deploy::Contracts};
+
+pub const LIQUID_EXCHANGE_BALANCE: (u64, u64) = (100_000_000_000, 100_000_000_000);
 
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
@@ -34,21 +36,37 @@ impl PriceChanger {
     pub async fn new(
         label: &str,
         environment: &Environment,
-        token_x_address: Address,
-        token_y_address: Address,
+        contracts: &Contracts,
         price_process_params: PriceProcessParameters,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, Some(label)).unwrap();
         let liquid_exchange = LiquidExchange::deploy(
             client,
             (
-                token_x_address,
-                token_y_address,
+                contracts.tokens.arbx.address(),
+                contracts.tokens.arby.address(),
                 float_to_wad(price_process_params.initial_price),
             ),
         )?
         .send()
         .await?;
+        let lex_mint_amounts = (
+            parse_ether(LIQUID_EXCHANGE_BALANCE.0).unwrap(),
+            parse_ether(LIQUID_EXCHANGE_BALANCE.1).unwrap(),
+        );
+
+        contracts
+            .tokens
+            .arbx
+            .mint(liquid_exchange.address(), lex_mint_amounts.0)
+            .send()
+            .await?;
+        contracts
+            .tokens
+            .arby
+            .mint(liquid_exchange.address(), lex_mint_amounts.0)
+            .send()
+            .await?;
         let PriceProcessParameters {
             initial_price,
             mean,

@@ -43,6 +43,7 @@ pub async fn init(
             .await?
             .await?;
     }
+
     agents
         .clone()
         .liquidity_provider

@@ -45,7 +45,7 @@ decimals = 18
 [portfolio_pool_parameters]
 weight_token_0 = 0.5
 weight_token_1 = 0.5
-fee_basis_points = 1
+fee_basis_points = 3
 priority_fee_basis_points = 0
 
 # LP PARAMETRER
