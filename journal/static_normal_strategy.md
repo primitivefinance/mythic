@@ -26,19 +26,19 @@ From there, we should be able to determine how much of both tokens must be alloc
 Suppose that the user specifies the amount $x$ they wish to allocate and they also choose a price $S$.
 Without showing all the work, we can recall that $\frac{x}{L}$ is one of the option binaries:
 $$
-\frac{x}{L} = 1-\Phi^{-1}\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)
+\frac{x}{L} = 1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)
 $$
 Since we know $x$ and we know $S$, we can solve for $L$ to find:
 $$
-\boxed{L(x,S) = \frac{x}{1-\Phi^{-1}\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L(x,S) = \frac{x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 Further, we need to know how much $y$ to allocate, which we can also use the other binary:
 $$
-\frac{y}{KL} = \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+\frac{y}{KL} = \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
 $$
 At this point, we know $S$ and $L$ and so we can get:
 $$
-\boxed{y(x,S) = K\cdot L(x,S)\cdot \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+\boxed{y(x,S) = K\cdot L(x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
 Note that the above is not simplified and likely could be drastically simplified.
 
@@ -47,15 +47,15 @@ Note that the above is not simplified and likely could be drastically simplified
 Suppose that the user specifies the amount $y$ they wish to allocate and they also choose a price $S$.
 The work here is basically a mirrored image of the above.
 $$
-\frac{y}{KL} = \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+\frac{y}{KL} = \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
 $$
 From here we get $L$:
 $$
-\boxed{L(y,S) = \frac{y}{K\cdot\Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L(y,S) = \frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 Now we need to get $x$:
 $$
-\boxed{x(y,S) = L(y,S)\cdot\left(1-\Phi^{-1}\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
+\boxed{x(y,S) = L(y,S)\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
 $$
 
 ### Adding Liquidity
@@ -66,7 +66,7 @@ When adding liquidity, we assume that price will not change whatsoever and only 
 #### Specifying $x$
 Given some amount of $\delta_x$ the user wants to add, we can just use the equation for $L(x,S)$ above to get:
 $$
-\boxed{L(x+\delta_x,S) = \frac{x+\delta_x}{1-\Phi^{-1}\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L(x+\delta_x,S) = \frac{x+\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 In fact, $L$ is linear in the first variable, so:
 $$
@@ -77,7 +77,7 @@ can be used to make the calculation easier.
 #### Specifying $y$
 Given some amount of $\delta_y$ the user wants to add, we can just use the equation for $L(y,S)$ above to get:
 $$
-\boxed{L(y+\delta_y,S) = \frac{y+\delta_y}{K\cdot\Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L(y+\delta_y,S) = \frac{y+\delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 Again, $L$ is linear in the first variable, so:
 $$
@@ -109,7 +109,7 @@ Think of the swap as a two step process:
 This is the amount of the input token that is added to the pool and it is what is used to calculate the change in liquidity $\delta_L$.
 From here, we can imagine that the swapper then takes temporary debt in adding $\delta_y$ to the pool where the $\delta_y$ is given by:
 $$
-\delta_y = K\cdot L(\delta_x,S)\cdot \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+\delta_y = K\cdot L(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
 $$
 2. Computing a no-fee swap with the remaining amount of the input token. E.g., $\widetilde{\Delta_x} \coloneqq \gamma\Delta_x$.
 Note at this point, the reserves are then $x+\delta_x$ and $y+\delta_y$ and the liquidity $L+\delta_L$. 
@@ -122,11 +122,11 @@ They specifically tender $\Delta_x$ and the fee parameter is $\gamma$.
 Now $\delta_x=(1-\gamma)\Delta_x$ and $\widetilde{\Delta_x}=\gamma\Delta_x$.
 From this we get 
 $$
-\delta_L=\frac{\delta_x}{1-\Phi^{-1}\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
+\delta_L=\frac{\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
 and we also get 
 $$
-\delta_y=K\cdot L(\delta_x,S)\cdot \Phi^{-1}\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right).
+\delta_y=K\cdot L(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right).
 $$
 
 Now we can compute the no-fee swap with $\widetilde{\Delta_x}$. 
