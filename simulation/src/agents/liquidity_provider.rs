@@ -1,10 +1,3 @@
-use std::sync::Arc;
-
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
-use ethers::utils::parse_ether;
-use params::SimulationConfig;
-use tracing::info;
-
 use super::{token_admin::TokenAdmin, *};
 
 pub const INITIAL_BALANCE: (u64, u64) = (100_000, 100_000);

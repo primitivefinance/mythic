@@ -1,16 +1,6 @@
-use anyhow::Result;
-use arbiter_core::{
-    bindings::liquid_exchange::LiquidExchange,
-    environment::Environment,
-    math::{float_to_wad, OrnsteinUhlenbeck, StochasticProcess, Trajectories},
-    middleware::RevmMiddleware,
-};
-use ethers::utils::parse_ether;
-use params::PriceProcessParameters;
-use token_admin::TokenAdmin;
-use tracing::info;
-
 use super::*;
+
+use crate::settings::parameters::PriceProcessParameters;
 
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
@@ -34,7 +24,7 @@ impl PriceChanger {
     /// tokens.
     pub async fn new(
         environment: &Environment,
-        token_admin: &TokenAdmin,
+        token_admin: &token_admin::TokenAdmin,
         price_process_params: PriceProcessParameters,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "price_changer".into())?;

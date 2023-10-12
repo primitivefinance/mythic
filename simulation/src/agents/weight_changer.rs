@@ -1,10 +1,5 @@
-use std::{ops::Div, sync::Arc};
-
-use ethers::utils::{format_ether, parse_ether};
-use math::ComputeReturns;
-use params::SimulationConfig;
-
 use super::*;
+use crate::math::ComputeReturns;
 
 #[derive(Clone)]
 pub struct WeightChanger {
