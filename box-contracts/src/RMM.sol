@@ -30,7 +30,7 @@ contract RMM {
         uint256 price
     ) external returns (uint256, uint256) {
         uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
-        uint256 amountY = computeYGivenL(liquidity, price, strikePrice, sigma);
+        uint256 amountY = computeYGivenL(l, price, strikePrice, sigma);
 
         liquidity = l;
         reserveX = amountX;
@@ -47,7 +47,7 @@ contract RMM {
         uint256 price
     ) external returns (uint256, uint256) {
         uint256 l = computeLGivenY(amountY, price, strikePrice, sigma);
-        uint256 amountX = computeXGivenL(liquidity, price, strikePrice, sigma);
+        uint256 amountX = computeXGivenL(l, price, strikePrice, sigma);
 
         liquidity = l;
         reserveX = amountX;
@@ -67,7 +67,7 @@ contract RMM {
         uint256 price = reserveX / reserveY;
 
         uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
-        uint256 amountY = computeYGivenL(liquidity, price, strikePrice, sigma);
+        uint256 amountY = computeYGivenL(l, price, strikePrice, sigma);
 
         liquidity += l;
         reserveX += amountX;
