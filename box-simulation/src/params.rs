@@ -43,6 +43,7 @@ pub struct PortfolioPoolParameters {
 
     /// The initial price of the Portfolio pool.
     pub initial_price: f64,
+    pub target_volatility: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

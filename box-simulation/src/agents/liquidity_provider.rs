@@ -1,38 +1,44 @@
-use crate::settings::params::SimulationConfig;
+use super::token_admin::TokenAdmin;
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
 use ethers::utils::parse_ether;
+use params::SimulationConfig;
 use std::sync::Arc;
 use tracing::info;
 
 use super::*;
 
-pub const INITIAL_PORTFOLIO_BALANCES: (u64, u64) = (100_000, 100_000);
+pub const INITIAL_BALANCE: (u64, u64) = (100_000, 100_000);
 
 #[derive(Clone)]
 pub struct LiquidityProvider {
     pub client: Arc<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
-    pub arbx: ArbiterToken<RevmMiddleware>,
-    pub arby: ArbiterToken<RevmMiddleware>,
 }
 
 impl LiquidityProvider {
-    pub async fn new(label: &str, environment: &Environment, g3m_address: Address) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, Some(label))?;
+    pub async fn new(
+        environment: &Environment,
+        token_admin: &TokenAdmin,
+        g3m_address: Address,
+    ) -> Result<Self> {
+        let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
         let g3m = G3M::new(g3m_address, client.clone());
 
-        let arbx = ArbiterToken::new(g3m.token_x().call().await?, client.clone());
-        let arby = ArbiterToken::new(g3m.token_y().call().await?, client.clone());
+        let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
+        let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
+
+        token_admin
+            .mint(
+                client.address(),
+                parse_ether(INITIAL_BALANCE.0).unwrap(),
+                parse_ether(INITIAL_BALANCE.1).unwrap(),
+            )
+            .await?;
 
         arbx.approve(g3m.address(), U256::MAX).send().await?;
         arby.approve(g3m.address(), U256::MAX).send().await?;
 
-        Ok(Self {
-            client,
-            g3m,
-            arbx,
-            arby,
-        })
+        Ok(Self { client, g3m })
     }
 
     pub async fn add_liquidity(self, config: &SimulationConfig) -> Result<()> {
@@ -45,7 +51,7 @@ impl LiquidityProvider {
             .unwrap();
         // Using the initial weight, initial price, and initial reserve x, we can compute reserve y.
         let initial_price = config.portfolio_pool_parameters.initial_price;
-        let initial_reserve_x = parse_ether(INITIAL_PORTFOLIO_BALANCES.0).unwrap();
+        let initial_reserve_x = parse_ether(INITIAL_BALANCE.0).unwrap();
         info!("initial_reserve_x: {}", initial_reserve_x);
 
         // p = (x / w_x) / (y / w_y)
@@ -68,7 +74,6 @@ impl LiquidityProvider {
 
         // Get the parsed amounts for the portfolio deposit.
         let amounts = (initial_reserve_x, initial_reserve_y);
-        info!("amounts: {:?}", amounts);
 
         // Call init pool to setup the portfolio
         // Needs an amount of both tokens, the amounts can be anything but note that they affect the spot price.
@@ -78,10 +83,6 @@ impl LiquidityProvider {
             .send()
             .await?
             .await?;
-        println!(
-            "initial x liquidity {:?}",
-            self.g3m.reserve_x().call().await?
-        );
         Ok(())
     }
 }

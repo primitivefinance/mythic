@@ -1,13 +1,19 @@
-use std::{f32::consts::E, ops::Div, sync::Arc};
+use std::sync::Arc;
 
 use arbiter_core::{
     bindings::arbiter_token::ArbiterToken, middleware::errors::RevmMiddlewareError,
 };
-use bindings::{atomic_arbitrage::NotProfitable, g3m::G3MErrors, sd5_9x_18_math::SD59x18Math};
-use ethers::{abi::AbiDecode, utils::format_units};
+use bindings::{
+    atomic_arbitrage::{AtomicArbitrage, NotProfitable},
+    sd5_9x_18_math::SD59x18Math,
+};
+use ethers::{
+    abi::AbiDecode,
+    utils::{format_units, parse_ether},
+};
 use tracing::info;
 
-use super::*;
+use super::{token_admin::TokenAdmin, *};
 
 #[allow(clippy::all)]
 pub mod atomic_arbitrage;
@@ -47,28 +53,40 @@ pub trait Strategy {
 
 impl<S: Strategy> Arbitrageur<S> {
     pub async fn new(
-        label: &str,
         environment: &Environment,
+        token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
         strategy_address: Address,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
-        let client = RevmMiddleware::new(environment, Some(label))?;
+        let client = RevmMiddleware::new(environment, "arbitrageur".into())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
         let strategy = Strategy::new(strategy_address, client.clone());
-        let arbx = liquid_exchange.arbiter_token_x().call().await?;
-        let arby = liquid_exchange.arbiter_token_y().call().await?;
         let atomic_arbitrage = AtomicArbitrage::deploy(
             client.clone(),
-            (strategy_address, liquid_exchange_address, arbx, arby),
+            (
+                strategy_address,
+                liquid_exchange_address,
+                token_admin.arbx.address(),
+                token_admin.arby.address(),
+            ),
         )?
         .send()
         .await?;
 
-        let arbx = ArbiterToken::new(arbx, client.clone());
-        let arby = ArbiterToken::new(arby, client.clone());
+        let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
+        let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
+
+        token_admin
+            .mint(
+                client.address(),
+                parse_ether(100_000).unwrap(),
+                parse_ether(100_000).unwrap(),
+            )
+            .await?;
+
         arbx.approve(atomic_arbitrage.address(), U256::MAX)
             .send()
             .await?
@@ -90,7 +108,7 @@ impl<S: Strategy> Arbitrageur<S> {
     }
 
     #[allow(unused)]
-    pub async fn step(&mut self) -> Result<()> {
+    pub async fn step(&self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
@@ -191,7 +209,7 @@ impl<S: Strategy> Arbitrageur<S> {
     /// Returns the direction of the swap `XtoY` or `YtoX` if there is an
     /// arbitrage opportunity. Returns `None` if there is no arbitrage
     /// opportunity.
-    async fn detect_arbitrage(&mut self) -> Result<Swap> {
+    async fn detect_arbitrage(&self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
         info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);

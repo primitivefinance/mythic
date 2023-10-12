@@ -3,6 +3,8 @@ use ethers::utils::{format_ether, parse_ether};
 use std::ops::Div;
 use std::sync::Arc;
 
+use params::SimulationConfig;
+
 use super::*;
 
 #[derive(Clone)]
@@ -20,21 +22,28 @@ pub struct WeightChanger {
 
 impl WeightChanger {
     pub async fn new(
-        label: &str,
         environment: &Environment,
+        config: &SimulationConfig,
         liquid_exchange_address: Address,
-        exchange_address: Address,
-        target_volatility: f64,
+        arbx: Address,
+        arby: Address,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, Some(label))?;
+        let client = RevmMiddleware::new(environment, "weight_changer".into())?;
+
+        let g3m_args = (
+            arbx,
+            arby,
+            ethers::utils::parse_ether(config.portfolio_pool_parameters.weight_token_0)?,
+            U256::from(config.portfolio_pool_parameters.fee_basis_points),
+        );
+        let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
-        let g3m = G3M::new(exchange_address, client.clone());
 
         Ok(Self {
             client,
             lex,
             g3m,
-            target_volatility,
+            target_volatility: config.portfolio_pool_parameters.target_volatility,
             next_update_timestamp: 0,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),

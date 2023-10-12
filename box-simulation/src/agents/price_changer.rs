@@ -7,11 +7,12 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::utils::parse_ether;
+use token_admin::TokenAdmin;
 use tracing::info;
 
-use crate::{settings::params::PriceProcessParameters, setup::deploy::Contracts};
+use params::PriceProcessParameters;
 
-pub const LIQUID_EXCHANGE_BALANCE: (u64, u64) = (100_000_000_000, 100_000_000_000);
+use super::*;
 
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
@@ -34,39 +35,30 @@ impl PriceChanger {
     /// Ornstein-Uhlenbeck processes are useful for modeling the price of stable
     /// tokens.
     pub async fn new(
-        label: &str,
         environment: &Environment,
-        contracts: &Contracts,
+        token_admin: &TokenAdmin,
         price_process_params: PriceProcessParameters,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, Some(label)).unwrap();
+        let client = RevmMiddleware::new(environment, "price_changer".into())?;
         let liquid_exchange = LiquidExchange::deploy(
             client,
             (
-                contracts.tokens.arbx.address(),
-                contracts.tokens.arby.address(),
+                token_admin.arbx.address(),
+                token_admin.arby.address(),
                 float_to_wad(price_process_params.initial_price),
             ),
         )?
         .send()
         .await?;
-        let lex_mint_amounts = (
-            parse_ether(LIQUID_EXCHANGE_BALANCE.0).unwrap(),
-            parse_ether(LIQUID_EXCHANGE_BALANCE.1).unwrap(),
-        );
 
-        contracts
-            .tokens
-            .arbx
-            .mint(liquid_exchange.address(), lex_mint_amounts.0)
-            .send()
+        token_admin
+            .mint(
+                liquid_exchange.address(),
+                parse_ether(100_000_000_000_u64).unwrap(),
+                parse_ether(100_000_000_000_u64).unwrap(),
+            )
             .await?;
-        contracts
-            .tokens
-            .arby
-            .mint(liquid_exchange.address(), lex_mint_amounts.0)
-            .send()
-            .await?;
+
         let PriceProcessParameters {
             initial_price,
             mean,
