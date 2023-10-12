@@ -18,12 +18,14 @@ contract RMM {
         ERC20 tokenX_,
         ERC20 tokenY_,
         uint256 sigma_,
-        uint256 strikePrice_
+        uint256 strikePrice_,
+        uint256 tau_
     ) {
         tokenX = tokenX_;
         tokenY = tokenY_;
         sigma = sigma_;
         strikePrice = strikePrice_;
+        tau = tau_;
     }
 
     function initExactX(
@@ -65,18 +67,22 @@ contract RMM {
         returns (uint256, uint256)
     {
         uint256 price =
-            computeSpotPrice(strikePrice, sigma, reserveX, liquidity, tau);
+            computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
 
-        uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
-        uint256 amountY = computeYGivenL(l, price, strikePrice, sigma);
+        uint256 newLiquidity =
+            computeLGivenX(reserveX + amountX, price, strikePrice, sigma);
+        uint256 newReserveY =
+            computeYGivenL(newLiquidity, price, strikePrice, sigma);
 
-        liquidity += l;
+        uint256 amountY = newReserveY - reserveY;
+
+        liquidity = newLiquidity;
         reserveX += amountX;
         reserveY += amountY;
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
 
-        return (l, amountY);
+        return (newLiquidity, amountY);
     }
 }
