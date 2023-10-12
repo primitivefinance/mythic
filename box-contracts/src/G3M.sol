@@ -138,11 +138,11 @@ contract G3M is IG3M {
     ) external returns (UD60x18) {
         require(totalLiquidity.isZero(), "Pool already initialized");
 
-        UD60x18 amountXUD60x18 = UD60x18.wrap(amountX);
-        UD60x18 amountYUD60x18 = UD60x18.wrap(amountY);
+        UD60x18 amountXUD60x18 = convert(amountX);
+        UD60x18 amountYUD60x18 = convert(amountY);
 
         UD60x18 invariant = computeInvariant(
-            UD60x18.wrap(amountX), weightX(), UD60x18.wrap(amountY), weightY()
+            convert(amountX), weightX(), convert(amountY), weightY()
         );
         UD60x18 liquidity = invariant * convert(2);
 
