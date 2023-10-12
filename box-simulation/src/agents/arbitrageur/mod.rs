@@ -16,7 +16,6 @@ use tracing::info;
 use super::{token_admin::TokenAdmin, *};
 
 #[allow(clippy::all)]
-pub mod atomic_arbitrage;
 pub mod g3m;
 
 #[derive(Clone)]
