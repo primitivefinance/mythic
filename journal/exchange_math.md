@@ -110,9 +110,9 @@ Then solving for $\delta_x$ yields
 $$
 \implies  \delta_x = \left(\frac{w_x}{w_y}\frac{k^{1/w_y}}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x 
 $$
-Which we can simplify slightly:
+Which we can simplified to:
 $$
-\implies \boxed{ \delta_x = k\left(\frac{w_x}{w_y}\frac{1}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x }
+\implies \boxed{ \delta_x = k\left(\frac{w_x}{w_y}\frac{1}{p'}\right)^{w_y}-x }
 $$
 
 #### For Raising Price
@@ -131,7 +131,7 @@ $$
 \implies  \delta_y = \left(\frac{w_y}{w_x}p'k^{1/w_x}\right)^{\frac{1}{1+w_y/w_x}}-y 
 $$
 
-This can be simplified slightly to avoid overflow:
+This can be simplified to:
 $$
-\implies \boxed{ \delta_y = k\left(\frac{w_y}{w_x}p'\right)^{\frac{1}{1+w_y/w_x}}-y }
+\implies \boxed{ \delta_y = k\left(\frac{w_y}{w_x}p'\right)^{w_x}-y }
 $$

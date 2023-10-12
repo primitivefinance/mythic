@@ -2,6 +2,7 @@ use crate::settings::params::SimulationConfig;
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
 use ethers::utils::parse_ether;
 use std::sync::Arc;
+use tracing::info;
 
 use super::*;
 
@@ -45,6 +46,7 @@ impl LiquidityProvider {
         // Using the initial weight, initial price, and initial reserve x, we can compute reserve y.
         let initial_price = config.portfolio_pool_parameters.initial_price;
         let initial_reserve_x = parse_ether(INITIAL_PORTFOLIO_BALANCES.0).unwrap();
+        info!("initial_reserve_x: {}", initial_reserve_x);
 
         // p = (x / w_x) / (y / w_y)
         // y / w_y = (x / w_x) / p
@@ -66,14 +68,20 @@ impl LiquidityProvider {
 
         // Get the parsed amounts for the portfolio deposit.
         let amounts = (initial_reserve_x, initial_reserve_y);
+        info!("amounts: {:?}", amounts);
 
         // Call init pool to setup the portfolio
         // Needs an amount of both tokens, the amounts can be anything but note that they affect the spot price.
+        // TODO: The division by WAD here should be removed once the contract is fixed.
         self.g3m
-            .init_pool(amounts.0.into(), amounts.1.into())
+            .init_pool(amounts.0 / WAD, amounts.1 / WAD)
             .send()
             .await?
             .await?;
+        println!(
+            "initial x liquidity {:?}",
+            self.g3m.reserve_x().call().await?
+        );
         Ok(())
     }
 }

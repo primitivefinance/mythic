@@ -43,8 +43,8 @@ decimals = 18
 
 # We need to set the parameters for the Portfolio pool
 [portfolio_pool_parameters]
-weight_token_0 = 0.5
-weight_token_1 = 0.5
+weight_token_0 = 0.13
+weight_token_1 = 0.87
 fee_basis_points = 3
 priority_fee_basis_points = 0
 
