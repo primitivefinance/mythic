@@ -1,6 +1,5 @@
 use super::*;
 
-#[allow(clippy::all)]
 pub mod g3m;
 
 /// The number 10^18.

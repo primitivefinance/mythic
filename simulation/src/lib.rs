@@ -23,8 +23,11 @@ use serde::{Deserialize, Serialize};
 use settings::SimulationConfig;
 use tracing::info;
 
+#[allow(unused)]
 mod agents;
 #[allow(unused)]
 mod math;
+#[allow(unused)]
 mod settings;
+#[allow(unused)]
 pub mod simulations;
