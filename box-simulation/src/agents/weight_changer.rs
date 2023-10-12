@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use super::*;
 
+#[derive(Clone)]
 pub struct WeightChanger {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,

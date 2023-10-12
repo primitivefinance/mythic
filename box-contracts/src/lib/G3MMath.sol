@@ -64,8 +64,8 @@ function computeSpotPrice(
     UD60x18 rO,
     UD60x18 wO
 ) pure returns (uint256 p) {
-    UD60x18 n = rI / wI;
-    UD60x18 d = rO / wO;
+    UD60x18 n = rO / wO;
+    UD60x18 d = rI / wI;
     p = UD60x18.unwrap(n / d);
 }
 

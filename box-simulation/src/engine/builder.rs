@@ -68,7 +68,7 @@ impl<'a> EngineBuilder<'a> {
     ) -> Result<(), anyhow::Error> {
         // Run the main simulation loop
         let mut price_changer = PriceChanger::new(
-            contracts.exchanges.lex.clone(),
+            // contracts.exchanges.lex.clone(),
             config.price_process_parameters.clone(),
         );
 

@@ -23,8 +23,8 @@ pub struct Tokens {
 #[derive(Deploy)]
 pub struct Exchanges {
     pub g3m: ContractDeploymentTx<Arc<RevmMiddleware>, RevmMiddleware, G3M<RevmMiddleware>>,
-    pub lex:
-        ContractDeploymentTx<Arc<RevmMiddleware>, RevmMiddleware, LiquidExchange<RevmMiddleware>>,
+    // pub lex:
+    //     ContractDeploymentTx<Arc<RevmMiddleware>, RevmMiddleware, LiquidExchange<RevmMiddleware>>,
 }
 
 pub struct Contracts {
@@ -49,8 +49,6 @@ pub async fn deploy_contracts(
     .deploy()
     .await?;
 
-    let initial_weight_float = config.portfolio_pool_parameters.weight_token_0;
-    println!("Initial weight float: {}", initial_weight_float);
     let initial_weight =
         ethers::utils::parse_ether(config.portfolio_pool_parameters.weight_token_0)?;
     let initial_fee_bps = U256::from(config.portfolio_pool_parameters.fee_basis_points);
@@ -72,15 +70,8 @@ pub async fn deploy_contracts(
         )
     );
 
-    let lex_args = (
-        tokens.arbx.address(),
-        tokens.arby.address(),
-        parse_ether(1)?,
-    );
-
     let exchanges = Exchanges {
         g3m: G3M::deploy(deployer.clone(), g3m_args)?,
-        lex: LiquidExchange::deploy(deployer.clone(), lex_args)?,
     }
     .deploy()
     .await?;
@@ -90,17 +81,6 @@ pub async fn deploy_contracts(
         tokens,
         exchanges,
     };
-
-    EventLogger::builder()
-        .add(contracts.exchanges.lex.events(), "lex")
-        .add(contracts.tokens.arbx.events(), "arbx")
-        .add(contracts.tokens.arby.events(), "arby")
-        .add(contracts.exchanges.g3m.events(), "g3m")
-        .run()?;
-
-    // agents
-    // 1. arbitraguer :check:
-    // 2. rebalancer
 
     Ok(contracts)
 }
