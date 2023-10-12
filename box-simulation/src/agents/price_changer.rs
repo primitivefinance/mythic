@@ -1,5 +1,4 @@
 use anyhow::Result;
-
 use arbiter_core::{
     bindings::liquid_exchange::LiquidExchange,
     environment::Environment,
@@ -7,10 +6,9 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::utils::parse_ether;
+use params::PriceProcessParameters;
 use token_admin::TokenAdmin;
 use tracing::info;
-
-use params::PriceProcessParameters;
 
 use super::*;
 

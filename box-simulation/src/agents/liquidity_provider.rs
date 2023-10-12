@@ -1,11 +1,11 @@
-use super::token_admin::TokenAdmin;
+use std::sync::Arc;
+
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
 use ethers::utils::parse_ether;
 use params::SimulationConfig;
-use std::sync::Arc;
 use tracing::info;
 
-use super::*;
+use super::{token_admin::TokenAdmin, *};
 
 pub const INITIAL_BALANCE: (u64, u64) = (100_000, 100_000);
 
@@ -42,14 +42,16 @@ impl LiquidityProvider {
     }
 
     pub async fn add_liquidity(self, config: &SimulationConfig) -> Result<()> {
-        // Initial weight is set in the simulation config, but it can be overridden with setWeightX() function.
+        // Initial weight is set in the simulation config, but it can be overridden with
+        // setWeightX() function.
         let initial_weight_0 =
             parse_ether(config.portfolio_pool_parameters.weight_token_0).unwrap();
         let initial_weight_1 = parse_ether(1)
             .unwrap()
             .checked_sub(initial_weight_0)
             .unwrap();
-        // Using the initial weight, initial price, and initial reserve x, we can compute reserve y.
+        // Using the initial weight, initial price, and initial reserve x, we can
+        // compute reserve y.
         let initial_price = config.portfolio_pool_parameters.initial_price;
         let initial_reserve_x = parse_ether(INITIAL_BALANCE.0).unwrap();
         info!("initial_reserve_x: {}", initial_reserve_x);
@@ -76,8 +78,9 @@ impl LiquidityProvider {
         let amounts = (initial_reserve_x, initial_reserve_y);
 
         // Call init pool to setup the portfolio
-        // Needs an amount of both tokens, the amounts can be anything but note that they affect the spot price.
-        // TODO: The division by WAD here should be removed once the contract is fixed.
+        // Needs an amount of both tokens, the amounts can be anything but note that
+        // they affect the spot price. TODO: The division by WAD here should be
+        // removed once the contract is fixed.
         self.g3m
             .init_pool(amounts.0, amounts.1)
             .send()

@@ -1,6 +1,7 @@
+use std::collections::BTreeMap;
+
 use config::{Config, ConfigError};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct PriceProcessParameters {

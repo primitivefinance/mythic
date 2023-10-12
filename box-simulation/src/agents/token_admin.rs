@@ -1,5 +1,6 @@
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
 use std::sync::Arc;
+
+use arbiter_core::bindings::arbiter_token::ArbiterToken;
 
 use super::*;
 

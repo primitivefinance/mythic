@@ -1,13 +1,13 @@
-use agents::arbitrageur::Arbitrageur;
-use agents::liquidity_provider::LiquidityProvider;
-use agents::price_changer::PriceChanger;
-use agents::token_admin;
-use agents::weight_changer::WeightChanger;
+use agents::{
+    arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider, price_changer::PriceChanger,
+    token_admin, weight_changer::WeightChanger,
+};
 use anyhow::Result;
-use arbiter_core::data_collection::EventLogger;
-use arbiter_core::environment::builder::EnvironmentBuilder;
 use arbiter_core::{
-    bindings::liquid_exchange::LiquidExchange, environment::Environment, middleware::RevmMiddleware,
+    bindings::liquid_exchange::LiquidExchange,
+    data_collection::EventLogger,
+    environment::{builder::EnvironmentBuilder, Environment},
+    middleware::RevmMiddleware,
 };
 use bindings::g3m::G3M;
 use ethers::{
@@ -58,8 +58,9 @@ async fn main() -> Result<()> {
     lp.add_liquidity(&config).await?;
 
     // have the loop iterate blcoks and block timestamps
-    // draw random # from poisson distribution which determines how long we wait for price to change
-    // loop that causes price change -> arbitrageur -> check if weightchanger needs to run
+    // draw random # from poisson distribution which determines how long we wait for
+    // price to change loop that causes price change -> arbitrageur -> check if
+    // weightchanger needs to run
 
     EventLogger::builder()
         .add(price_changer.liquid_exchange.events(), "lex")

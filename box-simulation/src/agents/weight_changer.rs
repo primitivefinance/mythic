@@ -1,8 +1,7 @@
+use std::{ops::Div, sync::Arc};
+
 use ethers::utils::{format_ether, parse_ether};
 use math::ComputeReturns;
-use std::ops::Div;
-use std::sync::Arc;
-
 use params::SimulationConfig;
 
 use super::*;
@@ -128,7 +127,8 @@ impl WeightChanger {
     }
 
     // dumb poc, this just checks if the portfolio rv is greater than the target rv
-    // then changes weight by 1% over the course of a day depending on if rv is greater or less than target
+    // then changes weight by 1% over the course of a day depending on if rv is
+    // greater or less than target
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
         let portfolio_rv = self.portfolio_rv.last().unwrap().0;
         let current_weight_x = self.g3m.weight_x().call().await?;

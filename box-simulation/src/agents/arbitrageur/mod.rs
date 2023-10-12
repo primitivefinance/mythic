@@ -190,9 +190,9 @@ impl<S: Strategy> Arbitrageur<S> {
                 // println!("output: {:?}", output);
 
                 // let logs = output.logs;
-                // if let G3MErrors::InvalidSwap(message) = G3MErrors::decode(logs[0].clone().data)? {
-                //     info!("Invalid swap: {:?}", message);
-                // } else {
+                // if let G3MErrors::InvalidSwap(message) =
+                // G3MErrors::decode(logs[0].clone().data)? {     info!("Invalid
+                // swap: {:?}", message); } else {
                 //     println!("logs: {:?}", logs)
                 // }
                 info!("Sent arbitrage.");
