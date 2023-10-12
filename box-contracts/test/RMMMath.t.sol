@@ -50,6 +50,6 @@ contract RMMMathTest is Test {
 
         uint256 liquidity = computeLGivenX(reserveX, S, K, sigma);
         console.log("liquidity:", liquidity);
-        console.log(computeSpotPrice(K, sigma, reserveX, liquidity, tau));
+        console.log(computeSpotPrice(reserveX, liquidity, K, sigma, tau));
     }
 }
