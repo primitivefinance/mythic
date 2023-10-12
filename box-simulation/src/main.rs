@@ -16,6 +16,7 @@ use ethers::{
 };
 
 mod agents;
+mod math;
 mod params;
 
 /// The number 10^18.
