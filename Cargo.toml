@@ -8,10 +8,9 @@ name = "portfolio-in-a-box"
 path = "src/main.rs"
 
 [workspace]
-members = ["box-core", "box-simulation"]
+members = ["box-simulation"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
 bindings = { path = "./box-contracts/out/bindings", version = "0.1.0" }
-box_core = { path = "./box-core", version = "0.1.0" }

@@ -420,7 +420,6 @@ dependencies = [
  "arbiter-derive",
  "async-trait",
  "bindings",
- "box_core",
  "config",
  "ethers",
  "futures",
@@ -430,18 +429,6 @@ dependencies = [
  "toml 0.8.2",
  "tracing",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "box_core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "auto_impl",
- "bindings",
- "ethers",
- "tokio",
 ]
 
 [[package]]

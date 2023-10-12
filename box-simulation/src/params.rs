@@ -1,6 +1,7 @@
+use std::collections::BTreeMap;
+
 use config::{Config, ConfigError};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct PriceProcessParameters {
@@ -43,6 +44,7 @@ pub struct PortfolioPoolParameters {
 
     /// The initial price of the Portfolio pool.
     pub initial_price: f64,
+    pub target_volatility: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

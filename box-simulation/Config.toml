@@ -48,11 +48,13 @@ weight_token_1 = 0.5#0.87
 fee_basis_points = 3
 priority_fee_basis_points = 0
 
-# LP PARAMETRER
+# LP PARAMETERS
 liquidity_mantissa = 1
 liquidity_exponent = 20
 initial_price = 1.0
 
+# WeightChanger Parameters
+target_volatility = 0.15
 
 # Simulation Parameters
 [simulation_parameters]
