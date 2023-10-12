@@ -1,8 +1,10 @@
-use std::{ops::Div, sync::Arc};
+use std::{f32::consts::E, ops::Div, sync::Arc};
 
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
-use bindings::sd5_9x_18_math::SD59x18Math;
-use ethers::utils::format_units;
+use arbiter_core::{
+    bindings::arbiter_token::ArbiterToken, middleware::errors::RevmMiddlewareError,
+};
+use bindings::{g3m::G3MErrors, sd5_9x_18_math::SD59x18Math};
+use ethers::{abi::AbiDecode, utils::format_units};
 use tracing::info;
 
 use super::*;
@@ -98,11 +100,29 @@ impl<S: Strategy> Arbitrageur<S> {
                 );
                 let input = self.strategy.get_y_input(target_price, &self.math).await?;
                 info!("Got input: {:?}", input);
-                self.atomic_arbitrage
-                    .raise_exchange_price(input)
-                    .send()
-                    .await?
-                    .await?;
+                let tx = self.atomic_arbitrage.raise_exchange_price(input);
+                let output = tx.send().await;
+                match output {
+                    Ok(output) => {
+                        output.await?;
+                    }
+                    Err(e) => {
+                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                            e.as_middleware_error().unwrap()
+                        {
+                            info!("Execution revert: {:?}", output);
+                            //     match G3MErrors::decode(output)? {
+                            //         G3MErrors::InvalidSwap(message) => {
+                            //             info!("Invalid swap: {:?}", message);
+                            //         }
+                            //         _ => {
+                            //             info!("Unknown error: {:?}", output);
+                            //         }
+                            //     }
+                        }
+                    }
+                }
+
                 info!("Sent arbitrage.");
             }
             Swap::LowerExchangePrice(target_price) => {
@@ -112,11 +132,36 @@ impl<S: Strategy> Arbitrageur<S> {
                 );
                 let input = self.strategy.get_x_input(target_price, &self.math).await?;
                 info!("Got input: {:?}", input);
-                self.atomic_arbitrage
-                    .lower_exchange_price(input)
-                    .send()
-                    .await?
-                    .await?;
+                let tx = self.atomic_arbitrage.lower_exchange_price(input);
+                let output = tx.send().await;
+                match output {
+                    Ok(output) => {
+                        output.await?;
+                    }
+                    Err(e) => {
+                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                            e.as_middleware_error().unwrap()
+                        {
+                            info!("Execution revert: {:?}", output);
+                            //     match G3MErrors::decode(output)? {
+                            //         G3MErrors::InvalidSwap(message) => {
+                            //             info!("Invalid swap: {:?}", message);
+                            //         }
+                            //         _ => {
+                            //             info!("Unknown error: {:?}", output);
+                            //         }
+                            //     }
+                        }
+                    }
+                }
+                // println!("output: {:?}", output);
+
+                // let logs = output.logs;
+                // if let G3MErrors::InvalidSwap(message) = G3MErrors::decode(logs[0].clone().data)? {
+                //     info!("Invalid swap: {:?}", message);
+                // } else {
+                //     println!("logs: {:?}", logs)
+                // }
                 info!("Sent arbitrage.");
             }
             Swap::None => {

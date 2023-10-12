@@ -74,7 +74,7 @@ impl LiquidityProvider {
         // Needs an amount of both tokens, the amounts can be anything but note that they affect the spot price.
         // TODO: The division by WAD here should be removed once the contract is fixed.
         self.g3m
-            .init_pool(amounts.0 / WAD, amounts.1 / WAD)
+            .init_pool(amounts.0, amounts.1)
             .send()
             .await?
             .await?;

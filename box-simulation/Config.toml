@@ -20,10 +20,10 @@ theta = 3.0
 t_0 = 0.0
 # The end time of the process.
 # t_n = 1000
-t_n = 100
+t_n = 10
 # The number of steps in the process.
 # num_steps = 25000
-num_steps = 2500
+num_steps = 10
 # Seed for the price processes
 seed = 2 # 1 will raise price initially, 2 will lower
 
@@ -43,8 +43,8 @@ decimals = 18
 
 # We need to set the parameters for the Portfolio pool
 [portfolio_pool_parameters]
-weight_token_0 = 0.13
-weight_token_1 = 0.87
+weight_token_0 = 0.5#0.13
+weight_token_1 = 0.5#0.87
 fee_basis_points = 3
 priority_fee_basis_points = 0
 
