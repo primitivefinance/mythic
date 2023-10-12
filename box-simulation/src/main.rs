@@ -51,18 +51,13 @@ async fn main() -> Result<()> {
     // loop that causes price change -> arbitrageur -> check if weightchanger needs to run
     let lp = LiquidityProvider::new("lp", &env, contracts.exchanges.g3m.address()).await?;
 
-    let price_process_params = PriceProcessParameters {
-        initial_price: 1.0,
-        mean: 1.0,
-        std_dev: 0.01,
-        theta: 0.5,
-        t_0: 0.0,
-        t_n: 2.0,
-        num_steps: 2,
-        seed: Some(1),
-    };
-    let mut price_changer =
-        PriceChanger::new("price_changer", &env, &contracts, price_process_params).await?;
+    let mut price_changer = PriceChanger::new(
+        "price_changer",
+        &env,
+        &contracts,
+        config.price_process_parameters,
+    )
+    .await?;
 
     let lex_address = price_changer.liquid_exchange.address();
 
@@ -98,7 +93,7 @@ async fn main() -> Result<()> {
         .add(contracts.exchanges.g3m.events(), "g3m")
         .run()?;
 
-    for index in 0..price_process_params.num_steps {
+    for index in 0..config.price_process_parameters.num_steps {
         println!("index: {}", index);
         let init_price = contracts.exchanges.g3m.get_spot_price().call().await?;
         println!(

@@ -25,7 +25,7 @@ t_n = 100
 # num_steps = 25000
 num_steps = 2500
 # Seed for the price processes
-seed = 1
+seed = 2 # 1 will raise price initially, 2 will lower
 
 # We will need two tokens for the simulation.
 # One will be the "asset", the other will be the "quote"
