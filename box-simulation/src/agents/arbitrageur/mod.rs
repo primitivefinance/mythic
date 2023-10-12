@@ -3,7 +3,7 @@ use std::{f32::consts::E, ops::Div, sync::Arc};
 use arbiter_core::{
     bindings::arbiter_token::ArbiterToken, middleware::errors::RevmMiddlewareError,
 };
-use bindings::{g3m::G3MErrors, sd5_9x_18_math::SD59x18Math};
+use bindings::{atomic_arbitrage::NotProfitable, g3m::G3MErrors, sd5_9x_18_math::SD59x18Math};
 use ethers::{abi::AbiDecode, utils::format_units};
 use tracing::info;
 
@@ -111,14 +111,18 @@ impl<S: Strategy> Arbitrageur<S> {
                             e.as_middleware_error().unwrap()
                         {
                             info!("Execution revert: {:?}", output);
-                            //     match G3MErrors::decode(output)? {
-                            //         G3MErrors::InvalidSwap(message) => {
-                            //             info!("Invalid swap: {:?}", message);
-                            //         }
-                            //         _ => {
-                            //             info!("Unknown error: {:?}", output);
-                            //         }
-                            //     }
+                            let NotProfitable {
+                                first_swap_output,
+                                second_swap_output,
+                            } = NotProfitable::decode(output)?;
+                            println!(
+                                "first_swap_output: {:?}",
+                                format_units(first_swap_output, "ether")?
+                            );
+                            println!(
+                                "second_swap_output: {:?}",
+                                format_units(second_swap_output, "ether")?
+                            );
                         }
                     }
                 }
@@ -143,6 +147,18 @@ impl<S: Strategy> Arbitrageur<S> {
                             e.as_middleware_error().unwrap()
                         {
                             info!("Execution revert: {:?}", output);
+                            let NotProfitable {
+                                first_swap_output,
+                                second_swap_output,
+                            } = NotProfitable::decode(output)?;
+                            println!(
+                                "first_swap_output: {:?}",
+                                format_units(first_swap_output, "ether")?
+                            );
+                            println!(
+                                "second_swap_output: {:?}",
+                                format_units(second_swap_output, "ether")?
+                            );
                             //     match G3MErrors::decode(output)? {
                             //         G3MErrors::InvalidSwap(message) => {
                             //             info!("Invalid swap: {:?}", message);

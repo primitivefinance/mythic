@@ -19,6 +19,8 @@ impl Strategy for G3M<RevmMiddleware> {
         info!("weight_y: {}", weight_y);
         let reserve_x = I256::from_raw(self.reserve_x().call().await?);
         info!("reserve_x: {}", reserve_x);
+        let reserve_y = I256::from_raw(self.reserve_y().call().await?);
+        info!("reserve_y: {}", reserve_y);
         let invariant = I256::from_raw(self.get_invariant().call().await?);
         info!("invariant: {}", invariant);
 
@@ -47,6 +49,8 @@ impl Strategy for G3M<RevmMiddleware> {
         info!("weight_x: {}", weight_x);
         let weight_y = I256::from_raw(self.weight_y().call().await?);
         info!("weight_y: {}", weight_y);
+        let reserve_x = I256::from_raw(self.reserve_x().call().await?);
+        info!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.reserve_y().call().await?);
         info!("reserve_y: {}", reserve_y);
         let invariant = I256::from_raw(self.get_invariant().call().await?);

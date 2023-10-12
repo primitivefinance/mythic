@@ -16,6 +16,8 @@ interface TokenLike {
 }
 
 contract AtomicArbitrage {
+    error NotProfitable(uint256 first_swap_output, uint256 second_swap_output);
+
     address public exchange;
     address public liquidExchange;
     address public asset;
@@ -46,8 +48,13 @@ contract AtomicArbitrage {
 
         // send quote tokens to arbitrageur if we have tokens and the trade is profitable
         uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
-        if (quote_balance > 0) TokenLike(quote).transfer(msg.sender, quote_balance);
-        require(quote_balance > input, "Not profitable");
+        if (quote_balance > 0) {
+            TokenLike(quote).transfer(msg.sender, quote_balance);
+            }
+        else {
+            revert NotProfitable(asset_balance, quote_balance);
+        }
+        // require(quote_balance > input, "Not profitable");
     }
 
     function raise_exchange_price(
@@ -67,8 +74,12 @@ contract AtomicArbitrage {
 
         // send quote tokens to arbitrageur if we have tokens and the trade is profitable
         uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
-        if (quote_balance > 0) TokenLike(quote).transfer(msg.sender, quote_balance);
-        require(quote_balance > input, "Not profitable");
+        if (quote_balance > 0) {
+            TokenLike(quote).transfer(msg.sender, quote_balance);
+            }
+        else {
+            revert NotProfitable(asset_balance, quote_balance);
+        }
     }
 
 }
