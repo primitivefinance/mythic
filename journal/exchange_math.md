@@ -108,7 +108,11 @@ p'=\frac{w_x}{w_y}\frac{\left( \frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y}}{x+\d
 $$
 Then solving for $\delta_x$ yields
 $$
-\implies \boxed{ \delta_x = \left(\frac{w_x}{w_y}\frac{k^{1/w_y}}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x }
+\implies  \delta_x = \left(\frac{w_x}{w_y}\frac{k^{1/w_y}}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x 
+$$
+Which we can simplify slightly:
+$$
+\implies \boxed{ \delta_x = k\left(\frac{w_x}{w_y}\frac{1}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x }
 $$
 
 #### For Raising Price
@@ -124,5 +128,10 @@ p'=\frac{w_x}{w_y}\frac{y+\delta_y}{\left( \frac{k}{(y+\delta_y)^{w_y}}\right)^{
 $$
 Then solving for $\delta_x$ yields
 $$
-\implies \boxed{ \delta_y = \left(\frac{w_y}{w_x}p'k^{1/w_x}\right)^{\frac{1}{1+w_y/w_x}}-y }
+\implies  \delta_y = \left(\frac{w_y}{w_x}p'k^{1/w_x}\right)^{\frac{1}{1+w_y/w_x}}-y 
+$$
+
+This can be simplified slightly to avoid overflow:
+$$
+\implies \boxed{ \delta_y = k\left(\frac{w_y}{w_x}p'\right)^{\frac{1}{1+w_y/w_x}}-y }
 $$
