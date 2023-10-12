@@ -95,27 +95,29 @@ function computeSpotPrice(
     uint256 liquidity,
     uint256 tau
 ) pure returns (uint256) {
-    uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
-    uint256 oneMinusR1 = ONE - R1;
-
-    uint256 sigmaSqrtTau =
-        FixedPointMathLib.mulWadDown(sigma, FixedPointMathLib.sqrt(tau));
-
-    uint256 halfSigmaSquareTau = FixedPointMathLib.mulWadDown(
+    uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
         HALF,
         FixedPointMathLib.mulWadDown(
             uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
         )
     );
 
-    int256 cdf = Gaussian.cdf(
-        int256(
-            FixedPointMathLib.mulWadDown(oneMinusR1, sigmaSqrtTau)
-                - halfSigmaSquareTau
-        )
-    );
+    uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
+        uint256(sigma), FixedPointMathLib.sqrt(tau)
+    ) * 10 ** 9;
+
+    uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
 
     return FixedPointMathLib.mulWadUp(
-        strikePrice, uint256(FixedPointMathLib.powWad(int256(E), cdf))
+        strikePrice,
+        uint256(
+            FixedPointMathLib.expWad(
+                int256(
+                    FixedPointMathLib.mulWadDown(
+                        uint256(Gaussian.ppf(int256(ONE - R1))), sigmaSqrtTau
+                    ) - halfSigmaPower2Tau
+                )
+            )
+        )
     );
 }
