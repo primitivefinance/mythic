@@ -5,14 +5,16 @@ import "solmate/tokens/ERC20.sol";
 import "./lib/RMMMath.sol";
 
 contract RMM {
-    uint256 public sigma;
-    uint256 public strikePrice;
     ERC20 public tokenX;
     ERC20 public tokenY;
+
+    uint256 public immutable sigma;
+    uint256 public immutable strikePrice;
+    uint256 public immutable tau;
+
     uint256 public reserveX;
     uint256 public reserveY;
     uint256 public liquidity;
-    uint256 public tau;
 
     constructor(
         ERC20 tokenX_,
