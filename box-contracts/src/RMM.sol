@@ -104,4 +104,23 @@ contract RMM {
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
     }
+
+    function removeLiquidityExactX(uint256 amountX) external {
+        uint256 price =
+            computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
+
+        uint256 newLiquidity =
+            computeLGivenX(reserveX - amountX, price, strikePrice, sigma);
+        uint256 newReserveY =
+            computeYGivenL(newLiquidity, price, strikePrice, sigma);
+
+        uint256 amountY = reserveY - newReserveY;
+
+        liquidity = newLiquidity;
+        reserveX -= amountX;
+        reserveY -= amountY;
+
+        tokenX.transfer(msg.sender, amountX);
+        tokenY.transfer(msg.sender, amountY);
+    }
 }
