@@ -17,7 +17,6 @@ use ethers::utils::format_ether;
 use setup::init::init;
 
 mod agents;
-mod engine;
 mod settings;
 mod setup;
 mod utils;
