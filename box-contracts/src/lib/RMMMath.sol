@@ -9,8 +9,6 @@ uint256 constant HALF = 0.5e18;
 
 uint256 constant TWO = 2e18;
 
-uint256 constant E = 2718281828459045235;
-
 function toWad(uint256 a) pure returns (uint256) {
     return a * ONE;
 }
