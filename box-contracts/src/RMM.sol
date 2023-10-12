@@ -76,6 +76,7 @@ contract RMM {
 
         uint256 amountY = newReserveY - reserveY;
 
+        uint256 liquidityDelta = newLiquidity - liquidity;
         liquidity = newLiquidity;
         reserveX += amountX;
         reserveY += amountY;
@@ -83,10 +84,13 @@ contract RMM {
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
 
-        return (newLiquidity, amountY);
+        return (liquidityDelta, amountY);
     }
 
-    function addLiquidityExactY(uint256 amountY) external {
+    function addLiquidityExactY(uint256 amountY)
+        external
+        returns (uint256, uint256)
+    {
         uint256 price =
             computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
 
@@ -97,15 +101,21 @@ contract RMM {
 
         uint256 amountX = newReserveX - reserveX;
 
+        uint256 liquidityDelta = newLiquidity - liquidity;
         liquidity = newLiquidity;
         reserveX += amountX;
         reserveY += amountY;
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
+
+        return (liquidityDelta, amountX);
     }
 
-    function removeLiquidityExactX(uint256 amountX) external {
+    function removeLiquidityExactX(uint256 amountX)
+        external
+        returns (uint256, uint256)
+    {
         uint256 price =
             computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
 
@@ -116,11 +126,14 @@ contract RMM {
 
         uint256 amountY = reserveY - newReserveY;
 
+        uint256 liquidityDelta = liquidity - newLiquidity;
         liquidity = newLiquidity;
         reserveX -= amountX;
         reserveY -= amountY;
 
         tokenX.transfer(msg.sender, amountX);
         tokenY.transfer(msg.sender, amountY);
+
+        return (liquidityDelta, amountY);
     }
 }
