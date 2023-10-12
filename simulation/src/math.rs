@@ -55,8 +55,7 @@ pub fn compute_std_deviation(values: impl IntoIterator<Item = f64>) -> f64 {
 pub fn compute_realized_volatility(values: impl IntoIterator<Item = f64>) -> f64 {
     let returns = compute_log_returns(values);
     let len = returns.len() + 1;
-    let rv = compute_std_deviation(returns) / (len as f64 / 365.0);
-    rv
+    compute_std_deviation(returns) / (len as f64 / 365.0)
 }
 
 // TODO: don't use log returns here, use simple returns

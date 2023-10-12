@@ -7,7 +7,7 @@ use crate::{
     settings::SimulationConfig,
 };
 
-pub async fn run(config_path: &String) -> Result<()> {
+pub async fn run(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
     let env = EnvironmentBuilder::new().build();

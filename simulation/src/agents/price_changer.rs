@@ -1,7 +1,6 @@
 use arbiter_core::math::GeometricBrownianMotion;
 
 use super::*;
-
 use crate::settings::parameters::{GBMParameters, OUParameters};
 
 /// The `PriceChanger` holds the data and has methods that allow it to update

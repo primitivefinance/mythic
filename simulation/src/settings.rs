@@ -1,8 +1,6 @@
-use std::collections::BTreeMap;
-
-use config::{Config, ConfigError};
 use parameters::*;
-use serde::{Deserialize, Serialize};
+
+use super::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig {
@@ -14,7 +12,7 @@ pub struct SimulationConfig {
 }
 
 impl SimulationConfig {
-    pub fn new(config_path: &String) -> Result<Self, ConfigError> {
+    pub fn new(config_path: &str) -> Result<Self, ConfigError> {
         let s = Config::builder()
             .add_source(config::File::with_name(config_path))
             .build()?;
