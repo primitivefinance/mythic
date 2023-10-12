@@ -34,25 +34,6 @@ function computeLGivenX(
     L = FixedPointMathLib.divWadUp(x, uint256(denominator));
 }
 
-function computeYGivenL(
-    uint256 L,
-    uint256 S,
-    uint256 K,
-    uint256 sigma
-) pure returns (uint256 y) {
-    int256 lnSDivK =
-        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
-    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
-        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
-    );
-    int256 minus = lnSDivK - int256(halfSigmaPowTwo);
-    int256 div = minus * 1e18 / int256(sigma);
-    int256 cdf = Gaussian.cdf(div);
-    y = FixedPointMathLib.mulWadUp(
-        K, FixedPointMathLib.mulWadUp(L, uint256(cdf))
-    );
-}
-
 function computeLGivenY(
     uint256 y,
     uint256 S,
@@ -87,11 +68,30 @@ function computeXGivenL(
     x = FixedPointMathLib.mulWadUp(L, uint256(int256(ONE) - cdf));
 }
 
+function computeYGivenL(
+    uint256 L,
+    uint256 S,
+    uint256 K,
+    uint256 sigma
+) pure returns (uint256 y) {
+    int256 lnSDivK =
+        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
+    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
+        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
+    );
+    int256 minus = lnSDivK - int256(halfSigmaPowTwo);
+    int256 div = minus * 1e18 / int256(sigma);
+    int256 cdf = Gaussian.cdf(div);
+    y = FixedPointMathLib.mulWadUp(
+        K, FixedPointMathLib.mulWadUp(L, uint256(cdf))
+    );
+}
+
 function computeSpotPrice(
-    uint256 strikePrice,
+    uint256 x,
+    uint256 L,
+    uint256 K,
     uint256 sigma,
-    uint256 reserveX,
-    uint256 liquidity,
     uint256 tau
 ) pure returns (uint256) {
     uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
@@ -105,10 +105,10 @@ function computeSpotPrice(
         uint256(sigma), FixedPointMathLib.sqrt(tau)
     ) * 10 ** 9;
 
-    uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
+    uint256 R1 = FixedPointMathLib.divWadDown(x, L);
 
     return FixedPointMathLib.mulWadUp(
-        strikePrice,
+        K,
         uint256(
             FixedPointMathLib.expWad(
                 int256(
