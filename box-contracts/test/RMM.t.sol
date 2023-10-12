@@ -10,10 +10,15 @@ contract RMMTest is Test {
     MockERC20 public tokenY;
     RMM public rmm;
 
+    uint256 initialPrice = 2000 ether;
+    uint256 strikePrice = 1800 ether;
+    uint256 sigma = 0.05 ether;
+    uint256 tau = 1 ether;
+
     function setUp() public {
         tokenX = new MockERC20("TokenX", "X", 18);
         tokenY = new MockERC20("TokenY", "Y", 18);
-        rmm = new RMM(tokenX, tokenY, 0.05 ether, 1800 ether);
+        rmm = new RMM(tokenX, tokenY, sigma, strikePrice, tau);
 
         tokenX.mint(address(this), type(uint256).max);
         tokenY.mint(address(this), type(uint256).max);
@@ -23,7 +28,7 @@ contract RMMTest is Test {
 
     function test_initExactX() public {
         uint256 amountX = 5000 ether;
-        (uint256 l, uint256 amountY) = rmm.initExactX(amountX, 2000 ether);
+        (uint256 l, uint256 amountY) = rmm.initExactX(amountX, initialPrice);
 
         console.log("l:", l);
         console.log("amountY:", amountY);
@@ -40,5 +45,11 @@ contract RMMTest is Test {
         assertEq(rmm.liquidity(), l);
         assertEq(rmm.reserveX(), amountX);
         assertEq(rmm.reserveY(), amountY);
+    }
+
+    function test_addLiquidityExactX() public {
+        uint256 amountX = 5_000 ether;
+        (uint256 l, uint256 amountY) = rmm.initExactX(amountX, initialPrice);
+        (uint256 l2, uint256 amountY2) = rmm.addLiquidityExactX(amountX);
     }
 }
