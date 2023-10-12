@@ -6,14 +6,12 @@ import "forge-std/Test.sol";
 import "../src/lib/RMMMath.sol";
 
 contract RMMMathTest is Test {
-    uint256 K = 2000 ether;
-    uint256 S = 1800 ether;
+    uint256 S = 2000 ether;
+    uint256 K = 1800 ether;
     int256 sigma = 0.05 ether;
 
     function test_computeLGivenX() public view {
         uint256 x = 5000 ether;
-
-        // console.log(computeLGivenX(x, S, K, uint256(sigma)));
 
         int256 lnSDivK =
             FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
@@ -33,6 +31,8 @@ contract RMMMathTest is Test {
         console.logInt(denominator);
         uint256 L = FixedPointMathLib.divWadUp(x, uint256(denominator));
         console.log(L);
+
+        console.log(computeLGivenX(x, S, K, uint256(sigma)));
     }
 
     function test_computeYGivenL() public view {
@@ -102,49 +102,42 @@ contract RMMMathTest is Test {
     }
 
     function test_computeSpotPrice() public {
-        uint256 strikePrice = 2000 ether;
         uint256 reserveX = 5_000 ether;
-        uint256 tau = 0.5 ether;
+        uint256 tau = 1 ether;
 
-        uint256 liquidity =
-            computeLGivenX(reserveX, 1800 ether, strikePrice, uint256(sigma));
+        uint256 liquidity = computeLGivenX(reserveX, S, K, uint256(sigma));
+        console.log("liquidity:", liquidity);
 
-        console.log(liquidity);
-
-        uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
-        console.log(R1);
-        uint256 oneMinusR1 = ONE - R1;
-        console.log(oneMinusR1);
-
-        console.log("sqrt tau:", FixedPointMathLib.sqrt(tau));
-
-        uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
-            uint256(sigma), FixedPointMathLib.sqrt(tau)
-        ) * 10 ** 9;
-
-        console.log("sigmaSqrtTau:", sigmaSqrtTau);
-
-        uint256 halfSigmaSquareTau = FixedPointMathLib.mulWadDown(
+        uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
             HALF,
             FixedPointMathLib.mulWadDown(
                 uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))),
                 tau
             )
         );
-        console.log("halfSigmaSquareTau:", halfSigmaSquareTau);
+        console.log("halfSigmaPower2Tau:", halfSigmaPower2Tau);
 
-        uint256 preCdf = FixedPointMathLib.mulWadDown(oneMinusR1, sigmaSqrtTau)
-            - halfSigmaSquareTau;
+        uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
+            uint256(sigma), FixedPointMathLib.sqrt(tau)
+        ) * 10 ** 9;
+        console.log("sigmaSqrtTau:", sigmaSqrtTau);
 
-        console.log("preCdf:", preCdf);
-
-        int256 cdf = Gaussian.cdf(int256(preCdf));
-        console.logInt(cdf);
+        uint256 R1 = FixedPointMathLib.divWadDown(reserveX, liquidity);
+        console.log("R1", R1);
 
         uint256 price = FixedPointMathLib.mulWadUp(
-            strikePrice, uint256(FixedPointMathLib.powWad(int256(E), cdf))
+            K,
+            uint256(
+                FixedPointMathLib.expWad(
+                    int256(
+                        FixedPointMathLib.mulWadDown(
+                            uint256(Gaussian.ppf(int256(ONE - R1))),
+                            sigmaSqrtTau
+                        ) - halfSigmaPower2Tau
+                    )
+                )
+            )
         );
-
-        console.log(price);
+        console.log("price:", price);
     }
 }
