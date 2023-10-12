@@ -136,12 +136,12 @@ $$
 $$
 
 $$
-\implies \boxed{x = w_x k^{1/w_x} \left(\frac{y}{w_y}\right)^{-w_y/w_x} }
+\implies \boxed{x = \left(\frac{k}{y^{w_y}}\right)^{1/w_x} }
 $$
 
 The work is analogous for $y$:
 $$
-\implies \boxed{y = w_y k^{1/w_y} \left(\frac{x}{w_x}\right)^{-w_x/w_y}}
+\implies \boxed{y = \left(\frac{k}{x^{w_x}}\right)^{1/w_y}}
 $$
 
 #### Getting the arbitrage calculation
@@ -149,37 +149,33 @@ $$
 ##### For Lowering Price
 Suppose that we need the price to move $p\mapsto p'$ with $p'<p$. 
 This means we tender $x$ in the swap so $x\mapsto x+\delta_x$. 
-Then using our equation for $y$, we can write
-$$
-\begin{align*}
-p &= \frac{w_x}{w_y}\frac{ w_y k^{1/w_y} \left(\frac{x}{w_x}\right)^{-w_x/w_y}}{x}\\
-&= k^{1/w_y} \left(\frac{x}{w_x}\right)^{-1-w_x/w_y}
-\end{align*}
-$$
 Then we want $p'$ and $x\mapsto x+\delta_x$:
 $$
-p' =k^{1/w_y} \left(\frac{x+\delta_x}{w_x}\right)^{-1-w_x/w_y}
+p' = \frac{w_x}{w_y}\frac{y+\delta_y}{x+\delta_x}
 $$
+Now we can replace the $y+\delta_y$ with our equation above to get:
 $$
-\implies \boxed{ \delta_x = w_x\left(\frac{p'}{k^{1/w_y}}\right)^{\frac{-1}{1+w_x/w_y}}-x}
+p'=\frac{w_x}{w_y}\frac{\left( \frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y}}{x+\delta_x}
+$$
+Then solving for $\delta_x$ yields
+$$
+\implies \boxed{ \delta_x = \left(\frac{w_x}{w_y}\frac{k^{1/w_y}}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x }
 $$
 
 ##### For Raising Price
 Suppose that we need the price to move $p\mapsto p'$ with $p'>p$. 
 This means we tender $x$ in the swap so $y\mapsto y+\delta_x$. 
-Then using our equation for $x$, we can write
+Then we want $p'$ and $y\mapsto y+\delta_y$ with:
 $$
-\begin{align*}
-p &= \frac{w_x}{w_y}\frac{y}{ w_x k^{1/w_x} \left(\frac{y}{w_y}\right)^{-w_y/w_x}}\\
-&= k^{-1/w_x} \left(\frac{y}{w_y}\right)^{1+w_y/w_x}
-\end{align*}
+p' = \frac{w_x}{w_y}\frac{y+\delta_y}{x+\delta_x}
 $$
-Then we want $p'$ and $y\mapsto y+\delta_y$:
+Now we can replace the $y+\delta_y$ with our equation above to get:
 $$
-p' = k^{-1/w_x} \left(\frac{y+\delta_y}{w_y}\right)^{1+w_y/w_x}
+p'=\frac{w_x}{w_y}\frac{y+\delta_y}{\left( \frac{k}{(y+\delta_y)^{w_y}}\right)^{1/w_x}}
 $$
+Then solving for $\delta_x$ yields
 $$
-\implies \boxed{ \delta_y = w_y\left(p'k^{1/w_x}\right)^{\frac{1}{1+w_y/w_x}}-y}
+\implies \boxed{ \delta_y = \left(\frac{w_y}{w_x}p'k^{1/w_x}\right)^{\frac{1}{1+w_y/w_x}}-y }
 $$
 
 --- 

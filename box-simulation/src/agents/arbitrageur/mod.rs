@@ -1,6 +1,8 @@
 use std::{ops::Div, sync::Arc};
 
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
+use bindings::sd5_9x_18_math::SD59x18Math;
+use ethers::utils::format_units;
 use tracing::info;
 
 use super::*;
@@ -20,13 +22,23 @@ pub struct Arbitrageur<S: Strategy> {
 
     /// The atomic arbitrage contract.
     pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
+
+    pub math: SD59x18Math<RevmMiddleware>,
 }
 
 #[async_trait::async_trait]
 pub trait Strategy {
     fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self;
-    async fn get_x_input(&self, target_price_wad: U256) -> Result<U256>;
-    async fn get_y_input(&self, target_price_wad: U256) -> Result<U256>;
+    async fn get_x_input(
+        &self,
+        target_price_wad: U256,
+        math: &SD59x18Math<RevmMiddleware>,
+    ) -> Result<U256>;
+    async fn get_y_input(
+        &self,
+        target_price_wad: U256,
+        math: &SD59x18Math<RevmMiddleware>,
+    ) -> Result<U256>;
     async fn get_spot_price(&self) -> Result<U256>;
     async fn swap_fee(&self) -> Result<U256>;
 }
@@ -64,11 +76,14 @@ impl<S: Strategy> Arbitrageur<S> {
             .await?
             .await?;
 
+        let math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
+
         Ok(Self {
             client,
             liquid_exchange,
             atomic_arbitrage,
             strategy,
+            math,
         })
     }
 
@@ -77,8 +92,11 @@ impl<S: Strategy> Arbitrageur<S> {
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!("Detected the need to raise price to {:?}", target_price);
-                let input = self.strategy.get_y_input(target_price).await?;
+                info!(
+                    "Detected the need to raise price to {:?}",
+                    format_units(target_price, "ether")?
+                );
+                let input = self.strategy.get_y_input(target_price, &self.math).await?;
                 info!("Got input: {:?}", input);
                 self.atomic_arbitrage
                     .raise_exchange_price(input)
@@ -88,8 +106,11 @@ impl<S: Strategy> Arbitrageur<S> {
                 info!("Sent arbitrage.");
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!("Detected the need to lower price to {:?}", target_price);
-                let input = self.strategy.get_x_input(target_price).await?;
+                info!(
+                    "Detected the need to lower price to {:?}",
+                    format_units(target_price, "ether")?
+                );
+                let input = self.strategy.get_x_input(target_price, &self.math).await?;
                 info!("Got input: {:?}", input);
                 self.atomic_arbitrage
                     .lower_exchange_price(input)
