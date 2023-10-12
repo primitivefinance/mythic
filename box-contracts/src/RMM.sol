@@ -12,6 +12,7 @@ contract RMM {
     uint256 public reserveX;
     uint256 public reserveY;
     uint256 public liquidity;
+    uint256 public tau;
 
     constructor(
         ERC20 tokenX_,
@@ -63,8 +64,8 @@ contract RMM {
         external
         returns (uint256, uint256)
     {
-        // TODO: Not sure about that one?
-        uint256 price = reserveX / reserveY;
+        uint256 price =
+            computeSpotPrice(strikePrice, sigma, reserveX, liquidity, tau);
 
         uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
         uint256 amountY = computeYGivenL(l, price, strikePrice, sigma);
