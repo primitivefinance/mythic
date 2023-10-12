@@ -27,8 +27,8 @@ impl WeightChanger {
         let g3m_args = (
             arbx,
             arby,
-            ethers::utils::parse_ether(config.portfolio_pool_parameters.weight_token_0)?,
-            U256::from(config.portfolio_pool_parameters.fee_basis_points),
+            ethers::utils::parse_ether(config.pool.weight_x)?,
+            U256::from(config.pool.fee_basis_points),
         );
         let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
@@ -37,7 +37,7 @@ impl WeightChanger {
             client,
             lex,
             g3m,
-            target_volatility: config.portfolio_pool_parameters.target_volatility,
+            target_volatility: config.pool.target_volatility,
             next_update_timestamp: 0,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),

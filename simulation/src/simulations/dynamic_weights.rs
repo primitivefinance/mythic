@@ -13,8 +13,7 @@ pub async fn run(config_path: &String) -> Result<()> {
     let env = EnvironmentBuilder::new().build();
 
     let token_admin = TokenAdmin::new(&env).await?;
-    let mut price_changer =
-        PriceChanger::new(&env, &token_admin, config.price_process_parameters).await?;
+    let mut price_changer = PriceChanger::new(&env, &token_admin, &config).await?;
     let weight_changer = WeightChanger::new(
         &env,
         &config,
@@ -46,7 +45,7 @@ pub async fn run(config_path: &String) -> Result<()> {
         .add(weight_changer.g3m.events(), "g3m")
         .run()?;
 
-    for index in 0..config.price_process_parameters.num_steps {
+    for index in 0..config.trajectory.num_steps {
         println!("index: {}", index);
         let init_price = weight_changer.g3m.get_spot_price().call().await?;
         println!(
