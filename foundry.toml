@@ -1,0 +1,19 @@
+[profile.default]
+libs = ["box-contracts/lib"]
+out = "box-contracts/out"
+remappings = [
+  "/solmate=box-contracts/lib/solmate/src",
+  "@prb/math/=box-contracts/lib/prb-math/src/",
+]
+solc_version = "0.8.19"
+src = "box-contracts/src"
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+[fmt]
+bracket_spacing = true
+int_types = 'long'
+line_length = 80
+multiline_func_header = 'params_first'
+quote_style = 'double'
+tab_width = 4
+wrap_comments = false
