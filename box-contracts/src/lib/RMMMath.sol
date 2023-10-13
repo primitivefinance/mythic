@@ -120,3 +120,20 @@ function computeSpotPrice(
         )
     );
 }
+
+function computeOutputYGivenX(
+    uint256 x,
+    uint256 deltaX,
+    uint256 y,
+    uint256 deltaY,
+    uint256 L,
+    uint256 deltaL,
+    uint256 strikePrice,
+    uint256 sigma
+) pure returns (uint256) {
+    uint256 R1 = FixedPointMathLib.divWadDown(x + deltaX, L + deltaL);
+    return FixedPointMathLib.mulWadUp(
+        FixedPointMathLib.mulWadUp(strikePrice, L + deltaL),
+        uint256(Gaussian.cdf(-int256(sigma) - Gaussian.ppf(int256(R1))))
+    ) - y - deltaY;
+}
