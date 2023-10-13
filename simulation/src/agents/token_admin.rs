@@ -14,7 +14,7 @@ pub struct TokenAdmin {
 impl TokenAdmin {
     pub async fn new(environment: &Environment) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "token_admin".into())?;
-        let decimals = u8::from(18);
+        let decimals = 18_u8;
 
         let arbx = ArbiterToken::deploy(
             client.clone(),

@@ -1,43 +1,19 @@
-use agents::{
-    arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider, price_changer::PriceChanger,
-    token_admin, weight_changer::WeightChanger,
-};
-use anyhow::Result;
-use arbiter_core::{
-    bindings::liquid_exchange::LiquidExchange,
-    data_collection::EventLogger,
-    environment::{builder::EnvironmentBuilder, Environment},
-    middleware::RevmMiddleware,
-};
-use bindings::g3m::G3M;
-use ethers::{
-    types::{Address, U256},
-    utils::format_ether,
+use super::*;
+use crate::{
+    agents::{
+        arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider,
+        price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger,
+    },
+    settings::SimulationConfig,
 };
 
-mod agents;
-mod math;
-mod params;
-
-/// The number 10^18.
-pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "warn");
-    }
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-
-    let config = params::SimulationConfig::new()?;
+pub async fn run(config_path: &str) -> Result<()> {
+    let config = SimulationConfig::new(config_path)?;
 
     let env = EnvironmentBuilder::new().build();
 
-    let token_admin = token_admin::TokenAdmin::new(&env).await?;
-    let mut price_changer =
-        PriceChanger::new(&env, &token_admin, config.price_process_parameters).await?;
+    let token_admin = TokenAdmin::new(&env).await?;
+    let mut price_changer = PriceChanger::new(&env, &token_admin, &config).await?;
     let weight_changer = WeightChanger::new(
         &env,
         &config,
@@ -69,7 +45,7 @@ async fn main() -> Result<()> {
         .add(weight_changer.g3m.events(), "g3m")
         .run()?;
 
-    for index in 0..config.price_process_parameters.num_steps {
+    for index in 0..config.trajectory.num_steps {
         println!("index: {}", index);
         let init_price = weight_changer.g3m.get_spot_price().call().await?;
         println!(

@@ -1,10 +1,3 @@
-use std::sync::Arc;
-
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
-use ethers::utils::parse_ether;
-use params::SimulationConfig;
-use tracing::info;
-
 use super::{token_admin::TokenAdmin, *};
 
 pub const INITIAL_BALANCE: (u64, u64) = (100_000, 100_000);
@@ -44,15 +37,11 @@ impl LiquidityProvider {
     pub async fn add_liquidity(self, config: &SimulationConfig) -> Result<()> {
         // Initial weight is set in the simulation config, but it can be overridden with
         // setWeightX() function.
-        let initial_weight_0 =
-            parse_ether(config.portfolio_pool_parameters.weight_token_0).unwrap();
-        let initial_weight_1 = parse_ether(1)
-            .unwrap()
-            .checked_sub(initial_weight_0)
-            .unwrap();
+        let weight_x = parse_ether(config.pool.weight_x).unwrap();
+        let weight_y = parse_ether(1).unwrap().checked_sub(weight_x).unwrap();
         // Using the initial weight, initial price, and initial reserve x, we can
         // compute reserve y.
-        let initial_price = config.portfolio_pool_parameters.initial_price;
+        let initial_price = config.trajectory.initial_price;
         let initial_reserve_x = parse_ether(INITIAL_BALANCE.0).unwrap();
         info!("initial_reserve_x: {}", initial_reserve_x);
 
@@ -63,13 +52,13 @@ impl LiquidityProvider {
         let initial_reserve_y = initial_reserve_x
             .checked_mul(one_ether)
             .unwrap()
-            .checked_div(initial_weight_0)
+            .checked_div(weight_x)
             .unwrap()
             .checked_mul(one_ether)
             .unwrap()
             .checked_div(parse_ether(initial_price).unwrap())
             .unwrap()
-            .checked_mul(initial_weight_1)
+            .checked_mul(weight_y)
             .unwrap()
             .checked_div(one_ether)
             .unwrap();

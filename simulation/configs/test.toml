@@ -1,0 +1,40 @@
+[trajectory]
+# The type of price process to use.
+process = "ou"
+# The initial price of the asset.
+initial_price = 1.0
+# The start time of the process.
+t_0 = 0.0
+# The end time of the process.
+t_n = 10
+# The number of steps in the process.
+num_steps = 10
+# Seed for the price processes
+seed = 2 # 1 will raise price initially, 2 will lower
+
+
+[ou]
+# The mean (price) of the process.
+mean = 1.0
+# The standard deviation of the process.
+std_dev = 0.01
+# The theta parameter of the process.
+# This describes how strongly the process will revert to the mean.
+theta = 3.0
+
+
+[pool]
+# The weight for the `token_x` in the pool.
+# `weight_y = 1 - weight_x`
+weight_x = 0.5
+# The swap fee in BPs.
+fee_basis_points = 3
+# Target volatility for the pool
+target_volatility = 0.15
+
+
+[lp]
+# amount of `token_x` to deposit by: `token_x = liquidity_mantissa * 10 ^ liquidity_exponent`
+# `token_y` will be found from the weights and initial price.
+liquidity_mantissa = 1
+liquidity_exponent = 20

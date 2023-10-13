@@ -1,16 +1,7 @@
-use anyhow::Result;
-use arbiter_core::{
-    bindings::liquid_exchange::LiquidExchange,
-    environment::Environment,
-    math::{float_to_wad, OrnsteinUhlenbeck, StochasticProcess, Trajectories},
-    middleware::RevmMiddleware,
-};
-use ethers::utils::parse_ether;
-use params::PriceProcessParameters;
-use token_admin::TokenAdmin;
-use tracing::info;
+use arbiter_core::math::GeometricBrownianMotion;
 
 use super::*;
+use crate::settings::parameters::{GBMParameters, OUParameters};
 
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
@@ -34,8 +25,8 @@ impl PriceChanger {
     /// tokens.
     pub async fn new(
         environment: &Environment,
-        token_admin: &TokenAdmin,
-        price_process_params: PriceProcessParameters,
+        token_admin: &token_admin::TokenAdmin,
+        config: &SimulationConfig,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "price_changer".into())?;
         let liquid_exchange = LiquidExchange::deploy(
@@ -43,7 +34,7 @@ impl PriceChanger {
             (
                 token_admin.arbx.address(),
                 token_admin.arby.address(),
-                float_to_wad(price_process_params.initial_price),
+                float_to_wad(config.trajectory.initial_price),
             ),
         )?
         .send()
@@ -57,23 +48,37 @@ impl PriceChanger {
             )
             .await?;
 
-        let PriceProcessParameters {
-            initial_price,
-            mean,
-            std_dev,
-            theta,
-            t_0,
-            t_n,
-            num_steps,
-            seed,
-        } = price_process_params;
-        let process = OrnsteinUhlenbeck::new(mean, std_dev, theta);
-
-        let trajectory = match seed {
-            Some(seed) => {
-                process.seedable_euler_maruyama(initial_price, t_0, t_n, num_steps, 1, false, seed)
+        let trajectory_params = &config.trajectory;
+        let trajectory = match trajectory_params.process.as_str() {
+            "ou" => {
+                let OUParameters {
+                    mean,
+                    std_dev,
+                    theta,
+                } = config.ou.unwrap();
+                OrnsteinUhlenbeck::new(mean, std_dev, theta).seedable_euler_maruyama(
+                    trajectory_params.initial_price,
+                    trajectory_params.t_0,
+                    trajectory_params.t_n,
+                    trajectory_params.num_steps,
+                    1,
+                    false,
+                    trajectory_params.seed,
+                )
             }
-            None => process.euler_maruyama(initial_price, t_0, t_n, num_steps, 1, false),
+            "gbm" => {
+                let GBMParameters { drift, volatility } = config.gbm.unwrap();
+                GeometricBrownianMotion::new(drift, volatility).seedable_euler_maruyama(
+                    trajectory_params.initial_price,
+                    trajectory_params.t_0,
+                    trajectory_params.t_n,
+                    trajectory_params.num_steps,
+                    1,
+                    false,
+                    trajectory_params.seed,
+                )
+            }
+            _ => panic!("Invalid process type"),
         };
 
         Ok(Self {

@@ -1,22 +1,9 @@
-use std::sync::Arc;
+use super::*;
 
-use arbiter_core::{
-    bindings::arbiter_token::ArbiterToken, middleware::errors::RevmMiddlewareError,
-};
-use bindings::{
-    atomic_arbitrage::{AtomicArbitrage, NotProfitable},
-    sd5_9x_18_math::SD59x18Math,
-};
-use ethers::{
-    abi::AbiDecode,
-    utils::{format_units, parse_ether},
-};
-use tracing::info;
-
-use super::{token_admin::TokenAdmin, *};
-
-#[allow(clippy::all)]
 pub mod g3m;
+
+/// The number 10^18.
+pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);
 
 #[derive(Clone)]
 pub struct Arbitrageur<S: Strategy> {
@@ -53,7 +40,7 @@ pub trait Strategy {
 impl<S: Strategy> Arbitrageur<S> {
     pub async fn new(
         environment: &Environment,
-        token_admin: &TokenAdmin,
+        token_admin: &token_admin::TokenAdmin,
         liquid_exchange_address: Address,
         strategy_address: Address,
     ) -> Result<Self> {

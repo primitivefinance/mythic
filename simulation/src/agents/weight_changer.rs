@@ -1,10 +1,5 @@
-use std::{ops::Div, sync::Arc};
-
-use ethers::utils::{format_ether, parse_ether};
-use math::ComputeReturns;
-use params::SimulationConfig;
-
 use super::*;
+use crate::math::*;
 
 #[derive(Clone)]
 pub struct WeightChanger {
@@ -32,8 +27,8 @@ impl WeightChanger {
         let g3m_args = (
             arbx,
             arby,
-            ethers::utils::parse_ether(config.portfolio_pool_parameters.weight_token_0)?,
-            U256::from(config.portfolio_pool_parameters.fee_basis_points),
+            ethers::utils::parse_ether(config.pool.weight_x)?,
+            U256::from(config.pool.fee_basis_points),
         );
         let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
@@ -42,7 +37,7 @@ impl WeightChanger {
             client,
             lex,
             g3m,
-            target_volatility: config.portfolio_pool_parameters.target_volatility,
+            target_volatility: config.pool.target_volatility,
             next_update_timestamp: 0,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),
@@ -83,42 +78,42 @@ impl WeightChanger {
     fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calcualte for the last 15 elements
         if self.asset_prices.len() > 15 {
-            let asset_rv = self
-                .asset_prices
-                .iter()
-                .skip(self.asset_prices.len() - 15)
-                .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>()
-                .compute_realized_volatility();
+            let asset_rv = compute_realized_volatility(
+                self.asset_prices
+                    .iter()
+                    .skip(self.asset_prices.len() - 15)
+                    .map(|(price, _)| *price)
+                    .collect::<Vec<f64>>(),
+            );
             self.asset_rv.push((asset_rv, self.next_update_timestamp));
         } else {
-            let asset_rv = self
-                .asset_prices
-                .iter()
-                .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>()
-                .compute_realized_volatility();
+            let asset_rv = compute_realized_volatility(
+                self.asset_prices
+                    .iter()
+                    .map(|(price, _)| *price)
+                    .collect::<Vec<f64>>(),
+            );
             self.asset_rv.push((asset_rv, self.next_update_timestamp));
         }
 
         if self.portfolio_prices.len() > 15 {
-            let portfolio_rv = self
-                .portfolio_prices
-                .iter()
-                .skip(self.portfolio_prices.len() - 15)
-                .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>()
-                .compute_realized_volatility();
+            let portfolio_rv = compute_realized_volatility(
+                self.portfolio_prices
+                    .iter()
+                    .skip(self.portfolio_prices.len() - 15)
+                    .map(|(price, _)| *price)
+                    .collect::<Vec<f64>>(),
+            );
 
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         } else {
-            let portfolio_rv = self
-                .portfolio_prices
-                .iter()
-                .map(|(price, _)| price.clone())
-                .collect::<Vec<f64>>()
-                .compute_realized_volatility();
+            let portfolio_rv = compute_realized_volatility(
+                self.portfolio_prices
+                    .iter()
+                    .map(|(price, _)| *price)
+                    .collect::<Vec<f64>>(),
+            );
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
