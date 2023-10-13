@@ -21,7 +21,7 @@ jobs:
           version: nightly
 
       - name: Build bindings
-        run: FOUNDRY_PROFILE=default ./build.sh
+        run: arbiter bind
 
       - name: test
         run: cargo test --workspace --exclude bindings
