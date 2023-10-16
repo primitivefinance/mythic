@@ -52,4 +52,18 @@ contract RMMMathTest is Test {
         console.log("liquidity:", liquidity);
         console.log(computeSpotPrice(reserveX, liquidity, K, sigma, tau));
     }
+
+    function test_computeOutputYGivenX() public view {
+        uint256 reserveX = 5_000 ether;
+        uint256 deltaX = 500 ether;
+        uint256 tau = 1 ether;
+
+        uint256 liquidity = computeLGivenX(reserveX, S, K, sigma);
+        console.log("liquidity:", liquidity);
+        uint256 y = computeYGivenL(liquidity, S, K, sigma);
+        console.log("y:", y);
+
+        uint256 gamma = 30;
+        uint256 dX = deltaX * gamma;
+    }
 }
