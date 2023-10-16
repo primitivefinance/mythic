@@ -41,7 +41,7 @@ liquidity_exponent = 20
 
 [weight_changer]
 target_volatility = 0.15
-update_frequency = 15 
+update_frequency = 500
 
 [block]
-timestep_size = 12
+timestep_size = 15

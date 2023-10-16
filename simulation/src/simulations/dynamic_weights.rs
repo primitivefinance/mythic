@@ -50,6 +50,7 @@ pub async fn run(config_path: &str) -> Result<()> {
         .run()?;
 
     for index in 0..config.trajectory.num_steps {
+        weight_changer.step().await?;
         println!("index: {}", index);
         let init_price = weight_changer.g3m.get_spot_price().call().await?;
         println!(
@@ -58,7 +59,6 @@ pub async fn run(config_path: &str) -> Result<()> {
         );
         price_changer.update_price().await?;
         arbitrageur.step().await?;
-        weight_changer.step().await?;
         let new_price = weight_changer.g3m.get_spot_price().call().await?;
         println!(
             "new price: {}",

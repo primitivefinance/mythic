@@ -50,6 +50,8 @@ impl WeightChanger {
 
     pub async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
+        println!("next update timestamp: {}", self.next_update_timestamp);
+        println!("timestamp: {}", timestamp);
         if timestamp > self.next_update_timestamp {
             self.next_update_timestamp = timestamp + self.update_frequency;
             let asset_price = self.lex.price().call().await?;
@@ -133,6 +135,7 @@ impl WeightChanger {
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
         if portfolio_rv < self.target_volatility {
             let new_weight = current_weight_float + 0.01;
+            println!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
@@ -141,6 +144,7 @@ impl WeightChanger {
                 .await?;
         } else {
             let new_weight = current_weight_float - 0.01;
+            println!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
