@@ -15,11 +15,12 @@ class DataProcessor:
         self.schema = schema
 
     def process_dataframe(self, df):
-        # Apply the to_wad function only to columns in the schema with type Decimal
+        # Process only the columns that are present in both df and schema
         for column, dtype in self.schema.items():
-            if dtype == Decimal:
+            if column in df.columns and dtype == Decimal:
                 df[column] = df[column].apply(to_wad)
         return df
+
 
     def import_csv(self, filename):
         filepath = os.path.join(self.dir, filename)
@@ -34,7 +35,15 @@ class DataProcessor:
             return None
 
     def import_csvs(self):
-        all_files = glob.glob(os.path.join(self.dir, "*.csv"))
-        print(all_files)
-        dfs = [self.process_dataframe(pd.read_csv(filename)) for filename in all_files]
+        all_files = glob.glob(os.path.join(self.dir, "**/*.csv"), recursive=True)
+        
+        dfs = {}
+        for filename in all_files:
+            # Extract the relative path from self.dir to the filename
+            relative_path = os.path.relpath(filename, self.dir)
+            # Remove the file extension (.csv)
+            key_name = os.path.splitext(relative_path)[0]
+            dfs[key_name] = self.process_dataframe(pd.read_csv(filename))
+        
         return dfs
+

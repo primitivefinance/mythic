@@ -27,7 +27,7 @@ class Visualizer:
         ax.legend(fontsize=12)
         ax.grid(True)
 
-    def plot(self, row, col, x_data, y_data, label, color=None):
+    def plot_statistical(self, row, col, x_data, y_data, label, color=None):
         ax = self.axes[row][col]
         
         # Check if y_data is a list of DataFrames
@@ -41,10 +41,20 @@ class Visualizer:
 
         # If y_data is a single Series
         else:
+            print("y_data is a list of DataFrames of length 1, consider using `plot` instead!")
             sns.lineplot(x=x_data, y=y_data, label=label, ax=ax, linewidth=2, color=color)
             
         # Set title based on label
         self.customize_plot(ax, label, "X-Axis", "Y-Axis")
+
+    def plot(self, row, col, x_data, y_data, labels, color=None):
+        ax = self.axes[row][col]
+    
+        for x, y, lbl in zip(x_data, y_data, labels):
+            sns.lineplot(x=x, y=y, label=lbl, ax=ax, linewidth=2, color=color)
+            
+        # Set title based on label
+        self.customize_plot(ax, labels, "X-Axis", "Y-Axis")
 
 
     def save(self, filename):
