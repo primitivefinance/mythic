@@ -117,11 +117,11 @@ function computeAmountOutGivenExactLiquidity(
 
 function computeLiquidityGivenExactAmount(
     UD60x18 t,
-    UD60x18 i,
+    uint256 i,
     UD60x18 r,
     UD60x18 w
 ) pure returns (UD60x18 l) {
-    l = t * ((UNIT + i / r).pow(w) - UNIT);
+    l = t * ((UNIT + ud(i) / r).pow(w) - UNIT);
 }
 
 /**
