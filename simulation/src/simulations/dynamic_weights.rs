@@ -1,16 +1,20 @@
 use super::*;
 use crate::{
     agents::{
-        arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider,
+        arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
         price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger,
     },
     settings::SimulationConfig,
 };
+use arbiter_core::environment::builder::BlockSettings;
 
 pub async fn run(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
-    let env = EnvironmentBuilder::new().build();
+    let env = EnvironmentBuilder::new()
+        .block_settings(BlockSettings::UserControlled)
+        .build();
+    let block_admin = BlockAdmin::new(&env, &config).await?;
 
     let token_admin = TokenAdmin::new(&env).await?;
     let mut price_changer = PriceChanger::new(&env, &token_admin, &config).await?;
@@ -59,6 +63,7 @@ pub async fn run(config_path: &str) -> Result<()> {
             "new price: {}",
             format_ether(new_price).parse::<f64>().unwrap()
         );
+        block_admin.update_block().await?;
     }
 
     Ok(())
