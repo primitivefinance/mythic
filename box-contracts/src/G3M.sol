@@ -331,8 +331,8 @@ contract G3M is IG3M {
     }
 
     /// @inheritdoc IG3M
-    function getInvariant() external view returns (UD60x18) {
-        return computeInvariant(reserveX, weightX(), reserveY, weightY());
+    function getInvariant() external view returns (uint) {
+        return convert(computeInvariant(reserveX, weightX(), reserveY, weightY()));
     }
 
     function reserveXWithoutPrecision() external view returns (uint256) {
