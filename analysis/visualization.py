@@ -27,19 +27,25 @@ class Visualizer:
         ax.legend(fontsize=12)
         ax.grid(True)
 
-    def plot_statistical(self, row, col, x_data, y_data, label, color=None):
+    def plot(self, row, col, x_data, y_data, label, color=None):
         ax = self.axes[row][col]
         
-        # Compute mean and standard deviation if y_data is a list of DataFrames
-        concatenated = pd.concat(y_data)
-        mean_data = concatenated.groupby(concatenated.index).mean()
-        std_data = concatenated.groupby(concatenated.index).std()
+        # Check if y_data is a list of DataFrames
+        if isinstance(y_data, list) and all(isinstance(df, pd.DataFrame) for df in y_data):
+            concatenated = pd.concat(y_data)
+            mean_data = concatenated.groupby(concatenated.index).mean()
+            std_data = concatenated.groupby(concatenated.index).std()
 
-        sns.lineplot(x=x_data, y=mean_data, label=label, ax=ax, linewidth=2, color=color)
-        ax.fill_between(x_data, mean_data - std_data, mean_data + std_data, color=color, alpha=0.2)
-        
+            sns.lineplot(x=x_data, y=mean_data, label=label, ax=ax, linewidth=2, color=color)
+            ax.fill_between(x_data, mean_data - std_data, mean_data + std_data, color=color, alpha=0.2)
+
+        # If y_data is a single Series
+        else:
+            sns.lineplot(x=x_data, y=y_data, label=label, ax=ax, linewidth=2, color=color)
+            
         # Set title based on label
         self.customize_plot(ax, label, "X-Axis", "Y-Axis")
+
 
     def save(self, filename):
         plt.tight_layout()

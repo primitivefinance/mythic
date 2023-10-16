@@ -4,7 +4,10 @@ import glob
 import os
 
 def to_wad(x):
-    return Decimal(x).scaleb(-18)
+    if isinstance(x, str) and x.startswith("0x"):
+        return Decimal(int(x, 16)).scaleb(-18)
+    else: 
+        return Decimal(x).scaleb(-18)
 
 class DataProcessor:
     def __init__(self, dir, schema):
@@ -21,7 +24,7 @@ class DataProcessor:
     def import_csv(self, filename):
         filepath = os.path.join(self.dir, filename)
         try:
-            df = pd.read_csv(filepath, dtype=self.schema)
+            df = pd.read_csv(filepath)
             return self.process_dataframe(df)
         except FileNotFoundError:
             print(f"File {filepath} not found.")
@@ -32,5 +35,6 @@ class DataProcessor:
 
     def import_csvs(self):
         all_files = glob.glob(os.path.join(self.dir, "*.csv"))
-        dfs = [self.process_dataframe(pd.read_csv(filename, dtype=self.schema)) for filename in all_files]
+        print(all_files)
+        dfs = [self.process_dataframe(pd.read_csv(filename)) for filename in all_files]
         return dfs
