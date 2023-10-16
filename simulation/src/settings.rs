@@ -9,6 +9,7 @@ pub struct SimulationConfig {
     pub ou: Option<OUParameters>,
     pub pool: PoolParameters,
     pub lp: LPParameters,
+    pub block: BlockParameters,
 }
 
 impl SimulationConfig {
@@ -22,6 +23,11 @@ impl SimulationConfig {
 
 pub mod parameters {
     use super::*;
+
+    #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+    pub struct BlockParameters {
+        pub timestep_size: u64,
+    }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct TrajectoryParameters {
