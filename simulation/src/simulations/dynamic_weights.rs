@@ -14,7 +14,7 @@ pub async fn run(config_path: &str) -> Result<()> {
     let env = EnvironmentBuilder::new()
         .block_settings(BlockSettings::UserControlled)
         .build();
-    let block_admin = BlockAdmin::new(&env, &config).await?;
+    let mut block_admin = BlockAdmin::new(&env, &config).await?;
 
     let token_admin = TokenAdmin::new(&env).await?;
     let mut price_changer = PriceChanger::new(&env, &token_admin, &config).await?;
