@@ -22,6 +22,10 @@ enum Commands {
         #[clap(index = 1, default_value = "simulation/configs/test.toml")]
         config_path: String,
     },
+    Analyze {
+        #[clap(index = 1, default_value = "test")]
+        type_: String,
+    },
 }
 
 #[tokio::main]
@@ -40,6 +44,15 @@ async fn main() -> Result<()> {
             println!("config path: {}", config_path);
             dynamic_weights::run(config_path).await?
         }
+        Some(Commands::Analyze { type_ }) => println!(
+            "Exit status: {:?}",
+            std::process::Command::new("python")
+                .current_dir("analysis")
+                .arg("main.py")
+                .arg("--type")
+                .arg(type_)
+                .status()?
+        ),
         None => Args::command().print_long_help()?,
     }
     Ok(())
