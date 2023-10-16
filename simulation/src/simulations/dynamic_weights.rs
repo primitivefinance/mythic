@@ -18,7 +18,7 @@ pub async fn run(config_path: &str) -> Result<()> {
 
     let token_admin = TokenAdmin::new(&env).await?;
     let mut price_changer = PriceChanger::new(&env, &token_admin, &config).await?;
-    let weight_changer = WeightChanger::new(
+    let mut weight_changer = WeightChanger::new(
         &env,
         &config,
         price_changer.liquid_exchange.address(),
@@ -36,6 +36,7 @@ pub async fn run(config_path: &str) -> Result<()> {
     .await?;
 
     lp.add_liquidity(&config).await?;
+    block_admin.update_block()?;
 
     // have the loop iterate blcoks and block timestamps
     // draw random # from poisson distribution which determines how long we wait for
@@ -57,12 +58,13 @@ pub async fn run(config_path: &str) -> Result<()> {
         );
         price_changer.update_price().await?;
         arbitrageur.step().await?;
+        weight_changer.step().await?;
         let new_price = weight_changer.g3m.get_spot_price().call().await?;
         println!(
             "new price: {}",
             format_ether(new_price).parse::<f64>().unwrap()
         );
-        block_admin.update_block().await?;
+        block_admin.update_block()?;
     }
 
     Ok(())

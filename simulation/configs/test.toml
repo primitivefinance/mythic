@@ -38,3 +38,10 @@ target_volatility = 0.15
 # `token_y` will be found from the weights and initial price.
 liquidity_mantissa = 1
 liquidity_exponent = 20
+
+[weight_changer]
+target_volatility = 0.15
+update_frequency = 1000
+
+[block]
+timestep_size = 12

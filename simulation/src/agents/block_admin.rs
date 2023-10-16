@@ -28,7 +28,7 @@ impl BlockAdmin {
         })
     }
 
-    pub async fn update_block(&mut self) -> Result<()> {
+    pub fn update_block(&mut self) -> Result<()> {
         self.block_number += 1;
         self.block_timestamp = self.block_number * self.timestep_size;
         self.client

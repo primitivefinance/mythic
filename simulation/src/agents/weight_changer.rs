@@ -7,6 +7,7 @@ pub struct WeightChanger {
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
     pub next_update_timestamp: u64,
+    pub update_frequency: u64,
     pub target_volatility: f64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
@@ -37,7 +38,8 @@ impl WeightChanger {
             client,
             lex,
             g3m,
-            target_volatility: config.pool.target_volatility,
+            target_volatility: config.weight_changer.target_volatility,
+            update_frequency: config.weight_changer.update_frequency,
             next_update_timestamp: 0,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),
@@ -46,9 +48,10 @@ impl WeightChanger {
         })
     }
 
-    pub async fn step(&mut self, timestamp: u64) -> Result<()> {
+    pub async fn step(&mut self) -> Result<()> {
+        let timestamp = self.client.get_block_timestamp().await?.as_u64();
         if timestamp > self.next_update_timestamp {
-            self.next_update_timestamp = timestamp + 86400;
+            self.next_update_timestamp = timestamp + self.update_frequency;
             let asset_price = self.lex.price().call().await?;
 
             let reserve_x = self.g3m.reserve_x().call().await?;
@@ -133,16 +136,15 @@ impl WeightChanger {
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
-                    U256::from(86400),
+                    U256::from(self.next_update_timestamp),
                 )
-                .send()
                 .await?;
         } else {
             let new_weight = current_weight_float - 0.01;
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
-                    U256::from(86400),
+                    U256::from(self.next_update_timestamp),
                 )
                 .send()
                 .await?;
