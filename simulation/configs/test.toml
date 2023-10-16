@@ -6,9 +6,9 @@ initial_price = 1.0
 # The start time of the process.
 t_0 = 0.0
 # The end time of the process.
-t_n = 10
+t_n = 100.0
 # The number of steps in the process.
-num_steps = 10
+num_steps = 100
 # Seed for the price processes
 seed = 2 # 1 will raise price initially, 2 will lower
 
@@ -41,7 +41,7 @@ liquidity_exponent = 20
 
 [weight_changer]
 target_volatility = 0.15
-update_frequency = 1000
+update_frequency = 15 
 
 [block]
 timestep_size = 12
