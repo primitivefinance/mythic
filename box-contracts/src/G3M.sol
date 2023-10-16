@@ -158,6 +158,42 @@ contract G3M is IG3M {
         return liquidity - BURNT_LIQUIDITY;
     }
 
+    function addLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity) {
+        require(!totalLiquidity.isZero(), "Pool not initialized");
+
+        liquidity = computeLiquidityGivenExactAmount(
+            totalLiquidity,
+            amount,
+            exactX ? reserveX : reserveY,
+            exactX ? weightX() : weightY()
+        );
+
+        if (exactX) {
+            amountX = amount;
+            amountY = computeAmountInGivenExactLiquidity(
+                totalLiquidity, liquidity, reserveY
+            );
+        } else {
+            amountY = amount;
+            amountX = computeAmountInGivenExactLiquidity(
+                totalLiquidity, liquidity, reserveX
+            );
+        }
+
+        ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
+        ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
+
+        emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
+
+        reserveX = reserveX + convert(amountX);
+        reserveY = reserveY + convert(amountY);
+        balanceOf[msg.sender] = balanceOf[msg.sender] + liquidity;
+        totalLiquidity = totalLiquidity + liquidity;
+    }
+
     /// @inheritdoc IG3M
     function addLiquidity(UD60x18 liquidity)
         external
