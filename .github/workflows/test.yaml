@@ -20,11 +20,5 @@ jobs:
         with:
           version: nightly
 
-      - name: Install Arbiter
-        run: cargo install arbiter
-
-      - name: Generate Bindings
-        run: arbiter bind
-
       - name: test
         run: cargo test --workspace --exclude bindings
