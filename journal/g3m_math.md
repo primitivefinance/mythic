@@ -41,16 +41,9 @@ Then we can get the price of the pool (for $x$ in terms of $y$):
 $$
 p = \frac{\nabla_x \psi}{\nabla_y \psi}
 $$
-for which:
+for which we can take the derivatives to get
 $$
-\begin{align*}
-\nabla_x \psi &= w_x\frac{x^{w_x-1}}{w_x^{w_x}}\left(\frac{y}{w_y}\right)^{w_y} = \left(\frac{x}{w_x}\right)^{-w_y}\left(\frac{y}{w_y}\right)^{w_y}\\
-\nabla_y \psi &= w_y\left(\frac{x}{w_x}\right)^{w_x}\left(\frac{y}{w_y}\right)^{w_y-1} = \left(\frac{x}{w_x}\right)^{w_x}\left(\frac{y}{w_y}\right)^{-w_x}
-\end{align*}
-$$
-therefore:
-$$
-p = \frac{\left(\frac{x}{w_x}\right)^{-w_y}\left(\frac{y}{w_y}\right)^{w_y}}{\left(\frac{x}{w_x}\right)^{w_x}\left(\frac{y}{w_y}\right)^{-w_x}} = \frac{w_x}{w_y}\frac{y}{x}
+p = \frac{w_x}{w_y}\frac{y}{x}
 $$
 
 ### Liquidity Provision
@@ -59,15 +52,15 @@ This makes it quite simple to add liquidity.
 If a user wants to add liquidity, they can just add the tokens such that the ratio of the reserves does not change.
 If a user wants to input $\Delta_x$ and $\Delta_y$ to the pool, then they must have:
 $$
-\frac{x+\Delta_x}{y+\Delta_y} = \frac{x}{y} 
+p = \frac{w_x}{w_y} \frac{y}{x}  = \frac{w_x}{w_y} \frac{y+\Delta_y}{x+\Delta_x}
 $$
 which implies if they choose a given $\Delta_x$, then they must have:
 $$
-\Delta_y = \frac{y(x+\Delta_x)}{x}-y 
+\Delta_y = p\frac{w_y}{w_x}(x+\Delta_x)-y
 $$
 and similarly if they choose a given $\Delta_y$, then they must have:
 $$
-\Delta_x = \frac{x(y+\Delta_y)}{y}-x  
+\Delta_x = \frac{1}{p}\frac{w_x}{w_y}(y+\Delta_y)-x
 $$
 
 
@@ -78,12 +71,11 @@ $$
 
 
 We can solve for each variable in terms of the other and the invariant $k$:
+$$
+x^{w_x}y^{w_y} = k
+$$
 
 First, $x$:
-$$
-\left(\frac{x}{w_x} \right)^{w_x} = k \left(\frac{y}{w_y}\right)^{-w_y}\\
-$$
-
 $$
 \implies \boxed{x = \left(\frac{k}{y^{w_y}}\right)^{1/w_x} }
 $$
