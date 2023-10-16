@@ -12,7 +12,7 @@ jobs:
       - name: Install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.71.0
+          toolchain: 1.72.0
           override: true
 
       - name: Install Foundry
@@ -20,7 +20,10 @@ jobs:
         with:
           version: nightly
 
-      - name: Build bindings
+      - name: Install Arbiter
+        run: cargo install arbiter
+
+      - name: Generate Bindings
         run: arbiter bind
 
       - name: test
