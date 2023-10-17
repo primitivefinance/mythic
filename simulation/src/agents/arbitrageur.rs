@@ -1,9 +1,5 @@
 use super::*;
-
-pub mod g3m;
-
-/// The number 10^18.
-pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);
+use crate::strategy::Strategy;
 
 #[derive(Clone)]
 pub struct Arbitrageur<S: Strategy> {
@@ -18,23 +14,6 @@ pub struct Arbitrageur<S: Strategy> {
     pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
 
     pub math: SD59x18Math<RevmMiddleware>,
-}
-
-#[async_trait::async_trait]
-pub trait Strategy {
-    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self;
-    async fn get_x_input(
-        &self,
-        target_price_wad: U256,
-        math: &SD59x18Math<RevmMiddleware>,
-    ) -> Result<U256>;
-    async fn get_y_input(
-        &self,
-        target_price_wad: U256,
-        math: &SD59x18Math<RevmMiddleware>,
-    ) -> Result<U256>;
-    async fn get_spot_price(&self) -> Result<U256>;
-    async fn swap_fee(&self) -> Result<U256>;
 }
 
 impl<S: Strategy> Arbitrageur<S> {

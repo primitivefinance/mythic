@@ -6,4 +6,3 @@
 pub mod atomic_arbitrage;
 pub mod g3m;
 pub mod sd5_9x_18_math;
-pub mod shared_types;

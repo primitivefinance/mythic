@@ -1,3 +1,5 @@
+use ethers::types::TransactionReceipt;
+
 use super::*;
 
 #[async_trait::async_trait]
@@ -69,5 +71,45 @@ impl Strategy for G3M<RevmMiddleware> {
 
     async fn swap_fee(&self) -> Result<U256> {
         Ok(self.swap_fee().call().await?)
+    }
+
+    async fn get_lp_amounts(&self, config: &SimulationConfig) -> (U256, U256) {
+        // Initial weight is set in the simulation config, but it can be overridden with
+        // setWeightX() function.
+        let weight_x = parse_ether(config.pool.weight_x).unwrap();
+        let weight_y = parse_ether(1).unwrap().checked_sub(weight_x).unwrap();
+        // Using the initial weight, initial price, and initial reserve x, we can
+        // compute reserve y.
+        let initial_price = config.trajectory.initial_price;
+        let initial_reserve_x = float_to_wad(config.lp.x_liquidity);
+        info!("initial_reserve_x: {}", initial_reserve_x);
+
+        // p = (x / w_x) / (y / w_y)
+        // y / w_y = (x / w_x) / p
+        // y = (x / w_x) / p * w_y
+        let one_ether = parse_ether(1).unwrap();
+        let initial_reserve_y = initial_reserve_x
+            .checked_mul(one_ether)
+            .unwrap()
+            .checked_div(weight_x)
+            .unwrap()
+            .checked_mul(one_ether)
+            .unwrap()
+            .checked_div(parse_ether(initial_price).unwrap())
+            .unwrap()
+            .checked_mul(weight_y)
+            .unwrap()
+            .checked_div(one_ether)
+            .unwrap();
+        info!("initial_reserve_y: {}", initial_reserve_y);
+        (initial_reserve_x, initial_reserve_y)
+    }
+
+    async fn init_pool(
+        &self,
+        amount_x: U256,
+        amount_y: U256,
+    ) -> Result<Option<TransactionReceipt>> {
+        Ok(self.init_pool(amount_x, amount_y).send().await?.await?)
     }
 }
