@@ -1,6 +1,7 @@
 use super::*;
 
 pub mod g3m;
+pub mod rmm;
 
 #[async_trait::async_trait]
 pub trait Strategy {

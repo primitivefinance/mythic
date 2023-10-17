@@ -5,4 +5,5 @@
 //! These files may be overwritten by the codegen system at any time.
 pub mod atomic_arbitrage;
 pub mod g3m;
+pub mod rmm;
 pub mod sd5_9x_18_math;

@@ -13,6 +13,7 @@ use arbiter_core::{
 use bindings::{
     atomic_arbitrage::{AtomicArbitrage, NotProfitable},
     g3m::G3M,
+    rmm::RMM,
     sd5_9x_18_math::SD59x18Math,
 };
 use config::{Config, ConfigError};
