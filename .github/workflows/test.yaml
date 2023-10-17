@@ -33,5 +33,11 @@ jobs:
       - name: List directory structure
         run: ls -R
 
+      - name: Move Bindings
+        run: |
+          mkdir -p ./simulation/src/bindings
+          mv ./src/src/bindings/* ./simulation/src/bindings/
+
+
       - name: test
         run: cargo test --workspace --exclude bindings
