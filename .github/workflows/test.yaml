@@ -20,6 +20,9 @@ jobs:
         with:
           version: nightly
 
+      - name: List directory structure
+        run: ls -R
+
       - name: Install arbiter
         run: cargo install arbiter
 
