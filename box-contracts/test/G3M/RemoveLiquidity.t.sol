@@ -34,4 +34,20 @@ contract RemoveLiquidity is SetUp {
         g3m.removeLiquidity(liquidity / convert(2));
         assertEq(g3m.getSpotPrice(), oldSpotPrice);
     }
+
+    function test_removeLiquidity_ExactX_DecreasesReservesAndTotalLiquidity()
+        public
+    {
+        uint256 initAmountX = 750 ether;
+        uint256 initAmountY = 250 ether;
+        UD60x18 initLiquidity = g3m.initPool(initAmountX, initAmountY);
+        (uint256 amountX, uint256 amountY, UD60x18 liquidity) =
+            g3m.removeLiquidity(true, initAmountX / 2);
+
+        assertEq(g3m.reserveX(), convert(initAmountX - amountX));
+        assertEq(g3m.reserveY(), convert(initAmountY - amountY));
+        assertEq(
+            g3m.totalLiquidity(), initLiquidity - liquidity + BURNT_LIQUIDITY
+        );
+    }
 }
