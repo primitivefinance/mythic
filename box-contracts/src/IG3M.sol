@@ -67,7 +67,7 @@ interface IG3M {
         returns (uint256 amountX, uint256 amountY);
 
     /**
-     * Removes `liquidity` units of liquidity from the pool.
+     * @notice Removes `liquidity` units of liquidity from the pool.
      * @param liquidity Amount of liquidity to remove
      * @return amountX Amount of token X received
      * @return amountY Amount of token Y received
@@ -75,6 +75,32 @@ interface IG3M {
     function removeLiquidity(UD60x18 liquidity)
         external
         returns (uint256 amountX, uint256 amountY);
+
+    /**
+     * @notice Adds liquidity to the pool, with an exact amount of token X or Y.
+     * @param exactX True if the amount is denominated in token X
+     * @param amount Exact amount of token X or Y to deposit
+     * @return amountX Amount of token X deposited
+     * @return amountY Amount of token Y deposited
+     * @return liquidity Amount of liquidity added to the pool
+     */
+    function addLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity);
+
+    /**
+     * @notice Removes liquidity from the pool, with an exact amount of token X or Y.
+     * @param exactX True if the amount is denominated in token X
+     * @param amount Exact amount of token X or Y to withdraw
+     * @return amountX Amount of token X withdrawn
+     * @return amountY Amount of token Y withdrawn
+     * @return liquidity Amount of liquidity removed from the pool
+     */
+    function removeLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity);
 
     /**
      * @notice Swaps exactly `amountIn` tokens for a maximum of `amountOut`.
