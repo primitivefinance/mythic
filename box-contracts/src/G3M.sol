@@ -159,6 +159,37 @@ contract G3M is IG3M {
     }
 
     /// @inheritdoc IG3M
+    function addLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity) {
+        require(!totalLiquidity.isZero(), "Pool not initialized");
+
+        if (exactX) {
+            amountX = amount;
+            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amount);
+        } else {
+            amountY = amount;
+            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amount);
+        }
+
+        reserveX = reserveX + convert(amountX);
+        reserveY = reserveY + convert(amountY);
+
+        UD60x18 postInvariant =
+            computeInvariant(reserveX, weightX(), reserveY, weightY());
+        UD60x18 postLiquidity = postInvariant * convert(2);
+        liquidity = postLiquidity - totalLiquidity;
+
+        totalLiquidity = postLiquidity;
+        balanceOf[msg.sender] = balanceOf[msg.sender] + liquidity;
+
+        emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
+        ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
+        ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
+    }
+
+    /// @inheritdoc IG3M
     function addLiquidity(UD60x18 liquidity)
         external
         returns (uint256 amountX, uint256 amountY)
@@ -206,6 +237,35 @@ contract G3M is IG3M {
         reserveY = reserveY - convert(amountY);
 
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
+    }
+
+    /// @inheritdoc IG3M
+    function removeLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity) {
+        if (exactX) {
+            amountX = amount;
+            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amount);
+        } else {
+            amountY = amount;
+            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amount);
+        }
+
+        reserveX = reserveX - convert(amountX);
+        reserveY = reserveY - convert(amountY);
+
+        UD60x18 postInvariant =
+            computeInvariant(reserveX, weightX(), reserveY, weightY());
+        UD60x18 postLiquidity = postInvariant * convert(2);
+        liquidity = totalLiquidity - postLiquidity;
+
+        totalLiquidity = postLiquidity;
+        balanceOf[msg.sender] = balanceOf[msg.sender] - liquidity;
+
+        emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
+        ERC20(tokenX).transfer(msg.sender, amountX);
+        ERC20(tokenY).transfer(msg.sender, amountY);
     }
 
     /// @inheritdoc IG3M
