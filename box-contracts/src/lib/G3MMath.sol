@@ -115,13 +115,20 @@ function computeAmountOutGivenExactLiquidity(
     o = convert((UNIT - (t - l) / t) * r);
 }
 
-function computeLiquidityGivenExactAmount(
-    UD60x18 t,
-    uint256 i,
-    UD60x18 r,
-    UD60x18 w
-) pure returns (UD60x18 l) {
-    l = t * ((UNIT + ud(i) / r).pow(w) - UNIT);
+function computeDeltaYGivenDeltaX(
+    UD60x18 rx,
+    UD60x18 ry,
+    uint256 dx
+) pure returns (uint256 dy) {
+    dy = convert((ry / rx) * (rx + convert(dx)) - ry);
+}
+
+function computeDeltaXGivenDeltaY(
+    UD60x18 rx,
+    UD60x18 ry,
+    uint256 dy
+) pure returns (uint256 dx) {
+    dx = convert((rx / ry) * (ry + convert(dy)) - rx);
 }
 
 /**
