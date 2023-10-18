@@ -3,6 +3,7 @@ import pandas as pd
 from data_processor import DataProcessor
 from visualization import Visualizer
 from decimal import Decimal
+import os
 
 def main():
 
@@ -15,8 +16,8 @@ def main():
         data = DataProcessor("test_data", {"price": Decimal, "new_price": Decimal})
         dfs = data.import_csvs()
 
-        x_data = [dfs["lex/PriceChangeFilter"].index.to_list(), dfs["g3m/SwapFilter"].index.to_list()]
-        y_data = [dfs["lex/PriceChangeFilter"]["price"], dfs["g3m/SwapFilter"]["new_price"]]
+        x_data = [dfs[os.path.join("lex", "PriceChangeFilter")].index.to_list(), dfs[os.path.join("g3m", "SwapFilter")].index.to_list()]
+        y_data = [dfs[os.path.join("lex", "PriceChangeFilter")]["price"], dfs[os.path.join("g3m", "SwapFilter")]["new_price"]]
         labels = ["PriceChangeFilter", "SwapFilter"]
 
         viz = Visualizer(nrows=1, ncols=1, figsize=(16, 10))
