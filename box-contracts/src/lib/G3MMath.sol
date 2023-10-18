@@ -124,11 +124,12 @@ function computeAmountOutGivenExactLiquidity(
  *
  *      ry
  * dY = ── ⋅ (rx + dx) - ry
- *      ry
+ *      rx
  *
  * @param rx Reserve of token X
  * @param ry Reserve of token Y
  * @param dx Differential amount of token X
+ * @return dy Differential amount of token Y
  */
 function computeDeltaYGivenDeltaX(
     UD60x18 rx,
@@ -138,6 +139,22 @@ function computeDeltaYGivenDeltaX(
     dy = convert((ry / rx) * (rx + convert(dx)) - ry);
 }
 
+/**
+ * @dev Computes the amount of token X relative to a specific amount of tokenY.
+ * This function can be used to compute either the required tokens when adding
+ * liquidity or the received tokens when removing liquidity.
+ *
+ * The following formula is used:
+ *
+ *      rx
+ * dX = ── ⋅ (ry + dy) - rx
+ *      ry
+ *
+ * @param rx Reserve of token X
+ * @param ry Reserve of token Y
+ * @param dy Differential amount of token Y
+ * @return dx Differential amount of token X
+ */
 function computeDeltaXGivenDeltaY(
     UD60x18 rx,
     UD60x18 ry,
