@@ -24,7 +24,7 @@ use ethers::{
 };
 use serde::{Deserialize, Serialize};
 use settings::SimulationConfig;
-use tracing::info;
+use tracing::{info, trace};
 
 #[allow(unused)]
 mod agents;

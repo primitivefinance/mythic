@@ -2,9 +2,6 @@ use super::*;
 
 #[async_trait::async_trait]
 impl Strategy for RMM<RevmMiddleware> {
-    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self {
-        todo!()
-    }
     async fn get_x_input(
         &self,
         target_price_wad: U256,
@@ -22,7 +19,7 @@ impl Strategy for RMM<RevmMiddleware> {
     }
 
     async fn get_spot_price(&self) -> Result<U256> {
-        todo!()
+        Ok(self.get_spot_price().call().await?)
     }
 
     async fn swap_fee(&self) -> Result<U256> {

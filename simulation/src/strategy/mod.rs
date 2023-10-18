@@ -4,8 +4,10 @@ pub mod g3m;
 pub mod rmm;
 
 #[async_trait::async_trait]
-pub trait Strategy {
-    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self;
+pub trait Strategy: Sized {
+    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self {
+        Self::new(strategy_address, client)
+    }
     async fn get_x_input(
         &self,
         target_price_wad: U256,

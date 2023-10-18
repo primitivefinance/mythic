@@ -4,34 +4,31 @@ use super::*;
 
 #[async_trait::async_trait]
 impl Strategy for G3M<RevmMiddleware> {
-    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self {
-        Self::new(strategy_address, client)
-    }
     async fn get_x_input(
         &self,
         target_price_wad: U256,
         math: &SD59x18Math<RevmMiddleware>,
     ) -> Result<U256> {
         let weight_x = I256::from_raw(self.weight_x().call().await?);
-        info!("weight_x: {}", weight_x);
+        trace!("weight_x: {}", weight_x);
         let weight_y = I256::from_raw(self.weight_y().call().await?);
-        info!("weight_y: {}", weight_y);
+        trace!("weight_y: {}", weight_y);
         let reserve_x = I256::from_raw(self.reserve_x_without_precision().call().await?);
-        info!("reserve_x: {}", reserve_x);
+        trace!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.reserve_y_without_precision().call().await?);
-        info!("reserve_y: {}", reserve_y);
+        trace!("reserve_y: {}", reserve_y);
         let invariant = I256::from_raw(self.get_invariant().call().await?);
-        info!("invariant: {}", invariant);
+        trace!("invariant: {}", invariant);
 
         let iwad = I256::from_raw(WAD);
 
         let ratio = weight_x * iwad / weight_y;
-        info!("ratio: {}", ratio);
+        trace!("ratio: {}", ratio);
 
         let inside = ratio * iwad / I256::from_raw(target_price_wad);
-        info!("inside: {}", inside);
+        trace!("inside: {}", inside);
         let delta_x = invariant * math.pow(inside, weight_y).call().await? / iwad - reserve_x;
-        info!("delta_x: {}", delta_x);
+        trace!("delta_x: {}", delta_x);
 
         Ok(delta_x.into_raw())
     }
@@ -42,25 +39,25 @@ impl Strategy for G3M<RevmMiddleware> {
         math: &SD59x18Math<RevmMiddleware>,
     ) -> Result<U256> {
         let weight_x = I256::from_raw(self.weight_x().call().await?);
-        info!("weight_x: {}", weight_x);
+        trace!("weight_x: {}", weight_x);
         let weight_y = I256::from_raw(self.weight_y().call().await?);
-        info!("weight_y: {}", weight_y);
+        trace!("weight_y: {}", weight_y);
         let reserve_x = I256::from_raw(self.reserve_x_without_precision().call().await?);
-        info!("reserve_x: {}", reserve_x);
+        trace!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.reserve_y_without_precision().call().await?);
-        info!("reserve_y: {}", reserve_y);
+        trace!("reserve_y: {}", reserve_y);
         let invariant = I256::from_raw(self.get_invariant().call().await?);
-        info!("invariant: {}", invariant);
+        trace!("invariant: {}", invariant);
 
         let iwad = I256::from_raw(WAD);
 
         let ratio = weight_y * iwad / weight_x;
-        info!("ratio: {}", ratio);
+        trace!("ratio: {}", ratio);
 
         let inside = ratio * I256::from_raw(target_price_wad) / iwad;
-        info!("inside: {}", inside);
+        trace!("inside: {}", inside);
         let delta_y = invariant * math.pow(inside, weight_x).call().await? / iwad - reserve_y;
-        info!("delta_y: {}", delta_y);
+        trace!("delta_y: {}", delta_y);
 
         Ok(delta_y.into_raw())
     }
@@ -82,7 +79,7 @@ impl Strategy for G3M<RevmMiddleware> {
         // compute reserve y.
         let initial_price = config.trajectory.initial_price;
         let initial_reserve_x = float_to_wad(config.lp.x_liquidity);
-        info!("initial_reserve_x: {}", initial_reserve_x);
+        trace!("initial_reserve_x: {}", initial_reserve_x);
 
         // p = (x / w_x) / (y / w_y)
         // y / w_y = (x / w_x) / p
@@ -101,7 +98,7 @@ impl Strategy for G3M<RevmMiddleware> {
             .unwrap()
             .checked_div(one_ether)
             .unwrap();
-        info!("initial_reserve_y: {}", initial_reserve_y);
+        trace!("initial_reserve_y: {}", initial_reserve_y);
         (initial_reserve_x, initial_reserve_y)
     }
 
