@@ -158,40 +158,36 @@ contract G3M is IG3M {
         return liquidity - BURNT_LIQUIDITY;
     }
 
+    /// @inheritdoc IG3M
     function addLiquidity(
         bool exactX,
         uint256 amount
     ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity) {
         require(!totalLiquidity.isZero(), "Pool not initialized");
 
-        liquidity = computeLiquidityGivenExactAmount(
-            totalLiquidity,
-            amount,
-            exactX ? reserveX : reserveY,
-            exactX ? weightX() : weightY()
-        );
-
         if (exactX) {
             amountX = amount;
-            amountY = computeAmountInGivenExactLiquidity(
-                totalLiquidity, liquidity, reserveY
-            );
+            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amountX);
         } else {
             amountY = amount;
-            amountX = computeAmountInGivenExactLiquidity(
-                totalLiquidity, liquidity, reserveX
-            );
+            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amountY);
         }
-
-        ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
-        ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
-
-        emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
 
         reserveX = reserveX + convert(amountX);
         reserveY = reserveY + convert(amountY);
+
+        UD60x18 postInvariant = computeInvariant(
+            convert(amountX), weightX(), convert(amountY), weightY()
+        );
+        UD60x18 postLiquidity = postInvariant * convert(2);
+        liquidity = postLiquidity - totalLiquidity;
+
+        totalLiquidity = postLiquidity;
         balanceOf[msg.sender] = balanceOf[msg.sender] + liquidity;
-        totalLiquidity = totalLiquidity + liquidity;
+
+        emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
+        ERC20(tokenX).transferFrom(msg.sender, address(this), amountX);
+        ERC20(tokenY).transferFrom(msg.sender, address(this), amountY);
     }
 
     /// @inheritdoc IG3M
@@ -242,6 +238,38 @@ contract G3M is IG3M {
         reserveY = reserveY - convert(amountY);
 
         emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
+    }
+
+    /// @inheritdoc IG3M
+    function removeLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity) {
+        require(balanceOf[msg.sender] >= liquidity, "Insufficient liquidity");
+
+        if (exactX) {
+            amountX = amount;
+            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amountX);
+        } else {
+            amountY = amount;
+            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amountY);
+        }
+
+        reserveX = reserveX - convert(amountX);
+        reserveY = reserveY - convert(amountY);
+
+        UD60x18 postInvariant = computeInvariant(
+            convert(amountX), weightX(), convert(amountY), weightY()
+        );
+        UD60x18 postLiquidity = postInvariant * convert(2);
+        liquidity = totalLiquidity - postLiquidity;
+
+        totalLiquidity = postLiquidity;
+        balanceOf[msg.sender] = balanceOf[msg.sender] - liquidity;
+
+        emit RemoveLiquidity(msg.sender, liquidity, amountX, amountY);
+        ERC20(tokenX).transfer(msg.sender, amountX);
+        ERC20(tokenY).transfer(msg.sender, amountY);
     }
 
     /// @inheritdoc IG3M
