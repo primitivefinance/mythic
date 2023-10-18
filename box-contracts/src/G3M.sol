@@ -167,18 +167,17 @@ contract G3M is IG3M {
 
         if (exactX) {
             amountX = amount;
-            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amountX);
+            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amount);
         } else {
             amountY = amount;
-            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amountY);
+            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amount);
         }
 
         reserveX = reserveX + convert(amountX);
         reserveY = reserveY + convert(amountY);
 
-        UD60x18 postInvariant = computeInvariant(
-            convert(amountX), weightX(), convert(amountY), weightY()
-        );
+        UD60x18 postInvariant =
+            computeInvariant(reserveX, weightX(), reserveY, weightY());
         UD60x18 postLiquidity = postInvariant * convert(2);
         liquidity = postLiquidity - totalLiquidity;
 
@@ -249,18 +248,17 @@ contract G3M is IG3M {
 
         if (exactX) {
             amountX = amount;
-            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amountX);
+            amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amount);
         } else {
             amountY = amount;
-            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amountY);
+            amountX = computeDeltaXGivenDeltaY(reserveX, reserveY, amount);
         }
 
         reserveX = reserveX - convert(amountX);
         reserveY = reserveY - convert(amountY);
 
-        UD60x18 postInvariant = computeInvariant(
-            convert(amountX), weightX(), convert(amountY), weightY()
-        );
+        UD60x18 postInvariant =
+            computeInvariant(reserveX, weightX(), reserveY, weightY());
         UD60x18 postLiquidity = postInvariant * convert(2);
         liquidity = totalLiquidity - postLiquidity;
 
