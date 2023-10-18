@@ -34,4 +34,20 @@ contract AddLiquidity is SetUp {
         vm.expectRevert("Pool not initialized");
         g3m.addLiquidity(ud(100 ether));
     }
+
+    function test_addLiquidity_ExactX_IncreasesReservesAndTotalLiquidity()
+        public
+    {
+        uint256 initAmountX = 750 ether;
+        uint256 initAmountY = 250 ether;
+        UD60x18 initLiquidity = g3m.initPool(initAmountX, initAmountY);
+        (uint256 amountX, uint256 amountY, UD60x18 liquidity) =
+            g3m.addLiquidity(true, initAmountX);
+
+        assertEq(g3m.reserveX(), convert(initAmountX + amountX));
+        assertEq(g3m.reserveY(), convert(initAmountY + amountY));
+        assertEq(
+            g3m.totalLiquidity(), initLiquidity + liquidity + BURNT_LIQUIDITY
+        );
+    }
 }
