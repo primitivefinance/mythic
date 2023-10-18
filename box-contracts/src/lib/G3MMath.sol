@@ -122,21 +122,21 @@ function computeAmountOutGivenExactLiquidity(
  *
  * The following formula is used:
  *
- *      ry
- * dY = ── ⋅ (rx + dx) - ry
- *      rx
+ *      rY
+ * dY = ── ⋅ (rX + dX) - rY
+ *      rX
  *
- * @param rx Reserve of token X
- * @param ry Reserve of token Y
- * @param dx Differential amount of token X
- * @return dy Differential amount of token Y
+ * @param rX Reserve of token X
+ * @param rY Reserve of token Y
+ * @param dX Differential amount of token X
+ * @return dY Differential amount of token Y
  */
 function computeDeltaYGivenDeltaX(
-    UD60x18 rx,
-    UD60x18 ry,
-    uint256 dx
-) pure returns (uint256 dy) {
-    dy = convert((ry / rx) * (rx + convert(dx)) - ry);
+    UD60x18 rX,
+    UD60x18 rY,
+    uint256 dX
+) pure returns (uint256 dY) {
+    dY = convert((rY / rX) * (rX + convert(dX)) - rY);
 }
 
 /**
@@ -146,21 +146,21 @@ function computeDeltaYGivenDeltaX(
  *
  * The following formula is used:
  *
- *      rx
- * dX = ── ⋅ (ry + dy) - rx
- *      ry
+ *      rX
+ * dX = ── ⋅ (rY + dY) - rX
+ *      rY
  *
- * @param rx Reserve of token X
- * @param ry Reserve of token Y
- * @param dy Differential amount of token Y
- * @return dx Differential amount of token X
+ * @param rX Reserve of token X
+ * @param rY Reserve of token Y
+ * @param dY Differential amount of token Y
+ * @return dX Differential amount of token X
  */
 function computeDeltaXGivenDeltaY(
-    UD60x18 rx,
-    UD60x18 ry,
-    uint256 dy
-) pure returns (uint256 dx) {
-    dx = convert((rx / ry) * (ry + convert(dy)) - rx);
+    UD60x18 rX,
+    UD60x18 rY,
+    uint256 dY
+) pure returns (uint256 dX) {
+    dX = convert((rX / rY) * (rY + convert(dY)) - rX);
 }
 
 /**
