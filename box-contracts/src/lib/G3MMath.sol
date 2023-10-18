@@ -44,18 +44,18 @@ function computeInvariant(
 /**
  * @dev Computes the spot price of a pool using the following formula:
  *
- *       rI
- *       ──
- *       wI
- * p =  ────
  *       rO
  *       ──
  *       wO
+ * p =  ────
+ *       rI
+ *       ──
+ *       wI
  *
- * @param rI Reserve of the input token
- * @param wI Weight of the input token
  * @param rO Reserve of the output token
  * @param wO Weight of the output token
+ * @param rI Reserve of the input token
+ * @param wI Weight of the input token
  * @return p Spot price of the pool
  */
 function computeSpotPrice(
@@ -115,6 +115,21 @@ function computeAmountOutGivenExactLiquidity(
     o = convert((UNIT - (t - l) / t) * r);
 }
 
+/**
+ * @dev Computes the amount of token Y relative to a specific amount of tokenX.
+ * This function can be used to compute either the required tokens when adding
+ * liquidity or the received tokens when removing liquidity.
+ *
+ * The following formula is used:
+ *
+ *      ry
+ * dY = ── ⋅ (rx + dx) - ry
+ *      ry
+ *
+ * @param rx Reserve of token X
+ * @param ry Reserve of token Y
+ * @param dx Differential amount of token X
+ */
 function computeDeltaYGivenDeltaX(
     UD60x18 rx,
     UD60x18 ry,
