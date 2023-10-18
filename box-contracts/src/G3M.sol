@@ -244,8 +244,6 @@ contract G3M is IG3M {
         bool exactX,
         uint256 amount
     ) external returns (uint256 amountX, uint256 amountY, UD60x18 liquidity) {
-        require(balanceOf[msg.sender] >= liquidity, "Insufficient liquidity");
-
         if (exactX) {
             amountX = amount;
             amountY = computeDeltaYGivenDeltaX(reserveX, reserveY, amount);
