@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd analysis
+
 # Install pyenv if not installed
 if ! command -v pyenv &> /dev/null
 then
@@ -19,5 +21,7 @@ pyenv local py_env
 # Install dependencies
 pip install --upgrade pip
 pip install -r py_requirements.txt
+
+cd ..
 
 echo "Setup complete!"

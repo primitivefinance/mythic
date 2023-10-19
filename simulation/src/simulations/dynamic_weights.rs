@@ -39,9 +39,8 @@ pub async fn run(config_path: &str) -> Result<()> {
     // weightchanger needs to run
 
     EventLogger::builder()
+        .path("./analysis/test_data")
         .add(price_changer.liquid_exchange.events(), "lex")
-        .add(token_admin.arbx.events(), "arbx")
-        .add(token_admin.arby.events(), "arby")
         .add(weight_changer.g3m.events(), "g3m")
         .run()?;
 

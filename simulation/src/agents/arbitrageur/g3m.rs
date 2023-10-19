@@ -14,9 +14,9 @@ impl Strategy for G3M<RevmMiddleware> {
         info!("weight_x: {}", weight_x);
         let weight_y = I256::from_raw(self.weight_y().call().await?);
         info!("weight_y: {}", weight_y);
-        let reserve_x = I256::from_raw(self.reserve_x().call().await?);
+        let reserve_x = I256::from_raw(self.reserve_x_without_precision().call().await?);
         info!("reserve_x: {}", reserve_x);
-        let reserve_y = I256::from_raw(self.reserve_y().call().await?);
+        let reserve_y = I256::from_raw(self.reserve_y_without_precision().call().await?);
         info!("reserve_y: {}", reserve_y);
         let invariant = I256::from_raw(self.get_invariant().call().await?);
         info!("invariant: {}", invariant);
@@ -31,9 +31,6 @@ impl Strategy for G3M<RevmMiddleware> {
         let delta_x = invariant * math.pow(inside, weight_y).call().await? / iwad - reserve_x;
         info!("delta_x: {}", delta_x);
 
-        let gamma = iwad - (I256::from_raw(self.swap_fee().await?)) * I256::from(10u128.pow(14));
-        info!("gamma: {}", gamma);
-        let delta_x = delta_x * gamma / iwad;
         Ok(delta_x.into_raw())
     }
 
@@ -46,9 +43,9 @@ impl Strategy for G3M<RevmMiddleware> {
         info!("weight_x: {}", weight_x);
         let weight_y = I256::from_raw(self.weight_y().call().await?);
         info!("weight_y: {}", weight_y);
-        let reserve_x = I256::from_raw(self.reserve_x().call().await?);
+        let reserve_x = I256::from_raw(self.reserve_x_without_precision().call().await?);
         info!("reserve_x: {}", reserve_x);
-        let reserve_y = I256::from_raw(self.reserve_y().call().await?);
+        let reserve_y = I256::from_raw(self.reserve_y_without_precision().call().await?);
         info!("reserve_y: {}", reserve_y);
         let invariant = I256::from_raw(self.get_invariant().call().await?);
         info!("invariant: {}", invariant);
@@ -62,9 +59,6 @@ impl Strategy for G3M<RevmMiddleware> {
         info!("inside: {}", inside);
         let delta_y = invariant * math.pow(inside, weight_x).call().await? / iwad - reserve_y;
         info!("delta_y: {}", delta_y);
-        let gamma = iwad - (I256::from_raw(self.swap_fee().await?)) * I256::from(10u128.pow(14));
-        info!("gamma: {}", gamma);
-        let delta_y = delta_y * gamma / iwad;
 
         Ok(delta_y.into_raw())
     }

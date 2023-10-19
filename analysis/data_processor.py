@@ -4,7 +4,10 @@ import glob
 import os
 
 def to_wad(x):
-    return Decimal(x).scaleb(-18)
+    if isinstance(x, str) and x.startswith("0x"):
+        return Decimal(int(x, 16)).scaleb(-18)
+    else: 
+        return Decimal(x).scaleb(-18)
 
 class DataProcessor:
     def __init__(self, dir, schema):
@@ -12,16 +15,17 @@ class DataProcessor:
         self.schema = schema
 
     def process_dataframe(self, df):
-        # Apply the to_wad function only to columns in the schema with type Decimal
+        # Process only the columns that are present in both df and schema
         for column, dtype in self.schema.items():
-            if dtype == Decimal:
+            if column in df.columns and dtype == Decimal:
                 df[column] = df[column].apply(to_wad)
         return df
+
 
     def import_csv(self, filename):
         filepath = os.path.join(self.dir, filename)
         try:
-            df = pd.read_csv(filepath, dtype=self.schema)
+            df = pd.read_csv(filepath)
             return self.process_dataframe(df)
         except FileNotFoundError:
             print(f"File {filepath} not found.")
@@ -31,6 +35,15 @@ class DataProcessor:
             return None
 
     def import_csvs(self):
-        all_files = glob.glob(os.path.join(self.dir, "*.csv"))
-        dfs = [self.process_dataframe(pd.read_csv(filename, dtype=self.schema)) for filename in all_files]
+        all_files = glob.glob(os.path.join(self.dir, "**/*.csv"), recursive=True)
+        
+        dfs = {}
+        for filename in all_files:
+            # Extract the relative path from self.dir to the filename
+            relative_path = os.path.relpath(filename, self.dir)
+            # Remove the file extension (.csv)
+            key_name = os.path.splitext(relative_path)[0]
+            dfs[key_name] = self.process_dataframe(pd.read_csv(filename))
+        
         return dfs
+

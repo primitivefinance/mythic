@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 # Used throughout the workspace
-bindings.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
 tracing.workspace = true

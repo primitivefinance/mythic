@@ -25,7 +25,8 @@ interface IG3M {
         address indexed sender,
         bool swapDirection,
         uint256 input,
-        uint256 output
+        uint256 output,
+        uint256 newPrice
     );
 
     /// @notice Emitted when the weight of token X is updated.
@@ -144,7 +145,7 @@ interface IG3M {
     function getSpotPrice() external view returns (uint256);
 
     /// @notice Computes the invariant of the pool.
-    function getInvariant() external view returns (UD60x18);
+    function getInvariant() external view returns (uint);
 
     /// @notice Address of token X.
     function tokenX() external view returns (address);

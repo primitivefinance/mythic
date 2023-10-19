@@ -359,7 +359,8 @@ contract G3M is IG3M {
         );
         ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
 
-        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+        uint256 new_price = computeSpotPrice(reserveX, currentWeightX, reserveY, currentWeightY);
+        emit Swap(msg.sender, swapDirection, amountIn, amountOut, new_price);
 
         return exactIn ? amountOut : amountIn;
     }
@@ -391,7 +392,15 @@ contract G3M is IG3M {
     }
 
     /// @inheritdoc IG3M
-    function getInvariant() external view returns (UD60x18) {
-        return computeInvariant(reserveX, weightX(), reserveY, weightY());
+    function getInvariant() external view returns (uint) {
+        return convert(computeInvariant(reserveX, weightX(), reserveY, weightY()));
+    }
+
+    function reserveXWithoutPrecision() external view returns (uint256) {
+        return convert(reserveX);
+    }
+
+    function reserveYWithoutPrecision() external view returns (uint256) {
+        return convert(reserveY);
     }
 }
