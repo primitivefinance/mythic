@@ -11,6 +11,7 @@ contract RMM {
     uint256 public immutable sigma;
     uint256 public immutable strikePrice;
     uint256 public immutable tau;
+    uint256 public immutable gamma = 30;
 
     uint256 public reserveX;
     uint256 public reserveY;
@@ -205,5 +206,31 @@ contract RMM {
         tokenY.transfer(msg.sender, amountY);
 
         return (liquidityDelta, amountY);
+    }
+
+    function swap(uint256 amountX) external returns (uint256 amountY) {
+        uint256 fees = amountX * gamma / 10_000;
+        uint256 deltaX = amountX - fees;
+
+        uint256 price =
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+
+        uint256 deltaL = computeLGivenX(deltaX, price, strikePrice, sigma);
+        uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
+
+        amountY = uint256(
+            ~(
+                computeOutputYGivenX(
+                    reserveX,
+                    amountX,
+                    reserveY,
+                    deltaY,
+                    totalLiquidity,
+                    deltaL,
+                    strikePrice,
+                    sigma
+                ) - 1
+            )
+        );
     }
 }
