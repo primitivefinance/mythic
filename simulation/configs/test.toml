@@ -10,8 +10,8 @@ t_n = 1.0
 # The number of steps in the process.
 # num_steps = 10950 # 365 * 30 = 30 timesteps/day
 # num_steps = 7900 # 365 * 20 = 20 timesteps/day
-# num_steps = 3650 # 365 * 10 = 10 timesteps/day
-num_steps = 1825 # 365 * 5 = 5 timesteps/day
+num_steps = 3650 # 365 * 10 = 10 timesteps/day
+#num_steps = 1825 # 365 * 5 = 5 timesteps/day
 # Seed for the price processes
 seed = 2
 
@@ -52,8 +52,8 @@ liquidity_exponent = 20
 target_volatility = 0.15
 #update_frequency = 450 # 1 update per 30 timestep day
 #update_frequency = 300 # 1 update per 20 timestep day
-#update_frequency = 150 # 1 update per 10 timestep day
-update_frequency = 75 # 1 update per 5 timestep day
+update_frequency = 150 # 1 update per 10 timestep day
+#update_frequency = 75 # 1 update per 5 timestep day
 
 [block]
 timestep_size = 15
