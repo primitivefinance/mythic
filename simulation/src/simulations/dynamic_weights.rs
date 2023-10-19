@@ -37,6 +37,7 @@ pub async fn run(config_path: &str) -> Result<()> {
 
     lp.add_liquidity(&config).await?;
     block_admin.update_block()?;
+    weight_changer.init().await?;
 
     // have the loop iterate blcoks and block timestamps
     // draw random # from poisson distribution which determines how long we wait for
@@ -50,7 +51,6 @@ pub async fn run(config_path: &str) -> Result<()> {
         .run()?;
 
     for index in 0..config.trajectory.num_steps {
-        weight_changer.step().await?;
         println!("index: {}", index);
         let init_price = weight_changer.g3m.get_spot_price().call().await?;
         println!(
@@ -65,6 +65,7 @@ pub async fn run(config_path: &str) -> Result<()> {
             format_ether(new_price).parse::<f64>().unwrap()
         );
         block_admin.update_block()?;
+        weight_changer.step().await?;
     }
 
     Ok(())

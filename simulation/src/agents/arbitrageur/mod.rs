@@ -98,12 +98,12 @@ impl<S: Strategy> Arbitrageur<S> {
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!(
-                    "Detected the need to raise price to {:?}",
-                    format_units(target_price, "ether")?
-                );
+                // info!(
+                //     "Detected the need to raise price to {:?}",
+                //     format_units(target_price, "ether")?
+                // );
                 let input = self.strategy.get_y_input(target_price, &self.math).await?;
-                info!("Got input: {:?}", input);
+                // info!("Got input: {:?}", input);
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
                 let output = tx.send().await;
                 match output {
@@ -131,7 +131,7 @@ impl<S: Strategy> Arbitrageur<S> {
                     }
                 }
 
-                info!("Sent arbitrage.");
+                // info!("Sent arbitrage.");
             }
             Swap::LowerExchangePrice(target_price) => {
                 info!(
@@ -198,18 +198,18 @@ impl<S: Strategy> Arbitrageur<S> {
     async fn detect_arbitrage(&self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
+        // info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
         let g3m_price_wad = self.strategy.get_spot_price().await?;
-        info!("g3m_price_wad: {:?}", g3m_price_wad);
+        // info!("g3m_price_wad: {:?}", g3m_price_wad);
 
         let gamma_wad = WAD - (self.strategy.swap_fee().await?) * U256::from(10u128.pow(14));
-        info!("gamma_wad: {:?}", gamma_wad);
+        // info!("gamma_wad: {:?}", gamma_wad);
 
         // Compute the no-arbitrage bounds.
         let upper_arb_bound = WAD * g3m_price_wad / gamma_wad;
-        info!("upper_arb_bound: {:?}", upper_arb_bound);
+        // info!("upper_arb_bound: {:?}", upper_arb_bound);
         let lower_arb_bound = g3m_price_wad * gamma_wad / WAD;
-        info!("lower_arb_bound: {:?}", lower_arb_bound);
+        // info!("lower_arb_bound: {:?}", lower_arb_bound);
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.

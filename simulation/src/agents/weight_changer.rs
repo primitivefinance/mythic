@@ -33,7 +33,6 @@ impl WeightChanger {
         );
         let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
-
         Ok(Self {
             client,
             lex,
@@ -48,32 +47,50 @@ impl WeightChanger {
         })
     }
 
+    pub async fn init(&mut self) -> Result<()> {
+        let reserve_x = self.g3m.reserve_x().call().await?;
+        let reserve_y = self.g3m.reserve_y().call().await?;
+        let liquidity = self.g3m.total_liquidity().call().await?;
+        let x_per_liquidity = reserve_x.div(liquidity);
+        let y_per_liquidity = reserve_y.div(liquidity);
+
+        let asset_price = self.lex.price().call().await?;
+        let portfolio_price = x_per_liquidity
+            .checked_mul(asset_price)
+            .unwrap()
+            .checked_add(y_per_liquidity)
+            .unwrap();
+
+        let asset_price_float = format_ether(asset_price).parse::<f64>().unwrap();
+        let portfolio_price_float = format_ether(portfolio_price).parse::<f64>().unwrap();
+
+        self.portfolio_prices.push((portfolio_price_float, 0));
+        self.asset_prices.push((asset_price_float, 0));
+        Ok(())
+    }
+
     pub async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
-        println!("next update timestamp: {}", self.next_update_timestamp);
-        println!("timestamp: {}", timestamp);
-        if timestamp > self.next_update_timestamp {
+        if timestamp >= self.next_update_timestamp {
             self.next_update_timestamp = timestamp + self.update_frequency;
-            let asset_price = self.lex.price().call().await?;
-
-            let reserve_x = self.g3m.reserve_x().call().await?;
-            let reserve_y = self.g3m.reserve_y().call().await?;
-            let liquidity = self.g3m.total_liquidity().call().await?;
-            let x_per_liquidity = reserve_x.div(liquidity);
-            let y_per_liquidity = reserve_y.div(liquidity);
-
-            let portfolio_price = x_per_liquidity
-                .checked_mul(asset_price)
-                .unwrap()
-                .checked_add(y_per_liquidity)
+            let asset_price = format_ether(self.lex.price().call().await?)
+                .parse::<f64>()
                 .unwrap();
 
-            let asset_price_float = format_ether(asset_price).parse::<f64>().unwrap();
-            let portfolio_price_float = format_ether(portfolio_price).parse::<f64>().unwrap();
+            let reserve_x = format_ether(self.g3m.reserve_x_without_precision().call().await?)
+                .parse::<f64>()
+                .unwrap();
+            let reserve_y = format_ether(self.g3m.reserve_y_without_precision().call().await?)
+                .parse::<f64>()
+                .unwrap();
 
-            self.asset_prices.push((asset_price_float, timestamp));
-            self.portfolio_prices
-                .push((portfolio_price_float, timestamp));
+            let portfolio_price = reserve_x * asset_price + reserve_y;
+            println!("portfolio_price: {}", portfolio_price);
+
+            self.asset_prices.push((asset_price, timestamp));
+            self.portfolio_prices.push((portfolio_price, timestamp));
+            // println!("asset_prices: {:?}", self.asset_prices);
+            // println!("portfolio_prices: {:?}", self.portfolio_prices);
             self.calculate_rv()?;
             self.execute_smooth_rebalance().await?;
         }
@@ -91,16 +108,7 @@ impl WeightChanger {
                     .collect::<Vec<f64>>(),
             );
             self.asset_rv.push((asset_rv, self.next_update_timestamp));
-        } else {
-            let asset_rv = compute_realized_volatility(
-                self.asset_prices
-                    .iter()
-                    .map(|(price, _)| *price)
-                    .collect::<Vec<f64>>(),
-            );
-            self.asset_rv.push((asset_rv, self.next_update_timestamp));
         }
-
         if self.portfolio_prices.len() > 15 {
             let portfolio_rv = compute_realized_volatility(
                 self.portfolio_prices
@@ -112,17 +120,17 @@ impl WeightChanger {
 
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
-        } else {
-            let portfolio_rv = compute_realized_volatility(
-                self.portfolio_prices
-                    .iter()
-                    .map(|(price, _)| *price)
-                    .collect::<Vec<f64>>(),
-            );
-            self.portfolio_rv
-                .push((portfolio_rv, self.next_update_timestamp));
         }
-        println!("portfolio_rv: {:?}", self.portfolio_rv);
+        println!(
+            "hypothetical percent asset return: {}",
+            (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
+                / self.asset_prices.first().unwrap().0
+        );
+        println!(
+            "portfolio percent return: {}",
+            (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
+                / self.portfolio_prices.first().unwrap().0
+        );
 
         Ok(())
     }
@@ -131,20 +139,26 @@ impl WeightChanger {
     // then changes weight by 1% over the course of a day depending on if rv is
     // greater or less than target
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
+        if self.portfolio_rv.len() < 2 {
+            return Ok(());
+        }
         let portfolio_rv = self.portfolio_rv.last().unwrap().0;
+        println!("portfolio_rv: {}", portfolio_rv);
         let current_weight_x = self.g3m.weight_x().call().await?;
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
+        println!("current_weight_float: {}", current_weight_float);
         if portfolio_rv < self.target_volatility {
-            let new_weight = current_weight_float + 0.01;
+            let new_weight = current_weight_float + 0.003;
             println!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
                     U256::from(self.next_update_timestamp),
                 )
+                .send()
                 .await?;
         } else {
-            let new_weight = current_weight_float - 0.01;
+            let new_weight = current_weight_float - 0.003;
             println!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
