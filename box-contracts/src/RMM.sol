@@ -14,7 +14,7 @@ contract RMM {
 
     uint256 public reserveX;
     uint256 public reserveY;
-    uint256 public liquidity;
+    uint256 public totalLiquidity;
 
     constructor(
         ERC20 tokenX_,
@@ -37,7 +37,7 @@ contract RMM {
         uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
         uint256 amountY = computeYGivenL(l, price, strikePrice, sigma);
 
-        liquidity = l;
+        totalLiquidity = l;
         reserveX = amountX;
         reserveY = amountY;
 
@@ -54,7 +54,7 @@ contract RMM {
         uint256 l = computeLGivenY(amountY, price, strikePrice, sigma);
         uint256 amountX = computeXGivenL(l, price, strikePrice, sigma);
 
-        liquidity = l;
+        totalLiquidity = l;
         reserveX = amountX;
         reserveY = amountY;
 
@@ -69,7 +69,7 @@ contract RMM {
         returns (uint256, uint256)
     {
         uint256 price =
-            computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
             computeLGivenX(reserveX + amountX, price, strikePrice, sigma);
@@ -78,8 +78,8 @@ contract RMM {
 
         uint256 amountY = newReserveY - reserveY;
 
-        uint256 liquidityDelta = newLiquidity - liquidity;
-        liquidity = newLiquidity;
+        uint256 liquidityDelta = newLiquidity - totalLiquidity;
+        totalLiquidity = newLiquidity;
         reserveX += amountX;
         reserveY += amountY;
 
@@ -94,7 +94,7 @@ contract RMM {
         returns (uint256, uint256)
     {
         uint256 price =
-            computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
             computeLGivenY(reserveY + amountY, price, strikePrice, sigma);
@@ -103,8 +103,8 @@ contract RMM {
 
         uint256 amountX = newReserveX - reserveX;
 
-        uint256 liquidityDelta = newLiquidity - liquidity;
-        liquidity = newLiquidity;
+        uint256 liquidityDelta = newLiquidity - totalLiquidity;
+        totalLiquidity = newLiquidity;
         reserveX += amountX;
         reserveY += amountY;
 
@@ -119,7 +119,7 @@ contract RMM {
         returns (uint256, uint256)
     {
         uint256 price =
-            computeSpotPrice(reserveX, liquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
             computeLGivenX(reserveX - amountX, price, strikePrice, sigma);
@@ -128,8 +128,8 @@ contract RMM {
 
         uint256 amountY = reserveY - newReserveY;
 
-        uint256 liquidityDelta = liquidity - newLiquidity;
-        liquidity = newLiquidity;
+        uint256 liquidityDelta = totalLiquidity - newLiquidity;
+        totalLiquidity = newLiquidity;
         reserveX -= amountX;
         reserveY -= amountY;
 

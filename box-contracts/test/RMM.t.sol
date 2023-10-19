@@ -33,7 +33,7 @@ contract RMMTest is Test {
         console.log("l:", l);
         console.log("amountY:", amountY);
 
-        assertEq(rmm.liquidity(), l);
+        assertEq(rmm.totalLiquidity(), l);
         assertEq(rmm.reserveX(), amountX);
         assertEq(rmm.reserveY(), amountY);
     }
@@ -42,7 +42,7 @@ contract RMMTest is Test {
         uint256 amountY = 2000 ether;
         (uint256 l, uint256 amountX) = rmm.initExactY(amountY, 2000 ether);
 
-        assertEq(rmm.liquidity(), l);
+        assertEq(rmm.totalLiquidity(), l);
         assertEq(rmm.reserveX(), amountX);
         assertEq(rmm.reserveY(), amountY);
     }
