@@ -19,7 +19,7 @@ impl Strategy for RMM<RevmMiddleware> {
     }
 
     async fn get_spot_price(&self) -> Result<U256> {
-        Ok(self.get_spot_price().call().await?)
+        todo!();
     }
 
     async fn swap_fee(&self) -> Result<U256> {
