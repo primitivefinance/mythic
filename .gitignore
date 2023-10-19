@@ -1,2 +1,10 @@
 /target
 .env
+cache/
+.DS_store
+__pycache__
+*.png
+*.csv
+Cargo.lock
+Cargo.lock~serde
+simulation/src/bindings/*

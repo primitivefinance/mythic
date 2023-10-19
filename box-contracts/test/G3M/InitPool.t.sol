@@ -42,4 +42,19 @@ contract InitPool is SetUp {
         vm.expectRevert("Pool already initialized");
         g3m.initPool(amountX, amountY);
     }
+
+    function test_reservesWithoutPrecision(
+        uint256 amountX,
+        uint256 amountY
+    ) public {
+        amountX = bound(amountX, 1, type(uint128).max);
+        amountY = bound(amountY, 1, type(uint128).max);
+        g3m.initPool(amountX, amountY);
+
+        assertEq(g3m.reserveX(), convert(amountX));
+        assertEq(g3m.reserveY(), convert(amountY));
+
+        assertEq(g3m.reserveXWithoutPrecision(), amountX);
+        assertEq(g3m.reserveYWithoutPrecision(), amountY);
+    }
 }
