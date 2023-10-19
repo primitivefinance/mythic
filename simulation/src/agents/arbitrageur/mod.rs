@@ -69,7 +69,7 @@ impl<S: Strategy> Arbitrageur<S> {
             .mint(
                 client.address(),
                 parse_ether(100_000).unwrap(),
-                parse_ether(100_000).unwrap(),
+                parse_ether(100_000_000).unwrap(),
             )
             .await?;
 

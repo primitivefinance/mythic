@@ -40,7 +40,7 @@ impl WeightChanger {
             g3m,
             target_volatility: config.weight_changer.target_volatility,
             update_frequency: config.weight_changer.update_frequency,
-            next_update_timestamp: 0,
+            next_update_timestamp: config.weight_changer.update_frequency,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),
             portfolio_rv: Vec::new(),
@@ -122,6 +122,7 @@ impl WeightChanger {
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
+        println!("portfolio_rv: {:?}", self.portfolio_rv);
 
         Ok(())
     }

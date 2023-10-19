@@ -1,16 +1,16 @@
 [trajectory]
 # The type of price process to use.
-process = "ou"
+process = "gbm"
 # The initial price of the asset.
-initial_price = 1.0
+initial_price = 1000.0
 # The start time of the process.
 t_0 = 0.0
 # The end time of the process.
-t_n = 100.0
+t_n = 1.0
 # The number of steps in the process.
-num_steps = 100
+num_steps = 1000
 # Seed for the price processes
-seed = 2 # 1 will raise price initially, 2 will lower
+seed = 1 
 
 
 [ou]
@@ -21,6 +21,12 @@ std_dev = 0.01
 # The theta parameter of the process.
 # This describes how strongly the process will revert to the mean.
 theta = 3.0
+
+[gbm]
+# The drift of the process.
+drift = 0.01
+# The volatility of the process.
+volatility = 0.50
 
 
 [pool]
@@ -41,7 +47,7 @@ liquidity_exponent = 20
 
 [weight_changer]
 target_volatility = 0.15
-update_frequency = 500
+update_frequency = 100 
 
 [block]
 timestep_size = 15
