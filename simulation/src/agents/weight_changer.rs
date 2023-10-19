@@ -48,24 +48,22 @@ impl WeightChanger {
     }
 
     pub async fn init(&mut self) -> Result<()> {
-        let reserve_x = self.g3m.reserve_x().call().await?;
-        let reserve_y = self.g3m.reserve_y().call().await?;
-        let liquidity = self.g3m.total_liquidity().call().await?;
-        let x_per_liquidity = reserve_x.div(liquidity);
-        let y_per_liquidity = reserve_y.div(liquidity);
-
-        let asset_price = self.lex.price().call().await?;
-        let portfolio_price = x_per_liquidity
-            .checked_mul(asset_price)
-            .unwrap()
-            .checked_add(y_per_liquidity)
+        let asset_price = format_ether(self.lex.price().call().await?)
+            .parse::<f64>()
             .unwrap();
 
-        let asset_price_float = format_ether(asset_price).parse::<f64>().unwrap();
-        let portfolio_price_float = format_ether(portfolio_price).parse::<f64>().unwrap();
+        let reserve_x = format_ether(self.g3m.reserve_x_without_precision().call().await?)
+            .parse::<f64>()
+            .unwrap();
+        let reserve_y = format_ether(self.g3m.reserve_y_without_precision().call().await?)
+            .parse::<f64>()
+            .unwrap();
 
-        self.portfolio_prices.push((portfolio_price_float, 0));
-        self.asset_prices.push((asset_price_float, 0));
+        let portfolio_price = reserve_x * asset_price + reserve_y;
+        println!("portfolio_price: {}", portfolio_price);
+
+        self.portfolio_prices.push((portfolio_price, 0));
+        self.asset_prices.push((asset_price, 0));
         Ok(())
     }
 
@@ -130,6 +128,14 @@ impl WeightChanger {
             "portfolio percent return: {}",
             (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
                 / self.portfolio_prices.first().unwrap().0
+        );
+        println!(
+            "initial portfolio price: {}",
+            self.portfolio_prices.first().unwrap().0
+        );
+        println!(
+            "current portfolio price: {}",
+            self.portfolio_prices.last().unwrap().0
         );
 
         Ok(())

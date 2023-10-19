@@ -1,6 +1,6 @@
 use super::{token_admin::TokenAdmin, *};
 
-pub const INITIAL_BALANCE: (u64, u64) = (100_000, 100_000_000);
+pub const INITIAL_BALANCE: (u64, u64) = (1_000_000, 100_000_000);
 
 #[derive(Clone)]
 pub struct LiquidityProvider {
@@ -65,6 +65,18 @@ impl LiquidityProvider {
 
         // Get the parsed amounts for the portfolio deposit.
         let amounts = (initial_reserve_x, initial_reserve_y);
+        println!(
+            "amountx: {:?}",
+            ethers::utils::format_ether(amounts.0)
+                .parse::<f64>()
+                .unwrap()
+        );
+        println!(
+            "amounty: {:?}",
+            ethers::utils::format_ether(amounts.1)
+                .parse::<f64>()
+                .unwrap()
+        );
 
         // Call init pool to setup the portfolio
         // Needs an amount of both tokens, the amounts can be anything but note that
