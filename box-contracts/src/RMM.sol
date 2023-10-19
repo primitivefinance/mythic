@@ -16,6 +16,8 @@ contract RMM {
     uint256 public reserveY;
     uint256 public totalLiquidity;
 
+    mapping(address => uint256) public balanceOf;
+
     constructor(
         ERC20 tokenX_,
         ERC20 tokenY_,
@@ -50,6 +52,7 @@ contract RMM {
         totalLiquidity = liquidity;
         reserveX = amountX;
         reserveY = amountY;
+        balanceOf[msg.sender] = liquidity;
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
@@ -87,6 +90,46 @@ contract RMM {
         tokenY.transferFrom(msg.sender, address(this), amountY);
 
         return (l, amountX);
+    }
+
+    function addLiquidity(
+        bool exactX,
+        uint256 amount
+    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
+        require(totalLiquidity > 0, "Pool not initialized");
+
+        uint256 price =
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+
+        if (exactX) {
+            amountX = amount;
+
+            uint256 newLiquidity =
+                computeLGivenX(reserveX + amountX, price, strikePrice, sigma);
+            uint256 newReserveY =
+                computeYGivenL(newLiquidity, price, strikePrice, sigma);
+
+            amountY = newReserveY - reserveY;
+            liquidity = newLiquidity - totalLiquidity;
+        } else {
+            amountY = amount;
+
+            uint256 newLiquidity =
+                computeLGivenY(reserveY + amountY, price, strikePrice, sigma);
+            uint256 newReserveX =
+                computeXGivenL(newLiquidity, price, strikePrice, sigma);
+
+            amountX = newReserveX - reserveX;
+            liquidity = newLiquidity - totalLiquidity;
+        }
+
+        totalLiquidity += liquidity;
+        reserveX += amountX;
+        reserveY += amountY;
+        balanceOf[msg.sender] += liquidity;
+
+        tokenX.transferFrom(msg.sender, address(this), amountX);
+        tokenY.transferFrom(msg.sender, address(this), amountY);
     }
 
     function addLiquidityExactX(uint256 amountX)
