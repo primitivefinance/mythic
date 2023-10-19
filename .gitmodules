@@ -7,3 +7,6 @@
 [submodule "box-contracts/lib/prb-math"]
 	path = box-contracts/lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
+[submodule "box-contracts/lib/solstat"]
+	path = box-contracts/lib/solstat
+	url = https://github.com/primitivefinance/solstat

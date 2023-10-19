@@ -4,6 +4,7 @@ out = "out"
 remappings = [
   "/solmate=/lib/solmate/src",
   "@prb/math/=lib/prb-math/src/",
+  "/solstat=/lib/solstat/src",
 ]
 solc_version = "0.8.19"
 src = "src"
