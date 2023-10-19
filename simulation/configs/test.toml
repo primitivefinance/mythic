@@ -11,7 +11,7 @@ t_n = 1.0
 # num_steps = 10950 # 365 * 30 = 30 timesteps/day
 # num_steps = 7900 # 365 * 20 = 20 timesteps/day
 num_steps = 3650 # 365 * 10 = 10 timesteps/day
-#num_steps = 1825 # 365 * 5 = 5 timesteps/day
+# num_steps = 1825 # 365 * 5 = 5 timesteps/day
 # Seed for the price processes
 seed = 2
 
@@ -27,9 +27,9 @@ theta = 3.0
 
 [gbm]
 # The drift of the process.
-drift = 1.0
+drift = 0.1
 # The volatility of the process.
-volatility = 0.6
+volatility = 0.35
 
 
 [pool]

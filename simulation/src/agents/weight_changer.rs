@@ -154,7 +154,7 @@ impl WeightChanger {
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
         println!("current_weight_float: {}", current_weight_float);
         if portfolio_rv < self.target_volatility {
-            let new_weight = current_weight_float + 0.003;
+            let new_weight = current_weight_float + 0.0025;
             println!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
@@ -164,7 +164,7 @@ impl WeightChanger {
                 .send()
                 .await?;
         } else {
-            let new_weight = current_weight_float - 0.003;
+            let new_weight = current_weight_float - 0.0025;
             println!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
