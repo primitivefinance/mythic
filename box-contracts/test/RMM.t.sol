@@ -52,4 +52,12 @@ contract RMMTest is Test {
         (uint256 l, uint256 amountY) = rmm.initExactX(amountX, initialPrice);
         (uint256 l2, uint256 amountY2) = rmm.addLiquidityExactX(amountX);
     }
+
+    function test_rmm_swap() public {
+        uint256 amountX = 5_000 ether;
+        rmm.initExactX(amountX, initialPrice);
+
+        uint256 amountY = rmm.swap(500 ether);
+        console.log(amountY);
+    }
 }
