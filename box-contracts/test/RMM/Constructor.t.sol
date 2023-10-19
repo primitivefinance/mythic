@@ -6,7 +6,7 @@ import "solmate/test/utils/mocks/MockERC20.sol";
 import "../../src/RMM.sol";
 
 contract RMMConstructor is Test {
-    function testFuzz_constructor_CorrectParams(
+    function testFuzz_rmm_constructor_CorrectParams(
         address tokenX,
         address tokenY,
         uint256 sigma,

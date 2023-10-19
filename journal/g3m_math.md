@@ -56,11 +56,11 @@ p = \frac{w_x}{w_y} \frac{y}{x}  = \frac{w_x}{w_y} \frac{y+\Delta_y}{x+\Delta_x}
 $$
 which implies if they choose a given $\Delta_x$, then they must have:
 $$
-\Delta_y = p\frac{w_y}{w_x}(x+\Delta_x)-y
+\Delta_y = \frac{y}{x}(x+\Delta_x)-y
 $$
 and similarly if they choose a given $\Delta_y$, then they must have:
 $$
-\Delta_x = \frac{1}{p}\frac{w_x}{w_y}(y+\Delta_y)-x
+\Delta_x = \frac{x}{y}(y+\Delta_y)-x
 $$
 
 

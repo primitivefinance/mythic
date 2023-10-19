@@ -359,7 +359,8 @@ contract G3M is IG3M {
         );
         ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
 
-        emit Swap(msg.sender, swapDirection, amountIn, amountOut);
+        uint256 new_price = computeSpotPrice(reserveX, currentWeightX, reserveY, currentWeightY);
+        emit Swap(msg.sender, swapDirection, amountIn, amountOut, new_price);
 
         return exactIn ? amountOut : amountIn;
     }

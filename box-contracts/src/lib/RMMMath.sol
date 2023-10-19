@@ -128,12 +128,18 @@ function computeOutputYGivenX(
     uint256 deltaY,
     uint256 L,
     uint256 deltaL,
-    uint256 strikePrice,
+    uint256 K,
     uint256 sigma
-) pure returns (uint256) {
-    uint256 R1 = FixedPointMathLib.divWadDown(x + deltaX, L + deltaL);
-    return FixedPointMathLib.mulWadUp(
-        FixedPointMathLib.mulWadUp(strikePrice, L + deltaL),
-        uint256(Gaussian.cdf(-int256(sigma) - Gaussian.ppf(int256(R1))))
-    ) - y - deltaY;
+) pure returns (int256) {
+    uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
+
+    int256 cdf = Gaussian.cdf(
+        -int256(sigma)
+            - Gaussian.ppf(
+                int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
+            )
+    );
+
+    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
+        - int256(deltaY);
 }

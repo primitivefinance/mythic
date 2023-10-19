@@ -9,6 +9,7 @@ contract RMMMathTest is Test {
     uint256 S = 2000 ether;
     uint256 K = 1800 ether;
     uint256 sigma = 0.05 ether;
+    uint256 gamma = 30;
 
     function test_compute_backAndForth() public view {
         uint256 x = 5_000 ether;
@@ -56,14 +57,38 @@ contract RMMMathTest is Test {
     function test_computeOutputYGivenX() public view {
         uint256 reserveX = 5_000 ether;
         uint256 deltaX = 500 ether;
-        uint256 tau = 1 ether;
+        uint256 fees = deltaX * gamma / 10_000;
+        uint256 deltaX2 = deltaX - fees;
 
-        uint256 liquidity = computeLGivenX(reserveX, S, K, sigma);
-        console.log("liquidity:", liquidity);
-        uint256 y = computeYGivenL(liquidity, S, K, sigma);
-        console.log("y:", y);
+        uint256 L = computeLGivenX(reserveX, S, K, sigma);
+        uint256 reserveY = computeYGivenL(L, S, K, sigma);
+        uint256 deltaL = computeLGivenX(deltaX2, S, K, sigma);
+        console.log("deltaL:", deltaL);
+        uint256 dy = computeYGivenL(deltaL, S, K, sigma);
+        console.log("dy:", dy);
 
-        uint256 gamma = 30;
-        uint256 dX = deltaX * gamma;
+        uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
+        console.log(KL);
+        int256 cdf = Gaussian.cdf(
+            -int256(sigma)
+                - Gaussian.ppf(
+                    int256(
+                        FixedPointMathLib.divWadDown(reserveX + deltaX, L + deltaL)
+                    )
+                )
+        );
+        console.logInt(cdf);
+
+        console.log(uint256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))));
+        console.logInt(
+            int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf)))
+                - int256(reserveY) - int256(dy)
+        );
+
+        console.logInt(
+            computeOutputYGivenX(
+                reserveX, deltaX, reserveY, dy, L, deltaL, K, sigma
+            )
+        );
     }
 }

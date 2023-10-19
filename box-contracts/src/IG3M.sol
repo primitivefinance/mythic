@@ -25,7 +25,8 @@ interface IG3M {
         address indexed sender,
         bool swapDirection,
         uint256 input,
-        uint256 output
+        uint256 output,
+        uint256 newPrice
     );
 
     /// @notice Emitted when the weight of token X is updated.
