@@ -30,6 +30,31 @@ contract RMM {
         tau = tau_;
     }
 
+    function initPool(
+        bool exactX,
+        uint256 amount,
+        uint256 price
+    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
+        require(totalLiquidity == 0, "Pool already initialized");
+
+        if (exactX) {
+            amountX = amount;
+            liquidity = computeLGivenX(amountX, price, strikePrice, sigma);
+            amountY = computeYGivenL(liquidity, price, strikePrice, sigma);
+        } else {
+            amountY = amount;
+            liquidity = computeLGivenY(amountY, price, strikePrice, sigma);
+            amountX = computeXGivenL(liquidity, price, strikePrice, sigma);
+        }
+
+        totalLiquidity = liquidity;
+        reserveX = amountX;
+        reserveY = amountY;
+
+        tokenX.transferFrom(msg.sender, address(this), amountX);
+        tokenY.transferFrom(msg.sender, address(this), amountY);
+    }
+
     function initExactX(
         uint256 amountX,
         uint256 price
