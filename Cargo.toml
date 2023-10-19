@@ -30,6 +30,11 @@ anyhow.workspace = true
 clap = { version = "4.4.6", features = ["derive"] }
 tracing-subscriber = "0.3.17"
 
+[dev-dependencies]
+mdbook = "0.4.35"
+cargo-make = "0.37.2"
+
 [arbiter]
 bindings_workspace = "simulation" # must be a valid workspace member
 submodules = false # change to true if you want the submodule bindings to be generated
+

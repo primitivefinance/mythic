@@ -16,6 +16,17 @@ cargo run
 cargo test --workspace
 ```
 
+## For book
+You may have to install `cargo-make` and `mdbook`, but they're in our workspace's Cargo file so I think it will be okay. Anyway, to compile the book run:
+```bash
+cargo make journal
+```
+then you can run
+```bash
+cargo make journal-serve
+```
+to be able to view the book in your browser at `http://localhost:3000`
+
 ## Crates
 - Core - Abstractions for portfolio management in rust
 - Simulation - Simulation loop, data logging, and agents
