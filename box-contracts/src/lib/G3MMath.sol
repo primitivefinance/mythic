@@ -44,18 +44,18 @@ function computeInvariant(
 /**
  * @dev Computes the spot price of a pool using the following formula:
  *
- *       rI
- *       ──
- *       wI
- * p =  ────
  *       rO
  *       ──
  *       wO
+ * p =  ────
+ *       rI
+ *       ──
+ *       wI
  *
- * @param rI Reserve of the input token
- * @param wI Weight of the input token
  * @param rO Reserve of the output token
  * @param wO Weight of the output token
+ * @param rI Reserve of the input token
+ * @param wI Weight of the input token
  * @return p Spot price of the pool
  */
 function computeSpotPrice(
@@ -113,6 +113,54 @@ function computeAmountOutGivenExactLiquidity(
     UD60x18 r
 ) pure returns (uint256 o) {
     o = convert((UNIT - (t - l) / t) * r);
+}
+
+/**
+ * @dev Computes the amount of token Y relative to a specific amount of tokenX.
+ * This function can be used to compute either the required tokens when adding
+ * liquidity or the received tokens when removing liquidity.
+ *
+ * The following formula is used:
+ *
+ *      rY
+ * dY = ── ⋅ (rX + dX) - rY
+ *      rX
+ *
+ * @param rX Reserve of token X
+ * @param rY Reserve of token Y
+ * @param dX Differential amount of token X
+ * @return dY Differential amount of token Y
+ */
+function computeDeltaYGivenDeltaX(
+    UD60x18 rX,
+    UD60x18 rY,
+    uint256 dX
+) pure returns (uint256 dY) {
+    dY = convert((rY / rX) * (rX + convert(dX)) - rY);
+}
+
+/**
+ * @dev Computes the amount of token X relative to a specific amount of tokenY.
+ * This function can be used to compute either the required tokens when adding
+ * liquidity or the received tokens when removing liquidity.
+ *
+ * The following formula is used:
+ *
+ *      rX
+ * dX = ── ⋅ (rY + dY) - rX
+ *      rY
+ *
+ * @param rX Reserve of token X
+ * @param rY Reserve of token Y
+ * @param dY Differential amount of token Y
+ * @return dX Differential amount of token X
+ */
+function computeDeltaXGivenDeltaY(
+    UD60x18 rX,
+    UD60x18 rY,
+    uint256 dY
+) pure returns (uint256 dX) {
+    dX = convert((rX / rY) * (rY + convert(dY)) - rX);
 }
 
 /**
