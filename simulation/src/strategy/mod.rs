@@ -5,9 +5,7 @@ pub mod rmm;
 
 #[async_trait::async_trait]
 pub trait Strategy: Sized {
-    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self {
-        Self::new(strategy_address, client)
-    }
+    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self;
 
     // For arbitrage
     async fn get_x_input(
@@ -25,9 +23,5 @@ pub trait Strategy: Sized {
 
     async fn swap_fee(&self) -> Result<U256>;
 
-    // TODO: This can be removed if we have the right deposit flow on the contract
-    async fn get_lp_amounts(&self, config: &SimulationConfig) -> (U256, U256);
-
-    async fn init_pool(&self, amount_x: U256, amount_y: U256)
-        -> Result<Option<TransactionReceipt>>;
+    async fn init_pool_with_x(&self, amount_x: U256) -> Result<Option<TransactionReceipt>>;
 }

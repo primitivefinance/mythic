@@ -2,6 +2,9 @@ use super::*;
 
 #[async_trait::async_trait]
 impl Strategy for RMM<RevmMiddleware> {
+    fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self {
+        Self::new(strategy_address, client)
+    }
     async fn get_x_input(
         &self,
         target_price_wad: U256,
@@ -26,16 +29,7 @@ impl Strategy for RMM<RevmMiddleware> {
         todo!()
     }
 
-    // TODO: This can be removed if we have the right deposit flow on the contract
-    async fn get_lp_amounts(&self, config: &SimulationConfig) -> (U256, U256) {
-        todo!()
-    }
-
-    async fn init_pool(
-        &self,
-        amount_x: U256,
-        amount_y: U256,
-    ) -> Result<Option<TransactionReceipt>> {
+    async fn init_pool_with_x(&self, amount_x: U256) -> Result<Option<TransactionReceipt>> {
         todo!()
     }
 }

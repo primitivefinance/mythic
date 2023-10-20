@@ -4,7 +4,7 @@ use super::{strategy::Strategy, token_admin::TokenAdmin, *};
 pub struct LiquidityProvider<S: Strategy> {
     pub client: Arc<RevmMiddleware>,
     pub strategy: S,
-    pub initial_balances: (U256, U256),
+    initial_x: U256,
 }
 
 impl<S: Strategy> LiquidityProvider<S> {
@@ -20,14 +20,8 @@ impl<S: Strategy> LiquidityProvider<S> {
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 
-        let initial_balances = strategy.get_lp_amounts(config).await;
-
         token_admin
-            .mint(
-                client.address(),
-                parse_ether(initial_balances.0).unwrap(),
-                parse_ether(initial_balances.1).unwrap(),
-            )
+            .mint(client.address(), U256::MAX / 2, U256::MAX / 2)
             .await?;
 
         arbx.approve(strategy_address, U256::MAX).send().await?;
@@ -36,12 +30,15 @@ impl<S: Strategy> LiquidityProvider<S> {
         Ok(Self {
             client,
             strategy,
-            initial_balances,
+            initial_x: float_to_wad(config.lp.x_liquidity),
         })
     }
 
     // TODO: This can be consolidated if we have a generalized way to deposit
     pub async fn add_liquidity(self) -> Result<()> {
-        todo!();
+        println!("here");
+        self.strategy.init_pool_with_x(self.initial_x).await?;
+        println!("after the call");
+        Ok(())
     }
 }

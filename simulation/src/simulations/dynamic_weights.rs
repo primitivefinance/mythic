@@ -26,6 +26,7 @@ pub async fn run(config_path: &str) -> Result<()> {
         token_admin.arby.address(),
     )
     .await?;
+
     let lp = LiquidityProvider::<G3M<RevmMiddleware>>::new(
         &env,
         &token_admin,
@@ -44,6 +45,8 @@ pub async fn run(config_path: &str) -> Result<()> {
     lp.add_liquidity().await?;
     block_admin.update_block()?;
     weight_changer.init().await?;
+
+    println!("got here");
 
     // have the loop iterate blcoks and block timestamps
     // draw random # from poisson distribution which determines how long we wait for
