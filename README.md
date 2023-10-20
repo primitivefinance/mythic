@@ -17,7 +17,7 @@ cargo test --workspace
 ```
 
 ## For book
-You may have to install `cargo-make` and `mdbook`, but they're in our workspace's Cargo file so I think it will be okay. Anyway, to compile the book run:
+You may have to install `cargo-make`, `mdbook`, and `mdbook-katex`, but they're in our workspace's Cargo file so it may be okay. Anyway, to compile the book run:
 ```bash
 cargo make journal
 ```
