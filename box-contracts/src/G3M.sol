@@ -129,6 +129,7 @@ contract G3M is IG3M {
             weightXDelta / convert(newWeightXUpdateEnd - block.timestamp);
         targetWeightX = newTargetWeightX;
         weightXUpdateEnd = newWeightXUpdateEnd;
+        emit LogWeights(block.timestamp, weightX());
     }
 
     /// @inheritdoc IG3M
@@ -402,5 +403,8 @@ contract G3M is IG3M {
 
     function reserveYWithoutPrecision() external view returns (uint256) {
         return convert(reserveY);
+    }
+    function liquidityWithoutPrecision() external view returns (uint256) {
+        return convert(totalLiquidity);
     }
 }

@@ -9,6 +9,8 @@ pub struct SimulationConfig {
     pub ou: Option<OUParameters>,
     pub pool: PoolParameters,
     pub lp: LPParameters,
+    pub block: BlockParameters,
+    pub weight_changer: WeightChangerParameters,
 }
 
 impl SimulationConfig {
@@ -22,6 +24,11 @@ impl SimulationConfig {
 
 pub mod parameters {
     use super::*;
+
+    #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+    pub struct BlockParameters {
+        pub timestep_size: u64,
+    }
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct TrajectoryParameters {
@@ -73,5 +80,11 @@ pub mod parameters {
     pub struct LPParameters {
         pub liquidity_mantissa: u64,
         pub liquidity_exponent: u32,
+    }
+
+    #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+    pub struct WeightChangerParameters {
+        pub target_volatility: f64,
+        pub update_frequency: u64,
     }
 }

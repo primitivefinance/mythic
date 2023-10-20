@@ -1,16 +1,19 @@
 [trajectory]
 # The type of price process to use.
-process = "ou"
+process = "gbm"
 # The initial price of the asset.
 initial_price = 1.0
 # The start time of the process.
 t_0 = 0.0
 # The end time of the process.
-t_n = 10
+t_n = 1.0
 # The number of steps in the process.
-num_steps = 10
+# num_steps = 10950 # 365 * 30 = 30 timesteps/day
+# num_steps = 7900 # 365 * 20 = 20 timesteps/day
+num_steps = 3650 # 365 * 10 = 10 timesteps/day
+# num_steps = 1825 # 365 * 5 = 5 timesteps/day
 # Seed for the price processes
-seed = 2 # 1 will raise price initially, 2 will lower
+seed = 2
 
 
 [ou]
@@ -22,13 +25,19 @@ std_dev = 0.01
 # This describes how strongly the process will revert to the mean.
 theta = 3.0
 
+[gbm]
+# The drift of the process.
+drift = 0.1
+# The volatility of the process.
+volatility = 0.35
+
 
 [pool]
 # The weight for the `token_x` in the pool.
 # `weight_y = 1 - weight_x`
 weight_x = 0.5
 # The swap fee in BPs.
-fee_basis_points = 3
+fee_basis_points = 30
 # Target volatility for the pool
 target_volatility = 0.15
 
@@ -38,3 +47,13 @@ target_volatility = 0.15
 # `token_y` will be found from the weights and initial price.
 liquidity_mantissa = 1
 liquidity_exponent = 20
+
+[weight_changer]
+target_volatility = 0.15
+#update_frequency = 450 # 1 update per 30 timestep day
+#update_frequency = 300 # 1 update per 20 timestep day
+update_frequency = 150 # 1 update per 10 timestep day
+#update_frequency = 75 # 1 update per 5 timestep day
+
+[block]
+timestep_size = 15

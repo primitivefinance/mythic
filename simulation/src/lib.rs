@@ -25,10 +25,10 @@ use tracing::info;
 
 #[allow(unused)]
 mod agents;
+pub mod bindings;
 #[allow(unused)]
 mod math;
 #[allow(unused)]
 mod settings;
 #[allow(unused)]
 pub mod simulations;
-pub mod bindings;
