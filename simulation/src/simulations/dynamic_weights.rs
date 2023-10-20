@@ -1,4 +1,5 @@
 use super::*;
+use crate::agents::Agent;
 use crate::{
     agents::{
         arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
@@ -27,14 +28,14 @@ pub async fn run(config_path: &str) -> Result<()> {
     )
     .await?;
 
-    let lp = LiquidityProvider::<G3M<RevmMiddleware>>::new(
+    let mut lp = LiquidityProvider::<G3M<RevmMiddleware>>::new(
         &env,
         &token_admin,
         weight_changer.g3m.address(),
         &config,
     )
     .await?;
-    let arbitrageur = Arbitrageur::<G3M<RevmMiddleware>>::new(
+    let mut arbitrageur = Arbitrageur::<G3M<RevmMiddleware>>::new(
         &env,
         &token_admin,
         weight_changer.lex.address(),
@@ -42,31 +43,30 @@ pub async fn run(config_path: &str) -> Result<()> {
     )
     .await?;
 
-    lp.add_liquidity().await?;
-    block_admin.update_block()?;
-    weight_changer.init().await?;
-
-    println!("got here");
-
-    // have the loop iterate blcoks and block timestamps
-    // draw random # from poisson distribution which determines how long we wait for
-    // price to change loop that causes price change -> arbitrageur -> check if
-    // weightchanger needs to run
-
     EventLogger::builder()
         .path("./analysis/test_data")
         .add(price_changer.liquid_exchange.events(), "lex")
         .add(weight_changer.g3m.events(), "g3m")
         .run()?;
 
+    let mut steppers: Vec<Box<dyn Agent>> = vec![];
+    steppers.push(Box::new(price_changer));
+    steppers.push(Box::new(arbitrageur));
+    steppers.push(Box::new(block_admin));
+    steppers.push(Box::new(weight_changer));
+
+    for stepper in steppers.iter_mut() {
+        stepper.startup().await?;
+    }
+
     for index in 0..config.trajectory.num_steps {
-        println!("index: {}", index);
-        let init_price = weight_changer.g3m.get_spot_price().call().await?;
-        price_changer.update_price().await?;
-        arbitrageur.step().await?;
-        let new_price = weight_changer.g3m.get_spot_price().call().await?;
-        block_admin.update_block()?;
-        weight_changer.step().await?;
+        for stepper in steppers.iter_mut() {
+            stepper.priority_step().await?;
+        }
+
+        for stepper in steppers.iter_mut() {
+            stepper.step().await?;
+        }
     }
 
     Ok(())

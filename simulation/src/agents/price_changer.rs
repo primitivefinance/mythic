@@ -104,3 +104,11 @@ impl PriceChanger {
         Ok(())
     }
 }
+
+#[async_trait::async_trait]
+impl Agent for PriceChanger {
+    async fn step(&mut self) -> Result<()> {
+        self.update_price().await?;
+        Ok(())
+    }
+}

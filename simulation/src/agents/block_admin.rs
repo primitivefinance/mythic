@@ -36,3 +36,16 @@ impl BlockAdmin {
         Ok(())
     }
 }
+
+#[async_trait::async_trait]
+impl Agent for BlockAdmin {
+    async fn step(&mut self) -> Result<()> {
+        self.update_block()?;
+        Ok(())
+    }
+
+    async fn startup(&mut self) -> Result<()> {
+        self.update_block()?;
+        Ok(())
+    }
+}

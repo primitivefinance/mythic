@@ -35,10 +35,18 @@ impl<S: Strategy> LiquidityProvider<S> {
     }
 
     // TODO: This can be consolidated if we have a generalized way to deposit
-    pub async fn add_liquidity(self) -> Result<()> {
+    async fn add_liquidity(&self) -> Result<()> {
         println!("here");
         self.strategy.init_pool_with_x(self.initial_x).await?;
         println!("after the call");
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl<S: Strategy + std::marker::Sync + std::marker::Send> Agent for LiquidityProvider<S> {
+    async fn startup(&mut self) -> Result<()> {
+        self.add_liquidity().await?;
         Ok(())
     }
 }
