@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 
-import "../src/lib/RMMMath.sol";
+import "../../src/lib/RMMMath.sol";
 
 contract RMMMathTest is Test {
     uint256 S = 2000 ether;
