@@ -37,21 +37,14 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
             initial_price: float_to_wad(config.trajectory.initial_price),
         })
     }
-
-    // TODO: This can be consolidated if we have a generalized way to deposit
-    async fn add_liquidity(&self) -> Result<()> {
-        println!("here");
-        self.strategy.init_pool_with_x(self.initial_x).await?;
-        println!("after the call");
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]
 impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent for LiquidityProvider<S> {
     async fn startup(&mut self) -> Result<()> {
         // Initializes the liquidity of a pool with a target price given an initial amount of x tokens.
-        self.strategy
+        let tx = self
+            .strategy
             .instantiate(self.initial_x, self.initial_price)
             .await?;
 

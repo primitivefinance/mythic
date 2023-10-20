@@ -28,8 +28,4 @@ impl Strategy for RMM<RevmMiddleware> {
     async fn swap_fee(&self) -> Result<U256> {
         todo!()
     }
-
-    async fn init_pool_with_x(&self, amount_x: U256) -> Result<Option<TransactionReceipt>> {
-        todo!()
-    }
 }

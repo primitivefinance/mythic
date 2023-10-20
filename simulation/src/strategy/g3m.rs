@@ -72,23 +72,19 @@ impl Strategy for G3M<RevmMiddleware> {
     async fn swap_fee(&self) -> Result<U256> {
         Ok(self.swap_fee().call().await?)
     }
-
-    async fn init_pool_with_x(&self, amount_x: U256) -> Result<Option<TransactionReceipt>> {
-        Ok(self
-            .add_liquidity_with_exact_x(true, amount_x)
-            .send()
-            .await?
-            .await?)
-    }
 }
 
 #[async_trait::async_trait]
 impl LiquidityStrategy for G3M<RevmMiddleware> {
-    async fn instantiate(&self, initial_x_wad: U256, initial_price_wad: U256) -> Result<()> {
-        self.instantiate(initial_x_wad, initial_price_wad)
+    async fn instantiate(
+        &self,
+        initial_x_wad: U256,
+        initial_price_wad: U256,
+    ) -> Result<Option<TransactionReceipt>> {
+        Ok(self
+            .instantiate(initial_x_wad, initial_price_wad)
             .send()
             .await?
-            .await?;
-        Ok(())
+            .await?)
     }
 }
