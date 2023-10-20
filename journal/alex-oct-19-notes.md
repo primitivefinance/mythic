@@ -37,3 +37,9 @@ Arbitrageur specifically needs to compute exactly the amount of tokens to swap t
 All agents that interact with the sim have a `step` that they take which runs their own logic. They also have a `startup` method which should be called outside of the main simulation loop to initialize their state.
 
 These methods can be a trait that is implemented by the agents, then the agents that implement these traits can be put into a vec that is iterated over, and that's our main sim loop.
+
+## Strategies
+
+Both the local agents, the arbitrageur and liquidity provider, need access to the Strategy methods to interact with the strategy, whether that's computing actions to take or taking the action. For example, the arbitrageur needs to get price info from the strategy's respective contracts, while the liquidity provider needs to initialize the pool and add tokens into it.
+
+These agents are sharing the same interface, that can be a trait implemented over the contract instance.

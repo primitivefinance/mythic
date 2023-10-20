@@ -54,16 +54,21 @@ pub async fn run(config_path: &str) -> Result<()> {
     steppers.push(Box::new(arbitrageur));
     steppers.push(Box::new(block_admin));
     steppers.push(Box::new(weight_changer));
+    steppers.push(Box::new(lp));
 
+    info!("Entering startup loop for agents.");
     for stepper in steppers.iter_mut() {
         stepper.startup().await?;
     }
 
-    for index in 0..config.trajectory.num_steps {
+    let total_steps = 1; //config.trajectory.num_steps; // todo: for testing we are just running one loop right now, just replace with the trajectory steps.
+    for index in 0..total_steps {
+        info!("Entering priority loop for index: {}", index);
         for stepper in steppers.iter_mut() {
             stepper.priority_step().await?;
         }
 
+        info!("Entering core loop for index: {}", index);
         for stepper in steppers.iter_mut() {
             stepper.step().await?;
         }

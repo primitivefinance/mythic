@@ -95,6 +95,15 @@ contract G3M is IG3M {
         swapFee = swapFee_;
     }
 
+    function instantiate(uint initial_x, uint initial_price) public {
+        // y = x * (1 - w_x) / (price * w_y)
+        // y = ( p * w_y * x ) / w_x
+        uint weight_x = UD60x18.unwrap(lastWeightX);
+        uint weight_y = 1 ether - weight_x;
+        uint initial_y = initial_price * weight_y * initial_x / weight_x / 1 ether;
+        _initPool(initial_x, initial_y);
+    }
+
     /**
      * @dev Computes and stores the current weight of token X, as well as the
      * timestamp of the last weight sync.
@@ -136,7 +145,11 @@ contract G3M is IG3M {
     function initPool(
         uint256 amountX,
         uint256 amountY
-    ) external returns (UD60x18) {
+    ) public returns (UD60x18) {
+        return _initPool(amountX, amountY);
+    }
+
+    function _initPool(uint amountX, uint amountY) public returns(UD60x18) {
         require(totalLiquidity.isZero(), "Pool already initialized");
 
         UD60x18 amountXUD60x18 = convert(amountX);

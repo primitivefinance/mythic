@@ -81,3 +81,14 @@ impl Strategy for G3M<RevmMiddleware> {
             .await?)
     }
 }
+
+#[async_trait::async_trait]
+impl LiquidityStrategy for G3M<RevmMiddleware> {
+    async fn instantiate(&self, initial_x_wad: U256, initial_price_wad: U256) -> Result<()> {
+        self.instantiate(initial_x_wad, initial_price_wad)
+            .send()
+            .await?
+            .await?;
+        Ok(())
+    }
+}

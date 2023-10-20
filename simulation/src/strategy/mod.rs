@@ -25,3 +25,14 @@ pub trait Strategy: Sized {
 
     async fn init_pool_with_x(&self, amount_x: U256) -> Result<Option<TransactionReceipt>>;
 }
+
+#[async_trait::async_trait]
+pub trait LiquidityStrategy: Strategy {
+    /// Instantiate's the pool with a target amount of reserves and liquidity, at a price.
+    async fn instantiate(&self, initial_x_wad: U256, initial_price_wad: U256) -> Result<()>;
+}
+
+#[async_trait::async_trait]
+pub trait RebalanceStrategy: Strategy {
+    async fn rebalance(&self) -> Result<Option<TransactionReceipt>>;
+}
