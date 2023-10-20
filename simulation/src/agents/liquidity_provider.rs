@@ -42,12 +42,6 @@ impl<S: Strategy> LiquidityProvider<S> {
 
     // TODO: This can be consolidated if we have a generalized way to deposit
     pub async fn add_liquidity(self) -> Result<()> {
-        // Call init pool to setup the portfolio
-        // Needs an amount of both tokens, the amounts can be anything but note that
-        // they affect the spot price.
-        self.strategy
-            .init_pool(self.initial_balances.0, self.initial_balances.1)
-            .await?;
-        Ok(())
+        todo!();
     }
 }
