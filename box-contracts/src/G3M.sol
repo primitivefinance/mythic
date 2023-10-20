@@ -4,11 +4,49 @@ pragma solidity ^0.8.13;
 import "solmate/tokens/ERC20.sol";
 import "./lib/G3MMath.sol";
 import "./IG3M.sol";
+import "./IStrategy.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
  */
-contract G3M is IG3M {
+contract G3M is IG3M, IStrategy {
+    //! ======== PROTOTYPE FUNCTIONS ======== !//
+    function instantiate(uint initial_x, uint initial_price) public {
+        // y = x * (1 - w_x) / (price * w_y)
+        // y = ( p * w_y * x ) / w_x
+        uint weight_x = UD60x18.unwrap(lastWeightX);
+        uint weight_y = 1 ether - weight_x;
+        uint initial_y = initial_price * weight_y * initial_x / weight_x / 1 ether;
+        _initPool(initial_x, initial_y);
+    }
+
+    function get_strategy_data() public view override returns(bytes memory) {
+        return abi.encode(UD60x18.unwrap(weightX()), UD60x18.unwrap(weightY()));
+    }
+
+    function get_spot_price() public view override returns(uint) {
+        return getSpotPrice();
+    }
+
+    function get_swap_fee() public view override returns(uint) {
+        return swapFee;
+    }
+
+    function get_reserve_x() public view override returns(uint) {
+        return reserveXWithoutPrecision();
+    }
+
+    function get_reserve_y() public view override returns(uint) {
+        return reserveYWithoutPrecision();
+    }
+
+
+    function get_invariant() public view override returns(uint) {
+        return convert(computeInvariant(reserveX, weightX(), reserveY, weightY()));
+    }
+
+    //! ======== END PROTOTYPE FUNCTIONS ======== !//
+
     /// @notice Thrown when the old invariant is greater than the new one.
     error InvalidSwap(UD60x18 invariantBefore, UD60x18 invariantAfter);
 
@@ -95,14 +133,7 @@ contract G3M is IG3M {
         swapFee = swapFee_;
     }
 
-    function instantiate(uint initial_x, uint initial_price) public {
-        // y = x * (1 - w_x) / (price * w_y)
-        // y = ( p * w_y * x ) / w_x
-        uint weight_x = UD60x18.unwrap(lastWeightX);
-        uint weight_y = 1 ether - weight_x;
-        uint initial_y = initial_price * weight_y * initial_x / weight_x / 1 ether;
-        _initPool(initial_x, initial_y);
-    }
+    
 
     /**
      * @dev Computes and stores the current weight of token X, as well as the
@@ -401,23 +432,23 @@ contract G3M is IG3M {
     }
 
     /// @inheritdoc IG3M
-    function getSpotPrice() external view returns (uint256) {
+    function getSpotPrice() public view returns (uint256) {
         return computeSpotPrice(reserveX, weightX(), reserveY, weightY());
     }
 
     /// @inheritdoc IG3M
-    function getInvariant() external view returns (uint) {
+    function getInvariant() public view returns (uint) {
         return convert(computeInvariant(reserveX, weightX(), reserveY, weightY()));
     }
 
-    function reserveXWithoutPrecision() external view returns (uint256) {
+    function reserveXWithoutPrecision() public view returns (uint256) {
         return convert(reserveX);
     }
 
-    function reserveYWithoutPrecision() external view returns (uint256) {
+    function reserveYWithoutPrecision() public view returns (uint256) {
         return convert(reserveY);
     }
-    function liquidityWithoutPrecision() external view returns (uint256) {
+    function liquidityWithoutPrecision() public view returns (uint256) {
         return convert(totalLiquidity);
     }
 }

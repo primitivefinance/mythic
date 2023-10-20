@@ -3,25 +3,15 @@ pragma solidity ^0.8.13;
 
 /// @dev Draft of a generic interface that we could reuse for all strategies.
 interface IStrategy {
-    // TODO: This could be a generic function that simply takes some `bytes` as
-    // an argument, then each strategy contract will decode the data as they want.
-    function initPool(bytes calldata data)
-        external
-        returns (uint256 amountX, uint256 amountY, uint256 liquidity);
+    // Actions
+    function instantiate(uint initial_x_wad, uint initial_price_wad) external;
 
-    function addLiquidity(
-        bool isExactX,
-        uint256 amount
-    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity);
+    // Getters
+    function get_spot_price() external view returns(uint spot_price_wad);
+    function get_swap_fee() external view returns(uint fee);
+    function get_reserve_x() external view returns(uint reserve_x_wad);
+    function get_reserve_y() external view returns(uint reserve_y_wad);
+    function get_invariant() external view returns(uint invariant);
+    function get_strategy_data() external view returns(bytes memory strategy_data);
 
-    function removeLiquidity(
-        bool isExactX,
-        uint256 amount
-    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity);
-
-    function swap(
-        bool xForY,
-        bool exactIn,
-        uint256 amount
-    ) external returns (uint256 input, uint256 output);
 }

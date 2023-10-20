@@ -18,7 +18,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
         config: &SimulationConfig,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
-        let strategy: S = Strategy::new(strategy_address, client.clone());
+        let strategy: S = S::new(strategy_address, client.clone());
 
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());

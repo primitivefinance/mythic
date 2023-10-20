@@ -1,9 +1,9 @@
 use super::*;
 use crate::agents::Agent;
-use crate::strategy::Strategy;
+use crate::strategy::ArbitrageStrategy;
 
 #[derive(Clone)]
-pub struct Arbitrageur<S: Strategy> {
+pub struct Arbitrageur<S: ArbitrageStrategy> {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
@@ -17,7 +17,7 @@ pub struct Arbitrageur<S: Strategy> {
     pub math: SD59x18Math<RevmMiddleware>,
 }
 
-impl<S: Strategy> Arbitrageur<S> {
+impl<S: ArbitrageStrategy> Arbitrageur<S> {
     pub async fn new(
         environment: &Environment,
         token_admin: &token_admin::TokenAdmin,
@@ -29,7 +29,7 @@ impl<S: Strategy> Arbitrageur<S> {
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
-        let strategy = Strategy::new(strategy_address, client.clone());
+        let strategy = S::new(strategy_address, client.clone());
         let atomic_arbitrage = AtomicArbitrage::deploy(
             client.clone(),
             (
@@ -84,7 +84,7 @@ impl<S: Strategy> Arbitrageur<S> {
         let g3m_price_wad = self.strategy.get_spot_price().await?;
         // info!("g3m_price_wad: {:?}", g3m_price_wad);
 
-        let gamma_wad = WAD - (self.strategy.swap_fee().await?) * U256::from(10u128.pow(14));
+        let gamma_wad = WAD - (self.strategy.get_swap_fee().await?) * U256::from(10u128.pow(14));
         // info!("gamma_wad: {:?}", gamma_wad);
 
         // Compute the no-arbitrage bounds.
@@ -114,7 +114,7 @@ impl<S: Strategy> Arbitrageur<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: Strategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
+impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.

@@ -5,6 +5,7 @@ use crate::{
         arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
         price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger,
     },
+    bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
 };
 use arbiter_core::environment::builder::BlockSettings;
@@ -28,14 +29,14 @@ pub async fn run(config_path: &str) -> Result<()> {
     )
     .await?;
 
-    let mut lp = LiquidityProvider::<G3M<RevmMiddleware>>::new(
+    let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
         &env,
         &token_admin,
         weight_changer.g3m.address(),
         &config,
     )
     .await?;
-    let mut arbitrageur = Arbitrageur::<G3M<RevmMiddleware>>::new(
+    let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
         &env,
         &token_admin,
         weight_changer.lex.address(),
@@ -61,7 +62,7 @@ pub async fn run(config_path: &str) -> Result<()> {
         stepper.startup().await?;
     }
 
-    let total_steps = 1; //config.trajectory.num_steps; // todo: for testing we are just running one loop right now, just replace with the trajectory steps.
+    let total_steps = config.trajectory.num_steps;
     for index in 0..total_steps {
         info!("Entering priority loop for index: {}", index);
         for stepper in steppers.iter_mut() {
