@@ -7,4 +7,3 @@ __pycache__
 *.csv
 Cargo.lock
 Cargo.lock~serde
-simulation/src/bindings/*
