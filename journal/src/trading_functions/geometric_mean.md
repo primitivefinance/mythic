@@ -1,22 +1,43 @@
-# Exchange Math
+# Geometric Mean
 
-This will be all the math involved with the geometric mean market maker. 
-Note that there are two ways to write it out, and we should use whichever is simpler.
+This will be all the math involved with the Geometric Mean (G3M) trading function. 
 
-## Starting work
+## Conceptual Overview
 
-The trading function is defined by:
+G3M (for two assets) consists of a pool of reserves and their associated weights.
+
+The G3M effectively gives the LP a portfolio that consists of a fixed ratio of the two assets based on the internal pricing mechanism.
+For instance, if we pick the weight of the $X$-token $0.80$ and $0.20$ for the $Y$-token, then the LP will have a portfolio that is 80% in $X$ and 20% $Y$ by price.
+This is a basic building block for a lot of portfolio designs.
+
+## Core
+
+Mechanically, G3M of two variable parameters:
+- $w_x \equiv \mathtt{weight\_x}$
+- $w_y \equiv \mathtt{weight\_y}$ 
+- These parameters must satisfy $w_x+w_y=1$.
+
+Next, we define the trading function to be:
 $$
-\psi(x,y) = x^{w_x} y^{w_y} = k
+\varphi(x,y) = x^{w_x} y^{w_y} = k
 $$
-where $w_x+w_y = 1$.
-
-### Swap Calculation
-
-If we want to tender $\delta$ (could be $\delta_x$ or $\delta_y$) to the pool, then the invariant must hold.
-So we can write:
+where $k$ is the invariant of the pool. 
+We can put:
 $$
-k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y}
+k \equiv \mathtt{invariant}
+$$
+
+### Price
+If we compute the derivatives and simplify the expression, we get that the pool price is:
+$$
+\boxed{p = \frac{w_x}{w_y}\frac{y}{x}}
+$$
+
+### Swap 
+
+We require that the trading function remain invariant like so:
+$$
+k = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
 $$
 Now let's get the $\delta_y$ from $\delta_x$:
 $$
@@ -36,15 +57,7 @@ k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y} \\
 \end{align*}
 $$
 
-### Price
-Then we can get the price of the pool (for $x$ in terms of $y$):
-$$
-p = \frac{\nabla_x \psi}{\nabla_y \psi}
-$$
-for which we can take the derivatives to get
-$$
-p = \frac{w_x}{w_y}\frac{y}{x}
-$$
+
 
 ### Liquidity Provision
 It must be that adding liquidity does not change the price of the pool. 
@@ -126,4 +139,17 @@ $$
 This can be simplified to:
 $$
 \implies \boxed{ \delta_y = k\left(\frac{w_y}{w_x}p'\right)^{w_x}-y }
+$$
+
+---
+# Works in Progress
+### WIP: Liquidity
+The way we can think about liquidity is how many tokens would be in the pool if their prices were equal, i.e., $p=1$. 
+If this is the case, then:
+$$
+x=\frac{w_x}{w_y}y
+$$
+Using the trading function:
+$$
+x^{w_x}y^{w_y} = \left(\frac{w_x}{w_y}y\right)^{w_x} y^{w_y}= \left(\frac{w_x}{w_y}\right)^{w_x} y = k
 $$

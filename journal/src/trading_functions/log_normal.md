@@ -1,3 +1,4 @@
+# Log Normal
 # Static (Log-)Normal Strategy
 
 The normal strategy represents a log-normal distribution around a price $K$ with a width given by $\sigma$.
