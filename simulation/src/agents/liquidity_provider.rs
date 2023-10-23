@@ -1,6 +1,5 @@
-use crate::strategy::LiquidityStrategy;
-
 use super::{strategy::Strategy, token_admin::TokenAdmin, *};
+use crate::strategy::LiquidityStrategy;
 
 #[derive(Clone)]
 pub struct LiquidityProvider<S: LiquidityStrategy> {
@@ -42,7 +41,8 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
 #[async_trait::async_trait]
 impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent for LiquidityProvider<S> {
     async fn startup(&mut self) -> Result<()> {
-        // Initializes the liquidity of a pool with a target price given an initial amount of x tokens.
+        // Initializes the liquidity of a pool with a target price given an initial
+        // amount of x tokens.
         let tx = self
             .strategy
             .instantiate(self.initial_x, self.initial_price)

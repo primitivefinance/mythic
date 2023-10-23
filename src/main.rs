@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use anyhow::Result;
 use clap::{command, CommandFactory, Parser, Subcommand};
 use simulation::simulations::dynamic_weights;

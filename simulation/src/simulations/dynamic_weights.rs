@@ -1,14 +1,14 @@
+use arbiter_core::environment::builder::BlockSettings;
+
 use super::*;
-use crate::agents::Agent;
 use crate::{
     agents::{
         arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
-        price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger,
+        price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger, Agent,
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
 };
-use arbiter_core::environment::builder::BlockSettings;
 
 pub async fn run(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
@@ -50,12 +50,13 @@ pub async fn run(config_path: &str) -> Result<()> {
         .add(weight_changer.g3m.events(), "g3m")
         .run()?;
 
-    let mut steppers: Vec<Box<dyn Agent>> = vec![];
-    steppers.push(Box::new(price_changer));
-    steppers.push(Box::new(arbitrageur));
-    steppers.push(Box::new(block_admin));
-    steppers.push(Box::new(weight_changer));
-    steppers.push(Box::new(lp));
+    let mut steppers: Vec<Box<dyn Agent>> = vec![
+        Box::new(price_changer),
+        Box::new(arbitrageur),
+        Box::new(block_admin),
+        Box::new(weight_changer),
+        Box::new(lp),
+    ];
 
     info!("Entering startup loop for agents.");
     for stepper in steppers.iter_mut() {

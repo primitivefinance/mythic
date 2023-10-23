@@ -1,0 +1,123 @@
+name: Rust
+
+on: push
+
+jobs:
+  checkout:
+    name: Checkout Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+  install-rust:
+    name: Install Rust Toolchain
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.72.0
+          override: true
+
+  install-foundry:
+    name: Install Foundry
+    runs-on: ubuntu-latest
+    needs: install-rust
+    steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+          components: rustfmt, clippy
+
+  install-arbiter:
+    name: Install Arbiter
+    runs-on: ubuntu-latest
+    needs: [install-rust]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install arbiter
+        run: cargo install arbiter
+
+  generate-bindings:
+    name: Generate Bindings
+    runs-on: ubuntu-latest
+    needs: install-arbiter
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Generate Bindings
+        run: arbiter bind
+
+      - name: List directory structure
+        run: ls -R
+
+      - name: Move Bindings
+        run: |
+          mv ./src/bindings/* ./simulation/src/bindings/
+
+  run-tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: generate-bindings
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: test
+        run: cargo test --workspace --exclude bindings
+
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    needs: generate-bindings
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: cargo fmt
+        run: cargo +nightly fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    needs: generate-bindings
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: cargo clippy
+        run: cargo clippy --all --all-features -- -A non_snake_case -D warnings
+
+  udeps:
+    name: udeps
+    runs-on: ubuntu-latest
+    needs: generate-bindings
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: install udeps
+        run: cargo install --git https://github.com/est31/cargo-udeps --locked
+      - name: cargo udeps
+        run: cargo +nightly udeps
+
+  codespell:
+    name: codespell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run CodeSpell
+        uses: codespell-project/actions-codespell@v2.0
+        with:
+          check_hidden: true
+          check_filenames: true
+          skip: .git,Cargo.lock,target
+          ignore_words_list: crate,Crate,functio

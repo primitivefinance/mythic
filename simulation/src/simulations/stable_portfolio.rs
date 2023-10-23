@@ -26,7 +26,7 @@ pub async fn run(config_path: &str) -> Result<()> {
 
     lp.add_liquidity(&config).await?;
 
-    // have the loop iterate blcoks and block timestamps
+    // have the loop iterate blocks and block timestamps
     // draw random # from poisson distribution which determines how long we wait for
     // price to change loop that causes price change -> arbitrageur -> check if
     // weightchanger needs to run

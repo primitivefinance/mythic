@@ -9,7 +9,8 @@ pub mod weight_changer;
 
 use std::marker::{Send, Sync};
 
-/// Universal agent methods for interacting with the simulation environment or loop.
+/// Universal agent methods for interacting with the simulation environment or
+/// loop.
 #[async_trait::async_trait]
 pub trait Agent: Sync + Send {
     /// Executed outside the main simulation loop.

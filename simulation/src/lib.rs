@@ -1,6 +1,7 @@
-// TODO: Is it possible to just give every agent a reference to the client from the get go and use only that to construct them?
+// TODO: Is it possible to just give every agent a reference to the client from
+// the get go and use only that to construct them?
 
-use std::{ops::Div, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Result;
 use arbiter_core::{

@@ -72,7 +72,7 @@ TODO
 
 ## Interface
 
-```rust
+```rust, ignore
 // Initialization
 fn new(uint256 price, uint256 initial_x, uint256 initial_y, Parameters parameters) -> Pool;
 
