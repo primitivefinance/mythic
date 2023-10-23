@@ -3,10 +3,10 @@ pragma solidity ^0.8.13;
 
 import "solmate/test/utils/mocks/MockERC20.sol";
 
-import "../G3MTest.t.sol";
+import "../utils/G3MTest.t.sol";
 import "../../src/G3M.sol";
 
-contract SetUp is G3MTest {
+contract G3MSetUp is G3MTest {
     G3M public g3m;
     MockERC20 public tokenX;
     MockERC20 public tokenY;

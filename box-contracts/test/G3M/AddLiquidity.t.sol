@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./SetUp.t.sol";
 
-contract AddLiquidity is SetUp {
+contract G3MAddLiquidity is G3MSetUp {
     function test_addLiquidity_IncreasesReservesAndTotalLiquidity() public {
         uint256 initAmountX = 750 ether;
         uint256 initAmountY = 250 ether;

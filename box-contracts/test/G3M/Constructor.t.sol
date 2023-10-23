@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./SetUp.t.sol";
 
-contract Constructor is SetUp {
+contract G3MConstructor is G3MSetUp {
     function test_constructor_MaxWeight() public {
         g3m = new G3M(address(tokenX), address(tokenY), MAX_WEIGHT, 30);
         assertEq(g3m.weightX(), MAX_WEIGHT);

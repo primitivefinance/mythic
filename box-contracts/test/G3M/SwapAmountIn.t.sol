@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import { uMAX_UD60x18, uUNIT } from "@prb/math/ud60x18/Constants.sol";
 import "./SetUp.t.sol";
 
-contract SwapAmountIn is SetUp {
+contract G3MSwapAmountIn is G3MSetUp {
     function testFuzz_swapAmountIn_UpdatesBalances(
         uint256 initialDepositX,
         uint256 initialDepositY,
