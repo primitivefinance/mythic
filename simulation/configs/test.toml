@@ -43,10 +43,7 @@ target_volatility = 0.15
 
 
 [lp]
-# amount of `token_x` to deposit by: `token_x = liquidity_mantissa * 10 ^ liquidity_exponent`
-# `token_y` will be found from the weights and initial price.
-liquidity_mantissa = 1
-liquidity_exponent = 20
+x_liquidity = 1 # in ether
 
 [weight_changer]
 target_volatility = 0.15

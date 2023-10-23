@@ -78,8 +78,7 @@ pub mod parameters {
 
     #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
     pub struct LPParameters {
-        pub liquidity_mantissa: u64,
-        pub liquidity_exponent: u32,
+        pub x_liquidity: f64,
     }
 
     #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
