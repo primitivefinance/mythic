@@ -38,6 +38,11 @@ interface IG3M {
         UD60x18 newWeightXUpdatePerSecond
     );
 
+    event LogWeights(
+        uint256 blockTimestamp,
+        UD60x18 weightX
+    );
+
     /**
      * @notice Initializes the pool before any liquidity can be added. This
      * function can only be called once. Note that the ratio between `amountX`
