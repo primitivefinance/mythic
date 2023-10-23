@@ -49,6 +49,7 @@ impl PriceChanger {
             .await?;
 
         let trajectory_params = &config.trajectory;
+        println!("trajectory_params: {:?}", trajectory_params);
         let trajectory = match trajectory_params.process.as_str() {
             "ou" => {
                 let OUParameters {
@@ -100,6 +101,14 @@ impl PriceChanger {
             .await?
             .await?;
         self.index += 1;
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for PriceChanger {
+    async fn step(&mut self) -> Result<()> {
+        self.update_price().await?;
         Ok(())
     }
 }

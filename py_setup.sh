@@ -14,9 +14,11 @@ pyenv install --skip-existing
 
 # Create a new virtual environment using pyenv
 pyenv virtualenv $(cat .python-version) py_env
+echo "created venv"
 
 # Activate the virtual environment
 pyenv local py_env
+"echo activated venv"
 
 # Install dependencies
 pip install --upgrade pip
