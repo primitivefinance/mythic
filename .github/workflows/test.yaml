@@ -30,5 +30,12 @@ jobs:
       - name: Generate Bindings
         run: arbiter bind
 
+      - name: List directory structure
+        run: ls -R
+
+      - name: Move Bindings
+        run: |
+          mv ./src/bindings/* ./simulation/src/bindings/
+
       - name: test
         run: cargo test --workspace --exclude bindings
