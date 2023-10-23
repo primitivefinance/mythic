@@ -1,4 +1,0 @@
-# Ignore everything in this directory
-*
-# Except this file, so we can move bindings from arbiter bind into here
-!.gitignore
