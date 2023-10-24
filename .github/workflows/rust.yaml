@@ -2,76 +2,68 @@ name: Rust
 
 on: push
 
+env:
+  CARGO_TERM_COLOR: always
+
+
 jobs:
-  checkout:
-    name: Test
+  build:
     runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
+
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
-        with:
-          submodules: recursive
 
-# ... (rest of the workflow before this)
-      - name: Install rust toolchain
+      - name: install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: 1.73.0
-          override: true
+          toolchain: nightly
+          components: rustfmt
 
-      - name: Install nightly toolchain
+      - name: cargo fmt
+        run: cargo +nightly fmt --all -- --check
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: install rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          override: true
-          components: rustfmt, clippy
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
-
-      - name: Cache arbiter binary
-        id: cache-arbiter
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo/bin
-          key: cargo-bin-${{ runner.os }}-arbiter-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-bin-${{ runner.os }}-arbiter-
-
-      - name: Install arbiter
-        if: steps.cache-arbiter.outputs.cache-hit != 'true'
-        run: cargo install arbiter
-
-      - name: Add Cargo to PATH
-        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Generate Bindings
-        run: arbiter bind
-
-      - name: List directory structure
-        run: ls -R
-
-      - name: Ensure bindings directory exists
-        run: mkdir -p ./simulation/src/bindings/
-
-      - name: Move Bindings
-        run: mv ./src/bindings/* ./simulation/src/bindings/
-
-      - name: test
-        run: cargo test --workspace --exclude bindings
-        working-directory: ${{ github.workspace }}
+          components: clippy
 
       - name: cargo clippy
-        run: cargo clippy --all --all-features -- -A non_snake_case -D warnings
-        working-directory: ${{ github.workspace }}
+        run: cargo clippy --all --all-features -- -D warnings
+
+  udeps:
+    name: udeps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: install rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt
 
       - name: install udeps
         run: cargo install --git https://github.com/est31/cargo-udeps --locked
-
       - name: cargo udeps
         run: cargo +nightly udeps
-        working-directory: ${{ github.workspace }}
 
   codespell:
     name: codespell
@@ -85,3 +77,6 @@ jobs:
           check_filenames: true
           skip: .git,Cargo.lock,target
           ignore_words_list: crate,Crate,functio
+
+
+    
