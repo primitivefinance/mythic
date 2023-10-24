@@ -1,13 +1,13 @@
 use ethers::abi::Param;
 
 use super::*;
-pub trait Parameter {
-    fn generate(&self) -> Vec<f64>;
+pub trait Parameterized<T> {
+    fn generate(&self) -> Vec<T>;
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Direct(pub f64);
-impl Parameter for Direct {
+impl Parameterized<f64> for Direct {
     fn generate(&self) -> Vec<f64> {
         vec![self.0]
     }
@@ -15,29 +15,36 @@ impl Parameter for Direct {
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct Meta(LinspaceParameters);
-impl Parameter for Meta {
+impl Parameterized<f64> for Meta {
     fn generate(&self) -> Vec<f64> {
         self.0.generate()
     }
 }
 
-pub trait GenerateDirect<T> {
-    fn generate_direct(&self) -> Vec<T>;
-}
-
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct LinspaceParameters {
-    pub start: f64,
-    pub end: f64,
-    pub steps: usize,
+    pub start: Option<f64>,
+    pub end: Option<f64>,
+    pub steps: Option<usize>,
+    pub fixed: Option<f64>,
 }
 
 impl LinspaceParameters {
     fn generate(&self) -> Vec<f64> {
-        let step_size = (self.end - self.start) / (self.steps as f64 - 1.0);
-        (0..self.steps)
-            .map(|i| self.start + step_size * i as f64)
-            .collect()
+        // Check if start, end, steps are all Some
+        match (self.start, self.end, self.steps) {
+            (Some(start), Some(end), Some(steps)) => {
+                if let Some(_) = self.fixed {
+                    return panic!("Both linspace and fixed parameters are set");
+                }
+                let step_size = (end - start) / (steps as f64 - 1.0);
+                (0..steps).map(|i| start + step_size * i as f64).collect()
+            }
+            // If only fixed is Some, return a vec with that fixed value
+            (_, _, _) if self.fixed.is_some() => vec![self.fixed.unwrap()],
+            // Otherwise, configuration is invalid
+            _ => panic!("Invalid configuration for LinspaceParameters. Please provide a `start`, `end`, and `steps` or alternatively just provide a `fixed` value."),
+        }
     }
 }
 
@@ -47,7 +54,7 @@ pub struct BlockParameters {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TrajectoryParameters<P: Parameter> {
+pub struct TrajectoryParameters<P: Parameterized<f64>> {
     pub process: String,
     /// The initial price of the asset.
     pub initial_price: P,
@@ -60,8 +67,8 @@ pub struct TrajectoryParameters<P: Parameter> {
     pub seed: u64,
 }
 
-impl GenerateDirect<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> {
-    fn generate_direct(&self) -> Vec<TrajectoryParameters<Direct>> {
+impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> {
+    fn generate(&self) -> Vec<TrajectoryParameters<Direct>> {
         let initial_price = self.initial_price.generate();
         let t_0 = self.t_0.generate();
         let t_n = self.t_n.generate();
@@ -85,15 +92,15 @@ impl GenerateDirect<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta>
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct GBMParameters<P: Parameter> {
+pub struct GBMParameters<P: Parameterized<f64>> {
     // The drift of the process.
     pub drift: P,
     // The volatility of the process.
     pub volatility: P,
 }
 
-impl GenerateDirect<GBMParameters<Direct>> for GBMParameters<Meta> {
-    fn generate_direct(&self) -> Vec<GBMParameters<Direct>> {
+impl Parameterized<GBMParameters<Direct>> for GBMParameters<Meta> {
+    fn generate(&self) -> Vec<GBMParameters<Direct>> {
         let drift = self.drift.generate();
         let volatility = self.volatility.generate();
         let mut result = vec![];
@@ -110,7 +117,7 @@ impl GenerateDirect<GBMParameters<Direct>> for GBMParameters<Meta> {
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct OUParameters<P: Parameter> {
+pub struct OUParameters<P: Parameterized<f64>> {
     /// The mean (price) of the process.
     pub mean: P,
     /// The standard deviation of the process.
@@ -120,8 +127,8 @@ pub struct OUParameters<P: Parameter> {
     pub theta: P,
 }
 
-impl GenerateDirect<OUParameters<Direct>> for OUParameters<Meta> {
-    fn generate_direct(&self) -> Vec<OUParameters<Direct>> {
+impl Parameterized<OUParameters<Direct>> for OUParameters<Meta> {
+    fn generate(&self) -> Vec<OUParameters<Direct>> {
         let mean = self.mean.generate();
         let std_dev = self.std_dev.generate();
         let theta = self.theta.generate();

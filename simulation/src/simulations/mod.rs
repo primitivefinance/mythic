@@ -9,8 +9,9 @@ use crate::settings::parameters::Direct;
 pub mod dynamic_weights;
 pub mod errors;
 pub mod stable_portfolio;
+use settings::parameters::Parameterized;
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SimulationType {
     DynamicWeights,
     StablePortfolio,
@@ -18,7 +19,7 @@ pub enum SimulationType {
 
 impl SimulationType {
     async fn run(config: SimulationConfig<Direct>) -> Result<(), SimulationError> {
-        match config.simulation_type {
+        match config.simulation {
             SimulationType::DynamicWeights => dynamic_weights::run(config).await,
             SimulationType::StablePortfolio => stable_portfolio::run(config).await,
         }
@@ -28,7 +29,7 @@ impl SimulationType {
 pub fn batch(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
-    let direct_configs = config.to_direct_configs();
+    let direct_configs = config.generate();
     let mut rt = Runtime::new()?;
     let mut handles = vec![];
 

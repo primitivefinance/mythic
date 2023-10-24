@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{command, CommandFactory, Parser, Subcommand};
-use simulation::simulations::{self, dynamic_weights, SimulationType};
+use simulation::simulations;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
@@ -19,7 +19,7 @@ struct Args {
 enum Commands {
     /// Represents the `Bind` subcommand.
     Simulate {
-        #[clap(index = 1, default_value = "simulation/configs/test.toml")]
+        #[clap(index = 1, default_value = "simulation/configs/test/test.toml")]
         config_path: String,
     },
     Analyze {
