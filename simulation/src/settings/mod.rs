@@ -30,17 +30,14 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
     fn generate(&self) -> Vec<SimulationConfig<Direct>> {
         let mut result = vec![];
         let trajectories = self.trajectory.generate();
-        println!("trajectories: {:?}", trajectories);
 
         let gbms = self
             .gbm
             .as_ref()
             .map(|gbm| gbm.generate())
             .unwrap_or(vec![]);
-        println!("gbms: {:?}", gbms);
 
         let ous = self.ou.as_ref().map(|ou| ou.generate()).unwrap_or(vec![]);
-        println!("ous: {:?}", ous);
 
         if gbms.is_empty() && ous.is_empty() {
             panic!("You must supply either a gbm or an ou configuration.");
@@ -110,7 +107,18 @@ mod tests {
         assert_eq!(configs[0].weight_changer.update_frequency, 150);
     }
 
+    #[test]
     fn read_in_sweep() {
-        todo!()
+        let config = SimulationConfig::new("configs/test/sweep.toml").unwrap();
+        let configs = config.generate();
+        assert_eq!(configs.len(), 4);
+        assert_eq!(configs[0].gbm.unwrap().drift, Direct(-1.0));
+        assert_eq!(configs[1].gbm.unwrap().drift, Direct(-1.0));
+        assert_eq!(configs[2].gbm.unwrap().drift, Direct(1.0));
+        assert_eq!(configs[3].gbm.unwrap().drift, Direct(1.0));
+        assert_eq!(configs[0].gbm.unwrap().volatility, Direct(0.0));
+        assert_eq!(configs[1].gbm.unwrap().volatility, Direct(1.0));
+        assert_eq!(configs[2].gbm.unwrap().volatility, Direct(0.0));
+        assert_eq!(configs[3].gbm.unwrap().volatility, Direct(1.0));
     }
 }
