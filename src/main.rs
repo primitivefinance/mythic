@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{builder::TypedValueParser, ArgAction, CommandFactory, Parser, Subcommand};
+use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use simulation::simulations;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
@@ -37,23 +37,23 @@ fn main() -> Result<()> {
 
     let log_level = match args.verbose.unwrap_or(0) {
         0 => {
-            println!("Running with tracing::Level::Error...");
+            println!("Running with tracing::Level::Error");
             tracing::Level::ERROR
         }
         1 => {
-            println!("Running with tracing::Level::Error...");
+            println!("Running with tracing::Level::WARN");
             tracing::Level::WARN
         }
         2 => {
-            println!("Running with tracing::Level::Error...");
+            println!("Running with tracing::Level::INFO");
             tracing::Level::INFO
         }
         3 => {
-            println!("Running with tracing::Level::Error...");
+            println!("Running with tracing::Level::DEBUG");
             tracing::Level::DEBUG
         }
-        4 | _ => {
-            println!("Running with tracing::Level::Error...");
+        _ => {
+            println!("Running with tracing::Level::TRACE");
             tracing::Level::TRACE
         }
     };

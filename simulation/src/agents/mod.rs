@@ -29,3 +29,33 @@ pub trait Agent: Sync + Send {
         Ok(())
     }
 }
+
+pub struct Agents(pub Vec<Box<dyn Agent>>);
+
+impl Agents {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
+        self.0.iter_mut()
+    }
+}
+
+impl Agents {
+    pub fn new() -> Self {
+        Self(vec![])
+    }
+
+    pub fn add(mut self, agent: impl Agent + 'static) -> Self {
+        self.0.push(Box::new(agent));
+        self
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for Agents {
+    async fn step(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    async fn priority_step(&mut self) -> Result<()> {
+        Ok(())
+    }
+}

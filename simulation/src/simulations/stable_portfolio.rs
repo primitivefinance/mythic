@@ -7,6 +7,6 @@ use crate::{
     settings::SimulationConfig,
 };
 
-pub async fn run(config: SimulationConfig<Direct>) -> Result<(), SimulationError> {
+pub async fn setup(config: SimulationConfig<Direct>) -> Result<Simulation, SimulationError> {
     todo!();
 }

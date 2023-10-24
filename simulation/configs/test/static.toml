@@ -4,7 +4,7 @@ simulation = "DynamicWeights"
 # The type of price process to use.
 process = "gbm"
 # The number of steps in the process.
-num_steps = 3650 
+num_steps = 100 
 # Seed for the price processes
 seed = 2
 # The initial price of the asset.

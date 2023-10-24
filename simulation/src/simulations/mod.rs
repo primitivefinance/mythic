@@ -1,17 +1,26 @@
 use tokio::runtime::Runtime;
-use tracing::warn;
+use tracing::{debug, warn};
 
 use self::errors::SimulationError;
 
 use super::*;
 
-use crate::settings::parameters::Direct;
+use crate::{
+    agents::{Agent, Agents},
+    settings::parameters::Direct,
+};
 
 pub mod dynamic_weights;
 pub mod errors;
 pub mod stable_portfolio;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
+
+pub struct Simulation {
+    pub agents: Agents,
+    pub steps: usize,
+    environment: Environment,
+}
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SimulationType {
@@ -21,10 +30,12 @@ pub enum SimulationType {
 
 impl SimulationType {
     async fn run(config: SimulationConfig<Direct>) -> Result<(), SimulationError> {
-        match config.simulation {
-            SimulationType::DynamicWeights => dynamic_weights::run(config).await,
-            SimulationType::StablePortfolio => stable_portfolio::run(config).await,
-        }
+        let simulation = match config.simulation {
+            SimulationType::DynamicWeights => dynamic_weights::setup(config).await?,
+            SimulationType::StablePortfolio => stable_portfolio::setup(config).await?,
+        };
+        looper(simulation.agents, simulation.steps).await?;
+        Ok(())
     }
 }
 
@@ -48,4 +59,26 @@ pub fn batch(config_path: &str) -> Result<()> {
         }
         Ok(())
     })
+}
+
+pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
+    info!("Entering startup loop for agents.");
+
+    for agent in agents.iter_mut() {
+        agent.startup().await?;
+    }
+
+    for index in 0..steps {
+        debug!("Entering priority loop for index: {}", index);
+        for agent in agents.iter_mut() {
+            agent.priority_step().await?;
+        }
+
+        debug!("Entering core loop for index: {}", index);
+        for agent in agents.iter_mut() {
+            agent.step().await?;
+        }
+    }
+
+    Ok(())
 }
