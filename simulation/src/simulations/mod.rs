@@ -10,6 +10,7 @@ pub mod dynamic_weights;
 pub mod errors;
 pub mod stable_portfolio;
 use settings::parameters::Parameterized;
+use tokio::runtime::Builder;
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SimulationType {
@@ -29,8 +30,8 @@ impl SimulationType {
 pub fn batch(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
-    let direct_configs = config.generate();
-    let mut rt = Runtime::new()?;
+    let direct_configs: Vec<SimulationConfig<Direct>> = config.generate();
+    let mut rt = Builder::new_multi_thread().build()?;
     let mut handles = vec![];
 
     for config in direct_configs {

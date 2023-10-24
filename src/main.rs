@@ -1,17 +1,21 @@
 use anyhow::Result;
-use clap::{command, CommandFactory, Parser, Subcommand};
+use clap::{builder::TypedValueParser, ArgAction, CommandFactory, Parser, Subcommand};
 use simulation::simulations;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
-#[command(name = "Portfolio-in-a-Box")]
-#[command(version = env!("CARGO_PKG_VERSION"))]
-#[command(about = "Simulation driven development.", long_about = None)]
-#[command(author)]
+#[clap(name = "Excalibur")]
+#[clap(version = env!("CARGO_PKG_VERSION"))]
+#[clap(about = "Simulation driven development.", long_about = None)]
+#[clap(author)]
 struct Args {
     /// Defines the subcommand to execute.
     #[command(subcommand)]
     command: Option<Commands>,
+
+    #[clap(short, long, global = true, required = false, action = ArgAction::Count, value_parser(
+        clap::value_parser!(u8)))]
+    verbose: Option<u8>,
 }
 
 /// Defines available subcommands for the `Arbiter` tool.
@@ -19,7 +23,7 @@ struct Args {
 enum Commands {
     /// Represents the `Bind` subcommand.
     Simulate {
-        #[clap(index = 1, default_value = "simulation/configs/test/test.toml")]
+        #[clap(index = 1, default_value = "simulation/configs/test/static.toml")]
         config_path: String,
     },
     Analyze {
@@ -28,16 +32,18 @@ enum Commands {
     },
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "warn");
-    }
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-
+fn main() -> Result<()> {
     let args = Args::parse();
+
+    let log_level = match args.verbose.unwrap_or(0) {
+        0 => tracing::Level::ERROR,
+        1 => tracing::Level::WARN,
+        2 => tracing::Level::INFO,
+        3 => tracing::Level::DEBUG,
+        4 | _ => tracing::Level::TRACE,
+    };
+
+    tracing_subscriber::fmt().with_max_level(log_level).init();
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => {
