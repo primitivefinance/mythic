@@ -37,3 +37,5 @@ If so, this is a sign of instability.
 - Are there irrational agents that can trigger a bad state?
 - Are there boundary cases in the contract?
 - How does the contract fair after an immense amount of time and volume? (e.g., 1,000,000,000 swaps)
+
+<!-- ADD ABOUT WHAT DIFFERENT PRICE PROCESSES CAN DO and tell us -->
