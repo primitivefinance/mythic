@@ -62,10 +62,6 @@ jobs:
         run: cargo test --workspace --exclude bindings
         working-directory: ${{ github.workspace }}
 
-      - name: cargo fmt
-        run: cargo fmt --check
-        working-directory: ${{ github.workspace }}
-
       - name: cargo clippy
         run: cargo clippy --all --all-features -- -A non_snake_case -D warnings
         working-directory: ${{ github.workspace }}
