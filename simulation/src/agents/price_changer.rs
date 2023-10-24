@@ -49,7 +49,7 @@ impl PriceChanger {
             .await?;
 
         let trajectory_params = &config.trajectory;
-        println!("trajectory_params: {:?}", trajectory_params);
+        info!("trajectory_params: {:?}", trajectory_params);
         let trajectory = match trajectory_params.process.as_str() {
             "ou" => {
                 let OUParameters {

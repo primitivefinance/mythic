@@ -1,4 +1,5 @@
 use tokio::runtime::Runtime;
+use tracing::warn;
 
 use self::errors::SimulationError;
 
@@ -31,16 +32,19 @@ pub fn batch(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
     let direct_configs: Vec<SimulationConfig<Direct>> = config.generate();
+    warn!("Running {} simulations", direct_configs.len());
     let mut rt = Builder::new_multi_thread().build()?;
     let mut handles = vec![];
 
     for config in direct_configs {
+        warn!("Running simulation with config: {:?}", config);
         handles.push(rt.spawn(SimulationType::run(config)));
     }
 
     rt.block_on(async {
         for handle in handles {
             handle.await?;
+            warn!("Simulation complete");
         }
         Ok(())
     })

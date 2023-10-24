@@ -36,18 +36,33 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let log_level = match args.verbose.unwrap_or(0) {
-        0 => tracing::Level::ERROR,
-        1 => tracing::Level::WARN,
-        2 => tracing::Level::INFO,
-        3 => tracing::Level::DEBUG,
-        4 | _ => tracing::Level::TRACE,
+        0 => {
+            println!("Running with tracing::Level::Error...");
+            tracing::Level::ERROR
+        }
+        1 => {
+            println!("Running with tracing::Level::Error...");
+            tracing::Level::WARN
+        }
+        2 => {
+            println!("Running with tracing::Level::Error...");
+            tracing::Level::INFO
+        }
+        3 => {
+            println!("Running with tracing::Level::Error...");
+            tracing::Level::DEBUG
+        }
+        4 | _ => {
+            println!("Running with tracing::Level::Error...");
+            tracing::Level::TRACE
+        }
     };
 
     tracing_subscriber::fmt().with_max_level(log_level).init();
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => {
-            println!("config path: {}", config_path);
+            println!("Reading from config path: {}", config_path);
             simulations::batch(config_path)?;
         }
         Some(Commands::Analyze { type_ }) => println!(

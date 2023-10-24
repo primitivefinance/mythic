@@ -60,7 +60,7 @@ impl WeightChanger {
             .unwrap();
 
         let portfolio_price = reserve_x * asset_price + reserve_y;
-        println!("portfolio_price: {}", portfolio_price);
+        info!("portfolio_price: {}", portfolio_price);
 
         self.portfolio_prices.push((portfolio_price, 0));
         self.asset_prices.push((asset_price, 0));
@@ -91,21 +91,21 @@ impl WeightChanger {
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
-        println!(
+        info!(
             "hypothetical percent asset return: {}",
             (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
                 / self.asset_prices.first().unwrap().0
         );
-        println!(
+        info!(
             "portfolio percent return: {}",
             (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
                 / self.portfolio_prices.first().unwrap().0
         );
-        println!(
+        info!(
             "initial portfolio price: {}",
             self.portfolio_prices.first().unwrap().0
         );
-        println!(
+        info!(
             "current portfolio price: {}",
             self.portfolio_prices.last().unwrap().0
         );
@@ -121,13 +121,13 @@ impl WeightChanger {
             return Ok(());
         }
         let portfolio_rv = self.portfolio_rv.last().unwrap().0;
-        println!("portfolio_rv: {}", portfolio_rv);
+        info!("portfolio_rv: {}", portfolio_rv);
         let current_weight_x = self.g3m.weight_x().call().await?;
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
-        println!("current_weight_float: {}", current_weight_float);
+        info!("current_weight_float: {}", current_weight_float);
         if portfolio_rv < self.target_volatility {
             let new_weight = current_weight_float + 0.0025;
-            println!("new weight: {}", new_weight);
+            info!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
@@ -137,7 +137,7 @@ impl WeightChanger {
                 .await?;
         } else {
             let new_weight = current_weight_float - 0.0025;
-            println!("new weight: {}", new_weight);
+            info!("new weight: {}", new_weight);
             self.g3m
                 .set_weight_x(
                     parse_ether(new_weight.to_string()).unwrap(),
@@ -168,12 +168,12 @@ impl Agent for WeightChanger {
                 .unwrap();
 
             let portfolio_price = reserve_x * asset_price + reserve_y;
-            println!("portfolio_price: {}", portfolio_price);
+            info!("portfolio_price: {}", portfolio_price);
 
             self.asset_prices.push((asset_price, timestamp));
             self.portfolio_prices.push((portfolio_price, timestamp));
-            // println!("asset_prices: {:?}", self.asset_prices);
-            // println!("portfolio_prices: {:?}", self.portfolio_prices);
+            // info!("asset_prices: {:?}", self.asset_prices);
+            // info!("portfolio_prices: {:?}", self.portfolio_prices);
             self.calculate_rv()?;
             self.execute_smooth_rebalance().await?;
         }
