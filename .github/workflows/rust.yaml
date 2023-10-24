@@ -59,6 +59,15 @@ jobs:
       - name: Add Cargo to PATH
         run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      - name: Print current directory
+        run: pwd
+        
+      - name: List directory contents
+        run: ls -al
+        
+      - name: Generate Bindings
+        run: arbiter bind
+
       - name: Generate Bindings
         run: arbiter bind
         working-directory: ${{ github.workspace }}
