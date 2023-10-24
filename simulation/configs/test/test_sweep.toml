@@ -1,0 +1,63 @@
+simulation = "DynamicWeights"
+
+[trajectory]
+# The type of price process to use.
+process = "gbm"
+# The initial price of the asset.
+initial_price = 1.0
+# The start time of the process.
+t_0 = 0.0
+# The end time of the process.
+t_n = 1.0
+# The number of steps in the process.
+# num_steps = 10950 # 365 * 30 = 30 timesteps/day
+# num_steps = 7900 # 365 * 20 = 20 timesteps/day
+num_steps = 3650 # 365 * 10 = 10 timesteps/day
+# num_steps = 1825 # 365 * 5 = 5 timesteps/day
+# Seed for the price processes
+seed = 2
+
+
+[ou]
+# The mean (price) of the process.
+mean = 1.0
+# The standard deviation of the process.
+std_dev = 0.01
+# The theta parameter of the process.
+# This describes how strongly the process will revert to the mean.
+theta = 3.0
+
+[gbm]
+# The volatility of the process.
+volatility = 0.2
+# The drift of the process.
+[gbm.drift]
+start = -1.0
+end = 1.0
+step = 2 #20
+
+[pool]
+# The weight for the `token_x` in the pool.
+# `weight_y = 1 - weight_x`
+weight_x = 0.5
+# The swap fee in BPs.
+fee_basis_points = 30
+# Target volatility for the pool
+target_volatility = 0.15
+
+
+[lp]
+x_liquidity = 1 # in ether
+
+[weight_changer]
+target_volatility = 0.15
+#update_frequency = 450 # 1 update per 30 timestep day
+#update_frequency = 300 # 1 update per 20 timestep day
+update_frequency = 150 # 1 update per 10 timestep day
+#update_frequency = 75 # 1 update per 5 timestep day
+
+[block]
+timestep_size = 15
+
+[sweep_parameters]
+number_of_paths = 2

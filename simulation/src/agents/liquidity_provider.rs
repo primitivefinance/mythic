@@ -15,7 +15,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
         environment: &Environment,
         token_admin: &TokenAdmin,
         strategy_address: Address,
-        config: &SimulationConfig,
+        config: &SimulationConfig<Direct>,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
         let strategy: S = S::new(strategy_address, client.clone());
@@ -34,7 +34,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
             client,
             strategy,
             initial_x: float_to_wad(config.lp.x_liquidity),
-            initial_price: float_to_wad(config.trajectory.initial_price),
+            initial_price: float_to_wad(config.trajectory.initial_price.0),
         })
     }
 }

@@ -7,6 +7,7 @@ pub mod price_changer;
 pub mod token_admin;
 pub mod weight_changer;
 
+use crate::settings::parameters::Direct;
 use std::marker::{Send, Sync};
 
 /// Universal agent methods for interacting with the simulation environment or loop.

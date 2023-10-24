@@ -18,7 +18,7 @@ pub struct WeightChanger {
 impl WeightChanger {
     pub async fn new(
         environment: &Environment,
-        config: &SimulationConfig,
+        config: &SimulationConfig<Direct>,
         liquid_exchange_address: Address,
         arbx: Address,
         arby: Address,

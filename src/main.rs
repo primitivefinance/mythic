@@ -1,6 +1,6 @@
 use anyhow::Result;
 use clap::{command, CommandFactory, Parser, Subcommand};
-use simulation::simulations::dynamic_weights;
+use simulation::simulations::{self, dynamic_weights, SimulationType};
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
@@ -18,7 +18,7 @@ struct Args {
 #[derive(Subcommand)]
 enum Commands {
     /// Represents the `Bind` subcommand.
-    DynamicWeights {
+    Simulate {
         #[clap(index = 1, default_value = "simulation/configs/test.toml")]
         config_path: String,
     },
@@ -40,9 +40,9 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     match &args.command {
-        Some(Commands::DynamicWeights { config_path }) => {
+        Some(Commands::Simulate { config_path }) => {
             println!("config path: {}", config_path);
-            dynamic_weights::run(config_path).await?
+            simulations::batch(config_path)?;
         }
         Some(Commands::Analyze { type_ }) => println!(
             "Exit status: {:?}",

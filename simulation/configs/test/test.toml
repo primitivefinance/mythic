@@ -1,3 +1,5 @@
+simulation = "DynamicWeights"
+
 [trajectory]
 # The type of price process to use.
 process = "gbm"

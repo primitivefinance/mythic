@@ -1,3 +1,4 @@
+use super::errors::SimulationError;
 use super::*;
 use crate::agents::Agent;
 use crate::{
@@ -10,9 +11,7 @@ use crate::{
 };
 use arbiter_core::environment::builder::BlockSettings;
 
-pub async fn run(config_path: &str) -> Result<()> {
-    let config = SimulationConfig::new(config_path)?;
-
+pub async fn run(config: SimulationConfig<Direct>) -> Result<(), SimulationError> {
     let env = EnvironmentBuilder::new()
         .block_settings(BlockSettings::UserControlled)
         .build();
@@ -56,6 +55,8 @@ pub async fn run(config_path: &str) -> Result<()> {
     steppers.push(Box::new(block_admin));
     steppers.push(Box::new(weight_changer));
     steppers.push(Box::new(lp));
+
+    // TODO: We can pull this out too
 
     info!("Entering startup loop for agents.");
     for stepper in steppers.iter_mut() {
