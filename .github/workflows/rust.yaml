@@ -63,7 +63,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: cargo fmt
-        run: cargo fmt --all -- --check
+        run: cargo fmt --check
         working-directory: ${{ github.workspace }}
 
       - name: cargo clippy
