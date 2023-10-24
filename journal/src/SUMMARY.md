@@ -5,6 +5,7 @@
     - [Geometric Mean](./trading_functions/geometric_mean.md)
     - [Log Normal](./trading_functions/log_normal.md)
     - [Linear](./trading_functions/linear.md)
+- [Analysis](./analysis/index.md)
 - [Strategies](./strategies/index.md)
     - [Volatility Targeting](./strategies/volatility_targeting.md)
     - [Momentum](./strategies/momentum.md)
