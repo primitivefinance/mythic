@@ -44,9 +44,11 @@ jobs:
       - name: List directory structure
         run: ls -R
 
+      - name: Ensure bindings directory exists
+        run: mkdir -p ./simulation/src/bindings/
+
       - name: Move Bindings
-        run: |
-          mv ./src/bindings/* ./simulation/src/bindings/
+        run: mv ./src/bindings/* ./simulation/src/bindings/
 
       - name: test
         run: cargo test --workspace --exclude bindings
