@@ -170,7 +170,7 @@ pub mod atomic_arbitrage {
             fallback: false,
         }
     }
-    ///The parsed JSON ABI of the contract.
+    /// The parsed JSON ABI of the contract.
     pub static ATOMICARBITRAGE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(__abi);
     #[rustfmt::skip]
@@ -208,8 +208,9 @@ pub mod atomic_arbitrage {
         }
     }
     impl<M: ::ethers::providers::Middleware> AtomicArbitrage<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
@@ -220,20 +221,25 @@ pub mod atomic_arbitrage {
                 client,
             ))
         }
-        /// Constructs the general purpose `Deployer` instance based on the provided constructor arguments and sends it.
-        /// Returns a new instance of a deployer that returns an instance of this contract after sending the transaction
+        /// Constructs the general purpose `Deployer` instance based on the
+        /// provided constructor arguments and sends it. Returns a new
+        /// instance of a deployer that returns an instance of this contract
+        /// after sending the transaction
         ///
         /// Notes:
-        /// - If there are no constructor arguments, you should pass `()` as the argument.
+        /// - If there are no constructor arguments, you should pass `()` as the
+        ///   argument.
         /// - The default poll duration is 7 seconds.
         /// - The default number of confirmations is 1 block.
         ///
         ///
         /// # Example
         ///
-        /// Generate contract bindings with `abigen!` and deploy a new contract instance.
+        /// Generate contract bindings with `abigen!` and deploy a new contract
+        /// instance.
         ///
-        /// *Note*: this requires a `bytecode` and `abi` object in the `greeter.json` artifact.
+        /// *Note*: this requires a `bytecode` and `abi` object in the
+        /// `greeter.json` artifact.
         ///
         /// ```ignore
         /// # async fn deploy<M: ethers::providers::Middleware>(client: ::std::sync::Arc<M>) {
@@ -259,7 +265,7 @@ pub mod atomic_arbitrage {
             let deployer = ::ethers::contract::ContractDeployer::new(deployer);
             Ok(deployer)
         }
-        ///Calls the contract's `asset` (0x38d52e0f) function
+        /// Calls the contract's `asset` (0x38d52e0f) function
         pub fn asset(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -267,7 +273,7 @@ pub mod atomic_arbitrage {
                 .method_hash([56, 213, 46, 15], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `exchange` (0xd2f7265a) function
+        /// Calls the contract's `exchange` (0xd2f7265a) function
         pub fn exchange(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -275,7 +281,7 @@ pub mod atomic_arbitrage {
                 .method_hash([210, 247, 38, 90], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `liquidExchange` (0x9f27ef4f) function
+        /// Calls the contract's `liquidExchange` (0x9f27ef4f) function
         pub fn liquid_exchange(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -283,7 +289,7 @@ pub mod atomic_arbitrage {
                 .method_hash([159, 39, 239, 79], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `lower_exchange_price` (0x35a99ad0) function
+        /// Calls the contract's `lower_exchange_price` (0x35a99ad0) function
         pub fn lower_exchange_price(
             &self,
             input: ::ethers::core::types::U256,
@@ -292,7 +298,7 @@ pub mod atomic_arbitrage {
                 .method_hash([53, 169, 154, 208], input)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `quote` (0x999b93af) function
+        /// Calls the contract's `quote` (0x999b93af) function
         pub fn quote(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -300,7 +306,7 @@ pub mod atomic_arbitrage {
                 .method_hash([153, 155, 147, 175], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `raise_exchange_price` (0x8a2fa54a) function
+        /// Calls the contract's `raise_exchange_price` (0x8a2fa54a) function
         pub fn raise_exchange_price(
             &self,
             input: ::ethers::core::types::U256,
@@ -317,7 +323,8 @@ pub mod atomic_arbitrage {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Custom Error type `NotProfitable` with signature `NotProfitable(uint256,uint256)` and selector `0x843e30ec`
+    /// Custom Error type `NotProfitable` with signature
+    /// `NotProfitable(uint256,uint256)` and selector `0x843e30ec`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -335,7 +342,8 @@ pub mod atomic_arbitrage {
         pub first_swap_output: ::ethers::core::types::U256,
         pub second_swap_output: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `asset` function with signature `asset()` and selector `0x38d52e0f`
+    /// Container type for all input parameters for the `asset` function with
+    /// signature `asset()` and selector `0x38d52e0f`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -350,7 +358,8 @@ pub mod atomic_arbitrage {
     )]
     #[ethcall(name = "asset", abi = "asset()")]
     pub struct AssetCall;
-    ///Container type for all input parameters for the `exchange` function with signature `exchange()` and selector `0xd2f7265a`
+    /// Container type for all input parameters for the `exchange` function with
+    /// signature `exchange()` and selector `0xd2f7265a`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -365,7 +374,8 @@ pub mod atomic_arbitrage {
     )]
     #[ethcall(name = "exchange", abi = "exchange()")]
     pub struct ExchangeCall;
-    ///Container type for all input parameters for the `liquidExchange` function with signature `liquidExchange()` and selector `0x9f27ef4f`
+    /// Container type for all input parameters for the `liquidExchange`
+    /// function with signature `liquidExchange()` and selector `0x9f27ef4f`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -380,7 +390,9 @@ pub mod atomic_arbitrage {
     )]
     #[ethcall(name = "liquidExchange", abi = "liquidExchange()")]
     pub struct LiquidExchangeCall;
-    ///Container type for all input parameters for the `lower_exchange_price` function with signature `lower_exchange_price(uint256)` and selector `0x35a99ad0`
+    /// Container type for all input parameters for the `lower_exchange_price`
+    /// function with signature `lower_exchange_price(uint256)` and selector
+    /// `0x35a99ad0`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -397,7 +409,8 @@ pub mod atomic_arbitrage {
     pub struct LowerExchangePriceCall {
         pub input: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `quote` function with signature `quote()` and selector `0x999b93af`
+    /// Container type for all input parameters for the `quote` function with
+    /// signature `quote()` and selector `0x999b93af`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -412,7 +425,9 @@ pub mod atomic_arbitrage {
     )]
     #[ethcall(name = "quote", abi = "quote()")]
     pub struct QuoteCall;
-    ///Container type for all input parameters for the `raise_exchange_price` function with signature `raise_exchange_price(uint256)` and selector `0x8a2fa54a`
+    /// Container type for all input parameters for the `raise_exchange_price`
+    /// function with signature `raise_exchange_price(uint256)` and selector
+    /// `0x8a2fa54a`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -429,7 +444,7 @@ pub mod atomic_arbitrage {
     pub struct RaiseExchangePriceCall {
         pub input: ::ethers::core::types::U256,
     }
-    ///Container type for all of the contract's call
+    /// Container type for all of the contract's call
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -538,7 +553,8 @@ pub mod atomic_arbitrage {
             Self::RaiseExchangePrice(value)
         }
     }
-    ///Container type for all return fields from the `asset` function with signature `asset()` and selector `0x38d52e0f`
+    /// Container type for all return fields from the `asset` function with
+    /// signature `asset()` and selector `0x38d52e0f`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -552,7 +568,8 @@ pub mod atomic_arbitrage {
         Hash,
     )]
     pub struct AssetReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `exchange` function with signature `exchange()` and selector `0xd2f7265a`
+    /// Container type for all return fields from the `exchange` function with
+    /// signature `exchange()` and selector `0xd2f7265a`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -566,7 +583,8 @@ pub mod atomic_arbitrage {
         Hash,
     )]
     pub struct ExchangeReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `liquidExchange` function with signature `liquidExchange()` and selector `0x9f27ef4f`
+    /// Container type for all return fields from the `liquidExchange` function
+    /// with signature `liquidExchange()` and selector `0x9f27ef4f`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -580,7 +598,8 @@ pub mod atomic_arbitrage {
         Hash,
     )]
     pub struct LiquidExchangeReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `quote` function with signature `quote()` and selector `0x999b93af`
+    /// Container type for all return fields from the `quote` function with
+    /// signature `quote()` and selector `0x999b93af`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

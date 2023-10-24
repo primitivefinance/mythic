@@ -143,7 +143,7 @@ pub mod i_strategy {
             fallback: false,
         }
     }
-    ///The parsed JSON ABI of the contract.
+    /// The parsed JSON ABI of the contract.
     pub static ISTRATEGY_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(__abi);
     pub struct IStrategy<M>(::ethers::contract::Contract<M>);
@@ -171,8 +171,9 @@ pub mod i_strategy {
         }
     }
     impl<M: ::ethers::providers::Middleware> IStrategy<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
@@ -183,7 +184,7 @@ pub mod i_strategy {
                 client,
             ))
         }
-        ///Calls the contract's `get_invariant` (0x282c3e60) function
+        /// Calls the contract's `get_invariant` (0x282c3e60) function
         pub fn get_invariant(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -191,7 +192,7 @@ pub mod i_strategy {
                 .method_hash([40, 44, 62, 96], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `get_reserve_x` (0xc630c2b7) function
+        /// Calls the contract's `get_reserve_x` (0xc630c2b7) function
         pub fn get_reserve_x(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -199,7 +200,7 @@ pub mod i_strategy {
                 .method_hash([198, 48, 194, 183], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `get_reserve_y` (0x2cce4fb5) function
+        /// Calls the contract's `get_reserve_y` (0x2cce4fb5) function
         pub fn get_reserve_y(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -207,7 +208,7 @@ pub mod i_strategy {
                 .method_hash([44, 206, 79, 181], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `get_spot_price` (0xbdd2f1ec) function
+        /// Calls the contract's `get_spot_price` (0xbdd2f1ec) function
         pub fn get_spot_price(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -215,7 +216,7 @@ pub mod i_strategy {
                 .method_hash([189, 210, 241, 236], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `get_strategy_data` (0x6cb977e4) function
+        /// Calls the contract's `get_strategy_data` (0x6cb977e4) function
         pub fn get_strategy_data(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Bytes> {
@@ -223,7 +224,7 @@ pub mod i_strategy {
                 .method_hash([108, 185, 119, 228], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `get_swap_fee` (0x73a48e67) function
+        /// Calls the contract's `get_swap_fee` (0x73a48e67) function
         pub fn get_swap_fee(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -231,7 +232,7 @@ pub mod i_strategy {
                 .method_hash([115, 164, 142, 103], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `instantiate` (0x3639aa32) function
+        /// Calls the contract's `instantiate` (0x3639aa32) function
         pub fn instantiate(
             &self,
             initial_x_wad: ::ethers::core::types::U256,
@@ -247,7 +248,8 @@ pub mod i_strategy {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Container type for all input parameters for the `get_invariant` function with signature `get_invariant()` and selector `0x282c3e60`
+    /// Container type for all input parameters for the `get_invariant` function
+    /// with signature `get_invariant()` and selector `0x282c3e60`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -262,7 +264,8 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "get_invariant", abi = "get_invariant()")]
     pub struct GetInvariantCall;
-    ///Container type for all input parameters for the `get_reserve_x` function with signature `get_reserve_x()` and selector `0xc630c2b7`
+    /// Container type for all input parameters for the `get_reserve_x` function
+    /// with signature `get_reserve_x()` and selector `0xc630c2b7`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -277,7 +280,8 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "get_reserve_x", abi = "get_reserve_x()")]
     pub struct GetReserveXCall;
-    ///Container type for all input parameters for the `get_reserve_y` function with signature `get_reserve_y()` and selector `0x2cce4fb5`
+    /// Container type for all input parameters for the `get_reserve_y` function
+    /// with signature `get_reserve_y()` and selector `0x2cce4fb5`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -292,7 +296,8 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "get_reserve_y", abi = "get_reserve_y()")]
     pub struct GetReserveYCall;
-    ///Container type for all input parameters for the `get_spot_price` function with signature `get_spot_price()` and selector `0xbdd2f1ec`
+    /// Container type for all input parameters for the `get_spot_price`
+    /// function with signature `get_spot_price()` and selector `0xbdd2f1ec`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -307,7 +312,8 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "get_spot_price", abi = "get_spot_price()")]
     pub struct GetSpotPriceCall;
-    ///Container type for all input parameters for the `get_strategy_data` function with signature `get_strategy_data()` and selector `0x6cb977e4`
+    /// Container type for all input parameters for the `get_strategy_data`
+    /// function with signature `get_strategy_data()` and selector `0x6cb977e4`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -322,7 +328,8 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "get_strategy_data", abi = "get_strategy_data()")]
     pub struct GetStrategyDataCall;
-    ///Container type for all input parameters for the `get_swap_fee` function with signature `get_swap_fee()` and selector `0x73a48e67`
+    /// Container type for all input parameters for the `get_swap_fee` function
+    /// with signature `get_swap_fee()` and selector `0x73a48e67`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -337,7 +344,8 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "get_swap_fee", abi = "get_swap_fee()")]
     pub struct GetSwapFeeCall;
-    ///Container type for all input parameters for the `instantiate` function with signature `instantiate(uint256,uint256)` and selector `0x3639aa32`
+    /// Container type for all input parameters for the `instantiate` function
+    /// with signature `instantiate(uint256,uint256)` and selector `0x3639aa32`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -355,7 +363,7 @@ pub mod i_strategy {
         pub initial_x_wad: ::ethers::core::types::U256,
         pub initial_price_wad: ::ethers::core::types::U256,
     }
-    ///Container type for all of the contract's call
+    /// Container type for all of the contract's call
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -469,7 +477,8 @@ pub mod i_strategy {
             Self::Instantiate(value)
         }
     }
-    ///Container type for all return fields from the `get_invariant` function with signature `get_invariant()` and selector `0x282c3e60`
+    /// Container type for all return fields from the `get_invariant` function
+    /// with signature `get_invariant()` and selector `0x282c3e60`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -485,7 +494,8 @@ pub mod i_strategy {
     pub struct GetInvariantReturn {
         pub invariant: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `get_reserve_x` function with signature `get_reserve_x()` and selector `0xc630c2b7`
+    /// Container type for all return fields from the `get_reserve_x` function
+    /// with signature `get_reserve_x()` and selector `0xc630c2b7`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -501,7 +511,8 @@ pub mod i_strategy {
     pub struct GetReserveXReturn {
         pub reserve_x_wad: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `get_reserve_y` function with signature `get_reserve_y()` and selector `0x2cce4fb5`
+    /// Container type for all return fields from the `get_reserve_y` function
+    /// with signature `get_reserve_y()` and selector `0x2cce4fb5`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -517,7 +528,8 @@ pub mod i_strategy {
     pub struct GetReserveYReturn {
         pub reserve_y_wad: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `get_spot_price` function with signature `get_spot_price()` and selector `0xbdd2f1ec`
+    /// Container type for all return fields from the `get_spot_price` function
+    /// with signature `get_spot_price()` and selector `0xbdd2f1ec`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -533,7 +545,8 @@ pub mod i_strategy {
     pub struct GetSpotPriceReturn {
         pub spot_price_wad: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `get_strategy_data` function with signature `get_strategy_data()` and selector `0x6cb977e4`
+    /// Container type for all return fields from the `get_strategy_data`
+    /// function with signature `get_strategy_data()` and selector `0x6cb977e4`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -549,7 +562,8 @@ pub mod i_strategy {
     pub struct GetStrategyDataReturn {
         pub strategy_data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all return fields from the `get_swap_fee` function with signature `get_swap_fee()` and selector `0x73a48e67`
+    /// Container type for all return fields from the `get_swap_fee` function
+    /// with signature `get_swap_fee()` and selector `0x73a48e67`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
