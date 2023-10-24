@@ -54,7 +54,7 @@ jobs:
         with:
           path: ~/.cargo/bin
           key: cargo-bin-${{ runner.os }}-arbiter
-          
+
   generate-bindings:
     name: Generate Bindings
     runs-on: ubuntu-latest
@@ -64,8 +64,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Restore Cargo PATH
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
       - name: Generate Bindings
-        run: $HOME/.cargo/bin/arbiter bind
+        run: arbiter bind
 
       - name: List directory structure
         run: ls -R
