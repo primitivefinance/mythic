@@ -2,9 +2,7 @@ use tokio::runtime::Runtime;
 use tracing::{debug, warn};
 
 use self::errors::SimulationError;
-
 use super::*;
-
 use crate::{
     agents::{Agent, Agents},
     settings::parameters::Direct,
@@ -85,8 +83,9 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::{env, io::Read, path::Path};
+
+    use super::*;
 
     #[test]
     fn static_output() {

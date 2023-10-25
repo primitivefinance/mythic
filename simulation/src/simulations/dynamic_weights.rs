@@ -1,15 +1,15 @@
-use super::errors::SimulationError;
-use super::*;
-use crate::agents::{Agent, Agents};
+use arbiter_core::environment::builder::BlockSettings;
+
+use super::{errors::SimulationError, *};
 use crate::{
     agents::{
         arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
-        price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger,
+        price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger, Agent,
+        Agents,
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
 };
-use arbiter_core::environment::builder::BlockSettings;
 
 pub async fn setup(config: SimulationConfig<Direct>) -> Result<Simulation, SimulationError> {
     let environment = EnvironmentBuilder::new()

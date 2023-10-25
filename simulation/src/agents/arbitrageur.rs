@@ -1,6 +1,5 @@
 use super::*;
-use crate::agents::Agent;
-use crate::strategy::ArbitrageStrategy;
+use crate::{agents::Agent, strategy::ArbitrageStrategy};
 
 #[derive(Clone)]
 pub struct Arbitrageur<S: ArbitrageStrategy> {

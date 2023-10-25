@@ -1,6 +1,6 @@
-use super::*;
-
 use thiserror::Error;
+
+use super::*;
 
 #[derive(Error, Debug)]
 pub enum SimulationError {

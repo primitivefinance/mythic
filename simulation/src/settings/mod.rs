@@ -3,9 +3,8 @@ use std::{env, path::Path};
 
 use parameters::*;
 
-use crate::simulations::SimulationType;
-
 use super::*;
+use crate::simulations::SimulationType;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig<P: Parameterized<f64>> {
@@ -105,8 +104,9 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use parameters::Parameterized;
+
+    use super::*;
 
     #[test]
     fn read_in_static() {

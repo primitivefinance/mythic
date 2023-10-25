@@ -7,10 +7,12 @@ pub mod price_changer;
 pub mod token_admin;
 pub mod weight_changer;
 
-use crate::settings::parameters::Direct;
 use std::marker::{Send, Sync};
 
-/// Universal agent methods for interacting with the simulation environment or loop.
+use crate::settings::parameters::Direct;
+
+/// Universal agent methods for interacting with the simulation environment or
+/// loop.
 #[async_trait::async_trait]
 pub trait Agent: Sync + Send {
     /// Executed outside the main simulation loop.
@@ -39,6 +41,7 @@ impl Agents {
 }
 
 impl Agents {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(vec![])
     }
