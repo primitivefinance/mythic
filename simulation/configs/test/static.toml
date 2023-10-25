@@ -1,4 +1,5 @@
 simulation = "DynamicWeights"
+output_directory = "test_static"
 
 [trajectory]
 # The type of price process to use.

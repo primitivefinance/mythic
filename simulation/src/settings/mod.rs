@@ -8,6 +8,7 @@ use super::*;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig<P: Parameterized<f64>> {
     pub simulation: SimulationType,
+    pub output_directory: String,
     pub trajectory: TrajectoryParameters<P>,
     pub gbm: Option<GBMParameters<P>>,
     pub ou: Option<OUParameters<P>>,
@@ -51,6 +52,7 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
             for gbm in &gbms {
                 result.push(SimulationConfig {
                     simulation: self.simulation,
+                    output_directory: self.output_directory.clone(),
                     trajectory: trajectory.clone(),
                     gbm: Some(gbm.clone()),
                     ou: None,
@@ -64,6 +66,7 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
             for ou in &ous {
                 result.push(SimulationConfig {
                     simulation: self.simulation,
+                    output_directory: self.output_directory.clone(),
                     trajectory: trajectory.clone(),
                     gbm: None,
                     ou: Some(ou.clone()),

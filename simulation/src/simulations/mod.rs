@@ -82,3 +82,29 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{env, io::Read, path::Path};
+
+    #[test]
+    fn static_output() {
+        batch("configs/test/static.toml").unwrap();
+        let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
+            .join("test_static")
+            .join("g3m")
+            .join("SwapFilter.csv");
+        println!("path: {:?}", path);
+        let mut file = std::fs::File::open(path).unwrap();
+        let mut contents = vec![];
+        file.read_to_end(&mut contents).unwrap();
+        assert!(!contents.is_empty());
+        std::fs::remove_dir_all("test_static").unwrap();
+    }
+
+    #[test]
+    fn sweep_output() {
+        todo!()
+    }
+}
