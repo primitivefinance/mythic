@@ -105,6 +105,25 @@ mod tests {
 
     #[test]
     fn sweep_output() {
-        todo!()
+        batch("configs/test/sweep.toml").unwrap();
+
+        for drift in [-1, 1] {
+            for vol in [0, 1] {
+                for trajectory in [0, 1] {
+                    let str = format!(
+                        "test_sweep/gbm_drift={}_vol={}_trajectory={}/g3m/SwapFilter.csv",
+                        drift, vol, trajectory
+                    );
+                    let path = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(str);
+                    println!("path: {:?}", path);
+                    let mut file = std::fs::File::open(path).unwrap();
+                    let mut contents = vec![];
+                    file.read_to_end(&mut contents).unwrap();
+                    assert!(!contents.is_empty());
+                }
+            }
+        }
+
+        std::fs::remove_dir_all("test_sweep").unwrap();
     }
 }

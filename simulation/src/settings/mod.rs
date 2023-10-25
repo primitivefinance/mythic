@@ -135,14 +135,22 @@ mod tests {
     fn read_in_sweep() {
         let config = SimulationConfig::new("configs/test/sweep.toml").unwrap();
         let configs = config.generate();
-        assert_eq!(configs.len(), 4);
+        assert_eq!(configs.len(), 8);
         assert_eq!(configs[0].gbm.unwrap().drift, Direct(-1.0));
         assert_eq!(configs[1].gbm.unwrap().drift, Direct(-1.0));
         assert_eq!(configs[2].gbm.unwrap().drift, Direct(1.0));
         assert_eq!(configs[3].gbm.unwrap().drift, Direct(1.0));
+        assert_eq!(configs[4].gbm.unwrap().drift, Direct(-1.0));
+        assert_eq!(configs[5].gbm.unwrap().drift, Direct(-1.0));
+        assert_eq!(configs[6].gbm.unwrap().drift, Direct(1.0));
+        assert_eq!(configs[7].gbm.unwrap().drift, Direct(1.0));
         assert_eq!(configs[0].gbm.unwrap().volatility, Direct(0.0));
         assert_eq!(configs[1].gbm.unwrap().volatility, Direct(1.0));
         assert_eq!(configs[2].gbm.unwrap().volatility, Direct(0.0));
         assert_eq!(configs[3].gbm.unwrap().volatility, Direct(1.0));
+        assert_eq!(configs[4].gbm.unwrap().volatility, Direct(0.0));
+        assert_eq!(configs[5].gbm.unwrap().volatility, Direct(1.0));
+        assert_eq!(configs[6].gbm.unwrap().volatility, Direct(0.0));
+        assert_eq!(configs[7].gbm.unwrap().volatility, Direct(1.0));
     }
 }

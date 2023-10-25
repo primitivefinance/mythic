@@ -9,7 +9,7 @@ num_steps = 100
 # Starting seed for the price processes
 seed = 2
 # The number of distinct paths to use
-num_paths = 1
+num_paths = 2
 # The initial price of the asset.
 [trajectory.initial_price]
 fixed = 1.0
