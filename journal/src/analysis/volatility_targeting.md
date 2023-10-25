@@ -16,7 +16,7 @@ If we find bad results early on, then we can stop and not waste time on the more
 
 #### Constant Volatility
 Aside from the initialization stage, the strategy should seek to maintain a constant volatility.
-To test this adherance, we should apply a range of GBM price paths with variable drifts and volatilities and collect data on how the strategy performs.
+To test this adherence, we should apply a range of GBM price paths with variable drifts and volatilities and collect data on how the strategy performs.
 We can generate statistics on the volatility of the strategy and compare it to the target volatility baseline.
 
 **Expectations:**

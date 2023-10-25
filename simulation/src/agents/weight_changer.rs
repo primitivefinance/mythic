@@ -48,7 +48,7 @@ impl WeightChanger {
     }
 
     fn calculate_rv(&mut self) -> Result<()> {
-        // if self.asset_prices.len() > 15 then only calcualte for the last 15 elements
+        // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
             let asset_rv = compute_realized_volatility(
                 self.asset_prices

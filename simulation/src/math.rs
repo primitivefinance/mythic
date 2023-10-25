@@ -1,5 +1,4 @@
 //! Math functions for portfolio optimization and management.
-
 /// Compute the returns of a series of values.
 /// Which is defined as the ratio of the current value to the previous value
 /// minus 1.
