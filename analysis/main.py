@@ -8,7 +8,7 @@ import os
 def main():
 
     parser = argparse.ArgumentParser(description='Run different types of visualizations.')
-    parser.add_argument('--type', type=str, choices=['test', 'weights'], required=True,
+    parser.add_argument('--type', type=str, choices=['test', 'weights', 'weights-statistical'], required=True,
                         help='Type of visualization to run')
 
     args = parser.parse_args()
@@ -39,6 +39,9 @@ def main():
 
         viz.save("test_data/test_output.png")
         print("Saved test output to `analysis/test_data/test_output.png`")
+    if args.type == 'weights-statistical':
+        data = DataProcessor("static_volatilities/gbm_drift=0_vol=0.5/trajectory=0/", {"block_timestamp": Decimal, "weight_x": Decimal, "weight_y": Decimal })
+        print(data)
     else:
         print("Invalid type")
 

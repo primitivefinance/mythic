@@ -5,6 +5,8 @@ cache/
 __pycache__
 *.png
 *.csv
+!analysis/test_data/g3m/*.csv
+!analysis/test_data/lex/*.csv
 Cargo.lock
 Cargo.lock~serde
 simulation/src/bindings/*
