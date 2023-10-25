@@ -2,6 +2,7 @@
 use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use simulation::simulations;
+use ui as interface;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
@@ -31,6 +32,7 @@ enum Commands {
         #[clap(index = 1, default_value = "test")]
         type_: String,
     },
+    Ui {},
 }
 
 fn main() -> Result<()> {
@@ -75,6 +77,7 @@ fn main() -> Result<()> {
                 .arg(type_)
                 .status()?
         ),
+        Some(Commands::Ui {}) => interface::run()?,
         None => Args::command().print_long_help()?,
     }
     Ok(())
