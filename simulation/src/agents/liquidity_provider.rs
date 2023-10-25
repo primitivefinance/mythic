@@ -1,6 +1,5 @@
-use crate::strategy::LiquidityStrategy;
-
 use super::{strategy::Strategy, token_admin::TokenAdmin, *};
+use crate::strategy::LiquidityStrategy;
 
 #[derive(Clone)]
 pub struct LiquidityProvider<S: LiquidityStrategy> {
@@ -15,7 +14,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
         environment: &Environment,
         token_admin: &TokenAdmin,
         strategy_address: Address,
-        config: &SimulationConfig,
+        config: &SimulationConfig<Fixed>,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
         let strategy: S = S::new(strategy_address, client.clone());
@@ -34,7 +33,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
             client,
             strategy,
             initial_x: float_to_wad(config.lp.x_liquidity),
-            initial_price: float_to_wad(config.trajectory.initial_price),
+            initial_price: float_to_wad(config.trajectory.initial_price.0),
         })
     }
 }
@@ -42,7 +41,8 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
 #[async_trait::async_trait]
 impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent for LiquidityProvider<S> {
     async fn startup(&mut self) -> Result<()> {
-        // Initializes the liquidity of a pool with a target price given an initial amount of x tokens.
+        // Initializes the liquidity of a pool with a target price given an initial
+        // amount of x tokens.
         let tx = self
             .strategy
             .instantiate(self.initial_x, self.initial_price)

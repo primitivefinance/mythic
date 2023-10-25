@@ -1,8 +1,7 @@
 use ethers::types::TransactionReceipt;
 
-use crate::bindings::i_strategy::IStrategy;
-
 use super::*;
+use crate::bindings::i_strategy::IStrategy;
 
 /// Type of data that is specific to the G3M strategy.
 /// Each G3M pool has weights for each side of the pool.
@@ -39,7 +38,8 @@ impl Strategy for IStrategy<RevmMiddleware> {
     }
 }
 
-/// G3M pools must be initialized with a starting amount of x tokens and an initial price.
+/// G3M pools must be initialized with a starting amount of x tokens and an
+/// initial price.
 #[async_trait::async_trait]
 impl LiquidityStrategy for IStrategy<RevmMiddleware> {
     async fn instantiate(
@@ -55,7 +55,8 @@ impl LiquidityStrategy for IStrategy<RevmMiddleware> {
     }
 }
 
-/// Uses algebraic methods based on the G3M invariant math to compute the amount of tokens to swap.
+/// Uses algebraic methods based on the G3M invariant math to compute the amount
+/// of tokens to swap.
 #[async_trait::async_trait]
 impl ArbitrageStrategy for IStrategy<RevmMiddleware> {
     async fn get_x_input(

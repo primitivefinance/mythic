@@ -38,3 +38,10 @@ impl TokenAdmin {
         Ok(())
     }
 }
+
+#[async_trait::async_trait]
+impl Agent for TokenAdmin {
+    async fn startup(&mut self) -> Result<()> {
+        Ok(())
+    }
+}

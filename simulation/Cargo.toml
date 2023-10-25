@@ -10,6 +10,7 @@ edition = "2021"
 tokio.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
 
 # Specific to this lib
 arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "main", features = ["contracts"] }

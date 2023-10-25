@@ -1,25 +1,29 @@
 use anyhow::Result;
-use clap::{command, CommandFactory, Parser, Subcommand};
-use simulation::simulations::dynamic_weights;
+use clap::{ArgAction, CommandFactory, Parser, Subcommand};
+use simulation::simulations;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
-#[command(name = "Portfolio-in-a-Box")]
-#[command(version = env!("CARGO_PKG_VERSION"))]
-#[command(about = "Simulation driven development.", long_about = None)]
-#[command(author)]
+#[clap(name = "Excalibur")]
+#[clap(version = env!("CARGO_PKG_VERSION"))]
+#[clap(about = "Simulation driven development.", long_about = None)]
+#[clap(author)]
 struct Args {
     /// Defines the subcommand to execute.
     #[command(subcommand)]
     command: Option<Commands>,
+
+    #[clap(short, long, global = true, required = false, action = ArgAction::Count, value_parser(
+        clap::value_parser!(u8)))]
+    verbose: Option<u8>,
 }
 
 /// Defines available subcommands for the `Arbiter` tool.
 #[derive(Subcommand)]
 enum Commands {
     /// Represents the `Bind` subcommand.
-    DynamicWeights {
-        #[clap(index = 1, default_value = "simulation/configs/test.toml")]
+    Simulate {
+        #[clap(index = 1, default_value = "simulation/configs/test/static.toml")]
         config_path: String,
     },
     Analyze {
@@ -28,21 +32,38 @@ enum Commands {
     },
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", "warn");
-    }
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .init();
-
+fn main() -> Result<()> {
     let args = Args::parse();
 
+    let log_level = match args.verbose.unwrap_or(0) {
+        0 => {
+            println!("Running with tracing::Level::Error");
+            tracing::Level::ERROR
+        }
+        1 => {
+            println!("Running with tracing::Level::WARN");
+            tracing::Level::WARN
+        }
+        2 => {
+            println!("Running with tracing::Level::INFO");
+            tracing::Level::INFO
+        }
+        3 => {
+            println!("Running with tracing::Level::DEBUG");
+            tracing::Level::DEBUG
+        }
+        _ => {
+            println!("Running with tracing::Level::TRACE");
+            tracing::Level::TRACE
+        }
+    };
+
+    tracing_subscriber::fmt().with_max_level(log_level).init();
+
     match &args.command {
-        Some(Commands::DynamicWeights { config_path }) => {
-            println!("config path: {}", config_path);
-            dynamic_weights::run(config_path).await?
+        Some(Commands::Simulate { config_path }) => {
+            println!("Reading from config path: {}", config_path);
+            simulations::batch(config_path)?;
         }
         Some(Commands::Analyze { type_ }) => println!(
             "Exit status: {:?}",
