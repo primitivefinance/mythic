@@ -8,6 +8,8 @@
 - [Strategies](./strategies/index.md)
     - [Volatility Targeting](./strategies/volatility_targeting.md)
     - [Momentum](./strategies/momentum.md)
+- [Analysis](./analysis/index.md)
+    - [Volatility Targeting](./analysis/volatility_targeting.md)
 - [Agents](./agents/index.md)
     - [Arbitrageur](./agents/arbitrageur.md)
     - [Price Changer](./agents/price_changer.md)

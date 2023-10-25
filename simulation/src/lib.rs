@@ -1,6 +1,7 @@
 // TODO: Is it possible to just give every agent a reference to the client from
 // the get go and use only that to construct them?
 #![allow(non_snake_case)]
+
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -29,6 +30,7 @@ use tracing::{info, trace};
 
 #[allow(unused)]
 mod agents;
+#[allow(non_snake_case)]
 pub mod bindings;
 #[allow(unused)]
 mod math;
