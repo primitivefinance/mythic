@@ -28,8 +28,8 @@ impl SimulationConfig<Meta> {
     }
 }
 
-impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
-    fn generate(&self) -> Vec<SimulationConfig<Direct>> {
+impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
+    fn generate(&self) -> Vec<SimulationConfig<Fixed>> {
         let mut result = vec![];
         let trajectories = self.trajectory.generate();
 
@@ -115,13 +115,13 @@ mod tests {
         assert_eq!(configs.len(), 1);
         assert_eq!(configs[0].simulation, SimulationType::DynamicWeights);
         assert_eq!(configs[0].trajectory.process, "gbm");
-        assert_eq!(configs[0].trajectory.initial_price, Direct(1.0));
-        assert_eq!(configs[0].trajectory.t_0, Direct(0.0));
-        assert_eq!(configs[0].trajectory.t_n, Direct(1.0));
+        assert_eq!(configs[0].trajectory.initial_price, Fixed(1.0));
+        assert_eq!(configs[0].trajectory.t_0, Fixed(0.0));
+        assert_eq!(configs[0].trajectory.t_n, Fixed(1.0));
         assert_eq!(configs[0].trajectory.num_steps, 100);
         assert_eq!(configs[0].trajectory.seed, 2);
-        assert_eq!(configs[0].gbm.unwrap().drift, Direct(0.1));
-        assert_eq!(configs[0].gbm.unwrap().volatility, Direct(0.35));
+        assert_eq!(configs[0].gbm.unwrap().drift, Fixed(0.1));
+        assert_eq!(configs[0].gbm.unwrap().volatility, Fixed(0.35));
         assert_eq!(configs[0].pool.fee_basis_points, 30);
         assert_eq!(configs[0].pool.weight_x, 0.5);
         assert_eq!(configs[0].pool.target_volatility, 0.15);
@@ -136,21 +136,21 @@ mod tests {
         let config = SimulationConfig::new("configs/test/sweep.toml").unwrap();
         let configs = config.generate();
         assert_eq!(configs.len(), 8);
-        assert_eq!(configs[0].gbm.unwrap().drift, Direct(-1.0));
-        assert_eq!(configs[1].gbm.unwrap().drift, Direct(-1.0));
-        assert_eq!(configs[2].gbm.unwrap().drift, Direct(1.0));
-        assert_eq!(configs[3].gbm.unwrap().drift, Direct(1.0));
-        assert_eq!(configs[4].gbm.unwrap().drift, Direct(-1.0));
-        assert_eq!(configs[5].gbm.unwrap().drift, Direct(-1.0));
-        assert_eq!(configs[6].gbm.unwrap().drift, Direct(1.0));
-        assert_eq!(configs[7].gbm.unwrap().drift, Direct(1.0));
-        assert_eq!(configs[0].gbm.unwrap().volatility, Direct(0.0));
-        assert_eq!(configs[1].gbm.unwrap().volatility, Direct(1.0));
-        assert_eq!(configs[2].gbm.unwrap().volatility, Direct(0.0));
-        assert_eq!(configs[3].gbm.unwrap().volatility, Direct(1.0));
-        assert_eq!(configs[4].gbm.unwrap().volatility, Direct(0.0));
-        assert_eq!(configs[5].gbm.unwrap().volatility, Direct(1.0));
-        assert_eq!(configs[6].gbm.unwrap().volatility, Direct(0.0));
-        assert_eq!(configs[7].gbm.unwrap().volatility, Direct(1.0));
+        assert_eq!(configs[0].gbm.unwrap().drift, Fixed(-1.0));
+        assert_eq!(configs[1].gbm.unwrap().drift, Fixed(-1.0));
+        assert_eq!(configs[2].gbm.unwrap().drift, Fixed(1.0));
+        assert_eq!(configs[3].gbm.unwrap().drift, Fixed(1.0));
+        assert_eq!(configs[4].gbm.unwrap().drift, Fixed(-1.0));
+        assert_eq!(configs[5].gbm.unwrap().drift, Fixed(-1.0));
+        assert_eq!(configs[6].gbm.unwrap().drift, Fixed(1.0));
+        assert_eq!(configs[7].gbm.unwrap().drift, Fixed(1.0));
+        assert_eq!(configs[0].gbm.unwrap().volatility, Fixed(0.0));
+        assert_eq!(configs[1].gbm.unwrap().volatility, Fixed(1.0));
+        assert_eq!(configs[2].gbm.unwrap().volatility, Fixed(0.0));
+        assert_eq!(configs[3].gbm.unwrap().volatility, Fixed(1.0));
+        assert_eq!(configs[4].gbm.unwrap().volatility, Fixed(0.0));
+        assert_eq!(configs[5].gbm.unwrap().volatility, Fixed(1.0));
+        assert_eq!(configs[6].gbm.unwrap().volatility, Fixed(0.0));
+        assert_eq!(configs[7].gbm.unwrap().volatility, Fixed(1.0));
     }
 }

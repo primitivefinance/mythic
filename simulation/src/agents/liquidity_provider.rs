@@ -14,7 +14,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
         environment: &Environment,
         token_admin: &TokenAdmin,
         strategy_address: Address,
-        config: &SimulationConfig<Direct>,
+        config: &SimulationConfig<Fixed>,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
         let strategy: S = S::new(strategy_address, client.clone());

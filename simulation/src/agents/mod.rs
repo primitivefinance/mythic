@@ -9,7 +9,7 @@ pub mod weight_changer;
 
 use std::marker::{Send, Sync};
 
-use crate::settings::parameters::Direct;
+use crate::settings::parameters::Fixed;
 
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.

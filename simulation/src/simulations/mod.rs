@@ -5,7 +5,7 @@ use self::errors::SimulationError;
 use super::*;
 use crate::{
     agents::{Agent, Agents},
-    settings::parameters::Direct,
+    settings::parameters::Fixed,
 };
 
 pub mod dynamic_weights;
@@ -27,7 +27,7 @@ pub enum SimulationType {
 }
 
 impl SimulationType {
-    async fn run(config: SimulationConfig<Direct>) -> Result<(), SimulationError> {
+    async fn run(config: SimulationConfig<Fixed>) -> Result<(), SimulationError> {
         let simulation = match config.simulation {
             SimulationType::DynamicWeights => dynamic_weights::setup(config).await?,
             SimulationType::StablePortfolio => stable_portfolio::setup(config).await?,
@@ -40,7 +40,7 @@ impl SimulationType {
 pub fn batch(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
-    let direct_configs: Vec<SimulationConfig<Direct>> = config.generate();
+    let direct_configs: Vec<SimulationConfig<Fixed>> = config.generate();
     warn!("Running {} simulations", direct_configs.len());
     let mut rt = Builder::new_multi_thread().build()?;
     let mut handles = vec![];

@@ -8,8 +8,8 @@ pub trait Parameterized<T> {
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq)]
-pub struct Direct(pub f64);
-impl Parameterized<f64> for Direct {
+pub struct Fixed(pub f64);
+impl Parameterized<f64> for Fixed {
     fn generate(&self) -> Vec<f64> {
         vec![self.0]
     }
@@ -71,8 +71,8 @@ pub struct TrajectoryParameters<P: Parameterized<f64>> {
     pub output_directory: Option<String>,
 }
 
-impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> {
-    fn generate(&self) -> Vec<TrajectoryParameters<Direct>> {
+impl Parameterized<TrajectoryParameters<Fixed>> for TrajectoryParameters<Meta> {
+    fn generate(&self) -> Vec<TrajectoryParameters<Fixed>> {
         let initial_price = self.initial_price.generate();
         let t_0 = self.t_0.generate();
         let t_n = self.t_n.generate();
@@ -85,9 +85,9 @@ impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> 
                     for index in 0..self.num_paths {
                         result.push(TrajectoryParameters {
                             process: self.process.clone(),
-                            initial_price: Direct(p),
-                            t_0: Direct(t0),
-                            t_n: Direct(tn),
+                            initial_price: Fixed(p),
+                            t_0: Fixed(t0),
+                            t_n: Fixed(tn),
                             num_steps: self.num_steps,
                             num_paths: 1,
                             seed,
@@ -111,16 +111,16 @@ pub struct GBMParameters<P: Parameterized<f64>> {
     pub volatility: P,
 }
 
-impl Parameterized<GBMParameters<Direct>> for GBMParameters<Meta> {
-    fn generate(&self) -> Vec<GBMParameters<Direct>> {
+impl Parameterized<GBMParameters<Fixed>> for GBMParameters<Meta> {
+    fn generate(&self) -> Vec<GBMParameters<Fixed>> {
         let drift = self.drift.generate();
         let volatility = self.volatility.generate();
         let mut result = vec![];
         for d in drift {
             for v in volatility.clone() {
                 result.push(GBMParameters {
-                    drift: Direct(d),
-                    volatility: Direct(v),
+                    drift: Fixed(d),
+                    volatility: Fixed(v),
                 });
             }
         }
@@ -139,8 +139,8 @@ pub struct OUParameters<P: Parameterized<f64>> {
     pub theta: P,
 }
 
-impl Parameterized<OUParameters<Direct>> for OUParameters<Meta> {
-    fn generate(&self) -> Vec<OUParameters<Direct>> {
+impl Parameterized<OUParameters<Fixed>> for OUParameters<Meta> {
+    fn generate(&self) -> Vec<OUParameters<Fixed>> {
         let mean = self.mean.generate();
         let std_dev = self.std_dev.generate();
         let theta = self.theta.generate();
@@ -149,9 +149,9 @@ impl Parameterized<OUParameters<Direct>> for OUParameters<Meta> {
             for s in std_dev.clone() {
                 for t in theta.clone() {
                     result.push(OUParameters {
-                        mean: Direct(m),
-                        std_dev: Direct(s),
-                        theta: Direct(t),
+                        mean: Fixed(m),
+                        std_dev: Fixed(s),
+                        theta: Fixed(t),
                     });
                 }
             }

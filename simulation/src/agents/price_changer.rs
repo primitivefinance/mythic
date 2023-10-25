@@ -26,7 +26,7 @@ impl PriceChanger {
     pub async fn new(
         environment: &Environment,
         token_admin: &token_admin::TokenAdmin,
-        config: &SimulationConfig<Direct>,
+        config: &SimulationConfig<Fixed>,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "price_changer".into())?;
         let liquid_exchange = LiquidExchange::deploy(
