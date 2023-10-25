@@ -32,7 +32,7 @@ If so, this is a sign of instability.
 - What is the best case scenario for the performance? How likely is it to occur?
 
 ### Security performance metrics:
-- Can the contract enter an unintended state that we consider anomolous? 
+- Can the contract enter an unintended state that we consider anomalous? 
 - Are there specific rational agents that can trigger a bad state?
 - Are there irrational agents that can trigger a bad state?
 - Are there boundary cases in the contract?

@@ -2,7 +2,7 @@
 
 ## General Strategy Interfacing
 
-Arbitrageurs are agents that need to get specific pricing info from the arbitrage target. While the mechanics of the arbitrage might be different from eachother, and require different variables, there is a universal set of actions and information they require.
+Arbitrageurs are agents that need to get specific pricing info from the arbitrage target. While the mechanics of the arbitrage might be different from each other, and require different variables, there is a universal set of actions and information they require.
 
 Arbitrageur needs:
 - To get the current price of a pool that is the arbitrage target
