@@ -60,13 +60,13 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
                     + &gbm.drift.0.to_string()
                     + "_vol="
                     + &gbm.volatility.0.to_string()
-                    + "_trajectory="
+                    + "/trajectory="
                     + &trajectory.output_directory.clone().unwrap();
                 result.push(SimulationConfig {
                     simulation: self.simulation,
                     output_directory: path,
                     trajectory: trajectory.clone(),
-                    gbm: Some(gbm.clone()),
+                    gbm: Some(*gbm),
                     ou: None,
                     pool: self.pool,
                     lp: self.lp,
@@ -83,14 +83,14 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
                     + &ou.std_dev.0.to_string()
                     + "_theta="
                     + &ou.theta.0.to_string()
-                    + "_trajectory="
+                    + "/trajectory="
                     + &trajectory.output_directory.clone().unwrap();
                 result.push(SimulationConfig {
                     simulation: self.simulation,
                     output_directory: path,
                     trajectory: trajectory.clone(),
                     gbm: None,
-                    ou: Some(ou.clone()),
+                    ou: Some(*ou),
                     pool: self.pool,
                     lp: self.lp,
                     block: self.block,
