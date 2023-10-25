@@ -19,7 +19,7 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
 
     let token_admin = TokenAdmin::new(&environment).await?;
     let mut price_changer = PriceChanger::new(&environment, &token_admin, &config).await?;
-    let mut weight_changer = MomentumStrategist::new(
+    let mut momentum_strategist = MomentumStrategist::new(
         &environment,
         &config,
         price_changer.liquid_exchange.address(),
@@ -31,22 +31,22 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
     let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
         &environment,
         &token_admin,
-        weight_changer.g3m.address(),
+        momentum_strategist.g3m.address(),
         &config,
     )
     .await?;
     let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
         &environment,
         &token_admin,
-        weight_changer.lex.address(),
-        weight_changer.g3m.address(),
+        momentum_strategist.lex.address(),
+        momentum_strategist.g3m.address(),
     )
     .await?;
 
     EventLogger::builder()
         .path(config.output_directory)
         .add(price_changer.liquid_exchange.events(), "lex")
-        .add(weight_changer.g3m.events(), "g3m")
+        .add(momentum_strategist.g3m.events(), "g3m")
         .run()?;
 
     Ok(Simulation {
@@ -54,7 +54,7 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
             .add(price_changer)
             .add(arbitrageur)
             .add(block_admin)
-            .add(weight_changer)
+            .add(momentum_strategist)
             .add(lp),
         steps: config.trajectory.num_steps,
         environment,

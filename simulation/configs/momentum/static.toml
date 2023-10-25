@@ -1,11 +1,11 @@
-simulation = "DynamicWeights"
+simulation = "MomentumStrategy"
 output_directory = "momentum_static"
 
 [trajectory]
 # The type of price process to use.
 process = "gbm"
 # The number of steps in the process.
-num_steps = 100 
+num_steps = 1000
 # Seed for the price processes
 seed = 2
 # The number of distinct paths to use
