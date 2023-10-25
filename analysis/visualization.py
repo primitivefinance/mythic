@@ -28,12 +28,13 @@ class Visualizer:
         ax.legend(fontsize=12)
         ax.grid(True)
 
-    def plot_statistical(self, row, col, x_data, y_data, label, color=None):
+    def plot_statistical(self, row, col, x_data_groups, y_data_groups, labels, colors):
         ax = self.axes[row][col]
 
-        # Check if y_data is a list of Series
-        if isinstance(y_data, list) and all(isinstance(ser, pd.Series) for ser in y_data):
-            # Concatenate series into a single DataFrame
+        # Iterate through each group of data
+        for x_data, y_data, label, color in zip(x_data_groups, y_data_groups, labels, colors):
+
+            # Concatenate series of each group into a single DataFrame
             concatenated = pd.concat(y_data, axis=1)
             
             # Convert Decimal to float if present
@@ -44,16 +45,12 @@ class Visualizer:
 
             # Assuming x_data contains similar Series, use the first one for x values
             x_values = x_data[0]
-            sns.lineplot(x=x_values, y=mean_data, label=label[0], ax=ax, linewidth=2, color=color)
+            sns.lineplot(x=x_values, y=mean_data, label=label, ax=ax, linewidth=2, color=color)
             ax.fill_between(x_values, mean_data - std_data, mean_data + std_data, color=color, alpha=0.2)
-            
-        # If y_data is a single Series
-        else:
-            print("y_data is not a list of Series or list is of length 1, consider using `plot` instead!")
-            sns.lineplot(x=x_data[0], y=y_data[0], label=label[0], ax=ax, linewidth=2, color=color)
 
-        # Set title based on label
-        self.customize_plot(ax, label[0], "X-Axis", "Y-Axis")
+        # Customize the plot (can be further modified based on requirements)
+        self.customize_plot(ax, "Data", "X-Axis", "Y-Axis")
+
 
 
 
