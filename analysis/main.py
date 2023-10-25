@@ -40,8 +40,20 @@ def main():
         viz.save("test_data/test_output.png")
         print("Saved test output to `analysis/test_data/test_output.png`")
     if args.type == 'weights-statistical':
-        data = DataProcessor("static_volatilities/gbm_drift=0_vol=0.5/trajectory=0/", {"block_timestamp": Decimal, "weight_x": Decimal, "weight_y": Decimal })
-        print(data)
+        data = DataProcessor("static_volatilities/gbm_drift=0_vol=0.5/", {"block_timestamp": Decimal, "weight_x": Decimal, "weight_y": Decimal })
+        dfs = data.import_csvs()
+
+        x_data = []
+        y_data = []
+        # TODO: be able to plot both weights here.
+        for trajectory in range(0,9):
+            x_data.append(dfs[os.path.join("trajectory=" + str(trajectory), "g3m", "LogWeightsFilter")]["block_timestamp"])
+            y_data.append(dfs[os.path.join("trajectory=" + str(trajectory), "g3m", "LogWeightsFilter")]["weight_x"])
+        print(len(y_data))
+        viz = Visualizer(nrows=1, ncols=1, figsize=(16, 10))
+        viz.plot_statistical(row=0, col=0, x_data=x_data, y_data=y_data, label=["weight_x"])
+        viz.save("weights.png")
+        print(dfs)
     else:
         print("Invalid type")
 
