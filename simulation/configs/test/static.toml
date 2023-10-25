@@ -8,6 +8,8 @@ process = "gbm"
 num_steps = 100 
 # Seed for the price processes
 seed = 2
+# The number of distinct paths to use
+num_paths = 1
 # The initial price of the asset.
 [trajectory.initial_price]
 fixed = 1.0

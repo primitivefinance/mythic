@@ -1,3 +1,5 @@
+use std::{collections::hash_map::DefaultHasher, hash::Hasher};
+
 use ethers::abi::Param;
 
 use super::*;
@@ -34,8 +36,8 @@ impl LinspaceParameters {
         // Check if start, end, steps are all Some
         match (self.start, self.end, self.steps) {
             (Some(start), Some(end), Some(steps)) => {
-                if let Some(_) = self.fixed {
-                    return panic!("Both linspace and fixed parameters are set");
+                if self.fixed.is_some() {
+                    panic!("Both linspace and fixed parameters are set");
                 }
                 let step_size = (end - start) / (steps as f64 - 1.0);
                 (0..steps).map(|i| start + step_size * i as f64).collect()
@@ -64,6 +66,7 @@ pub struct TrajectoryParameters<P: Parameterized<f64>> {
     pub t_n: P,
     /// The number of steps in the process.
     pub num_steps: usize,
+    pub num_paths: usize,
     pub seed: u64,
 }
 
@@ -73,17 +76,24 @@ impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> 
         let t_0 = self.t_0.generate();
         let t_n = self.t_n.generate();
         let mut result = vec![];
+        let mut hasher = DefaultHasher::new();
+        let mut seed = self.seed;
         for p in initial_price {
             for t0 in t_0.clone() {
                 for tn in t_n.clone() {
-                    result.push(TrajectoryParameters {
-                        process: self.process.clone(),
-                        initial_price: Direct(p),
-                        t_0: Direct(t0),
-                        t_n: Direct(tn),
-                        num_steps: self.num_steps,
-                        seed: self.seed,
-                    });
+                    for _ in 0..self.num_paths {
+                        result.push(TrajectoryParameters {
+                            process: self.process.clone(),
+                            initial_price: Direct(p),
+                            t_0: Direct(t0),
+                            t_n: Direct(tn),
+                            num_steps: self.num_steps,
+                            num_paths: 1,
+                            seed,
+                        });
+                        hasher.write_u64(seed);
+                        seed = hasher.finish();
+                    }
                 }
             }
         }

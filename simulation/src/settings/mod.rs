@@ -97,7 +97,7 @@ mod tests {
         assert_eq!(configs[0].trajectory.initial_price, Direct(1.0));
         assert_eq!(configs[0].trajectory.t_0, Direct(0.0));
         assert_eq!(configs[0].trajectory.t_n, Direct(1.0));
-        assert_eq!(configs[0].trajectory.num_steps, 3650);
+        assert_eq!(configs[0].trajectory.num_steps, 100);
         assert_eq!(configs[0].trajectory.seed, 2);
         assert_eq!(configs[0].gbm.unwrap().drift, Direct(0.1));
         assert_eq!(configs[0].gbm.unwrap().volatility, Direct(0.35));
