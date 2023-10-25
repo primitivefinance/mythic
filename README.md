@@ -23,7 +23,7 @@ cargo make journal
 ```
 then you can run
 ```bash
-cargo make journal-serve
+cargo make journal-view
 ```
 to be able to view the book in your browser at `http://localhost:3000`
 
