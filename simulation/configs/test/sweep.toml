@@ -48,10 +48,7 @@ x_liquidity = 1.0# in ether
 
 [weight_changer]
 target_volatility = 0.15
-#update_frequency = 450 # 1 update per 30 timestep day
-#update_frequency = 300 # 1 update per 20 timestep day
-update_frequency = 150 # 1 update per 10 timestep day
-#update_frequency = 75 # 1 update per 5 timestep day
+update_frequency = 150 
 
 [block]
 timestep_size = 15
