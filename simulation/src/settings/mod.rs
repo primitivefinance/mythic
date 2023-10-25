@@ -1,4 +1,6 @@
 pub mod parameters;
+use std::{env, path::Path};
+
 use parameters::*;
 
 use crate::simulations::SimulationType;
@@ -48,11 +50,21 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
             panic!("You can only supply either a gbm or an ou configuration, not both.");
         }
 
+        let mut path = Path::new(env::current_dir().unwrap().to_str().unwrap())
+            .join(self.output_directory.as_str());
+
         for trajectory in &trajectories {
             for gbm in &gbms {
+                let path = self.output_directory.clone()
+                    + "/gbm_drift="
+                    + &gbm.drift.0.to_string()
+                    + "_vol="
+                    + &gbm.volatility.0.to_string()
+                    + "_trajectory="
+                    + &trajectory.output_directory.clone().unwrap();
                 result.push(SimulationConfig {
                     simulation: self.simulation,
-                    output_directory: self.output_directory.clone(),
+                    output_directory: path,
                     trajectory: trajectory.clone(),
                     gbm: Some(gbm.clone()),
                     ou: None,
@@ -64,9 +76,18 @@ impl Parameterized<SimulationConfig<Direct>> for SimulationConfig<Meta> {
             }
 
             for ou in &ous {
+                let path = self.output_directory.clone()
+                    + "/ou_mean="
+                    + &ou.mean.0.to_string()
+                    + "_std="
+                    + &ou.std_dev.0.to_string()
+                    + "_theta="
+                    + &ou.theta.0.to_string()
+                    + "_trajectory="
+                    + &trajectory.output_directory.clone().unwrap();
                 result.push(SimulationConfig {
                     simulation: self.simulation,
-                    output_directory: self.output_directory.clone(),
+                    output_directory: path,
                     trajectory: trajectory.clone(),
                     gbm: None,
                     ou: Some(ou.clone()),

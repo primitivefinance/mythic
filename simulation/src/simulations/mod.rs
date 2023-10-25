@@ -92,7 +92,7 @@ mod tests {
     fn static_output() {
         batch("configs/test/static.toml").unwrap();
         let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("test_static")
+            .join("test_static/gbm_drift=0.1_vol=0.35_trajectory=0")
             .join("g3m")
             .join("SwapFilter.csv");
         println!("path: {:?}", path);

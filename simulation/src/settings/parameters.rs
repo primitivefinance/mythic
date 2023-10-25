@@ -68,6 +68,7 @@ pub struct TrajectoryParameters<P: Parameterized<f64>> {
     pub num_steps: usize,
     pub num_paths: usize,
     pub seed: u64,
+    pub output_directory: Option<String>,
 }
 
 impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> {
@@ -81,7 +82,7 @@ impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> 
         for p in initial_price {
             for t0 in t_0.clone() {
                 for tn in t_n.clone() {
-                    for _ in 0..self.num_paths {
+                    for index in 0..self.num_paths {
                         result.push(TrajectoryParameters {
                             process: self.process.clone(),
                             initial_price: Direct(p),
@@ -90,6 +91,7 @@ impl Parameterized<TrajectoryParameters<Direct>> for TrajectoryParameters<Meta> 
                             num_steps: self.num_steps,
                             num_paths: 1,
                             seed,
+                            output_directory: Some(index.to_string()),
                         });
                         hasher.write_u64(seed);
                         seed = hasher.finish();
