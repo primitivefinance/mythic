@@ -10,6 +10,7 @@ use crate::{
 pub mod dynamic_weights;
 pub mod errors;
 pub mod stable_portfolio;
+pub mod momentum;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
 
@@ -23,6 +24,7 @@ pub struct Simulation {
 pub enum SimulationType {
     DynamicWeights,
     StablePortfolio,
+    MomentumStrategy,
 }
 
 impl SimulationType {
@@ -30,6 +32,7 @@ impl SimulationType {
         let simulation = match config.simulation {
             SimulationType::DynamicWeights => dynamic_weights::setup(config).await?,
             SimulationType::StablePortfolio => stable_portfolio::setup(config).await?,
+            SimulationType::MomentumStrategy => momentum::setup(config).await?,
         };
         looper(simulation.agents, simulation.steps).await?;
         simulation.environment.stop();

@@ -35,6 +35,12 @@ pub fn compute_simple_returns(values: impl IntoIterator<Item = f64>) -> Vec<f64>
     returns
 }
 
+pub fn compute_net_returns(values: impl IntoIterator<Item = f64>) -> f64 {
+    let values = values.into_iter().collect::<Vec<f64>>();
+    let net_return = values.last().unwrap_or(&0.0) / values.first().unwrap_or(&1.0) - 1.0;
+    net_return
+}
+
 pub fn compute_variance(values: impl IntoIterator<Item = f64>) -> f64 {
     let values = values.into_iter().collect::<Vec<f64>>();
     let mean = values.iter().sum::<f64>() / values.len() as f64;
@@ -95,6 +101,12 @@ mod tests {
     fn test_compute_simple_returns() {
         let returns = compute_simple_returns(VALUES);
         assert_eq!(returns, [1.0, 0.5]);
+    }
+
+    #[test]
+    fn test_compute_net_return() {
+        let returns = compute_net_returns(VALUES);
+        assert_eq!(returns, 2.0);
     }
 
     #[test]

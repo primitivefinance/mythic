@@ -6,6 +6,7 @@ pub mod liquidity_provider;
 pub mod price_changer;
 pub mod token_admin;
 pub mod weight_changer;
+pub mod momentum_strategist;
 
 use std::marker::{Send, Sync};
 
