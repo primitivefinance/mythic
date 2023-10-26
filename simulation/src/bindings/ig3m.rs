@@ -667,7 +667,7 @@ pub mod ig3m {
             fallback: false,
         }
     }
-    ///The parsed JSON ABI of the contract.
+    /// The parsed JSON ABI of the contract.
     pub static IG3M_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(__abi);
     pub struct IG3M<M>(::ethers::contract::Contract<M>);
@@ -695,8 +695,9 @@ pub mod ig3m {
         }
     }
     impl<M: ::ethers::providers::Middleware> IG3M<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
@@ -707,7 +708,7 @@ pub mod ig3m {
                 client,
             ))
         }
-        ///Calls the contract's `addLiquidity` (0x51c6590a) function
+        /// Calls the contract's `addLiquidity` (0x51c6590a) function
         pub fn add_liquidity(
             &self,
             liquidity: ::ethers::core::types::U256,
@@ -719,7 +720,7 @@ pub mod ig3m {
                 .method_hash([81, 198, 89, 10], liquidity)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `addLiquidity` (0x76701636) function
+        /// Calls the contract's `addLiquidity` (0x76701636) function
         pub fn add_liquidity_with_exact_x(
             &self,
             exact_x: bool,
@@ -736,7 +737,7 @@ pub mod ig3m {
                 .method_hash([118, 112, 22, 54], (exact_x, amount))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `admin` (0xf851a440) function
+        /// Calls the contract's `admin` (0xf851a440) function
         pub fn admin(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -744,7 +745,7 @@ pub mod ig3m {
                 .method_hash([248, 81, 164, 64], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `balanceOf` (0x70a08231) function
+        /// Calls the contract's `balanceOf` (0x70a08231) function
         pub fn balance_of(
             &self,
             account: ::ethers::core::types::Address,
@@ -753,7 +754,7 @@ pub mod ig3m {
                 .method_hash([112, 160, 130, 49], account)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `getInvariant` (0xc0ff1a15) function
+        /// Calls the contract's `getInvariant` (0xc0ff1a15) function
         pub fn get_invariant(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -761,7 +762,7 @@ pub mod ig3m {
                 .method_hash([192, 255, 26, 21], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `getSpotPrice` (0xdc76fabc) function
+        /// Calls the contract's `getSpotPrice` (0xdc76fabc) function
         pub fn get_spot_price(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -769,7 +770,7 @@ pub mod ig3m {
                 .method_hash([220, 118, 250, 188], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `initPool` (0x9e1b0045) function
+        /// Calls the contract's `initPool` (0x9e1b0045) function
         pub fn init_pool(
             &self,
             amount_x: ::ethers::core::types::U256,
@@ -779,7 +780,7 @@ pub mod ig3m {
                 .method_hash([158, 27, 0, 69], (amount_x, amount_y))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `removeLiquidity` (0x9c8f9f23) function
+        /// Calls the contract's `removeLiquidity` (0x9c8f9f23) function
         pub fn remove_liquidity(
             &self,
             liquidity: ::ethers::core::types::U256,
@@ -791,7 +792,7 @@ pub mod ig3m {
                 .method_hash([156, 143, 159, 35], liquidity)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `removeLiquidity` (0xa0db6a82) function
+        /// Calls the contract's `removeLiquidity` (0xa0db6a82) function
         pub fn remove_liquidity_with_exact_x(
             &self,
             exact_x: bool,
@@ -808,7 +809,7 @@ pub mod ig3m {
                 .method_hash([160, 219, 106, 130], (exact_x, amount))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `reserveX` (0x08eabdda) function
+        /// Calls the contract's `reserveX` (0x08eabdda) function
         pub fn reserve_x(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -816,7 +817,7 @@ pub mod ig3m {
                 .method_hash([8, 234, 189, 218], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `reserveY` (0xfadfa65b) function
+        /// Calls the contract's `reserveY` (0xfadfa65b) function
         pub fn reserve_y(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -824,7 +825,7 @@ pub mod ig3m {
                 .method_hash([250, 223, 166, 91], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setSwapFee` (0x34e19907) function
+        /// Calls the contract's `setSwapFee` (0x34e19907) function
         pub fn set_swap_fee(
             &self,
             new_swap_fee: ::ethers::core::types::U256,
@@ -833,7 +834,7 @@ pub mod ig3m {
                 .method_hash([52, 225, 153, 7], new_swap_fee)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setWeightX` (0xdb791043) function
+        /// Calls the contract's `setWeightX` (0xdb791043) function
         pub fn set_weight_x(
             &self,
             new_target_weight_x: ::ethers::core::types::U256,
@@ -846,7 +847,7 @@ pub mod ig3m {
                 )
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `swapAmountIn` (0x1fdabc27) function
+        /// Calls the contract's `swapAmountIn` (0x1fdabc27) function
         pub fn swap_amount_in(
             &self,
             swap_direction: bool,
@@ -856,7 +857,7 @@ pub mod ig3m {
                 .method_hash([31, 218, 188, 39], (swap_direction, amount_in))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `swapAmountOut` (0x9ce332d4) function
+        /// Calls the contract's `swapAmountOut` (0x9ce332d4) function
         pub fn swap_amount_out(
             &self,
             swap_direction: bool,
@@ -866,7 +867,7 @@ pub mod ig3m {
                 .method_hash([156, 227, 50, 212], (swap_direction, amount_out))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `swapFee` (0x54cf2aeb) function
+        /// Calls the contract's `swapFee` (0x54cf2aeb) function
         pub fn swap_fee(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -874,7 +875,7 @@ pub mod ig3m {
                 .method_hash([84, 207, 42, 235], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `tokenX` (0x16dc165b) function
+        /// Calls the contract's `tokenX` (0x16dc165b) function
         pub fn token_x(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -882,7 +883,7 @@ pub mod ig3m {
                 .method_hash([22, 220, 22, 91], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `tokenY` (0xb7d19fc4) function
+        /// Calls the contract's `tokenY` (0xb7d19fc4) function
         pub fn token_y(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Address> {
@@ -890,7 +891,7 @@ pub mod ig3m {
                 .method_hash([183, 209, 159, 196], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `totalLiquidity` (0x15770f92) function
+        /// Calls the contract's `totalLiquidity` (0x15770f92) function
         pub fn total_liquidity(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -898,7 +899,7 @@ pub mod ig3m {
                 .method_hash([21, 119, 15, 146], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `weightX` (0xadb51dee) function
+        /// Calls the contract's `weightX` (0xadb51dee) function
         pub fn weight_x(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -906,7 +907,7 @@ pub mod ig3m {
                 .method_hash([173, 181, 29, 238], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `weightY` (0x8a5953c7) function
+        /// Calls the contract's `weightY` (0x8a5953c7) function
         pub fn weight_y(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -914,40 +915,40 @@ pub mod ig3m {
                 .method_hash([138, 89, 83, 199], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Gets the contract's `AddLiquidity` event
+        /// Gets the contract's `AddLiquidity` event
         pub fn add_liquidity_filter(
             &self,
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, AddLiquidityFilter>
         {
             self.0.event()
         }
-        ///Gets the contract's `LogWeights` event
+        /// Gets the contract's `LogWeights` event
         pub fn log_weights_filter(
             &self,
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, LogWeightsFilter> {
             self.0.event()
         }
-        ///Gets the contract's `RemoveLiquidity` event
+        /// Gets the contract's `RemoveLiquidity` event
         pub fn remove_liquidity_filter(
             &self,
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, RemoveLiquidityFilter>
         {
             self.0.event()
         }
-        ///Gets the contract's `SetTargetWeightX` event
+        /// Gets the contract's `SetTargetWeightX` event
         pub fn set_target_weight_x_filter(
             &self,
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SetTargetWeightXFilter>
         {
             self.0.event()
         }
-        ///Gets the contract's `SetWeightX` event
+        /// Gets the contract's `SetWeightX` event
         pub fn set_weight_x_filter(
             &self,
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SetWeightXFilter> {
             self.0.event()
         }
-        ///Gets the contract's `Swap` event
+        /// Gets the contract's `Swap` event
         pub fn swap_filter(
             &self,
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SwapFilter> {
@@ -1088,7 +1089,7 @@ pub mod ig3m {
         pub output: ::ethers::core::types::U256,
         pub new_price: ::ethers::core::types::U256,
     }
-    ///Container type for all of the contract's events
+    /// Container type for all of the contract's events
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1174,7 +1175,8 @@ pub mod ig3m {
             Self::SwapFilter(value)
         }
     }
-    ///Container type for all input parameters for the `addLiquidity` function with signature `addLiquidity(uint256)` and selector `0x51c6590a`
+    /// Container type for all input parameters for the `addLiquidity` function
+    /// with signature `addLiquidity(uint256)` and selector `0x51c6590a`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1191,7 +1193,8 @@ pub mod ig3m {
     pub struct AddLiquidityCall {
         pub liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `addLiquidity` function with signature `addLiquidity(bool,uint256)` and selector `0x76701636`
+    /// Container type for all input parameters for the `addLiquidity` function
+    /// with signature `addLiquidity(bool,uint256)` and selector `0x76701636`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1209,7 +1212,8 @@ pub mod ig3m {
         pub exact_x: bool,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `admin` function with signature `admin()` and selector `0xf851a440`
+    /// Container type for all input parameters for the `admin` function with
+    /// signature `admin()` and selector `0xf851a440`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1224,7 +1228,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "admin", abi = "admin()")]
     pub struct AdminCall;
-    ///Container type for all input parameters for the `balanceOf` function with signature `balanceOf(address)` and selector `0x70a08231`
+    /// Container type for all input parameters for the `balanceOf` function
+    /// with signature `balanceOf(address)` and selector `0x70a08231`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1241,7 +1246,8 @@ pub mod ig3m {
     pub struct BalanceOfCall {
         pub account: ::ethers::core::types::Address,
     }
-    ///Container type for all input parameters for the `getInvariant` function with signature `getInvariant()` and selector `0xc0ff1a15`
+    /// Container type for all input parameters for the `getInvariant` function
+    /// with signature `getInvariant()` and selector `0xc0ff1a15`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1256,7 +1262,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "getInvariant", abi = "getInvariant()")]
     pub struct GetInvariantCall;
-    ///Container type for all input parameters for the `getSpotPrice` function with signature `getSpotPrice()` and selector `0xdc76fabc`
+    /// Container type for all input parameters for the `getSpotPrice` function
+    /// with signature `getSpotPrice()` and selector `0xdc76fabc`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1271,7 +1278,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "getSpotPrice", abi = "getSpotPrice()")]
     pub struct GetSpotPriceCall;
-    ///Container type for all input parameters for the `initPool` function with signature `initPool(uint256,uint256)` and selector `0x9e1b0045`
+    /// Container type for all input parameters for the `initPool` function with
+    /// signature `initPool(uint256,uint256)` and selector `0x9e1b0045`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1289,7 +1297,9 @@ pub mod ig3m {
         pub amount_x: ::ethers::core::types::U256,
         pub amount_y: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `removeLiquidity` function with signature `removeLiquidity(uint256)` and selector `0x9c8f9f23`
+    /// Container type for all input parameters for the `removeLiquidity`
+    /// function with signature `removeLiquidity(uint256)` and selector
+    /// `0x9c8f9f23`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1306,7 +1316,9 @@ pub mod ig3m {
     pub struct RemoveLiquidityCall {
         pub liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `removeLiquidity` function with signature `removeLiquidity(bool,uint256)` and selector `0xa0db6a82`
+    /// Container type for all input parameters for the `removeLiquidity`
+    /// function with signature `removeLiquidity(bool,uint256)` and selector
+    /// `0xa0db6a82`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1324,7 +1336,8 @@ pub mod ig3m {
         pub exact_x: bool,
         pub amount: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `reserveX` function with signature `reserveX()` and selector `0x08eabdda`
+    /// Container type for all input parameters for the `reserveX` function with
+    /// signature `reserveX()` and selector `0x08eabdda`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1339,7 +1352,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "reserveX", abi = "reserveX()")]
     pub struct ReserveXCall;
-    ///Container type for all input parameters for the `reserveY` function with signature `reserveY()` and selector `0xfadfa65b`
+    /// Container type for all input parameters for the `reserveY` function with
+    /// signature `reserveY()` and selector `0xfadfa65b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1354,7 +1368,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "reserveY", abi = "reserveY()")]
     pub struct ReserveYCall;
-    ///Container type for all input parameters for the `setSwapFee` function with signature `setSwapFee(uint256)` and selector `0x34e19907`
+    /// Container type for all input parameters for the `setSwapFee` function
+    /// with signature `setSwapFee(uint256)` and selector `0x34e19907`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1371,7 +1386,8 @@ pub mod ig3m {
     pub struct SetSwapFeeCall {
         pub new_swap_fee: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setWeightX` function with signature `setWeightX(uint256,uint256)` and selector `0xdb791043`
+    /// Container type for all input parameters for the `setWeightX` function
+    /// with signature `setWeightX(uint256,uint256)` and selector `0xdb791043`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1389,7 +1405,8 @@ pub mod ig3m {
         pub new_target_weight_x: ::ethers::core::types::U256,
         pub new_weight_x_update_end: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `swapAmountIn` function with signature `swapAmountIn(bool,uint256)` and selector `0x1fdabc27`
+    /// Container type for all input parameters for the `swapAmountIn` function
+    /// with signature `swapAmountIn(bool,uint256)` and selector `0x1fdabc27`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1407,7 +1424,8 @@ pub mod ig3m {
         pub swap_direction: bool,
         pub amount_in: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `swapAmountOut` function with signature `swapAmountOut(bool,uint256)` and selector `0x9ce332d4`
+    /// Container type for all input parameters for the `swapAmountOut` function
+    /// with signature `swapAmountOut(bool,uint256)` and selector `0x9ce332d4`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1425,7 +1443,8 @@ pub mod ig3m {
         pub swap_direction: bool,
         pub amount_out: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `swapFee` function with signature `swapFee()` and selector `0x54cf2aeb`
+    /// Container type for all input parameters for the `swapFee` function with
+    /// signature `swapFee()` and selector `0x54cf2aeb`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1440,7 +1459,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "swapFee", abi = "swapFee()")]
     pub struct SwapFeeCall;
-    ///Container type for all input parameters for the `tokenX` function with signature `tokenX()` and selector `0x16dc165b`
+    /// Container type for all input parameters for the `tokenX` function with
+    /// signature `tokenX()` and selector `0x16dc165b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1455,7 +1475,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "tokenX", abi = "tokenX()")]
     pub struct TokenXCall;
-    ///Container type for all input parameters for the `tokenY` function with signature `tokenY()` and selector `0xb7d19fc4`
+    /// Container type for all input parameters for the `tokenY` function with
+    /// signature `tokenY()` and selector `0xb7d19fc4`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1470,7 +1491,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "tokenY", abi = "tokenY()")]
     pub struct TokenYCall;
-    ///Container type for all input parameters for the `totalLiquidity` function with signature `totalLiquidity()` and selector `0x15770f92`
+    /// Container type for all input parameters for the `totalLiquidity`
+    /// function with signature `totalLiquidity()` and selector `0x15770f92`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1485,7 +1507,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "totalLiquidity", abi = "totalLiquidity()")]
     pub struct TotalLiquidityCall;
-    ///Container type for all input parameters for the `weightX` function with signature `weightX()` and selector `0xadb51dee`
+    /// Container type for all input parameters for the `weightX` function with
+    /// signature `weightX()` and selector `0xadb51dee`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1500,7 +1523,8 @@ pub mod ig3m {
     )]
     #[ethcall(name = "weightX", abi = "weightX()")]
     pub struct WeightXCall;
-    ///Container type for all input parameters for the `weightY` function with signature `weightY()` and selector `0x8a5953c7`
+    /// Container type for all input parameters for the `weightY` function with
+    /// signature `weightY()` and selector `0x8a5953c7`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1515,7 +1539,7 @@ pub mod ig3m {
     )]
     #[ethcall(name = "weightY", abi = "weightY()")]
     pub struct WeightYCall;
-    ///Container type for all of the contract's call
+    /// Container type for all of the contract's call
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1796,7 +1820,8 @@ pub mod ig3m {
             Self::WeightY(value)
         }
     }
-    ///Container type for all return fields from the `addLiquidity` function with signature `addLiquidity(uint256)` and selector `0x51c6590a`
+    /// Container type for all return fields from the `addLiquidity` function
+    /// with signature `addLiquidity(uint256)` and selector `0x51c6590a`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1813,7 +1838,8 @@ pub mod ig3m {
         pub amount_x: ::ethers::core::types::U256,
         pub amount_y: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `addLiquidity` function with signature `addLiquidity(bool,uint256)` and selector `0x76701636`
+    /// Container type for all return fields from the `addLiquidity` function
+    /// with signature `addLiquidity(bool,uint256)` and selector `0x76701636`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1831,7 +1857,8 @@ pub mod ig3m {
         pub amount_y: ::ethers::core::types::U256,
         pub liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `admin` function with signature `admin()` and selector `0xf851a440`
+    /// Container type for all return fields from the `admin` function with
+    /// signature `admin()` and selector `0xf851a440`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1845,7 +1872,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct AdminReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `balanceOf` function with signature `balanceOf(address)` and selector `0x70a08231`
+    /// Container type for all return fields from the `balanceOf` function with
+    /// signature `balanceOf(address)` and selector `0x70a08231`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1859,7 +1887,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct BalanceOfReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getInvariant` function with signature `getInvariant()` and selector `0xc0ff1a15`
+    /// Container type for all return fields from the `getInvariant` function
+    /// with signature `getInvariant()` and selector `0xc0ff1a15`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1873,7 +1902,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct GetInvariantReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `getSpotPrice` function with signature `getSpotPrice()` and selector `0xdc76fabc`
+    /// Container type for all return fields from the `getSpotPrice` function
+    /// with signature `getSpotPrice()` and selector `0xdc76fabc`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1887,7 +1917,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct GetSpotPriceReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `initPool` function with signature `initPool(uint256,uint256)` and selector `0x9e1b0045`
+    /// Container type for all return fields from the `initPool` function with
+    /// signature `initPool(uint256,uint256)` and selector `0x9e1b0045`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1903,7 +1934,8 @@ pub mod ig3m {
     pub struct InitPoolReturn {
         pub liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `removeLiquidity` function with signature `removeLiquidity(uint256)` and selector `0x9c8f9f23`
+    /// Container type for all return fields from the `removeLiquidity` function
+    /// with signature `removeLiquidity(uint256)` and selector `0x9c8f9f23`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1920,7 +1952,8 @@ pub mod ig3m {
         pub amount_x: ::ethers::core::types::U256,
         pub amount_y: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `removeLiquidity` function with signature `removeLiquidity(bool,uint256)` and selector `0xa0db6a82`
+    /// Container type for all return fields from the `removeLiquidity` function
+    /// with signature `removeLiquidity(bool,uint256)` and selector `0xa0db6a82`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1938,7 +1971,8 @@ pub mod ig3m {
         pub amount_y: ::ethers::core::types::U256,
         pub liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `reserveX` function with signature `reserveX()` and selector `0x08eabdda`
+    /// Container type for all return fields from the `reserveX` function with
+    /// signature `reserveX()` and selector `0x08eabdda`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1952,7 +1986,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct ReserveXReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `reserveY` function with signature `reserveY()` and selector `0xfadfa65b`
+    /// Container type for all return fields from the `reserveY` function with
+    /// signature `reserveY()` and selector `0xfadfa65b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1966,7 +2001,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct ReserveYReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `swapAmountIn` function with signature `swapAmountIn(bool,uint256)` and selector `0x1fdabc27`
+    /// Container type for all return fields from the `swapAmountIn` function
+    /// with signature `swapAmountIn(bool,uint256)` and selector `0x1fdabc27`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1982,7 +2018,8 @@ pub mod ig3m {
     pub struct SwapAmountInReturn {
         pub amount_out: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `swapAmountOut` function with signature `swapAmountOut(bool,uint256)` and selector `0x9ce332d4`
+    /// Container type for all return fields from the `swapAmountOut` function
+    /// with signature `swapAmountOut(bool,uint256)` and selector `0x9ce332d4`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1998,7 +2035,8 @@ pub mod ig3m {
     pub struct SwapAmountOutReturn {
         pub amount_in: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `swapFee` function with signature `swapFee()` and selector `0x54cf2aeb`
+    /// Container type for all return fields from the `swapFee` function with
+    /// signature `swapFee()` and selector `0x54cf2aeb`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2012,7 +2050,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct SwapFeeReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `tokenX` function with signature `tokenX()` and selector `0x16dc165b`
+    /// Container type for all return fields from the `tokenX` function with
+    /// signature `tokenX()` and selector `0x16dc165b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2026,7 +2065,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct TokenXReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `tokenY` function with signature `tokenY()` and selector `0xb7d19fc4`
+    /// Container type for all return fields from the `tokenY` function with
+    /// signature `tokenY()` and selector `0xb7d19fc4`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2040,7 +2080,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct TokenYReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `totalLiquidity` function with signature `totalLiquidity()` and selector `0x15770f92`
+    /// Container type for all return fields from the `totalLiquidity` function
+    /// with signature `totalLiquidity()` and selector `0x15770f92`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2054,7 +2095,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct TotalLiquidityReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `weightX` function with signature `weightX()` and selector `0xadb51dee`
+    /// Container type for all return fields from the `weightX` function with
+    /// signature `weightX()` and selector `0xadb51dee`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2068,7 +2110,8 @@ pub mod ig3m {
         Hash,
     )]
     pub struct WeightXReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `weightY` function with signature `weightY()` and selector `0x8a5953c7`
+    /// Container type for all return fields from the `weightY` function with
+    /// signature `weightY()` and selector `0x8a5953c7`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

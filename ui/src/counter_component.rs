@@ -1,6 +1,8 @@
-use iced::alignment::{self, Alignment};
-use iced::widget::{button, component, row, text, Component};
-use iced::{Element, Length, Renderer};
+use iced::{
+    alignment::{self, Alignment},
+    widget::{button, component, row, text, Component},
+    Element, Length, Renderer,
+};
 pub struct Counter<Message> {
     value: Option<u32>,
     on_change: Box<dyn Fn(Option<u32>) -> Message>,

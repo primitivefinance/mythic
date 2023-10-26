@@ -1,10 +1,10 @@
 //! Rust api over the vault smart contract.
 
 #![allow(unused_variables)]
+use std::sync::Arc;
+
 use arbiter_core::middleware::{errors::RevmMiddlewareError, RevmMiddleware};
 use simulation::bindings::counter::Counter;
-
-use std::sync::Arc;
 
 use crate::example::Error;
 

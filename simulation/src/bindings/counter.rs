@@ -64,7 +64,7 @@ pub mod counter {
             fallback: false,
         }
     }
-    ///The parsed JSON ABI of the contract.
+    /// The parsed JSON ABI of the contract.
     pub static COUNTER_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(__abi);
     #[rustfmt::skip]
@@ -102,8 +102,9 @@ pub mod counter {
         }
     }
     impl<M: ::ethers::providers::Middleware> Counter<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
@@ -114,20 +115,25 @@ pub mod counter {
                 client,
             ))
         }
-        /// Constructs the general purpose `Deployer` instance based on the provided constructor arguments and sends it.
-        /// Returns a new instance of a deployer that returns an instance of this contract after sending the transaction
+        /// Constructs the general purpose `Deployer` instance based on the
+        /// provided constructor arguments and sends it. Returns a new
+        /// instance of a deployer that returns an instance of this contract
+        /// after sending the transaction
         ///
         /// Notes:
-        /// - If there are no constructor arguments, you should pass `()` as the argument.
+        /// - If there are no constructor arguments, you should pass `()` as the
+        ///   argument.
         /// - The default poll duration is 7 seconds.
         /// - The default number of confirmations is 1 block.
         ///
         ///
         /// # Example
         ///
-        /// Generate contract bindings with `abigen!` and deploy a new contract instance.
+        /// Generate contract bindings with `abigen!` and deploy a new contract
+        /// instance.
         ///
-        /// *Note*: this requires a `bytecode` and `abi` object in the `greeter.json` artifact.
+        /// *Note*: this requires a `bytecode` and `abi` object in the
+        /// `greeter.json` artifact.
         ///
         /// ```ignore
         /// # async fn deploy<M: ethers::providers::Middleware>(client: ::std::sync::Arc<M>) {
@@ -153,13 +159,13 @@ pub mod counter {
             let deployer = ::ethers::contract::ContractDeployer::new(deployer);
             Ok(deployer)
         }
-        ///Calls the contract's `increment` (0xd09de08a) function
+        /// Calls the contract's `increment` (0xd09de08a) function
         pub fn increment(&self) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
                 .method_hash([208, 157, 224, 138], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `number` (0x8381f58a) function
+        /// Calls the contract's `number` (0x8381f58a) function
         pub fn number(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -167,7 +173,7 @@ pub mod counter {
                 .method_hash([131, 129, 245, 138], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setNumber` (0x3fb5c1cb) function
+        /// Calls the contract's `setNumber` (0x3fb5c1cb) function
         pub fn set_number(
             &self,
             new_number: ::ethers::core::types::U256,
@@ -182,7 +188,8 @@ pub mod counter {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Container type for all input parameters for the `increment` function with signature `increment()` and selector `0xd09de08a`
+    /// Container type for all input parameters for the `increment` function
+    /// with signature `increment()` and selector `0xd09de08a`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -197,7 +204,8 @@ pub mod counter {
     )]
     #[ethcall(name = "increment", abi = "increment()")]
     pub struct IncrementCall;
-    ///Container type for all input parameters for the `number` function with signature `number()` and selector `0x8381f58a`
+    /// Container type for all input parameters for the `number` function with
+    /// signature `number()` and selector `0x8381f58a`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -212,7 +220,8 @@ pub mod counter {
     )]
     #[ethcall(name = "number", abi = "number()")]
     pub struct NumberCall;
-    ///Container type for all input parameters for the `setNumber` function with signature `setNumber(uint256)` and selector `0x3fb5c1cb`
+    /// Container type for all input parameters for the `setNumber` function
+    /// with signature `setNumber(uint256)` and selector `0x3fb5c1cb`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -229,7 +238,7 @@ pub mod counter {
     pub struct SetNumberCall {
         pub new_number: ::ethers::core::types::U256,
     }
-    ///Container type for all of the contract's call
+    /// Container type for all of the contract's call
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -295,7 +304,8 @@ pub mod counter {
             Self::SetNumber(value)
         }
     }
-    ///Container type for all return fields from the `number` function with signature `number()` and selector `0x8381f58a`
+    /// Container type for all return fields from the `number` function with
+    /// signature `number()` and selector `0x8381f58a`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

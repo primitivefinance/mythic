@@ -1,12 +1,15 @@
 #![allow(unused_variables)]
-use arbiter_core::environment::builder::EnvironmentBuilder;
-
-use iced::widget::{button, column, container, text};
-use iced::{executor, Application, Command, Element, Length, Theme};
-
-use arbiter_core::environment::Environment;
-use arbiter_core::middleware::RevmMiddleware;
 use std::sync::Arc;
+
+use arbiter_core::{
+    environment::{builder::EnvironmentBuilder, Environment},
+    middleware::RevmMiddleware,
+};
+use iced::{
+    executor,
+    widget::{button, column, container, text},
+    Application, Command, Element, Length, Theme,
+};
 
 use crate::vault::*;
 
@@ -125,7 +128,7 @@ impl Application for Example {
                     }
                 };
 
-                //content.push(counter_state(Some(1), Message::CounterMessage));
+                // content.push(counter_state(Some(1), Message::CounterMessage));
 
                 content.into()
             }

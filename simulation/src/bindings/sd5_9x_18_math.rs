@@ -251,7 +251,7 @@ pub mod sd5_9x_18_math {
             fallback: false,
         }
     }
-    ///The parsed JSON ABI of the contract.
+    /// The parsed JSON ABI of the contract.
     pub static SD59X18MATH_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(__abi);
     #[rustfmt::skip]
@@ -289,8 +289,9 @@ pub mod sd5_9x_18_math {
         }
     }
     impl<M: ::ethers::providers::Middleware> SD59x18Math<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
@@ -301,20 +302,25 @@ pub mod sd5_9x_18_math {
                 client,
             ))
         }
-        /// Constructs the general purpose `Deployer` instance based on the provided constructor arguments and sends it.
-        /// Returns a new instance of a deployer that returns an instance of this contract after sending the transaction
+        /// Constructs the general purpose `Deployer` instance based on the
+        /// provided constructor arguments and sends it. Returns a new
+        /// instance of a deployer that returns an instance of this contract
+        /// after sending the transaction
         ///
         /// Notes:
-        /// - If there are no constructor arguments, you should pass `()` as the argument.
+        /// - If there are no constructor arguments, you should pass `()` as the
+        ///   argument.
         /// - The default poll duration is 7 seconds.
         /// - The default number of confirmations is 1 block.
         ///
         ///
         /// # Example
         ///
-        /// Generate contract bindings with `abigen!` and deploy a new contract instance.
+        /// Generate contract bindings with `abigen!` and deploy a new contract
+        /// instance.
         ///
-        /// *Note*: this requires a `bytecode` and `abi` object in the `greeter.json` artifact.
+        /// *Note*: this requires a `bytecode` and `abi` object in the
+        /// `greeter.json` artifact.
         ///
         /// ```ignore
         /// # async fn deploy<M: ethers::providers::Middleware>(client: ::std::sync::Arc<M>) {
@@ -340,7 +346,7 @@ pub mod sd5_9x_18_math {
             let deployer = ::ethers::contract::ContractDeployer::new(deployer);
             Ok(deployer)
         }
-        ///Calls the contract's `div` (0x43509138) function
+        /// Calls the contract's `div` (0x43509138) function
         pub fn div(
             &self,
             x: ::ethers::core::types::I256,
@@ -350,7 +356,7 @@ pub mod sd5_9x_18_math {
                 .method_hash([67, 80, 145, 56], (x, y))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `mul` (0xbbe93d91) function
+        /// Calls the contract's `mul` (0xbbe93d91) function
         pub fn mul(
             &self,
             x: ::ethers::core::types::I256,
@@ -360,7 +366,7 @@ pub mod sd5_9x_18_math {
                 .method_hash([187, 233, 61, 145], (x, y))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `pow` (0x92b0c5b2) function
+        /// Calls the contract's `pow` (0x92b0c5b2) function
         pub fn pow(
             &self,
             x: ::ethers::core::types::I256,
@@ -376,7 +382,8 @@ pub mod sd5_9x_18_math {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Custom Error type `PRBMath_MulDiv18_Overflow` with signature `PRBMath_MulDiv18_Overflow(uint256,uint256)` and selector `0x5173648d`
+    /// Custom Error type `PRBMath_MulDiv18_Overflow` with signature
+    /// `PRBMath_MulDiv18_Overflow(uint256,uint256)` and selector `0x5173648d`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -397,7 +404,9 @@ pub mod sd5_9x_18_math {
         pub x: ::ethers::core::types::U256,
         pub y: ::ethers::core::types::U256,
     }
-    ///Custom Error type `PRBMath_MulDiv_Overflow` with signature `PRBMath_MulDiv_Overflow(uint256,uint256,uint256)` and selector `0x63a05778`
+    /// Custom Error type `PRBMath_MulDiv_Overflow` with signature
+    /// `PRBMath_MulDiv_Overflow(uint256,uint256,uint256)` and selector
+    /// `0x63a05778`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -419,7 +428,8 @@ pub mod sd5_9x_18_math {
         pub y: ::ethers::core::types::U256,
         pub denominator: ::ethers::core::types::U256,
     }
-    ///Custom Error type `PRBMath_SD59x18_Div_InputTooSmall` with signature `PRBMath_SD59x18_Div_InputTooSmall()` and selector `0x9fe2b450`
+    /// Custom Error type `PRBMath_SD59x18_Div_InputTooSmall` with signature
+    /// `PRBMath_SD59x18_Div_InputTooSmall()` and selector `0x9fe2b450`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -437,7 +447,8 @@ pub mod sd5_9x_18_math {
         abi = "PRBMath_SD59x18_Div_InputTooSmall()"
     )]
     pub struct PRBMath_SD59x18_Div_InputTooSmall;
-    ///Custom Error type `PRBMath_SD59x18_Div_Overflow` with signature `PRBMath_SD59x18_Div_Overflow(int256,int256)` and selector `0xd49c26b3`
+    /// Custom Error type `PRBMath_SD59x18_Div_Overflow` with signature
+    /// `PRBMath_SD59x18_Div_Overflow(int256,int256)` and selector `0xd49c26b3`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -458,7 +469,8 @@ pub mod sd5_9x_18_math {
         pub x: ::ethers::core::types::I256,
         pub y: ::ethers::core::types::I256,
     }
-    ///Custom Error type `PRBMath_SD59x18_Exp2_InputTooBig` with signature `PRBMath_SD59x18_Exp2_InputTooBig(int256)` and selector `0x0360d028`
+    /// Custom Error type `PRBMath_SD59x18_Exp2_InputTooBig` with signature
+    /// `PRBMath_SD59x18_Exp2_InputTooBig(int256)` and selector `0x0360d028`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -478,7 +490,8 @@ pub mod sd5_9x_18_math {
     pub struct PRBMath_SD59x18_Exp2_InputTooBig {
         pub x: ::ethers::core::types::I256,
     }
-    ///Custom Error type `PRBMath_SD59x18_Log_InputTooSmall` with signature `PRBMath_SD59x18_Log_InputTooSmall(int256)` and selector `0x059b101b`
+    /// Custom Error type `PRBMath_SD59x18_Log_InputTooSmall` with signature
+    /// `PRBMath_SD59x18_Log_InputTooSmall(int256)` and selector `0x059b101b`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -498,7 +511,8 @@ pub mod sd5_9x_18_math {
     pub struct PRBMath_SD59x18_Log_InputTooSmall {
         pub x: ::ethers::core::types::I256,
     }
-    ///Custom Error type `PRBMath_SD59x18_Mul_InputTooSmall` with signature `PRBMath_SD59x18_Mul_InputTooSmall()` and selector `0xa6070c25`
+    /// Custom Error type `PRBMath_SD59x18_Mul_InputTooSmall` with signature
+    /// `PRBMath_SD59x18_Mul_InputTooSmall()` and selector `0xa6070c25`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -516,7 +530,8 @@ pub mod sd5_9x_18_math {
         abi = "PRBMath_SD59x18_Mul_InputTooSmall()"
     )]
     pub struct PRBMath_SD59x18_Mul_InputTooSmall;
-    ///Custom Error type `PRBMath_SD59x18_Mul_Overflow` with signature `PRBMath_SD59x18_Mul_Overflow(int256,int256)` and selector `0x120b5b43`
+    /// Custom Error type `PRBMath_SD59x18_Mul_Overflow` with signature
+    /// `PRBMath_SD59x18_Mul_Overflow(int256,int256)` and selector `0x120b5b43`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -537,7 +552,7 @@ pub mod sd5_9x_18_math {
         pub x: ::ethers::core::types::I256,
         pub y: ::ethers::core::types::I256,
     }
-    ///Container type for all of the contract's custom errors
+    /// Container type for all of the contract's custom errors
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -757,7 +772,8 @@ pub mod sd5_9x_18_math {
             Self::PRBMath_SD59x18_Mul_Overflow(value)
         }
     }
-    ///Container type for all input parameters for the `div` function with signature `div(int256,int256)` and selector `0x43509138`
+    /// Container type for all input parameters for the `div` function with
+    /// signature `div(int256,int256)` and selector `0x43509138`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -775,7 +791,8 @@ pub mod sd5_9x_18_math {
         pub x: ::ethers::core::types::I256,
         pub y: ::ethers::core::types::I256,
     }
-    ///Container type for all input parameters for the `mul` function with signature `mul(int256,int256)` and selector `0xbbe93d91`
+    /// Container type for all input parameters for the `mul` function with
+    /// signature `mul(int256,int256)` and selector `0xbbe93d91`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -793,7 +810,8 @@ pub mod sd5_9x_18_math {
         pub x: ::ethers::core::types::I256,
         pub y: ::ethers::core::types::I256,
     }
-    ///Container type for all input parameters for the `pow` function with signature `pow(int256,int256)` and selector `0x92b0c5b2`
+    /// Container type for all input parameters for the `pow` function with
+    /// signature `pow(int256,int256)` and selector `0x92b0c5b2`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -811,7 +829,7 @@ pub mod sd5_9x_18_math {
         pub x: ::ethers::core::types::I256,
         pub y: ::ethers::core::types::I256,
     }
-    ///Container type for all of the contract's call
+    /// Container type for all of the contract's call
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -877,7 +895,8 @@ pub mod sd5_9x_18_math {
             Self::Pow(value)
         }
     }
-    ///Container type for all return fields from the `div` function with signature `div(int256,int256)` and selector `0x43509138`
+    /// Container type for all return fields from the `div` function with
+    /// signature `div(int256,int256)` and selector `0x43509138`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -893,7 +912,8 @@ pub mod sd5_9x_18_math {
     pub struct DivReturn {
         pub z: ::ethers::core::types::I256,
     }
-    ///Container type for all return fields from the `mul` function with signature `mul(int256,int256)` and selector `0xbbe93d91`
+    /// Container type for all return fields from the `mul` function with
+    /// signature `mul(int256,int256)` and selector `0xbbe93d91`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -909,7 +929,8 @@ pub mod sd5_9x_18_math {
     pub struct MulReturn {
         pub z: ::ethers::core::types::I256,
     }
-    ///Container type for all return fields from the `pow` function with signature `pow(int256,int256)` and selector `0x92b0c5b2`
+    /// Container type for all return fields from the `pow` function with
+    /// signature `pow(int256,int256)` and selector `0x92b0c5b2`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

@@ -1,4 +1,4 @@
-///`FuzzInterface(address,string[])`
+/// `FuzzInterface(address,string[])`
 #[derive(
     Clone,
     ::ethers::contract::EthAbiType,
@@ -15,7 +15,7 @@ pub struct FuzzInterface {
     pub addr: ::ethers::core::types::Address,
     pub artifacts: ::std::vec::Vec<::std::string::String>,
 }
-///`FuzzSelector(address,bytes4[])`
+/// `FuzzSelector(address,bytes4[])`
 #[derive(
     Clone,
     ::ethers::contract::EthAbiType,

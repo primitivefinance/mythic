@@ -1,8 +1,7 @@
 #![allow(clippy::all)]
 
-use iced::{Application, Settings};
-
 use dotenv::dotenv;
+use iced::{Application, Settings};
 pub mod counter_component;
 pub mod example;
 pub mod vault;
