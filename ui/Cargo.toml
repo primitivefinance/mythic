@@ -9,6 +9,7 @@ edition = "2021"
 # local
 simulation = { path = "../simulation" }
 
+# workspace
 arbiter-core = { workspace = true }
 tokio = { workspace = true }
 ethers = { workspace = true }
@@ -17,5 +18,6 @@ serde_json = { workspace = true }
 bytesize = { workspace = true }
 dotenv = { workspace = true }
 
+# deps for ui
 eyre = "0.6.8"
 iced = { version = "0.10.0", features = ["system", "tokio", "lazy"] }

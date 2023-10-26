@@ -1,10 +1,10 @@
 [package]
-name = "Excalibur"
+name = "excalibur"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "piab"
+name = "excalibur"
 path = "src/main.rs"
 
 [workspace]
