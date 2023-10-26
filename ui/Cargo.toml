@@ -14,7 +14,8 @@ tokio = { workspace = true }
 ethers = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-bytesize = "1.2.0"
+bytesize = { workspace = true }
+dotenv = { workspace = true }
+
 eyre = "0.6.8"
 iced = { version = "0.10.0", features = ["system", "tokio", "lazy"] }
-dotenv = "0.15.0"
