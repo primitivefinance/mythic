@@ -1,3 +1,5 @@
+#![allow(clippy::all)]
+
 use iced::{Application, Settings};
 
 use dotenv::dotenv;

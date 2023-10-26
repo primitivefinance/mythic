@@ -1,17 +1,13 @@
+#![allow(unused_variables)]
 use arbiter_core::environment::builder::EnvironmentBuilder;
-use iced::futures;
-use iced::system::Information;
+
 use iced::widget::{button, column, container, text};
-use iced::{executor, system, Application, Command, Element, Length, Settings, Theme};
+use iced::{executor,Application, Command, Element, Length, Theme};
 
 use arbiter_core::environment::Environment;
 use arbiter_core::middleware::RevmMiddleware;
-use bytesize::ByteSize;
-use ethers::providers::{Http, Middleware, Provider, StreamExt};
 use std::sync::Arc;
-use std::{default, env};
 
-use crate::counter_component::counter_state;
 
 use crate::vault::*;
 
@@ -122,7 +118,7 @@ impl Application for Example {
                 content = match deployment {
                     DeploymentState::NotDeployed => content,
                     DeploymentState::Deploying => content.push(text("Deploying...")),
-                    DeploymentState::Deployed(entity) => {
+                    DeploymentState::Deployed(_entity) => {
                         content.push(text("Successfully Deployed"))
                     }
                     DeploymentState::DeploymentFailed(error) => {

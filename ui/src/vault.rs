@@ -1,6 +1,6 @@
 //! Rust api over the vault smart contract.
 
-use arbiter_core::environment::Environment;
+#![allow(unused_variables)]
 use arbiter_core::middleware::{errors::RevmMiddlewareError, RevmMiddleware};
 use simulation::bindings::counter::Counter;
 
