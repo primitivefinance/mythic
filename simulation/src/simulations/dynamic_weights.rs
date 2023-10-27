@@ -50,7 +50,8 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
         .file_name(config.output_file_name.unwrap())
         .add(price_changer.liquid_exchange.events(), "lex")
         .add(vol_targeter.g3m.events(), "g3m")
-        .run()?;
+        .run()
+        .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 
     Ok(Simulation {
         agents: Agents::new()
