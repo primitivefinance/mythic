@@ -1,7 +1,6 @@
-use std::{collections::BTreeMap, fs::File, io::BufReader};
+use serde::de::DeserializeOwned;
 
-use anyhow::Result;
-use serde_json::{from_reader, Value};
+use super::*;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SimulationData(pub BTreeMap<String, BTreeMap<String, Vec<Value>>>);
@@ -18,25 +17,24 @@ impl SimulationData {
             .and_then(|events| events.get(event_name))
     }
 
-    fn get_vectorized_events(
-        &self,
-        contract_name: &str,
-        event_name: &str,
-    ) -> BTreeMap<String, Vec<Value>> {
-        let events = self.get_events(contract_name, event_name).unwrap();
+    pub fn get_vectorized_events<T>(&self, contract_name: &str) -> Vec<T>
+    where
+        T: DeserializeOwned,
+    {
+        let mut results = Vec::new();
 
-        let mut map: BTreeMap<String, Vec<Value>> = BTreeMap::new();
-
-        for event in events.iter() {
-            if let Value::Object(event_obj) = event {
-                for (key, value) in event_obj.iter() {
-                    let entry = map.entry(key.clone()).or_default();
-                    entry.push(value.clone());
+        // Get the map of events for the given contract name
+        if let Some(events_map) = self.0.get(contract_name) {
+            for (_, event_values) in events_map.iter() {
+                // For each event value, attempt to deserialize it into type T
+                for value in event_values.iter() {
+                    if let Ok(deserialized_value) = serde_json::from_value::<T>(value.clone()) {
+                        results.push(deserialized_value);
+                    }
                 }
             }
         }
-
-        map
+        results
     }
 }
 
@@ -51,6 +49,8 @@ fn read_in_simulation_json(
 
 #[cfg(test)]
 mod tests {
+    use simulation::bindings::g3m::{G3MErrors, G3MEvents};
+
     use super::*;
 
     #[test]
@@ -67,20 +67,20 @@ mod tests {
         let events = simulation_data.get_events("g3m", "SwapFilter");
         assert!(events.is_some());
         let events = events.unwrap();
-        assert_eq!(events.len(), 95);
+        assert_eq!(events.len(), 131);
         for index in 0..10 {
             println!("{:?}", events[index]);
         }
     }
 
     #[test]
-    fn retrieve_vectorize_data() {
+    fn retrieve_vectorized_event_structs() {
         let file_name = "test.json";
         let simulation_data = SimulationData::new(file_name).unwrap();
-        let events = simulation_data.get_vectorized_events("g3m", "SwapFilter");
-
-        for (key, values) in events.iter() {
-            println!("{}: {:?}", key, values);
+        let values = simulation_data.get_vectorized_events::<g3m::SwapFilter>("g3m");
+        assert_eq!(values.len(), 131);
+        for index in 0..10 {
+            println!("{:?}", values[index]);
         }
     }
 }
