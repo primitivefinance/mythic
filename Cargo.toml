@@ -8,16 +8,29 @@ name = "excalibur"
 path = "src/main.rs"
 
 [workspace]
-members = ["simulation"]
+members = ["simulation", "analysis"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
+analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
+arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "colin/fix-event-logger", features = ["contracts"] }
+ethers = "2.0.10"
+
+## Config and parsing
+serde = "1.0.188"
+serde_json = "1.0.107"
+config = "0.13.1"
+
+## Async
 tokio = { version = "1.11.0", features = ["full"] }
+async-trait = "0.1.73"
+
+## Error and logs
 tracing = "0.1.37"
 anyhow = "1.0.75"
 thiserror = "1.0.50"
