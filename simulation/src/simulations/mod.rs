@@ -148,9 +148,7 @@ mod tests {
     fn static_output() {
         batch("configs/test/static.toml").unwrap();
         let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("test_static/gbm_drift=0.1_vol=0.35/trajectory=0")
-            .join("g3m")
-            .join("SwapFilter.csv");
+            .join("test_static/gbm_drift=0.1_vol=0.35/trajectory=0.json");
         println!("path: {:?}", path);
         let mut file = std::fs::File::open(path).unwrap();
         let mut contents = vec![];
@@ -167,7 +165,7 @@ mod tests {
             for vol in [0, 1] {
                 for trajectory in [0, 1] {
                     let str = format!(
-                        "test_sweep/gbm_drift={}_vol={}/trajectory={}/g3m/SwapFilter.csv",
+                        "test_sweep/gbm_drift={}_vol={}/trajectory={}.json",
                         drift, vol, trajectory
                     );
                     let path = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(str);
