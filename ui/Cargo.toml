@@ -1,21 +1,23 @@
 [package]
-name = "simulation"
+name = "ui"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# Used throughout the workspace
-tokio.workspace = true
-anyhow.workspace = true
-tracing.workspace = true
-thiserror.workspace = true
+# local
+simulation = { path = "../simulation" }
 
-# Specific to this lib
+# workspace
 arbiter-core = { workspace = true }
+tokio = { workspace = true }
 ethers = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-config = "0.13.1"
-async-trait = "0.1.73"
+bytesize = { workspace = true }
+dotenv = { workspace = true }
+
+# deps for ui
+eyre = "0.6.8"
+iced = { version = "0.10.0", features = ["system", "tokio", "lazy"] }
