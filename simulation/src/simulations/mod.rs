@@ -1,5 +1,4 @@
 use tokio::runtime::Runtime;
-use tracing::{debug, warn};
 
 use self::errors::SimulationError;
 use super::*;
@@ -33,28 +32,57 @@ impl SimulationType {
             SimulationType::StablePortfolio => stable_portfolio::setup(config).await?,
         };
         looper(simulation.agents, simulation.steps).await?;
+        simulation.environment.stop();
         Ok(())
     }
 }
+
+use tokio::sync::Semaphore;
 
 pub fn batch(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
     let direct_configs: Vec<SimulationConfig<Fixed>> = config.generate();
     warn!("Running {} simulations", direct_configs.len());
-    let mut rt = Builder::new_multi_thread().build()?;
-    let mut handles = vec![];
 
-    for config in direct_configs {
-        warn!("Running simulation with config: {:?}", config);
-        handles.push(rt.spawn(SimulationType::run(config)));
-    }
+    // Create a multi-threaded runtime
+    let rt = Builder::new_multi_thread().build()?;
+
+    // Create a semaphore with a given number of permits
+    let semaphore = config
+        .max_parallel
+        .map(|max_parallel| Arc::new(Semaphore::new(max_parallel)));
 
     rt.block_on(async {
+        let mut handles = vec![];
+
+        for config in direct_configs {
+            let semaphore_clone = semaphore.clone();
+            handles.push(tokio::spawn(async move {
+                // Acquire a permit inside the spawned task
+                let permit = if let Some(ref semaphore_clone) = semaphore_clone {
+                    // Acquire a permit outside the spawned task
+                    let permit = semaphore_clone.acquire().await.unwrap();
+                    Some(permit)
+                } else {
+                    None
+                };
+
+                warn!("Running simulation with config: {:?}", config);
+                let result = SimulationType::run(config).await;
+
+                // Drop the permit when the simulation is done.
+                drop(permit);
+                result
+            }));
+        }
+
         for handle in handles {
-            handle.await?;
+            handle.await??; // Note: Double `?` because of the Result inside the async block and the Result
+                            // of the join handle.
             warn!("Simulation complete");
         }
+
         Ok(())
     })
 }
@@ -123,6 +151,6 @@ mod tests {
             }
         }
 
-        std::fs::remove_dir_all("test_sweep").unwrap();
+        // std::fs::remove_dir_all("test_sweep").unwrap();
     }
 }

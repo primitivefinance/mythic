@@ -44,7 +44,8 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
     .await?;
 
     EventLogger::builder()
-        .path(config.output_directory)
+        .directory(config.output_directory)
+        .file_name(config.output_file_name.unwrap())
         .add(price_changer.liquid_exchange.events(), "lex")
         .add(weight_changer.g3m.events(), "g3m")
         .run()?;

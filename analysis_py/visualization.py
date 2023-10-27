@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+from decimal import Decimal
 
 sns.set_theme(style="whitegrid")
 sns.set_palette("tab10")
@@ -27,25 +28,31 @@ class Visualizer:
         ax.legend(fontsize=12)
         ax.grid(True)
 
-    def plot_statistical(self, row, col, x_data, y_data, label, color=None):
+    def plot_statistical(self, row, col, x_data_groups, y_data_groups, labels, colors):
         ax = self.axes[row][col]
-        
-        # Check if y_data is a list of DataFrames
-        if isinstance(y_data, list) and all(isinstance(df, pd.DataFrame) for df in y_data):
-            concatenated = pd.concat(y_data)
-            mean_data = concatenated.groupby(concatenated.index).mean()
-            std_data = concatenated.groupby(concatenated.index).std()
 
-            sns.lineplot(x=x_data, y=mean_data, label=label, ax=ax, linewidth=2, color=color)
-            ax.fill_between(x_data, mean_data - std_data, mean_data + std_data, color=color, alpha=0.2)
+        # Iterate through each group of data
+        for x_data, y_data, label, color in zip(x_data_groups, y_data_groups, labels, colors):
 
-        # If y_data is a single Series
-        else:
-            print("y_data is a list of DataFrames of length 1, consider using `plot` instead!")
-            sns.lineplot(x=x_data, y=y_data, label=label, ax=ax, linewidth=2, color=color)
+            # Concatenate series of each group into a single DataFrame
+            concatenated = pd.concat(y_data, axis=1)
             
-        # Set title based on label
-        self.customize_plot(ax, label, "X-Axis", "Y-Axis")
+            # Convert Decimal to float if present
+            concatenated = concatenated.applymap(lambda x: float(x) if isinstance(x, Decimal) else x)
+            
+            mean_data = concatenated.mean(axis=1)
+            std_data = concatenated.std(axis=1)
+
+            # Assuming x_data contains similar Series, use the first one for x values
+            x_values = x_data[0]
+            sns.lineplot(x=x_values, y=mean_data, label=label, ax=ax, linewidth=2, color=color)
+            ax.fill_between(x_values, mean_data - std_data, mean_data + std_data, color=color, alpha=0.2)
+
+        # Customize the plot (can be further modified based on requirements)
+        self.customize_plot(ax, "Data", "X-Axis", "Y-Axis")
+
+
+
 
     def plot(self, row, col, x_data, y_data, labels, color=None):
         ax = self.axes[row][col]

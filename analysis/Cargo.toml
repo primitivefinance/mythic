@@ -1,16 +1,12 @@
 [package]
-name = "simulation"
+name = "analysis"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 ethers.workspace = true
-arbiter-core.workspace = true
-async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-config.workspace = true

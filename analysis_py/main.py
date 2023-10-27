@@ -8,7 +8,7 @@ import os
 def main():
 
     parser = argparse.ArgumentParser(description='Run different types of visualizations.')
-    parser.add_argument('--type', type=str, choices=['test', 'weights'], required=True,
+    parser.add_argument('--type', type=str, choices=['test', 'weights', 'weights-statistical'], required=True,
                         help='Type of visualization to run')
 
     args = parser.parse_args()
@@ -39,6 +39,37 @@ def main():
 
         viz.save("test_data/test_output.png")
         print("Saved test output to `analysis/test_data/test_output.png`")
+    if args.type == 'weights-statistical':
+        data = DataProcessor("static_volatilities/gbm_drift=0_vol=0.5/", {"block_timestamp": Decimal, "weight_x": Decimal, "weight_y": Decimal})
+        dfs = data.import_csvs()
+
+        x_data_group_weight_x = []
+        x_data_group_weight_y = []
+        y_data_group_weight_x = []
+        y_data_group_weight_y = []
+
+        # Collect data for both weight_x and weight_y for each trajectory
+        for trajectory in range(0, 9):
+            x_data_trajectory = dfs[os.path.join("trajectory=" + str(trajectory), "g3m", "LogWeightsFilter")]["block_timestamp"]
+            y_data_weight_x = dfs[os.path.join("trajectory=" + str(trajectory), "g3m", "LogWeightsFilter")]["weight_x"]
+            y_data_weight_y = 1 - y_data_weight_x
+
+            x_data_group_weight_x.append(x_data_trajectory)
+            y_data_group_weight_x.append(y_data_weight_x)
+            
+            x_data_group_weight_y.append(x_data_trajectory)
+            y_data_group_weight_y.append(y_data_weight_y)
+
+        # Organize the data in the grouped structure
+        x_data_groups = [x_data_group_weight_x, x_data_group_weight_y]
+        y_data_groups = [y_data_group_weight_x, y_data_group_weight_y]
+
+        viz = Visualizer(nrows=1, ncols=1, figsize=(16, 10))
+        viz.plot_statistical(row=0, col=0, x_data_groups=x_data_groups, y_data_groups=y_data_groups, labels=['weight_x', 'weight_y'], colors=['blue', 'orange'])
+        
+        viz.save("weights.png")
+        print("Saved weights plot to `weights.png`")
+
     else:
         print("Invalid type")
 

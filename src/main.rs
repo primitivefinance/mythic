@@ -1,4 +1,5 @@
-#![allow(non_snake_case)]
+use std::time::Instant;
+
 use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use simulation::simulations;
@@ -66,7 +67,10 @@ fn main() -> Result<()> {
     match &args.command {
         Some(Commands::Simulate { config_path }) => {
             println!("Reading from config path: {}", config_path);
+            let start = Instant::now();
             simulations::batch(config_path)?;
+            let duration = start.elapsed();
+            println!("Total duration of simulations: {:?}", duration);
         }
         Some(Commands::Analyze { type_ }) => println!(
             "Exit status: {:?}",
