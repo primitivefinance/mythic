@@ -2,7 +2,7 @@ use super::*;
 use crate::math::*;
 
 #[derive(Clone)]
-pub struct WeightChanger {
+pub struct VolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
@@ -15,7 +15,7 @@ pub struct WeightChanger {
     pub asset_rv: Vec<(f64, u64)>,
 }
 
-impl WeightChanger {
+impl VolatilityTargetingStrategist {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Fixed>,
@@ -92,7 +92,10 @@ impl WeightChanger {
 
         Ok(())
     }
+}
 
+#[async_trait::async_trait]
+impl WeightChanger for VolatilityTargetingStrategist {
     // dumb poc, this just checks if the portfolio rv is greater than the target rv
     // then changes weight by 1% over the course of a day depending on if rv is
     // greater or less than target
@@ -137,7 +140,7 @@ impl WeightChanger {
 }
 
 #[async_trait::async_trait]
-impl Agent for WeightChanger {
+impl Agent for VolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         if timestamp >= self.next_update_timestamp {

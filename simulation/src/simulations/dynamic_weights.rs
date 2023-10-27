@@ -4,8 +4,8 @@ use super::{errors::SimulationError, *};
 use crate::{
     agents::{
         arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
-        price_changer::PriceChanger, token_admin::TokenAdmin, weight_changer::WeightChanger, Agent,
-        Agents,
+        price_changer::PriceChanger, token_admin::TokenAdmin,
+        volatility_targeting_strategist::VolatilityTargetingStrategist, Agent, Agents,
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
@@ -15,11 +15,12 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
     let environment = EnvironmentBuilder::new()
         .block_settings(BlockSettings::UserControlled)
         .build();
-    let mut block_admin = BlockAdmin::new(&environment, &config).await?;
 
+    let mut block_admin = BlockAdmin::new(&environment, &config).await?;
     let token_admin = TokenAdmin::new(&environment).await?;
     let mut price_changer = PriceChanger::new(&environment, &token_admin, &config).await?;
-    let mut weight_changer = WeightChanger::new(
+
+    let mut vol_targeter = VolatilityTargetingStrategist::new(
         &environment,
         &config,
         price_changer.liquid_exchange.address(),
@@ -31,15 +32,16 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
     let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
         &environment,
         &token_admin,
-        weight_changer.g3m.address(),
+        vol_targeter.g3m.address(),
         &config,
     )
     .await?;
+
     let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
         &environment,
         &token_admin,
-        weight_changer.lex.address(),
-        weight_changer.g3m.address(),
+        vol_targeter.lex.address(),
+        vol_targeter.g3m.address(),
     )
     .await?;
 
@@ -47,7 +49,7 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
         .directory(config.output_directory)
         .file_name(config.output_file_name.unwrap())
         .add(price_changer.liquid_exchange.events(), "lex")
-        .add(weight_changer.g3m.events(), "g3m")
+        .add(vol_targeter.g3m.events(), "g3m")
         .run()?;
 
     Ok(Simulation {
@@ -55,7 +57,7 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
             .add(price_changer)
             .add(arbitrageur)
             .add(block_admin)
-            .add(weight_changer)
+            .add(vol_targeter)
             .add(lp),
         steps: config.trajectory.num_steps,
         environment,

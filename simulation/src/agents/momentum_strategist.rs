@@ -91,7 +91,10 @@ impl MomentumStrategist {
 
         Ok(())
     }
+}
 
+#[async_trait::async_trait]
+impl WeightChanger for MomentumStrategist {
     // dumb poc, this just checks if the portfolio rv is greater than the target rv
     // then changes weight by 1% over the course of a day depending on if rv is
     // greater or less than target
