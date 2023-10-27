@@ -73,26 +73,12 @@ mod tests {
         }
     }
 
-    // #[test]
-    // fn retrieve_vectorize_data() {
-    //     let file_name = "test.json";
-    //     let simulation_data = SimulationData::new(file_name).unwrap();
-    //     let events = simulation_data.get_vectorized_events("g3m", "SwapFilter");
-
-    //     for (key, values) in events.iter() {
-    //         println!("{}: {:?}", key, values);
-    //     }
-    // }
-
     #[test]
-    fn deserialize_into_struct() {
+    fn retrieve_vectorized_event_structs() {
         let file_name = "test.json";
         let simulation_data = SimulationData::new(file_name).unwrap();
-        // let events = simulation_data.get_vectorized_events("g3m", "SwapFilter");
         let values = simulation_data.get_vectorized_events::<g3m::SwapFilter>("g3m");
-        // assert!(result.is_ok());
-        // let values = result.unwrap();
-        assert_eq!(values.len(), 95);
+        assert_eq!(values.len(), 131);
         for index in 0..10 {
             println!("{:?}", values[index]);
         }
