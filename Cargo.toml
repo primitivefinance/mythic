@@ -18,7 +18,7 @@ simulation = { path = "./simulation", version = "0.1.0" }
 analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "colin/fix-event-logger", features = ["contracts"] }
+arbiter-core = { version = "0.7.0", features = ["contracts"] }
 ethers = "2.0.10"
 
 ## Config and parsing

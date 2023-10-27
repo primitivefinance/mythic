@@ -9,6 +9,7 @@ use crate::simulations::SimulationType;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig<P: Parameterized<f64>> {
     pub simulation: SimulationType,
+    pub max_parallel: Option<usize>,
     pub output_directory: String,
     pub output_file_name: Option<String>,
     pub trajectory: TrajectoryParameters<P>,
@@ -64,6 +65,7 @@ impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
                     format!("trajectory={}", trajectory.output_tag.clone().unwrap());
                 result.push(SimulationConfig {
                     simulation: self.simulation,
+                    max_parallel: None,
                     output_directory,
                     output_file_name: Some(output_file_name),
                     trajectory: trajectory.clone(),
@@ -89,6 +91,7 @@ impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
 
                 result.push(SimulationConfig {
                     simulation: self.simulation,
+                    max_parallel: None,
                     output_directory,
                     output_file_name: Some(output_file_name),
                     trajectory: trajectory.clone(),
