@@ -3,23 +3,32 @@ use iced::{
     widget::{button, component, row, text, Component},
     Element, Length, Renderer,
 };
-pub struct Counter<Message> {
+
+use std::sync::Arc;
+
+type HandlerFn<Msg> = Arc<Box<dyn Fn(Option<u32>) -> Msg + Send + Sync + 'static>>;
+
+#[derive(Clone)]
+pub struct Counter<Msg> {
     value: Option<u32>,
-    on_change: Box<dyn Fn(Option<u32>) -> Message>,
+    on_change: HandlerFn<Msg>,
 }
 
-pub fn counter_state<Message>(
+pub fn counter_state<Msg>(
     value: Option<u32>,
-    on_change: impl Fn(Option<u32>) -> Message + 'static,
-) -> Counter<Message> {
+    on_change: impl Fn(Option<u32>) -> Msg + Send + Sync + 'static,
+) -> Counter<Msg> {
     Counter::new(value, on_change)
 }
 
-impl<Message> Counter<Message> {
-    pub fn new(value: Option<u32>, on_change: impl Fn(Option<u32>) -> Message + 'static) -> Self {
+impl<Msg> Counter<Msg> {
+    pub fn new(
+        value: Option<u32>,
+        on_change: impl Fn(Option<u32>) -> Msg + Send + Sync + 'static,
+    ) -> Self {
         Self {
             value,
-            on_change: Box::new(on_change),
+            on_change: Arc::new(Box::new(on_change)),
         }
     }
 }
@@ -31,11 +40,11 @@ pub enum Event {
     InputChanged(String),
 }
 
-impl<Message> Component<Message, Renderer> for Counter<Message> {
+impl<Msg> Component<Msg, Renderer> for Counter<Msg> {
     type State = ();
     type Event = Event;
 
-    fn update(&mut self, _state: &mut Self::State, event: Event) -> Option<Message> {
+    fn update(&mut self, _state: &mut Self::State, event: Event) -> Option<Msg> {
         match event {
             Event::Increment => Some((self.on_change)(Some(
                 self.value.unwrap_or_default().saturating_add(1),
@@ -78,11 +87,11 @@ impl<Message> Component<Message, Renderer> for Counter<Message> {
     }
 }
 
-impl<'a, Message> From<Counter<Message>> for Element<'a, Message, Renderer>
+impl<'a, Msg> From<Counter<Msg>> for Element<'a, Msg, Renderer>
 where
-    Message: 'a,
+    Msg: 'a,
 {
-    fn from(counter: Counter<Message>) -> Self {
+    fn from(counter: Counter<Msg>) -> Self {
         component(counter).into()
     }
 }
