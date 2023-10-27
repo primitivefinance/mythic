@@ -78,7 +78,8 @@ pub fn batch(config_path: &str) -> Result<()> {
         }
 
         for handle in handles {
-            handle.await??; // Note: Double `?` because of the Result inside the async block and the Result of the join handle.
+            handle.await??; // Note: Double `?` because of the Result inside the async block and the Result
+                            // of the join handle.
             warn!("Simulation complete");
         }
 

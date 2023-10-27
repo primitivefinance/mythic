@@ -1,10 +1,7 @@
+use std::{collections::BTreeMap, fs::File, io::BufReader};
+
 use anyhow::Result;
-use serde_json::Value;
-use std::{collections::BTreeMap, fs::File};
-
-use serde_json::from_reader;
-
-use std::io::BufReader;
+use serde_json::{from_reader, Value};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SimulationData(pub BTreeMap<String, BTreeMap<String, Vec<Value>>>);
