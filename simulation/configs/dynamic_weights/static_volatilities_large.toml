@@ -28,9 +28,9 @@ end = 1.0
 steps = 11
 # The volatility of the process.
 [gbm.volatility]
-start = 0.1
-end = 1.0
-steps = 10
+start = 0.2
+end = 0.7
+steps = 6
 
 [pool]
 # The weight for the `token_x` in the pool.

@@ -10,6 +10,7 @@ use crate::simulations::SimulationType;
 pub struct SimulationConfig<P: Parameterized<f64>> {
     pub simulation: SimulationType,
     pub output_directory: String,
+    pub output_file_name: Option<String>,
     pub trajectory: TrajectoryParameters<P>,
     pub gbm: Option<GBMParameters<P>>,
     pub ou: Option<OUParameters<P>>,
@@ -54,16 +55,17 @@ impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
 
         for trajectory in &trajectories {
             for gbm in &gbms {
-                let path = self.output_directory.clone()
+                let output_directory = self.output_directory.clone()
                     + "/gbm_drift="
                     + &gbm.drift.0.to_string()
                     + "_vol="
-                    + &gbm.volatility.0.to_string()
-                    + "/trajectory="
-                    + &trajectory.output_directory.clone().unwrap();
+                    + &gbm.volatility.0.to_string();
+                let output_file_name =
+                    format!("trajectory={}", trajectory.output_tag.clone().unwrap());
                 result.push(SimulationConfig {
                     simulation: self.simulation,
-                    output_directory: path,
+                    output_directory,
+                    output_file_name: Some(output_file_name),
                     trajectory: trajectory.clone(),
                     gbm: Some(*gbm),
                     ou: None,
@@ -75,18 +77,20 @@ impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
             }
 
             for ou in &ous {
-                let path = self.output_directory.clone()
+                let output_directory = self.output_directory.clone()
                     + "/ou_mean="
                     + &ou.mean.0.to_string()
                     + "_std="
                     + &ou.std_dev.0.to_string()
                     + "_theta="
-                    + &ou.theta.0.to_string()
-                    + "/trajectory="
-                    + &trajectory.output_directory.clone().unwrap();
+                    + &ou.theta.0.to_string();
+                let output_file_name =
+                    format!("trajectory={}", trajectory.output_tag.clone().unwrap());
+
                 result.push(SimulationConfig {
                     simulation: self.simulation,
-                    output_directory: path,
+                    output_directory,
+                    output_file_name: Some(output_file_name),
                     trajectory: trajectory.clone(),
                     gbm: None,
                     ou: Some(*ou),

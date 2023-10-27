@@ -68,7 +68,7 @@ pub struct TrajectoryParameters<P: Parameterized<f64>> {
     pub num_steps: usize,
     pub num_paths: usize,
     pub seed: u64,
-    pub output_directory: Option<String>,
+    pub output_tag: Option<String>,
 }
 
 impl Parameterized<TrajectoryParameters<Fixed>> for TrajectoryParameters<Meta> {
@@ -91,7 +91,7 @@ impl Parameterized<TrajectoryParameters<Fixed>> for TrajectoryParameters<Meta> {
                             num_steps: self.num_steps,
                             num_paths: 1,
                             seed,
-                            output_directory: Some(index.to_string()),
+                            output_tag: Some(index.to_string()),
                         });
                         hasher.write_u64(seed);
                         seed = hasher.finish();

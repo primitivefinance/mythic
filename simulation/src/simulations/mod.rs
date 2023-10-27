@@ -1,5 +1,4 @@
 use tokio::runtime::Runtime;
-use tracing::{debug, warn};
 
 use self::errors::SimulationError;
 use super::*;
@@ -33,6 +32,7 @@ impl SimulationType {
             SimulationType::StablePortfolio => stable_portfolio::setup(config).await?,
         };
         looper(simulation.agents, simulation.steps).await?;
+        simulation.environment.stop();
         Ok(())
     }
 }
@@ -49,24 +49,24 @@ pub fn batch(config_path: &str) -> Result<()> {
     let rt = Builder::new_multi_thread().build()?;
 
     // Create a semaphore with a given number of permits
-    let max_concurrent_simulations = 4; // Adjust this number based on your needs
-    let semaphore = Arc::new(Semaphore::new(max_concurrent_simulations));
+    // let max_concurrent_simulations = 16; // Adjust this number based on your needs
+    // let semaphore = Arc::new(Semaphore::new(max_concurrent_simulations));
 
     rt.block_on(async {
         let mut handles = vec![];
 
         for config in direct_configs {
-            let sema = semaphore.clone();
+            // let sema = semaphore.clone();
 
             handles.push(tokio::spawn(async move {
                 // Acquire a permit inside the spawned task
-                let permit = sema.acquire().await;
+                // let permit = sema.acquire().await;
 
                 warn!("Running simulation with config: {:?}", config);
                 let result = SimulationType::run(config).await;
 
                 // Drop the permit when the simulation is done.
-                drop(permit);
+                // drop(permit);
                 result
             }));
         }
