@@ -33,7 +33,10 @@ enum Commands {
         #[clap(index = 1, default_value = "test")]
         type_: String,
     },
-    Ui {},
+    Ui {
+        #[clap(index = 1, default_value = "example")]
+        app: String,
+    },
 }
 
 fn main() -> Result<()> {
@@ -81,7 +84,10 @@ fn main() -> Result<()> {
                 .arg(type_)
                 .status()?
         ),
-        Some(Commands::Ui {}) => interface::run()?,
+        Some(Commands::Ui { app }) => match app.as_str() {
+            "example" => interface::example()?,
+            _ => interface::run()?,
+        },
         None => Args::command().print_long_help()?,
     }
     Ok(())

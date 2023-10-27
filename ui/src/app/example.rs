@@ -11,8 +11,8 @@ use iced::{
     Application, Command, Element, Length, Theme,
 };
 
-use crate::counter_component::*;
-use crate::vault::*;
+use crate::components;
+use crate::sdk::vault::*;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Example {
@@ -129,7 +129,10 @@ impl Application for Example {
                     }
                 };
 
-                content = content.push(counter_state(Some(1), Message::CounterMessage));
+                content = content.push(components::example::Counter::new(
+                    Some(1),
+                    Message::CounterMessage,
+                ));
 
                 content.into()
             }

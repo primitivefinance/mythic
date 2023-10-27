@@ -1,3 +1,9 @@
+//! # Example component
+//! This is a "component" that interacts with the Counter.sol smart contract.
+//! A component is just a siloed piece of the UI that has its own state.
+//!
+//! Adding this component to the UI is as simple as pushing it to the container that is rendered in the app's view function.
+
 use iced::{
     alignment::{self, Alignment},
     widget::{button, component, row, text, Component},
@@ -6,21 +12,19 @@ use iced::{
 
 use std::sync::Arc;
 
+/// Type alias for the on_change function that can be passed to the counter component.
+/// This enables the application to react to changes in the counter's state.
 type HandlerFn<Msg> = Arc<Box<dyn Fn(Option<u32>) -> Msg + Send + Sync + 'static>>;
 
+/// This is the "model" for the counter component.
+/// It holds the state of the component and a function handler for updating the model.
 #[derive(Clone)]
 pub struct Counter<Msg> {
     value: Option<u32>,
     on_change: HandlerFn<Msg>,
 }
 
-pub fn counter_state<Msg>(
-    value: Option<u32>,
-    on_change: impl Fn(Option<u32>) -> Msg + Send + Sync + 'static,
-) -> Counter<Msg> {
-    Counter::new(value, on_change)
-}
-
+/// - Msg is a generic type for the application Message that is transmitted from the on_change function.
 impl<Msg> Counter<Msg> {
     pub fn new(
         value: Option<u32>,
@@ -33,6 +37,7 @@ impl<Msg> Counter<Msg> {
     }
 }
 
+/// Events that occur in the component.
 #[derive(Debug, Clone)]
 pub enum Event {
     Increment,
@@ -40,6 +45,9 @@ pub enum Event {
     InputChanged(String),
 }
 
+/// Implementation of the actual component for the application.
+/// update - Handles the model updates.
+/// view - Handles the model view.
 impl<Msg> Component<Msg, Renderer> for Counter<Msg> {
     type State = ();
     type Event = Event;
@@ -87,6 +95,7 @@ impl<Msg> Component<Msg, Renderer> for Counter<Msg> {
     }
 }
 
+/// Converts the component into an iced Element, which can be pushed to a content container in the UI.
 impl<'a, Msg> From<Counter<Msg>> for Element<'a, Msg, Renderer>
 where
     Msg: 'a,

@@ -6,7 +6,7 @@ use std::sync::Arc;
 use arbiter_core::middleware::{errors::RevmMiddlewareError, RevmMiddleware};
 use simulation::bindings::counter::Counter;
 
-use crate::example::Error;
+use crate::app::example::Error;
 
 #[derive(Debug, Clone)]
 pub struct Vault {
