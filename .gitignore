@@ -4,10 +4,15 @@ cache/
 .DS_store
 __pycache__
 *.png
+
 *.csv
 !analysis/test_data/g3m/*.csv
 !analysis/test_data/lex/*.csv
+
+*.json
+!analysis/test.json
+
 Cargo.lock
 Cargo.lock~serde
-*.json
+
 journal/book/*
