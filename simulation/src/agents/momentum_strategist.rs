@@ -46,7 +46,7 @@ impl MomentumStrategist {
     }
 
     fn calculate_returns(&mut self) -> Result<()> {
-        // if self.asset_prices.len() > 15 then only calcualte for the last 15 elements
+        // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
             let asset_return = compute_net_returns(
                 self.asset_prices
@@ -132,7 +132,7 @@ impl MomentumStrategist {
 #[async_trait::async_trait]
 impl Agent for MomentumStrategist {
     async fn step(&mut self) -> Result<()> {
-        if self.portfolio_prices.len() == 0 {
+        if self.portfolio_prices.is_empty() {
             let asset_price = format_ether(self.lex.price().call().await?)
                 .parse::<f64>()
                 .unwrap();
