@@ -9,6 +9,5 @@ __pycache__
 !analysis/test_data/lex/*.csv
 Cargo.lock
 Cargo.lock~serde
-simulation/src/bindings/*
-journal/book/*
 *.json
+journal/book/*

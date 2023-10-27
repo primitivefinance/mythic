@@ -39,9 +39,9 @@ impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
             .gbm
             .as_ref()
             .map(|gbm| gbm.generate())
-            .unwrap_or(vec![]);
+            .unwrap_or_default();
 
-        let ous = self.ou.as_ref().map(|ou| ou.generate()).unwrap_or(vec![]);
+        let ous = self.ou.as_ref().map(|ou| ou.generate()).unwrap_or_default();
 
         if gbms.is_empty() && ous.is_empty() {
             panic!("You must supply either a gbm or an ou configuration.");
