@@ -30,7 +30,7 @@ impl SimulationData {
         for event in events.iter() {
             if let Value::Object(event_obj) = event {
                 for (key, value) in event_obj.iter() {
-                    let entry = map.entry(key.clone()).or_insert_with(Vec::new);
+                    let entry = map.entry(key.clone()).or_default();
                     entry.push(value.clone());
                 }
             }
