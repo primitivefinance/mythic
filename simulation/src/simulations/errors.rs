@@ -2,12 +2,10 @@ use thiserror::Error;
 
 use super::*;
 
-#[derive(Error, Debug)]
+#[derive(Clone, Error, Debug, Serialize, Deserialize)]
 pub enum SimulationError {
     #[error("Agent error: {0}")]
     GenericError(String),
-    #[error("RevmMiddleware error: {0}")]
-    RevmMiddlewareError(#[from] RevmMiddlewareError),
 }
 
 impl From<anyhow::Error> for SimulationError {
