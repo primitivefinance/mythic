@@ -67,7 +67,7 @@ mod tests {
         let events = simulation_data.get_events("g3m", "SwapFilter");
         assert!(events.is_some());
         let events = events.unwrap();
-        assert_eq!(events.len(), 95);
+        assert_eq!(events.len(), 131);
         for index in 0..10 {
             println!("{:?}", events[index]);
         }
