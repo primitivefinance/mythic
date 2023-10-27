@@ -3,10 +3,10 @@ use super::*;
 pub mod arbitrageur;
 pub mod block_admin;
 pub mod liquidity_provider;
+pub mod momentum_strategist;
 pub mod price_changer;
 pub mod token_admin;
 pub mod weight_changer;
-pub mod momentum_strategist;
 
 use std::marker::{Send, Sync};
 

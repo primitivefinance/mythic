@@ -55,7 +55,8 @@ impl MomentumStrategist {
                     .map(|(price, _)| *price)
                     .collect::<Vec<f64>>(),
             );
-            self.asset_returns.push((asset_return, self.next_update_timestamp));
+            self.asset_returns
+                .push((asset_return, self.next_update_timestamp));
         }
         if self.portfolio_prices.len() > 15 {
             let portfolio_return = compute_net_returns(

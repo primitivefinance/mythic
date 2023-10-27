@@ -4,8 +4,8 @@ use super::{errors::SimulationError, *};
 use crate::{
     agents::{
         arbitrageur::Arbitrageur, block_admin::BlockAdmin, liquidity_provider::LiquidityProvider,
-        price_changer::PriceChanger, token_admin::TokenAdmin, momentum_strategist::MomentumStrategist, Agent,
-        Agents,
+        momentum_strategist::MomentumStrategist, price_changer::PriceChanger,
+        token_admin::TokenAdmin, Agent, Agents,
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,

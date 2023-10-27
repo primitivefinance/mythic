@@ -9,8 +9,8 @@ use crate::{
 
 pub mod dynamic_weights;
 pub mod errors;
-pub mod stable_portfolio;
 pub mod momentum;
+pub mod stable_portfolio;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
 
