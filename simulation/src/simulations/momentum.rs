@@ -46,7 +46,8 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
     EventLogger::builder()
         .add(price_changer.liquid_exchange.events(), "lex")
         .add(momentum_strategist.g3m.events(), "g3m")
-        .run()?;
+        .run()
+        .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 
     Ok(Simulation {
         agents: Agents::new()
