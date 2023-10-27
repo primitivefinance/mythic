@@ -18,9 +18,7 @@ simulation = { path = "./simulation", version = "0.1.0" }
 ui = { path = "./ui", version = "0.1.0" }
 
 # External
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter.git", branch = "main", features = [
-    "contracts",
-] }
+arbiter-core = { version = "0.6.3", features = ["contracts"] }
 tokio = { version = "1.32.0", features = ["full"] }
 tracing = "0.1.37"
 anyhow = "1.0.75"
