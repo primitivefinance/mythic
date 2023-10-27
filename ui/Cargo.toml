@@ -1,0 +1,23 @@
+[package]
+name = "ui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# local
+simulation = { path = "../simulation" }
+
+# workspace
+arbiter-core = { workspace = true }
+tokio = { workspace = true }
+ethers = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+bytesize = { workspace = true }
+dotenv = { workspace = true }
+
+# deps for ui
+eyre = "0.6.8"
+iced = { version = "0.10.0", features = ["system", "tokio", "lazy"] }

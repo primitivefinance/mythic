@@ -8,13 +8,14 @@ name = "excalibur"
 path = "src/main.rs"
 
 [workspace]
-members = ["simulation", "analysis"]
+members = ["simulation", "analysis", "ui"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
+ui = { path = "./ui", version = "0.1.0" }
 analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
@@ -36,8 +37,13 @@ anyhow = "1.0.75"
 thiserror = "1.0.50"
 
 
+bytesize = "1.2.0"
+dotenv = "0.15.0"
+
+
 [dependencies]
 simulation.workspace = true
+ui.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 anyhow.workspace = true
@@ -52,4 +58,4 @@ mdbook-katex = "0.5.8"
 
 [arbiter]
 bindings_workspace = "simulation" # must be a valid workspace member
-submodules = false # change to true if you want the submodule bindings to be generated
+submodules = false                # change to true if you want the submodule bindings to be generated
