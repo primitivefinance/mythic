@@ -56,26 +56,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn add_statistical_plot() {
-        let mut figure = Figure::new("test", None);
-        let plot = StatisticalPlot {
-            x_data: vec![0.0, 1.0, 2.0],
-            y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
-        };
-        figure.add_statistical_plot(plot);
-        assert_eq!(figure.plots.len(), 1);
+    fn new() {
+        let name = "test_name";
+        let dimensions = Some((100, 200));
+        let figure = Figure::new("test_name", Some((100, 200)));
+        assert_eq!(figure.file_name, format!("{}.png", name));
+        assert_eq!(figure.dimensions, dimensions);
+        assert_eq!(figure.plots.len(), 0);
     }
 
     #[test]
-    fn create_statistical_plot() {
-        let mut figure = Figure::new("test_create_statistical_plot", None);
-        let plot = StatisticalPlot {
-            x_data: vec![0.0, 1.0, 2.0],
-            y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
-        };
-        figure.add_statistical_plot(plot);
+    fn create() {
+        let figure = Figure::new("test", None);
         figure.create().unwrap();
-        assert!(std::path::Path::new("test_create_statistical_plot.png").exists());
-        std::fs::remove_file("test_create_statistical_plot.png").unwrap();
+        assert!(std::path::Path::new("test.png").exists());
+        std::fs::remove_file("test.png").unwrap();
     }
 }

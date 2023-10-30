@@ -31,9 +31,9 @@ fn read_in_and_plot_statistical() {
     let y_data = vec![y_data1, y_data2];
     let statistical_plot = StatisticalPlot { x_data, y_data };
 
-    let mut figure = Figure::new("test", None);
+    let mut figure = Figure::new("test_read_in_and_plot_statistical", None);
     figure.add_statistical_plot(statistical_plot);
     figure.create().unwrap();
-    assert!(std::path::Path::new("test.png").exists());
-    std::fs::remove_file("test.png").unwrap();
+    assert!(std::path::Path::new("test_read_in_and_plot_statistical.png").exists());
+    std::fs::remove_file("test_read_in_and_plot_statistical.png").unwrap();
 }
