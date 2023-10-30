@@ -32,7 +32,7 @@ fn read_in_and_plot_statistical() {
     let statistical_plot = StatisticalPlot { x_data, y_data };
 
     let mut figure = Figure::new("test_read_in_and_plot_statistical", None);
-    figure.add_statistical_plot(statistical_plot);
+    figure.add_plot(statistical_plot);
     figure.create().unwrap();
     assert!(std::path::Path::new("test_read_in_and_plot_statistical.png").exists());
     std::fs::remove_file("test_read_in_and_plot_statistical.png").unwrap();

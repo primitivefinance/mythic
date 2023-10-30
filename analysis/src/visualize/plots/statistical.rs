@@ -97,12 +97,12 @@ mod tests {
 
     #[test]
     fn add_statistical_plot() {
-        let mut figure = Figure::new("test", None);
+        let mut figure = Figure::new("test_add_statistical_plot", None);
         let plot = StatisticalPlot {
             x_data: vec![0.0, 1.0, 2.0],
             y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
         };
-        figure.add_statistical_plot(plot);
+        figure.add_plot(plot);
         assert_eq!(figure.plots.len(), 1);
     }
 
@@ -113,7 +113,7 @@ mod tests {
             x_data: vec![0.0, 1.0, 2.0],
             y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
         };
-        figure.add_statistical_plot(plot);
+        figure.add_plot(plot);
         figure.create().unwrap();
         assert!(std::path::Path::new("test_create_statistical_plot.png").exists());
         std::fs::remove_file("test_create_statistical_plot.png").unwrap();

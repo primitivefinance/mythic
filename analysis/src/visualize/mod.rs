@@ -24,7 +24,7 @@ impl Figure {
         }
     }
 
-    pub fn add_statistical_plot(&mut self, plot: StatisticalPlot) -> &mut Self {
+    pub fn add_plot<P: Plot + 'static>(&mut self, plot: P) -> &mut Self {
         self.plots.push(Box::new(plot));
         self
     }
@@ -55,6 +55,14 @@ impl Figure {
 mod tests {
     use super::*;
 
+    struct MockPlot {}
+
+    impl Plot for MockPlot {
+        fn plot(&self, _drawing_area: &DrawingArea<BitMapBackend, Shift>) -> Result<()> {
+            Ok(())
+        }
+    }
+
     #[test]
     fn new() {
         let name = "test_name";
@@ -66,10 +74,18 @@ mod tests {
     }
 
     #[test]
+    fn add_plot() {
+        let mut figure = Figure::new("test_add_plot", None);
+        let plot = MockPlot {};
+        figure.add_plot(plot);
+        assert_eq!(figure.plots.len(), 1);
+    }
+
+    #[test]
     fn create() {
-        let figure = Figure::new("test", None);
+        let figure = Figure::new("test_create", None);
         figure.create().unwrap();
-        assert!(std::path::Path::new("test.png").exists());
-        std::fs::remove_file("test.png").unwrap();
+        assert!(std::path::Path::new("test_create.png").exists());
+        std::fs::remove_file("test_create.png").unwrap();
     }
 }
