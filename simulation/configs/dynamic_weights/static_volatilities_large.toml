@@ -1,5 +1,5 @@
 simulation = "DynamicWeights"
-output_directory = "analysis/static_volatilities"
+output_directory = "analysis/static_volatilities_repeatr"
 
 [trajectory]
 # The type of price process to use.
