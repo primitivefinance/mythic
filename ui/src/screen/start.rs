@@ -1,7 +1,6 @@
 //! Renders the start screen for an application, with a banner image and start
 //! button. Also renders the version info and any relevant system information.
 
-use arbiter_core::middleware::{errors::RevmMiddlewareError, RevmMiddleware};
 use iced::{
     alignment::{self, Alignment},
     widget::{button, column, component, text, Component},

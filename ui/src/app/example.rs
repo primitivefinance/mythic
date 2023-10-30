@@ -119,7 +119,6 @@ impl Application for ExampleApp {
                     }
                 }
             }
-            _ => {}
         }
 
         Command::none()
