@@ -38,8 +38,7 @@ impl SimulationData {
     }
 }
 
-use std::env;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 fn read_in_simulation_json(
     file_name: &str,

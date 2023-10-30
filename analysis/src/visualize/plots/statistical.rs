@@ -44,10 +44,7 @@ impl Plot for StatisticalPlot {
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap_or(1.0);
 
-        // let root = BitMapBackend::new("plot.png", (800, 600)).into_drawing_area();
-        // root.fill(&WHITE)?;
-
-        let mut chart = ChartBuilder::on(&drawing_area)
+        let mut chart = ChartBuilder::on(drawing_area)
             .caption(
                 "Average Signal with Standard Deviation",
                 ("Arial", 24).into_font(),

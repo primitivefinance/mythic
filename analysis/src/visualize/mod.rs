@@ -1,11 +1,11 @@
-use self::plots::{statistical::StatisticalPlot, Plot};
-
-use super::*;
 use plotters::{
     backend::BitMapBackend,
     coord::{types::RangedCoordf64, Shift},
     prelude::*,
 };
+
+use self::plots::{statistical::StatisticalPlot, Plot};
+use super::*;
 
 pub mod plots;
 
@@ -53,8 +53,6 @@ impl Figure {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-
     use super::*;
 
     #[test]
@@ -69,15 +67,15 @@ mod tests {
     }
 
     #[test]
-    fn create_statistical() {
-        let mut figure = Figure::new("test", None);
+    fn create_statistical_plot() {
+        let mut figure = Figure::new("test_create_statistical_plot", None);
         let plot = StatisticalPlot {
             x_data: vec![0.0, 1.0, 2.0],
             y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
         };
         figure.add_statistical_plot(plot);
         figure.create().unwrap();
-        assert!(std::path::Path::new("test.png").exists());
-        // fs::remove_file("test.png").unwrap();
+        assert!(std::path::Path::new("test_create_statistical_plot.png").exists());
+        std::fs::remove_file("test_create_statistical_plot.png").unwrap();
     }
 }
