@@ -3,10 +3,8 @@
 #![allow(unused_variables)]
 use std::sync::Arc;
 
-use arbiter_core::middleware::{errors::RevmMiddlewareError, RevmMiddleware};
+use arbiter_core::middleware::RevmMiddleware;
 use simulation::bindings::counter::Counter;
-
-use crate::app::example::Error;
 
 #[derive(Debug, Clone)]
 pub struct Vault {
@@ -14,16 +12,8 @@ pub struct Vault {
 }
 
 impl Vault {
-    pub async fn deploy(client: Arc<RevmMiddleware>) -> Result<Self, Error> {
+    pub async fn deploy<E>(client: Arc<RevmMiddleware>) -> Result<Self, E> {
         let instance = Counter::deploy(client, ()).unwrap().send().await.unwrap();
         Ok(Self { valid: true })
-    }
-}
-
-impl From<RevmMiddlewareError> for Error {
-    fn from(_error: RevmMiddlewareError) -> Self {
-        match _error {
-            _ => Error::BlockSubscriptionError,
-        }
     }
 }

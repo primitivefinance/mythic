@@ -1,4 +1,3 @@
-#![allow(unused_variables)]
 use std::sync::Arc;
 
 use arbiter_core::{
@@ -6,47 +5,51 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use iced::{
-    executor,
+    alignment, executor,
     widget::{button, column, container, text},
     Application, Command, Element, Length, Theme,
 };
 
-use crate::components;
-use crate::sdk::vault::*;
+use crate::screen;
 
 #[allow(clippy::large_enum_variant)]
-pub enum Example {
-    BuildingEnvironment,
+/// Application state of an example app that runs arbiter's environment in the
+/// background.
+pub enum ExampleApp {
+    Loading,
     Running {
         environment: Environment,
         client: Arc<RevmMiddleware>,
-        deployment: DeploymentState,
+        screen: Screen,
     },
 }
 
-pub enum DeploymentState {
-    NotDeployed,
-    Deploying,
-    Deployed(Vault),
-    DeploymentFailed(Error),
+/// Screens implement their own `view` and `update` functions and forward
+/// messages to this application's `update` function to process them with
+/// [`Command`].
+#[derive(Clone, Debug)]
+pub enum Screen {
+    /// The start screen is the first screen of the application.
+    Start,
+    /// Main screen of the application.
+    Home,
+    /// An example screen that deploys the Counter.sol smart contract.
+    Example(screen::example::ExampleScreen),
 }
 
 #[derive(Debug, Clone)]
 #[allow(clippy::large_enum_variant)]
+/// Messages that can be sent to the application to process logic.
+/// Each screen has a message variant that enables to application to mutate the
+/// screen.
 pub enum Message {
-    Deploy,
-    Deployed(Result<Vault, Error>),
-    CounterMessage(Option<u32>),
+    /// Changes the current screen.
+    ChangePage(Screen),
+    /// Receiving a message from the Example screen.
+    ExampleScreen(screen::example::ExampleScreenMessage),
 }
 
-#[derive(Debug, Clone)]
-pub enum Error {
-    APIError,
-    ProviderConnectionError,
-    BlockSubscriptionError,
-}
-
-impl Application for Example {
+impl Application for ExampleApp {
     type Message = Message;
     type Theme = Theme;
     type Executor = executor::Default;
@@ -60,7 +63,7 @@ impl Application for Example {
                 Self::Running {
                     environment: env,
                     client,
-                    deployment: DeploymentState::NotDeployed,
+                    screen: Screen::Start,
                 }
             },
             Command::none(),
@@ -68,38 +71,55 @@ impl Application for Example {
     }
 
     fn title(&self) -> String {
-        String::from("Arbiter UI")
+        String::from("Excalibur")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Deploy => {
-                if let Self::Running {
-                    ref client,
-                    deployment,
-                    ..
-                } = self
-                {
-                    *deployment = DeploymentState::Deploying;
-                    let client_clone = client.clone();
-                    return Command::perform(Vault::deploy(client_clone), |_| {
-                        Message::Deployed(Ok(Vault { valid: true }))
-                    });
+            // Mutates this application's `screen` state to the new screen.
+            Message::ChangePage(page) => {
+                if let Self::Running { screen, .. } = self {
+                    *screen = page;
                 }
             }
-            Message::Deployed(result) => {
-                if let Self::Running { deployment, .. } = self {
-                    match result {
-                        Ok(vault) => {
-                            *deployment = DeploymentState::Deployed(vault);
-                        }
-                        Err(error) => {
-                            *deployment = DeploymentState::DeploymentFailed(error);
+            // Mutates the example screen's state or performs forwarded commands.
+            Message::ExampleScreen(message) => {
+                if let Self::Running { screen, .. } = self {
+                    let Screen::Example(example) = screen else {
+                        return Command::none();
+                    };
+
+                    if let Some(event) = example.update(message) {
+                        match event {
+                            screen::example::Event::Clicked => {
+                                return Command::perform(
+                                    crate::sdk::vault::Vault::deploy::<
+                                        screen::example::ExampleScreenError,
+                                    >(example.client.clone()),
+                                    |res| {
+                                        Message::ExampleScreen(
+                                            screen::example::ExampleScreenMessage::DeploySuccess(
+                                                res,
+                                            ),
+                                        )
+                                    },
+                                );
+                            }
+                            screen::example::Event::Deployed(res) => match res {
+                                Ok(vault) => {
+                                    example.state =
+                                        screen::example::ExampleScreenState::Deployed(vault);
+                                }
+                                Err(err) => {
+                                    example.state =
+                                        screen::example::ExampleScreenState::DeploymentFailed(err);
+                                }
+                            },
                         }
                     }
                 }
             }
-            Message::CounterMessage(msg) => {}
+            _ => {}
         }
 
         Command::none()
@@ -107,32 +127,36 @@ impl Application for Example {
 
     fn view(&self) -> Element<Message> {
         let content: Element<_> = match self {
-            Example::BuildingEnvironment => text("Building Environment...").size(40).into(),
-            Example::Running {
-                client, deployment, ..
-            } => {
+            ExampleApp::Loading => text("Loading...").into(),
+            ExampleApp::Running { client, screen, .. } => {
                 // Base container for the Running state
                 let mut content = column![];
+                // Button for routing back to start screen.
+                content = content
+                    .push(button("Restart").on_press(Message::ChangePage(Screen::Start)))
+                    .spacing(10)
+                    .align_items(alignment::Alignment::Center);
 
-                // Add the Deploy button
-                content = content.push(button("Deploy").on_press(Message::Deploy));
-
-                // Reflect the deployment state in the UI
-                content = match deployment {
-                    DeploymentState::NotDeployed => content,
-                    DeploymentState::Deploying => content.push(text("Deploying...")),
-                    DeploymentState::Deployed(_entity) => {
-                        content.push(text("Successfully Deployed"))
+                // Renders the current screen.
+                match screen {
+                    Screen::Start => {
+                        let start_screen =
+                            screen::start::StartScreen::new(|| Message::ChangePage(Screen::Home));
+                        content = content.push(start_screen);
                     }
-                    DeploymentState::DeploymentFailed(error) => {
-                        content.push(text(format!("Deployment failed: {:?}", error)))
+                    Screen::Home => {
+                        // Button to go to the example screen.
+                        let example_screen = screen::example::ExampleScreen::new(client.clone());
+                        content =
+                            content
+                                .push(button("Go to Example").on_press(Message::ChangePage(
+                                    Screen::Example(example_screen),
+                                )));
                     }
-                };
-
-                content = content.push(components::example::Counter::new(
-                    Some(1),
-                    Message::CounterMessage,
-                ));
+                    Screen::Example(example) => {
+                        content = content.push(example.view().map(Message::ExampleScreen));
+                    }
+                }
 
                 content.into()
             }
@@ -148,20 +172,5 @@ impl Application for Example {
 
     fn theme(&self) -> Theme {
         Theme::Dark
-    }
-}
-
-// yo!!
-impl From<ethers::providers::ProviderError> for Error {
-    fn from(_error: ethers::providers::ProviderError) -> Self {
-        match _error {
-            ethers::providers::ProviderError::UnsupportedRPC => Error::APIError,
-            ethers::providers::ProviderError::JsonRpcClientError(_error) => {
-                println!("Error: {:#?}", _error);
-
-                Error::ProviderConnectionError
-            }
-            _ => Error::BlockSubscriptionError,
-        }
     }
 }

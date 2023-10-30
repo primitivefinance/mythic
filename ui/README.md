@@ -19,6 +19,14 @@ Files and directories:
 - components/ - All the iced `Element`s/`Component`s that are responsible for individual state and behaviors.
 - sdk/ - Abstractions over arbiter + contracts that are used by iced, does not use iced.
 
+## How to make a screen
+
+A screen is a dedicated view into some part of the application. It can encapsulate an entire screen/page/view or just be a section of the overall layout.
+
+It's architected to communicate directly with the root `Application`. The `Application` trait in iced is capable of processing async functions via `Command::perform()`. This forces our hand with how to execute api calls with arbiter.
+
+Individual screens can be made that forward messages to the `Application`, which is processed in `Application::update()`, which calls `Screen::update()`. Logic is handled in the Application update, with the Screen update simply reacting to the Application's updates. 
+
 ## How to make a Component
 
 A component is specifically implemented as an iced Element. An iced Element can be easily rendered in the application's view function.

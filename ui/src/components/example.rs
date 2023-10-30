@@ -2,7 +2,10 @@
 //! This is a "component" that interacts with the Counter.sol smart contract.
 //! A component is just a siloed piece of the UI that has its own state.
 //!
-//! Adding this component to the UI is as simple as pushing it to the container that is rendered in the app's view function.
+//! Adding this component to the UI is as simple as pushing it to the container
+//! that is rendered in the app's view function.
+
+use std::sync::Arc;
 
 use iced::{
     alignment::{self, Alignment},
@@ -10,21 +13,22 @@ use iced::{
     Element, Length, Renderer,
 };
 
-use std::sync::Arc;
-
-/// Type alias for the on_change function that can be passed to the counter component.
-/// This enables the application to react to changes in the counter's state.
+/// Type alias for the on_change function that can be passed to the counter
+/// component. This enables the application to react to changes in the counter's
+/// state.
 type HandlerFn<Msg> = Arc<Box<dyn Fn(Option<u32>) -> Msg + Send + Sync + 'static>>;
 
 /// This is the "model" for the counter component.
-/// It holds the state of the component and a function handler for updating the model.
+/// It holds the state of the component and a function handler for updating the
+/// model.
 #[derive(Clone)]
 pub struct Counter<Msg> {
     value: Option<u32>,
     on_change: HandlerFn<Msg>,
 }
 
-/// - Msg is a generic type for the application Message that is transmitted from the on_change function.
+/// - Msg is a generic type for the application Message that is transmitted from
+///   the on_change function.
 impl<Msg> Counter<Msg> {
     pub fn new(
         value: Option<u32>,
@@ -95,7 +99,8 @@ impl<Msg> Component<Msg, Renderer> for Counter<Msg> {
     }
 }
 
-/// Converts the component into an iced Element, which can be pushed to a content container in the UI.
+/// Converts the component into an iced Element, which can be pushed to a
+/// content container in the UI.
 impl<'a, Msg> From<Counter<Msg>> for Element<'a, Msg, Renderer>
 where
     Msg: 'a,

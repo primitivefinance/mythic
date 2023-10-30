@@ -20,4 +20,10 @@ dotenv = { workspace = true }
 
 # deps for ui
 eyre = "0.6.8"
-iced = { version = "0.10.0", features = ["system", "tokio", "lazy"] }
+iced = { version = "0.10.0", features = [
+    "system",
+    "tokio",
+    "lazy",
+    "image",
+    "palette",
+] }
