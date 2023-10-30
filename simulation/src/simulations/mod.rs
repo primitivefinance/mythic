@@ -1,3 +1,4 @@
+use serde_json::error;
 use tokio::runtime::Runtime;
 
 use self::errors::SimulationError;
@@ -9,6 +10,7 @@ use crate::{
 
 pub mod dynamic_weights;
 pub mod errors;
+pub mod momentum;
 pub mod stable_portfolio;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
@@ -23,17 +25,33 @@ pub struct Simulation {
 pub enum SimulationType {
     DynamicWeights,
     StablePortfolio,
+    MomentumStrategy,
 }
 
 impl SimulationType {
     async fn run(config: SimulationConfig<Fixed>) -> Result<(), SimulationError> {
         let simulation = match config.simulation {
-            SimulationType::DynamicWeights => dynamic_weights::setup(config).await?,
-            SimulationType::StablePortfolio => stable_portfolio::setup(config).await?,
+            SimulationType::DynamicWeights => dynamic_weights::setup(config.clone()).await?,
+            SimulationType::StablePortfolio => stable_portfolio::setup(config.clone()).await?,
+            SimulationType::MomentumStrategy => momentum::setup(config.clone()).await?,
         };
-        looper(simulation.agents, simulation.steps).await?;
-        simulation.environment.stop();
-        Ok(())
+        match looper(simulation.agents, simulation.steps).await {
+            Ok(_) => {
+                simulation.environment.stop();
+                Ok(())
+            }
+            Err(e) => {
+                let metadata = format!(
+                    "{}_{}",
+                    config.output_directory,
+                    config.output_file_name.unwrap()
+                );
+                let error_string = format!("Error in simulation `{:?}`: {:?}", metadata, e);
+                error!(error_string);
+                simulation.environment.stop();
+                Err(SimulationError::GenericError(error_string))
+            }
+        }
     }
 }
 
@@ -55,8 +73,10 @@ pub fn batch(config_path: &str) -> Result<()> {
 
     rt.block_on(async {
         let mut handles = vec![];
+        let errors = Arc::new(tokio::sync::Mutex::new(vec![]));
 
         for config in direct_configs {
+            let errors_clone = errors.clone();
             let semaphore_clone = semaphore.clone();
             handles.push(tokio::spawn(async move {
                 // Acquire a permit inside the spawned task
@@ -70,18 +90,30 @@ pub fn batch(config_path: &str) -> Result<()> {
 
                 warn!("Running simulation with config: {:?}", config);
                 let result = SimulationType::run(config).await;
-
-                // Drop the permit when the simulation is done.
-                drop(permit);
-                result
+                match result {
+                    Err(e) => {
+                        let mut errors_clone_lock = errors_clone.lock().await;
+                        errors_clone_lock.push(e);
+                        // Drop the permit when the simulation is done.
+                        drop(permit);
+                    }
+                    Ok(_) => {
+                        drop(permit);
+                    }
+                }
             }));
         }
 
         for handle in handles {
-            handle.await??; // Note: Double `?` because of the Result inside the async block and the Result
-                            // of the join handle.
+            handle.await?;
             warn!("Simulation complete");
         }
+
+        let error_path = config.output_directory.clone() + "/errors.json";
+        serde_json::to_writer(
+            std::fs::File::create(error_path).unwrap(),
+            &*errors.lock().await,
+        );
 
         Ok(())
     })
@@ -119,9 +151,7 @@ mod tests {
     fn static_output() {
         batch("configs/test/static.toml").unwrap();
         let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("test_static/gbm_drift=0.1_vol=0.35/trajectory=0")
-            .join("g3m")
-            .join("SwapFilter.csv");
+            .join("test_static/gbm_drift=0.1_vol=0.35/trajectory=0.json");
         println!("path: {:?}", path);
         let mut file = std::fs::File::open(path).unwrap();
         let mut contents = vec![];
@@ -138,7 +168,7 @@ mod tests {
             for vol in [0, 1] {
                 for trajectory in [0, 1] {
                     let str = format!(
-                        "test_sweep/gbm_drift={}_vol={}/trajectory={}/g3m/SwapFilter.csv",
+                        "test_sweep/gbm_drift={}_vol={}/trajectory={}.json",
                         drift, vol, trajectory
                     );
                     let path = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(str);
