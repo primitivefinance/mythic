@@ -1,13 +1,10 @@
+use super::*;
+
 use std::sync::Arc;
 
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
-};
-use iced::{
-    alignment, executor,
-    widget::{button, column, container, text},
-    Application, Command, Element, Length, Theme,
 };
 
 use crate::screen;
@@ -129,7 +126,7 @@ impl Application for ExampleApp {
             ExampleApp::Loading => text("Loading...").into(),
             ExampleApp::Running { client, screen, .. } => {
                 // Base container for the Running state
-                let mut content = column![];
+                let mut content = self::column![];
                 // Button for routing back to start screen.
                 content = content
                     .push(button("Restart").on_press(Message::ChangePage(Screen::Start)))
