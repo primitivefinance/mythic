@@ -38,10 +38,17 @@ impl SimulationData {
     }
 }
 
+use std::{env, path::PathBuf};
+
 fn read_in_simulation_json(
     file_name: &str,
 ) -> Result<BTreeMap<String, BTreeMap<String, Vec<Value>>>, serde_json::Error> {
-    let file = File::open(file_name).expect("Failed to open file");
+    let current_dir = env::current_dir().unwrap_or_else(|_| PathBuf::from(""));
+    let abs_path = current_dir.join(file_name);
+
+    let file = File::open(file_name)
+        .unwrap_or_else(|_| panic!("Failed to open file at: {:?}", abs_path.display()));
+
     let reader = BufReader::new(file);
     let map: BTreeMap<String, BTreeMap<String, Vec<Value>>> = from_reader(reader)?;
     Ok(map)

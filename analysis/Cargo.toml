@@ -11,3 +11,5 @@ ethers.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 simulation.workspace = true
+plotters.workspace = true
+arbiter-core.workspace = true
