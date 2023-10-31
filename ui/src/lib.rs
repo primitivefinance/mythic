@@ -1,18 +1,24 @@
 #![allow(clippy::all)]
 
 use dotenv::dotenv;
-use iced::{Application, Settings};
-pub mod app;
-pub mod components;
-pub mod screen;
+
 pub mod sdk;
+
+pub mod analyzer;
+pub mod example;
+
+use iced::{
+    alignment, executor,
+    widget::{button, column, container, text},
+    Application, Command, Element, Length, Settings, Theme,
+};
 
 #[tokio::main]
 pub async fn run() -> iced::Result {
     dotenv().ok();
-    app::example::ExampleApp::run(Settings::default())
+    example::ExampleApp::run(Settings::default())
 }
 
 pub fn example() -> iced::Result {
-    app::example::ExampleApp::run(Settings::default())
+    example::ExampleApp::run(Settings::default())
 }

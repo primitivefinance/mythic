@@ -7,7 +7,8 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 
-use crate::screen;
+mod components;
+mod screen;
 
 #[allow(clippy::large_enum_variant)]
 /// Application state of an example app that runs arbiter's environment in the
@@ -31,7 +32,7 @@ pub enum Screen {
     /// Main screen of the application.
     Home,
     /// An example screen that deploys the Counter.sol smart contract.
-    Example(screen::example::ExampleScreen),
+    Example(screen::ExampleScreen),
 }
 
 #[derive(Debug, Clone)]
@@ -43,7 +44,7 @@ pub enum Message {
     /// Changes the current screen.
     ChangePage(Screen),
     /// Receiving a message from the Example screen.
-    ExampleScreen(screen::example::ExampleScreenMessage),
+    ExampleScreen(screen::ExampleScreenMessage),
 }
 
 impl Application for ExampleApp {
@@ -88,28 +89,25 @@ impl Application for ExampleApp {
 
                     if let Some(event) = example.update(message) {
                         match event {
-                            screen::example::Event::Clicked => {
+                            screen::Event::Clicked => {
                                 return Command::perform(
-                                    crate::sdk::vault::Vault::deploy::<
-                                        screen::example::ExampleScreenError,
-                                    >(example.client.clone()),
+                                    crate::sdk::vault::Vault::deploy::<screen::ExampleScreenError>(
+                                        example.client.clone(),
+                                    ),
                                     |res| {
                                         Message::ExampleScreen(
-                                            screen::example::ExampleScreenMessage::DeploySuccess(
-                                                res,
-                                            ),
+                                            screen::ExampleScreenMessage::DeploySuccess(res),
                                         )
                                     },
                                 );
                             }
-                            screen::example::Event::Deployed(res) => match res {
+                            screen::Event::Deployed(res) => match res {
                                 Ok(vault) => {
-                                    example.state =
-                                        screen::example::ExampleScreenState::Deployed(vault);
+                                    example.state = screen::ExampleScreenState::Deployed(vault);
                                 }
                                 Err(err) => {
                                     example.state =
-                                        screen::example::ExampleScreenState::DeploymentFailed(err);
+                                        screen::ExampleScreenState::DeploymentFailed(err);
                                 }
                             },
                         }
@@ -142,7 +140,7 @@ impl Application for ExampleApp {
                     }
                     Screen::Home => {
                         // Button to go to the example screen.
-                        let example_screen = screen::example::ExampleScreen::new(client.clone());
+                        let example_screen = screen::ExampleScreen::new(client.clone());
                         content =
                             content
                                 .push(button("Go to Example").on_press(Message::ChangePage(

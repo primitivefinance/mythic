@@ -2,6 +2,8 @@
 //! Screens are individual views that can be rendered by the application.
 //! The application also handles the execution of the screen's messages and
 //! events.
+
+use super::*;
 use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
@@ -13,6 +15,9 @@ use iced::{
 use thiserror::Error;
 
 use crate::sdk::vault::*;
+
+mod banner;
+pub mod start;
 
 /// Screen for the deploy Counter.sol example.
 #[derive(Clone, Debug)]
