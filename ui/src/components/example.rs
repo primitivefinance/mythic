@@ -1,29 +1,47 @@
+//! # Example component
+//! This is a "component" that interacts with the Counter.sol smart contract.
+//! A component is just a siloed piece of the UI that has its own state.
+//!
+//! Adding this component to the UI is as simple as pushing it to the container
+//! that is rendered in the app's view function.
+
+use std::sync::Arc;
+
 use iced::{
     alignment::{self, Alignment},
     widget::{button, component, row, text, Component},
     Element, Length, Renderer,
 };
-pub struct Counter<Message> {
+
+/// Type alias for the on_change function that can be passed to the counter
+/// component. This enables the application to react to changes in the counter's
+/// state.
+type HandlerFn<Msg> = Arc<Box<dyn Fn(Option<u32>) -> Msg + Send + Sync + 'static>>;
+
+/// This is the "model" for the counter component.
+/// It holds the state of the component and a function handler for updating the
+/// model.
+#[derive(Clone)]
+pub struct Counter<Msg> {
     value: Option<u32>,
-    on_change: Box<dyn Fn(Option<u32>) -> Message>,
+    on_change: HandlerFn<Msg>,
 }
 
-pub fn counter_state<Message>(
-    value: Option<u32>,
-    on_change: impl Fn(Option<u32>) -> Message + 'static,
-) -> Counter<Message> {
-    Counter::new(value, on_change)
-}
-
-impl<Message> Counter<Message> {
-    pub fn new(value: Option<u32>, on_change: impl Fn(Option<u32>) -> Message + 'static) -> Self {
+/// - Msg is a generic type for the application Message that is transmitted from
+///   the on_change function.
+impl<Msg> Counter<Msg> {
+    pub fn new(
+        value: Option<u32>,
+        on_change: impl Fn(Option<u32>) -> Msg + Send + Sync + 'static,
+    ) -> Self {
         Self {
             value,
-            on_change: Box::new(on_change),
+            on_change: Arc::new(Box::new(on_change)),
         }
     }
 }
 
+/// Events that occur in the component.
 #[derive(Debug, Clone)]
 pub enum Event {
     Increment,
@@ -31,11 +49,14 @@ pub enum Event {
     InputChanged(String),
 }
 
-impl<Message> Component<Message, Renderer> for Counter<Message> {
+/// Implementation of the actual component for the application.
+/// update - Handles the model updates.
+/// view - Handles the model view.
+impl<Msg> Component<Msg, Renderer> for Counter<Msg> {
     type State = ();
     type Event = Event;
 
-    fn update(&mut self, _state: &mut Self::State, event: Event) -> Option<Message> {
+    fn update(&mut self, _state: &mut Self::State, event: Event) -> Option<Msg> {
         match event {
             Event::Increment => Some((self.on_change)(Some(
                 self.value.unwrap_or_default().saturating_add(1),
@@ -78,11 +99,13 @@ impl<Message> Component<Message, Renderer> for Counter<Message> {
     }
 }
 
-impl<'a, Message> From<Counter<Message>> for Element<'a, Message, Renderer>
+/// Converts the component into an iced Element, which can be pushed to a
+/// content container in the UI.
+impl<'a, Msg> From<Counter<Msg>> for Element<'a, Msg, Renderer>
 where
-    Message: 'a,
+    Msg: 'a,
 {
-    fn from(counter: Counter<Message>) -> Self {
+    fn from(counter: Counter<Msg>) -> Self {
         component(counter).into()
     }
 }
