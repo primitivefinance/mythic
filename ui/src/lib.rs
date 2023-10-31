@@ -1,11 +1,8 @@
 #![allow(clippy::all)]
 
-use dotenv::dotenv;
-
-pub mod sdk;
-
 pub mod analyzer;
 pub mod example;
+pub mod sdk;
 
 use iced::{
     alignment, executor,
@@ -13,12 +10,10 @@ use iced::{
     Application, Command, Element, Length, Settings, Theme,
 };
 
-#[tokio::main]
-pub async fn run() -> iced::Result {
-    dotenv().ok();
+pub fn example() -> iced::Result {
     example::ExampleApp::run(Settings::default())
 }
 
-pub fn example() -> iced::Result {
-    example::ExampleApp::run(Settings::default())
+pub fn analyzer() -> iced::Result {
+    analyzer::AnalyzerApp::run(Settings::default())
 }
