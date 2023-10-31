@@ -1,10 +1,20 @@
 use plotters::drawing;
 
-use super::*;
+use super::{line::LinePlot, *};
 
 pub struct StatisticalPlot {
     pub x_data: Vec<f64>,
     pub y_data: Vec<Vec<f64>>,
+}
+
+impl From<&LinePlot> for StatisticalPlot {
+    fn from(line_plot: &LinePlot) -> Self {
+        let y_data = vec![line_plot.y_data.clone()];
+        Self {
+            x_data: line_plot.x_data.clone(),
+            y_data,
+        }
+    }
 }
 
 impl Plot for StatisticalPlot {

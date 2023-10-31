@@ -1,6 +1,7 @@
 use super::*;
 
 pub mod heatmap;
+pub mod line;
 pub mod statistical;
 
 pub trait Plot {
