@@ -10,6 +10,7 @@ use iced::{
     widget::{button, column, text},
     Element, Length,
 };
+use thiserror::Error;
 
 use crate::sdk::vault::*;
 
@@ -37,11 +38,10 @@ pub enum ExampleScreenMessage {
 }
 
 /// Errors that can occur during the deployment of Counter.sol.
-#[derive(Debug, Clone)]
+#[derive(Debug, Error, Clone)]
 pub enum ExampleScreenError {
-    APIError,
-    ProviderConnectionError,
-    BlockSubscriptionError,
+    #[error("API Error")]
+    ProviderError(#[from] &'static ethers::providers::ProviderError),
 }
 
 /// Messages for this screen's internal use.
@@ -110,20 +110,5 @@ impl ExampleScreen {
         };
 
         content.into()
-    }
-}
-
-/// Converts the ProviderError into an ExampleScreenError.
-impl From<ethers::providers::ProviderError> for ExampleScreenError {
-    fn from(_error: ethers::providers::ProviderError) -> Self {
-        match _error {
-            ethers::providers::ProviderError::UnsupportedRPC => ExampleScreenError::APIError,
-            ethers::providers::ProviderError::JsonRpcClientError(_error) => {
-                println!("Error: {:#?}", _error);
-
-                ExampleScreenError::ProviderConnectionError
-            }
-            _ => ExampleScreenError::BlockSubscriptionError,
-        }
     }
 }
