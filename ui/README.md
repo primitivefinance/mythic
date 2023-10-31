@@ -15,9 +15,11 @@ cargo run ui <application name>
 ## Structure
 Files and directories:
 - lib.rs - Exposes the `run` function to start running an application.
-- app/ - All iced `Application`s. Yes, we can have multiple applications. Check the [example app](./src/app/example.rs).
-- components/ - All the iced `Element`s/`Component`s that are responsible for individual state and behaviors.
 - sdk/ - Abstractions over arbiter + contracts that are used by iced, does not use iced.
+Applications, yes, we can have multiple applications. Check the [example app](./src/app/example.rs).
+- example/ - The example application including its `Screen`s and `Component`s.
+- analyzer/ - The analyzer application including its `Screen`s and `Component`s.
+
 
 ## How to make a screen
 
