@@ -3,7 +3,6 @@
 //! The application also handles the execution of the screen's messages and
 //! events.
 
-use super::*;
 use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
@@ -14,6 +13,7 @@ use iced::{
 };
 use thiserror::Error;
 
+use super::*;
 use crate::sdk::vault::*;
 
 mod banner;

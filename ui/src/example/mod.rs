@@ -1,11 +1,11 @@
-use super::*;
-
 use std::sync::Arc;
 
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
+
+use super::*;
 
 mod components;
 mod screen;

@@ -1,13 +1,13 @@
 //! Renders the start screen for an application, with a banner image and start
 //! button. Also renders the version info and any relevant system information.
 
-use super::*;
-
 use iced::{
     alignment::{self, Alignment},
     widget::{button, column, component, text, Component},
     Element, Length, Renderer,
 };
+
+use super::*;
 
 /// A view for the first screen of the application.
 pub struct StartScreen<Msg> {
