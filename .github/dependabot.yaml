@@ -11,6 +11,16 @@ updates:
       interval: "daily"
 
   - package-ecosystem: "cargo"
-    directory: "arbiter-core"
+    directory: "simulation"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "cargo"
+    directory: "ui"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "cargo"
+    directory: "analysis"
     schedule:
       interval: "daily"
