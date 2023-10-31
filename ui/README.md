@@ -9,6 +9,7 @@ Get familiar with [Elm Architecture](https://guide.elm-lang.org/architecture/) a
 ```bash
 cargo run ui
 cargo run ui example
+cargo run ui analyzer
 cargo run ui <application name>
 ```
 
