@@ -109,6 +109,7 @@ pub fn batch(config_path: &str) -> Result<()> {
             warn!("Simulation complete");
         }
 
+        std::fs::create_dir_all(&config.output_directory)?;
         let error_path = config.output_directory.clone() + "/errors.json";
         serde_json::to_writer(
             std::fs::File::create(error_path).unwrap(),
