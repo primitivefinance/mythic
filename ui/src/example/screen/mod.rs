@@ -13,7 +13,6 @@ use iced::{
 };
 use thiserror::Error;
 
-use super::*;
 use crate::sdk::vault::*;
 
 mod banner;

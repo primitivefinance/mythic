@@ -1,5 +1,3 @@
-use arbiter_core::bindings::liquid_exchange::{self, PriceChangeFilter};
-
 use super::*;
 
 pub struct AnalyzerApp {
@@ -7,7 +5,7 @@ pub struct AnalyzerApp {
     selected_file: Option<usize>,
     available_files: Vec<PathBuf>,
     selected_events: Vec<usize>,
-    available_events: Vec<String>,
+    _available_events: Vec<String>,
     file_content: Option<String>,
 }
 
@@ -51,7 +49,7 @@ impl Application for AnalyzerApp {
                 selected_file: None,
                 available_files: files,
                 selected_events: vec![],
-                available_events: vec![],
+                _available_events: vec![],
                 file_content: None,
             },
             Command::none(),
@@ -87,7 +85,6 @@ impl Application for AnalyzerApp {
             AnalyzerMessage::EventsChosen => {
                 self.state = AnalyzerState::FileSelection;
             }
-            _ => {}
         }
         Command::none()
     }
@@ -96,7 +93,8 @@ impl Application for AnalyzerApp {
         match self.state {
             AnalyzerState::FileSelection => self.view_file_selection(),
             AnalyzerState::EventSelection => self.view_event_selection(),
-            AnalyzerState::DisplayEvents => self.view_file_selection(), // TODO: Do something new later.
+            AnalyzerState::DisplayEvents => self.view_file_selection(), /* TODO: Do something new
+                                                                         * later. */
         }
     }
 
@@ -164,7 +162,8 @@ impl AnalyzerApp {
         // Embed the column inside the scrollable
         let events_content = Scrollable::new(events_column).width(Length::FillPortion(2));
 
-        // Blurb of text and some other control button (e.g., a button to finalize selection)
+        // Blurb of text and some other control button (e.g., a button to finalize
+        // selection)
         let blurb_content = Column::new()
             .align_items(Alignment::Center)
             .spacing(20)
@@ -186,12 +185,5 @@ impl AnalyzerApp {
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
-    }
-}
-
-fn liquid_exchange_event_to_string(event: &liquid_exchange::LiquidExchangeEvents) -> &str {
-    match event {
-        liquid_exchange::LiquidExchangeEvents::PriceChangeFilter(_) => "PriceChangeFilter",
-        liquid_exchange::LiquidExchangeEvents::SwapFilter(_) => "SwapFilter",
     }
 }
