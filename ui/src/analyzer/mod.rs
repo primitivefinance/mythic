@@ -1,6 +1,9 @@
 use arbiter_core::bindings::liquid_exchange;
 use ethers::{abi::AbiType, contract::Event};
-use iced::widget::{checkbox, Button, Radio, Text};
+use iced::{
+    widget::{checkbox, Button, Column, Radio, Row, Scrollable, Text},
+    Alignment,
+};
 use std::path::PathBuf;
 
 use super::*;
@@ -99,13 +102,9 @@ impl Application for AnalyzerApp {
 
 impl AnalyzerApp {
     fn view_file_selection(&self) -> Element<AnalyzerMessage> {
-        // Base container for the Running state
-        let mut content = self::column![];
-
-        // File selection
-
+        // Create a column of radio buttons for file selection
+        let mut files_column = Column::new().spacing(10);
         for (index, file) in self.available_files.iter().enumerate() {
-            // Using a radio button for file selection
             let file_string = file.display().to_string();
             let radio = Radio::new(
                 &file_string, // use string representation
@@ -113,19 +112,26 @@ impl AnalyzerApp {
                 self.selected_file,
                 AnalyzerMessage::ChooseFile,
             );
-
-            content = content.push(radio);
+            files_column = files_column.push(radio);
         }
 
-        // Add the Next button
-        let next_button = Button::new("Next").on_press(AnalyzerMessage::FileChosen);
+        // Embed the column inside the scrollable
+        let files_content = Scrollable::new(files_column).width(Length::FillPortion(2));
 
-        content = content.push(next_button);
+        // Blurb of text and Next button
+        let blurb_content = Column::new()
+            .align_items(Alignment::Center)
+            .spacing(20)
+            .push(Text::new("Choose which file you want to analyze."))
+            .push(Button::new("Next").on_press(AnalyzerMessage::FileChosen))
+            .width(Length::FillPortion(1));
 
-        // Display file content
-        if let Some(file_content) = &self.file_content {
-            content = content.push(Text::new(file_content));
-        };
+        // Arrange blurb and file list side by side using a Row
+        let content = Row::new()
+            .padding(20)
+            .spacing(20)
+            .push(blurb_content)
+            .push(files_content);
 
         // Finalize
         container(content)
