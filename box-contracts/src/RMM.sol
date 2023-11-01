@@ -208,6 +208,31 @@ contract RMM {
         return (liquidityDelta, amountY);
     }
 
+    function removeLiquidityExactY(uint256 amountY)
+        external
+        returns (uint256, uint256)
+    {
+        uint256 price =
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+
+        uint256 newLiquidity =
+            computeLGivenY(reserveX - amountY, price, strikePrice, sigma);
+        uint256 newReserveX =
+            computeXGivenL(newLiquidity, price, strikePrice, sigma);
+
+        uint256 amountX = reserveX - newReserveX;
+
+        uint256 liquidityDelta = totalLiquidity - newLiquidity;
+        totalLiquidity = newLiquidity;
+        reserveX -= amountX;
+        reserveY -= amountY;
+
+        tokenX.transfer(msg.sender, amountX);
+        tokenY.transfer(msg.sender, amountY);
+
+        return (liquidityDelta, amountX);
+    }
+
     function swap(uint256 amountX) external returns (uint256 amountY) {
         uint256 fees = amountX * (10_000 - gamma) / 10_000;
         uint256 deltaX = amountX - fees;
