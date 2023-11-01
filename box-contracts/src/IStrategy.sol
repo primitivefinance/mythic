@@ -14,7 +14,7 @@ interface IStrategy {
     function getSwapFee() external view returns (uint256);
     function getReserveX() external view returns (uint256);
     function getReserveY() external view returns (uint256);
-    function getInvariant() external view returns (uint256);
+    function getInvariant() external view returns (int256);
     function getStrategyData() external view returns (bytes memory);
 
     event AddLiquidity(
