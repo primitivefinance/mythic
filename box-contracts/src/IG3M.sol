@@ -20,15 +20,6 @@ interface IG3M {
         uint256 amountY
     );
 
-    /// @notice Emitted when a swap occurs.
-    event Swap(
-        address indexed sender,
-        bool swapDirection,
-        uint256 input,
-        uint256 output,
-        uint256 newPrice
-    );
-
     /// @notice Emitted when the weight of token X is updated.
     event SetWeightX(UD60x18 oldWeightX, UD60x18 newWeightX);
 
@@ -38,10 +29,7 @@ interface IG3M {
         UD60x18 newWeightXUpdatePerSecond
     );
 
-    event LogWeights(
-        uint256 blockTimestamp,
-        UD60x18 weightX
-    );
+    event LogWeights(uint256 blockTimestamp, UD60x18 weightX);
 
     /**
      * @notice Initializes the pool before any liquidity can be added. This
@@ -150,7 +138,7 @@ interface IG3M {
     function getSpotPrice() external view returns (uint256);
 
     /// @notice Computes the invariant of the pool.
-    function getInvariant() external view returns (uint);
+    function getInvariant() external view returns (int256);
 
     /// @notice Address of token X.
     function tokenX() external view returns (address);
