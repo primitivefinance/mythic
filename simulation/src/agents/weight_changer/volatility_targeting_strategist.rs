@@ -4,6 +4,7 @@ use crate::math::*;
 #[derive(Clone)]
 pub struct VolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
+    pub parameters: VolatilityTargetingParameters,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
     pub next_update_timestamp: u64,
@@ -15,6 +16,12 @@ pub struct VolatilityTargetingStrategist {
     pub asset_prices: Vec<(f64, u64)>,
     pub portfolio_rv: Vec<(f64, u64)>,
     pub asset_rv: Vec<(f64, u64)>,
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct VolatilityTargetingParameters {
+    pub target_volatility: f64,
+    pub update_frequency: u64,
 }
 
 impl VolatilityTargetingStrategist {
@@ -43,14 +50,18 @@ impl VolatilityTargetingStrategist {
             sensitivity: config.weight_changer.sensitivity,
             max_weight_change: config.weight_changer.max_weight_change,
             update_frequency: config.weight_changer.update_frequency,
-            next_update_timestamp: config.weight_changer.update_frequency,
+            parameters: config.weight_changer.volatility_targeting.unwrap(),
+            next_update_timestamp: config
+                .weight_changer
+                .volatility_targeting
+                .unwrap()
+                .update_frequency,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),
             portfolio_rv: Vec::new(),
             asset_rv: Vec::new(),
         })
     }
-
     fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
@@ -132,6 +143,14 @@ impl WeightChanger for VolatilityTargetingStrategist {
             .send()
             .await?;
         Ok(())
+    }
+
+    fn g3m(&self) -> &G3M<RevmMiddleware> {
+        &self.g3m
+    }
+
+    fn lex(&self) -> &LiquidExchange<RevmMiddleware> {
+        &self.lex
     }
 }
 
