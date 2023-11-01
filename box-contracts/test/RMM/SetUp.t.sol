@@ -1,26 +1,28 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
+import "../../src/RMM.sol";
 
-import "../utils/G3MTest.t.sol";
-import "../../src/G3M.sol";
-
-contract G3MSetUp is G3MTest {
-    G3M public g3m;
+contract RMMSetUp is Test {
     MockERC20 public tokenX;
     MockERC20 public tokenY;
+    RMM public rmm;
+
+    uint256 initialPrice = 2000 ether;
+    uint256 strikePrice = 1800 ether;
+    uint256 sigma = 0.05 ether;
+    uint256 tau = 1 ether;
 
     function setUp() public {
         tokenX = new MockERC20("TokenX", "X", 18);
         tokenY = new MockERC20("TokenY", "Y", 18);
+        rmm = new RMM(tokenX, tokenY, sigma, strikePrice, tau);
 
         tokenX.mint(address(this), type(uint256).max);
         tokenY.mint(address(this), type(uint256).max);
-
-        g3m = new G3M(address(tokenX), address(tokenY), ud(0.5 ether), 30);
-
-        tokenX.approve(address(g3m), type(uint256).max);
-        tokenY.approve(address(g3m), type(uint256).max);
+        tokenX.approve(address(rmm), type(uint256).max);
+        tokenY.approve(address(rmm), type(uint256).max);
     }
 }

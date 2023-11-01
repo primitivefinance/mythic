@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./SetUp.t.sol";
 
-contract SetWeightX is SetUp {
+contract G3MSetWeightX is G3MSetUp {
     function test_setWeightX_ReachesTargetWeightAfterTargetDate() public {
         UD60x18 newTargetWeightX = ud(0.75 ether);
         g3m.setWeightX(newTargetWeightX, block.timestamp + 1 weeks);

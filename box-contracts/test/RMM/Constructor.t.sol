@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
-import "solmate/test/utils/mocks/MockERC20.sol";
-import "../../src/RMM.sol";
+import "./SetUp.t.sol";
 
-contract RMMConstructor is Test {
+contract RMMConstructor is RMMSetUp {
     function testFuzz_rmm_constructor_CorrectParams(
         address tokenX,
         address tokenY,

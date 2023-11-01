@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../G3MTest.t.sol";
+import "../utils/G3MTest.t.sol";
 
-contract ComputeAmountOutGivenExactLiquidity is G3MTest {
+contract G3MComputeAmountOutGivenExactLiquidity is G3MTest {
     function test_computeAmountOutGivenExactLiquidity_ComputesTokenXAmountOut()
         public
     {

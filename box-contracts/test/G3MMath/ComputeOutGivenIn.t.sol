@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../G3MTest.t.sol";
+import "../utils/G3MTest.t.sol";
 
-contract ComputeOutGivenIn is G3MTest {
+contract G3MComputeOutGivenIn is G3MTest {
     function test_computeOutGivenIn_ComputesAmountOut() public view {
         uint256 amountIn = 50 ether;
         UD60x18 reserveX = convert(750 ether);

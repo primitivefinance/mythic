@@ -143,3 +143,15 @@ function computeOutputYGivenX(
     return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
         - int256(deltaY);
 }
+
+function computeInvariant(
+    uint256 reserveX,
+    uint256 liquidity,
+    uint256 reserveY,
+    uint256 strikePrice
+) pure returns (int256) {
+    return Gaussian.ppf(int256(reserveX / liquidity))
+        + Gaussian.ppf(
+            int256(reserveY / FixedPointMathLib.mulWadDown(liquidity, strikePrice))
+        );
+}

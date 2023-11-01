@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./SetUp.t.sol";
 
-contract RemoveLiquidity is SetUp {
+contract G3MRemoveLiquidity is G3MSetUp {
     function test_removeLiquidity_DecreasesReservesAndTotalLiquidity() public {
         uint256 initAmountX = 750 ether;
         uint256 initAmountY = 250 ether;
