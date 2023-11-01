@@ -25,7 +25,7 @@ contract RMMInitPool is RMMSetUp {
         assertEq(rmm.reserveY(), amountY);
     }
 
-    function test_rmm_initExactY_UpdatesBalances() public {
+    function test_rmm_initExactY_UpdatesRMMBalances() public {
         uint256 amountY = 2000 ether;
 
         uint256 preBalanceX = tokenX.balanceOf(address(rmm));
@@ -38,5 +38,20 @@ contract RMMInitPool is RMMSetUp {
 
         assertEq(preBalanceX + amountX, postBalanceX);
         assertEq(preBalanceY + amountY, postBalanceY);
+    }
+
+    function test_rmm_initExactY_UpdatesSenderBalances() public {
+        uint256 amountY = 2000 ether;
+
+        uint256 preBalanceX = tokenX.balanceOf(address(this));
+        uint256 preBalanceY = tokenY.balanceOf(address(this));
+
+        (, uint256 amountX) = rmm.initExactY(amountY, 2000 ether);
+
+        uint256 postBalanceX = tokenX.balanceOf(address(this));
+        uint256 postBalanceY = tokenY.balanceOf(address(this));
+
+        assertEq(preBalanceX - amountX, postBalanceX);
+        assertEq(preBalanceY - amountY, postBalanceY);
     }
 }
