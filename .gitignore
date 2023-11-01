@@ -6,11 +6,11 @@ __pycache__
 *.png
 
 *.csv
-!analysis/test_data/g3m/*.csv
-!analysis/test_data/lex/*.csv
 
 *.json
 !analysis/test.json
+!analysis/src/tests/test_output/trajectory=0.json
+!analysis/src/tests/test_output/trajectory=1.json
 
 Cargo.lock
 Cargo.lock~serde
