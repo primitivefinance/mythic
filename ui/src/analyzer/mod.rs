@@ -8,13 +8,13 @@ use std::collections::BTreeMap;
 pub struct AnalyzerApp {
     state: AnalyzerState,
     simulation_data: Option<SimulationData>,
-    selected_events: Vec<(usize, usize)>,
+    selected_events: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone)]
 pub enum AnalyzerMessage {
     OpenFileExplorerClicked,
-    ChooseEvents((usize, usize)),
+    ChooseEvents((String, String)),
     EventsChosen,
 }
 
@@ -55,7 +55,7 @@ impl Application for AnalyzerApp {
             }
             AnalyzerMessage::ChooseEvents(selected) => {
                 if self.selected_events.contains(&selected) {
-                    self.selected_events.retain(|&x| x != selected);
+                    self.selected_events.retain(|x| x.clone() != selected);
                 } else {
                     self.selected_events.push(selected);
                 }
@@ -98,7 +98,7 @@ impl AnalyzerApp {
         // If we have some simulation data
         if let Some(sim_data) = &self.simulation_data {
             // Iterate over contracts
-            for (contract_index, contract_name) in sim_data.0.keys().enumerate() {
+            for contract_name in sim_data.0.keys() {
                 let mut contract_column = Column::new()
                     .align_items(Alignment::Start)
                     .spacing(5)
@@ -106,12 +106,17 @@ impl AnalyzerApp {
 
                 // Iterate over events inside the current contract
                 let events_map = sim_data.0.get(contract_name).unwrap();
-                for (event_index, event_name) in events_map.keys().enumerate() {
+                for event_name in events_map.keys() {
                     let checkbox = Checkbox::new(
                         event_name,
                         self.selected_events
-                            .contains(&(contract_index, event_index)),
-                        move |_| AnalyzerMessage::ChooseEvents((contract_index, event_index)),
+                            .contains(&(contract_name.clone(), event_name.clone())),
+                        move |_| {
+                            AnalyzerMessage::ChooseEvents((
+                                contract_name.clone(),
+                                event_name.clone(),
+                            ))
+                        },
                     );
                     contract_column = contract_column.push(checkbox);
                 }
@@ -137,7 +142,15 @@ impl AnalyzerApp {
     }
 
     fn view_events(&self) -> Element<AnalyzerMessage> {
-        todo!()
+        let mut content = Row::new().spacing(10);
+
+        // Finalize
+        container(content)
+            .center_x()
+            .center_y()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
 
