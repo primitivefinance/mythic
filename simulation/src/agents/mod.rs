@@ -39,9 +39,7 @@ impl Agents {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
         self.0.iter_mut()
     }
-}
 
-impl Agents {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self(vec![])
