@@ -37,4 +37,21 @@ contract RMMSwap is RMMSetUp {
         assertEq(preBalanceX + deltaX, postBalanceX);
         assertEq(preBalanceY - amountY, postBalanceY);
     }
+
+    function test_rmm_swap_UpdatesSenderBalances() public {
+        uint256 deltaX = 500 ether;
+
+        rmm.initExactX(5_000 ether, initialPrice);
+
+        uint256 preBalanceX = tokenX.balanceOf(address(this));
+        uint256 preBalanceY = tokenY.balanceOf(address(this));
+
+        uint256 amountY = rmm.swap(deltaX);
+
+        uint256 postBalanceX = tokenX.balanceOf(address(this));
+        uint256 postBalanceY = tokenY.balanceOf(address(this));
+
+        assertEq(preBalanceX - deltaX, postBalanceX);
+        assertEq(preBalanceY + amountY, postBalanceY);
+    }
 }
