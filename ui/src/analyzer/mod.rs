@@ -1,8 +1,7 @@
-use super::*;
-
 use analysis::reader::SimulationData;
 use native_dialog::FileDialog;
-use serde_json::Value;
+
+use super::*;
 
 pub struct AnalyzerApp {
     state: AnalyzerState,
@@ -47,9 +46,11 @@ impl Application for AnalyzerApp {
         match message {
             AnalyzerMessage::OpenFileExplorerClicked => {
                 if let Some(path) = open_file_dialog() {
-                    SimulationData::new(path.to_str().unwrap()).map(|data| {
-                        self.simulation_data = Some(data);
-                    });
+                    SimulationData::new(path.to_str().unwrap())
+                        .map(|data| {
+                            self.simulation_data = Some(data);
+                        })
+                        .unwrap();
                 }
             }
             AnalyzerMessage::ChooseEvents(selected) => {
