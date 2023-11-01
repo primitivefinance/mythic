@@ -1,9 +1,7 @@
 use super::*;
 
 use analysis::reader::SimulationData;
-use iced::widget::pane_grid::DragEvent;
 use native_dialog::FileDialog;
-use std::collections::BTreeMap;
 
 pub struct AnalyzerApp {
     state: AnalyzerState,
@@ -70,7 +68,7 @@ impl Application for AnalyzerApp {
     fn view(&self) -> Element<AnalyzerMessage> {
         match self.state {
             AnalyzerState::Selection => self.view_selection(),
-            AnalyzerState::DisplayEvents => todo!(), //self.view_events(),
+            AnalyzerState::DisplayEvents => self.view_events(),
         }
     }
 
@@ -94,8 +92,6 @@ impl AnalyzerApp {
 
         // Handle which events to analyze
         let mut events_column = Column::new().align_items(Alignment::End).spacing(10);
-
-        // If we have some simulation data
         if let Some(sim_data) = &self.simulation_data {
             // Iterate over contracts
             for contract_name in sim_data.0.keys() {
@@ -124,6 +120,12 @@ impl AnalyzerApp {
                 // Add the current contract's column to the events column
                 events_column = events_column.push(contract_column);
             }
+
+            events_column = events_column.push(
+                Button::new("Analyze Events")
+                    .on_press(AnalyzerMessage::EventsChosen)
+                    .width(100),
+            );
         }
 
         let content = Row::new()
@@ -143,6 +145,15 @@ impl AnalyzerApp {
 
     fn view_events(&self) -> Element<AnalyzerMessage> {
         let mut content = Row::new().spacing(10);
+
+        for (contract_name, event_name) in &self.selected_events {
+            let data = self
+                .simulation_data
+                .as_ref()
+                .unwrap()
+                .get_vectorized_events_from_str(contract_name, event_name);
+            println!("{:?}", data);
+        }
 
         // Finalize
         container(content)
