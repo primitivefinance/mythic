@@ -9,9 +9,16 @@ pub struct TimeBasedSwapper {
     pub arby_balance: U256,
 }
 
+pub struct TimeBasedSwapperParams {
+    pub num_swaps: u64,
+    pub initial_arbx: U256,
+}
+
+// TODO: Mint the amounts here.
 impl TimeBasedSwapper {
     fn new(
         environment: Environment,
+        config: SimulationConfig<Fixed>,
         liquid_exchange_address: Address,
         arbx_address: Address,
         arby_address: Address,

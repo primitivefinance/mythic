@@ -15,10 +15,7 @@ pub trait WeightChanger: Agent {
     fn lex(&self) -> &LiquidExchange<RevmMiddleware>;
 }
 
-pub enum WeightChangerType {
-    Momentum(MomentumStrategist),
-    VolatilityTargeting(VolatilityTargetingStrategist),
-}
+pub struct WeightChangerType(pub Box<dyn WeightChanger>);
 
 impl WeightChangerType {
     pub async fn new(
@@ -29,7 +26,7 @@ impl WeightChangerType {
         arby_address: Address,
     ) -> Result<Self> {
         if let Some(settings) = &config.weight_changer.momentum {
-            let strategist = MomentumStrategist::new(
+            let momentum = MomentumStrategist::new(
                 environment,
                 config,
                 liquid_exchange_address,
@@ -37,9 +34,9 @@ impl WeightChangerType {
                 arby_address,
             )
             .await?;
-            Ok(WeightChangerType::Momentum(strategist))
+            Ok(WeightChangerType(Box::new(momentum)))
         } else {
-            let strategist = VolatilityTargetingStrategist::new(
+            let volatility = MomentumStrategist::new(
                 environment,
                 config,
                 liquid_exchange_address,
@@ -47,7 +44,7 @@ impl WeightChangerType {
                 arby_address,
             )
             .await?;
-            Ok(WeightChangerType::VolatilityTargeting(strategist))
+            Ok(WeightChangerType(Box::new(volatility)))
         }
     }
 }
@@ -55,42 +52,25 @@ impl WeightChangerType {
 #[async_trait::async_trait]
 impl Agent for WeightChangerType {
     async fn step(&mut self) -> Result<()> {
-        match self {
-            Self::Momentum(strategist) => strategist.step().await,
-            Self::VolatilityTargeting(strategist) => strategist.step().await,
-        };
-        Ok(())
+        self.0.step().await
     }
 
     async fn startup(&mut self) -> Result<()> {
-        match self {
-            Self::Momentum(strategist) => strategist.startup().await,
-            Self::VolatilityTargeting(strategist) => strategist.startup().await,
-        };
-        Ok(())
+        self.0.startup().await
     }
 }
 
 #[async_trait::async_trait]
 impl WeightChanger for WeightChangerType {
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
-        match self {
-            Self::Momentum(strategist) => strategist.execute_smooth_rebalance().await,
-            Self::VolatilityTargeting(strategist) => strategist.execute_smooth_rebalance().await,
-        }
+        self.0.execute_smooth_rebalance().await
     }
 
     fn g3m(&self) -> &G3M<RevmMiddleware> {
-        match self {
-            Self::Momentum(strategist) => strategist.g3m(),
-            Self::VolatilityTargeting(strategist) => strategist.g3m(),
-        }
+        self.0.g3m()
     }
 
     fn lex(&self) -> &LiquidExchange<RevmMiddleware> {
-        match self {
-            Self::Momentum(strategist) => strategist.lex(),
-            Self::VolatilityTargeting(strategist) => strategist.lex(),
-        }
+        self.0.lex()
     }
 }
