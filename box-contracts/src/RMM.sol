@@ -233,6 +233,9 @@ contract RMM {
             )
         );
 
+        reserveX += amountX;
+        reserveY -= amountY;
+
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transfer(msg.sender, amountY);
     }
