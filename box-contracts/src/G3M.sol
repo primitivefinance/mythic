@@ -11,38 +11,30 @@ import "./IStrategy.sol";
  */
 contract G3M is IG3M, IStrategy {
     //! ======== PROTOTYPE FUNCTIONS ======== !//
-    function instantiate(uint initial_x, uint initial_price) public {
+    function instantiate(uint256 initial_x, uint256 initial_price) public {
         // y = x * (1 - w_x) / (price * w_y)
         // y = ( p * w_y * x ) / w_x
-        uint weight_x = UD60x18.unwrap(lastWeightX);
-        uint weight_y = 1 ether - weight_x;
-        uint initial_y = initial_price * weight_y * initial_x / weight_x / 1 ether;
+        uint256 weight_x = UD60x18.unwrap(lastWeightX);
+        uint256 weight_y = 1 ether - weight_x;
+        uint256 initial_y =
+            initial_price * weight_y * initial_x / weight_x / 1 ether;
         _initPool(initial_x, initial_y);
     }
 
-    function get_strategy_data() public view override returns(bytes memory) {
+    function getStrategyData() public view returns (bytes memory) {
         return abi.encode(UD60x18.unwrap(weightX()), UD60x18.unwrap(weightY()));
     }
 
-    function get_spot_price() public view override returns(uint) {
-        return getSpotPrice();
-    }
-
-    function get_swap_fee() public view override returns(uint) {
+    function getSwapFee() public view returns (uint256) {
         return swapFee;
     }
 
-    function get_reserve_x() public view override returns(uint) {
+    function getReserveX() public view returns (uint256) {
         return reserveXWithoutPrecision();
     }
 
-    function get_reserve_y() public view override returns(uint) {
+    function getReserveY() public view returns (uint256) {
         return reserveYWithoutPrecision();
-    }
-
-
-    function get_invariant() public view override returns(uint) {
-        return convert(computeInvariant(reserveX, weightX(), reserveY, weightY()));
     }
 
     //! ======== END PROTOTYPE FUNCTIONS ======== !//
@@ -133,8 +125,6 @@ contract G3M is IG3M, IStrategy {
         swapFee = swapFee_;
     }
 
-    
-
     /**
      * @dev Computes and stores the current weight of token X, as well as the
      * timestamp of the last weight sync.
@@ -180,7 +170,17 @@ contract G3M is IG3M, IStrategy {
         return _initPool(amountX, amountY);
     }
 
-    function _initPool(uint amountX, uint amountY) public returns(UD60x18) {
+    function initExactX(
+        uint256 amountX,
+        uint256 price
+    ) external returns (uint256, uint256) {
+        revert("not implemented yet");
+    }
+
+    function _initPool(
+        uint256 amountX,
+        uint256 amountY
+    ) public returns (UD60x18) {
         require(totalLiquidity.isZero(), "Pool already initialized");
 
         UD60x18 amountXUD60x18 = convert(amountX);
@@ -404,7 +404,8 @@ contract G3M is IG3M, IStrategy {
         );
         ERC20(swapDirection ? tokenY : tokenX).transfer(msg.sender, amountOut);
 
-        uint256 new_price = computeSpotPrice(reserveX, currentWeightX, reserveY, currentWeightY);
+        uint256 new_price =
+            computeSpotPrice(reserveX, currentWeightX, reserveY, currentWeightY);
         emit Swap(msg.sender, swapDirection, amountIn, amountOut, new_price);
 
         return exactIn ? amountOut : amountIn;
@@ -432,13 +433,25 @@ contract G3M is IG3M, IStrategy {
     }
 
     /// @inheritdoc IG3M
-    function getSpotPrice() public view returns (uint256) {
+    function getSpotPrice()
+        public
+        view
+        override(IStrategy, IG3M)
+        returns (uint256)
+    {
         return computeSpotPrice(reserveX, weightX(), reserveY, weightY());
     }
 
     /// @inheritdoc IG3M
-    function getInvariant() public view returns (uint) {
-        return convert(computeInvariant(reserveX, weightX(), reserveY, weightY()));
+    function getInvariant()
+        public
+        view
+        override(IStrategy, IG3M)
+        returns (int256)
+    {
+        return int256(
+            convert(computeInvariant(reserveX, weightX(), reserveY, weightY()))
+        );
     }
 
     function reserveXWithoutPrecision() public view returns (uint256) {
@@ -448,6 +461,7 @@ contract G3M is IG3M, IStrategy {
     function reserveYWithoutPrecision() public view returns (uint256) {
         return convert(reserveY);
     }
+
     function liquidityWithoutPrecision() public view returns (uint256) {
         return convert(totalLiquidity);
     }
