@@ -31,7 +31,7 @@ $$
 $$
 Since we know $x$ and we know $S$, we can solve for $L$ to find:
 $$
-\boxed{L(x,S) = \frac{x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L_X(x,S) = \frac{x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 Further, we need to know how much $y$ to allocate, which we can also use the other binary:
 $$
@@ -39,7 +39,7 @@ $$
 $$
 At this point, we know $S$ and $L$ and so we can get:
 $$
-\boxed{y(x,S) = K\cdot L(x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+\boxed{y(x,S) = K\cdot L_X(x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
 Note that the above is not simplified and likely could be drastically simplified.
 
@@ -52,11 +52,11 @@ $$
 $$
 From here we get $L$:
 $$
-\boxed{L(y,S) = \frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L_Y(y,S) = \frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 Now we need to get $x$:
 $$
-\boxed{x(y,S) = L(y,S)\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
+\boxed{x(y,S) = L_Y(y,S)\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
 $$
 
 ### Adding Liquidity
@@ -67,22 +67,22 @@ When adding liquidity, we assume that price will not change whatsoever and only 
 #### Specifying $x$
 Given some amount of $\delta_x$ the user wants to add, we can just use the equation for $L(x,S)$ above to get:
 $$
-\boxed{L(x+\delta_x,S) = \frac{x+\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L_X(x+\delta_x,S) = \frac{x+\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 In fact, $L$ is linear in the first variable, so:
 $$
-L(x+\delta_x,S) = L(x,S)+\underbrace{L(\delta_x,S)}_{\delta_L}
+L_X(x+\delta_x,S) = L_X(x,S)+\underbrace{L_X(\delta_x,S)}_{\delta_L}
 $$
 can be used to make the calculation easier.
 
 #### Specifying $y$
 Given some amount of $\delta_y$ the user wants to add, we can just use the equation for $L(y,S)$ above to get:
 $$
-\boxed{L(y+\delta_y,S) = \frac{y+\delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
+\boxed{L_Y(y+\delta_y,S) = \frac{y+\delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
 Again, $L$ is linear in the first variable, so:
 $$
-L(y+\delta_y,S) = L(y,S)+\underbrace{L(\delta_y,S)}_{\delta_L}
+L_Y(y+\delta_y,S) = L_Y(y,S)+\underbrace{L_Y(\delta_y,S)}_{\delta_L}
 $$
 can be used to make the calculation easier.
 
@@ -110,24 +110,24 @@ Think of the swap as a two step process:
 This is the amount of the input token that is added to the pool and it is what is used to calculate the change in liquidity $\delta_L$.
 From here, we can imagine that the swapper then takes temporary debt in adding $\delta_y$ to the pool where the $\delta_y$ is given by:
 $$
-\delta_y = K\cdot L(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+\delta_y = K\cdot L_X(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
 $$
 2. Computing a no-fee swap with the remaining amount of the input token. E.g., $\widetilde{\Delta_x} \coloneqq \gamma\Delta_x$.
 Note at this point, the reserves are then $x+\delta_x$ and $y+\delta_y$ and the liquidity $L+\delta_L$. 
 So we must use these in the swap calculation.
 Then we can use all of the rules we defined here.
 
-##### Example
+##### $\Delta_y$ given $\Delta_x$
 Suppose that the user wants to swap $x$ for $y$ and the price is $S$.
 They specifically tender $\Delta_x$ and the fee parameter is $\gamma$.
 Now $\delta_x=(1-\gamma)\Delta_x$ and $\widetilde{\Delta_x}=\gamma\Delta_x$.
 From this we get 
 $$
-\delta_L=\frac{\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
+\delta_L=L_X(\delta_x, S)=\frac{\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
 and we also get 
 $$
-\delta_y=K\cdot L(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right).
+\delta_y=K\cdot L_X(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right).
 $$
 
 Now we can compute the no-fee swap with $\widetilde{\Delta_x}$. 
@@ -138,4 +138,27 @@ $$
 \frac{y+\delta_y+\widetilde{\Delta_y}}{K(L+\delta_L)} = \Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)\\
 y+\delta_y+\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)\\
 \boxed{\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y-\delta_y}
+$$
+
+##### $\Delta_x$ given $\Delta_y$
+Suppose that the user wants to swap $y$ for $x$ and the price is $S$.
+They specifically tender $\Delta_y$ and the fee parameter is $\gamma$.
+Now $\delta_y=(1-\gamma)\Delta_y$ and $\widetilde{\Delta_y}=\gamma\Delta_y$.
+From this we get 
+$$
+\delta_L=L_Y(\delta_y, S)=\frac{\delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+$$
+and we also get 
+$$
+\delta_y=L_Y(\delta_y,S)\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)
+$$
+
+Now we can compute the no-fee swap with $\widetilde{\Delta_y}$. 
+For consistency, we can let $\Delta_x=\delta_x + \widetilde{\Delta_x}$ and note that the user's output will be this $\widetilde{\Delta_x}$.
+Using the trading function, we solve for $\widetilde{\Delta_x}$:
+$$
+\Phi^{-1}\left(\frac{x+\delta_x + \widetilde{\Delta_x}}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
+\frac{x+\delta_x + \widetilde{\Delta_x}}{L+\delta_L} = \Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
+x+\delta_x + \widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
+\boxed{\widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x}
 $$
