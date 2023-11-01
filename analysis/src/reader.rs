@@ -30,7 +30,7 @@ impl SimulationData {
             for (key, value) in map {
                 vectorized_events
                     .entry(key.clone())
-                    .or_insert_with(Vec::new)
+                    .or_default()
                     .push(value.clone());
             }
         }
