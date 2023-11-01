@@ -2,9 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
+import "./IStrategy.sol";
 import "./lib/RMMMath.sol";
 
-contract RMM {
+contract RMM is IStrategy {
     ERC20 public tokenX;
     ERC20 public tokenY;
 
@@ -131,6 +132,8 @@ contract RMM {
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
+
+        emit AddLiquidity(msg.sender, liquidity, amountX, amountY);
     }
 
     function addLiquidityExactX(uint256 amountX)
@@ -154,6 +157,8 @@ contract RMM {
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
+
+        emit AddLiquidity(msg.sender, newLiquidity, amountX, amountY);
 
         return (liquidityDelta, amountY);
     }
@@ -180,6 +185,8 @@ contract RMM {
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transferFrom(msg.sender, address(this), amountY);
 
+        emit AddLiquidity(msg.sender, newLiquidity, amountX, amountY);
+
         return (liquidityDelta, amountX);
     }
 
@@ -205,6 +212,8 @@ contract RMM {
         tokenX.transfer(msg.sender, amountX);
         tokenY.transfer(msg.sender, amountY);
 
+        emit RemoveLiquidity(msg.sender, newLiquidity, amountX, amountY);
+
         return (liquidityDelta, amountY);
     }
 
@@ -229,6 +238,8 @@ contract RMM {
 
         tokenX.transfer(msg.sender, amountX);
         tokenY.transfer(msg.sender, amountY);
+
+        emit RemoveLiquidity(msg.sender, newLiquidity, amountX, amountY);
 
         return (liquidityDelta, amountX);
     }
@@ -263,5 +274,36 @@ contract RMM {
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
         tokenY.transfer(msg.sender, amountY);
+
+        emit Swap(
+            msg.sender,
+            true,
+            amountX,
+            amountY,
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau)
+        );
     }
+
+    function getSpotPrice() external view returns (uint256) {
+        return
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+    }
+
+    function getSwapFee() external view returns (uint256) {
+        return gamma;
+    }
+
+    function getReserveX() external view returns (uint256) {
+        return reserveX;
+    }
+
+    function getReserveY() external view returns (uint256) {
+        return reserveY;
+    }
+
+    function getInvariant() external view returns (int256) {
+        return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice);
+    }
+
+    function getStrategyData() external view returns (bytes memory data) { }
 }
