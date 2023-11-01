@@ -7,6 +7,8 @@ use iced::{
     Element, Length, Renderer,
 };
 
+use super::*;
+
 /// A view for the first screen of the application.
 pub struct StartScreen<Msg> {
     on_start: Box<dyn Fn() -> Msg>,
@@ -56,7 +58,7 @@ impl<Msg> Component<Msg, Renderer> for StartScreen<Msg> {
         // Start button centered under banner
         // Footer has system info and version info
         // with spacing between each element
-        let banner = crate::components::banner::banner(400);
+        let banner = banner::banner(400);
 
         let start_button = button("Start Excalibur", Event::Clicked);
 

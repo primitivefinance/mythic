@@ -18,6 +18,7 @@ serde_json = { workspace = true }
 bytesize = { workspace = true }
 dotenv = { workspace = true }
 thiserror = { workspace = true}
+analysis ={ workspace = true }
 
 # deps for ui
 eyre = "0.6.8"

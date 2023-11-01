@@ -86,7 +86,8 @@ fn main() -> Result<()> {
         ),
         Some(Commands::Ui { app }) => match app.as_str() {
             "example" => interface::example()?,
-            _ => interface::run()?,
+            "analyzer" => interface::analyzer()?,
+            _ => println!("Unknown app: {}, or no app provided", app),
         },
         None => Args::command().print_long_help()?,
     }
