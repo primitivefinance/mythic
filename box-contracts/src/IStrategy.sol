@@ -4,14 +4,38 @@ pragma solidity ^0.8.13;
 /// @dev Draft of a generic interface that we could reuse for all strategies.
 interface IStrategy {
     // Actions
-    function instantiate(uint initial_x_wad, uint initial_price_wad) external;
+    function instantiate(
+        uint256 initial_x_wad,
+        uint256 initial_price_wad
+    ) external;
 
     // Getters
-    function get_spot_price() external view returns(uint spot_price_wad);
-    function get_swap_fee() external view returns(uint fee);
-    function get_reserve_x() external view returns(uint reserve_x_wad);
-    function get_reserve_y() external view returns(uint reserve_y_wad);
-    function get_invariant() external view returns(uint invariant);
-    function get_strategy_data() external view returns(bytes memory strategy_data);
+    function getSpotPrice() external view returns (uint256);
+    function getSwapFee() external view returns (uint256);
+    function getReserveX() external view returns (uint256);
+    function getReserveY() external view returns (uint256);
+    function getInvariant() external view returns (uint256);
+    function getStrategyData() external view returns (bytes memory);
 
+    event AddLiquidity(
+        address indexed sender,
+        uint256 liquidity,
+        uint256 amountX,
+        uint256 amountY
+    );
+
+    event RemoveLiquidity(
+        address indexed sender,
+        uint256 liquidity,
+        uint256 amountX,
+        uint256 amountY
+    );
+
+    event Swap(
+        address indexed sender,
+        bool swapDirection,
+        uint256 input,
+        uint256 output,
+        uint256 newPrice
+    );
 }
