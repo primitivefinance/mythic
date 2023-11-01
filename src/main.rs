@@ -5,6 +5,8 @@ use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use simulation::simulations;
 use ui as interface;
 
+use dotenv::dotenv;
+
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
 #[clap(name = "Excalibur")]
@@ -40,6 +42,8 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
+    dotenv().ok();
+
     let args = Args::parse();
 
     let log_level = match args.verbose.unwrap_or(0) {
