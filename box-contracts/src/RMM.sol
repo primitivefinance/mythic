@@ -209,7 +209,7 @@ contract RMM {
     }
 
     function swap(uint256 amountX) external returns (uint256 amountY) {
-        uint256 fees = amountX * gamma / 10_000;
+        uint256 fees = amountX * (10_000 - gamma) / 10_000;
         uint256 deltaX = amountX - fees;
 
         uint256 price =
@@ -232,5 +232,8 @@ contract RMM {
                 ) - 1
             )
         );
+
+        tokenX.transferFrom(msg.sender, address(this), amountX);
+        tokenY.transfer(msg.sender, amountY);
     }
 }
