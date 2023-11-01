@@ -1,5 +1,7 @@
 use super::*;
 
+use native_dialog::{FileDialog, MessageDialog, MessageType};
+
 pub struct AnalyzerApp {
     state: AnalyzerState,
     selected_file: Option<usize>,
@@ -11,6 +13,7 @@ pub struct AnalyzerApp {
 
 #[derive(Debug, Clone)]
 pub enum AnalyzerMessage {
+    OpenFileExplorerClicked,
     ChooseFile(usize),
     FileChosen,
     ChooseEvent(usize),
@@ -85,6 +88,9 @@ impl Application for AnalyzerApp {
             AnalyzerMessage::EventsChosen => {
                 self.state = AnalyzerState::FileSelection;
             }
+            AnalyzerMessage::OpenFileExplorerClicked => {
+                open_file_dialog();
+            }
         }
         Command::none()
     }
@@ -127,6 +133,10 @@ impl AnalyzerApp {
             .spacing(20)
             .push(Text::new("Choose which file you want to analyze."))
             .push(Button::new("Next").on_press(AnalyzerMessage::FileChosen))
+            .push(
+                Button::new("Open File Explorer")
+                    .on_press(AnalyzerMessage::OpenFileExplorerClicked),
+            )
             .width(Length::FillPortion(1));
 
         // Arrange blurb and file list side by side using a Row
@@ -185,5 +195,30 @@ impl AnalyzerApp {
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
+    }
+}
+
+fn open_file_dialog() {
+    let path = FileDialog::new()
+        .set_location("~/Desktop")
+        .add_filter("PNG Image", &["png"])
+        .add_filter("JPEG Image", &["jpg", "jpeg"])
+        .show_open_single_file()
+        .unwrap();
+
+    let path = match path {
+        Some(path) => path,
+        None => return,
+    };
+
+    let yes = MessageDialog::new()
+        .set_type(MessageType::Info)
+        .set_title("Do you want to open the file?")
+        .set_text(&format!("{:#?}", path))
+        .show_confirm()
+        .unwrap();
+
+    if yes {
+        println!("THINGS");
     }
 }
