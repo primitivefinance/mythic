@@ -2,6 +2,7 @@ use super::*;
 
 use analysis::reader::SimulationData;
 use native_dialog::FileDialog;
+use serde_json::Value;
 
 pub struct AnalyzerApp {
     state: AnalyzerState,
@@ -144,7 +145,7 @@ impl AnalyzerApp {
     }
 
     fn view_events(&self) -> Element<AnalyzerMessage> {
-        let mut content = Row::new().spacing(10);
+        let mut content = Row::new().spacing(20); // Spacing between columns
 
         for (contract_name, event_name) in &self.selected_events {
             let data = self
@@ -152,7 +153,42 @@ impl AnalyzerApp {
                 .as_ref()
                 .unwrap()
                 .get_vectorized_events_from_str(contract_name, event_name);
-            println!("{:?}", data);
+
+            for (variable_name, values) in data {
+                let mut column = Column::new().spacing(5); // Spacing between items in the column
+
+                // Title for the column
+                let title = Text::new(variable_name.clone()).size(20);
+                column = column.push(title);
+
+                // Calculate the breakpoints for displaying values
+                let breakpoint = values.len().min(25);
+                let start_of_last = values.len().saturating_sub(25);
+
+                // Add the first 25 values
+                for value in values.iter().take(breakpoint) {
+                    let text = Text::new(value.to_string()).size(16);
+                    column = column.push(text);
+                }
+
+                // Add the separator if there are more than 50 values
+                if values.len() > 50 {
+                    let separator = Text::new("...................").size(16);
+                    column = column.push(separator);
+                }
+
+                // Add the last 25 values
+                for value in values.iter().skip(start_of_last) {
+                    let text = Text::new(value.to_string()).size(16);
+                    column = column.push(text);
+                }
+
+                // Create a Scrollable for the Column
+                let column = Scrollable::new(column)
+                    .width(Length::FillPortion(1)) // Fill an equal portion of the row
+                    .height(Length::Fill); // Fill the vertical space
+                content = content.push(column);
+            }
         }
 
         // Finalize
