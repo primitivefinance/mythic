@@ -134,8 +134,22 @@ mod tests {
         assert_eq!(configs[0].pool.target_volatility, 0.15);
         assert_eq!(configs[0].lp.x_liquidity, 1.0);
         assert_eq!(configs[0].block.timestep_size, 15);
-        assert_eq!(configs[0].weight_changer.target_volatility, 0.15);
-        assert_eq!(configs[0].weight_changer.update_frequency, 150);
+        assert_eq!(
+            configs[0]
+                .weight_changer
+                .volatility_targeting
+                .unwrap()
+                .target_volatility,
+            0.15
+        );
+        assert_eq!(
+            configs[0]
+                .weight_changer
+                .volatility_targeting
+                .unwrap()
+                .update_frequency,
+            150
+        );
     }
 
     #[test]

@@ -2,6 +2,11 @@ use std::{collections::hash_map::DefaultHasher, hash::Hasher};
 
 use ethers::abi::Param;
 
+use crate::agents::weight_changer::{
+    momentum_strategist::MomentumParameters,
+    volatility_targeting_strategist::VolatilityTargetingParameters,
+};
+
 use super::*;
 pub trait Parameterized<T> {
     fn generate(&self) -> Vec<T>;
@@ -180,6 +185,6 @@ pub struct LPParameters {
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct WeightChangerParameters {
-    pub target_volatility: f64,
-    pub update_frequency: u64,
+    pub momentum: Option<MomentumParameters>,
+    pub volatility_targeting: Option<VolatilityTargetingParameters>,
 }

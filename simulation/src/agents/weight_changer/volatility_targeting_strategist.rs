@@ -4,15 +4,20 @@ use crate::math::*;
 #[derive(Clone)]
 pub struct VolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
+    pub parameters: VolatilityTargetingParameters,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
     pub next_update_timestamp: u64,
-    pub update_frequency: u64,
-    pub target_volatility: f64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
     pub portfolio_rv: Vec<(f64, u64)>,
     pub asset_rv: Vec<(f64, u64)>,
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct VolatilityTargetingParameters {
+    pub target_volatility: f64,
+    pub update_frequency: u64,
 }
 
 impl VolatilityTargetingStrategist {
@@ -37,16 +42,18 @@ impl VolatilityTargetingStrategist {
             client,
             lex,
             g3m,
-            target_volatility: config.weight_changer.target_volatility,
-            update_frequency: config.weight_changer.update_frequency,
-            next_update_timestamp: config.weight_changer.update_frequency,
+            parameters: config.weight_changer.volatility_targeting.unwrap(),
+            next_update_timestamp: config
+                .weight_changer
+                .volatility_targeting
+                .unwrap()
+                .update_frequency,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),
             portfolio_rv: Vec::new(),
             asset_rv: Vec::new(),
         })
     }
-
     fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
@@ -108,7 +115,7 @@ impl WeightChanger for VolatilityTargetingStrategist {
         let current_weight_x = self.g3m.weight_x().call().await?;
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
         debug!("current_weight_float: {}", current_weight_float);
-        if portfolio_rv < self.target_volatility {
+        if portfolio_rv < self.parameters.target_volatility {
             let mut new_weight = current_weight_float + 0.0025;
             debug!("new weight: {}", new_weight);
             if new_weight >= 0.99 {
@@ -137,6 +144,14 @@ impl WeightChanger for VolatilityTargetingStrategist {
         }
         Ok(())
     }
+
+    fn g3m(&self) -> &G3M<RevmMiddleware> {
+        &self.g3m
+    }
+
+    fn lex(&self) -> &LiquidExchange<RevmMiddleware> {
+        &self.lex
+    }
 }
 
 #[async_trait::async_trait]
@@ -144,7 +159,7 @@ impl Agent for VolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         if timestamp >= self.next_update_timestamp {
-            self.next_update_timestamp = timestamp + self.update_frequency;
+            self.next_update_timestamp = timestamp + self.parameters.update_frequency;
             let asset_price = format_ether(self.lex.price().call().await?)
                 .parse::<f64>()
                 .unwrap();
