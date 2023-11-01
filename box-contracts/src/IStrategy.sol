@@ -4,10 +4,10 @@ pragma solidity ^0.8.13;
 /// @dev Draft of a generic interface that we could reuse for all strategies.
 interface IStrategy {
     // Actions
-    function instantiate(
-        uint256 initial_x_wad,
-        uint256 initial_price_wad
-    ) external;
+    function initExactX(
+        uint256 amountX,
+        uint256 price
+    ) external returns (uint256, uint256);
 
     // Getters
     function getSpotPrice() external view returns (uint256);
