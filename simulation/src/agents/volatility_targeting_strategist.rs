@@ -162,23 +162,6 @@ impl Agent for VolatilityTargetingStrategist {
     }
 
     async fn startup(&mut self) -> Result<()> {
-        let asset_price = format_ether(self.lex.price().call().await?)
-            .parse::<f64>()
-            .unwrap();
-
-        let reserve_x = format_ether(self.g3m.reserve_x_without_precision().call().await?)
-            .parse::<f64>()
-            .unwrap();
-        let reserve_y = format_ether(self.g3m.reserve_y_without_precision().call().await?)
-            .parse::<f64>()
-            .unwrap();
-
-        let portfolio_price = reserve_x * asset_price + reserve_y;
-        debug!("portfolio_price: {}", portfolio_price);
-
-        self.portfolio_prices.push((portfolio_price, 0));
-        self.asset_prices.push((asset_price, 0));
-
         Ok(())
     }
 }
