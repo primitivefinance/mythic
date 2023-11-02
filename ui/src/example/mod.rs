@@ -12,6 +12,7 @@ use ethers::prelude::*;
 use tracing::info;
 
 mod components;
+mod deployer;
 mod screen;
 mod watcher;
 
@@ -56,6 +57,8 @@ pub enum Message {
     Error(String),
     /// Debug messages to pass up to the main application.
     Debug(String),
+    /// Hacky way to do Command::perform without returning a message.
+    Empty,
 }
 
 impl Application for ExampleApp {
@@ -94,6 +97,7 @@ impl Application for ExampleApp {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
+            Message::Empty => {}
             // Handle general debug messages
             Message::Debug(msg) => {
                 info!("Debug: {}", msg);
@@ -147,9 +151,9 @@ impl Application for ExampleApp {
                                                     ),
                                                     Err(err) => {
                                                         info!("Error starting watcher: {}", err);
-                                                        Message::ExampleScreen(
-                                                            screen::ExampleScreenMessage::Empty,
-                                                        )
+
+                                                        // todo: probably handle empty messages in a better way?
+                                                        Message::Empty
                                                     }
                                                 }
                                                 },
@@ -170,27 +174,21 @@ impl Application for ExampleApp {
                                     }
                                 }
                             }
-                            screen::Event::Clicked => {
+                            screen::Event::Deploy => {
+                                info!("Deploying vault");
                                 return Command::perform(
-                                    crate::sdk::vault::Vault::deploy::<screen::ExampleScreenError>(
+                                    crate::sdk::vault::Vault::deploy::<deployer::DeployerError>(
                                         example.client.clone(),
                                     ),
                                     |res| {
                                         Message::ExampleScreen(
-                                            screen::ExampleScreenMessage::DeploySuccess(res),
+                                            screen::ExampleScreenMessage::DeployerComponent(
+                                                deployer::AppToDeployerMessage::DeploySuccess(res),
+                                            ),
                                         )
                                     },
                                 );
                             }
-                            screen::Event::Deployed(res) => match res {
-                                Ok(vault) => {
-                                    example.state = screen::ExampleScreenState::Deployed(vault);
-                                }
-                                Err(err) => {
-                                    example.state =
-                                        screen::ExampleScreenState::DeploymentFailed(err);
-                                }
-                            },
                         }
                     }
                 }
