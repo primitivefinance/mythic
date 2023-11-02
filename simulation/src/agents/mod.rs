@@ -4,9 +4,12 @@ use crate::settings::{
 };
 
 use self::{
-    block_admin::BlockAdminParameters, liquidity_provider::LiquidityProviderParameters,
-    price_changer::PriceChangerParameters, swapper::SwapperParameters,
-    token_admin::TokenAdminParameters, weight_changer::WeightChangerParameters,
+    block_admin::BlockAdminParameters,
+    liquidity_provider::LiquidityProviderParameters,
+    price_changer::PriceChangerParameters,
+    swapper::SwapperParameters,
+    token_admin::TokenAdminParameters,
+    weight_changer::{WeightChangerParameters, WeightChangerSpecialty},
 };
 
 use super::*;
@@ -81,18 +84,43 @@ pub enum AgentParameters<P: Parameterized> {
     PriceChanger(PriceChangerParameters<P>),
 }
 
-// TODO: I don't think this is actually correct
 impl Into<Vec<AgentParameters<Single>>> for AgentParameters<Multiple> {
     fn into(self) -> Vec<AgentParameters<Single>> {
         match self {
-            AgentParameters::WeightChanger(p) => vec![AgentParameters::WeightChanger(p.into())],
-            AgentParameters::Swapper(p) => vec![AgentParameters::Swapper(p.into())],
-            AgentParameters::LiquidityProvider(p) => {
-                vec![AgentParameters::LiquidityProvider(p.into())]
+            AgentParameters::WeightChanger(parameters) => {
+                let parameters: Vec<WeightChangerParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::WeightChanger)
+                    .collect()
             }
-            AgentParameters::BlockAdmin(p) => vec![AgentParameters::BlockAdmin(p)],
-            AgentParameters::TokenAdmin(p) => vec![AgentParameters::TokenAdmin(p)],
-            AgentParameters::PriceChanger(p) => vec![AgentParameters::PriceChanger(p.into())],
+            AgentParameters::Swapper(parameters) => {
+                let parameters: Vec<SwapperParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::Swapper)
+                    .collect()
+            }
+            AgentParameters::LiquidityProvider(parameters) => {
+                let parameters: Vec<LiquidityProviderParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::LiquidityProvider)
+                    .collect()
+            }
+            AgentParameters::PriceChanger(parameters) => {
+                let parameters: Vec<PriceChangerParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::PriceChanger)
+                    .collect()
+            }
+            AgentParameters::BlockAdmin(parameters) => {
+                vec![AgentParameters::BlockAdmin(parameters)]
+            }
+            AgentParameters::TokenAdmin(parameters) => {
+                vec![AgentParameters::TokenAdmin(parameters)]
+            }
         }
     }
 }

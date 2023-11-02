@@ -5,7 +5,7 @@ use self::errors::SimulationError;
 use super::*;
 use crate::{
     agents::{Agent, Agents},
-    settings::parameters::Fixed,
+    settings::parameters::Single,
 };
 
 pub mod dynamic_weights;
@@ -27,7 +27,7 @@ pub enum SimulationType {
 }
 
 impl SimulationType {
-    async fn run(config: SimulationConfig<Fixed>) -> Result<(), SimulationError> {
+    async fn run(config: SimulationConfig<Single>) -> Result<(), SimulationError> {
         let simulation = match config.simulation {
             SimulationType::DynamicWeights => dynamic_weights::setup(config.clone()).await?,
             SimulationType::StablePortfolio => stable_portfolio::setup(config.clone()).await?,
@@ -38,11 +38,7 @@ impl SimulationType {
                 Ok(())
             }
             Err(e) => {
-                let metadata = format!(
-                    "{}_{}",
-                    config.output_directory,
-                    config.output_file_name.unwrap()
-                );
+                let metadata = format!("{}", config.output_directory);
                 let error_string = format!("Error in simulation `{:?}`: {:?}", metadata, e);
                 error!(error_string);
                 simulation.environment.stop();
@@ -57,7 +53,7 @@ use tokio::sync::Semaphore;
 pub fn batch(config_path: &str) -> Result<()> {
     let config = SimulationConfig::new(config_path)?;
 
-    let direct_configs: Vec<SimulationConfig<Fixed>> = config.generate();
+    let direct_configs: Vec<SimulationConfig<Single>> = config.clone().into();
     warn!("Running {} simulations", direct_configs.len());
 
     // Create a multi-threaded runtime

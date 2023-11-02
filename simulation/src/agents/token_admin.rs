@@ -7,14 +7,17 @@ use super::*;
 #[derive(Clone)]
 pub struct TokenAdmin {
     pub client: Arc<RevmMiddleware>,
-    pub tokens: BTreeMap<String, ArbiterToken<RevmMiddleware>>,
+    pub arbx: ArbiterToken<RevmMiddleware>,
+    pub arby: ArbiterToken<RevmMiddleware>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenAdminParameters {
-    tokens: Vec<TokenData>,
+    arbx: TokenData,
+    arby: TokenData,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenData {
     pub name: String,
     pub symbol: String,
@@ -27,29 +30,34 @@ impl TokenAdmin {
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, label.into())?;
+        let label: String = label.into();
+        let client = RevmMiddleware::new(environment, Some(&label))?;
 
-        let mut tokens = vec![];
-        if let AgentParameters::TokenAdmin(parameters) = config.agent_parameters.get(label.into()) {
-            let token_list = parameters.tokens;
-            for token in token_list {
-                let token = ArbiterToken::deploy(
-                    client.clone(),
-                    (
-                        token.name.clone(),
-                        token.symbol.clone(),
-                        token.decimals,
-                        U256::MAX,
-                    ),
-                )?
-                .send()
-                .await?;
-            }
+        if let Some(AgentParameters::TokenAdmin(parameters)) = config.agent_parameters.get(&label) {
+            let arbx = ArbiterToken::deploy(
+                client.clone(),
+                (
+                    parameters.arbx.name.clone(),
+                    parameters.arbx.symbol.clone(),
+                    parameters.arbx.decimals,
+                ),
+            )?
+            .send()
+            .await?;
+            let arby = ArbiterToken::deploy(
+                client.clone(),
+                (
+                    parameters.arby.name.clone(),
+                    parameters.arby.symbol.clone(),
+                    parameters.arby.decimals,
+                ),
+            )?
+            .send()
+            .await?;
+            Ok(Self { client, arbx, arby })
         } else {
-            return Err(anyhow::anyhow!("No parameters found for token admin"));
+            Err(anyhow::anyhow!("No parameters found for token admin"))
         }
-
-        Ok(Self { client, tokens })
     }
 
     pub async fn mint(&self, to: Address, amount_x: U256, amount_y: U256) -> Result<()> {

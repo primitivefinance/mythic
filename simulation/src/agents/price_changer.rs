@@ -29,15 +29,8 @@ pub struct PriceChangerParameters<P: Parameterized> {
     pub num_steps: usize,
     pub num_paths: usize,
     pub seed: Option<u64>,
-    pub process: PriceProcess,
+    pub process: PriceProcess<P>,
 }
-
-pub enum PriceProcess {
-    GBM(GeometricBrownianMotion),
-    OU(OrnsteinUhlenbeck),
-}
-
-impl StochasticProcess for PriceProcess {}
 
 impl PriceChanger {
     /// Create a new `PriceChanger` with the given `LiquidExchange` contract
@@ -52,58 +45,68 @@ impl PriceChanger {
         label: impl Into<String>,
         token_admin: &token_admin::TokenAdmin,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, label.into())?;
-        let liquid_exchange = LiquidExchange::deploy(
-            client,
-            (
-                token_admin.arbx.address(),
-                token_admin.arby.address(),
-                float_to_wad(config.trajectory.initial_price.0),
-            ),
-        )?
-        .send()
-        .await?;
+        let label: String = label.into();
+        let client = RevmMiddleware::new(environment, Some(&label))?;
 
-        token_admin
-            .mint(
-                liquid_exchange.address(),
-                parse_ether(100_000_000_000_u64).unwrap(),
-                parse_ether(100_000_000_000_u64).unwrap(),
-            )
+        if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
+        {
+            let liquid_exchange = LiquidExchange::deploy(
+                client,
+                (
+                    token_admin.arbx.address(),
+                    token_admin.arby.address(),
+                    ethers::utils::parse_ether(parameters.initial_price.0)?,
+                ),
+            )?
+            .send()
             .await?;
 
-        let trajectory = if let AgentParameters::PriceChanger(parameters) =
-            config.agent_parameters.get(label.into())
-        {
-            let initial_price = parameters.initial_price;
-            let t_0 = parameters.t_0;
-            let t_n = parameters.t_n;
-            let n_steps = parameters.num_steps;
-            if let Some(seed) = parameters.seed {
-                parameters.process.seedable_euler_maruyama(
-                    initial_price,
-                    t_0,
-                    t_n,
-                    n_steps,
-                    1,
-                    false,
-                    seed,
+            token_admin
+                .mint(
+                    liquid_exchange.address(),
+                    parse_ether(100_000_000_000_u64).unwrap(),
+                    parse_ether(100_000_000_000_u64).unwrap(),
                 )
-            } else {
-                parameters
-                    .process
-                    .euler_maruyama(initial_price, t_0, t_n, n_steps, 1, false)
-            }
-        } else {
-            return Err(anyhow::anyhow!("No parameters found for price changer"));
-        };
+                .await?;
 
-        Ok(Self {
-            trajectory,
-            liquid_exchange,
-            index: 1, /* start after the initial price since it is already set on contract
-                       * deployment */
-        })
+            let trajectory = if let Some(seed) = parameters.seed {
+                let initial_price = parameters.initial_price;
+                let t_0 = parameters.t_0;
+                let t_n = parameters.t_n;
+                let n_steps = parameters.num_steps;
+                if let Some(seed) = parameters.seed {
+                    parameters.process.seedable_euler_maruyama(
+                        initial_price.0,
+                        t_0.0,
+                        t_n.0,
+                        n_steps,
+                        1,
+                        false,
+                        seed,
+                    )
+                } else {
+                    parameters.process.euler_maruyama(
+                        initial_price.0,
+                        t_0.0,
+                        t_n.0,
+                        n_steps,
+                        1,
+                        false,
+                    )
+                }
+            } else {
+                return Err(anyhow::anyhow!("No parameters found for price changer"));
+            };
+
+            Ok(Self {
+                trajectory,
+                liquid_exchange,
+                index: 1, /* start after the initial price since it is already set on contract
+                           * deployment */
+            })
+        } else {
+            Err(anyhow::anyhow!("No parameters found for price changer"))
+        }
     }
 
     /// Update the price of the `LiquidExchange` contract to the next price in
@@ -129,32 +132,153 @@ impl Agent for PriceChanger {
     }
 }
 
-impl Into<PriceChangerParameters<Single>> for PriceChangerParameters<Multiple> {
-    fn into(&self) -> Vec<PriceChangerParameters<Single>> {
-        let initial_prices = self.initial_price.into();
-        let t_0 = self.t_0.into();
-        let t_n = self.t_n.into();
-        let mut result = vec![];
+impl Into<Vec<PriceChangerParameters<Single>>> for PriceChangerParameters<Multiple> {
+    fn into(self) -> Vec<PriceChangerParameters<Single>> {
+        let initial_prices = self.initial_price.parameters();
+        let t_0 = self.t_0.parameters();
+        let t_n = self.t_n.parameters();
+        let process: Vec<PriceProcess<Single>> = self.process.into();
+        let mut result: Vec<PriceChangerParameters<Single>> = vec![];
         let mut hasher = DefaultHasher::new();
 
         if let Some(seed) = self.seed {
-            for intial_price in initial_prices {
+            for initial_price in initial_prices {
                 for t0 in t_0.clone() {
                     for tn in t_n.clone() {
-                        result.push(PriceChangerParameters {
-                            process: self.process.clone(),
-                            initial_price: self.initial_price,
-                            t_0,
-                            t_n,
-                            num_steps: self.num_steps,
-                            num_paths: 1,
-                            seed: Some(seed),
-                        });
+                        for process in process.clone() {
+                            result.push(PriceChangerParameters {
+                                process,
+                                initial_price: Single(initial_price),
+                                t_0: Single(t0),
+                                t_n: Single(tn),
+                                num_steps: self.num_steps,
+                                num_paths: 1,
+                                seed: Some(seed),
+                            });
+                        }
                     }
                 }
             }
         }
 
+        result
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub enum PriceProcess<P: Parameterized> {
+    GBM(GBMParameters<P>),
+    OU(OUParameters<P>),
+}
+
+impl StochasticProcess for PriceProcess<Single> {
+    fn drift(&self, x: f64, t: f64) -> f64 {
+        match self {
+            PriceProcess::GBM(parameters) => {
+                GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0)
+                    .drift(x, t)
+            }
+            PriceProcess::OU(parameters) => OrnsteinUhlenbeck::new(
+                parameters.theta.0,
+                parameters.mean.0,
+                parameters.volatility.0,
+            )
+            .drift(x, t),
+        }
+    }
+
+    fn diffusion(&self, x: f64, t: f64) -> f64 {
+        match self {
+            PriceProcess::GBM(parameters) => {
+                GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0)
+                    .diffusion(x, t)
+            }
+            PriceProcess::OU(parameters) => OrnsteinUhlenbeck::new(
+                parameters.theta.0,
+                parameters.mean.0,
+                parameters.volatility.0,
+            )
+            .diffusion(x, t),
+        }
+    }
+
+    fn jump(&self, x: f64, t: f64) -> Option<f64> {
+        match self {
+            PriceProcess::GBM(parameters) => {
+                GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0).jump(x, t)
+            }
+            PriceProcess::OU(parameters) => OrnsteinUhlenbeck::new(
+                parameters.theta.0,
+                parameters.mean.0,
+                parameters.volatility.0,
+            )
+            .jump(x, t),
+        }
+    }
+}
+
+impl Into<Vec<PriceProcess<Single>>> for PriceProcess<Multiple> {
+    fn into(self) -> Vec<PriceProcess<Single>> {
+        match self {
+            PriceProcess::GBM(parameters) => {
+                let parameters: Vec<GBMParameters<Single>> = parameters.into();
+                parameters.into_iter().map(PriceProcess::GBM).collect()
+            }
+            PriceProcess::OU(parameters) => {
+                let parameters: Vec<OUParameters<Single>> = parameters.into();
+                parameters.into_iter().map(PriceProcess::OU).collect()
+            }
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct GBMParameters<P: Parameterized> {
+    pub drift: P,
+    pub volatility: P,
+}
+
+impl Into<Vec<GBMParameters<Single>>> for GBMParameters<Multiple> {
+    fn into(self) -> Vec<GBMParameters<Single>> {
+        let drift = self.drift.parameters();
+        let volatility = self.volatility.parameters();
+        let mut result = vec![];
+        for d in drift {
+            for v in volatility.clone() {
+                result.push(GBMParameters {
+                    drift: Single(d),
+                    volatility: Single(v),
+                });
+            }
+        }
+        result
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct OUParameters<P: Parameterized> {
+    pub theta: P,
+    pub mean: P,
+    pub volatility: P,
+}
+
+impl Into<Vec<OUParameters<Single>>> for OUParameters<Multiple> {
+    fn into(self) -> Vec<OUParameters<Single>> {
+        let theta = self.theta.parameters();
+        let mean = self.mean.parameters();
+        let volatility = self.volatility.parameters();
+        let mut result = vec![];
+        for t in theta {
+            for m in mean.clone() {
+                for v in volatility.clone() {
+                    result.push(OUParameters {
+                        theta: Single(t),
+                        mean: Single(m),
+                        volatility: Single(v),
+                    });
+                }
+            }
+        }
         result
     }
 }

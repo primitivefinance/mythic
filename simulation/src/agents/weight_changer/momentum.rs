@@ -6,6 +6,7 @@ pub struct MomentumStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
+    pub update_frequency: u64,
     pub next_update_timestamp: u64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
@@ -16,36 +17,27 @@ pub struct MomentumStrategist {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct MomentumParameters<P: Parameterized> {
     pub update_frequency: P,
+    pub initial_weight_x: P,
+    pub fee_basis_points: P,
+}
+
+impl Into<Vec<MomentumParameters<Single>>> for MomentumParameters<Multiple> {
+    fn into(self) -> Vec<MomentumParameters<Single>> {
+        self.update_frequency
+            .parameters()
+            .into_iter()
+            .zip(self.initial_weight_x.parameters().into_iter())
+            .zip(self.fee_basis_points.parameters().into_iter())
+            .map(|((update_freq, initial_wx), fbps)| MomentumParameters {
+                update_frequency: Single(update_freq),
+                initial_weight_x: Single(initial_wx),
+                fee_basis_points: Single(fbps),
+            })
+            .collect()
+    }
 }
 
 impl MomentumStrategist {
-    pub async fn new(
-        environment: &Environment,
-        config: &SimulationConfig<Single>,
-        liquid_exchange_address: Address,
-    ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, "weight_changer".into())?;
-        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
-
-        let g3m_args = (
-            lex.arbiter_token_x(),
-            lex.arbiter_token_y(),
-            ethers::utils::parse_ether(config.pool.weight_x)?,
-            U256::from(config.pool.fee_basis_points),
-        );
-        let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
-
-        Ok(Self {
-            client,
-            lex,
-            g3m,
-            next_update_timestamp: config.weight_changer.momentum.unwrap().update_frequency,
-            portfolio_prices: Vec::new(),
-            asset_prices: Vec::new(),
-            portfolio_returns: Vec::new(),
-            asset_returns: Vec::new(),
-        })
-    }
     fn calculate_returns(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
@@ -165,7 +157,7 @@ impl Agent for MomentumStrategist {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
 
         if timestamp >= self.next_update_timestamp {
-            self.next_update_timestamp = timestamp + self.parameters.update_frequency;
+            self.next_update_timestamp = timestamp + self.update_frequency;
             let asset_price = format_ether(self.lex.price().call().await?)
                 .parse::<f64>()
                 .unwrap();

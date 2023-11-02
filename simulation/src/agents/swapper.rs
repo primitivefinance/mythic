@@ -18,6 +18,20 @@ pub struct SwapperParameters<P: Parameterized> {
     pub swap_direction: bool,
 }
 
+impl Into<Vec<SwapperParameters<Single>>> for SwapperParameters<Multiple> {
+    fn into(self) -> Vec<SwapperParameters<Single>> {
+        self.num_swaps
+            .parameters()
+            .into_iter()
+            .map(|num_swaps| SwapperParameters {
+                num_swaps: Single(num_swaps),
+                initial_balance: self.initial_balance,
+                swap_direction: self.swap_direction,
+            })
+            .collect()
+    }
+}
+
 // TODO: Mint the amounts here.
 impl Swapper {
     async fn new(
@@ -25,40 +39,41 @@ impl Swapper {
         config: &SimulationConfig<Single>,
         liquid_exchange_address: Address,
     ) -> Result<Self> {
-        let parameters = config.swapper.unwrap();
-        let client = RevmMiddleware::new(&environment, "time_based_swapper".into()).unwrap();
-        let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
-        let input_token = if parameters.swap_direction {
-            liquid_exchange.arbiter_token_x().call().await?
-        } else {
-            liquid_exchange.arbiter_token_x().call().await?
-        };
-        let swap_times = linspace!(
-            config.trajectory.t_0.0,
-            config.trajectory.t_n.0,
-            config.trajectory.num_steps
-        );
-        let amount_in = parameters.initial_balance / parameters.num_swaps;
-        Ok(Self {
-            client,
-            liquid_exchange,
-            input_token,
-            swap_times,
-            amount_in,
-        })
+        todo!()
+        // let parameters = config.swapper.unwrap();
+        // let client = RevmMiddleware::new(&environment, "time_based_swapper".into()).unwrap();
+        // let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
+        // let input_token = if parameters.swap_direction {
+        //     liquid_exchange.arbiter_token_x().call().await?
+        // } else {
+        //     liquid_exchange.arbiter_token_x().call().await?
+        // };
+        // let swap_times = linspace!(
+        //     config.trajectory.t_0.0,
+        //     config.trajectory.t_n.0,
+        //     config.trajectory.num_steps
+        // );
+        // let amount_in = parameters.initial_balance / parameters.num_swaps;
+        // Ok(Self {
+        //     client,
+        //     liquid_exchange,
+        //     input_token,
+        //     swap_times,
+        //     amount_in,
+        // })
     }
 }
 
 #[async_trait::async_trait]
 impl Agent for Swapper {
-    async fn step(&mut self) -> Result<()> {
-        if self.client.get_block_timestamp().await? == self.next_swap_time {
-            self.liquid_exchange.swap(self.input_token, self.amount_in)
-        }
-        Ok(())
-    }
+    // async fn step(&mut self) -> Result<()> {
+    //     if self.client.get_block_timestamp().await? == self.next_swap_time {
+    //         self.liquid_exchange.swap(self.input_token, self.amount_in)
+    //     }
+    //     Ok(())
+    // }
 
-    async fn startup(&mut self) -> Result<()> {
-        self.0.startup().await
-    }
+    // async fn startup(&mut self) -> Result<()> {
+    //     self.0.startup().await
+    // }
 }

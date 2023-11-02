@@ -12,6 +12,21 @@ pub struct LiquidityProvider<S: LiquidityStrategy> {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct LiquidityProviderParameters<P: Parameterized> {
     pub x_liquidity: P,
+    pub initial_price: P,
+}
+
+impl Into<Vec<LiquidityProviderParameters<Single>>> for LiquidityProviderParameters<Multiple> {
+    fn into(self) -> Vec<LiquidityProviderParameters<Single>> {
+        self.x_liquidity
+            .parameters()
+            .into_iter()
+            .zip(self.initial_price.parameters().into_iter())
+            .map(|(xl, ip)| LiquidityProviderParameters {
+                x_liquidity: Single(xl),
+                initial_price: Single(ip),
+            })
+            .collect()
+    }
 }
 
 impl<S: LiquidityStrategy> LiquidityProvider<S> {
@@ -34,12 +49,20 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
         arbx.approve(strategy_address, U256::MAX).send().await?;
         arby.approve(strategy_address, U256::MAX).send().await?;
 
-        Ok(Self {
-            client,
-            strategy,
-            initial_x: float_to_wad(config.lp.x_liquidity),
-            initial_price: float_to_wad(config.trajectory.initial_price.0),
-        })
+        if let Some(AgentParameters::LiquidityProvider(params)) =
+            config.agent_parameters.get("liquidity_provider").cloned()
+        {
+            Ok(Self {
+                client,
+                strategy,
+                initial_x: ethers::utils::parse_ether(params.x_liquidity.0)?,
+                initial_price: ethers::utils::parse_ether(params.initial_price.0)?,
+            })
+        } else {
+            Err(anyhow::anyhow!(
+                "No parameters found for `LiquidityProvider`"
+            ))
+        }
     }
 }
 
