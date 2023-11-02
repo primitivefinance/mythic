@@ -24,12 +24,11 @@ impl BlockAdmin {
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, label.into())?;
-        if let AgentParameters::BlockAdmin(parameters) =
-            config.agent_parameters.get(label.into()).unwrap()
-        {
+        let label: String = label.into();
+        let client = RevmMiddleware::new(environment, Some(&label))?;
+        if let Some(AgentParameters::BlockAdmin(parameters)) = config.agent_parameters.get(&label) {
             return Ok(Self {
-                client,
+                client: client.clone(),
                 timestep_size: parameters.timestep_size,
                 block_number: client.get_block_number().await?.as_u64(),
                 block_timestamp: client.get_block_timestamp().await?.as_u64(),

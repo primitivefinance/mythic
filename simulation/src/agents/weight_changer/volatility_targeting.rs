@@ -6,6 +6,8 @@ pub struct VolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
+    pub target_volatility: f64,
+    pub update_frequency: u64,
     pub next_update_timestamp: u64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
@@ -17,40 +19,29 @@ pub struct VolatilityTargetingStrategist {
 pub struct VolatilityTargetingParameters<P: Parameterized> {
     pub target_volatility: P,
     pub update_frequency: P,
+    pub initial_weight_x: P,
+    pub fee_basis_points: P,
+}
+
+impl Into<Vec<VolatilityTargetingParameters<Single>>> for VolatilityTargetingParameters<Multiple> {
+    fn into(self) -> Vec<VolatilityTargetingParameters<Single>> {
+        self.target_volatility
+            .parameters()
+            .into_iter()
+            .zip(self.update_frequency.parameters().into_iter())
+            .zip(self.initial_weight_x.parameters().into_iter())
+            .zip(self.fee_basis_points.parameters().into_iter())
+            .map(|(((tv, uf), iwx), fbps)| VolatilityTargetingParameters {
+                target_volatility: Single(tv),
+                update_frequency: Single(uf),
+                initial_weight_x: Single(iwx),
+                fee_basis_points: Single(fbps),
+            })
+            .collect()
+    }
 }
 
 impl VolatilityTargetingStrategist {
-    pub async fn new(
-        environment: &Environment,
-        config: &SimulationConfig<Single>,
-        liquid_exchange_address: Address,
-    ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, "weight_changer".into())?;
-        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
-
-        let g3m_args = (
-            lex.arbiter_token_x(),
-            lex.arbiter_token_y(),
-            ethers::utils::parse_ether(config.pool.weight_x)?,
-            U256::from(config.pool.fee_basis_points),
-        );
-        let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
-
-        Ok(Self {
-            client,
-            lex,
-            g3m,
-            next_update_timestamp: config
-                .weight_changer
-                .volatility_targeting
-                .unwrap()
-                .update_frequency,
-            portfolio_prices: Vec::new(),
-            asset_prices: Vec::new(),
-            portfolio_rv: Vec::new(),
-            asset_rv: Vec::new(),
-        })
-    }
     fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
@@ -112,7 +103,7 @@ impl WeightChanger for VolatilityTargetingStrategist {
         let current_weight_x = self.g3m.weight_x().call().await?;
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
         debug!("current_weight_float: {}", current_weight_float);
-        if portfolio_rv < self.parameters.target_volatility {
+        if portfolio_rv < self.target_volatility {
             let mut new_weight = current_weight_float + 0.0025;
             debug!("new weight: {}", new_weight);
             if new_weight >= 0.99 {
@@ -156,7 +147,7 @@ impl Agent for VolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         if timestamp >= self.next_update_timestamp {
-            self.next_update_timestamp = timestamp + self.parameters.update_frequency;
+            self.next_update_timestamp = timestamp + self.update_frequency;
             let asset_price = format_ether(self.lex.price().call().await?)
                 .parse::<f64>()
                 .unwrap();

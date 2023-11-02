@@ -1,5 +1,5 @@
 use self::{
-    dollar_cost_averaging::DollarCostAveragingParameters,
+    dollar_cost_averaging::{DollarCostAveragingParameters, DollarCostAveragingStategist},
     momentum::{MomentumParameters, MomentumStrategist},
     volatility_targeting::{VolatilityTargetingParameters, VolatilityTargetingStrategist},
 };
@@ -17,11 +17,63 @@ pub trait WeightChanger: Agent {
     fn lex(&self) -> &LiquidExchange<RevmMiddleware>;
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WeightChangerParameters<P: Parameterized> {
+    pub initial_weight_x: P,
+    pub fee_basis_points: P,
+    pub specialty: WeightChangerSpecialty<P>,
+}
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum WeightChangerParameters<P: Parameterized> {
+pub enum WeightChangerSpecialty<P: Parameterized> {
     Momentum(MomentumParameters<P>),
     VolatilityTargeting(VolatilityTargetingParameters<P>),
     DollarCostAveraging(DollarCostAveragingParameters<P>),
+}
+
+impl Into<Vec<WeightChangerParameters<Single>>> for WeightChangerParameters<Multiple> {
+    fn into(self) -> Vec<WeightChangerParameters<Single>> {
+        let specialty_params: Vec<WeightChangerSpecialty<Single>> = self.specialty.into();
+        self.initial_weight_x
+            .parameters()
+            .into_iter()
+            .zip(self.fee_basis_points.parameters().into_iter())
+            .zip(specialty_params.into_iter())
+            .map(|((iwx, fbps), specialty)| WeightChangerParameters {
+                initial_weight_x: Single(iwx),
+                fee_basis_points: Single(fbps),
+                specialty,
+            })
+            .collect()
+    }
+}
+
+impl Into<Vec<WeightChangerSpecialty<Single>>> for WeightChangerSpecialty<Multiple> {
+    fn into(self) -> Vec<WeightChangerSpecialty<Single>> {
+        match self {
+            WeightChangerSpecialty::Momentum(parameters) => {
+                let parameters: Vec<MomentumParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(WeightChangerSpecialty::Momentum)
+                    .collect()
+            }
+            WeightChangerSpecialty::VolatilityTargeting(parameters) => {
+                let parameters: Vec<VolatilityTargetingParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(WeightChangerSpecialty::VolatilityTargeting)
+                    .collect()
+            }
+            WeightChangerSpecialty::DollarCostAveraging(parameters) => {
+                let parameters: Vec<DollarCostAveragingParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(WeightChangerSpecialty::DollarCostAveraging)
+                    .collect()
+            }
+        }
+    }
 }
 
 pub struct WeightChangerType(pub Box<dyn WeightChanger>);
@@ -30,18 +82,46 @@ impl WeightChangerType {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
+        label: impl Into<String>,
         liquid_exchange_address: Address,
-        arbx_address: Address,
-        arby_address: Address,
     ) -> Result<Self> {
-        if let Some(settings) = &config.weight_changer.momentum {
-            let momentum =
-                MomentumStrategist::new(environment, config, liquid_exchange_address).await?;
-            Ok(WeightChangerType(Box::new(momentum)))
+        let label: String = label.into();
+        let client = RevmMiddleware::new(environment, Some(&label.as_str()))?;
+        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
+
+        if let Some(AgentParameters::WeightChanger(params)) = config.agent_parameters.get(&label) {
+            let g3m_args = (
+                lex.arbiter_token_x().call().await?,
+                lex.arbiter_token_y().call().await?,
+                ethers::utils::parse_ether(params.initial_weight_x.0)?,
+                ethers::utils::parse_ether(params.fee_basis_points.0)?,
+            );
+            let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
+
+            match params.specialty {
+                WeightChangerSpecialty::Momentum(parameters) => {
+                    let strategist = MomentumStrategist {
+                        client,
+                        lex,
+                        g3m,
+                        update_frequency: parameters.update_frequency.0 as u64,
+                        next_update_timestamp: parameters.update_frequency.0 as u64,
+                        portfolio_prices: Vec::new(),
+                        asset_prices: Vec::new(),
+                        portfolio_returns: Vec::new(),
+                        asset_returns: Vec::new(),
+                    };
+                    Ok(Self(Box::new(strategist)))
+                }
+                WeightChangerSpecialty::VolatilityTargeting(parameters) => {
+                    todo!()
+                }
+                WeightChangerSpecialty::DollarCostAveraging(parameters) => {
+                    todo!()
+                }
+            }
         } else {
-            let volatility =
-                MomentumStrategist::new(environment, config, liquid_exchange_address).await?;
-            Ok(WeightChangerType(Box::new(volatility)))
+            Err(anyhow::anyhow!("No parameters found for weight changer"))
         }
     }
 }

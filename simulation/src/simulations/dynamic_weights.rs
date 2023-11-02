@@ -6,7 +6,7 @@ use crate::{
         arbitrageur::Arbitrageur,
         block_admin::BlockAdmin,
         liquidity_provider::LiquidityProvider,
-        price_changer::PriceChanger,
+        price_changer::{PriceChanger, PriceChangerParameters},
         token_admin::TokenAdmin,
         weight_changer::{
             momentum::MomentumStrategist, volatility_targeting::VolatilityTargetingStrategist,
@@ -18,29 +18,29 @@ use crate::{
     settings::SimulationConfig,
 };
 
-pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, SimulationError> {
+pub async fn setup(config: SimulationConfig<Single>) -> Result<Simulation, SimulationError> {
     let environment = EnvironmentBuilder::new()
         .block_settings(BlockSettings::UserControlled)
         .build();
 
-    let mut block_admin = BlockAdmin::new(&environment, &config).await?;
-    let token_admin = TokenAdmin::new(&environment).await?;
-    let mut price_changer = PriceChanger::new(&environment, &token_admin, &config).await?;
+    let mut block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
+    let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
+    let mut price_changer =
+        PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
 
     let weight_changer = WeightChangerType::new(
         &environment,
         &config,
+        "weight_changer",
         price_changer.liquid_exchange.address(),
-        token_admin.arbx.address(),
-        token_admin.arby.address(),
     )
     .await?;
 
     let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
         &environment,
+        &config,
         &token_admin,
         weight_changer.g3m().address(),
-        &config,
     )
     .await?;
 
@@ -59,7 +59,7 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
         .add(weight_changer.g3m().events(), "g3m")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
-
+    let steps = price_changer.trajectory.paths[0].len();
     Ok(Simulation {
         agents: Agents::new()
             .add(price_changer)
@@ -67,7 +67,7 @@ pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, Simula
             .add(block_admin)
             .add(weight_changer)
             .add(lp),
-        steps: config.trajectory.num_steps,
+        steps,
         environment,
     })
 }
