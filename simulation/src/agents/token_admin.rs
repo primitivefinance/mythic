@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
 
@@ -7,29 +7,49 @@ use super::*;
 #[derive(Clone)]
 pub struct TokenAdmin {
     pub client: Arc<RevmMiddleware>,
-    pub arbx: ArbiterToken<RevmMiddleware>,
-    pub arby: ArbiterToken<RevmMiddleware>,
+    pub tokens: BTreeMap<String, ArbiterToken<RevmMiddleware>>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TokenAdminParameters {
+    tokens: Vec<TokenData>,
+}
+
+pub struct TokenData {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
 }
 
 impl TokenAdmin {
-    pub async fn new(environment: &Environment) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, "token_admin".into())?;
-        let decimals = 18_u8;
+    pub async fn new(
+        environment: &Environment,
+        config: &SimulationConfig<Single>,
+        label: impl Into<String>,
+    ) -> Result<Self> {
+        let client = RevmMiddleware::new(environment, label.into())?;
 
-        let arbx = ArbiterToken::deploy(
-            client.clone(),
-            ("Arbiter Token X".to_string(), "arbx".to_string(), decimals),
-        )?
-        .send()
-        .await?;
-        let arby = ArbiterToken::deploy(
-            client.clone(),
-            ("Arbiter Token Y".to_string(), "arby".to_string(), decimals),
-        )?
-        .send()
-        .await?;
+        let mut tokens = vec![];
+        if let AgentParameters::TokenAdmin(parameters) = config.agent_parameters.get(label.into()) {
+            let token_list = parameters.tokens;
+            for token in token_list {
+                let token = ArbiterToken::deploy(
+                    client.clone(),
+                    (
+                        token.name.clone(),
+                        token.symbol.clone(),
+                        token.decimals,
+                        U256::MAX,
+                    ),
+                )?
+                .send()
+                .await?;
+            }
+        } else {
+            return Err(anyhow::anyhow!("No parameters found for token admin"));
+        }
 
-        Ok(Self { client, arbx, arby })
+        Ok(Self { client, tokens })
     }
 
     pub async fn mint(&self, to: Address, amount_x: U256, amount_y: U256) -> Result<()> {

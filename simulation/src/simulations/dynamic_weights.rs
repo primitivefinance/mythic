@@ -9,9 +9,8 @@ use crate::{
         price_changer::PriceChanger,
         token_admin::TokenAdmin,
         weight_changer::{
-            momentum_strategist::MomentumStrategist,
-            volatility_targeting_strategist::VolatilityTargetingStrategist, WeightChanger,
-            WeightChangerType,
+            momentum::MomentumStrategist, volatility_targeting::VolatilityTargetingStrategist,
+            WeightChanger, WeightChangerType,
         },
         Agent, Agents,
     },

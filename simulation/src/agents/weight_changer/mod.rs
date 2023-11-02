@@ -1,12 +1,14 @@
 use self::{
-    momentum_strategist::MomentumStrategist,
-    volatility_targeting_strategist::VolatilityTargetingStrategist,
+    dollar_cost_averaging::DollarCostAveragingParameters,
+    momentum::{MomentumParameters, MomentumStrategist},
+    volatility_targeting::{VolatilityTargetingParameters, VolatilityTargetingStrategist},
 };
 
 use super::*;
 
-pub mod momentum_strategist;
-pub mod volatility_targeting_strategist;
+pub mod dollar_cost_averaging;
+pub mod momentum;
+pub mod volatility_targeting;
 
 #[async_trait::async_trait]
 pub trait WeightChanger: Agent {
@@ -15,35 +17,30 @@ pub trait WeightChanger: Agent {
     fn lex(&self) -> &LiquidExchange<RevmMiddleware>;
 }
 
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub enum WeightChangerParameters<P: Parameterized> {
+    Momentum(MomentumParameters<P>),
+    VolatilityTargeting(VolatilityTargetingParameters<P>),
+    DollarCostAveraging(DollarCostAveragingParameters<P>),
+}
+
 pub struct WeightChangerType(pub Box<dyn WeightChanger>);
 
 impl WeightChangerType {
     pub async fn new(
         environment: &Environment,
-        config: &SimulationConfig<Fixed>,
+        config: &SimulationConfig<Single>,
         liquid_exchange_address: Address,
         arbx_address: Address,
         arby_address: Address,
     ) -> Result<Self> {
         if let Some(settings) = &config.weight_changer.momentum {
-            let momentum = MomentumStrategist::new(
-                environment,
-                config,
-                liquid_exchange_address,
-                arbx_address,
-                arby_address,
-            )
-            .await?;
+            let momentum =
+                MomentumStrategist::new(environment, config, liquid_exchange_address).await?;
             Ok(WeightChangerType(Box::new(momentum)))
         } else {
-            let volatility = MomentumStrategist::new(
-                environment,
-                config,
-                liquid_exchange_address,
-                arbx_address,
-                arby_address,
-            )
-            .await?;
+            let volatility =
+                MomentumStrategist::new(environment, config, liquid_exchange_address).await?;
             Ok(WeightChangerType(Box::new(volatility)))
         }
     }

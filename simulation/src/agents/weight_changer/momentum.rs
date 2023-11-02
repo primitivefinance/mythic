@@ -4,7 +4,6 @@ use crate::math::*;
 #[derive(Clone)]
 pub struct MomentumStrategist {
     pub client: Arc<RevmMiddleware>,
-    pub parameters: MomentumParameters,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
     pub next_update_timestamp: u64,
@@ -15,33 +14,31 @@ pub struct MomentumStrategist {
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct MomentumParameters {
-    pub update_frequency: u64,
+pub struct MomentumParameters<P: Parameterized> {
+    pub update_frequency: P,
 }
 
 impl MomentumStrategist {
     pub async fn new(
         environment: &Environment,
-        config: &SimulationConfig<Fixed>,
+        config: &SimulationConfig<Single>,
         liquid_exchange_address: Address,
-        arbx: Address,
-        arby: Address,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "weight_changer".into())?;
+        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         let g3m_args = (
-            arbx,
-            arby,
+            lex.arbiter_token_x(),
+            lex.arbiter_token_y(),
             ethers::utils::parse_ether(config.pool.weight_x)?,
             U256::from(config.pool.fee_basis_points),
         );
         let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
-        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
+
         Ok(Self {
             client,
             lex,
             g3m,
-            parameters: config.weight_changer.momentum.unwrap(),
             next_update_timestamp: config.weight_changer.momentum.unwrap().update_frequency,
             portfolio_prices: Vec::new(),
             asset_prices: Vec::new(),

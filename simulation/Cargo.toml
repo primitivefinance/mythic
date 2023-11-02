@@ -14,3 +14,5 @@ async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 config.workspace = true
+
+unit-conversions = "0.1.13"
