@@ -14,9 +14,8 @@ use iced::{
 use thiserror::Error;
 
 use crate::sdk::vault::*;
-use tracing::info;
 
-use tokio_util::sync::CancellationToken;
+use super::watcher;
 
 mod banner;
 pub mod start;
@@ -26,13 +25,7 @@ pub mod start;
 pub struct ExampleScreen {
     pub client: Arc<RevmMiddleware>,
     pub state: ExampleScreenState,
-    pub watcher: WatcherManager,
-}
-
-#[derive(Clone, Debug)]
-pub struct WatcherManager {
-    pub state: WatcherState,
-    pub handler: Option<CancellationToken>,
+    pub watcher: watcher::WatcherComponent,
 }
 
 /// States of the example screen.
@@ -44,21 +37,13 @@ pub enum ExampleScreenState {
     DeploymentFailed(ExampleScreenError),
 }
 
-#[derive(Debug, Clone)]
-pub enum WatcherState {
-    On,
-    Off,
-}
-
 /// Messages for Application -> Screen communication.
 #[derive(Clone, Debug)]
 pub enum ExampleScreenMessage {
     Deploy,
     DeploySuccess(Result<Vault, ExampleScreenError>),
-    ToggleWatcher(WatcherState),
-    SetWatcher(Option<CancellationToken>),
-    AbortWatcher,
     Empty,
+    WatcherComponent(watcher::AppToWatcherMessage),
 }
 
 /// Errors that can occur during the deployment of Counter.sol.
@@ -73,7 +58,7 @@ pub enum ExampleScreenError {
 pub enum Event {
     Clicked,
     Deployed(Result<Vault, ExampleScreenError>),
-    Toggle(WatcherState),
+    Toggle(bool),
 }
 
 /// Implements the following functions
@@ -85,10 +70,7 @@ impl ExampleScreen {
         Self {
             client,
             state: ExampleScreenState::NotDeployed,
-            watcher: WatcherManager {
-                state: WatcherState::Off,
-                handler: None,
-            },
+            watcher: watcher::WatcherComponent::new(),
         }
     }
 
@@ -110,34 +92,21 @@ impl ExampleScreen {
     /// because only the `Application` can execute commands that are async.
     pub fn update(&mut self, message: ExampleScreenMessage) -> Option<Event> {
         match message {
-            ExampleScreenMessage::ToggleWatcher(state) => {
-                info!("Got watcher message: {:?}", state);
-                self.watcher.state = state.clone();
+            ExampleScreenMessage::WatcherComponent(message) => {
+                // Call the update method to get the component's updates.
+                let watcher_message = self.watcher.update(message);
 
-                // Tell the application to handle the resulting toggle state.
-                Some(Event::Toggle(state.clone()))
-            }
-            ExampleScreenMessage::SetWatcher(handle) => {
-                info!("Got watcher update handle");
-
-                // Set the handler
-                self.watcher.handler = handle;
-
-                None
-            }
-            ExampleScreenMessage::AbortWatcher => {
-                info!("Got watcher abort");
-                match self.watcher.handler {
-                    Some(ref handle) => {
-                        info!("Cancelling watcher using token");
-                        handle.cancel();
+                match watcher_message {
+                    Some(watcher_message) => {
+                        // If the watcher has a message, return it.
+                        match watcher_message {
+                            watcher::WatcherToAppMessage::Toggle(state) => {
+                                Some(Event::Toggle(state))
+                            }
+                        }
                     }
-                    None => {
-                        info!("No watcher online to abort.");
-                    }
+                    None => None,
                 }
-
-                None
             }
             ExampleScreenMessage::Empty => None,
             ExampleScreenMessage::Deploy => Some(Event::Clicked),
@@ -160,16 +129,6 @@ impl ExampleScreen {
         };
         content = content.push(button("Deploy Counter.sol", ExampleScreenMessage::Deploy));
 
-        // Render the watcher buttons
-        content = content.push(button(
-            "Turn watcher ON",
-            ExampleScreenMessage::ToggleWatcher(WatcherState::On),
-        ));
-        content = content.push(button(
-            "Turn watcher OFF",
-            ExampleScreenMessage::ToggleWatcher(WatcherState::Off),
-        ));
-
         content = match &self.state {
             ExampleScreenState::NotDeployed => content,
             ExampleScreenState::Deployed(_entity) => content.push(text("Successfully Deployed")),
@@ -177,6 +136,13 @@ impl ExampleScreen {
                 content.push(text(format!("Deployment failed: {:?}", error)))
             }
         };
+
+        // Render Watcher component
+        content = content.push(
+            self.watcher
+                .view()
+                .map(|message| ExampleScreenMessage::WatcherComponent(message)),
+        );
 
         content.spacing(4).into()
     }

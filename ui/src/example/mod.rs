@@ -130,7 +130,7 @@ impl Application for ExampleApp {
                             screen::Event::Toggle(state) => {
                                 if let Some(production) = production {
                                     match state {
-                                        screen::WatcherState::On => {
+                                        true => {
                                             info!("Starting watcher");
                                             // Turn on the watcher, which returns an instance of `Watcher`.
                                             // `Watcher` has a `handle` which is a cancel token to cancel the event listener stream.
@@ -138,11 +138,12 @@ impl Application for ExampleApp {
                                             // an abort message from this application.
                                             return Command::perform(
                                                 watcher::Watcher::new(production.clone().get()),
-                                                |res| match res {
+                                                |res| {
+                                                    match res {
                                                     Ok(watcher) => Message::ExampleScreen(
-                                                        screen::ExampleScreenMessage::SetWatcher(
+                                                        screen::ExampleScreenMessage::WatcherComponent(watcher::AppToWatcherMessage::SetWatcher(
                                                             Some(watcher.handle),
-                                                        ),
+                                                        )),
                                                     ),
                                                     Err(err) => {
                                                         info!("Error starting watcher: {}", err);
@@ -150,17 +151,18 @@ impl Application for ExampleApp {
                                                             screen::ExampleScreenMessage::Empty,
                                                         )
                                                     }
+                                                }
                                                 },
                                             );
                                         }
-                                        screen::WatcherState::Off => {
+                                        false => {
                                             info!("Stopping watcher");
                                             // Turn off the watcher by sending the abort message to the component.
                                             return Command::perform(
                                                 async { Ok::<(), ()>(()) },
                                                 |_| {
                                                     Message::ExampleScreen(
-                                                        screen::ExampleScreenMessage::AbortWatcher,
+                                                        screen::ExampleScreenMessage::WatcherComponent(watcher::AppToWatcherMessage::AbortWatcher),
                                                     )
                                                 },
                                             );
@@ -235,14 +237,12 @@ impl Application for ExampleApp {
                     }
                 }
 
-                content = content.push(watcher::watcher());
-
                 // Push text on whether the watcher is ON or OFF
                 content = content.push(
                     text(match screen {
-                        Screen::Example(example) => match example.watcher.state {
-                            screen::WatcherState::On => "Watcher is ON",
-                            screen::WatcherState::Off => "Watcher is OFF",
+                        Screen::Example(example) => match example.watcher.status {
+                            true => "Watcher is ON",
+                            false => "Watcher is OFF",
                         },
                         _ => "",
                     })

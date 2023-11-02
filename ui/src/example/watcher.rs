@@ -3,8 +3,9 @@
 //! It's possible to define event filters to watch using abigen! macro.
 
 use iced::{
-    widget::{column, container, image, Container, Text},
-    Alignment, Length,
+    alignment::{self},
+    widget::{button, column, text},
+    Alignment, Element, Length,
 };
 
 use ethers::contract::{abigen, Contract};
@@ -22,6 +23,7 @@ abigen!(
     "#,
 );
 
+/// Need to deploy it to anvil first...
 const COUNTER_ADDY: &str = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 #[derive(Debug)]
@@ -78,26 +80,92 @@ impl Watcher {
     }
 }
 
-pub fn watcher<'a, Message: 'a>() -> Container<'a, Message> {
-    // Renders the value of the watched event.
-    let value = Text::new("Value")
-        .size(30)
-        .width(Length::Fill)
-        .horizontal_alignment(iced::alignment::Horizontal::Center);
+#[derive(Debug, Clone)]
+pub enum WatcherToAppMessage {
+    Toggle(bool),
+}
 
-    // Renders the event name.
-    let event_name = Text::new("Event Name")
-        .size(30)
-        .width(Length::Fill)
-        .horizontal_alignment(iced::alignment::Horizontal::Center);
+#[derive(Debug, Clone)]
+pub enum AppToWatcherMessage {
+    ToggleWatcher(bool),
+    SetWatcher(Option<CancellationToken>),
+    AbortWatcher,
+}
 
-    let mut column = column![];
+#[derive(Debug, Clone)]
+pub struct WatcherComponent {
+    pub status: bool,
+    pub handle: Option<CancellationToken>,
+}
 
-    column = column.push(event_name);
-    column = column.push(value);
+/// Implements the UI component for the watcher.
+impl WatcherComponent {
+    pub fn new() -> Self {
+        Self {
+            status: false,
+            handle: None,
+        }
+    }
 
-    container(column.spacing(10).align_items(Alignment::Center))
-        .width(Length::Fill)
-        .center_x()
-        .into()
+    pub fn update(&mut self, message: AppToWatcherMessage) -> Option<WatcherToAppMessage> {
+        match message {
+            AppToWatcherMessage::ToggleWatcher(state) => {
+                info!("Got watcher message: {:?}", state);
+                self.status = state;
+
+                // Tell the application to handle the resulting toggle state.
+                Some(WatcherToAppMessage::Toggle(state))
+            }
+            AppToWatcherMessage::SetWatcher(handle) => {
+                info!("Got watcher update handle");
+
+                // Set the handler
+                self.handle = handle;
+
+                None
+            }
+            AppToWatcherMessage::AbortWatcher => {
+                info!("Got watcher abort");
+                match self.handle {
+                    Some(ref handle) => {
+                        info!("Cancelling watcher using token");
+                        handle.cancel();
+                    }
+                    None => {
+                        info!("No watcher online to abort.");
+                    }
+                }
+
+                None
+            }
+        }
+    }
+
+    /// Returns AppToWatcherMessage to the application, which passes it back this Watcher component.
+    pub fn view<'a>(&self) -> Element<'a, AppToWatcherMessage> {
+        let mut content = column![];
+
+        let button = |label, on_press| {
+            button(
+                text(label)
+                    .width(Length::Fill)
+                    .height(40)
+                    .horizontal_alignment(alignment::Horizontal::Center)
+                    .vertical_alignment(alignment::Vertical::Center),
+            )
+            .on_press(on_press)
+        };
+
+        // Render the watcher buttons
+        content = content.push(button(
+            "Turn watcher ON",
+            AppToWatcherMessage::ToggleWatcher(true),
+        ));
+        content = content.push(button(
+            "Turn watcher OFF",
+            AppToWatcherMessage::ToggleWatcher(false),
+        ));
+
+        content.spacing(10).align_items(Alignment::Center).into()
+    }
 }
