@@ -1,3 +1,14 @@
+use crate::settings::{
+    parameters::{LinspaceParameters, Multiple, Single},
+    Parameterized,
+};
+
+use self::{
+    block_admin::BlockAdminParameters, liquidity_provider::LiquidityProviderParameters,
+    price_changer::PriceChangerParameters, swapper::SwapperParameters,
+    token_admin::TokenAdminParameters, weight_changer::WeightChangerParameters,
+};
+
 use super::*;
 
 pub mod arbitrageur;
@@ -10,7 +21,23 @@ pub mod weight_changer;
 
 use std::marker::{Send, Sync};
 
-use crate::settings::parameters::Fixed;
+pub struct Agents(pub Vec<Box<dyn Agent>>);
+
+impl Agents {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
+        self.0.iter_mut()
+    }
+
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(vec![])
+    }
+
+    pub fn add(mut self, agent: impl Agent + 'static) -> Self {
+        self.0.push(Box::new(agent));
+        self
+    }
+}
 
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.
@@ -33,24 +60,6 @@ pub trait Agent: Sync + Send {
     }
 }
 
-pub struct Agents(pub Vec<Box<dyn Agent>>);
-
-impl Agents {
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
-        self.0.iter_mut()
-    }
-
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self(vec![])
-    }
-
-    pub fn add(mut self, agent: impl Agent + 'static) -> Self {
-        self.0.push(Box::new(agent));
-        self
-    }
-}
-
 #[async_trait::async_trait]
 impl Agent for Agents {
     async fn step(&mut self) -> Result<()> {
@@ -59,5 +68,31 @@ impl Agent for Agents {
 
     async fn priority_step(&mut self) -> Result<()> {
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum AgentParameters<P: Parameterized> {
+    WeightChanger(WeightChangerParameters<P>),
+    Swapper(SwapperParameters<P>),
+    LiquidityProvider(LiquidityProviderParameters<P>),
+    BlockAdmin(BlockAdminParameters),
+    TokenAdmin(TokenAdminParameters),
+    PriceChanger(PriceChangerParameters<P>),
+}
+
+// TODO: I don't think this is actually correct
+impl Into<Vec<AgentParameters<Single>>> for AgentParameters<Multiple> {
+    fn into(self) -> Vec<AgentParameters<Single>> {
+        match self {
+            AgentParameters::WeightChanger(p) => vec![AgentParameters::WeightChanger(p.into())],
+            AgentParameters::Swapper(p) => vec![AgentParameters::Swapper(p.into())],
+            AgentParameters::LiquidityProvider(p) => {
+                vec![AgentParameters::LiquidityProvider(p.into())]
+            }
+            AgentParameters::BlockAdmin(p) => vec![AgentParameters::BlockAdmin(p)],
+            AgentParameters::TokenAdmin(p) => vec![AgentParameters::TokenAdmin(p)],
+            AgentParameters::PriceChanger(p) => vec![AgentParameters::PriceChanger(p.into())],
+        }
     }
 }

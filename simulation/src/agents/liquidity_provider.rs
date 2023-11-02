@@ -9,12 +9,17 @@ pub struct LiquidityProvider<S: LiquidityStrategy> {
     initial_price: U256,
 }
 
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct LiquidityProviderParameters<P: Parameterized> {
+    pub x_liquidity: P,
+}
+
 impl<S: LiquidityStrategy> LiquidityProvider<S> {
     pub async fn new(
         environment: &Environment,
+        config: &SimulationConfig<Single>,
         token_admin: &TokenAdmin,
         strategy_address: Address,
-        config: &SimulationConfig<Fixed>,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
         let strategy: S = S::new(strategy_address, client.clone());
@@ -39,7 +44,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent for LiquidityProvider<S> {
+impl<S: LiquidityStrategy + Sync + Send> Agent for LiquidityProvider<S> {
     async fn startup(&mut self) -> Result<()> {
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
