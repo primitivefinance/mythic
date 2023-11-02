@@ -140,8 +140,10 @@ impl Agent for VolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         let asset_price = format_ether(self.lex.price().call().await?).parse::<f64>()?;
-        let reserve_x = format_ether(self.g3m.reserve_x_without_precision().call().await?).parse::<f64>()?;
-        let reserve_y = format_ether(self.g3m.reserve_y_without_precision().call().await?).parse::<f64>()?;
+        let reserve_x =
+            format_ether(self.g3m.reserve_x_without_precision().call().await?).parse::<f64>()?;
+        let reserve_y =
+            format_ether(self.g3m.reserve_y_without_precision().call().await?).parse::<f64>()?;
         let portfolio_price = reserve_x * asset_price + reserve_y;
 
         if self.portfolio_prices.is_empty() {
