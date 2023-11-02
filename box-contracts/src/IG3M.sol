@@ -130,7 +130,7 @@ interface IG3M {
 
     /**
      * @notice Updates the swap fee of the pool.
-     * @param newSwapFee New swap fee of the pool, expressed in 10,000%
+     * @param newSwapFee New swap fee of the pool, expressed in WAD.
      */
     function setSwapFee(uint256 newSwapFee) external;
 
@@ -146,7 +146,7 @@ interface IG3M {
     /// @notice Address of token Y.
     function tokenY() external view returns (address);
 
-    /// @notice Swap fee of the pool, expressed in 10,000%.
+    /// @notice Swap fee of the pool, expressed in WAD.
     function swapFee() external view returns (uint256);
 
     /// @notice Reserve of token X, stored in WAD.
