@@ -121,6 +121,7 @@ contract G3M is IG3M, IStrategy {
         lastWeightX = weightX_;
         lastWeightXSync = block.timestamp;
 
+        require(swapFee <= 10_000, "Swap fee too high");
         swapFee = swapFee_;
     }
 
@@ -135,6 +136,7 @@ contract G3M is IG3M, IStrategy {
 
     /// @inheritdoc IG3M
     function setSwapFee(uint256 newSwapFee) external onlyAdmin {
+        require(newSwapFee <= 10_000, "Swap fee too high");
         swapFee = newSwapFee;
     }
 
@@ -359,7 +361,8 @@ contract G3M is IG3M, IStrategy {
 
         if (exactIn) {
             amountIn = amount;
-            uint256 amountInWithoutFees = amountIn - swapFee;
+            uint256 fees = amountIn * swapFee / 10_000;
+            uint256 amountInWithoutFees = amountIn - fees;
 
             amountOut = computeOutGivenIn(
                 amountInWithoutFees,
@@ -378,7 +381,7 @@ contract G3M is IG3M, IStrategy {
                 swapDirection ? currentWeightY : currentWeightX
             );
 
-            amountIn = amountInWithoutFees + swapFee;
+            amountIn = amountInWithoutFees * 10_000 / (10_000 - swapFee);
         }
 
         if (swapDirection) {
