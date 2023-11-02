@@ -14,15 +14,25 @@ use iced::{
 use thiserror::Error;
 
 use crate::sdk::vault::*;
+use tracing::info;
+
+use tokio_util::sync::CancellationToken;
 
 mod banner;
 pub mod start;
 
 /// Screen for the deploy Counter.sol example.
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct ExampleScreen {
     pub client: Arc<RevmMiddleware>,
     pub state: ExampleScreenState,
+    pub watcher: WatcherManager,
+}
+
+#[derive(Clone, Debug)]
+pub struct WatcherManager {
+    pub state: WatcherState,
+    pub handler: Option<CancellationToken>,
 }
 
 /// States of the example screen.
@@ -34,11 +44,21 @@ pub enum ExampleScreenState {
     DeploymentFailed(ExampleScreenError),
 }
 
-/// Messages for Application<>Screen communication.
 #[derive(Debug, Clone)]
+pub enum WatcherState {
+    On,
+    Off,
+}
+
+/// Messages for Application -> Screen communication.
+#[derive(Clone, Debug)]
 pub enum ExampleScreenMessage {
     Deploy,
     DeploySuccess(Result<Vault, ExampleScreenError>),
+    ToggleWatcher(WatcherState),
+    SetWatcher(Option<CancellationToken>),
+    AbortWatcher,
+    Empty,
 }
 
 /// Errors that can occur during the deployment of Counter.sol.
@@ -48,11 +68,12 @@ pub enum ExampleScreenError {
     ProviderError(#[from] &'static ethers::providers::ProviderError),
 }
 
-/// Messages for this screen's internal use.
+/// Messages for Screen -> Application communication.
 #[derive(Clone)]
 pub enum Event {
     Clicked,
     Deployed(Result<Vault, ExampleScreenError>),
+    Toggle(WatcherState),
 }
 
 /// Implements the following functions
@@ -64,6 +85,10 @@ impl ExampleScreen {
         Self {
             client,
             state: ExampleScreenState::NotDeployed,
+            watcher: WatcherManager {
+                state: WatcherState::Off,
+                handler: None,
+            },
         }
     }
 
@@ -85,6 +110,36 @@ impl ExampleScreen {
     /// because only the `Application` can execute commands that are async.
     pub fn update(&mut self, message: ExampleScreenMessage) -> Option<Event> {
         match message {
+            ExampleScreenMessage::ToggleWatcher(state) => {
+                info!("Got watcher message: {:?}", state);
+                self.watcher.state = state.clone();
+
+                // Tell the application to handle the resulting toggle state.
+                Some(Event::Toggle(state.clone()))
+            }
+            ExampleScreenMessage::SetWatcher(handle) => {
+                info!("Got watcher update handle");
+
+                // Set the handler
+                self.watcher.handler = handle;
+
+                None
+            }
+            ExampleScreenMessage::AbortWatcher => {
+                info!("Got watcher abort");
+                match self.watcher.handler {
+                    Some(ref handle) => {
+                        info!("Cancelling watcher using token");
+                        handle.cancel();
+                    }
+                    None => {
+                        info!("No watcher online to abort.");
+                    }
+                }
+
+                None
+            }
+            ExampleScreenMessage::Empty => None,
             ExampleScreenMessage::Deploy => Some(Event::Clicked),
             ExampleScreenMessage::DeploySuccess(res) => Some(Event::Deployed(res)),
         }
@@ -105,6 +160,16 @@ impl ExampleScreen {
         };
         content = content.push(button("Deploy Counter.sol", ExampleScreenMessage::Deploy));
 
+        // Render the watcher buttons
+        content = content.push(button(
+            "Turn watcher ON",
+            ExampleScreenMessage::ToggleWatcher(WatcherState::On),
+        ));
+        content = content.push(button(
+            "Turn watcher OFF",
+            ExampleScreenMessage::ToggleWatcher(WatcherState::Off),
+        ));
+
         content = match &self.state {
             ExampleScreenState::NotDeployed => content,
             ExampleScreenState::Deployed(_entity) => content.push(text("Successfully Deployed")),
@@ -113,6 +178,6 @@ impl ExampleScreen {
             }
         };
 
-        content.into()
+        content.spacing(4).into()
     }
 }

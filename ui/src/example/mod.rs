@@ -94,24 +94,19 @@ impl Application for ExampleApp {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            // Handle debug messages
+            // Handle general debug messages
             Message::Debug(msg) => {
                 info!("Debug: {}", msg);
             }
-            // Handle error messages
+            // Handle general error messages
             Message::Error(err) => {
                 info!("Error: {}", err);
             }
-            // Sets the production state of the application.
+            // Sets the production client of the application.
             Message::SetProduction(result) => {
                 if let Self::Running { production, .. } = self {
                     let entity = Arc::new(result);
                     *production = Some(entity.clone());
-
-                    // Start the sub
-                    return Command::perform(watcher::Watcher::new(entity.clone().get()), |_| {
-                        Message::Debug("Sub started".to_string())
-                    });
                 }
             }
             // Mutates this application's `screen` state to the new screen.
@@ -122,13 +117,57 @@ impl Application for ExampleApp {
             }
             // Mutates the example screen's state or performs forwarded commands.
             Message::ExampleScreen(message) => {
-                if let Self::Running { screen, .. } = self {
+                if let Self::Running {
+                    screen, production, ..
+                } = self
+                {
                     let Screen::Example(example) = screen else {
                         return Command::none();
                     };
 
                     if let Some(event) = example.update(message) {
                         match event {
+                            screen::Event::Toggle(state) => {
+                                if let Some(production) = production {
+                                    match state {
+                                        screen::WatcherState::On => {
+                                            info!("Starting watcher");
+                                            // Turn on the watcher, which returns an instance of `Watcher`.
+                                            // `Watcher` has a `handle` which is a cancel token to cancel the event listener stream.
+                                            // This cancel token is cloned and sent to the component, so it can cancel the stream when it receives
+                                            // an abort message from this application.
+                                            return Command::perform(
+                                                watcher::Watcher::new(production.clone().get()),
+                                                |res| match res {
+                                                    Ok(watcher) => Message::ExampleScreen(
+                                                        screen::ExampleScreenMessage::SetWatcher(
+                                                            Some(watcher.handle),
+                                                        ),
+                                                    ),
+                                                    Err(err) => {
+                                                        info!("Error starting watcher: {}", err);
+                                                        Message::ExampleScreen(
+                                                            screen::ExampleScreenMessage::Empty,
+                                                        )
+                                                    }
+                                                },
+                                            );
+                                        }
+                                        screen::WatcherState::Off => {
+                                            info!("Stopping watcher");
+                                            // Turn off the watcher by sending the abort message to the component.
+                                            return Command::perform(
+                                                async { Ok::<(), ()>(()) },
+                                                |_| {
+                                                    Message::ExampleScreen(
+                                                        screen::ExampleScreenMessage::AbortWatcher,
+                                                    )
+                                                },
+                                            );
+                                        }
+                                    }
+                                }
+                            }
                             screen::Event::Clicked => {
                                 return Command::perform(
                                     crate::sdk::vault::Vault::deploy::<screen::ExampleScreenError>(
@@ -172,6 +211,10 @@ impl Application for ExampleApp {
                     .align_items(alignment::Alignment::Center);
 
                 // Renders the current screen.
+                // note: Each screen is instantiated when its routed to. This has the effect
+                // of completely wiping any state that was on the screen before.
+                // This could be a benefit, as its a clean way to reset the state of a screen.
+                // But there may be scenarios where we want to preserve state of a screen.
                 match screen {
                     Screen::Start => {
                         let start_screen =
@@ -193,6 +236,20 @@ impl Application for ExampleApp {
                 }
 
                 content = content.push(watcher::watcher());
+
+                // Push text on whether the watcher is ON or OFF
+                content = content.push(
+                    text(match screen {
+                        Screen::Example(example) => match example.watcher.state {
+                            screen::WatcherState::On => "Watcher is ON",
+                            screen::WatcherState::Off => "Watcher is OFF",
+                        },
+                        _ => "",
+                    })
+                    .size(30)
+                    .width(Length::Fill)
+                    .horizontal_alignment(alignment::Horizontal::Center),
+                );
 
                 content.into()
             }

@@ -21,6 +21,7 @@ thiserror = { workspace = true }
 analysis = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+tokio-util = { workspace = true }
 
 # deps for ui
 eyre = "0.6.8"

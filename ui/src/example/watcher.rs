@@ -9,8 +9,8 @@ use iced::{
 
 use ethers::contract::{abigen, Contract};
 use ethers::prelude::*;
-use ethers::types::Address;
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 
 use tracing::info;
 
@@ -22,47 +22,60 @@ abigen!(
     "#,
 );
 
-const COUNTER_ADDY: &str = "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707";
+const COUNTER_ADDY: &str = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
-pub struct Watcher<B, M, D> {
-    event_filter: Event<B, M, D>,
+#[derive(Debug)]
+pub struct Watcher {
+    pub handle: CancellationToken,
 }
 
-impl Watcher<Arc<Provider<Ws>>, Provider<Ws>, UpdateFilter> {
+impl Watcher {
     pub async fn new(client: Arc<Provider<Ws>>) -> eyre::Result<Self> {
+        let cancel_token = CancellationToken::new();
+        let cloned_token = cancel_token.clone();
+
         let event = Contract::event_of_type::<UpdateFilter>(client.clone())
             .from_block(1)
             .address(ValueOrArray::Array(vec![COUNTER_ADDY.parse()?]));
 
-        let mut stream = event.subscribe_with_meta().await?.take(2);
-
         info!("Starting event stream watcher");
 
         // Note that `log` has type AnswerUpdatedFilter
-        while let Some(Ok((log, meta))) = stream.next().await {
-            info!("{log:?}");
-            info!("{meta:?}")
-        }
+        // In this code, the tokio::select! block will either wait for the cancellation token to be triggered or for the event stream to complete.
+        // If the cancellation token is triggered,
+        // it will log a message and then return,
+        // effectively stopping the task.
+        // If the event stream completes,
+        // it will log a message and continue running.
+        let handle = tokio::spawn(async move {
+            tokio::select! {
+                _ = cloned_token.cancelled() => {
+                    info!("Cancellation token triggered");
+                    return;
+                }
+                _ = async {
+                    let mut set = tokio::task::JoinSet::new();
+                    set.spawn(async move {
+                        let mut stream = event.subscribe_with_meta().await.unwrap();
+                        while let Some(Ok((log, meta))) = stream.next().await {
+                            info!("{log:?}");
+                            info!("{meta:?}")
+                        }
+                    });
 
-        info!("exited event stream watcher");
+                    while let Some(res) = set.join_next().await {
+                        info!("stream watcher completed: {:?}", res);
+                    }
+                } => {}
+            }
+        });
 
-        drop(stream);
+        info!("Exited event stream watcher");
 
         Ok(Self {
-            event_filter: event,
+            handle: cancel_token.clone(),
         })
     }
-
-    /* pub async fn sub(&self) -> eyre::Result<()> {
-        let mut stream = self.event_filter.subscribe().await?.take(2);
-
-        while let Some(Ok((log, meta))) = stream.next().await {
-            println!("{log:?}");
-            println!("{meta:?}")
-        }
-
-        Ok(())
-    } */
 }
 
 pub fn watcher<'a, Message: 'a>() -> Container<'a, Message> {

@@ -1,12 +1,9 @@
 //! Abstraction for interacting with production or test networks via an ethers-rs provider/client.
 
 use ethers::prelude::*;
-
 use std::sync::Arc;
-
 use tracing::info;
 
-const RPC_URL: &str = "http://localhost:8545";
 const RPC_URL_WS: &str = "ws://localhost:8545";
 const CHAIN_ID: u64 = 31337;
 
@@ -30,7 +27,15 @@ impl Production<Ws> {
         // connect the wallet to the provider
         let client = Arc::new(SignerMiddleware::new(provider, wallet));
 
-        // craft the transaction
+        Ok(Self {
+            client: client.clone(),
+        })
+    }
+
+    /// Used for testing the connection to the network.
+    /// Make sure the rpc is online, i.e. if using localhost anvil must be running.
+    pub async fn debug_tx(&self) -> eyre::Result<()> {
+        let client = self.client.clone();
         let tx = TransactionRequest::new().to(client.address()).value(10000);
 
         // send it!
@@ -45,11 +50,10 @@ impl Production<Ws> {
         info!("Sent tx: {}\n", serde_json::to_string(&tx)?);
         info!("Tx receipt: {}", serde_json::to_string(&receipt)?);
 
-        Ok(Self {
-            client: client.clone(),
-        })
+        Ok(())
     }
 
+    /// Returns a clone of the provider.
     pub fn get(&self) -> Arc<Provider<Ws>> {
         let provider = self.client.provider().clone();
         Arc::new(provider)
@@ -59,18 +63,27 @@ impl Production<Ws> {
 #[cfg(test)]
 mod tests {
 
-    use ethers::core::utils::Anvil;
     use ethers::prelude::*;
 
     use dotenv::dotenv;
 
+    /// Fails if anvil is not running!
     #[tokio::test]
     async fn test_production() -> eyre::Result<()> {
         dotenv().ok();
         let production = crate::sdk::production::Production::new().await?;
-        let client = production.client;
+        let client = production.client.clone();
         let balance = client.get_balance(client.address(), None).await?;
         println!("Balance: {}", balance);
+
+        // do debug tx
+        let _ = production.debug_tx().await?;
+
+        // check balance again
+        let balance2 = client.get_balance(client.address(), None).await?;
+
+        // assert balance changed
+        assert!(balance2 != balance);
 
         Ok(())
     }

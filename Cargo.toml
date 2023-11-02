@@ -29,6 +29,7 @@ config = "0.13.1"
 
 ## Async
 tokio = { version = "1.11.0", features = ["full"] }
+tokio-util = "0.7.10"
 async-trait = "0.1.73"
 
 ## Error and logs
