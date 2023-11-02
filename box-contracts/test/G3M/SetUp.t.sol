@@ -18,7 +18,8 @@ contract G3MSetUp is G3MTest {
         tokenX.mint(address(this), type(uint256).max);
         tokenY.mint(address(this), type(uint256).max);
 
-        g3m = new G3M(address(tokenX), address(tokenY), ud(0.5 ether), 30);
+        g3m =
+            new G3M(address(tokenX), address(tokenY), ud(0.5 ether), 0.01 ether);
 
         tokenX.approve(address(g3m), type(uint256).max);
         tokenY.approve(address(g3m), type(uint256).max);
