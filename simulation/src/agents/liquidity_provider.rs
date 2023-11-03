@@ -33,10 +33,12 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
+        label: impl Into<String>,
         token_admin: &TokenAdmin,
         strategy_address: Address,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, "liquidity_provider".into())?;
+        let label = label.into();
+        let client = RevmMiddleware::new(environment, Some(&label))?;
         let strategy: S = S::new(strategy_address, client.clone());
 
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
@@ -50,7 +52,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
         arby.approve(strategy_address, U256::MAX).send().await?;
 
         if let Some(AgentParameters::LiquidityProvider(params)) =
-            config.agent_parameters.get("liquidity_provider").cloned()
+            config.agent_parameters.get(&label).cloned()
         {
             Ok(Self {
                 client,
