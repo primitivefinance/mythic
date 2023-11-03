@@ -359,7 +359,8 @@ contract G3M is IG3M, IStrategy {
 
         if (exactIn) {
             amountIn = amount;
-            uint256 amountInWithoutFees = amountIn - swapFee;
+            uint256 fees = amountIn * swapFee / 1 ether;
+            uint256 amountInWithoutFees = amountIn - fees;
 
             amountOut = computeOutGivenIn(
                 amountInWithoutFees,
@@ -378,7 +379,7 @@ contract G3M is IG3M, IStrategy {
                 swapDirection ? currentWeightY : currentWeightX
             );
 
-            amountIn = amountInWithoutFees + swapFee;
+            amountIn = amountInWithoutFees * 1 ether / (1 ether - swapFee);
         }
 
         if (swapDirection) {
