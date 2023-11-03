@@ -12,7 +12,8 @@ contract RMM is IStrategy {
     uint256 public immutable sigma;
     uint256 public immutable strikePrice;
     uint256 public immutable tau;
-    uint256 public immutable gamma = 30;
+
+    uint256 public swapFee;
 
     uint256 public reserveX;
     uint256 public reserveY;
@@ -25,13 +26,17 @@ contract RMM is IStrategy {
         ERC20 tokenY_,
         uint256 sigma_,
         uint256 strikePrice_,
-        uint256 tau_
+        uint256 tau_,
+        uint256 swapFee_
     ) {
         tokenX = tokenX_;
         tokenY = tokenY_;
         sigma = sigma_;
         strikePrice = strikePrice_;
         tau = tau_;
+
+        require(swapFee_ < ONE, "Swap fee too high");
+        swapFee = swapFee_;
     }
 
     function initPool(
@@ -245,7 +250,7 @@ contract RMM is IStrategy {
     }
 
     function swap(uint256 amountX) external returns (uint256 amountY) {
-        uint256 fees = amountX * (10_000 - gamma) / 10_000;
+        uint256 fees = amountX * (ONE - swapFee) / ONE;
         uint256 deltaX = amountX - fees;
 
         uint256 price =
@@ -284,13 +289,18 @@ contract RMM is IStrategy {
         );
     }
 
+    function setSwapFee(uint256 newSwapFee) external {
+        require(newSwapFee < ONE, "New swap fee too high");
+        swapFee = newSwapFee;
+    }
+
     function getSpotPrice() external view returns (uint256) {
         return
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
     }
 
     function getSwapFee() external view returns (uint256) {
-        return gamma;
+        return swapFee;
     }
 
     function getReserveX() external view returns (uint256) {
