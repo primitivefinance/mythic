@@ -16,7 +16,8 @@ contract RMMConstructor is RMMSetUp {
             ERC20(tokenY),
             sigma,
             strikePrice,
-            tau
+            tau,
+            swapFee
         );
 
         assertEq(address(rmm.tokenX()), tokenX);
@@ -24,5 +25,6 @@ contract RMMConstructor is RMMSetUp {
         assertEq(rmm.sigma(), sigma);
         assertEq(rmm.strikePrice(), strikePrice);
         assertEq(rmm.tau(), tau);
+        assertEq(rmm.swapFee(), swapFee);
     }
 }
