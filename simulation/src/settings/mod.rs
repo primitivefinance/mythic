@@ -34,7 +34,6 @@ impl SimulationConfig<Multiple> {
 
 impl From<SimulationConfig<Multiple>> for Vec<SimulationConfig<Single>> {
     fn from(item: SimulationConfig<Multiple>) -> Self {
-        println!("{:?}\n", item);
         let mut index = 0;
         let mut configs = Vec::new();
         let mut map_vector: BTreeMap<String, Vec<AgentParameters<Single>>> = BTreeMap::new();
@@ -74,7 +73,6 @@ mod tests {
         let configs = SimulationConfig::new("src/tests/configs/static.toml").unwrap();
         let configs: Vec<SimulationConfig<Single>> = configs.into();
         let config = configs[0].clone();
-        println!("{:?}\n", configs);
         assert_eq!(configs.len(), 1);
         assert_eq!(config.simulation, SimulationType::DynamicWeights);
         assert_eq!(
@@ -82,19 +80,19 @@ mod tests {
             "src/tests/configs/test_static_output".to_string(),
         );
         let agent_parameters = config.agent_parameters.clone();
-        assert_eq!(agent_parameters.len(), 4);
+        assert_eq!(agent_parameters.len(), 5);
 
         assert!(agent_parameters.get("block_admin").is_some());
         assert!(agent_parameters.get("token_admin").is_some());
         assert!(agent_parameters.get("price_changer").is_some());
         assert!(agent_parameters.get("weight_changer").is_some());
+        assert!(agent_parameters.get("lp").is_some())
     }
 
     #[test]
     fn read_in_sweep() {
         let config = SimulationConfig::new("src/tests/configs/sweep.toml").unwrap();
         let configs: Vec<SimulationConfig<Single>> = config.into();
-        println!("{:?}\n", configs);
-        assert_eq!(configs.len(), 512);
+        assert_eq!(configs.len(), 2048);
     }
 }
