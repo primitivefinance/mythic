@@ -31,5 +31,5 @@ specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 specialty.VolatilityTargeting.update_frequency.fixed = 150
 
 [agent.lp.LiquidityProvider]
-x_liquidity.fixed = 1000
+x_liquidity.fixed = 1
 initial_price.fixed = 1.0

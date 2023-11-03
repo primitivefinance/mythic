@@ -116,6 +116,7 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
 impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
+        debug!("Entered `step()` for arbitrageur");
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
@@ -149,12 +150,12 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                 }
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!(
+                trace!(
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = self.strategy.get_x_input(target_price, &self.math).await?;
-                info!("Got input: {:?}", input);
+                trace!("Got input: {:?}", input);
                 let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;
                 match output {
@@ -165,28 +166,29 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            debug!("Execution revert: {:?}", output);
                             let NotProfitable {
                                 first_swap_output,
                                 second_swap_output,
                             } = NotProfitable::decode(output)?;
-                            info!(
+                            trace!(
                                 "first_swap_output: {:?}",
                                 format_units(first_swap_output, "ether")?
                             );
-                            info!(
+                            trace!(
                                 "second_swap_output: {:?}",
                                 format_units(second_swap_output, "ether")?
                             );
                         }
                     }
                 }
-                info!("Sent arbitrage.");
+                trace!("Sent arbitrage.");
             }
             Swap::None => {
-                info!("No arbitrage opportunity");
+                trace!("No arbitrage opportunity");
             }
         }
+        debug!("Finished `step()` for arbitrageur");
         Ok(())
     }
 }

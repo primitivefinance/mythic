@@ -39,6 +39,7 @@ pub async fn setup(config: SimulationConfig<Single>) -> Result<Simulation, Simul
     let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
         &environment,
         &config,
+        "lp",
         &token_admin,
         weight_changer.g3m().address(),
     )
@@ -51,6 +52,9 @@ pub async fn setup(config: SimulationConfig<Single>) -> Result<Simulation, Simul
         weight_changer.g3m().address(),
     )
     .await?;
+
+    println!("output directory: {:?}", config.output_directory);
+    println!("output file name: {:?}", config.output_file_name);
 
     EventLogger::builder()
         .directory(config.output_directory)
