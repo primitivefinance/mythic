@@ -30,70 +30,87 @@ impl SimulationConfig<Multiple> {
     }
 }
 
-impl Into<Vec<SimulationConfig<Single>>> for SimulationConfig<Multiple> {
-    fn into(self) -> Vec<SimulationConfig<Single>> {
-        let mut configs = vec![];
-        for (label, value) in self.agent_parameters {
-            let params: Vec<AgentParameters<Single>> = value.into();
-            for param in params {
-                let mut agent_parameters = BTreeMap::new();
-                agent_parameters.insert(label.clone(), param);
-                configs.push(SimulationConfig::<Single> {
-                    simulation: self.simulation,
-                    max_parallel: self.max_parallel,
-                    output_directory: self.output_directory.clone(),
-                    output_file_name: self.output_file_name.clone(),
-                    agent_parameters,
-                });
+impl From<SimulationConfig<Multiple>> for Vec<SimulationConfig<Single>> {
+    fn from(item: SimulationConfig<Multiple>) -> Self {
+        let agent_parameters_multiple = item.agent_parameters;
+        let keys: Vec<String> = agent_parameters_multiple.keys().cloned().collect();
+        let values_multiple: Vec<AgentParameters<Multiple>> =
+            agent_parameters_multiple.values().cloned().collect();
+
+        let values_single: Vec<Vec<AgentParameters<Single>>> =
+            values_multiple.into_iter().map(|v| v.into()).collect();
+
+        let mut configs: Vec<SimulationConfig<Single>> = Vec::new();
+
+        for i in 0..values_single[0].len() {
+            let mut agent_parameters_single: BTreeMap<String, AgentParameters<Single>> =
+                BTreeMap::new();
+            for (key, values) in keys.iter().zip(values_single.iter()) {
+                agent_parameters_single.insert(key.clone(), values[i].clone());
             }
+            let config_single = SimulationConfig {
+                simulation: item.simulation,
+                max_parallel: item.max_parallel,
+                output_directory: item.output_directory.clone(),
+                output_file_name: item.output_file_name.clone(),
+                agent_parameters: agent_parameters_single,
+            };
+            configs.push(config_single);
         }
+
         configs
     }
 }
 
 #[cfg(test)]
 mod tests {
-
+    // TODO: Generate the static and sweep configs here.
     use super::*;
 
     #[test]
     fn read_in_static() {
-        todo!();
-        // let config = SimulationConfig::new("configs/test/static.toml").unwrap();
-        // let configs: Vec<SimulationConfig<Single>> = config.into();
-        // assert_eq!(configs.len(), 1);
-        // assert_eq!(configs[0].simulation, SimulationType::DynamicWeights);
-        // assert_eq!(configs[0].trajectory.process, "gbm");
-        // assert_eq!(configs[0].trajectory.initial_price, 1.0);
-        // assert_eq!(configs[0].trajectory.t_0, 0.0);
-        // assert_eq!(configs[0].trajectory.t_n, 1.0);
-        // assert_eq!(configs[0].trajectory.num_steps, 100);
-        // assert_eq!(configs[0].trajectory.seed, 2);
-        // assert_eq!(configs[0].gbm.unwrap().drift, 0.1);
-        // assert_eq!(configs[0].gbm.unwrap().volatility, 0.3);
-        // assert_eq!(configs[0].pool.fee_basis_points, 30);
-        // assert_eq!(configs[0].pool.weight_x, 0.5);
-        // assert_eq!(configs[0].pool.target_volatility, 0.15);
-        // assert_eq!(configs[0].lp.x_liquidity, 1.0);
-        // assert_eq!(configs[0].block.timestep_size, 15);
-        // assert_eq!(
-        //     configs[0]
-        //         .weight_changer
-        //         .volatility_targeting
-        //         .unwrap()
-        //         .target_volatility,
-        //     0.15
-        // );
-        // assert_eq!(
-        //     configs[0]
-        //         .weight_changer
-        //         .volatility_targeting
-        //         .unwrap()
-        //         .update_frequency,
-        //     150
-        // );
+        let config = SimulationConfig::new("src/tests/configs/static.toml").unwrap();
+        let configs: Vec<SimulationConfig<Single>> = config.into();
+        println!("{:?}", configs);
+        assert_eq!(configs.len(), 1);
+        assert_eq!(configs[0].simulation, SimulationType::DynamicWeights);
+        assert_eq!(
+            configs[0].output_directory,
+            "src/tests/configs/test_static_output".to_string(),
+        );
+        let agent_parameters = configs[0].agent_parameters.clone();
+        assert_eq!(agent_parameters.len(), 4);
     }
 
+    // assert_eq!(configs[0].trajectory.process, "gbm");
+    // assert_eq!(configs[0].trajectory.initial_price, 1.0);
+    // assert_eq!(configs[0].trajectory.t_0, 0.0);
+    // assert_eq!(configs[0].trajectory.t_n, 1.0);
+    // assert_eq!(configs[0].trajectory.num_steps, 100);
+    // assert_eq!(configs[0].trajectory.seed, 2);
+    // assert_eq!(configs[0].gbm.unwrap().drift, 0.1);
+    // assert_eq!(configs[0].gbm.unwrap().volatility, 0.3);
+    // assert_eq!(configs[0].pool.fee_basis_points, 30);
+    // assert_eq!(configs[0].pool.weight_x, 0.5);
+    // assert_eq!(configs[0].pool.target_volatility, 0.15);
+    // assert_eq!(configs[0].lp.x_liquidity, 1.0);
+    // assert_eq!(configs[0].block.timestep_size, 15);
+    // assert_eq!(
+    //     configs[0]
+    //         .weight_changer
+    //         .volatility_targeting
+    //         .unwrap()
+    //         .target_volatility,
+    //     0.15
+    // );
+    // assert_eq!(
+    //     configs[0]
+    //         .weight_changer
+    //         .volatility_targeting
+    //         .unwrap()
+    //         .update_frequency,
+    //     150
+    // );
     #[test]
     fn read_in_sweep() {
         todo!()

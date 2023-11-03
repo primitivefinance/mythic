@@ -19,23 +19,17 @@ pub struct VolatilityTargetingStrategist {
 pub struct VolatilityTargetingParameters<P: Parameterized> {
     pub target_volatility: P,
     pub update_frequency: P,
-    pub initial_weight_x: P,
-    pub fee_basis_points: P,
 }
 
-impl Into<Vec<VolatilityTargetingParameters<Single>>> for VolatilityTargetingParameters<Multiple> {
-    fn into(self) -> Vec<VolatilityTargetingParameters<Single>> {
-        self.target_volatility
+impl From<VolatilityTargetingParameters<Multiple>> for Vec<VolatilityTargetingParameters<Single>> {
+    fn from(item: VolatilityTargetingParameters<Multiple>) -> Self {
+        item.target_volatility
             .parameters()
             .into_iter()
-            .zip(self.update_frequency.parameters().into_iter())
-            .zip(self.initial_weight_x.parameters().into_iter())
-            .zip(self.fee_basis_points.parameters().into_iter())
-            .map(|(((tv, uf), iwx), fbps)| VolatilityTargetingParameters {
+            .zip(item.update_frequency.parameters())
+            .map(|(tv, uf)| VolatilityTargetingParameters {
                 target_volatility: Single(tv),
                 update_frequency: Single(uf),
-                initial_weight_x: Single(iwx),
-                fee_basis_points: Single(fbps),
             })
             .collect()
     }
