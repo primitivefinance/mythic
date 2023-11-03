@@ -20,7 +20,7 @@ pub trait WeightChanger: Agent {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WeightChangerParameters<P: Parameterized> {
     pub initial_weight_x: P,
-    pub fee_basis_points: P,
+    pub fee: P,
     pub specialty: WeightChangerSpecialty<P>,
 }
 
@@ -31,21 +31,23 @@ pub enum WeightChangerSpecialty<P: Parameterized> {
     DollarCostAveraging(DollarCostAveragingParameters<P>),
 }
 
+use itertools::iproduct;
+
 impl From<WeightChangerParameters<Multiple>> for Vec<WeightChangerParameters<Single>> {
     fn from(item: WeightChangerParameters<Multiple>) -> Self {
-        item.initial_weight_x
-            .parameters()
-            .into_iter()
-            .zip(item.fee_basis_points.parameters())
-            .zip(Into::<Vec<WeightChangerSpecialty<Single>>>::into(
-                item.specialty,
-            ))
-            .map(|((iwx, fbps), specialty)| WeightChangerParameters {
-                initial_weight_x: Single(iwx),
-                fee_basis_points: Single(fbps),
-                specialty,
-            })
-            .collect()
+        println!("fee_basis_points: {:?}\n", item.fee.parameters());
+        let specialties: Vec<WeightChangerSpecialty<Single>> = item.specialty.into();
+        iproduct!(
+            item.initial_weight_x.parameters(),
+            item.fee.parameters(),
+            specialties
+        )
+        .map(|(iwx, f, specialty)| WeightChangerParameters {
+            initial_weight_x: Single(iwx),
+            fee: Single(f),
+            specialty,
+        })
+        .collect()
     }
 }
 
@@ -87,7 +89,7 @@ impl WeightChangerType {
         liquid_exchange_address: Address,
     ) -> Result<Self> {
         let label: String = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label.as_str()))?;
+        let client = RevmMiddleware::new(environment, Some(&label))?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         if let Some(AgentParameters::WeightChanger(params)) = config.agent_parameters.get(&label) {
@@ -95,7 +97,7 @@ impl WeightChangerType {
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
                 ethers::utils::parse_ether(params.initial_weight_x.0)?,
-                ethers::utils::parse_ether(params.fee_basis_points.0)?,
+                ethers::utils::parse_ether(params.fee.0)?,
             );
             let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
 

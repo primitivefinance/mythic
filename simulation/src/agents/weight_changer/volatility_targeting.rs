@@ -1,5 +1,6 @@
 use super::*;
 use crate::math::*;
+use itertools::iproduct;
 
 #[derive(Clone)]
 pub struct VolatilityTargetingStrategist {
@@ -27,15 +28,15 @@ pub struct VolatilityTargetingParameters<P: Parameterized> {
 
 impl From<VolatilityTargetingParameters<Multiple>> for Vec<VolatilityTargetingParameters<Single>> {
     fn from(item: VolatilityTargetingParameters<Multiple>) -> Self {
-        item.target_volatility
-            .parameters()
-            .into_iter()
-            .zip(item.update_frequency.parameters())
-            .map(|(tv, uf)| VolatilityTargetingParameters {
-                target_volatility: Single(tv),
-                update_frequency: Single(uf),
-            })
-            .collect()
+        iproduct!(
+            item.target_volatility.parameters(),
+            item.update_frequency.parameters()
+        )
+        .map(|(tv, uf)| VolatilityTargetingParameters {
+            target_volatility: Single(tv),
+            update_frequency: Single(uf),
+        })
+        .collect()
     }
 }
 
