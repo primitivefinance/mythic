@@ -17,6 +17,27 @@ impl SimulationData {
             .and_then(|events| events.get(event_name))
     }
 
+    pub fn get_vectorized_events_from_str(
+        &self,
+        contract_name: &str,
+        event_name: &str,
+    ) -> BTreeMap<String, Vec<Value>> {
+        let event = self.get_events(contract_name, event_name).unwrap();
+        let mut vectorized_events: BTreeMap<String, Vec<Value>> = BTreeMap::new();
+
+        // Assuming event is a Map<String, Value>
+        for map in event.iter().map(|x| x.as_object().unwrap()) {
+            for (key, value) in map {
+                vectorized_events
+                    .entry(key.clone())
+                    .or_default()
+                    .push(value.clone());
+            }
+        }
+
+        vectorized_events
+    }
+
     pub fn get_vectorized_events<T>(&self, contract_name: &str) -> Vec<T>
     where
         T: DeserializeOwned,
