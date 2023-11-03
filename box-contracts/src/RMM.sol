@@ -14,6 +14,8 @@ contract RMM is IStrategy {
     uint256 public immutable tau;
     uint256 public immutable gamma = 30;
 
+    uint256 public swapFee;
+
     uint256 public reserveX;
     uint256 public reserveY;
     uint256 public totalLiquidity;
@@ -25,13 +27,15 @@ contract RMM is IStrategy {
         ERC20 tokenY_,
         uint256 sigma_,
         uint256 strikePrice_,
-        uint256 tau_
+        uint256 tau_,
+        uint256 swapFee_
     ) {
         tokenX = tokenX_;
         tokenY = tokenY_;
         sigma = sigma_;
         strikePrice = strikePrice_;
         tau = tau_;
+        swapFee = swapFee_;
     }
 
     function initPool(
@@ -245,8 +249,7 @@ contract RMM is IStrategy {
     }
 
     function swap(uint256 amountX) external returns (uint256 amountY) {
-        uint256 fees = amountX * (10_000 - gamma) / 10_000;
-        uint256 deltaX = amountX - fees;
+        uint256 deltaX = amountX - swapFee;
 
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
