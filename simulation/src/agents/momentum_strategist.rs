@@ -173,8 +173,7 @@ impl Agent for MomentumStrategist {
 
             self.asset_prices.push((asset_price, timestamp));
             self.portfolio_prices.push((portfolio_price, timestamp));
-            // info!("asset_prices: {:?}", self.asset_prices);
-            // info!("portfolio_prices: {:?}", self.portfolio_prices);
+
             self.calculate_returns()?;
             self.execute_smooth_rebalance().await?;
         }
