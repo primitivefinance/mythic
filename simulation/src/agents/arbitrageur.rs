@@ -79,18 +79,19 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
     async fn detect_arbitrage(&self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        // info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
+        trace!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
         let g3m_price_wad = self.strategy.get_spot_price().await?;
-        // info!("g3m_price_wad: {:?}", g3m_price_wad);
+        trace!("g3m_price_wad: {:?}", g3m_price_wad);
 
-        let gamma_wad = WAD - (self.strategy.get_swap_fee().await?) * U256::from(10u128.pow(14));
-        // info!("gamma_wad: {:?}", gamma_wad);
+        trace!("swap_fee(): {:?}", self.strategy.get_swap_fee().await?);
+        let gamma_wad = WAD - self.strategy.get_swap_fee().await?;
+        trace!("gamma_wad: {:?}", gamma_wad);
 
         // Compute the no-arbitrage bounds.
         let upper_arb_bound = WAD * g3m_price_wad / gamma_wad;
-        // info!("upper_arb_bound: {:?}", upper_arb_bound);
+        trace!("upper_arb_bound: {:?}", upper_arb_bound);
         let lower_arb_bound = g3m_price_wad * gamma_wad / WAD;
-        // info!("lower_arb_bound: {:?}", lower_arb_bound);
+        trace!("lower_arb_bound: {:?}", lower_arb_bound);
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.
