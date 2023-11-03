@@ -2,17 +2,18 @@
 //! Subscribes to an event using Websocket protocol from an ethers-rs provider.
 //! It's possible to define event filters to watch using abigen! macro.
 
+use std::sync::Arc;
+
+use ethers::{
+    contract::{abigen, Contract},
+    prelude::*,
+};
 use iced::{
     alignment::{self},
     widget::{button, column, text},
     Alignment, Element, Length,
 };
-
-use ethers::contract::{abigen, Contract};
-use ethers::prelude::*;
-use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-
 use tracing::info;
 
 abigen!(
@@ -43,13 +44,14 @@ impl Watcher {
         info!("Starting event stream watcher");
 
         // Note that `log` has type AnswerUpdatedFilter
-        // In this code, the tokio::select! block will either wait for the cancellation token to be triggered or for the event stream to complete.
+        // In this code, the tokio::select! block will either wait for the cancellation
+        // token to be triggered or for the event stream to complete.
         // If the cancellation token is triggered,
         // it will log a message and then return,
         // effectively stopping the task.
         // If the event stream completes,
         // it will log a message and continue running.
-        let handle = tokio::spawn(async move {
+        let _handle = tokio::spawn(async move {
             tokio::select! {
                 _ = cloned_token.cancelled() => {
                     info!("Cancellation token triggered");
@@ -141,7 +143,8 @@ impl WatcherComponent {
         }
     }
 
-    /// Returns AppToWatcherMessage to the application, which passes it back this Watcher component.
+    /// Returns AppToWatcherMessage to the application, which passes it back
+    /// this Watcher component.
     pub fn view<'a>(&self) -> Element<'a, AppToWatcherMessage> {
         let mut content = column![];
 

@@ -1,6 +1,5 @@
 //! Widget for deploying a smart contract.
 
-use crate::sdk::vault::*;
 use ethers::prelude::*;
 use iced::{
     alignment::{self},
@@ -9,6 +8,8 @@ use iced::{
 };
 use thiserror::Error;
 use tracing::info;
+
+use crate::sdk::vault::*;
 
 #[derive(Debug, Clone)]
 pub enum DeployerToAppMessage {
@@ -72,7 +73,8 @@ impl DeployerComponent {
 
         content = content.push(button("Deploy", AppToDeployerMessage::Deploy));
 
-        // Push the address to content if `self.address` is not the zero address (Address::zero()).
+        // Push the address to content if `self.address` is not the zero address
+        // (Address::zero()).
         if self.address != Address::zero() {
             content = content.push(text(format!("Address: {}", self.address)));
         }

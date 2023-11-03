@@ -4,12 +4,11 @@ use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-
-use super::*;
-
-use crate::sdk::production::*;
 use ethers::prelude::*;
 use tracing::info;
+
+use super::*;
+use crate::sdk::production::*;
 
 mod components;
 mod deployer;
@@ -136,9 +135,13 @@ impl Application for ExampleApp {
                                     match state {
                                         true => {
                                             info!("Starting watcher");
-                                            // Turn on the watcher, which returns an instance of `Watcher`.
-                                            // `Watcher` has a `handle` which is a cancel token to cancel the event listener stream.
-                                            // This cancel token is cloned and sent to the component, so it can cancel the stream when it receives
+                                            // Turn on the watcher, which returns an instance of
+                                            // `Watcher`.
+                                            // `Watcher` has a `handle` which is a cancel token to
+                                            // cancel the event listener stream.
+                                            // This cancel token is cloned and sent to the
+                                            // component, so it can cancel the stream when it
+                                            // receives
                                             // an abort message from this application.
                                             return Command::perform(
                                                 watcher::Watcher::new(production.clone().get()),
@@ -161,7 +164,8 @@ impl Application for ExampleApp {
                                         }
                                         false => {
                                             info!("Stopping watcher");
-                                            // Turn off the watcher by sending the abort message to the component.
+                                            // Turn off the watcher by sending the abort message to
+                                            // the component.
                                             return Command::perform(
                                                 async { Ok::<(), ()>(()) },
                                                 |_| {

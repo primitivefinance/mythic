@@ -8,8 +8,7 @@ use std::sync::Arc;
 use arbiter_core::middleware::RevmMiddleware;
 use iced::{widget::column, Element};
 
-use super::deployer;
-use super::watcher;
+use super::{deployer, watcher};
 
 mod banner;
 pub mod start;
@@ -104,14 +103,16 @@ impl ExampleScreen {
     pub fn view<'a>(&self) -> Element<'a, ExampleScreenMessage> {
         let mut content = column![];
 
-        // Render the Deployer component, wraps the component's messages in a screen message.
+        // Render the Deployer component, wraps the component's messages in a screen
+        // message.
         content = content.push(
             self.deployer
                 .view()
                 .map(|message| ExampleScreenMessage::DeployerComponent(message)),
         );
 
-        // Render the Watcher component, wraps the component's messages in a screen message.
+        // Render the Watcher component, wraps the component's messages in a screen
+        // message.
         content = content.push(
             self.watcher
                 .view()

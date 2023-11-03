@@ -1,7 +1,9 @@
-//! Abstraction for interacting with production or test networks via an ethers-rs provider/client.
+//! Abstraction for interacting with production or test networks via an
+//! ethers-rs provider/client.
+
+use std::sync::Arc;
 
 use ethers::prelude::*;
-use std::sync::Arc;
 use tracing::info;
 
 const RPC_URL_WS: &str = "ws://localhost:8545";
@@ -33,7 +35,8 @@ impl Production<Ws> {
     }
 
     /// Used for testing the connection to the network.
-    /// Make sure the rpc is online, i.e. if using localhost anvil must be running.
+    /// Make sure the rpc is online, i.e. if using localhost anvil must be
+    /// running.
     pub async fn debug_tx(&self) -> eyre::Result<()> {
         let client = self.client.clone();
         let tx = TransactionRequest::new().to(client.address()).value(10000);
@@ -63,9 +66,8 @@ impl Production<Ws> {
 #[cfg(test)]
 mod tests {
 
-    use ethers::prelude::*;
-
     use dotenv::dotenv;
+    use ethers::prelude::*;
 
     /// Fails if anvil is not running!
     #[tokio::test]

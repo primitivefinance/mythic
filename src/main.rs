@@ -2,10 +2,9 @@ use std::time::Instant;
 
 use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
+use dotenv::dotenv;
 use simulation::simulations;
 use ui as interface;
-
-use dotenv::dotenv;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
