@@ -34,6 +34,8 @@ contract RMM is IStrategy {
         sigma = sigma_;
         strikePrice = strikePrice_;
         tau = tau_;
+
+        require(swapFee_ < ONE, "Swap fee too high");
         swapFee = swapFee_;
     }
 
@@ -288,6 +290,7 @@ contract RMM is IStrategy {
     }
 
     function setSwapFee(uint256 newSwapFee) external {
+        require(newSwapFee < ONE, "New swap fee too high");
         swapFee = newSwapFee;
     }
 
