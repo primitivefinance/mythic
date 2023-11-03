@@ -8,7 +8,7 @@ pub mod rmm;
 /// Strategy trait to provide additional functionality that is specific to
 /// different agents.
 #[async_trait::async_trait]
-pub trait Strategy: Sized {
+pub trait Strategy: Sized + Send + Sync {
     /// Strategy stored is fetched from the strategy smart contract as bytes.
     /// This type defines how those bytes are decoded into a strategy data type.
     type StrategyData;
@@ -33,7 +33,7 @@ pub trait Strategy: Sized {
 pub trait LiquidityStrategy: Strategy {
     /// Provides the pool with an initial amount of reserves and liquidity, at a
     /// price.
-    async fn instantiate(
+    async fn initialize_pool(
         &self,
         initial_x_wad: U256,
         initial_price_wad: U256,

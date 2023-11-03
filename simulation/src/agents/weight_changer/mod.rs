@@ -100,6 +100,8 @@ impl WeightChangerType {
             );
             let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
 
+            debug!("Deployed G3M at address: {:?}", g3m.address(),);
+
             match params.specialty {
                 WeightChangerSpecialty::Momentum(parameters) => {
                     let strategist = MomentumStrategist {

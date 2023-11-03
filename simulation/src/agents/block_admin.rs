@@ -59,7 +59,7 @@ impl Agent for BlockAdmin {
     async fn startup(&mut self) -> Result<()> {
         debug!("Updating block");
         self.update_block()?;
-        debug!("Updating block");
+        debug!("Block updated");
         Ok(())
     }
 }

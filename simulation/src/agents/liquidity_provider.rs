@@ -69,17 +69,23 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: LiquidityStrategy + Sync + Send> Agent for LiquidityProvider<S> {
+impl<S: LiquidityStrategy> Agent for LiquidityProvider<S> {
     async fn startup(&mut self) -> Result<()> {
+        debug!("Entering `LiquidityProvider` startup");
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
-        let tx = self
-            .strategy
-            .instantiate(self.initial_x, self.initial_price)
+
+        trace!(
+            "Initializing pool with {} x tokens and target price of {} wei",
+            self.initial_x,
+            self.initial_price
+        );
+        self.strategy
+            .initialize_pool(self.initial_x, self.initial_price)
             .await?;
 
         debug!(
-            "LiquidityProvider.startup: instantiated pool at price {:?} wei",
+            "Exited `LiquidityProvider` startup, instantiated pool at price {:?} wei",
             self.strategy.get_spot_price().await?
         );
         Ok(())
