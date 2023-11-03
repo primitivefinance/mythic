@@ -123,6 +123,8 @@ impl WeightChangerType {
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,
                         target_volatility: parameters.target_volatility.0,
+                        sensitivity: parameters.sensitivity.0,
+                        max_weight_change: parameters.max_weight_change.0,
                         portfolio_prices: Vec::new(),
                         asset_prices: Vec::new(),
                         portfolio_rv: Vec::new(),

@@ -45,6 +45,12 @@ specialty.VolatilityTargeting.target_volatility.steps = 2
 specialty.VolatilityTargeting.update_frequency.start = 1
 specialty.VolatilityTargeting.update_frequency.end = 2
 specialty.VolatilityTargeting.update_frequency.steps = 2
+specialty.VolatilityTargeting.sensitivity.start = 0.05
+specialty.VolatilityTargeting.sensitivity.end = 0.5
+specialty.VolatilityTargeting.sensitivity.steps = 2
+specialty.VolatilityTargeting.max_weight_change.start = 0.05
+specialty.VolatilityTargeting.max_weight_change.end = 0.5
+specialty.VolatilityTargeting.max_weight_change.steps = 2
 
 [agent.lp.LiquidityProvider]
 x_liquidity.start = 1

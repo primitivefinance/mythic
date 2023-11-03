@@ -29,6 +29,8 @@ initial_weight_x.fixed = 0.5
 fee.fixed = 30
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 specialty.VolatilityTargeting.update_frequency.fixed = 150
+specialty.VolatilityTargeting.sensitivity.fixed = 0.1
+specialty.VolatilityTargeting.max_weight_change.fixed = 0.05
 
 [agent.lp.LiquidityProvider]
 x_liquidity.fixed = 1

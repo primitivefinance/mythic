@@ -10,8 +10,6 @@ pub struct VolatilityTargetingStrategist {
     pub target_volatility: f64,
     pub update_frequency: u64,
     pub next_update_timestamp: u64,
-    pub update_frequency: u64,
-    pub target_volatility: f64,
     pub sensitivity: f64,
     pub max_weight_change: f64,
     pub portfolio_prices: Vec<(f64, u64)>,
@@ -24,17 +22,23 @@ pub struct VolatilityTargetingStrategist {
 pub struct VolatilityTargetingParameters<P: Parameterized> {
     pub target_volatility: P,
     pub update_frequency: P,
+    pub sensitivity: P,
+    pub max_weight_change: P,
 }
 
 impl From<VolatilityTargetingParameters<Multiple>> for Vec<VolatilityTargetingParameters<Single>> {
     fn from(item: VolatilityTargetingParameters<Multiple>) -> Self {
         iproduct!(
             item.target_volatility.parameters(),
-            item.update_frequency.parameters()
+            item.update_frequency.parameters(),
+            item.sensitivity.parameters(),
+            item.max_weight_change.parameters()
         )
-        .map(|(tv, uf)| VolatilityTargetingParameters {
+        .map(|(tv, uf, s, mwc)| VolatilityTargetingParameters {
             target_volatility: Single(tv),
             update_frequency: Single(uf),
+            sensitivity: Single(s),
+            max_weight_change: Single(mwc),
         })
         .collect()
     }

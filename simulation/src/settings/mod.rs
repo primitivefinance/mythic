@@ -93,6 +93,6 @@ mod tests {
     fn read_in_sweep() {
         let config = SimulationConfig::new("src/tests/configs/sweep.toml").unwrap();
         let configs: Vec<SimulationConfig<Single>> = config.into();
-        assert_eq!(configs.len(), 2048);
+        assert_eq!(configs.len(), 8192);
     }
 }
