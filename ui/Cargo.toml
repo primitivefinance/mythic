@@ -29,3 +29,4 @@ iced = { version = "0.10.0", features = [
     "image",
     "palette",
 ] }
+native-dialog = "0.7.0"

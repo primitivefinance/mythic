@@ -1,25 +1,23 @@
+use analysis::reader::SimulationData;
+use native_dialog::FileDialog;
+
 use super::*;
 
 pub struct AnalyzerApp {
     state: AnalyzerState,
-    selected_file: Option<usize>,
-    available_files: Vec<PathBuf>,
-    selected_events: Vec<usize>,
-    _available_events: Vec<String>,
-    file_content: Option<String>,
+    simulation_data: Option<SimulationData>,
+    selected_events: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone)]
 pub enum AnalyzerMessage {
-    ChooseFile(usize),
-    FileChosen,
-    ChooseEvent(usize),
+    OpenFileExplorerClicked,
+    ChooseEvents((String, String)),
     EventsChosen,
 }
 
 pub enum AnalyzerState {
-    FileSelection,
-    EventSelection,
+    Selection,
     DisplayEvents,
 }
 
@@ -30,27 +28,11 @@ impl Application for AnalyzerApp {
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<AnalyzerMessage>) {
-        // Read files from a specific directory and populate available_files
-        let files = std::fs::read_dir("analysis/static_volatilities/gbm_drift=0_vol=1")
-            .unwrap()
-            .filter_map(|entry| {
-                let entry = entry.unwrap();
-                if entry.metadata().unwrap().is_file() {
-                    Some(entry.path())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
         (
             AnalyzerApp {
-                state: AnalyzerState::FileSelection,
-                selected_file: None,
-                available_files: files,
-                selected_events: vec![],
-                _available_events: vec![],
-                file_content: None,
+                state: AnalyzerState::Selection,
+                simulation_data: None,
+                selected_events: Vec::new(),
             },
             Command::none(),
         )
@@ -62,28 +44,24 @@ impl Application for AnalyzerApp {
 
     fn update(&mut self, message: AnalyzerMessage) -> Command<AnalyzerMessage> {
         match message {
-            AnalyzerMessage::ChooseFile(selected) => {
-                self.selected_file = Some(selected);
-            }
-            AnalyzerMessage::FileChosen => {
-                if let Some(index) = self.selected_file {
-                    if let Some(path) = self.available_files.get(index) {
-                        let content = std::fs::read_to_string(path)
-                            .unwrap_or_else(|_| "Failed to read the file.".to_string());
-                        self.file_content = Some(content);
-                    }
+            AnalyzerMessage::OpenFileExplorerClicked => {
+                if let Some(path) = open_file_dialog() {
+                    SimulationData::new(path.to_str().unwrap())
+                        .map(|data| {
+                            self.simulation_data = Some(data);
+                        })
+                        .unwrap();
                 }
-                self.state = AnalyzerState::EventSelection;
             }
-            AnalyzerMessage::ChooseEvent(selected) => {
+            AnalyzerMessage::ChooseEvents(selected) => {
                 if self.selected_events.contains(&selected) {
-                    self.selected_events.retain(|&x| x != selected);
+                    self.selected_events.retain(|x| x.clone() != selected);
                 } else {
                     self.selected_events.push(selected);
                 }
             }
             AnalyzerMessage::EventsChosen => {
-                self.state = AnalyzerState::FileSelection;
+                self.state = AnalyzerState::DisplayEvents;
             }
         }
         Command::none()
@@ -91,10 +69,8 @@ impl Application for AnalyzerApp {
 
     fn view(&self) -> Element<AnalyzerMessage> {
         match self.state {
-            AnalyzerState::FileSelection => self.view_file_selection(),
-            AnalyzerState::EventSelection => self.view_event_selection(),
-            AnalyzerState::DisplayEvents => self.view_file_selection(), /* TODO: Do something new
-                                                                         * later. */
+            AnalyzerState::Selection => self.view_selection(),
+            AnalyzerState::DisplayEvents => self.view_events(),
         }
     }
 
@@ -104,79 +80,61 @@ impl Application for AnalyzerApp {
 }
 
 impl AnalyzerApp {
-    fn view_file_selection(&self) -> Element<AnalyzerMessage> {
-        // Create a column of radio buttons for file selection
-        let mut files_column = Column::new().spacing(10);
-        for (index, file) in self.available_files.iter().enumerate() {
-            let file_string = file.display().to_string();
-            let radio = Radio::new(
-                &file_string, // use string representation
-                index,
-                self.selected_file,
-                AnalyzerMessage::ChooseFile,
-            );
-            files_column = files_column.push(radio);
-        }
-
-        // Embed the column inside the scrollable
-        let files_content = Scrollable::new(files_column).width(Length::FillPortion(2));
-
-        // Blurb of text and Next button
-        let blurb_content = Column::new()
-            .align_items(Alignment::Center)
+    fn view_selection(&self) -> Element<AnalyzerMessage> {
+        // Handle file selection
+        let file_chooser_column = Column::new()
+            .align_items(Alignment::Start)
             .spacing(20)
             .push(Text::new("Choose which file you want to analyze."))
-            .push(Button::new("Next").on_press(AnalyzerMessage::FileChosen))
+            .push(
+                Button::new("Open File Explorer")
+                    .on_press(AnalyzerMessage::OpenFileExplorerClicked),
+            )
             .width(Length::FillPortion(1));
 
-        // Arrange blurb and file list side by side using a Row
-        let content = Row::new()
-            .padding(20)
-            .spacing(20)
-            .push(blurb_content)
-            .push(files_content);
+        // Handle which events to analyze
+        let mut events_column = Column::new().align_items(Alignment::End).spacing(10);
+        if let Some(sim_data) = &self.simulation_data {
+            // Iterate over contracts
+            for contract_name in sim_data.0.keys() {
+                let mut contract_column = Column::new()
+                    .align_items(Alignment::Start)
+                    .spacing(5)
+                    .push(Text::new(contract_name).size(20)); // Displaying the contract name
 
-        // Finalize
-        container(content)
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
-    }
+                // Iterate over events inside the current contract
+                let events_map = sim_data.0.get(contract_name).unwrap();
+                for event_name in events_map.keys() {
+                    let checkbox = Checkbox::new(
+                        event_name,
+                        self.selected_events
+                            .contains(&(contract_name.clone(), event_name.clone())),
+                        move |_| {
+                            AnalyzerMessage::ChooseEvents((
+                                contract_name.clone(),
+                                event_name.clone(),
+                            ))
+                        },
+                    );
+                    contract_column = contract_column.push(checkbox);
+                }
 
-    fn view_event_selection(&self) -> Element<AnalyzerMessage> {
-        // Create a column of checkboxes for event selection
-        let mut events_column = Column::new().spacing(10);
+                // Add the current contract's column to the events column
+                events_column = events_column.push(contract_column);
+            }
 
-        // List of possible event variants
-        let possible_events = vec!["PriceChange".to_string(), "Swap".to_string()];
-
-        for (index, event) in possible_events.iter().enumerate() {
-            let checkbox = Checkbox::new(event, self.selected_events.contains(&index), move |_| {
-                AnalyzerMessage::ChooseEvent(index)
-            });
-            events_column = events_column.push(checkbox);
+            events_column = events_column.push(
+                Button::new("Analyze Events")
+                    .on_press(AnalyzerMessage::EventsChosen)
+                    .width(100),
+            );
         }
 
-        // Embed the column inside the scrollable
-        let events_content = Scrollable::new(events_column).width(Length::FillPortion(2));
-
-        // Blurb of text and some other control button (e.g., a button to finalize
-        // selection)
-        let blurb_content = Column::new()
-            .align_items(Alignment::Center)
-            .spacing(20)
-            .push(Text::new("Choose which events you want to analyze."))
-            .push(Button::new("Finalize").on_press(AnalyzerMessage::EventsChosen)) // You might need to add this message variant
-            .width(Length::FillPortion(1));
-
-        // Arrange blurb and event list side by side using a Row
         let content = Row::new()
             .padding(20)
             .spacing(20)
-            .push(blurb_content)
-            .push(events_content);
+            .push(file_chooser_column)
+            .push(events_column);
 
         // Finalize
         container(content)
@@ -186,4 +144,68 @@ impl AnalyzerApp {
             .height(Length::Fill)
             .into()
     }
+
+    fn view_events(&self) -> Element<AnalyzerMessage> {
+        let mut content = Row::new().spacing(20); // Spacing between columns
+
+        for (contract_name, event_name) in &self.selected_events {
+            let data = self
+                .simulation_data
+                .as_ref()
+                .unwrap()
+                .get_vectorized_events_from_str(contract_name, event_name);
+
+            for (variable_name, values) in data {
+                let mut column = Column::new().spacing(5); // Spacing between items in the column
+
+                // Title for the column
+                let title = Text::new(variable_name.clone()).size(20);
+                column = column.push(title);
+
+                // Calculate the breakpoints for displaying values
+                let breakpoint = values.len().min(25);
+                let start_of_last = values.len().saturating_sub(25);
+
+                // Add the first 25 values
+                for value in values.iter().take(breakpoint) {
+                    let text = Text::new(value.to_string()).size(16);
+                    column = column.push(text);
+                }
+
+                // Add the separator if there are more than 50 values
+                if values.len() > 50 {
+                    let separator = Text::new("...................").size(16);
+                    column = column.push(separator);
+                }
+
+                // Add the last 25 values
+                for value in values.iter().skip(start_of_last) {
+                    let text = Text::new(value.to_string()).size(16);
+                    column = column.push(text);
+                }
+
+                // Create a Scrollable for the Column
+                let column = Scrollable::new(column)
+                    .width(Length::FillPortion(1)) // Fill an equal portion of the row
+                    .height(Length::Fill); // Fill the vertical space
+                content = content.push(column);
+            }
+        }
+
+        // Finalize
+        container(content)
+            .center_x()
+            .center_y()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
+}
+
+fn open_file_dialog() -> Option<PathBuf> {
+    FileDialog::new()
+        .set_location(".")
+        .add_filter("JSON Files", &["json"])
+        .show_open_single_file()
+        .unwrap()
 }
