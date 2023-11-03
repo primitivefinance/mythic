@@ -287,6 +287,10 @@ contract RMM is IStrategy {
         );
     }
 
+    function setSwapFee(uint256 newSwapFee) external {
+        swapFee = newSwapFee;
+    }
+
     function getSpotPrice() external view returns (uint256) {
         return
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
