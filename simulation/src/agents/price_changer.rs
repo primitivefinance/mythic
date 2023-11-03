@@ -1,4 +1,6 @@
+use rand::random;
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 use arbiter_core::math::GeometricBrownianMotion;
 
@@ -132,17 +134,22 @@ impl Agent for PriceChanger {
     }
 }
 
-impl Into<Vec<PriceChangerParameters<Single>>> for PriceChangerParameters<Multiple> {
-    fn into(self) -> Vec<PriceChangerParameters<Single>> {
-        let initial_prices = self.initial_price.parameters();
-        let t_0 = self.t_0.parameters();
-        let t_n = self.t_n.parameters();
-        let process: Vec<PriceProcess<Single>> = self.process.into();
+impl From<PriceChangerParameters<Multiple>> for Vec<PriceChangerParameters<Single>> {
+    fn from(item: PriceChangerParameters<Multiple>) -> Self {
+        let num_paths = item.num_paths;
+        let initial_prices = item.initial_price.parameters();
+        let t_0 = item.t_0.parameters();
+        let t_n = item.t_n.parameters();
+        let process: Vec<PriceProcess<Single>> = item.process.into();
         let mut result: Vec<PriceChangerParameters<Single>> = vec![];
-        let mut hasher = DefaultHasher::new();
 
-        if let Some(seed) = self.seed {
-            for initial_price in initial_prices {
+        let mut hasher = DefaultHasher::new();
+        let mut seed = match item.seed {
+            Some(val) => val,
+            None => rand::random::<u64>(),
+        };
+        for _ in 0..num_paths {
+            for initial_price in initial_prices.clone() {
                 for t0 in t_0.clone() {
                     for tn in t_n.clone() {
                         for process in process.clone() {
@@ -151,10 +158,12 @@ impl Into<Vec<PriceChangerParameters<Single>>> for PriceChangerParameters<Multip
                                 initial_price: Single(initial_price),
                                 t_0: Single(t0),
                                 t_n: Single(tn),
-                                num_steps: self.num_steps,
+                                num_steps: item.num_steps,
                                 num_paths: 1,
                                 seed: Some(seed),
                             });
+                            hasher.write_u64(seed);
+                            seed = hasher.finish();
                         }
                     }
                 }

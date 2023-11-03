@@ -16,3 +16,5 @@ serde_json.workspace = true
 config.workspace = true
 
 unit-conversions = "0.1.13"
+itertools = "0.11.0"
+rand = "0.8.5"
