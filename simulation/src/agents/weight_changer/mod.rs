@@ -31,14 +31,15 @@ pub enum WeightChangerSpecialty<P: Parameterized> {
     DollarCostAveraging(DollarCostAveragingParameters<P>),
 }
 
-impl Into<Vec<WeightChangerParameters<Single>>> for WeightChangerParameters<Multiple> {
-    fn into(self) -> Vec<WeightChangerParameters<Single>> {
-        let specialty_params: Vec<WeightChangerSpecialty<Single>> = self.specialty.into();
-        self.initial_weight_x
+impl From<WeightChangerParameters<Multiple>> for Vec<WeightChangerParameters<Single>> {
+    fn from(item: WeightChangerParameters<Multiple>) -> Self {
+        item.initial_weight_x
             .parameters()
             .into_iter()
-            .zip(self.fee_basis_points.parameters().into_iter())
-            .zip(specialty_params.into_iter())
+            .zip(item.fee_basis_points.parameters())
+            .zip(Into::<Vec<WeightChangerSpecialty<Single>>>::into(
+                item.specialty,
+            ))
             .map(|((iwx, fbps), specialty)| WeightChangerParameters {
                 initial_weight_x: Single(iwx),
                 fee_basis_points: Single(fbps),
@@ -48,9 +49,9 @@ impl Into<Vec<WeightChangerParameters<Single>>> for WeightChangerParameters<Mult
     }
 }
 
-impl Into<Vec<WeightChangerSpecialty<Single>>> for WeightChangerSpecialty<Multiple> {
-    fn into(self) -> Vec<WeightChangerSpecialty<Single>> {
-        match self {
+impl From<WeightChangerSpecialty<Multiple>> for Vec<WeightChangerSpecialty<Single>> {
+    fn from(item: WeightChangerSpecialty<Multiple>) -> Self {
+        match item {
             WeightChangerSpecialty::Momentum(parameters) => {
                 let parameters: Vec<MomentumParameters<Single>> = parameters.into();
                 parameters

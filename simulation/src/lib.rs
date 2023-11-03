@@ -9,7 +9,7 @@ use arbiter_core::{
     bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange},
     data_collection::EventLogger,
     environment::{builder::EnvironmentBuilder, Environment},
-    math::{float_to_wad, OrnsteinUhlenbeck, StochasticProcess, Trajectories},
+    math::{OrnsteinUhlenbeck, StochasticProcess, Trajectories},
     middleware::{errors::RevmMiddlewareError, RevmMiddleware},
 };
 use bindings::{
@@ -39,6 +39,8 @@ mod settings;
 #[allow(unused)]
 pub mod simulations;
 pub mod strategy;
+#[cfg(test)]
+pub(crate) mod tests;
 
 /// The number 10^18.
 pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);

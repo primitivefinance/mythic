@@ -10,24 +10,18 @@ pub struct DollarCostAveragingParameters<P: Parameterized> {
     pub start: P,
     pub end: P,
     pub which_token: bool,
-    pub initial_weight_x: P,
-    pub fee_basis_points: P,
 }
 
-impl Into<Vec<DollarCostAveragingParameters<Single>>> for DollarCostAveragingParameters<Multiple> {
-    fn into(self) -> Vec<DollarCostAveragingParameters<Single>> {
-        self.start
+impl From<DollarCostAveragingParameters<Multiple>> for Vec<DollarCostAveragingParameters<Single>> {
+    fn from(item: DollarCostAveragingParameters<Multiple>) -> Self {
+        item.start
             .parameters()
             .into_iter()
-            .zip(self.end.parameters().into_iter())
-            .zip(self.initial_weight_x.parameters().into_iter())
-            .zip(self.fee_basis_points.parameters().into_iter())
-            .map(|(((s, e), iwx), fbps)| DollarCostAveragingParameters {
+            .zip(item.end.parameters())
+            .map(|(s, e)| DollarCostAveragingParameters {
                 start: Single(s),
                 end: Single(e),
-                initial_weight_x: Single(iwx),
-                fee_basis_points: Single(fbps),
-                which_token: self.which_token,
+                which_token: item.which_token,
             })
             .collect()
     }

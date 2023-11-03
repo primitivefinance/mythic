@@ -17,21 +17,15 @@ pub struct MomentumStrategist {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct MomentumParameters<P: Parameterized> {
     pub update_frequency: P,
-    pub initial_weight_x: P,
-    pub fee_basis_points: P,
 }
 
-impl Into<Vec<MomentumParameters<Single>>> for MomentumParameters<Multiple> {
-    fn into(self) -> Vec<MomentumParameters<Single>> {
-        self.update_frequency
+impl From<MomentumParameters<Multiple>> for Vec<MomentumParameters<Single>> {
+    fn from(item: MomentumParameters<Multiple>) -> Self {
+        item.update_frequency
             .parameters()
             .into_iter()
-            .zip(self.initial_weight_x.parameters().into_iter())
-            .zip(self.fee_basis_points.parameters().into_iter())
-            .map(|((update_freq, initial_wx), fbps)| MomentumParameters {
+            .map(|update_freq| MomentumParameters {
                 update_frequency: Single(update_freq),
-                initial_weight_x: Single(initial_wx),
-                fee_basis_points: Single(fbps),
             })
             .collect()
     }

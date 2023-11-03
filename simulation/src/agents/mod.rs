@@ -84,9 +84,9 @@ pub enum AgentParameters<P: Parameterized> {
     PriceChanger(PriceChangerParameters<P>),
 }
 
-impl Into<Vec<AgentParameters<Single>>> for AgentParameters<Multiple> {
-    fn into(self) -> Vec<AgentParameters<Single>> {
-        match self {
+impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
+    fn from(item: AgentParameters<Multiple>) -> Self {
+        match item {
             AgentParameters::WeightChanger(parameters) => {
                 let parameters: Vec<WeightChangerParameters<Single>> = parameters.into();
                 parameters
