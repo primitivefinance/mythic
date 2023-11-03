@@ -248,7 +248,8 @@ contract RMM is IStrategy {
     }
 
     function swap(uint256 amountX) external returns (uint256 amountY) {
-        uint256 deltaX = amountX - swapFee;
+        uint256 fees = amountX * (ONE - swapFee) / ONE;
+        uint256 deltaX = amountX - fees;
 
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
