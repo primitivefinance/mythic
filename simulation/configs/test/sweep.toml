@@ -47,6 +47,8 @@ target_volatility = 0.15
 x_liquidity = 1.0# in ether
 
 [weight_changer]
+max_weight_change = 0.05
+sensitivity = 0.05
 target_volatility = 0.15
 update_frequency = 150 
 

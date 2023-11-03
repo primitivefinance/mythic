@@ -182,4 +182,6 @@ pub struct LPParameters {
 pub struct WeightChangerParameters {
     pub target_volatility: f64,
     pub update_frequency: u64,
+    pub max_weight_change: f64,
+    pub sensitivity: f64,
 }

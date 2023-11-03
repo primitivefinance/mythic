@@ -5,11 +5,11 @@ output_directory = "analysis/static_volatilities"
 # The type of price process to use.
 process = "gbm"
 # The number of steps in the process.
-num_steps = 36500
+num_steps = 3650
 # Starting seed for the price processes
 seed = 10
 # The number of distinct paths to use
-num_paths = 10
+num_paths = 3
 # The initial price of the asset.
 [trajectory.initial_price]
 fixed = 1.0
@@ -48,6 +48,8 @@ target_volatility = 0.15
 x_liquidity = 1.0# in ether
 
 [weight_changer]
+max_weight_change = 0.05
+sensitivity = 0.05
 target_volatility = 0.15
 #update_frequency = 450 # 1 update per 30 timestep day
 update_frequency = 300 # 1 update per 20 timestep day
