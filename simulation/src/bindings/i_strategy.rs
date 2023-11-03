@@ -16,28 +16,12 @@ pub mod i_strategy {
             constructor: ::core::option::Option::None,
             functions: ::core::convert::From::from([
                 (
-                    ::std::borrow::ToOwned::to_owned("getInvariant"),
+                    ::std::borrow::ToOwned::to_owned("get_invariant"),
                     ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("getInvariant"),
+                        name: ::std::borrow::ToOwned::to_owned("get_invariant"),
                         inputs: ::std::vec![],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
-                            kind: ::ethers::core::abi::ethabi::ParamType::Int(256usize),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("int256"),
-                            ),
-                        },],
-                        constant: ::core::option::Option::None,
-                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                    },],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("getReserveX"),
-                    ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("getReserveX"),
-                        inputs: ::std::vec![],
-                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
+                            name: ::std::borrow::ToOwned::to_owned("invariant"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                             internal_type: ::core::option::Option::Some(
                                 ::std::borrow::ToOwned::to_owned("uint256"),
@@ -48,12 +32,12 @@ pub mod i_strategy {
                     },],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("getReserveY"),
+                    ::std::borrow::ToOwned::to_owned("get_reserve_x"),
                     ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("getReserveY"),
+                        name: ::std::borrow::ToOwned::to_owned("get_reserve_x"),
                         inputs: ::std::vec![],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
+                            name: ::std::borrow::ToOwned::to_owned("reserve_x_wad"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                             internal_type: ::core::option::Option::Some(
                                 ::std::borrow::ToOwned::to_owned("uint256"),
@@ -64,12 +48,12 @@ pub mod i_strategy {
                     },],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("getSpotPrice"),
+                    ::std::borrow::ToOwned::to_owned("get_reserve_y"),
                     ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("getSpotPrice"),
+                        name: ::std::borrow::ToOwned::to_owned("get_reserve_y"),
                         inputs: ::std::vec![],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
+                            name: ::std::borrow::ToOwned::to_owned("reserve_y_wad"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                             internal_type: ::core::option::Option::Some(
                                 ::std::borrow::ToOwned::to_owned("uint256"),
@@ -80,12 +64,28 @@ pub mod i_strategy {
                     },],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("getStrategyData"),
+                    ::std::borrow::ToOwned::to_owned("get_spot_price"),
                     ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("getStrategyData"),
+                        name: ::std::borrow::ToOwned::to_owned("get_spot_price"),
                         inputs: ::std::vec![],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
+                            name: ::std::borrow::ToOwned::to_owned("spot_price_wad"),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                            internal_type: ::core::option::Option::Some(
+                                ::std::borrow::ToOwned::to_owned("uint256"),
+                            ),
+                        },],
+                        constant: ::core::option::Option::None,
+                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                    },],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("get_strategy_data"),
+                    ::std::vec![::ethers::core::abi::ethabi::Function {
+                        name: ::std::borrow::ToOwned::to_owned("get_strategy_data"),
+                        inputs: ::std::vec![],
+                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                            name: ::std::borrow::ToOwned::to_owned("strategy_data"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
                             internal_type: ::core::option::Option::Some(
                                 ::std::borrow::ToOwned::to_owned("bytes"),
@@ -96,12 +96,12 @@ pub mod i_strategy {
                     },],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("getSwapFee"),
+                    ::std::borrow::ToOwned::to_owned("get_swap_fee"),
                     ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("getSwapFee"),
+                        name: ::std::borrow::ToOwned::to_owned("get_swap_fee"),
                         inputs: ::std::vec![],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
+                            name: ::std::borrow::ToOwned::to_owned("fee"),
                             kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                             internal_type: ::core::option::Option::Some(
                                 ::std::borrow::ToOwned::to_owned("uint256"),
@@ -112,140 +112,32 @@ pub mod i_strategy {
                     },],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("initExactX"),
+                    ::std::borrow::ToOwned::to_owned("instantiate"),
                     ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("initExactX"),
+                        name: ::std::borrow::ToOwned::to_owned("instantiate"),
                         inputs: ::std::vec![
                             ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("amountX"),
+                                name: ::std::borrow::ToOwned::to_owned("initial_x_wad"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                                 internal_type: ::core::option::Option::Some(
                                     ::std::borrow::ToOwned::to_owned("uint256"),
                                 ),
                             },
                             ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("price"),
+                                name: ::std::borrow::ToOwned::to_owned("initial_price_wad"),
                                 kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                                 internal_type: ::core::option::Option::Some(
                                     ::std::borrow::ToOwned::to_owned("uint256"),
                                 ),
                             },
                         ],
-                        outputs: ::std::vec![
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::string::String::new(),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::string::String::new(),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                        ],
+                        outputs: ::std::vec![],
                         constant: ::core::option::Option::None,
                         state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
                     },],
                 ),
             ]),
-            events: ::core::convert::From::from([
-                (
-                    ::std::borrow::ToOwned::to_owned("AddLiquidity"),
-                    ::std::vec![::ethers::core::abi::ethabi::Event {
-                        name: ::std::borrow::ToOwned::to_owned("AddLiquidity"),
-                        inputs: ::std::vec![
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("sender"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                indexed: true,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("liquidity"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("amountX"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("amountY"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                        ],
-                        anonymous: false,
-                    },],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("RemoveLiquidity"),
-                    ::std::vec![::ethers::core::abi::ethabi::Event {
-                        name: ::std::borrow::ToOwned::to_owned("RemoveLiquidity"),
-                        inputs: ::std::vec![
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("sender"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                indexed: true,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("liquidity"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("amountX"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("amountY"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                        ],
-                        anonymous: false,
-                    },],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("Swap"),
-                    ::std::vec![::ethers::core::abi::ethabi::Event {
-                        name: ::std::borrow::ToOwned::to_owned("Swap"),
-                        inputs: ::std::vec![
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("sender"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                indexed: true,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("swapDirection"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("input"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("output"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                            ::ethers::core::abi::ethabi::EventParam {
-                                name: ::std::borrow::ToOwned::to_owned("newPrice"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                indexed: false,
-                            },
-                        ],
-                        anonymous: false,
-                    },],
-                ),
-            ]),
+            events: ::std::collections::BTreeMap::new(),
             errors: ::std::collections::BTreeMap::new(),
             receive: false,
             fallback: false,
@@ -292,93 +184,63 @@ pub mod i_strategy {
                 client,
             ))
         }
-        /// Calls the contract's `getInvariant` (0xc0ff1a15) function
+        /// Calls the contract's `get_invariant` (0x282c3e60) function
         pub fn get_invariant(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::I256> {
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([192, 255, 26, 21], ())
+                .method_hash([40, 44, 62, 96], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `getReserveX` (0x559d1602) function
+        /// Calls the contract's `get_reserve_x` (0xc630c2b7) function
         pub fn get_reserve_x(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([85, 157, 22, 2], ())
+                .method_hash([198, 48, 194, 183], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `getReserveY` (0xfed3dfda) function
+        /// Calls the contract's `get_reserve_y` (0x2cce4fb5) function
         pub fn get_reserve_y(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([254, 211, 223, 218], ())
+                .method_hash([44, 206, 79, 181], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `getSpotPrice` (0xdc76fabc) function
+        /// Calls the contract's `get_spot_price` (0xbdd2f1ec) function
         pub fn get_spot_price(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([220, 118, 250, 188], ())
+                .method_hash([189, 210, 241, 236], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `getStrategyData` (0x876b55f1) function
+        /// Calls the contract's `get_strategy_data` (0x6cb977e4) function
         pub fn get_strategy_data(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::Bytes> {
             self.0
-                .method_hash([135, 107, 85, 241], ())
+                .method_hash([108, 185, 119, 228], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `getSwapFee` (0xd4cadf68) function
+        /// Calls the contract's `get_swap_fee` (0x73a48e67) function
         pub fn get_swap_fee(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([212, 202, 223, 104], ())
+                .method_hash([115, 164, 142, 103], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `initExactX` (0xf9a1c85a) function
-        pub fn init_exact_x(
+        /// Calls the contract's `instantiate` (0x3639aa32) function
+        pub fn instantiate(
             &self,
-            amount_x: ::ethers::core::types::U256,
-            price: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            (::ethers::core::types::U256, ::ethers::core::types::U256),
-        > {
+            initial_x_wad: ::ethers::core::types::U256,
+            initial_price_wad: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([249, 161, 200, 90], (amount_x, price))
+                .method_hash([54, 57, 170, 50], (initial_x_wad, initial_price_wad))
                 .expect("method not found (this should never happen)")
-        }
-        /// Gets the contract's `AddLiquidity` event
-        pub fn add_liquidity_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, AddLiquidityFilter>
-        {
-            self.0.event()
-        }
-        /// Gets the contract's `RemoveLiquidity` event
-        pub fn remove_liquidity_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, RemoveLiquidityFilter>
-        {
-            self.0.event()
-        }
-        /// Gets the contract's `Swap` event
-        pub fn swap_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SwapFilter> {
-            self.0.event()
-        }
-        /// Returns an `Event` builder for all the events of this contract.
-        pub fn events(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, IStrategyEvents> {
-            self.0
-                .event_with_filter(::core::default::Default::default())
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for IStrategy<M> {
@@ -386,131 +248,8 @@ pub mod i_strategy {
             Self::new(contract.address(), contract.client())
         }
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethevent(
-        name = "AddLiquidity",
-        abi = "AddLiquidity(address,uint256,uint256,uint256)"
-    )]
-    pub struct AddLiquidityFilter {
-        #[ethevent(indexed)]
-        pub sender: ::ethers::core::types::Address,
-        pub liquidity: ::ethers::core::types::U256,
-        pub amount_x: ::ethers::core::types::U256,
-        pub amount_y: ::ethers::core::types::U256,
-    }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethevent(
-        name = "RemoveLiquidity",
-        abi = "RemoveLiquidity(address,uint256,uint256,uint256)"
-    )]
-    pub struct RemoveLiquidityFilter {
-        #[ethevent(indexed)]
-        pub sender: ::ethers::core::types::Address,
-        pub liquidity: ::ethers::core::types::U256,
-        pub amount_x: ::ethers::core::types::U256,
-        pub amount_y: ::ethers::core::types::U256,
-    }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    #[ethevent(name = "Swap", abi = "Swap(address,bool,uint256,uint256,uint256)")]
-    pub struct SwapFilter {
-        #[ethevent(indexed)]
-        pub sender: ::ethers::core::types::Address,
-        pub swap_direction: bool,
-        pub input: ::ethers::core::types::U256,
-        pub output: ::ethers::core::types::U256,
-        pub new_price: ::ethers::core::types::U256,
-    }
-    /// Container type for all of the contract's events
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        serde::Serialize,
-        serde::Deserialize,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    pub enum IStrategyEvents {
-        AddLiquidityFilter(AddLiquidityFilter),
-        RemoveLiquidityFilter(RemoveLiquidityFilter),
-        SwapFilter(SwapFilter),
-    }
-    impl ::ethers::contract::EthLogDecode for IStrategyEvents {
-        fn decode_log(
-            log: &::ethers::core::abi::RawLog,
-        ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
-            if let Ok(decoded) = AddLiquidityFilter::decode_log(log) {
-                return Ok(IStrategyEvents::AddLiquidityFilter(decoded));
-            }
-            if let Ok(decoded) = RemoveLiquidityFilter::decode_log(log) {
-                return Ok(IStrategyEvents::RemoveLiquidityFilter(decoded));
-            }
-            if let Ok(decoded) = SwapFilter::decode_log(log) {
-                return Ok(IStrategyEvents::SwapFilter(decoded));
-            }
-            Err(::ethers::core::abi::Error::InvalidData)
-        }
-    }
-    impl ::core::fmt::Display for IStrategyEvents {
-        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            match self {
-                Self::AddLiquidityFilter(element) => ::core::fmt::Display::fmt(element, f),
-                Self::RemoveLiquidityFilter(element) => ::core::fmt::Display::fmt(element, f),
-                Self::SwapFilter(element) => ::core::fmt::Display::fmt(element, f),
-            }
-        }
-    }
-    impl ::core::convert::From<AddLiquidityFilter> for IStrategyEvents {
-        fn from(value: AddLiquidityFilter) -> Self {
-            Self::AddLiquidityFilter(value)
-        }
-    }
-    impl ::core::convert::From<RemoveLiquidityFilter> for IStrategyEvents {
-        fn from(value: RemoveLiquidityFilter) -> Self {
-            Self::RemoveLiquidityFilter(value)
-        }
-    }
-    impl ::core::convert::From<SwapFilter> for IStrategyEvents {
-        fn from(value: SwapFilter) -> Self {
-            Self::SwapFilter(value)
-        }
-    }
-    /// Container type for all input parameters for the `getInvariant` function
-    /// with signature `getInvariant()` and selector `0xc0ff1a15`
+    /// Container type for all input parameters for the `get_invariant` function
+    /// with signature `get_invariant()` and selector `0x282c3e60`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -523,10 +262,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "getInvariant", abi = "getInvariant()")]
+    #[ethcall(name = "get_invariant", abi = "get_invariant()")]
     pub struct GetInvariantCall;
-    /// Container type for all input parameters for the `getReserveX` function
-    /// with signature `getReserveX()` and selector `0x559d1602`
+    /// Container type for all input parameters for the `get_reserve_x` function
+    /// with signature `get_reserve_x()` and selector `0xc630c2b7`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -539,10 +278,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "getReserveX", abi = "getReserveX()")]
+    #[ethcall(name = "get_reserve_x", abi = "get_reserve_x()")]
     pub struct GetReserveXCall;
-    /// Container type for all input parameters for the `getReserveY` function
-    /// with signature `getReserveY()` and selector `0xfed3dfda`
+    /// Container type for all input parameters for the `get_reserve_y` function
+    /// with signature `get_reserve_y()` and selector `0x2cce4fb5`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -555,10 +294,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "getReserveY", abi = "getReserveY()")]
+    #[ethcall(name = "get_reserve_y", abi = "get_reserve_y()")]
     pub struct GetReserveYCall;
-    /// Container type for all input parameters for the `getSpotPrice` function
-    /// with signature `getSpotPrice()` and selector `0xdc76fabc`
+    /// Container type for all input parameters for the `get_spot_price`
+    /// function with signature `get_spot_price()` and selector `0xbdd2f1ec`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -571,10 +310,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "getSpotPrice", abi = "getSpotPrice()")]
+    #[ethcall(name = "get_spot_price", abi = "get_spot_price()")]
     pub struct GetSpotPriceCall;
-    /// Container type for all input parameters for the `getStrategyData`
-    /// function with signature `getStrategyData()` and selector `0x876b55f1`
+    /// Container type for all input parameters for the `get_strategy_data`
+    /// function with signature `get_strategy_data()` and selector `0x6cb977e4`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -587,10 +326,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "getStrategyData", abi = "getStrategyData()")]
+    #[ethcall(name = "get_strategy_data", abi = "get_strategy_data()")]
     pub struct GetStrategyDataCall;
-    /// Container type for all input parameters for the `getSwapFee` function
-    /// with signature `getSwapFee()` and selector `0xd4cadf68`
+    /// Container type for all input parameters for the `get_swap_fee` function
+    /// with signature `get_swap_fee()` and selector `0x73a48e67`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -603,10 +342,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "getSwapFee", abi = "getSwapFee()")]
+    #[ethcall(name = "get_swap_fee", abi = "get_swap_fee()")]
     pub struct GetSwapFeeCall;
-    /// Container type for all input parameters for the `initExactX` function
-    /// with signature `initExactX(uint256,uint256)` and selector `0xf9a1c85a`
+    /// Container type for all input parameters for the `instantiate` function
+    /// with signature `instantiate(uint256,uint256)` and selector `0x3639aa32`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -619,10 +358,10 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    #[ethcall(name = "initExactX", abi = "initExactX(uint256,uint256)")]
-    pub struct InitExactXCall {
-        pub amount_x: ::ethers::core::types::U256,
-        pub price: ::ethers::core::types::U256,
+    #[ethcall(name = "instantiate", abi = "instantiate(uint256,uint256)")]
+    pub struct InstantiateCall {
+        pub initial_x_wad: ::ethers::core::types::U256,
+        pub initial_price_wad: ::ethers::core::types::U256,
     }
     /// Container type for all of the contract's call
     #[derive(
@@ -642,7 +381,7 @@ pub mod i_strategy {
         GetSpotPrice(GetSpotPriceCall),
         GetStrategyData(GetStrategyDataCall),
         GetSwapFee(GetSwapFeeCall),
-        InitExactX(InitExactXCall),
+        Instantiate(InstantiateCall),
     }
     impl ::ethers::core::abi::AbiDecode for IStrategyCalls {
         fn decode(
@@ -671,8 +410,8 @@ pub mod i_strategy {
             if let Ok(decoded) = <GetSwapFeeCall as ::ethers::core::abi::AbiDecode>::decode(data) {
                 return Ok(Self::GetSwapFee(decoded));
             }
-            if let Ok(decoded) = <InitExactXCall as ::ethers::core::abi::AbiDecode>::decode(data) {
-                return Ok(Self::InitExactX(decoded));
+            if let Ok(decoded) = <InstantiateCall as ::ethers::core::abi::AbiDecode>::decode(data) {
+                return Ok(Self::Instantiate(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
@@ -686,7 +425,7 @@ pub mod i_strategy {
                 Self::GetSpotPrice(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::GetStrategyData(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::GetSwapFee(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::InitExactX(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Instantiate(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
     }
@@ -699,7 +438,7 @@ pub mod i_strategy {
                 Self::GetSpotPrice(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetStrategyData(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetSwapFee(element) => ::core::fmt::Display::fmt(element, f),
-                Self::InitExactX(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Instantiate(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
     }
@@ -733,13 +472,13 @@ pub mod i_strategy {
             Self::GetSwapFee(value)
         }
     }
-    impl ::core::convert::From<InitExactXCall> for IStrategyCalls {
-        fn from(value: InitExactXCall) -> Self {
-            Self::InitExactX(value)
+    impl ::core::convert::From<InstantiateCall> for IStrategyCalls {
+        fn from(value: InstantiateCall) -> Self {
+            Self::Instantiate(value)
         }
     }
-    /// Container type for all return fields from the `getInvariant` function
-    /// with signature `getInvariant()` and selector `0xc0ff1a15`
+    /// Container type for all return fields from the `get_invariant` function
+    /// with signature `get_invariant()` and selector `0x282c3e60`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -752,9 +491,11 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    pub struct GetInvariantReturn(pub ::ethers::core::types::I256);
-    /// Container type for all return fields from the `getReserveX` function
-    /// with signature `getReserveX()` and selector `0x559d1602`
+    pub struct GetInvariantReturn {
+        pub invariant: ::ethers::core::types::U256,
+    }
+    /// Container type for all return fields from the `get_reserve_x` function
+    /// with signature `get_reserve_x()` and selector `0xc630c2b7`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -767,9 +508,11 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    pub struct GetReserveXReturn(pub ::ethers::core::types::U256);
-    /// Container type for all return fields from the `getReserveY` function
-    /// with signature `getReserveY()` and selector `0xfed3dfda`
+    pub struct GetReserveXReturn {
+        pub reserve_x_wad: ::ethers::core::types::U256,
+    }
+    /// Container type for all return fields from the `get_reserve_y` function
+    /// with signature `get_reserve_y()` and selector `0x2cce4fb5`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -782,9 +525,11 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    pub struct GetReserveYReturn(pub ::ethers::core::types::U256);
-    /// Container type for all return fields from the `getSpotPrice` function
-    /// with signature `getSpotPrice()` and selector `0xdc76fabc`
+    pub struct GetReserveYReturn {
+        pub reserve_y_wad: ::ethers::core::types::U256,
+    }
+    /// Container type for all return fields from the `get_spot_price` function
+    /// with signature `get_spot_price()` and selector `0xbdd2f1ec`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -797,9 +542,11 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    pub struct GetSpotPriceReturn(pub ::ethers::core::types::U256);
-    /// Container type for all return fields from the `getStrategyData` function
-    /// with signature `getStrategyData()` and selector `0x876b55f1`
+    pub struct GetSpotPriceReturn {
+        pub spot_price_wad: ::ethers::core::types::U256,
+    }
+    /// Container type for all return fields from the `get_strategy_data`
+    /// function with signature `get_strategy_data()` and selector `0x6cb977e4`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -812,9 +559,11 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    pub struct GetStrategyDataReturn(pub ::ethers::core::types::Bytes);
-    /// Container type for all return fields from the `getSwapFee` function with
-    /// signature `getSwapFee()` and selector `0xd4cadf68`
+    pub struct GetStrategyDataReturn {
+        pub strategy_data: ::ethers::core::types::Bytes,
+    }
+    /// Container type for all return fields from the `get_swap_fee` function
+    /// with signature `get_swap_fee()` and selector `0x73a48e67`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -827,23 +576,7 @@ pub mod i_strategy {
         Eq,
         Hash,
     )]
-    pub struct GetSwapFeeReturn(pub ::ethers::core::types::U256);
-    /// Container type for all return fields from the `initExactX` function with
-    /// signature `initExactX(uint256,uint256)` and selector `0xf9a1c85a`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-    )]
-    pub struct InitExactXReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
+    pub struct GetSwapFeeReturn {
+        pub fee: ::ethers::core::types::U256,
+    }
 }

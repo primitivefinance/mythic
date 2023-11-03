@@ -139,9 +139,9 @@ pub mod ig3m {
                         inputs: ::std::vec![],
                         outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
                             name: ::std::string::String::new(),
-                            kind: ::ethers::core::abi::ethabi::ParamType::Int(256usize),
+                            kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
                             internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("int256"),
+                                ::std::borrow::ToOwned::to_owned("uint256"),
                             ),
                         },],
                         constant: ::core::option::Option::None,
@@ -627,6 +627,40 @@ pub mod ig3m {
                         anonymous: false,
                     },],
                 ),
+                (
+                    ::std::borrow::ToOwned::to_owned("Swap"),
+                    ::std::vec![::ethers::core::abi::ethabi::Event {
+                        name: ::std::borrow::ToOwned::to_owned("Swap"),
+                        inputs: ::std::vec![
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("sender"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                indexed: true,
+                            },
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("swapDirection"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Bool,
+                                indexed: false,
+                            },
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("input"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                                indexed: false,
+                            },
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("output"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                                indexed: false,
+                            },
+                            ::ethers::core::abi::ethabi::EventParam {
+                                name: ::std::borrow::ToOwned::to_owned("newPrice"),
+                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                                indexed: false,
+                            },
+                        ],
+                        anonymous: false,
+                    },],
+                ),
             ]),
             errors: ::std::collections::BTreeMap::new(),
             receive: false,
@@ -723,7 +757,7 @@ pub mod ig3m {
         /// Calls the contract's `getInvariant` (0xc0ff1a15) function
         pub fn get_invariant(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::I256> {
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([192, 255, 26, 21], ())
                 .expect("method not found (this should never happen)")
@@ -914,6 +948,12 @@ pub mod ig3m {
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SetWeightXFilter> {
             self.0.event()
         }
+        /// Gets the contract's `Swap` event
+        pub fn swap_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SwapFilter> {
+            self.0.event()
+        }
         /// Returns an `Event` builder for all the events of this contract.
         pub fn events(
             &self,
@@ -1028,6 +1068,27 @@ pub mod ig3m {
         pub old_weight_x: ::ethers::core::types::U256,
         pub new_weight_x: ::ethers::core::types::U256,
     }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[ethevent(name = "Swap", abi = "Swap(address,bool,uint256,uint256,uint256)")]
+    pub struct SwapFilter {
+        #[ethevent(indexed)]
+        pub sender: ::ethers::core::types::Address,
+        pub swap_direction: bool,
+        pub input: ::ethers::core::types::U256,
+        pub output: ::ethers::core::types::U256,
+        pub new_price: ::ethers::core::types::U256,
+    }
     /// Container type for all of the contract's events
     #[derive(
         Clone,
@@ -1045,6 +1106,7 @@ pub mod ig3m {
         RemoveLiquidityFilter(RemoveLiquidityFilter),
         SetTargetWeightXFilter(SetTargetWeightXFilter),
         SetWeightXFilter(SetWeightXFilter),
+        SwapFilter(SwapFilter),
     }
     impl ::ethers::contract::EthLogDecode for IG3MEvents {
         fn decode_log(
@@ -1065,6 +1127,9 @@ pub mod ig3m {
             if let Ok(decoded) = SetWeightXFilter::decode_log(log) {
                 return Ok(IG3MEvents::SetWeightXFilter(decoded));
             }
+            if let Ok(decoded) = SwapFilter::decode_log(log) {
+                return Ok(IG3MEvents::SwapFilter(decoded));
+            }
             Err(::ethers::core::abi::Error::InvalidData)
         }
     }
@@ -1076,6 +1141,7 @@ pub mod ig3m {
                 Self::RemoveLiquidityFilter(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetTargetWeightXFilter(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetWeightXFilter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::SwapFilter(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
     }
@@ -1102,6 +1168,11 @@ pub mod ig3m {
     impl ::core::convert::From<SetWeightXFilter> for IG3MEvents {
         fn from(value: SetWeightXFilter) -> Self {
             Self::SetWeightXFilter(value)
+        }
+    }
+    impl ::core::convert::From<SwapFilter> for IG3MEvents {
+        fn from(value: SwapFilter) -> Self {
+            Self::SwapFilter(value)
         }
     }
     /// Container type for all input parameters for the `addLiquidity` function
@@ -1830,7 +1901,7 @@ pub mod ig3m {
         Eq,
         Hash,
     )]
-    pub struct GetInvariantReturn(pub ::ethers::core::types::I256);
+    pub struct GetInvariantReturn(pub ::ethers::core::types::U256);
     /// Container type for all return fields from the `getSpotPrice` function
     /// with signature `getSpotPrice()` and selector `0xdc76fabc`
     #[derive(
