@@ -109,7 +109,11 @@ pub fn batch(config_path: &str) -> Result<()> {
             warn!("Simulation complete");
         }
 
-        std::fs::create_dir_all(&config.output_directory)?;
+        let output_dir_path = std::path::Path::new(&config.output_directory)
+            .to_str()
+            .unwrap()
+            .to_string();
+        std::fs::create_dir_all(output_dir_path)?;
         let error_path = config.output_directory.clone() + "/errors.json";
         serde_json::to_writer(
             std::fs::File::create(error_path).unwrap(),
@@ -150,9 +154,13 @@ mod tests {
 
     #[test]
     fn static_output() {
-        batch("configs/test/static.toml").unwrap();
+        let config_path = Path::new(env::current_dir().unwrap().to_str().unwrap())
+            .join("configs/test/static.toml");
+        batch(config_path.to_str().unwrap()).unwrap();
         let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("test_static/gbm_drift=0.1_vol=0.35/trajectory=0.json");
+            .join("test_static")
+            .join("gbm_drift=0.1_vol=0.35")
+            .join("trajectory=0.json");
         println!("path: {:?}", path);
         let mut file = std::fs::File::open(path).unwrap();
         let mut contents = vec![];
@@ -163,7 +171,9 @@ mod tests {
 
     #[test]
     fn sweep_output() {
-        batch("configs/test/sweep.toml").unwrap();
+        let config_path = Path::new(env::current_dir().unwrap().to_str().unwrap())
+            .join("configs/test/sweep.toml");
+        batch(config_path.to_str().unwrap()).unwrap();
 
         for drift in [-1, 1] {
             for vol in [0, 1] {
