@@ -12,7 +12,6 @@ contract RMM is IStrategy {
     uint256 public immutable sigma;
     uint256 public immutable strikePrice;
     uint256 public immutable tau;
-    uint256 public immutable gamma = 30;
 
     uint256 public swapFee;
 
@@ -297,7 +296,7 @@ contract RMM is IStrategy {
     }
 
     function getSwapFee() external view returns (uint256) {
-        return gamma;
+        return swapFee;
     }
 
     function getReserveX() external view returns (uint256) {
