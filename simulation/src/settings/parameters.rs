@@ -74,16 +74,3 @@ macro_rules! linspace {
         .generate()
     };
 }
-
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct PoolParameters {
-    /// fee in bips
-    pub fee_basis_points: u16,
-
-    /// Weight for `token_x` in the pool.
-    /// Weight for `token_y` will be `1-weight_x`
-    pub weight_x: f64,
-
-    /// The target volatility of the pool.
-    pub target_volatility: f64,
-}
