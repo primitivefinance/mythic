@@ -115,7 +115,7 @@ impl PriceChanger {
     /// the trajectory and increment the index.
     pub async fn update_price(&mut self) -> Result<()> {
         let price = self.trajectory.paths[0][self.index];
-        info!("Updating price of liquid_exchange to: {}", price);
+        trace!("Updating price of liquid_exchange to: {}", price);
         self.liquid_exchange
             .set_price(arbiter_core::math::float_to_wad(price))
             .send()
@@ -129,7 +129,9 @@ impl PriceChanger {
 #[async_trait::async_trait]
 impl Agent for PriceChanger {
     async fn step(&mut self) -> Result<()> {
+        debug!("Updating price on lex");
         self.update_price().await?;
+        debug!("Price updated on lex");
         Ok(())
     }
 }

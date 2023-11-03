@@ -136,6 +136,7 @@ impl WeightChanger for VolatilityTargetingStrategist {
 #[async_trait::async_trait]
 impl Agent for VolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
+        debug!("Entered `step()` for `VolatilityTargetingStrategist`");
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         let asset_price = format_ether(self.lex.price().call().await?).parse::<f64>()?;
         let reserve_x =
@@ -152,7 +153,7 @@ impl Agent for VolatilityTargetingStrategist {
 
         if timestamp >= self.next_update_timestamp {
             self.next_update_timestamp = timestamp + self.update_frequency;
-            debug!("portfolio_price: {}", portfolio_price);
+            trace!("portfolio_price: {}", portfolio_price);
             self.asset_prices.push((asset_price, timestamp));
             self.portfolio_prices.push((portfolio_price, timestamp));
             self.calculate_rv()?;
@@ -165,5 +166,3 @@ impl Agent for VolatilityTargetingStrategist {
         Ok(())
     }
 }
-
-
