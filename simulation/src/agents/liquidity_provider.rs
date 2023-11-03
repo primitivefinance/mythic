@@ -78,7 +78,7 @@ impl<S: LiquidityStrategy + Sync + Send> Agent for LiquidityProvider<S> {
             .instantiate(self.initial_x, self.initial_price)
             .await?;
 
-        info!(
+        debug!(
             "LiquidityProvider.startup: instantiated pool at price {:?} wei",
             self.strategy.get_spot_price().await?
         );
