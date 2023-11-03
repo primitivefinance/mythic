@@ -9,6 +9,8 @@ pub struct VolatilityTargetingStrategist {
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
+    pub sensitivity: f64,
+    pub max_weight_change: f64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
     pub portfolio_rv: Vec<(f64, u64)>,
@@ -38,6 +40,8 @@ impl VolatilityTargetingStrategist {
             lex,
             g3m,
             target_volatility: config.weight_changer.target_volatility,
+            sensitivity: config.weight_changer.sensitivity,
+            max_weight_change: config.weight_changer.max_weight_change,
             update_frequency: config.weight_changer.update_frequency,
             next_update_timestamp: config.weight_changer.update_frequency,
             portfolio_prices: Vec::new(),
@@ -96,45 +100,37 @@ impl VolatilityTargetingStrategist {
 
 #[async_trait::async_trait]
 impl WeightChanger for VolatilityTargetingStrategist {
-    // dumb poc, this just checks if the portfolio rv is greater than the target rv
-    // then changes weight by 1% over the course of a day depending on if rv is
-    // greater or less than target
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
         if self.portfolio_rv.len() < 2 {
             return Ok(());
         }
         let portfolio_rv = self.portfolio_rv.last().unwrap().0;
         debug!("portfolio_rv: {}", portfolio_rv);
+        let rv_difference = portfolio_rv - self.target_volatility;
         let current_weight_x = self.g3m.weight_x().call().await?;
         let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
+        let weight_change = self.sensitivity * rv_difference;
         debug!("current_weight_float: {}", current_weight_float);
+        let mut weight_delta = weight_change;
+        let mut new_weight = current_weight_float;
         if portfolio_rv < self.target_volatility {
-            let mut new_weight = current_weight_float + 0.0025;
-            debug!("new weight: {}", new_weight);
-            if new_weight >= 0.99 {
-                new_weight = 0.99;
-            }
-            self.g3m
-                .set_weight_x(
-                    parse_ether(new_weight.to_string()).unwrap(),
-                    U256::from(self.next_update_timestamp),
-                )
-                .send()
-                .await?;
+            weight_delta = weight_change.min(self.max_weight_change);
+            new_weight -= weight_delta;
+            new_weight = new_weight.min(0.98);
         } else {
-            let mut new_weight = current_weight_float - 0.0025;
-            if new_weight <= 0.01 {
-                new_weight = 0.01;
-            }
-            debug!("new weight: {}", new_weight);
-            self.g3m
-                .set_weight_x(
-                    parse_ether(new_weight.to_string()).unwrap(),
-                    U256::from(self.next_update_timestamp),
-                )
-                .send()
-                .await?;
+            weight_delta = (weight_change).min(self.max_weight_change);
+            new_weight -= weight_delta;
+            new_weight = new_weight.max(0.02);
         }
+        debug!("new weight: {}", new_weight);
+        debug!("weight delta: {}", weight_delta);
+        self.g3m
+            .set_weight_x(
+                parse_ether(new_weight.to_string()).unwrap(),
+                U256::from(self.next_update_timestamp),
+            )
+            .send()
+            .await?;
         Ok(())
     }
 }
@@ -143,26 +139,24 @@ impl WeightChanger for VolatilityTargetingStrategist {
 impl Agent for VolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
+        let asset_price = format_ether(self.lex.price().call().await?).parse::<f64>()?;
+        let reserve_x =
+            format_ether(self.g3m.reserve_x_without_precision().call().await?).parse::<f64>()?;
+        let reserve_y =
+            format_ether(self.g3m.reserve_y_without_precision().call().await?).parse::<f64>()?;
+        let portfolio_price = reserve_x * asset_price + reserve_y;
+
+        if self.portfolio_prices.is_empty() {
+            info!("portfolio_price: {}", portfolio_price);
+            self.portfolio_prices.push((portfolio_price, 0));
+            self.asset_prices.push((asset_price, 0));
+        }
+
         if timestamp >= self.next_update_timestamp {
             self.next_update_timestamp = timestamp + self.update_frequency;
-            let asset_price = format_ether(self.lex.price().call().await?)
-                .parse::<f64>()
-                .unwrap();
-
-            let reserve_x = format_ether(self.g3m.reserve_x_without_precision().call().await?)
-                .parse::<f64>()
-                .unwrap();
-            let reserve_y = format_ether(self.g3m.reserve_y_without_precision().call().await?)
-                .parse::<f64>()
-                .unwrap();
-
-            let portfolio_price = reserve_x * asset_price + reserve_y;
             debug!("portfolio_price: {}", portfolio_price);
-
             self.asset_prices.push((asset_price, timestamp));
             self.portfolio_prices.push((portfolio_price, timestamp));
-            // debug!("asset_prices: {:?}", self.asset_prices);
-            // debug!("portfolio_prices: {:?}", self.portfolio_prices);
             self.calculate_rv()?;
             self.execute_smooth_rebalance().await?;
         }
@@ -170,23 +164,6 @@ impl Agent for VolatilityTargetingStrategist {
     }
 
     async fn startup(&mut self) -> Result<()> {
-        let asset_price = format_ether(self.lex.price().call().await?)
-            .parse::<f64>()
-            .unwrap();
-
-        let reserve_x = format_ether(self.g3m.reserve_x_without_precision().call().await?)
-            .parse::<f64>()
-            .unwrap();
-        let reserve_y = format_ether(self.g3m.reserve_y_without_precision().call().await?)
-            .parse::<f64>()
-            .unwrap();
-
-        let portfolio_price = reserve_x * asset_price + reserve_y;
-        debug!("portfolio_price: {}", portfolio_price);
-
-        self.portfolio_prices.push((portfolio_price, 0));
-        self.asset_prices.push((asset_price, 0));
-
         Ok(())
     }
 }
