@@ -35,7 +35,6 @@ use itertools::iproduct;
 
 impl From<WeightChangerParameters<Multiple>> for Vec<WeightChangerParameters<Single>> {
     fn from(item: WeightChangerParameters<Multiple>) -> Self {
-        println!("fee_basis_points: {:?}\n", item.fee.parameters());
         let specialties: Vec<WeightChangerSpecialty<Single>> = item.specialty.into();
         iproduct!(
             item.initial_weight_x.parameters(),
@@ -117,7 +116,19 @@ impl WeightChangerType {
                     Ok(Self(Box::new(strategist)))
                 }
                 WeightChangerSpecialty::VolatilityTargeting(parameters) => {
-                    todo!()
+                    let strategist = VolatilityTargetingStrategist {
+                        client,
+                        lex,
+                        g3m,
+                        update_frequency: parameters.update_frequency.0 as u64,
+                        next_update_timestamp: parameters.update_frequency.0 as u64,
+                        target_volatility: parameters.target_volatility.0,
+                        portfolio_prices: Vec::new(),
+                        asset_prices: Vec::new(),
+                        portfolio_rv: Vec::new(),
+                        asset_rv: Vec::new(),
+                    };
+                    Ok(Self(Box::new(strategist)))
                 }
                 WeightChangerSpecialty::DollarCostAveraging(parameters) => {
                     todo!()

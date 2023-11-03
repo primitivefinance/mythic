@@ -15,17 +15,17 @@ pub struct LiquidityProviderParameters<P: Parameterized> {
     pub initial_price: P,
 }
 
-impl Into<Vec<LiquidityProviderParameters<Single>>> for LiquidityProviderParameters<Multiple> {
-    fn into(self) -> Vec<LiquidityProviderParameters<Single>> {
-        self.x_liquidity
-            .parameters()
-            .into_iter()
-            .zip(self.initial_price.parameters().into_iter())
-            .map(|(xl, ip)| LiquidityProviderParameters {
-                x_liquidity: Single(xl),
-                initial_price: Single(ip),
-            })
-            .collect()
+impl From<LiquidityProviderParameters<Multiple>> for Vec<LiquidityProviderParameters<Single>> {
+    fn from(params: LiquidityProviderParameters<Multiple>) -> Self {
+        itertools::iproduct!(
+            params.x_liquidity.parameters(),
+            params.initial_price.parameters()
+        )
+        .map(|(xl, ip)| LiquidityProviderParameters {
+            x_liquidity: Single(xl),
+            initial_price: Single(ip),
+        })
+        .collect()
     }
 }
 

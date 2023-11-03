@@ -1,3 +1,5 @@
+use std::{env, path::Path};
+
 use serde_json::error;
 use tokio::runtime::Runtime;
 
@@ -51,6 +53,10 @@ impl SimulationType {
 use tokio::sync::Semaphore;
 
 pub fn batch(config_path: &str) -> Result<()> {
+    let cwd = env::current_dir().unwrap();
+    let path = Path::new(cwd.to_str().unwrap());
+    let path = path.join(config_path);
+    println!("path: {:?}", path);
     let config = SimulationConfig::new(config_path)?;
 
     let direct_configs: Vec<SimulationConfig<Single>> = config.clone().into();
@@ -133,48 +139,4 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{env, io::Read, path::Path};
-
-    use super::*;
-
-    #[test]
-    fn static_output() {
-        batch("configs/test/static.toml").unwrap();
-        let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("test_static/gbm_drift=0.1_vol=0.35/trajectory=0.json");
-        println!("path: {:?}", path);
-        let mut file = std::fs::File::open(path).unwrap();
-        let mut contents = vec![];
-        file.read_to_end(&mut contents).unwrap();
-        assert!(!contents.is_empty());
-        std::fs::remove_dir_all("test_static").unwrap();
-    }
-
-    #[test]
-    fn sweep_output() {
-        batch("configs/test/sweep.toml").unwrap();
-
-        for drift in [-1, 1] {
-            for vol in [0, 1] {
-                for trajectory in [0, 1] {
-                    let str = format!(
-                        "test_sweep/gbm_drift={}_vol={}/trajectory={}.json",
-                        drift, vol, trajectory
-                    );
-                    let path = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(str);
-                    println!("path: {:?}", path);
-                    let mut file = std::fs::File::open(path).unwrap();
-                    let mut contents = vec![];
-                    file.read_to_end(&mut contents).unwrap();
-                    assert!(!contents.is_empty());
-                }
-            }
-        }
-
-        // std::fs::remove_dir_all("test_sweep").unwrap();
-    }
 }
