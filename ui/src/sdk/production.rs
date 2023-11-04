@@ -63,14 +63,15 @@ impl Production<Ws> {
     }
 }
 
-#[cfg(test)]
+// todo: fix this test so we can run the anvil tests #[tokio::test]
+/* #[cfg(test)]
 mod tests {
 
     use dotenv::dotenv;
     use ethers::prelude::*;
 
     /// Fails if anvil is not running!
-    // todo: fix this test so we can run the anvil tests #[tokio::test]
+
     async fn test_production() -> eyre::Result<()> {
         dotenv().ok();
         let production = crate::sdk::production::Production::new().await?;
@@ -89,4 +90,4 @@ mod tests {
 
         Ok(())
     }
-}
+} */
