@@ -30,7 +30,8 @@ use tracing::{debug, error, info, trace, warn};
 
 #[allow(unused)]
 mod agents;
-#[allow(non_snake_case)]
+#[allow(non_snake_case, clippy::all)]
+#[rustfmt::skip]
 pub mod bindings;
 #[allow(unused)]
 mod math;
