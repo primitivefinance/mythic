@@ -64,30 +64,30 @@ impl Production<Ws> {
 }
 
 // todo: fix this test so we can run the anvil tests #[tokio::test]
-/* #[cfg(test)]
-mod tests {
-
-    use dotenv::dotenv;
-    use ethers::prelude::*;
-
-    /// Fails if anvil is not running!
-
-    async fn test_production() -> eyre::Result<()> {
-        dotenv().ok();
-        let production = crate::sdk::production::Production::new().await?;
-        let client = production.client.clone();
-        let balance = client.get_balance(client.address(), None).await?;
-        println!("Balance: {}", balance);
-
-        // do debug tx
-        let _ = production.debug_tx().await?;
-
-        // check balance again
-        let balance2 = client.get_balance(client.address(), None).await?;
-
-        // assert balance changed
-        assert!(balance2 != balance);
-
-        Ok(())
-    }
-} */
+// #[cfg(test)]
+// mod tests {
+//
+// use dotenv::dotenv;
+// use ethers::prelude::*;
+//
+// Fails if anvil is not running!
+//
+// async fn test_production() -> eyre::Result<()> {
+// dotenv().ok();
+// let production = crate::sdk::production::Production::new().await?;
+// let client = production.client.clone();
+// let balance = client.get_balance(client.address(), None).await?;
+// println!("Balance: {}", balance);
+//
+// do debug tx
+// let _ = production.debug_tx().await?;
+//
+// check balance again
+// let balance2 = client.get_balance(client.address(), None).await?;
+//
+// assert balance changed
+// assert!(balance2 != balance);
+//
+// Ok(())
+// }
+// }
