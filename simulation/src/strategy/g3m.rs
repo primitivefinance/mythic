@@ -48,7 +48,7 @@ impl LiquidityStrategy for IStrategy<RevmMiddleware> {
         initial_price_wad: U256,
     ) -> Result<Option<TransactionReceipt>> {
         Ok(self
-            .instantiate(initial_x_wad, initial_price_wad)
+            .init_exact_x(initial_x_wad, initial_price_wad)
             .send()
             .await?
             .await?)
@@ -73,7 +73,7 @@ impl ArbitrageStrategy for IStrategy<RevmMiddleware> {
         trace!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.get_reserve_y().call().await?);
         trace!("reserve_y: {}", reserve_y);
-        let invariant = I256::from_raw(self.get_invariant().call().await?);
+        let invariant = self.get_invariant().call().await?;
         trace!("invariant: {}", invariant);
 
         let iwad = I256::from_raw(WAD);
@@ -103,7 +103,7 @@ impl ArbitrageStrategy for IStrategy<RevmMiddleware> {
         trace!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.get_reserve_y().call().await?);
         trace!("reserve_y: {}", reserve_y);
-        let invariant = I256::from_raw(self.get_invariant().call().await?);
+        let invariant = self.get_invariant().call().await?;
         trace!("invariant: {}", invariant);
 
         let iwad = I256::from_raw(WAD);
