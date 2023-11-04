@@ -58,7 +58,18 @@ pub mod counter {
                     },],
                 ),
             ]),
-            events: ::std::collections::BTreeMap::new(),
+            events: ::core::convert::From::from([(
+                ::std::borrow::ToOwned::to_owned("Update"),
+                ::std::vec![::ethers::core::abi::ethabi::Event {
+                    name: ::std::borrow::ToOwned::to_owned("Update"),
+                    inputs: ::std::vec![::ethers::core::abi::ethabi::EventParam {
+                        name: ::std::borrow::ToOwned::to_owned("value"),
+                        kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                        indexed: false,
+                    },],
+                    anonymous: false,
+                },],
+            )]),
             errors: ::std::collections::BTreeMap::new(),
             receive: false,
             fallback: false,
@@ -68,12 +79,12 @@ pub mod counter {
     pub static COUNTER_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
         ::ethers::contract::Lazy::new(__abi);
     #[rustfmt::skip]
-    const __BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[Pa\x01\xFD\x80a\0m`\09`\0\xF3\xFE`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\x8EW`\x005`\xE0\x1C\x80c?\xB5\xC1\xCB\x14a\0\xF3W\x80c\x83\x81\xF5\x8A\x14a\x01\x08W\x80c\xD0\x9D\xE0\x8A\x14a\x01#W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01\x06a\x01\x016`\x04a\x01<V[`\0UV[\0[a\x01\x11`\0T\x81V[`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[a\x01\x06`\0\x80T\x90\x80a\x015\x83a\x01\xA0V[\x91\x90PUPV[`\0` \x82\x84\x03\x12\x15a\x01\x99W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[P5\x91\x90PV[`\0`\x01\x82\x01a\x01\xC0WcNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[P`\x01\x01\x90V\xFE\xA2dipfsX\"\x12 \xBCa\xA6\xB2X\x0E\x84\xFF\xA5\x98\xF1W\x02(\x01\r\xC1v\x04\xE4y\xE5\x18x\xCAa\x83)(\xC4f\x0FdsolcC\0\x08\x13\x003";
+    const __BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[Pa\x02B\x80a\0m`\09`\0\xF3\xFE`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\x8EW`\x005`\xE0\x1C\x80c?\xB5\xC1\xCB\x14a\0\xF3W\x80c\x83\x81\xF5\x8A\x14a\x01\x08W\x80c\xD0\x9D\xE0\x8A\x14a\x01#W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01\x06a\x01\x016`\x04a\x01\xB7V[a\x01+V[\0[a\x01\x11`\0T\x81V[`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[a\x01\x06a\x01fV[`\0\x81\x90U`@Q\x81\x81R\x7F\x16O{*\xB8\x03\t}\xAB^9\xF0m.O<=\xDC]Aq\xAB\xBD\xCC>vD;\x83Y\xC7\xF5\x90` \x01`@Q\x80\x91\x03\x90\xA1PV[`\0\x80T\x90\x80a\x01u\x83a\x02\x1BV[\x91\x90PUP\x7F\x16O{*\xB8\x03\t}\xAB^9\xF0m.O<=\xDC]Aq\xAB\xBD\xCC>vD;\x83Y\xC7\xF5`\0T`@Qa\x01\xAD\x91\x81R` \x01\x90V[`@Q\x80\x91\x03\x90\xA1V[`\0` \x82\x84\x03\x12\x15a\x02\x14W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[P5\x91\x90PV[`\0`\x01\x82\x01a\x02;WcNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[P`\x01\x01\x90V";
     /// The bytecode of the contract.
     pub static COUNTER_BYTECODE: ::ethers::core::types::Bytes =
         ::ethers::core::types::Bytes::from_static(__BYTECODE);
     #[rustfmt::skip]
-    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\x8EW`\x005`\xE0\x1C\x80c?\xB5\xC1\xCB\x14a\0\xF3W\x80c\x83\x81\xF5\x8A\x14a\x01\x08W\x80c\xD0\x9D\xE0\x8A\x14a\x01#W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01\x06a\x01\x016`\x04a\x01<V[`\0UV[\0[a\x01\x11`\0T\x81V[`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[a\x01\x06`\0\x80T\x90\x80a\x015\x83a\x01\xA0V[\x91\x90PUPV[`\0` \x82\x84\x03\x12\x15a\x01\x99W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[P5\x91\x90PV[`\0`\x01\x82\x01a\x01\xC0WcNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[P`\x01\x01\x90V\xFE\xA2dipfsX\"\x12 \xBCa\xA6\xB2X\x0E\x84\xFF\xA5\x98\xF1W\x02(\x01\r\xC1v\x04\xE4y\xE5\x18x\xCAa\x83)(\xC4f\x0FdsolcC\0\x08\x13\x003";
+    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\x8EW`\x005`\xE0\x1C\x80c?\xB5\xC1\xCB\x14a\0\xF3W\x80c\x83\x81\xF5\x8A\x14a\x01\x08W\x80c\xD0\x9D\xE0\x8A\x14a\x01#W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01\x06a\x01\x016`\x04a\x01\xB7V[a\x01+V[\0[a\x01\x11`\0T\x81V[`@Q\x90\x81R` \x01`@Q\x80\x91\x03\x90\xF3[a\x01\x06a\x01fV[`\0\x81\x90U`@Q\x81\x81R\x7F\x16O{*\xB8\x03\t}\xAB^9\xF0m.O<=\xDC]Aq\xAB\xBD\xCC>vD;\x83Y\xC7\xF5\x90` \x01`@Q\x80\x91\x03\x90\xA1PV[`\0\x80T\x90\x80a\x01u\x83a\x02\x1BV[\x91\x90PUP\x7F\x16O{*\xB8\x03\t}\xAB^9\xF0m.O<=\xDC]Aq\xAB\xBD\xCC>vD;\x83Y\xC7\xF5`\0T`@Qa\x01\xAD\x91\x81R` \x01\x90V[`@Q\x80\x91\x03\x90\xA1V[`\0` \x82\x84\x03\x12\x15a\x02\x14W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[P5\x91\x90PV[`\0`\x01\x82\x01a\x02;WcNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[P`\x01\x01\x90V";
     /// The deployed bytecode of the contract.
     pub static COUNTER_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes =
         ::ethers::core::types::Bytes::from_static(__DEPLOYED_BYTECODE);
@@ -182,11 +193,40 @@ pub mod counter {
                 .method_hash([63, 181, 193, 203], new_number)
                 .expect("method not found (this should never happen)")
         }
+        /// Gets the contract's `Update` event
+        pub fn update_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, UpdateFilter> {
+            self.0.event()
+        }
+        /// Returns an `Event` builder for all the events of this contract.
+        pub fn events(
+            &self,
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, UpdateFilter> {
+            self.0
+                .event_with_filter(::core::default::Default::default())
+        }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for Counter<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+    )]
+    #[ethevent(name = "Update", abi = "Update(uint256)")]
+    pub struct UpdateFilter {
+        pub value: ::ethers::core::types::U256,
     }
     /// Container type for all input parameters for the `increment` function
     /// with signature `increment()` and selector `0xd09de08a`

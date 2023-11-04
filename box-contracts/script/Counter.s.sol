@@ -2,11 +2,15 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+import "../src/Counter.sol";
 
 contract CounterScript is Script {
     function setUp() public {}
 
     function run() public {
-        vm.broadcast();
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.broadcast(deployerPrivateKey);
+        Counter counter = new Counter();
+        console.log("Counter address: %s", address(counter));
     }
 }

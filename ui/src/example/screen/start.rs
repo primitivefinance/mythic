@@ -17,7 +17,7 @@ pub struct StartScreen<Msg> {
 /// Events handled by the start screen view.
 #[derive(Clone)]
 pub enum Event {
-    Clicked,
+    Deploy,
 }
 
 /// Takes a specific message to emit for this view, which is triggered by the
@@ -37,7 +37,7 @@ impl<Msg> Component<Msg, Renderer> for StartScreen<Msg> {
 
     fn update(&mut self, _state: &mut Self::State, event: Event) -> Option<Msg> {
         match event {
-            Event::Clicked => Some((self.on_start)()),
+            Event::Deploy => Some((self.on_start)()),
         }
     }
 
@@ -60,7 +60,7 @@ impl<Msg> Component<Msg, Renderer> for StartScreen<Msg> {
         // with spacing between each element
         let banner = banner::banner(400);
 
-        let start_button = button("Start Excalibur", Event::Clicked);
+        let start_button = button("Start Excalibur", Event::Deploy);
 
         let footer = text(format!("Version: {}", env!("CARGO_PKG_VERSION"),))
             .width(Length::Fill)

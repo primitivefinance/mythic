@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
+use dotenv::dotenv;
 use simulation::simulations;
 use ui as interface;
 
@@ -40,6 +41,8 @@ enum Commands {
 }
 
 fn main() -> Result<()> {
+    dotenv().ok();
+
     let args = Args::parse();
 
     let log_level = match args.verbose.unwrap_or(0) {
