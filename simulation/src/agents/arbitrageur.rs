@@ -119,8 +119,16 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
+                info!(
+                    "Detected the need to increase price to {:?}",
+                    format_units(target_price, "ether")?
+                );
                 let input = self.strategy.get_y_input(target_price, &self.math).await?;
 
+                info!(
+                    "Increasing price by selling input amount of quote tokens: {:?}",
+                    input,
+                );
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
                 let output = tx.send().await;
                 match output {
@@ -132,18 +140,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                             e.as_middleware_error().unwrap()
                         {
                             info!("Execution revert: {:?}", output);
-                            let NotProfitable {
-                                first_swap_output,
-                                second_swap_output,
-                            } = NotProfitable::decode(output)?;
-                            info!(
-                                "first_swap_output: {:?}",
-                                format_units(first_swap_output, "ether")?
-                            );
-                            info!(
-                                "second_swap_output: {:?}",
-                                format_units(second_swap_output, "ether")?
-                            );
                         }
                     }
                 }
@@ -166,18 +162,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                             e.as_middleware_error().unwrap()
                         {
                             info!("Execution revert: {:?}", output);
-                            let NotProfitable {
-                                first_swap_output,
-                                second_swap_output,
-                            } = NotProfitable::decode(output)?;
-                            info!(
-                                "first_swap_output: {:?}",
-                                format_units(first_swap_output, "ether")?
-                            );
-                            info!(
-                                "second_swap_output: {:?}",
-                                format_units(second_swap_output, "ether")?
-                            );
                         }
                     }
                 }

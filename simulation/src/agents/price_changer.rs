@@ -28,7 +28,13 @@ impl PriceChanger {
         token_admin: &token_admin::TokenAdmin,
         config: &SimulationConfig<Fixed>,
     ) -> Result<Self> {
+        info!("Deploying LiquidExchange contract");
         let client = RevmMiddleware::new(environment, "price_changer".into())?;
+
+        info!(
+            "initial price trajectory: {:?}",
+            config.trajectory.initial_price.0
+        );
         let liquid_exchange = LiquidExchange::deploy(
             client,
             (

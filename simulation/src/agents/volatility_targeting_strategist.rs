@@ -27,11 +27,18 @@ impl VolatilityTargetingStrategist {
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, "weight_changer".into())?;
 
+        info!("Deploying G3M contract");
+        let swap_fee = U256::from(config.pool.fee_basis_points);
+        let swap_fee = U256::zero(); // todo: support fees!
+        info!(
+            "WARNING: swap fees are not supported and are overridden to zero: {}",
+            swap_fee
+        );
         let g3m_args = (
             arbx,
             arby,
             ethers::utils::parse_ether(config.pool.weight_x)?,
-            U256::from(config.pool.fee_basis_points),
+            swap_fee,
         );
         let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());

@@ -174,7 +174,11 @@ contract G3M is IG3M, IStrategy {
         uint256 amountX,
         uint256 price
     ) external returns (uint256, uint256) {
-        revert("not implemented yet");
+        uint256 weight_x = UD60x18.unwrap(lastWeightX);
+        uint256 weight_y = 1 ether - weight_x;
+        uint256 initial_y =
+            price * weight_y * amountX / weight_x / 1 ether;
+        _initPool(amountX, initial_y);
     }
 
     function _initPool(
