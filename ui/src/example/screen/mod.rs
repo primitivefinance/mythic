@@ -6,9 +6,12 @@
 use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
-use iced::{widget::column, Element};
+use iced::{
+    widget::{column, Component},
+    Element,
+};
 
-use super::{deployer, watcher};
+use super::{deployer, run_sim_button, watcher};
 
 mod banner;
 pub mod start;
@@ -118,6 +121,9 @@ impl ExampleScreen {
                 .view()
                 .map(|message| ExampleScreenMessage::WatcherComponent(message)),
         );
+
+        // Render the run sim button
+        content = content.push(run_sim_button::RunSimButton::default());
 
         content.spacing(4).into()
     }

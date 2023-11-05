@@ -12,6 +12,7 @@ use crate::sdk::production::*;
 
 mod components;
 mod deployer;
+mod run_sim_button;
 mod screen;
 mod watcher;
 
@@ -72,11 +73,11 @@ impl Application for ExampleApp {
                 // Load sim environment
                 let env = EnvironmentBuilder::new().build();
                 let client = RevmMiddleware::new(&env, Some("client")).unwrap();
-
+                let client_cloned = client.clone();
                 Self::Running {
                     environment: env,
                     client,
-                    screen: Screen::Start,
+                    screen: Screen::Example(screen::ExampleScreen::new(client_cloned)),
                     production: None,
                 }
             },
