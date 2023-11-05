@@ -11,6 +11,7 @@ use super::*;
 use crate::sdk::production::*;
 
 mod components;
+mod config_editor;
 mod deployer;
 mod run_sim_button;
 mod screen;

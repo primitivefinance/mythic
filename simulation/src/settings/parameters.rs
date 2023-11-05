@@ -34,7 +34,7 @@ impl Parameterized for Multiple {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default)]
 pub struct LinspaceParameters {
     pub start: Option<f64>,
     pub end: Option<f64>,
@@ -72,4 +72,10 @@ macro_rules! linspace {
         }
         .generate()
     };
+}
+
+impl std::fmt::Display for WeightChangerParameters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "WeightChangerParameters {{ target_volatility: {}, update_frequency: {}, max_weight_change: {}, sensitivity: {} }}", self.target_volatility, self.update_frequency, self.max_weight_change, self.sensitivity)
+    }
 }

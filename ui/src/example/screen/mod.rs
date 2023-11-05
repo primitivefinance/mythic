@@ -11,7 +11,7 @@ use iced::{
     Element,
 };
 
-use super::{deployer, run_sim_button, watcher};
+use super::{config_editor, deployer, run_sim_button, watcher};
 
 mod banner;
 pub mod start;
@@ -121,6 +121,13 @@ impl ExampleScreen {
                 .view()
                 .map(|message| ExampleScreenMessage::WatcherComponent(message)),
         );
+
+        // Render the config editor
+        let temp_config = simulation::settings::SimulationConfig::<
+            simulation::settings::parameters::Meta,
+        >::default();
+        tracing::info!("temp_config: {:?}", temp_config);
+        content = content.push(config_editor::ConfigEditor::new(temp_config));
 
         // Render the run sim button
         content = content.push(run_sim_button::RunSimButton::default());
