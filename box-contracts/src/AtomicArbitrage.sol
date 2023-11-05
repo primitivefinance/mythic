@@ -5,7 +5,7 @@ interface ExchangeLike {
 }
 
 interface StrategyLike {
-    function swapAmountIn(bool swapDirection, uint256 amount) external;
+    function swapAmountIn(bool swapDirection, uint256 amount) external returns (uint256);
 }
 
 interface TokenLike {

@@ -41,6 +41,7 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
 #[async_trait::async_trait]
 impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent for LiquidityProvider<S> {
     async fn startup(&mut self) -> Result<()> {
+        info!("LiquidityProvider.startup: starting up");
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
         let tx = self
