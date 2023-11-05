@@ -1,6 +1,6 @@
 // TODO: Is it possible to just give every agent a reference to the client from
 // the get go and use only that to construct them?
-#![allow(non_snake_case)]
+#![allow(non_snake_case, unused_imports)]
 
 use std::sync::Arc;
 
