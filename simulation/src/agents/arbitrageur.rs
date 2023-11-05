@@ -140,18 +140,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                             e.as_middleware_error().unwrap()
                         {
                             info!("Execution revert: {:?}", output);
-                            /* let NotProfitable {
-                                first_swap_output,
-                                second_swap_output,
-                            } = NotProfitable::decode(output)?;
-                            info!(
-                                "first_swap_output: {:?}",
-                                format_units(first_swap_output, "ether")?
-                            );
-                            info!(
-                                "second_swap_output: {:?}",
-                                format_units(second_swap_output, "ether")?
-                            ); */
                         }
                     }
                 }
@@ -174,18 +162,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                             e.as_middleware_error().unwrap()
                         {
                             info!("Execution revert: {:?}", output);
-                            /* let NotProfitable {
-                                first_swap_output,
-                                second_swap_output,
-                            } = NotProfitable::decode(output)?;
-                            info!(
-                                "first_swap_output: {:?}",
-                                format_units(first_swap_output, "ether")?
-                            );
-                            info!(
-                                "second_swap_output: {:?}",
-                                format_units(second_swap_output, "ether")?
-                            ); */
                         }
                     }
                 }
