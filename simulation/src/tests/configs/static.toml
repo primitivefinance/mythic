@@ -1,0 +1,37 @@
+simulation = "DynamicWeights"
+output_directory = "src/tests/output/static"
+
+[agent.block_admin.BlockAdmin]
+timestep_size = 15
+
+[agent.token_admin.TokenAdmin.arbx]
+name = "Arbiter Token X"
+symbol = "ARBX"
+decimals = 18
+
+[agent.token_admin.TokenAdmin.arby]
+name = "Arbiter Token Y"
+symbol = "ARBY"
+decimals = 18
+
+[agent.price_changer.PriceChanger]
+seed = 2
+num_steps = 100
+num_paths = 1
+initial_price.fixed = 1.0
+t_0.fixed = 0.0
+t_n.fixed = 1.0
+process.GBM.drift.fixed = 0.1
+process.GBM.volatility.fixed = 0.35
+
+[agent.weight_changer.WeightChanger]
+initial_weight_x.fixed = 0.5
+fee.fixed = 30
+specialty.VolatilityTargeting.target_volatility.fixed = 0.15
+specialty.VolatilityTargeting.update_frequency.fixed = 150
+specialty.VolatilityTargeting.sensitivity.fixed = 0.1
+specialty.VolatilityTargeting.max_weight_change.fixed = 0.05
+
+[agent.lp.LiquidityProvider]
+x_liquidity.fixed = 1
+initial_price.fixed = 1.0

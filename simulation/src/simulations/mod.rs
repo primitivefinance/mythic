@@ -1,16 +1,18 @@
+use std::{env, path::Path};
+
+use arbiter_core::environment::builder::BlockSettings;
 use serde_json::error;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::Semaphore};
 
 use self::errors::SimulationError;
 use super::*;
 use crate::{
     agents::{Agent, Agents},
-    settings::parameters::Fixed,
+    settings::parameters::{Multiple, Single},
 };
 
 pub mod dynamic_weights;
 pub mod errors;
-pub mod momentum;
 pub mod stable_portfolio;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
@@ -25,15 +27,21 @@ pub struct Simulation {
 pub enum SimulationType {
     DynamicWeights,
     StablePortfolio,
-    MomentumStrategy,
 }
 
 impl SimulationType {
-    async fn run(config: SimulationConfig<Fixed>) -> Result<(), SimulationError> {
+    async fn run(config: SimulationConfig<Single>) -> Result<(), SimulationError> {
+        let environment = EnvironmentBuilder::new()
+            .block_settings(BlockSettings::UserControlled)
+            .label(config.output_file_name.clone().unwrap())
+            .build();
         let simulation = match config.simulation {
-            SimulationType::DynamicWeights => dynamic_weights::setup(config.clone()).await?,
-            SimulationType::StablePortfolio => stable_portfolio::setup(config.clone()).await?,
-            SimulationType::MomentumStrategy => momentum::setup(config.clone()).await?,
+            SimulationType::DynamicWeights => {
+                dynamic_weights::setup(environment, config.clone()).await?
+            }
+            SimulationType::StablePortfolio => {
+                stable_portfolio::setup(environment, config.clone()).await?
+            }
         };
         match looper(simulation.agents, simulation.steps).await {
             Ok(_) => {
@@ -41,26 +49,30 @@ impl SimulationType {
                 Ok(())
             }
             Err(e) => {
-                let metadata = format!(
-                    "{}_{}",
-                    config.output_directory,
-                    config.output_file_name.unwrap()
+                let metadata = serde_json::to_value(&config)
+                    .map_err(|e| SimulationError::GenericError(e.to_string()))?;
+                error!(
+                    { info = e.to_string() },
+                    "Error in simulation {:?}",
+                    serde_json::to_string(&metadata).unwrap()
                 );
-                let error_string = format!("Error in simulation `{:?}`: {:?}", metadata, e);
-                error!(error_string);
                 simulation.environment.stop();
-                Err(SimulationError::GenericError(error_string))
+                Err(SimulationError::Error(metadata))
             }
         }
     }
 }
 
-use tokio::sync::Semaphore;
+pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
+    let cwd = env::current_dir().unwrap();
+    let path = Path::new(cwd.to_str().unwrap());
+    let path = path.join(config_path);
+    println!("Reading config from: {:?}", path);
+    SimulationConfig::new(config_path)
+}
 
-pub fn batch(config_path: &str) -> Result<()> {
-    let config = SimulationConfig::new(config_path)?;
-
-    let direct_configs: Vec<SimulationConfig<Fixed>> = config.generate();
+pub fn batch(config: SimulationConfig<Multiple>) -> Result<()> {
+    let direct_configs: Vec<SimulationConfig<Single>> = config.clone().into();
     warn!("Running {} simulations", direct_configs.len());
 
     // Create a multi-threaded runtime
@@ -88,7 +100,11 @@ pub fn batch(config_path: &str) -> Result<()> {
                     None
                 };
 
-                warn!("Running simulation with config: {:?}", config);
+                warn!(
+                    "Running environment with label: {}\nFull config: {:#?}",
+                    config.output_file_name.clone().unwrap(),
+                    config
+                );
                 let result = SimulationType::run(config).await;
                 match result {
                     Err(e) => {
@@ -133,6 +149,7 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
         agent.startup().await?;
     }
 
+    info!("Entering main loop for agents.");
     for index in 0..steps {
         debug!("Entering priority loop for index: {}", index);
         for agent in agents.iter_mut() {
@@ -146,54 +163,4 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use std::{env, io::Read, path::Path};
-
-    use super::*;
-
-    #[test]
-    fn static_output() {
-        let config_path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("configs/test/static.toml");
-        batch(config_path.to_str().unwrap()).unwrap();
-        let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("test_static")
-            .join("gbm_drift=0.1_vol=0.35")
-            .join("trajectory=0.json");
-        println!("path: {:?}", path);
-        let mut file = std::fs::File::open(path).unwrap();
-        let mut contents = vec![];
-        file.read_to_end(&mut contents).unwrap();
-        assert!(!contents.is_empty());
-        std::fs::remove_dir_all("test_static").unwrap();
-    }
-
-    #[test]
-    fn sweep_output() {
-        let config_path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join("configs/test/sweep.toml");
-        batch(config_path.to_str().unwrap()).unwrap();
-
-        for drift in [-1, 1] {
-            for vol in [0, 1] {
-                for trajectory in [0, 1] {
-                    let str = format!(
-                        "test_sweep/gbm_drift={}_vol={}/trajectory={}.json",
-                        drift, vol, trajectory
-                    );
-                    let path = Path::new(env::current_dir().unwrap().to_str().unwrap()).join(str);
-                    println!("path: {:?}", path);
-                    let mut file = std::fs::File::open(path).unwrap();
-                    let mut contents = vec![];
-                    file.read_to_end(&mut contents).unwrap();
-                    assert!(!contents.is_empty());
-                }
-            }
-        }
-
-        // std::fs::remove_dir_all("test_sweep").unwrap();
-    }
 }

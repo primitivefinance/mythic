@@ -1,27 +1,28 @@
 pub mod parameters;
-use std::{env, path::Path};
+use std::{collections::BTreeMap, env, path::Path};
 
+use itertools::{Itertools, MultiProduct};
 use parameters::*;
+use unit_conversions::time::*;
 
+pub use self::parameters::Parameterized;
 use super::*;
-use crate::simulations::SimulationType;
+use crate::{
+    agents::{price_changer::PriceChangerParameters, swapper::SwapperParameters, AgentParameters},
+    simulations::SimulationType,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SimulationConfig<P: Parameterized<f64>> {
+pub struct SimulationConfig<P: Parameterized> {
     pub simulation: SimulationType,
     pub max_parallel: Option<usize>,
     pub output_directory: String,
     pub output_file_name: Option<String>,
-    pub trajectory: TrajectoryParameters<P>,
-    pub gbm: Option<GBMParameters<P>>,
-    pub ou: Option<OUParameters<P>>,
-    pub pool: PoolParameters,
-    pub lp: LPParameters,
-    pub block: BlockParameters,
-    pub weight_changer: WeightChangerParameters,
+    #[serde(rename = "agent")]
+    pub agent_parameters: BTreeMap<String, AgentParameters<P>>,
 }
 
-impl SimulationConfig<Meta> {
+impl SimulationConfig<Multiple> {
     pub fn new(config_path: &str) -> Result<Self, ConfigError> {
         let s = Config::builder()
             .add_source(config::File::with_name(config_path))
@@ -30,134 +31,66 @@ impl SimulationConfig<Meta> {
     }
 }
 
-impl Parameterized<SimulationConfig<Fixed>> for SimulationConfig<Meta> {
-    fn generate(&self) -> Vec<SimulationConfig<Fixed>> {
-        let mut result = vec![];
-        let trajectories = self.trajectory.generate();
-
-        let gbms = self
-            .gbm
-            .as_ref()
-            .map(|gbm| gbm.generate())
-            .unwrap_or_default();
-
-        let ous = self.ou.as_ref().map(|ou| ou.generate()).unwrap_or_default();
-
-        if gbms.is_empty() && ous.is_empty() {
-            panic!("You must supply either a gbm or an ou configuration.");
+impl From<SimulationConfig<Multiple>> for Vec<SimulationConfig<Single>> {
+    fn from(item: SimulationConfig<Multiple>) -> Self {
+        let mut index = 0;
+        let mut configs = Vec::new();
+        let mut map_vector: BTreeMap<String, Vec<AgentParameters<Single>>> = BTreeMap::new();
+        for (label, parameters) in &item.agent_parameters {
+            let parameters_multiple = parameters.clone();
+            let parameters: Vec<AgentParameters<Single>> = parameters_multiple.into();
+            map_vector.insert(label.clone(), parameters);
         }
-
-        if !gbms.is_empty() && !ous.is_empty() {
-            panic!("You can only supply either a gbm or an ou configuration, not both.");
-        }
-
-        let mut path = Path::new(env::current_dir().unwrap().to_str().unwrap())
-            .join(self.output_directory.as_str());
-
-        for trajectory in &trajectories {
-            for gbm in &gbms {
-                let output_directory = self.output_directory.clone()
-                    + "/gbm_drift="
-                    + &gbm.drift.0.to_string()
-                    + "_vol="
-                    + &gbm.volatility.0.to_string();
-                let output_file_name =
-                    format!("trajectory={}", trajectory.output_tag.clone().unwrap());
-                result.push(SimulationConfig {
-                    simulation: self.simulation,
-                    max_parallel: None,
-                    output_directory,
-                    output_file_name: Some(output_file_name),
-                    trajectory: trajectory.clone(),
-                    gbm: Some(*gbm),
-                    ou: None,
-                    pool: self.pool,
-                    lp: self.lp,
-                    block: self.block,
-                    weight_changer: self.weight_changer,
-                });
+        let combinations = map_vector.values().multi_cartesian_product();
+        for combination in combinations {
+            let mut config = SimulationConfig {
+                simulation: item.simulation,
+                max_parallel: item.max_parallel,
+                output_directory: item.output_directory.clone(),
+                output_file_name: Some(index.to_string()),
+                agent_parameters: BTreeMap::new(),
+            };
+            for (label, parameters) in map_vector.keys().zip(combination) {
+                config
+                    .agent_parameters
+                    .insert(label.clone(), parameters.clone()); // Clone the parameters as they are owned by the combination
             }
-
-            for ou in &ous {
-                let output_directory = self.output_directory.clone()
-                    + "/ou_mean="
-                    + &ou.mean.0.to_string()
-                    + "_std="
-                    + &ou.std_dev.0.to_string()
-                    + "_theta="
-                    + &ou.theta.0.to_string();
-                let output_file_name =
-                    format!("trajectory={}", trajectory.output_tag.clone().unwrap());
-
-                result.push(SimulationConfig {
-                    simulation: self.simulation,
-                    max_parallel: None,
-                    output_directory,
-                    output_file_name: Some(output_file_name),
-                    trajectory: trajectory.clone(),
-                    gbm: None,
-                    ou: Some(*ou),
-                    pool: self.pool,
-                    lp: self.lp,
-                    block: self.block,
-                    weight_changer: self.weight_changer,
-                });
-            }
+            configs.push(config);
+            index += 1;
         }
-
-        result
+        configs
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use parameters::Parameterized;
-
     use super::*;
 
     #[test]
     fn read_in_static() {
-        let config = SimulationConfig::new("configs/test/static.toml").unwrap();
-        let configs = config.generate();
+        let configs = SimulationConfig::new("src/tests/configs/static.toml").unwrap();
+        let configs: Vec<SimulationConfig<Single>> = configs.into();
+        let config = configs[0].clone();
         assert_eq!(configs.len(), 1);
-        assert_eq!(configs[0].simulation, SimulationType::DynamicWeights);
-        assert_eq!(configs[0].trajectory.process, "gbm");
-        assert_eq!(configs[0].trajectory.initial_price, Fixed(1.0));
-        assert_eq!(configs[0].trajectory.t_0, Fixed(0.0));
-        assert_eq!(configs[0].trajectory.t_n, Fixed(1.0));
-        assert_eq!(configs[0].trajectory.num_steps, 100);
-        assert_eq!(configs[0].trajectory.seed, 2);
-        assert_eq!(configs[0].gbm.unwrap().drift, Fixed(0.1));
-        assert_eq!(configs[0].gbm.unwrap().volatility, Fixed(0.35));
-        assert_eq!(configs[0].pool.fee_basis_points, 30);
-        assert_eq!(configs[0].pool.weight_x, 0.5);
-        assert_eq!(configs[0].pool.target_volatility, 0.15);
-        assert_eq!(configs[0].lp.x_liquidity, 1.0);
-        assert_eq!(configs[0].block.timestep_size, 15);
-        assert_eq!(configs[0].weight_changer.target_volatility, 0.15);
-        assert_eq!(configs[0].weight_changer.update_frequency, 150);
+        assert_eq!(config.simulation, SimulationType::DynamicWeights);
+        assert_eq!(
+            config.output_directory,
+            "src/tests/output/static".to_string(),
+        );
+        let agent_parameters = config.agent_parameters.clone();
+        assert_eq!(agent_parameters.len(), 5);
+
+        assert!(agent_parameters.get("block_admin").is_some());
+        assert!(agent_parameters.get("token_admin").is_some());
+        assert!(agent_parameters.get("price_changer").is_some());
+        assert!(agent_parameters.get("weight_changer").is_some());
+        assert!(agent_parameters.get("lp").is_some())
     }
 
     #[test]
     fn read_in_sweep() {
-        let config = SimulationConfig::new("configs/test/sweep.toml").unwrap();
-        let configs = config.generate();
-        assert_eq!(configs.len(), 8);
-        assert_eq!(configs[0].gbm.unwrap().drift, Fixed(-1.0));
-        assert_eq!(configs[1].gbm.unwrap().drift, Fixed(-1.0));
-        assert_eq!(configs[2].gbm.unwrap().drift, Fixed(1.0));
-        assert_eq!(configs[3].gbm.unwrap().drift, Fixed(1.0));
-        assert_eq!(configs[4].gbm.unwrap().drift, Fixed(-1.0));
-        assert_eq!(configs[5].gbm.unwrap().drift, Fixed(-1.0));
-        assert_eq!(configs[6].gbm.unwrap().drift, Fixed(1.0));
-        assert_eq!(configs[7].gbm.unwrap().drift, Fixed(1.0));
-        assert_eq!(configs[0].gbm.unwrap().volatility, Fixed(0.0));
-        assert_eq!(configs[1].gbm.unwrap().volatility, Fixed(1.0));
-        assert_eq!(configs[2].gbm.unwrap().volatility, Fixed(0.0));
-        assert_eq!(configs[3].gbm.unwrap().volatility, Fixed(1.0));
-        assert_eq!(configs[4].gbm.unwrap().volatility, Fixed(0.0));
-        assert_eq!(configs[5].gbm.unwrap().volatility, Fixed(1.0));
-        assert_eq!(configs[6].gbm.unwrap().volatility, Fixed(0.0));
-        assert_eq!(configs[7].gbm.unwrap().volatility, Fixed(1.0));
+        let config = SimulationConfig::new("src/tests/configs/sweep.toml").unwrap();
+        let configs: Vec<SimulationConfig<Single>> = config.into();
+        assert_eq!(configs.len(), 8192);
     }
 }

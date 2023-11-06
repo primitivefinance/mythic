@@ -79,18 +79,19 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
     async fn detect_arbitrage(&self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        // info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
+        trace!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
         let g3m_price_wad = self.strategy.get_spot_price().await?;
-        // info!("g3m_price_wad: {:?}", g3m_price_wad);
+        trace!("g3m_price_wad: {:?}", g3m_price_wad);
 
-        let gamma_wad = WAD - (self.strategy.get_swap_fee().await?) * U256::from(10u128.pow(14));
-        // info!("gamma_wad: {:?}", gamma_wad);
+        trace!("swap_fee(): {:?}", self.strategy.get_swap_fee().await?);
+        let gamma_wad = WAD - self.strategy.get_swap_fee().await?;
+        trace!("gamma_wad: {:?}", gamma_wad);
 
         // Compute the no-arbitrage bounds.
         let upper_arb_bound = WAD * g3m_price_wad / gamma_wad;
-        // info!("upper_arb_bound: {:?}", upper_arb_bound);
+        trace!("upper_arb_bound: {:?}", upper_arb_bound);
         let lower_arb_bound = g3m_price_wad * gamma_wad / WAD;
-        // info!("lower_arb_bound: {:?}", lower_arb_bound);
+        trace!("lower_arb_bound: {:?}", lower_arb_bound);
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.
@@ -116,16 +117,17 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
 impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
+        debug!("Entered `step()` for arbitrageur");
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!(
+                trace!(
                     "Detected the need to increase price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = self.strategy.get_y_input(target_price, &self.math).await?;
 
-                info!(
+                trace!(
                     "Increasing price by selling input amount of quote tokens: {:?}",
                     input,
                 );
@@ -139,18 +141,18 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            trace!("Execution revert: {:?}", output);
                         }
                     }
                 }
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!(
+                trace!(
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = self.strategy.get_x_input(target_price, &self.math).await?;
-                info!("Got input: {:?}", input);
+                trace!("Got input: {:?}", input);
                 let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;
                 match output {
@@ -161,16 +163,29 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            debug!("Execution revert: {:?}", output);
+                            let NotProfitable {
+                                first_swap_output,
+                                second_swap_output,
+                            } = NotProfitable::decode(output)?;
+                            trace!(
+                                "first_swap_output: {:?}",
+                                format_units(first_swap_output, "ether")?
+                            );
+                            trace!(
+                                "second_swap_output: {:?}",
+                                format_units(second_swap_output, "ether")?
+                            );
                         }
                     }
                 }
-                info!("Sent arbitrage.");
+                trace!("Sent arbitrage.");
             }
             Swap::None => {
-                info!("No arbitrage opportunity");
+                trace!("No arbitrage opportunity");
             }
         }
+        debug!("Finished `step()` for `Arbitrageur`");
         Ok(())
     }
 }

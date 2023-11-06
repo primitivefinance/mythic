@@ -6,45 +6,32 @@ pub struct MomentumStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
-    pub next_update_timestamp: u64,
     pub update_frequency: u64,
+    pub next_update_timestamp: u64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
     pub portfolio_returns: Vec<(f64, u64)>,
     pub asset_returns: Vec<(f64, u64)>,
 }
 
-impl MomentumStrategist {
-    pub async fn new(
-        environment: &Environment,
-        config: &SimulationConfig<Fixed>,
-        liquid_exchange_address: Address,
-        arbx: Address,
-        arby: Address,
-    ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, "weight_changer".into())?;
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct MomentumParameters<P: Parameterized> {
+    pub update_frequency: P,
+}
 
-        let g3m_args = (
-            arbx,
-            arby,
-            ethers::utils::parse_ether(config.pool.weight_x)?,
-            U256::from(config.pool.fee_basis_points),
-        );
-        let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;
-        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
-        Ok(Self {
-            client,
-            lex,
-            g3m,
-            update_frequency: config.weight_changer.update_frequency,
-            next_update_timestamp: config.weight_changer.update_frequency,
-            portfolio_prices: Vec::new(),
-            asset_prices: Vec::new(),
-            portfolio_returns: Vec::new(),
-            asset_returns: Vec::new(),
-        })
+impl From<MomentumParameters<Multiple>> for Vec<MomentumParameters<Single>> {
+    fn from(item: MomentumParameters<Multiple>) -> Self {
+        item.update_frequency
+            .parameters()
+            .into_iter()
+            .map(|update_freq| MomentumParameters {
+                update_frequency: Single(update_freq),
+            })
+            .collect()
     }
+}
 
+impl MomentumStrategist {
     fn calculate_returns(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
         if self.asset_prices.len() > 15 {
@@ -70,21 +57,21 @@ impl MomentumStrategist {
             self.portfolio_returns
                 .push((portfolio_return, self.next_update_timestamp));
         }
-        info!(
+        trace!(
             "hypothetical percent asset return: {}",
             (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
                 / self.asset_prices.first().unwrap().0
         );
-        info!(
+        trace!(
             "portfolio percent return: {}",
             (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
                 / self.portfolio_prices.first().unwrap().0
         );
-        info!(
+        trace!(
             "initial portfolio price: {}",
             self.portfolio_prices.first().unwrap().0
         );
-        info!(
+        trace!(
             "current portfolio price: {}",
             self.portfolio_prices.last().unwrap().0
         );
@@ -130,11 +117,16 @@ impl WeightChanger for MomentumStrategist {
         }
         Ok(())
     }
+
+    fn g3m(&self) -> &G3M<RevmMiddleware> {
+        &self.g3m
+    }
 }
 
 #[async_trait::async_trait]
 impl Agent for MomentumStrategist {
     async fn step(&mut self) -> Result<()> {
+        debug!("Entered `step()` for `MomentumStrategist`");
         if self.portfolio_prices.is_empty() {
             let asset_price = format_ether(self.lex.price().call().await?)
                 .parse::<f64>()
@@ -148,7 +140,7 @@ impl Agent for MomentumStrategist {
                 .unwrap();
 
             let portfolio_price = reserve_x * asset_price + reserve_y;
-            info!("portfolio_price: {}", portfolio_price);
+            trace!("portfolio_price: {}", portfolio_price);
 
             self.portfolio_prices.push((portfolio_price, 0));
             self.asset_prices.push((asset_price, 0));
@@ -169,7 +161,7 @@ impl Agent for MomentumStrategist {
                 .unwrap();
 
             let portfolio_price = reserve_x * asset_price + reserve_y;
-            info!("portfolio_price: {}", portfolio_price);
+            trace!("portfolio_price: {}", portfolio_price);
 
             self.asset_prices.push((asset_price, timestamp));
             self.portfolio_prices.push((portfolio_price, timestamp));
@@ -177,6 +169,7 @@ impl Agent for MomentumStrategist {
             self.calculate_returns()?;
             self.execute_smooth_rebalance().await?;
         }
+        debug!("Finished `step()` for `MomentumStrategist`");
         Ok(())
     }
 

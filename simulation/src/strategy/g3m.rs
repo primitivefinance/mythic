@@ -38,11 +38,9 @@ impl Strategy for IStrategy<RevmMiddleware> {
     }
 }
 
-/// G3M pools must be initialized with a starting amount of x tokens and an
-/// initial price.
 #[async_trait::async_trait]
 impl LiquidityStrategy for IStrategy<RevmMiddleware> {
-    async fn instantiate(
+    async fn initialize_pool(
         &self,
         initial_x_wad: U256,
         initial_price_wad: U256,

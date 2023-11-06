@@ -13,19 +13,29 @@ pub struct BlockAdmin {
     pub block_number: u64,
 }
 
-impl BlockAdmin {
-    pub async fn new(environment: &Environment, config: &SimulationConfig<Fixed>) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, "block_admin".into())?;
-        let timestep_size = config.block.timestep_size;
-        let block_number = client.get_block_number().await?.as_u64();
-        let block_timestamp = client.get_block_timestamp().await?.as_u64();
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct BlockAdminParameters {
+    pub timestep_size: u64,
+}
 
-        Ok(Self {
-            client,
-            timestep_size,
-            block_timestamp,
-            block_number,
-        })
+impl BlockAdmin {
+    pub async fn new(
+        environment: &Environment,
+        config: &SimulationConfig<Single>,
+        label: impl Into<String>,
+    ) -> Result<Self> {
+        let label: String = label.into();
+        let client = RevmMiddleware::new(environment, Some(&label))?;
+        if let Some(AgentParameters::BlockAdmin(parameters)) = config.agent_parameters.get(&label) {
+            Ok(Self {
+                client: client.clone(),
+                timestep_size: parameters.timestep_size,
+                block_number: client.get_block_number().await?.as_u64(),
+                block_timestamp: client.get_block_timestamp().await?.as_u64(),
+            })
+        } else {
+            Err(anyhow::anyhow!("No parameters found for block admin"))
+        }
     }
 
     pub fn update_block(&mut self) -> Result<()> {
@@ -40,12 +50,16 @@ impl BlockAdmin {
 #[async_trait::async_trait]
 impl Agent for BlockAdmin {
     async fn step(&mut self) -> Result<()> {
+        debug!("Updating block");
         self.update_block()?;
+        debug!("Block updated");
         Ok(())
     }
 
     async fn startup(&mut self) -> Result<()> {
+        debug!("Updating block");
         self.update_block()?;
+        debug!("Block updated");
         Ok(())
     }
 }

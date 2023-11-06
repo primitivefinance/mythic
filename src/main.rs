@@ -27,13 +27,10 @@ struct Args {
 enum Commands {
     /// Represents the `Bind` subcommand.
     Simulate {
-        #[clap(index = 1, default_value = "simulation/configs/test/static.toml")]
+        #[clap(index = 1, default_value = "simulation/src/tests/configs/static.toml")]
         config_path: String,
     },
-    Analyze {
-        #[clap(index = 1, default_value = "test")]
-        type_: String,
-    },
+    Analyze,
     Ui {
         #[clap(index = 1, default_value = "example")]
         app: String,
@@ -74,19 +71,12 @@ fn main() -> Result<()> {
         Some(Commands::Simulate { config_path }) => {
             println!("Reading from config path: {}", config_path);
             let start = Instant::now();
-            simulations::batch(config_path)?;
+            let config = simulations::import(config_path)?;
+            simulations::batch(config)?;
             let duration = start.elapsed();
             println!("Total duration of simulations: {:?}", duration);
         }
-        Some(Commands::Analyze { type_ }) => println!(
-            "Exit status: {:?}",
-            std::process::Command::new("python")
-                .current_dir("analysis")
-                .arg("main.py")
-                .arg("--type")
-                .arg(type_)
-                .status()?
-        ),
+        Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app }) => match app.as_str() {
             "example" => interface::example()?,
             "analyzer" => interface::analyzer()?,
