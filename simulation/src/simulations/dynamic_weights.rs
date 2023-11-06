@@ -53,9 +53,6 @@ pub async fn setup(config: SimulationConfig<Single>) -> Result<Simulation, Simul
     )
     .await?;
 
-    println!("output directory: {:?}", config.output_directory);
-    println!("output file name: {:?}", config.output_file_name);
-
     EventLogger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())

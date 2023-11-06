@@ -1,17 +1,16 @@
 pub mod parameters;
 use std::{collections::BTreeMap, env, path::Path};
 
+use itertools::{Itertools, MultiProduct};
 use parameters::*;
 use unit_conversions::time::*;
 
+pub use self::parameters::Parameterized;
 use super::*;
 use crate::{
     agents::{price_changer::PriceChangerParameters, swapper::SwapperParameters, AgentParameters},
     simulations::SimulationType,
 };
-
-pub use self::parameters::Parameterized;
-use itertools::{Itertools, MultiProduct};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig<P: Parameterized> {

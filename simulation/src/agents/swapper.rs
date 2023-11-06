@@ -1,6 +1,5 @@
-use crate::settings::parameters::LinspaceParameters;
-
 use super::*;
+use crate::settings::parameters::LinspaceParameters;
 
 pub struct Swapper {
     pub client: Arc<RevmMiddleware>,
@@ -18,15 +17,15 @@ pub struct SwapperParameters<P: Parameterized> {
     pub swap_direction: bool,
 }
 
-impl Into<Vec<SwapperParameters<Single>>> for SwapperParameters<Multiple> {
-    fn into(self) -> Vec<SwapperParameters<Single>> {
-        self.num_swaps
+impl From<SwapperParameters<Multiple>> for Vec<SwapperParameters<Single>> {
+    fn from(item: SwapperParameters<Multiple>) -> Self {
+        item.num_swaps
             .parameters()
             .into_iter()
             .map(|num_swaps| SwapperParameters {
                 num_swaps: Single(num_swaps),
-                initial_balance: self.initial_balance,
-                swap_direction: self.swap_direction,
+                initial_balance: item.initial_balance,
+                swap_direction: item.swap_direction,
             })
             .collect()
     }
@@ -41,8 +40,9 @@ impl Swapper {
     ) -> Result<Self> {
         todo!()
         // let parameters = config.swapper.unwrap();
-        // let client = RevmMiddleware::new(&environment, "time_based_swapper".into()).unwrap();
-        // let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
+        // let client = RevmMiddleware::new(&environment,
+        // "time_based_swapper".into()).unwrap(); let liquid_exchange =
+        // LiquidExchange::new(liquid_exchange_address, client.clone());
         // let input_token = if parameters.swap_direction {
         //     liquid_exchange.arbiter_token_x().call().await?
         // } else {

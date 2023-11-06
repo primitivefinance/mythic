@@ -1,6 +1,6 @@
-use super::*;
-
 use std::{env, fs, io::Read, path::Path};
+
+use super::*;
 
 #[test]
 fn static_output() {

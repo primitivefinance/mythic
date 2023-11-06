@@ -1,8 +1,11 @@
-use rand::random;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
+use itertools::iproduct;
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+};
 
 use arbiter_core::math::GeometricBrownianMotion;
+use rand::random;
 
 use super::*;
 
@@ -178,18 +181,20 @@ impl From<PriceChangerParameters<Multiple>> for Vec<PriceChangerParameters<Singl
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum PriceProcess<P: Parameterized> {
-    GBM(GBMParameters<P>),
-    OU(OUParameters<P>),
+    #[serde(rename = "GBM")]
+    Gbm(GBMParameters<P>),
+    #[serde(rename = "OU")]
+    Ou(OUParameters<P>),
 }
 
 impl StochasticProcess for PriceProcess<Single> {
     fn drift(&self, x: f64, t: f64) -> f64 {
         match self {
-            PriceProcess::GBM(parameters) => {
+            PriceProcess::Gbm(parameters) => {
                 GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0)
                     .drift(x, t)
             }
-            PriceProcess::OU(parameters) => OrnsteinUhlenbeck::new(
+            PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
                 parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
@@ -200,11 +205,11 @@ impl StochasticProcess for PriceProcess<Single> {
 
     fn diffusion(&self, x: f64, t: f64) -> f64 {
         match self {
-            PriceProcess::GBM(parameters) => {
+            PriceProcess::Gbm(parameters) => {
                 GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0)
                     .diffusion(x, t)
             }
-            PriceProcess::OU(parameters) => OrnsteinUhlenbeck::new(
+            PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
                 parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
@@ -215,10 +220,10 @@ impl StochasticProcess for PriceProcess<Single> {
 
     fn jump(&self, x: f64, t: f64) -> Option<f64> {
         match self {
-            PriceProcess::GBM(parameters) => {
+            PriceProcess::Gbm(parameters) => {
                 GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0).jump(x, t)
             }
-            PriceProcess::OU(parameters) => OrnsteinUhlenbeck::new(
+            PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
                 parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
@@ -228,16 +233,16 @@ impl StochasticProcess for PriceProcess<Single> {
     }
 }
 
-impl Into<Vec<PriceProcess<Single>>> for PriceProcess<Multiple> {
-    fn into(self) -> Vec<PriceProcess<Single>> {
-        match self {
-            PriceProcess::GBM(parameters) => {
+impl From<PriceProcess<Multiple>> for Vec<PriceProcess<Single>> {
+    fn from(item: PriceProcess<Multiple>) -> Self {
+        match item {
+            PriceProcess::Gbm(parameters) => {
                 let parameters: Vec<GBMParameters<Single>> = parameters.into();
-                parameters.into_iter().map(PriceProcess::GBM).collect()
+                parameters.into_iter().map(PriceProcess::Gbm).collect()
             }
-            PriceProcess::OU(parameters) => {
+            PriceProcess::Ou(parameters) => {
                 let parameters: Vec<OUParameters<Single>> = parameters.into();
-                parameters.into_iter().map(PriceProcess::OU).collect()
+                parameters.into_iter().map(PriceProcess::Ou).collect()
             }
         }
     }
@@ -249,20 +254,17 @@ pub struct GBMParameters<P: Parameterized> {
     pub volatility: P,
 }
 
-impl Into<Vec<GBMParameters<Single>>> for GBMParameters<Multiple> {
-    fn into(self) -> Vec<GBMParameters<Single>> {
-        let drift = self.drift.parameters();
-        let volatility = self.volatility.parameters();
-        let mut result = vec![];
-        for d in drift {
-            for v in volatility.clone() {
-                result.push(GBMParameters {
-                    drift: Single(d),
-                    volatility: Single(v),
-                });
-            }
-        }
-        result
+impl From<GBMParameters<Multiple>> for Vec<GBMParameters<Single>> {
+    fn from(item: GBMParameters<Multiple>) -> Self {
+        let drift = item.drift.parameters();
+        let volatility = item.volatility.parameters();
+
+        iproduct!(drift, volatility.clone())
+            .map(|(d, v)| GBMParameters {
+                drift: Single(d),
+                volatility: Single(v),
+            })
+            .collect()
     }
 }
 
@@ -273,23 +275,18 @@ pub struct OUParameters<P: Parameterized> {
     pub volatility: P,
 }
 
-impl Into<Vec<OUParameters<Single>>> for OUParameters<Multiple> {
-    fn into(self) -> Vec<OUParameters<Single>> {
-        let theta = self.theta.parameters();
-        let mean = self.mean.parameters();
-        let volatility = self.volatility.parameters();
-        let mut result = vec![];
-        for t in theta {
-            for m in mean.clone() {
-                for v in volatility.clone() {
-                    result.push(OUParameters {
-                        theta: Single(t),
-                        mean: Single(m),
-                        volatility: Single(v),
-                    });
-                }
-            }
-        }
-        result
+impl From<OUParameters<Multiple>> for Vec<OUParameters<Single>> {
+    fn from(item: OUParameters<Multiple>) -> Self {
+        let theta = item.theta.parameters();
+        let mean = item.mean.parameters();
+        let volatility = item.volatility.parameters();
+
+        iproduct!(theta, mean.clone(), volatility.clone())
+            .map(|(t, m, v)| OUParameters {
+                theta: Single(t),
+                mean: Single(m),
+                volatility: Single(v),
+            })
+            .collect()
     }
 }

@@ -1,8 +1,3 @@
-use crate::settings::{
-    parameters::{LinspaceParameters, Multiple, Single},
-    Parameterized,
-};
-
 use self::{
     block_admin::BlockAdminParameters,
     liquidity_provider::LiquidityProviderParameters,
@@ -11,8 +6,11 @@ use self::{
     token_admin::TokenAdminParameters,
     weight_changer::{WeightChangerParameters, WeightChangerSpecialty},
 };
-
 use super::*;
+use crate::settings::{
+    parameters::{LinspaceParameters, Multiple, Single},
+    Parameterized,
+};
 
 pub mod arbitrageur;
 pub mod block_admin;

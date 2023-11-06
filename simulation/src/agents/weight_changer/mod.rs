@@ -3,7 +3,6 @@ use self::{
     momentum::{MomentumParameters, MomentumStrategist},
     volatility_targeting::{VolatilityTargetingParameters, VolatilityTargetingStrategist},
 };
-
 use super::*;
 
 pub mod dollar_cost_averaging;

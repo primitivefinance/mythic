@@ -1,6 +1,7 @@
+use itertools::iproduct;
+
 use super::*;
 use crate::math::*;
-use itertools::iproduct;
 
 #[derive(Clone)]
 pub struct VolatilityTargetingStrategist {
