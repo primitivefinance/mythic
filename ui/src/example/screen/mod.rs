@@ -124,7 +124,7 @@ impl ExampleScreen {
             simulation::settings::parameters::Meta,
         >::default();
         tracing::info!("temp_config: {:?}", temp_config);
-        content = content.push(config_editor::config_ui::ConfigEditor::new(temp_config));
+        content = content.push(config_editor::config_ui::create_config_editor(temp_config));
 
         // Render the run sim button
         content = content.push(run_sim_button::RunSimButton::default());

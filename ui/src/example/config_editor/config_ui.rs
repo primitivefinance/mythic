@@ -1,4 +1,25 @@
 //! Implements the `iced::widget::Component` trait to render the config editor.
+//!
+//! ## ConfigEditor
+//! Handles the logic for editing the config's intermediary storage, rendering the UI components, and saving the intermediary storage to the config.
+//!
+//! ## ConfigInput
+//! Renders a single field of a config and emits [`Event::FieldChanged`] when the field is changed.
+//!
+//! ## The Flow
+//! - The ConfigEditor is created with a config using `create_config_editor()`, which can be pushed to an iced element.
+//! - The ConfigEditor renders a [`ConfigInput`] for each field in the config.
+//! - The [`ConfigInput`] emits [`Event::FieldChanged`] when the field is changed.
+//! - The ConfigEditor handles the [`Event::FieldChanged`] and updates the intermediary storage `store`.
+//! - The ConfigEditor renders a save button that emits [`Event::SaveButtonPressed`] when pressed.
+//! - The ConfigEditor saves the `store` to the config when the save button is pressed.
+//! - The ConfigEditor renders a debug button that emits [`Event::DebugConfig`] when pressed.
+//! - The ConfigEditor prints the config to the console when the debug button is pressed.
+//! - Input validation and saving to the config is handled by the config itself, in `config.rs`.
+//!
+//! ## The Bugs
+//! - Fields get switched after the first update.
+//! - Fields don't give feedback if they have invalid inputs.
 
 use iced::{
     widget::{button, component, row, text, text_input, Column, Component},
@@ -110,7 +131,17 @@ impl<C: Config> ConfigEditor<C> {
                 }
             }
         }
+
+        info!("Config saving complete");
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Event {
+    FieldChanged(String, String),
+    NestedFieldChanged(String, String, String),
+    SaveButtonPressed,
+    DebugConfig,
 }
 
 impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
@@ -165,6 +196,15 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
     }
 }
 
+pub fn create_config_editor<'a, Message, C: Config + 'a>(
+    config: C,
+) -> Element<'a, Message, Renderer>
+where
+    Message: 'a,
+{
+    ConfigEditor::new(config).into()
+}
+
 /// Renders a single field of a config and emits [`Event::FieldChanged`] when
 /// the field is changed.
 pub fn create_field_input<'a>(
@@ -174,7 +214,7 @@ pub fn create_field_input<'a>(
     let mut column = Column::new();
 
     column = column.push(text(field_name.as_str()));
-    column = column.push(config_input(Some(field_value), move |x| {
+    column = column.push(create_config_input(Some(field_value), move |x| {
         Event::FieldChanged(field_name.clone(), x.unwrap_or_default())
     }));
 
@@ -191,7 +231,7 @@ pub fn create_nested_field_input<'a>(
     let mut column = Column::new();
 
     column = column.push(text(field_label.as_str()));
-    column = column.push(config_input(Some(field_value), move |x| {
+    column = column.push(create_config_input(Some(field_value), move |x| {
         Event::NestedFieldChanged(
             nested_field_label.clone(),
             field_label.clone(),
@@ -200,14 +240,6 @@ pub fn create_nested_field_input<'a>(
     }));
 
     column.into()
-}
-
-#[derive(Debug, Clone)]
-pub enum Event {
-    FieldChanged(String, String),
-    NestedFieldChanged(String, String, String),
-    SaveButtonPressed,
-    DebugConfig,
 }
 
 impl<'a, Message, C: Config + 'a> From<ConfigEditor<C>> for Element<'a, Message, Renderer>
@@ -225,7 +257,7 @@ pub struct ConfigInput<Message> {
     on_change: Box<dyn Fn(Option<String>) -> Message>,
 }
 
-pub fn config_input<Message>(
+pub fn create_config_input<Message>(
     value: Option<String>,
     on_change: impl Fn(Option<String>) -> Message + 'static,
 ) -> ConfigInput<Message> {
