@@ -16,6 +16,7 @@ pub mod arbitrageur;
 pub mod block_admin;
 pub mod liquidity_provider;
 pub mod price_changer;
+pub mod rmm;
 pub mod swapper;
 #[cfg(test)]
 pub mod tests;

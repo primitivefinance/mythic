@@ -24,15 +24,15 @@ contract RMM is IStrategy {
     mapping(address => uint256) public balanceOf;
 
     constructor(
-        ERC20 tokenX_,
-        ERC20 tokenY_,
+        address tokenX_,
+        address tokenY_,
         uint256 sigma_,
         uint256 strikePrice_,
         uint256 tau_,
         uint256 swapFee_
     ) {
-        tokenX = tokenX_;
-        tokenY = tokenY_;
+        tokenX = ERC20(tokenX_);
+        tokenY = ERC20(tokenY_);
         sigma = sigma_;
         strikePrice = strikePrice_;
         tau = tau_;
@@ -41,11 +41,18 @@ contract RMM is IStrategy {
         swapFee = swapFee_;
     }
 
+    function instantiate(
+        uint256 amount,
+        uint256 price
+    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
+        return initPool(true, amount, price);
+    }
+
     function initPool(
         bool exactX,
         uint256 amount,
         uint256 price
-    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
+    ) public returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
         require(totalLiquidity == 0, "Pool already initialized");
 
         if (exactX) {
@@ -317,10 +324,13 @@ contract RMM is IStrategy {
         return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice);
     }
 
-    function getStrategyData() external view returns (bytes memory data) { }
+    function getStrategyData() external view returns (bytes memory data) { 
+        return abi.encode(sigma, strikePrice, tau);
+    }
 
     function logData() external { 
         emit LogReserves(reserveX, reserveY, block.timestamp);
         emit LogParameters(sigma, strikePrice, tau, block.timestamp);
     }
+
 }
