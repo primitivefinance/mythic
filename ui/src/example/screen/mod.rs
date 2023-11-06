@@ -10,7 +10,7 @@ use iced::{widget::column, Element};
 use simulation::settings::*;
 use tracing::info;
 
-use super::{config_editor::config_ui, deployer, run_sim_button, watcher};
+use super::{config_editor, deployer, run_sim_button, watcher};
 
 mod banner;
 pub mod start;
@@ -22,7 +22,7 @@ pub struct ExampleScreen {
     pub watcher: watcher::WatcherComponent,
     pub deployer: deployer::DeployerComponent,
     pub config: SimulationConfig<parameters::Meta>,
-    pub config_editor: config_ui::ConfigEditor,
+    pub config_editor: config_editor::ConfigEditor,
 }
 
 /// Messages for Application -> Screen communication.
@@ -31,7 +31,7 @@ pub struct ExampleScreen {
 pub enum ExampleScreenMessage {
     WatcherComponent(watcher::AppToWatcherMessage),
     DeployerComponent(deployer::AppToDeployerMessage),
-    EditorComponent(config_ui::EditorEvent),
+    EditorComponent(config_editor::EditorEvent),
 }
 
 /// Messages for Screen -> Application communication.
@@ -53,7 +53,7 @@ impl ExampleScreen {
             watcher: watcher::WatcherComponent::new(),
             deployer: deployer::DeployerComponent::new(),
             config: config.clone(),
-            config_editor: config_ui::ConfigEditor::new(config.clone()),
+            config_editor: config_editor::ConfigEditor::new(config.clone()),
         }
     }
 
@@ -109,7 +109,7 @@ impl ExampleScreen {
                 let editor_message = self.config_editor.update(message);
 
                 match editor_message {
-                    Some(config_ui::EditorToAppMessage::SaveConfig(store)) => {
+                    Some(config_editor::EditorToAppMessage::SaveConfig(store)) => {
                         info!("Saving config: {:?}", store);
                         let converted_config = store.clone().into();
                         match converted_config {

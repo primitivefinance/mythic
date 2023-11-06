@@ -6,7 +6,7 @@ use simulation::{
     simulations::*,
 };
 
-use super::{config::*, config_ui::*};
+use super::*;
 
 /// Implements the `ConfigEnum` trait for the `SimulationType` enum so it can be
 /// used as a config field.
@@ -37,49 +37,49 @@ impl Validatable for SimulationType {
     }
 }
 
-impl<P> From<Store> for Result<settings::SimulationConfig<P>, Error>
+impl<P> From<ConfigStore> for Result<settings::SimulationConfig<P>, Error>
 where
     P: Parameterized<f64> + Default + std::fmt::Debug + Clone + 'static,
 {
-    fn from(s: Store) -> Self {
+    fn from(s: ConfigStore) -> Self {
         let mut settings = settings::SimulationConfig::<P>::default();
-        let simulation = s
-            .get("simulation")
-            .ok_or_else(|| Error::msg("Expected simulation field"))?;
+        let simulation =
+            s.0.get("simulation")
+                .ok_or_else(|| Error::msg("Expected simulation field"))?;
 
         let simulation = match &simulation {
             StoreField::Value(s) => settings.simulation.validate(s)?,
             _ => return Err(Error::msg("Expected simulation field")),
         };
 
-        let output_directory = s
-            .get("output_directory")
-            .ok_or_else(|| Error::msg("Expected output_directory field"))?;
+        let output_directory =
+            s.0.get("output_directory")
+                .ok_or_else(|| Error::msg("Expected output_directory field"))?;
 
         let output_directory = match &output_directory {
             StoreField::Value(s) => settings.output_directory.validate(s)?,
             _ => return Err(Error::msg("Expected output_directory field")),
         };
 
-        let output_file_name = s
-            .get("output_file_name")
-            .map(|output_file_name| match output_file_name {
-                StoreField::Value(s) => Some(
-                    settings
-                        .output_file_name
-                        .unwrap_or_default()
-                        .validate(s)
-                        .unwrap_or_default(),
-                ),
-                _ => None,
-            })
-            .unwrap_or_default();
+        let output_file_name =
+            s.0.get("output_file_name")
+                .map(|output_file_name| match output_file_name {
+                    StoreField::Value(s) => Some(
+                        settings
+                            .output_file_name
+                            .unwrap_or_default()
+                            .validate(s)
+                            .unwrap_or_default(),
+                    ),
+                    _ => None,
+                })
+                .unwrap_or_default();
 
-        let pool = s.get("pool").map(|pool| match pool {
+        let pool = s.0.get("pool").map(|pool| match pool {
             StoreField::Nested(nested) => {
                 let mut pool = settings.pool.clone();
 
-                for (field_name, value) in nested.iter() {
+                for (field_name, value) in nested.0.iter() {
                     match field_name.as_str() {
                         "fee_basis_points" => match value {
                             StoreField::Value(s) => {
@@ -117,7 +117,7 @@ where
         Ok(settings)
     }
 }
-impl<P> From<settings::SimulationConfig<P>> for Store
+impl<P> From<settings::SimulationConfig<P>> for ConfigStore
 where
     P: Parameterized<f64> + Default + std::fmt::Debug + Clone + 'static,
 {
