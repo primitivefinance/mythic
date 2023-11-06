@@ -9,6 +9,7 @@ use super::*;
 use crate::{
     agents::{Agent, Agents},
     settings::parameters::{Multiple, Single},
+    strategy::rmm::RmmStrategy,
 };
 
 pub mod dynamic_weights;
@@ -46,7 +47,8 @@ impl SimulationType {
                 stable_portfolio::setup(environment, config.clone()).await?
             }
             SimulationType::RmmVolatilityTargeting => {
-                momentum::setup(environment, config.clone()).await?
+                println!("we getting here?");
+                rmm_vol_targeting::setup(environment, config.clone()).await?
             }
         };
         match looper(simulation.agents, simulation.steps).await {
