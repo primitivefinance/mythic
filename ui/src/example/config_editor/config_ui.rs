@@ -80,7 +80,7 @@ impl<C: Config> ConfigEditor<C> {
 
     pub fn save_config(&mut self) {
         // Writes the store's values to the config.
-        info!("todo: Save button pressed");
+        info!("Saving config...");
 
         // For each field in the store, set the config's field to the store's value.
         for (field_name, value) in self.store.iter() {
@@ -121,17 +121,19 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
         match event {
             Event::FieldChanged(field_name, value) => {
                 self.set_field(field_name, value);
-                None
             }
             Event::NestedFieldChanged(nested_name, field_name, value) => {
                 self.set_nested_field(nested_name, field_name, value);
-                None
             }
             Event::SaveButtonPressed => {
                 self.save_config();
-                None
+            }
+            Event::DebugConfig => {
+                info!("Config: {:?}", self.config);
             }
         }
+
+        None
     }
 
     fn view(&self, _state: &Self::State) -> iced::Element<Event, Renderer> {
@@ -157,6 +159,7 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
         }
 
         column = column.push(button(text("Save")).on_press(Event::SaveButtonPressed));
+        column = column.push(button(text("Debug")).on_press(Event::DebugConfig));
 
         column.into()
     }
@@ -204,6 +207,7 @@ pub enum Event {
     FieldChanged(String, String),
     NestedFieldChanged(String, String, String),
     SaveButtonPressed,
+    DebugConfig,
 }
 
 impl<'a, Message, C: Config + 'a> From<ConfigEditor<C>> for Element<'a, Message, Renderer>
@@ -266,7 +270,7 @@ impl<Message> Component<Message, Renderer> for ConfigInput<Message> {
 
     fn view(&self, _state: &Self::State) -> iced::Element<Self::Event, Renderer> {
         row![text_input(
-            "Type a number",
+            "Type a value...",
             self.value
                 .as_ref()
                 .map(String::to_string)
