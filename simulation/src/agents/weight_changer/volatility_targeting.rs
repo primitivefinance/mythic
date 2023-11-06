@@ -131,10 +131,6 @@ impl WeightChanger for VolatilityTargetingStrategist {
     fn g3m(&self) -> &G3M<RevmMiddleware> {
         &self.g3m
     }
-
-    fn lex(&self) -> &LiquidExchange<RevmMiddleware> {
-        &self.lex
-    }
 }
 
 #[async_trait::async_trait]

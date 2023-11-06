@@ -14,7 +14,6 @@ pub mod volatility_targeting;
 pub trait WeightChanger: Agent {
     async fn execute_smooth_rebalance(&mut self) -> Result<()>;
     fn g3m(&self) -> &G3M<RevmMiddleware>;
-    fn lex(&self) -> &LiquidExchange<RevmMiddleware>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -28,7 +27,7 @@ pub struct WeightChangerParameters<P: Parameterized> {
 pub enum WeightChangerSpecialty<P: Parameterized> {
     Momentum(MomentumParameters<P>),
     VolatilityTargeting(VolatilityTargetingParameters<P>),
-    DollarCostAveraging(DollarCostAveragingParameters<P>),
+    DollarCostAveraging(DollarCostAveragingParameters),
 }
 
 use itertools::iproduct;
@@ -68,11 +67,7 @@ impl From<WeightChangerSpecialty<Multiple>> for Vec<WeightChangerSpecialty<Singl
                     .collect()
             }
             WeightChangerSpecialty::DollarCostAveraging(parameters) => {
-                let parameters: Vec<DollarCostAveragingParameters<Single>> = parameters.into();
-                parameters
-                    .into_iter()
-                    .map(WeightChangerSpecialty::DollarCostAveraging)
-                    .collect()
+                vec![WeightChangerSpecialty::DollarCostAveraging(parameters)]
             }
         }
     }
@@ -135,7 +130,13 @@ impl WeightChangerType {
                     Ok(Self(Box::new(strategist)))
                 }
                 WeightChangerSpecialty::DollarCostAveraging(parameters) => {
-                    todo!()
+                    let strategist = DollarCostAveragingStategist {
+                        client,
+                        g3m,
+                        end_weight: parameters.end_weight,
+                        end_timestamp: parameters.end_timestamp,
+                    };
+                    Ok(Self(Box::new(strategist)))
                 }
             }
         } else {
@@ -163,9 +164,5 @@ impl WeightChanger for WeightChangerType {
 
     fn g3m(&self) -> &G3M<RevmMiddleware> {
         self.0.g3m()
-    }
-
-    fn lex(&self) -> &LiquidExchange<RevmMiddleware> {
-        self.0.lex()
     }
 }

@@ -48,7 +48,7 @@ pub async fn setup(config: SimulationConfig<Single>) -> Result<Simulation, Simul
     let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
         &environment,
         &token_admin,
-        weight_changer.lex().address(),
+        price_changer.liquid_exchange.address(),
         weight_changer.g3m().address(),
     )
     .await?;
