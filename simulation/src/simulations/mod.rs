@@ -40,12 +40,15 @@ impl SimulationType {
                 Ok(())
             }
             Err(e) => {
-                // TODO: Improve metadata here.
-                let metadata = format!("{}", config.output_directory);
-                let error_string = format!("Error in simulation `{:?}`: {:?}", metadata, e);
-                error!(error_string);
+                let metadata = serde_json::to_value(&config)
+                    .map_err(|e| SimulationError::GenericError(e.to_string()))?;
+                error!(
+                    { info = e.to_string() },
+                    "Error in simulation {:?}",
+                    serde_json::to_string(&metadata).unwrap()
+                );
                 simulation.environment.stop();
-                Err(SimulationError::GenericError(error_string))
+                Err(SimulationError::Error(metadata))
             }
         }
     }
