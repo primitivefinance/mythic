@@ -2,6 +2,10 @@ use self::{
     block_admin::BlockAdminParameters,
     liquidity_provider::LiquidityProviderParameters,
     price_changer::PriceChangerParameters,
+    rmm::{
+        liquidity_provider::RmmLiquidityProviderParameters,
+        portfolio_manager::PortfolioManagerParameters,
+    },
     swapper::SwapperParameters,
     token_admin::TokenAdminParameters,
     weight_changer::{WeightChangerParameters, WeightChangerSpecialty},
@@ -76,6 +80,8 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
     WeightChanger(WeightChangerParameters<P>),
+    PortfolioManager(PortfolioManagerParameters<P>),
+    RmmLiquidityProvider(RmmLiquidityProviderParameters<P>),
     Swapper(SwapperParameters<P>),
     LiquidityProvider(LiquidityProviderParameters<P>),
     BlockAdmin(BlockAdminParameters),
@@ -91,6 +97,20 @@ impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
                 parameters
                     .into_iter()
                     .map(AgentParameters::WeightChanger)
+                    .collect()
+            }
+            AgentParameters::PortfolioManager(parameters) => {
+                let parameters: Vec<PortfolioManagerParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::PortfolioManager)
+                    .collect()
+            }
+            AgentParameters::RmmLiquidityProvider(parameters) => {
+                let parameters: Vec<RmmLiquidityProviderParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::RmmLiquidityProvider)
                     .collect()
             }
             AgentParameters::Swapper(parameters) => {

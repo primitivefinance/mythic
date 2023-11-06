@@ -1,5 +1,5 @@
 pub mod arbitrageur;
 pub mod liquidity_provider;
-pub mod rmm_strategist;
+pub mod portfolio_manager;
 
 use super::*;

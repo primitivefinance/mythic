@@ -2,71 +2,91 @@ use arbiter_core::environment::builder::BlockSettings;
 
 use super::{errors::SimulationError, *};
 use crate::{
-    agents::rmm::{
-        arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider,
-        rmm_strategist::VolatilityTargetingStrategist,
-    },
     agents::{
-        block_admin::BlockAdmin, momentum_strategist::MomentumStrategist,
-        price_changer::PriceChanger, rmm::rmm_strategist, token_admin::TokenAdmin, Agent, Agents,
+        block_admin::BlockAdmin,
+        price_changer::PriceChanger,
+        rmm::{
+            arbitrageur::RmmArbitrageur, liquidity_provider::RmmLiquidityProvider,
+            portfolio_manager::PortfolioManagerType,
+        },
+        token_admin::TokenAdmin,
+        Agent, Agents,
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
     strategy::rmm::RmmStrategy,
 };
 
-pub async fn setup(config: SimulationConfig<Fixed>) -> Result<Simulation, SimulationError> {
-    let environment = EnvironmentBuilder::new()
-        .block_settings(BlockSettings::UserControlled)
-        .build();
-    let mut block_admin = BlockAdmin::new(&environment, &config).await?;
-
-    let token_admin = TokenAdmin::new(&environment).await?;
-    let mut price_changer = PriceChanger::new(&environment, &token_admin, &config).await?;
-    let vol_strategist = VolatilityTargetingStrategist::new(
+pub async fn setup(
+    environment: Environment,
+    config: SimulationConfig<Single>,
+) -> Result<Simulation, SimulationError> {
+    let mut block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
+    let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
+    let mut price_changer =
+        PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
+    println!("bruh moment");
+    let rmm_portfolio_manager = PortfolioManagerType::new(
         &environment,
         &config,
+        "portfolio_manager",
         price_changer.liquid_exchange.address(),
-        token_admin.arbx.address(),
-        token_admin.arby.address(),
     )
     .await?;
+    println!("bruh moment2");
 
-    let mut lp = LiquidityProvider::<RmmStrategy>::new(
+    let mut lp = RmmLiquidityProvider::<RmmStrategy>::new(
         &environment,
-        &token_admin,
-        vol_strategist.low_vol_pool.address(),
-        vol_strategist.high_vol_pool.address(),
         &config,
+        "lp",
+        &token_admin,
+        rmm_portfolio_manager.0.low_vol_pool().address(),
+        rmm_portfolio_manager.0.high_vol_pool().address(),
     )
     .await?;
-    let mut arbitrageur = Arbitrageur::<RmmStrategy>::new(
+    println!("bruh moment3");
+    let mut arbitrageur = RmmArbitrageur::<RmmStrategy>::new(
         &environment,
         &token_admin,
         price_changer.liquid_exchange.address(),
-        vol_strategist.low_vol_pool.address(),
-        vol_strategist.high_vol_pool.address(),
+        rmm_portfolio_manager.0.low_vol_pool().address(),
+        rmm_portfolio_manager.0.high_vol_pool().address(),
     )
     .await?;
+    println!("bruh moment4");
 
-    println!("low vol pool: {}", vol_strategist.low_vol_pool.address());
-    println!("low vol pool: {}", vol_strategist.high_vol_pool.address());
+    println!(
+        "low vol pool: {}",
+        rmm_portfolio_manager.0.low_vol_pool().address()
+    );
+    println!(
+        "low vol pool: {}",
+        rmm_portfolio_manager.0.high_vol_pool().address()
+    );
 
     EventLogger::builder()
         .add(price_changer.liquid_exchange.events(), "lex")
-        .add(vol_strategist.low_vol_pool.events(), "low_vol_pool")
-        .add(vol_strategist.high_vol_pool.events(), "low_vol_pool")
+        .add(
+            rmm_portfolio_manager.0.low_vol_pool().events(),
+            "low_vol_pool",
+        )
+        .add(
+            rmm_portfolio_manager.0.high_vol_pool().events(),
+            "low_vol_pool",
+        )
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
+
+    let steps = price_changer.trajectory.paths[0].len() - 1;
 
     Ok(Simulation {
         agents: Agents::new()
             .add(price_changer)
             .add(arbitrageur)
             .add(block_admin)
-            .add(vol_strategist)
+            .add(rmm_portfolio_manager)
             .add(lp),
-        steps: config.trajectory.num_steps,
+        steps,
         environment,
     })
 }

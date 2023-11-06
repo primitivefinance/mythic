@@ -7,12 +7,7 @@ use ethers::abi::Param;
 use serde_json::Value;
 
 use super::*;
-use crate::agents::{
-    swapper::SwapperParameters,
-    weight_changer::{
-        momentum::MomentumParameters, volatility_targeting::VolatilityTargetingParameters,
-    },
-};
+use crate::agents::swapper::SwapperParameters;
 
 pub trait Parameterized {
     fn parameters(&self) -> Vec<f64>;

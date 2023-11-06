@@ -49,7 +49,7 @@ impl Strategy for RmmStrategy {
 /// initial price.
 #[async_trait::async_trait]
 impl LiquidityStrategy for RmmStrategy {
-    async fn instantiate(
+    async fn initialize_pool(
         &self,
         initial_x_wad: U256,
         initial_price_wad: U256,

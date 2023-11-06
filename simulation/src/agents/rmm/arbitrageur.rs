@@ -2,7 +2,7 @@ use super::*;
 use crate::{agents::Agent, strategy::ArbitrageStrategy};
 
 #[derive(Clone)]
-pub struct Arbitrageur<S: ArbitrageStrategy> {
+pub struct RmmArbitrageur<S: ArbitrageStrategy> {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
@@ -15,7 +15,7 @@ pub struct Arbitrageur<S: ArbitrageStrategy> {
     pub math: SD59x18Math<RevmMiddleware>,
 }
 
-impl<S: ArbitrageStrategy> Arbitrageur<S> {
+impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
     pub async fn new(
         environment: &Environment,
         token_admin: &token_admin::TokenAdmin,
@@ -127,7 +127,7 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
 }
 // TODO: make sure we're swapping on low and high vol strategies
 #[async_trait::async_trait]
-impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
+impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for RmmArbitrageur<S> {
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.
