@@ -1,13 +1,38 @@
 //! Traits and types for implementing editable config fields.
 
-/// We want to be able to use the same ConfigFieldType for all config fields,
-/// including enums.
-pub trait ConfigEnum: std::fmt::Debug {}
+use anyhow::{Error, Result};
+use std::fmt::Debug;
+
+/// Every field of a config is represented by a ConfigField.
+/// - label: A human-readable name for the field.
+/// - data: The field's data, as a ConfigFieldType.
+#[derive(Debug)]
+pub struct ConfigField {
+    pub label: String,
+    pub data: ConfigFieldType,
+}
+
+impl ConfigField {
+    /// Sets the label and data for the field and
+    /// converts the data type to its respective ConfigFieldType.
+    pub fn new<T: Into<ConfigFieldType>>(label: String, data: T) -> Self {
+        ConfigField {
+            label,
+            data: data.into(),
+        }
+    }
+
+    /// Returns the inner ConfigFieldType as a String.
+    pub fn get_value(&self) -> String {
+        self.data.value()
+    }
+}
 
 /// Each field of a config is converted to one of these types.
 /// This allows us to use the same type for all config fields, including enums.
 /// Config fields which have their own fields are represented by a Box<dyn
 /// Config>.
+#[derive(Debug)]
 pub enum ConfigFieldType {
     StringType(String),
     ValueType(f64),
@@ -15,24 +40,74 @@ pub enum ConfigFieldType {
     ConfigType(Box<dyn Config>),
 }
 
-/// Field types can have their unformatted values returned with `raw()`.
 impl ConfigFieldType {
-    /// Returns the unformatted value of the field.
-    pub fn raw(&self) -> String {
+    pub fn value(&self) -> String {
         match self {
             ConfigFieldType::StringType(s) => s.clone(),
-            ConfigFieldType::ValueType(s) => s.to_string(),
+            ConfigFieldType::ValueType(s) => {
+                let converted = format!("{:.51}", s)
+                    .trim_end_matches(|c| c == '0' || c == '.')
+                    .to_string();
+
+                tracing::info!("Changed original value {} to converted {}", s, converted);
+                converted
+            }
             ConfigFieldType::EnumType(e) => format!("{:?}", e),
             _ => String::new(),
         }
     }
 }
 
-/// Each field has its own label and config type, which determines how it is
-/// rendered.
-pub struct ConfigField {
-    pub label: String,
-    pub value: ConfigFieldType,
+/// We want to be able to use the same ConfigFieldType for all config fields,
+/// including enums.
+pub trait ConfigEnum: Debug {}
+
+pub trait Validatable: Debug {
+    fn validate(&self, input: &String) -> Result<Self, Error>
+    where
+        Self: Sized;
+}
+
+impl Validatable for String {
+    fn validate(&self, input: &String) -> Result<Self, Error> {
+        // Perform validation for String
+        Ok(input.clone())
+    }
+}
+
+impl Validatable for f64 {
+    fn validate(&self, input: &String) -> Result<Self, Error> {
+        // If input is empty, return an empty string
+        if input.trim().is_empty() {
+            return Ok(0.0);
+        }
+
+        // Try to parse the input as f64
+        let converted = input
+            .parse::<f64>()
+            .map_err(|_| Error::msg("Invalid value"))?;
+        Ok(converted)
+    }
+}
+
+impl Validatable for usize {
+    fn validate(&self, input: &String) -> Result<Self, Error> {
+        // Try to parse the input as usize
+        let converted = input
+            .parse::<usize>()
+            .map_err(|_| Error::msg("Invalid value"))?;
+        Ok(converted)
+    }
+}
+
+impl Validatable for u16 {
+    fn validate(&self, input: &String) -> Result<Self, Error> {
+        // Try to parse the input as u16
+        let converted = input
+            .parse::<u16>()
+            .map_err(|_| Error::msg("Invalid value"))?;
+        Ok(converted)
+    }
 }
 
 /// Nested config fields are a group of individual fields, which has its own
@@ -42,16 +117,20 @@ pub struct NestedConfigField {
     pub field: Box<dyn Config>,
 }
 
-/// Configs must return a list of ConfigFields, which will render their label
-/// and data. When that data is altered, the set_field method is called with the
-/// field name and new value. If the config has nested fields, they must be
-/// returned by the nested_fields method. When a nested field is altered, the
-/// set_nested_field method is called with the nested field name, field name,
-/// and new value.
-pub trait Config {
+pub trait Config: Debug {
     fn fields(&self) -> Vec<ConfigField>;
-    fn set_field(&mut self, field_name: String, value: String);
-    fn set_nested_field(&mut self, _nested_name: String, _field_name: String, _value: String) {}
+
+    fn set_field(&mut self, field_name: String, value: String) -> Result<(), Error>;
+
+    fn set_nested_field(
+        &mut self,
+        _nested_name: String,
+        _field_name: String,
+        _value: String,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
     fn nested_fields(&self) -> Vec<NestedConfigField> {
         vec![]
     }

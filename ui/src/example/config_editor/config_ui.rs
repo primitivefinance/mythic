@@ -27,12 +27,18 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
         match event {
             Event::FieldChanged(field_name, value) => {
                 info!("Field changed: {} to {}", field_name, value);
-                self.config.set_field(field_name, value);
+                // Call the set_field method and handle the error.
+                if let Err(e) = self.config.set_field(field_name, value) {
+                    info!("Error setting field: {}", e);
+                }
                 None
             }
             Event::NestedFieldChanged(nested_name, field_name, value) => {
                 info!("Nested field changed: {} to {}", field_name, value);
-                self.config.set_nested_field(nested_name, field_name, value);
+                // Call the set_nested_field method and handle the error.
+                if let Err(e) = self.config.set_nested_field(nested_name, field_name, value) {
+                    info!("Error setting nested field: {}", e);
+                }
                 None
             }
             Event::SaveButtonPressed => {
@@ -66,7 +72,7 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
 pub fn create_field_input<'a>(field: &ConfigField) -> Element<'a, Event, Renderer> {
     let mut column = Column::new();
     let label = field.label.clone();
-    let value = field.value.raw().clone();
+    let value = field.get_value().clone();
 
     column = column.push(text(label.as_str()));
     column = column.push(
@@ -86,7 +92,8 @@ pub fn create_nested_field_input<'a>(
     let mut column = Column::new();
     let name = nested_name.to_string();
     let label = field.label.clone();
-    let value = field.value.raw().clone();
+    let value = field.get_value().clone();
+
     column = column.push(text(label.as_str()));
     column = column.push(
         text_input("Enter a value...", value.as_str())

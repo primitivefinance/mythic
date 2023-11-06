@@ -1,5 +1,6 @@
 //! Implement UI config traits for the simulation config.
 
+use anyhow::{Error, Result};
 use simulation::{
     settings::{self, parameters::*},
     simulations::*,
@@ -18,8 +19,27 @@ impl From<SimulationType> for ConfigFieldType {
     }
 }
 
+impl Validatable for SimulationType {
+    fn validate(&self, input: &String) -> Result<Self, Error> {
+        // Match against the enum variants
+        let converted = match input.as_str() {
+            "DynamicWeights" => SimulationType::DynamicWeights,
+            "StablePortfolio" => SimulationType::StablePortfolio,
+            "MomentumStrategy" => SimulationType::MomentumStrategy,
+            _ => {
+                return Err(Error::msg(format!(
+                    "Invalid value for SimulationType: {}",
+                    input
+                )))
+            }
+        };
+        Ok(converted)
+    }
+}
+
 /// Implements the Config trait for the SimulationConfig.
-impl<P: Parameterized<f64> + Default> Config for settings::SimulationConfig<P> {
+impl<P: Parameterized<f64> + Default + std::fmt::Debug> Config for settings::SimulationConfig<P> {
+    /// Returns a HashMap of ConfigFields for the SimulationConfig.
     fn fields(&self) -> Vec<ConfigField> {
         config_fields!(
             self,
@@ -30,32 +50,56 @@ impl<P: Parameterized<f64> + Default> Config for settings::SimulationConfig<P> {
         )
     }
 
-    fn set_field(&mut self, field_name: String, value: String) {
+    fn set_field(&mut self, field_name: String, value: String) -> Result<(), Error> {
         match field_name.as_str() {
-            "max_parallel" => self.max_parallel = value.parse().ok(),
-            "output_directory" => self.output_directory = value,
-            "output_file_name" => self.output_file_name = value.parse().ok(),
+            "simulation" => {
+                self.simulation = self.simulation.validate(&value)?.into();
+            }
+            "max_parallel" => {
+                if let Some(max_parallel) = &self.max_parallel {
+                    self.max_parallel = Some(max_parallel.validate(&value)?.into());
+                } else {
+                    self.max_parallel = Some((0 as usize).validate(&value)?.into());
+                }
+            }
+            "output_directory" => {
+                self.output_directory = self.output_directory.validate(&value)?.into();
+            }
+            "output_file_name" => {
+                if let Some(output_file_name) = &self.output_file_name {
+                    self.output_file_name = Some(output_file_name.validate(&value)?.into());
+                } else {
+                    self.output_file_name = Some(String::new().validate(&value)?.into());
+                }
+            }
             _ => tracing::info!(
                 "Attempting field name: {} with value: {}",
                 field_name,
                 value
             ),
         }
+        Ok(())
     }
 
     fn nested_fields(&self) -> Vec<NestedConfigField> {
         nested_configs!(self.pool)
     }
 
-    fn set_nested_field(&mut self, nested_name: String, field_name: String, value: String) {
+    fn set_nested_field(
+        &mut self,
+        nested_name: String,
+        field_name: String,
+        value: String,
+    ) -> Result<(), Error> {
         if nested_name == "pool" {
             match field_name.as_str() {
                 "fee_basis_points" => {
-                    self.pool.fee_basis_points = value.parse().ok().unwrap_or_default()
+                    self.pool.fee_basis_points = self.pool.fee_basis_points.validate(&value)?.into()
                 }
-                "weight_x" => self.pool.weight_x = value.parse().ok().unwrap_or_default(),
+                "weight_x" => self.pool.weight_x = self.pool.weight_x.validate(&value)?.into(),
                 "target_volatility" => {
-                    self.pool.target_volatility = value.parse().ok().unwrap_or_default()
+                    self.pool.target_volatility =
+                        self.pool.target_volatility.validate(&value)?.into()
                 }
                 _ => tracing::info!(
                     "Attempting nested field name: {} with value: {}",
@@ -70,6 +114,8 @@ impl<P: Parameterized<f64> + Default> Config for settings::SimulationConfig<P> {
                 value
             )
         }
+
+        Ok(())
     }
 }
 
@@ -81,16 +127,22 @@ impl Config for settings::parameters::PoolParameters {
         config_fields!(self, fee_basis_points, weight_x, target_volatility)
     }
 
-    fn set_field(&mut self, field_name: String, value: String) {
+    fn set_field(&mut self, field_name: String, value: String) -> Result<(), Error> {
         match field_name.as_str() {
-            "fee_basis_points" => self.fee_basis_points = value.parse().ok().unwrap_or_default(),
-            "weight_x" => self.weight_x = value.parse().ok().unwrap_or_default(),
-            "target_volatility" => self.target_volatility = value.parse().ok().unwrap_or_default(),
+            "fee_basis_points" => {
+                self.fee_basis_points = self.fee_basis_points.validate(&value)?.into()
+            }
+            "weight_x" => self.weight_x = self.weight_x.validate(&value)?.into(),
+            "target_volatility" => {
+                self.target_volatility = self.target_volatility.validate(&value)?.into()
+            }
             _ => tracing::info!(
                 "Attempting field name: {} with value: {}",
                 field_name,
                 value
             ),
         }
+
+        Ok(())
     }
 }

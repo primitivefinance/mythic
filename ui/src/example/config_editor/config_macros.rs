@@ -17,10 +17,10 @@ macro_rules! config_fields {
     ($self:expr, $($field:ident),* $(,)?) => {
         vec![
             $(
-                ConfigField {
-                    label: stringify!($field).to_string(),
-                    value: ConfigFieldType::from($self.$field.clone()),
-                },
+                ConfigField::new(
+                    stringify!($field).to_string(),
+                    $self.$field.clone(),
+                ),
             )*
         ]
     };
