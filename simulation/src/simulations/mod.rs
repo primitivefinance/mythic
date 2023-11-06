@@ -100,7 +100,11 @@ pub fn batch(config: SimulationConfig<Multiple>) -> Result<()> {
                     None
                 };
 
-                warn!("Running simulation with config: {:?}", config);
+                warn!(
+                    "Running environment with label: {}\nFull config: {:#?}",
+                    config.output_file_name.clone().unwrap(),
+                    config
+                );
                 let result = SimulationType::run(config).await;
                 match result {
                     Err(e) => {
@@ -145,6 +149,7 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
         agent.startup().await?;
     }
 
+    info!("Entering main loop for agents.");
     for index in 0..steps {
         debug!("Entering priority loop for index: {}", index);
         for agent in agents.iter_mut() {
