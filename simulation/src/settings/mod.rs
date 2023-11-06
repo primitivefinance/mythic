@@ -65,7 +65,6 @@ impl From<SimulationConfig<Multiple>> for Vec<SimulationConfig<Single>> {
 
 #[cfg(test)]
 mod tests {
-    // TODO: Generate the static and sweep configs here.
     use super::*;
 
     #[test]
@@ -77,7 +76,7 @@ mod tests {
         assert_eq!(config.simulation, SimulationType::DynamicWeights);
         assert_eq!(
             config.output_directory,
-            "src/tests/configs/test_static_output".to_string(),
+            "src/tests/output/static".to_string(),
         );
         let agent_parameters = config.agent_parameters.clone();
         assert_eq!(agent_parameters.len(), 5);

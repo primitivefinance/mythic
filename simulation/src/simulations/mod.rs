@@ -40,6 +40,7 @@ impl SimulationType {
                 Ok(())
             }
             Err(e) => {
+                // TODO: Improve metadata here.
                 let metadata = format!("{}", config.output_directory);
                 let error_string = format!("Error in simulation `{:?}`: {:?}", metadata, e);
                 error!(error_string);

@@ -1,5 +1,5 @@
 simulation = "DynamicWeights"
-output_directory = "src/tests/configs/test_static_output"
+output_directory = "src/tests/output/static"
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 15

@@ -1,5 +1,5 @@
 simulation = "DynamicWeights"
-output_directory = "src/tests/configs/test_sweep_output"
+output_directory = "src/tests/output/sweep"
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 15
@@ -16,14 +16,14 @@ decimals = 18
 
 [agent.price_changer.PriceChanger]
 seed = 2
-num_steps = 100
+num_steps = 2
 num_paths = 2
 initial_price.fixed = 1.0
 t_0.start = 0.0
-t_0.end = 0.5
+t_0.end = 0.01
 t_0.steps = 2
-t_n.start = 0
-t_n.end = 1.0
+t_n.start = 0.02
+t_n.end = 0.025
 t_n.steps = 2
 process.GBM.drift.start = -1.0
 process.GBM.drift.end = 1.0
