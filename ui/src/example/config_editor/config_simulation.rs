@@ -6,7 +6,7 @@ use simulation::{
     simulations::*,
 };
 
-use super::config::*;
+use super::{config::*, config_ui::*};
 
 /// Implements the `ConfigEnum` trait for the `SimulationType` enum so it can be
 /// used as a config field.
@@ -37,8 +37,105 @@ impl Validatable for SimulationType {
     }
 }
 
+impl<P> From<Store> for Result<settings::SimulationConfig<P>, Error>
+where
+    P: Parameterized<f64> + Default + std::fmt::Debug + Clone + 'static,
+{
+    fn from(s: Store) -> Self {
+        let mut settings = settings::SimulationConfig::<P>::default();
+        let simulation = s
+            .get("simulation")
+            .ok_or_else(|| Error::msg("Expected simulation field"))?;
+
+        let simulation = match &simulation {
+            StoreField::Value(s) => settings.simulation.validate(s)?,
+            _ => return Err(Error::msg("Expected simulation field")),
+        };
+
+        let output_directory = s
+            .get("output_directory")
+            .ok_or_else(|| Error::msg("Expected output_directory field"))?;
+
+        let output_directory = match &output_directory {
+            StoreField::Value(s) => settings.output_directory.validate(s)?,
+            _ => return Err(Error::msg("Expected output_directory field")),
+        };
+
+        let output_file_name = s
+            .get("output_file_name")
+            .map(|output_file_name| match output_file_name {
+                StoreField::Value(s) => Some(
+                    settings
+                        .output_file_name
+                        .unwrap_or_default()
+                        .validate(s)
+                        .unwrap_or_default(),
+                ),
+                _ => None,
+            })
+            .unwrap_or_default();
+
+        let pool = s.get("pool").map(|pool| match pool {
+            StoreField::Nested(nested) => {
+                let mut pool = settings.pool.clone();
+
+                for (field_name, value) in nested.iter() {
+                    match field_name.as_str() {
+                        "fee_basis_points" => match value {
+                            StoreField::Value(s) => {
+                                pool.fee_basis_points = pool.fee_basis_points.validate(s)?
+                            }
+                            _ => return Err(Error::msg("Expected fee_basis_points field")),
+                        },
+                        "weight_x" => match value {
+                            StoreField::Value(s) => pool.weight_x = pool.weight_x.validate(s)?,
+                            _ => return Err(Error::msg("Expected weight_x field")),
+                        },
+                        "target_volatility" => match value {
+                            StoreField::Value(s) => {
+                                pool.target_volatility = pool.target_volatility.validate(s)?
+                            }
+                            _ => return Err(Error::msg("Expected target_volatility field")),
+                        },
+                        _ => tracing::info!("Attempting field name: {}", field_name),
+                    }
+                }
+
+                Ok(pool)
+            }
+            _ => Err(Error::msg("Expected pool field")),
+        });
+
+        settings.simulation = simulation;
+        settings.output_directory = output_directory;
+        settings.output_file_name = output_file_name;
+
+        if let Some(pool) = pool {
+            settings.pool = pool?;
+        }
+
+        Ok(settings)
+    }
+}
+impl<P> From<settings::SimulationConfig<P>> for Store
+where
+    P: Parameterized<f64> + Default + std::fmt::Debug + Clone + 'static,
+{
+    fn from(s: settings::SimulationConfig<P>) -> Self {
+        let config: Box<dyn Config> = Box::new(s) as Box<dyn Config>;
+        config.into()
+    }
+}
+
 /// Implements the Config trait for the SimulationConfig.
-impl<P: Parameterized<f64> + Default + std::fmt::Debug> Config for settings::SimulationConfig<P> {
+impl<P> Config for settings::SimulationConfig<P>
+where
+    P: Parameterized<f64> + Default + std::fmt::Debug + Clone + 'static,
+{
+    fn clone_config(&self) -> Box<dyn Config> {
+        Box::new(self.clone())
+    }
+
     /// Returns a HashMap of ConfigFields for the SimulationConfig.
     fn fields(&self) -> Vec<ConfigField> {
         config_fields!(
@@ -123,6 +220,10 @@ impl<P: Parameterized<f64> + Default + std::fmt::Debug> Config for settings::Sim
 /// This enables PoolParameters to be a field on a richer config, like
 /// SimulationConfig.
 impl Config for settings::parameters::PoolParameters {
+    fn clone_config(&self) -> Box<dyn Config> {
+        Box::new(self.clone())
+    }
+
     fn fields(&self) -> Vec<ConfigField> {
         config_fields!(self, fee_basis_points, weight_x, target_volatility)
     }

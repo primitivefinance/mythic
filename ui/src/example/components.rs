@@ -9,9 +9,10 @@ use std::sync::Arc;
 
 use iced::{
     alignment::{self, Alignment},
-    widget::{button, component, row, text, Component},
+    widget::{button, component, row, text, text_input, Component},
     Element, Length, Renderer,
 };
+use tracing::info;
 
 /// Type alias for the on_change function that can be passed to the counter
 /// component. This enables the application to react to changes in the counter's
@@ -107,5 +108,80 @@ where
 {
     fn from(counter: Counter<Msg>) -> Self {
         component(counter).into()
+    }
+}
+
+/// Individual component for managing inputs with string values.
+/// todo: better error handling and tracing
+pub struct StringInputComponent<Message> {
+    value: Option<String>,
+    on_change: Box<dyn Fn(Option<String>) -> Message>,
+}
+
+pub fn create_input_component<Message>(
+    value: Option<String>,
+    on_change: impl Fn(Option<String>) -> Message + 'static,
+) -> StringInputComponent<Message> {
+    StringInputComponent::new(value, on_change)
+}
+
+#[derive(Debug, Clone)]
+pub enum StringInputComponentEvent {
+    InputChanged(String),
+}
+
+impl<Message> StringInputComponent<Message> {
+    pub fn new(
+        value: Option<String>,
+        on_change: impl Fn(Option<String>) -> Message + 'static,
+    ) -> Self {
+        Self {
+            value,
+            on_change: Box::new(on_change),
+        }
+    }
+}
+
+impl<Message> Component<Message, Renderer> for StringInputComponent<Message> {
+    type State = ();
+    type Event = StringInputComponentEvent;
+
+    fn update(&mut self, _state: &mut Self::State, event: Self::Event) -> Option<Message> {
+        match event {
+            Self::Event::InputChanged(value) => {
+                self.value = Some(value.clone());
+
+                if value.is_empty() {
+                    Some((self.on_change)(None))
+                } else {
+                    info!("Input changed: {}", value);
+                    value.parse().ok().map(Some).map(self.on_change.as_ref())
+                }
+            }
+        }
+    }
+
+    fn view(&self, _state: &Self::State) -> Element<Self::Event, Renderer> {
+        row![text_input(
+            "Type a value...",
+            self.value
+                .as_ref()
+                .map(String::to_string)
+                .as_deref()
+                .unwrap_or(""),
+        )
+        .on_input(StringInputComponentEvent::InputChanged)
+        .padding(10)]
+        .spacing(10)
+        .into()
+    }
+}
+
+impl<'a, Event> From<StringInputComponent<Event>> for Element<'a, Event, Renderer>
+where
+    Event: 'a,
+{
+    fn from(config_input: StringInputComponent<Event>) -> Self {
+        component(config_input).into()
     }
 }

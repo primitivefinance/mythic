@@ -23,8 +23,9 @@ pub struct Simulation {
     environment: Environment,
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub enum SimulationType {
+    #[default]
     DynamicWeights,
     StablePortfolio,
 }

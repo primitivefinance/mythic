@@ -10,7 +10,7 @@ use tracing::info;
 use super::*;
 use crate::sdk::production::*;
 
-mod components;
+pub mod components;
 mod config_editor;
 mod deployer;
 mod run_sim_button;

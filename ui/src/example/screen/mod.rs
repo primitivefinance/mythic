@@ -7,8 +7,10 @@ use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
 use iced::{widget::column, Element};
+use simulation::settings::*;
+use tracing::info;
 
-use super::{config_editor, deployer, run_sim_button, watcher};
+use super::{config_editor::config_ui, deployer, run_sim_button, watcher};
 
 mod banner;
 pub mod start;
@@ -19,6 +21,8 @@ pub struct ExampleScreen {
     pub client: Arc<RevmMiddleware>,
     pub watcher: watcher::WatcherComponent,
     pub deployer: deployer::DeployerComponent,
+    pub config: SimulationConfig<parameters::Meta>,
+    pub config_editor: config_ui::ConfigEditor,
 }
 
 /// Messages for Application -> Screen communication.
@@ -27,6 +31,7 @@ pub struct ExampleScreen {
 pub enum ExampleScreenMessage {
     WatcherComponent(watcher::AppToWatcherMessage),
     DeployerComponent(deployer::AppToDeployerMessage),
+    EditorComponent(config_ui::EditorEvent),
 }
 
 /// Messages for Screen -> Application communication.
@@ -42,10 +47,13 @@ pub enum Event {
 /// - view - renders the screen, called by the Application.
 impl ExampleScreen {
     pub fn new(client: Arc<RevmMiddleware>) -> Self {
+        let config = SimulationConfig::<parameters::Meta>::default();
         Self {
             client,
             watcher: watcher::WatcherComponent::new(),
             deployer: deployer::DeployerComponent::new(),
+            config: config.clone(),
+            config_editor: config_ui::ConfigEditor::new(config.clone()),
         }
     }
 
@@ -97,6 +105,28 @@ impl ExampleScreen {
                     None => None,
                 }
             }
+            ExampleScreenMessage::EditorComponent(message) => {
+                let editor_message = self.config_editor.update(message);
+
+                match editor_message {
+                    Some(config_ui::EditorToAppMessage::SaveConfig(store)) => {
+                        info!("Saving config: {:?}", store);
+                        let converted_config = store.clone().into();
+                        match converted_config {
+                            Ok(config) => {
+                                self.config = config;
+                                info!("Config saved: {:?}", self.config);
+                            }
+                            Err(error) => {
+                                info!("Error converting config: {:?}", error);
+                            }
+                        }
+
+                        None
+                    }
+                    None => None,
+                }
+            }
         }
     }
 
@@ -120,11 +150,11 @@ impl ExampleScreen {
         );
 
         // Render the config editor
-        let temp_config = simulation::settings::SimulationConfig::<
-            simulation::settings::parameters::Meta,
-        >::default();
-        tracing::info!("temp_config: {:?}", temp_config);
-        content = content.push(config_editor::config_ui::create_config_editor(temp_config));
+        content = content.push(
+            self.config_editor
+                .view()
+                .map(|message| ExampleScreenMessage::EditorComponent(message)),
+        );
 
         // Render the run sim button
         content = content.push(run_sim_button::RunSimButton::default());

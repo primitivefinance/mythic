@@ -1,7 +1,8 @@
 //! Traits and types for implementing editable config fields.
 
-use anyhow::{Error, Result};
 use std::fmt::Debug;
+
+use anyhow::{Error, Result};
 
 /// Every field of a config is represented by a ConfigField.
 /// - label: A human-readable name for the field.
@@ -81,6 +82,8 @@ impl Validatable for f64 {
             return Ok(0.0);
         }
 
+        tracing::info!("Validating f64 input: {}", input);
+
         // Try to parse the input as f64
         let converted = input.parse::<f64>().map_err(|err| {
             Error::msg(format!(
@@ -88,6 +91,8 @@ impl Validatable for f64 {
                 err, input
             ))
         })?;
+
+        tracing::info!("Converted f64: {}", converted);
         Ok(converted)
     }
 }
@@ -134,6 +139,8 @@ pub struct NestedConfigField {
 }
 
 pub trait Config: Debug {
+    fn clone_config(&self) -> Box<dyn Config>;
+
     fn fields(&self) -> Vec<ConfigField>;
 
     fn set_field(&mut self, field_name: String, value: String) -> Result<(), Error>;
