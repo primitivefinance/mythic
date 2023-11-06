@@ -16,6 +16,7 @@ use crate::{
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
+    strategy::g3m::G3mStrategy,
 };
 
 pub async fn setup(
@@ -35,7 +36,7 @@ pub async fn setup(
     )
     .await?;
 
-    let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
+    let mut lp = LiquidityProvider::<G3mStrategy>::new(
         &environment,
         &config,
         "lp",
@@ -44,7 +45,7 @@ pub async fn setup(
     )
     .await?;
 
-    let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
+    let mut arbitrageur = Arbitrageur::<G3mStrategy>::new(
         &environment,
         &token_admin,
         price_changer.liquid_exchange.address(),

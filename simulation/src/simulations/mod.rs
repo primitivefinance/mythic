@@ -13,6 +13,7 @@ use crate::{
 
 pub mod dynamic_weights;
 pub mod errors;
+pub mod rmm_vol_targeting;
 pub mod stable_portfolio;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
@@ -28,6 +29,7 @@ pub enum SimulationType {
     #[default]
     DynamicWeights,
     StablePortfolio,
+    RmmVolatilityTargeting,
 }
 
 impl SimulationType {
@@ -42,6 +44,9 @@ impl SimulationType {
             }
             SimulationType::StablePortfolio => {
                 stable_portfolio::setup(environment, config.clone()).await?
+            }
+            SimulationType::RmmVolatilityTargeting => {
+                momentum::setup(environment, config.clone()).await?
             }
         };
         match looper(simulation.agents, simulation.steps).await {
