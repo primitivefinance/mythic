@@ -49,7 +49,6 @@ impl ConfigFieldType {
                     .trim_end_matches(|c| c == '0' || c == '.')
                     .to_string();
 
-                tracing::info!("Changed original value {} to converted {}", s, converted);
                 converted
             }
             ConfigFieldType::EnumType(e) => format!("{:?}", e),
@@ -83,29 +82,46 @@ impl Validatable for f64 {
         }
 
         // Try to parse the input as f64
-        let converted = input
-            .parse::<f64>()
-            .map_err(|_| Error::msg("Invalid value"))?;
+        let converted = input.parse::<f64>().map_err(|err| {
+            Error::msg(format!(
+                "Invalid value: {} with input {} when parsing to f64",
+                err, input
+            ))
+        })?;
         Ok(converted)
     }
 }
 
 impl Validatable for usize {
     fn validate(&self, input: &String) -> Result<Self, Error> {
+        if input.trim().is_empty() {
+            return Ok(0 as usize);
+        }
+
         // Try to parse the input as usize
-        let converted = input
-            .parse::<usize>()
-            .map_err(|_| Error::msg("Invalid value"))?;
+        let converted = input.parse::<usize>().map_err(|err| {
+            Error::msg(format!(
+                "Invalid value: {} with input {} when parsing to usize",
+                err, input
+            ))
+        })?;
         Ok(converted)
     }
 }
 
 impl Validatable for u16 {
     fn validate(&self, input: &String) -> Result<Self, Error> {
+        if input.trim().is_empty() {
+            return Ok(0 as u16);
+        }
+
         // Try to parse the input as u16
-        let converted = input
-            .parse::<u16>()
-            .map_err(|_| Error::msg("Invalid value"))?;
+        let converted = input.parse::<u16>().map_err(|err| {
+            Error::msg(format!(
+                "Invalid value: {} with input {} when parsing to u16",
+                err, input
+            ))
+        })?;
         Ok(converted)
     }
 }

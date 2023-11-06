@@ -1,21 +1,115 @@
 //! Implements the `iced::widget::Component` trait to render the config editor.
 
 use iced::{
-    widget::{button, component, text, text_input, Column, Component},
+    widget::{button, component, row, text, text_input, Column, Component},
     Element, Renderer,
 };
+use std::collections::HashMap;
 use tracing::info;
 
 use super::config::*;
 
 /// A dedicated component for editing a config that implements the Config trait.
+/// The ConfigEditor makes use of a "store", which is an important intermediary storage
+/// for the config values.
+/// Without storing as Strings, they would get stored in the native config types.
+/// This can lead to the text inputs being very clunky to use because they only accept the native type.
+/// - store is a HashMap of field names and values.
+/// - nested_store is a HashMap of nested field names and values.
 pub struct ConfigEditor<C: Config> {
     config: C,
+    store: HashMap<String, String>,
+    nested_store: HashMap<String, HashMap<String, String>>,
 }
 
 impl<C: Config> ConfigEditor<C> {
     pub fn new(config: C) -> Self {
-        Self { config }
+        let mut store = HashMap::new();
+
+        // Populate the store with the current values of the config.
+        for field in config.fields().iter() {
+            let value = field.get_value().clone();
+            store.insert(field.label.clone(), value);
+        }
+
+        // Populate the store with all the nested fields of the config.
+        let mut nested_store = HashMap::new();
+        for nested in config.nested_fields().iter() {
+            let mut nested_field_store = HashMap::new();
+            for field in nested.field.fields().iter() {
+                let value = field.get_value().clone();
+                nested_field_store.insert(field.label.clone(), value);
+            }
+            nested_store.insert(nested.name.clone(), nested_field_store);
+        }
+
+        Self {
+            config,
+            store,
+            nested_store,
+        }
+    }
+
+    pub fn set_field(&mut self, field_name: String, value: String) {
+        let current_value = self.store.get(&field_name).unwrap();
+        info!(
+            "Field changed: {} from {} to {}",
+            field_name, current_value, value
+        );
+        // Edit the store's field value.
+        self.store.insert(field_name.clone(), value.clone());
+    }
+
+    pub fn set_nested_field(&mut self, nested_name: String, field_name: String, value: String) {
+        let current_value = self
+            .nested_store
+            .get(&nested_name)
+            .unwrap()
+            .get(&field_name)
+            .unwrap();
+        info!(
+            "Nested field changed: {} from {} to {}",
+            field_name, current_value, value
+        );
+        // Edit the store's nested field values.
+        self.nested_store
+            .get_mut(&nested_name)
+            .unwrap()
+            .insert(field_name.clone(), value.clone());
+    }
+
+    pub fn save_config(&mut self) {
+        // Writes the store's values to the config.
+        info!("todo: Save button pressed");
+
+        // For each field in the store, set the config's field to the store's value.
+        for (field_name, value) in self.store.iter() {
+            let res = self.config.set_field(field_name.clone(), value.clone());
+            if let Err(e) = res {
+                info!(
+                    "Error setting field '{}' to value '{}': {}",
+                    field_name, value, e
+                )
+            }
+        }
+
+        // For each nested field in the store, set the config's nested field to the store's value.
+        for (nested_name, nested_field_store) in self.nested_store.iter() {
+            for (field_name, value) in nested_field_store.iter() {
+                let res = self.config.set_nested_field(
+                    nested_name.clone(),
+                    field_name.clone(),
+                    value.clone(),
+                );
+
+                if let Err(e) = res {
+                    info!(
+                        "Error setting nested field '{}.{}' to value '{}': {}",
+                        nested_name, field_name, value, e
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -26,23 +120,15 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
     fn update(&mut self, _state: &mut Self::State, event: Event) -> Option<Message> {
         match event {
             Event::FieldChanged(field_name, value) => {
-                info!("Field changed: {} to {}", field_name, value);
-                // Call the set_field method and handle the error.
-                if let Err(e) = self.config.set_field(field_name, value) {
-                    info!("Error setting field: {}", e);
-                }
+                self.set_field(field_name, value);
                 None
             }
             Event::NestedFieldChanged(nested_name, field_name, value) => {
-                info!("Nested field changed: {} to {}", field_name, value);
-                // Call the set_nested_field method and handle the error.
-                if let Err(e) = self.config.set_nested_field(nested_name, field_name, value) {
-                    info!("Error setting nested field: {}", e);
-                }
+                self.set_nested_field(nested_name, field_name, value);
                 None
             }
             Event::SaveButtonPressed => {
-                info!("todo: Save button pressed");
+                self.save_config();
                 None
             }
         }
@@ -51,13 +137,22 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
     fn view(&self, _state: &Self::State) -> iced::Element<Event, Renderer> {
         let mut column = Column::new();
 
-        for field in self.config.fields().iter() {
-            column = column.push(create_field_input(field));
+        // Iterate through each field in the store and render it by passing it to the config_input component.
+        for (field_name, value) in self.store.iter() {
+            column = column.push(create_field_input(field_name.clone(), value.clone()));
         }
-        for nested in self.config.nested_fields().iter() {
-            column = column.push(text(nested.name.as_str()));
-            for field in nested.field.fields().iter() {
-                column = column.push(create_nested_field_input(nested.name.as_str(), field));
+
+        // Iterate through each nested field and render it by passing it to the config_input component.
+        for (nested_name, nested_field_store) in self.nested_store.iter() {
+            let name = nested_name.clone();
+            column = column.push(text(name.as_str()));
+
+            for (field_name, value) in nested_field_store.iter() {
+                column = column.push(create_nested_field_input(
+                    name.clone(),
+                    field_name.clone(),
+                    value.clone(),
+                ));
             }
         }
 
@@ -69,16 +164,16 @@ impl<Message, C: Config> Component<Message, Renderer> for ConfigEditor<C> {
 
 /// Renders a single field of a config and emits [`Event::FieldChanged`] when
 /// the field is changed.
-pub fn create_field_input<'a>(field: &ConfigField) -> Element<'a, Event, Renderer> {
+pub fn create_field_input<'a>(
+    field_name: String,
+    field_value: String,
+) -> Element<'a, Event, Renderer> {
     let mut column = Column::new();
-    let label = field.label.clone();
-    let value = field.get_value().clone();
 
-    column = column.push(text(label.as_str()));
-    column = column.push(
-        text_input("Enter a value...", value.as_str())
-            .on_input(move |x| Event::FieldChanged(label.clone(), x)),
-    );
+    column = column.push(text(field_name.as_str()));
+    column = column.push(config_input(Some(field_value), move |x| {
+        Event::FieldChanged(field_name.clone(), x.unwrap_or_default())
+    }));
 
     column.into()
 }
@@ -86,19 +181,20 @@ pub fn create_field_input<'a>(field: &ConfigField) -> Element<'a, Event, Rendere
 /// Renders a field with a depth > 1 and emits [`Event::NestedFieldChanged`]
 /// when the field is changed.
 pub fn create_nested_field_input<'a>(
-    nested_name: &str,
-    field: &ConfigField,
+    nested_field_label: String,
+    field_label: String,
+    field_value: String,
 ) -> Element<'a, Event, Renderer> {
     let mut column = Column::new();
-    let name = nested_name.to_string();
-    let label = field.label.clone();
-    let value = field.get_value().clone();
 
-    column = column.push(text(label.as_str()));
-    column = column.push(
-        text_input("Enter a value...", value.as_str())
-            .on_input(move |x| Event::NestedFieldChanged(name.clone(), label.clone(), x)),
-    );
+    column = column.push(text(field_label.as_str()));
+    column = column.push(config_input(Some(field_value), move |x| {
+        Event::NestedFieldChanged(
+            nested_field_label.clone(),
+            field_label.clone(),
+            x.unwrap_or_default(),
+        )
+    }));
 
     column.into()
 }
@@ -116,5 +212,79 @@ where
 {
     fn from(counter: ConfigEditor<C>) -> Self {
         component(counter).into()
+    }
+}
+
+/// Individual component for managing the input
+pub struct ConfigInput<Message> {
+    value: Option<String>,
+    on_change: Box<dyn Fn(Option<String>) -> Message>,
+}
+
+pub fn config_input<Message>(
+    value: Option<String>,
+    on_change: impl Fn(Option<String>) -> Message + 'static,
+) -> ConfigInput<Message> {
+    ConfigInput::new(value, on_change)
+}
+
+#[derive(Debug, Clone)]
+pub enum ConfigInputEvent {
+    InputChanged(String),
+}
+
+impl<Message> ConfigInput<Message> {
+    pub fn new(
+        value: Option<String>,
+        on_change: impl Fn(Option<String>) -> Message + 'static,
+    ) -> Self {
+        Self {
+            value,
+            on_change: Box::new(on_change),
+        }
+    }
+}
+
+impl<Message> Component<Message, Renderer> for ConfigInput<Message> {
+    type State = ();
+    type Event = ConfigInputEvent;
+
+    fn update(&mut self, _state: &mut Self::State, event: Self::Event) -> Option<Message> {
+        match event {
+            Self::Event::InputChanged(value) => {
+                self.value = Some(value.clone());
+
+                if value.is_empty() {
+                    Some((self.on_change)(None))
+                } else {
+                    info!("Input changed: {}", value);
+                    value.parse().ok().map(Some).map(self.on_change.as_ref())
+                }
+            }
+        }
+    }
+
+    fn view(&self, _state: &Self::State) -> iced::Element<Self::Event, Renderer> {
+        row![text_input(
+            "Type a number",
+            self.value
+                .as_ref()
+                .map(String::to_string)
+                .as_deref()
+                .unwrap_or(""),
+        )
+        .on_input(ConfigInputEvent::InputChanged)
+        .padding(10)]
+        .spacing(10)
+        .into()
+    }
+}
+
+impl<'a, Event> From<ConfigInput<Event>> for Element<'a, Event, Renderer>
+where
+    Event: 'a,
+{
+    fn from(config_input: ConfigInput<Event>) -> Self {
+        component(config_input).into()
     }
 }
