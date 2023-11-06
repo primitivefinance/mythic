@@ -6,53 +6,34 @@
 use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
-use iced::{
-    alignment::{self},
-    widget::{button, column, text},
-    Element, Length,
-};
-use thiserror::Error;
+use iced::{widget::column, Element};
 
-use crate::sdk::vault::*;
+use super::{deployer, watcher};
 
 mod banner;
 pub mod start;
 
 /// Screen for the deploy Counter.sol example.
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct ExampleScreen {
     pub client: Arc<RevmMiddleware>,
-    pub state: ExampleScreenState,
+    pub watcher: watcher::WatcherComponent,
+    pub deployer: deployer::DeployerComponent,
 }
 
-/// States of the example screen.
-/// This example is only concerned with the deployed state of Counter.sol
-#[derive(Debug, Clone)]
-pub enum ExampleScreenState {
-    NotDeployed,
-    Deployed(Vault),
-    DeploymentFailed(ExampleScreenError),
-}
-
-/// Messages for Application<>Screen communication.
-#[derive(Debug, Clone)]
+/// Messages for Application -> Screen communication.
+/// Handles the messages for the components that are rendered in this screen.
+#[derive(Clone, Debug)]
 pub enum ExampleScreenMessage {
-    Deploy,
-    DeploySuccess(Result<Vault, ExampleScreenError>),
+    WatcherComponent(watcher::AppToWatcherMessage),
+    DeployerComponent(deployer::AppToDeployerMessage),
 }
 
-/// Errors that can occur during the deployment of Counter.sol.
-#[derive(Debug, Error, Clone)]
-pub enum ExampleScreenError {
-    #[error("API Error")]
-    ProviderError(#[from] &'static ethers::providers::ProviderError),
-}
-
-/// Messages for this screen's internal use.
+/// Messages for Screen -> Application communication.
 #[derive(Clone)]
 pub enum Event {
-    Clicked,
-    Deployed(Result<Vault, ExampleScreenError>),
+    Deploy,
+    Toggle(bool),
 }
 
 /// Implements the following functions
@@ -63,7 +44,8 @@ impl ExampleScreen {
     pub fn new(client: Arc<RevmMiddleware>) -> Self {
         Self {
             client,
-            state: ExampleScreenState::NotDeployed,
+            watcher: watcher::WatcherComponent::new(),
+            deployer: deployer::DeployerComponent::new(),
         }
     }
 
@@ -85,34 +67,58 @@ impl ExampleScreen {
     /// because only the `Application` can execute commands that are async.
     pub fn update(&mut self, message: ExampleScreenMessage) -> Option<Event> {
         match message {
-            ExampleScreenMessage::Deploy => Some(Event::Clicked),
-            ExampleScreenMessage::DeploySuccess(res) => Some(Event::Deployed(res)),
+            ExampleScreenMessage::WatcherComponent(message) => {
+                // Call the update method to get the component's updates.
+                let watcher_message = self.watcher.update(message);
+
+                // Handle screen-level logic, and return an App-level message.
+                match watcher_message {
+                    Some(watcher_message) => {
+                        // If the watcher has a message, return it.
+                        match watcher_message {
+                            watcher::WatcherToAppMessage::Toggle(state) => {
+                                Some(Event::Toggle(state))
+                            }
+                        }
+                    }
+                    None => None,
+                }
+            }
+            ExampleScreenMessage::DeployerComponent(message) => {
+                // Call the update method to get the component's updates.
+                let deployer_message = self.deployer.update(message);
+
+                // Handle screen-level logic, and return an App-level message.
+                match deployer_message {
+                    Some(deployer_message) => match deployer_message {
+                        deployer::DeployerToAppMessage::TriggerDeploy => Some(Event::Deploy),
+                        deployer::DeployerToAppMessage::Deployed(_result) => None,
+                    },
+                    None => None,
+                }
+            }
         }
     }
 
     pub fn view<'a>(&self) -> Element<'a, ExampleScreenMessage> {
         let mut content = column![];
 
-        let button = |label, on_press| {
-            button(
-                text(label)
-                    .width(Length::Fill)
-                    .height(40)
-                    .horizontal_alignment(alignment::Horizontal::Center)
-                    .vertical_alignment(alignment::Vertical::Center),
-            )
-            .on_press(on_press)
-        };
-        content = content.push(button("Deploy Counter.sol", ExampleScreenMessage::Deploy));
+        // Render the Deployer component, wraps the component's messages in a screen
+        // message.
+        content = content.push(
+            self.deployer
+                .view()
+                .map(|message| ExampleScreenMessage::DeployerComponent(message)),
+        );
 
-        content = match &self.state {
-            ExampleScreenState::NotDeployed => content,
-            ExampleScreenState::Deployed(_entity) => content.push(text("Successfully Deployed")),
-            ExampleScreenState::DeploymentFailed(error) => {
-                content.push(text(format!("Deployment failed: {:?}", error)))
-            }
-        };
+        // Render the Watcher component, wraps the component's messages in a screen
+        // message.
+        content = content.push(
+            self.watcher
+                .view()
+                .map(|message| ExampleScreenMessage::WatcherComponent(message)),
+        );
 
-        content.into()
+        content.spacing(4).into()
     }
 }

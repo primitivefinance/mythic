@@ -20,7 +20,7 @@ analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
 arbiter-core = { version = "0.7.0", features = ["contracts"] }
-ethers = "2.0.10"
+ethers = { version = "2.0.10", features = ["ws"] }
 
 ## Config and parsing
 serde = "1.0.188"
@@ -29,10 +29,12 @@ config = "0.13.1"
 
 ## Async
 tokio = { version = "1.11.0", features = ["full"] }
+tokio-util = "0.7.10"
 async-trait = "0.1.73"
 
 ## Error and logs
 tracing = "0.1.37"
+tracing-subscriber = "0.3.17"
 anyhow = "1.0.75"
 thiserror = "1.0.50"
 
@@ -51,7 +53,8 @@ tokio.workspace = true
 tracing.workspace = true
 anyhow.workspace = true
 clap = { version = "4.4.6", features = ["derive"] }
-tracing-subscriber = "0.3.17"
+tracing-subscriber.workspace = true
+dotenv.workspace = true
 
 [dev-dependencies]
 # For book

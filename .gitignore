@@ -18,3 +18,5 @@ Cargo.lock~serde
 journal/book/*
 
 *.svg
+
+.vscode/
