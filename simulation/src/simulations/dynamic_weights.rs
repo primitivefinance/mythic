@@ -18,11 +18,10 @@ use crate::{
     settings::SimulationConfig,
 };
 
-pub async fn setup(config: SimulationConfig<Single>) -> Result<Simulation, SimulationError> {
-    let environment = EnvironmentBuilder::new()
-        .block_settings(BlockSettings::UserControlled)
-        .build();
-
+pub async fn setup(
+    environment: Environment,
+    config: SimulationConfig<Single>,
+) -> Result<Simulation, SimulationError> {
     let mut block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
     let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
     let mut price_changer =

@@ -121,13 +121,13 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
         // Detect if there is an arbitrage opportunity.
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!(
+                trace!(
                     "Detected the need to increase price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = self.strategy.get_y_input(target_price, &self.math).await?;
 
-                info!(
+                trace!(
                     "Increasing price by selling input amount of quote tokens: {:?}",
                     input,
                 );
@@ -141,7 +141,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            trace!("Execution revert: {:?}", output);
                         }
                     }
                 }
@@ -185,7 +185,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                 trace!("No arbitrage opportunity");
             }
         }
-        debug!("Finished `step()` for arbitrageur");
+        debug!("Finished `step()` for `Arbitrageur`");
         Ok(())
     }
 }

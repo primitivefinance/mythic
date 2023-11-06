@@ -1,10 +1,10 @@
-use itertools::iproduct;
 use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
 };
 
 use arbiter_core::math::GeometricBrownianMotion;
+use itertools::iproduct;
 use rand::random;
 
 use super::*;

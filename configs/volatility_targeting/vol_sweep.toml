@@ -1,7 +1,6 @@
 simulation = "DynamicWeights"
 output_directory = "analysis/volatility_targeting/static"
 
-
 [agent.block_admin.BlockAdmin]
 timestep_size = 15
 

@@ -70,21 +70,21 @@ impl VolatilityTargetingStrategist {
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
-        debug!(
+        trace!(
             "hypothetical percent asset return: {}",
             (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
                 / self.asset_prices.first().unwrap().0
         );
-        debug!(
+        trace!(
             "portfolio percent return: {}",
             (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
                 / self.portfolio_prices.first().unwrap().0
         );
-        debug!(
+        trace!(
             "initial portfolio price: {}",
             self.portfolio_prices.first().unwrap().0
         );
-        debug!(
+        trace!(
             "current portfolio price: {}",
             self.portfolio_prices.last().unwrap().0
         );
@@ -147,7 +147,7 @@ impl Agent for VolatilityTargetingStrategist {
         let portfolio_price = reserve_x * asset_price + reserve_y;
 
         if self.portfolio_prices.is_empty() {
-            info!("portfolio_price: {}", portfolio_price);
+            trace!("portfolio_price: {}", portfolio_price);
             self.portfolio_prices.push((portfolio_price, 0));
             self.asset_prices.push((asset_price, 0));
         }

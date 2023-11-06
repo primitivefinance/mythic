@@ -1,13 +1,14 @@
 use std::{env, path::Path};
 
+use arbiter_core::environment::builder::BlockSettings;
 use serde_json::error;
-use tokio::runtime::Runtime;
+use tokio::{runtime::Runtime, sync::Semaphore};
 
 use self::errors::SimulationError;
 use super::*;
 use crate::{
     agents::{Agent, Agents},
-    settings::parameters::Single,
+    settings::parameters::{Multiple, Single},
 };
 
 pub mod dynamic_weights;
@@ -30,9 +31,17 @@ pub enum SimulationType {
 
 impl SimulationType {
     async fn run(config: SimulationConfig<Single>) -> Result<(), SimulationError> {
+        let environment = EnvironmentBuilder::new()
+            .block_settings(BlockSettings::UserControlled)
+            .label(config.output_file_name.clone().unwrap())
+            .build();
         let simulation = match config.simulation {
-            SimulationType::DynamicWeights => dynamic_weights::setup(config.clone()).await?,
-            SimulationType::StablePortfolio => stable_portfolio::setup(config.clone()).await?,
+            SimulationType::DynamicWeights => {
+                dynamic_weights::setup(environment, config.clone()).await?
+            }
+            SimulationType::StablePortfolio => {
+                stable_portfolio::setup(environment, config.clone()).await?
+            }
         };
         match looper(simulation.agents, simulation.steps).await {
             Ok(_) => {
@@ -54,15 +63,15 @@ impl SimulationType {
     }
 }
 
-use tokio::sync::Semaphore;
-
-pub fn batch(config_path: &str) -> Result<()> {
+pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
     let cwd = env::current_dir().unwrap();
     let path = Path::new(cwd.to_str().unwrap());
     let path = path.join(config_path);
-    println!("path: {:?}", path);
-    let config = SimulationConfig::new(config_path)?;
+    println!("Reading config from: {:?}", path);
+    SimulationConfig::new(config_path)
+}
 
+pub fn batch(config: SimulationConfig<Multiple>) -> Result<()> {
     let direct_configs: Vec<SimulationConfig<Single>> = config.clone().into();
     warn!("Running {} simulations", direct_configs.len());
 

@@ -57,21 +57,21 @@ impl MomentumStrategist {
             self.portfolio_returns
                 .push((portfolio_return, self.next_update_timestamp));
         }
-        info!(
+        trace!(
             "hypothetical percent asset return: {}",
             (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
                 / self.asset_prices.first().unwrap().0
         );
-        info!(
+        trace!(
             "portfolio percent return: {}",
             (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
                 / self.portfolio_prices.first().unwrap().0
         );
-        info!(
+        trace!(
             "initial portfolio price: {}",
             self.portfolio_prices.first().unwrap().0
         );
-        info!(
+        trace!(
             "current portfolio price: {}",
             self.portfolio_prices.last().unwrap().0
         );
