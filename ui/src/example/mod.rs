@@ -211,7 +211,6 @@ impl Application for ExampleApp {
 
     fn view(&self) -> Element<Message> {
         let title = self.title();
-        let version = env!("CARGO_PKG_VERSION");
 
         let content: Element<_> = match self {
             ExampleApp::Loading => text("Loading...").into(),
@@ -245,12 +244,13 @@ impl Application for ExampleApp {
                     .height(Length::Fill);
 
                 // Footer with version information
-                let footer = container(text(format!("Version: {}", version)).size(12))
-                    .padding(4)
-                    .center_x()
-                    .center_y()
-                    .width(Length::Fill)
-                    .style(ContainerTheme::theme());
+                let footer = footer::FooterBuilder::new()
+                    .add_crate_info()
+                    .add_git_commit()
+                    .add_system_info()
+                    .build()
+                    .view()
+                    .map(|_| Message::Debug("footer press".into()));
 
                 // Combine all elements into a column
                 let content = Column::new()
