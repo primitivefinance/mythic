@@ -55,6 +55,12 @@ impl<S: LiquidityStrategy> RmmLiquidityProvider<S> {
         arbx.approve(low_vol_strategy_contract, U256::MAX)
             .send()
             .await?;
+        arbx.approve(high_vol_strategy_contract, U256::MAX)
+            .send()
+            .await?;
+        arby.approve(low_vol_strategy_contract, U256::MAX)
+            .send()
+            .await?;
         arby.approve(high_vol_strategy_contract, U256::MAX)
             .send()
             .await?;
