@@ -6,8 +6,11 @@
 use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
-use iced::{widget::column, Element};
-use simulation::settings::*;
+use iced::{
+    widget::{column, Scrollable},
+    Element,
+};
+use simulation::settings::{parameters::Multiple, *};
 use tracing::info;
 
 use super::{config_editor, deployer, run_sim_button, watcher};
@@ -21,7 +24,7 @@ pub struct ExampleScreen {
     pub client: Arc<RevmMiddleware>,
     pub watcher: watcher::WatcherComponent,
     pub deployer: deployer::DeployerComponent,
-    pub config: SimulationConfig<parameters::Meta>,
+    pub config: SimulationConfig<Multiple>,
     pub config_editor: config_editor::ConfigEditor,
 }
 
@@ -47,13 +50,27 @@ pub enum Event {
 /// - view - renders the screen, called by the Application.
 impl ExampleScreen {
     pub fn new(client: Arc<RevmMiddleware>) -> Self {
-        let config = SimulationConfig::<parameters::Meta>::default();
+        // todo: config management feature
+        let config = simulation::simulations::import(
+            &std::env::current_dir()
+                .unwrap()
+                .join("simulation")
+                .join("src")
+                .join("tests")
+                .join("configs")
+                .join("static.toml")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap();
+
+        info!("Loaded config: {:?}", config);
         Self {
             client,
             watcher: watcher::WatcherComponent::new(),
             deployer: deployer::DeployerComponent::new(),
             config: config.clone(),
-            config_editor: config_editor::ConfigEditor::new(config.clone()),
+            config_editor: config_editor::ConfigEditor::new(config),
         }
     }
 
@@ -111,16 +128,9 @@ impl ExampleScreen {
                 match editor_message {
                     Some(config_editor::EditorToAppMessage::SaveConfig(store)) => {
                         info!("Saving config: {:?}", store);
-                        let converted_config = store.clone().into();
-                        match converted_config {
-                            Ok(config) => {
-                                self.config = config;
-                                info!("Config saved: {:?}", self.config);
-                            }
-                            Err(error) => {
-                                info!("Error converting config: {:?}", error);
-                            }
-                        }
+                        let config = config_editor::Config::from_store(store);
+                        self.config = config;
+                        info!("Config saved: {:?}", self.config);
 
                         None
                     }
@@ -150,15 +160,17 @@ impl ExampleScreen {
         );
 
         // Render the config editor
-        content = content.push(
+        let mut editor_container = column![];
+        editor_container = editor_container.push(
             self.config_editor
                 .view()
                 .map(|message| ExampleScreenMessage::EditorComponent(message)),
         );
+        content = content.push(editor_container.padding(10));
 
         // Render the run sim button
-        content = content.push(run_sim_button::RunSimButton::default());
+        content = content.push(run_sim_button::RunSimButton::new(self.config.clone()));
 
-        content.spacing(4).into()
+        Scrollable::new(content.spacing(4)).into()
     }
 }

@@ -150,7 +150,7 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
         agent.startup().await?;
     }
 
-    info!("Entering main loop for agents.");
+    info!("Entering main loop for agents for {} steps.", steps);
     for index in 0..steps {
         debug!("Entering priority loop for index: {}", index);
         for agent in agents.iter_mut() {

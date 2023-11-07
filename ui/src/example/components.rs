@@ -12,6 +12,7 @@ use iced::{
     widget::{button, component, row, text, text_input, Component},
     Element, Length, Renderer,
 };
+use serde_json::Value;
 use tracing::info;
 
 /// Type alias for the on_change function that can be passed to the counter
@@ -115,12 +116,12 @@ where
 /// todo: better error handling and tracing
 pub struct StringInputComponent<Message> {
     value: Option<String>,
-    on_change: Box<dyn Fn(Option<String>) -> Message>,
+    on_change: Box<dyn Fn(Option<Value>) -> Message>,
 }
 
 pub fn create_input_component<Message>(
     value: Option<String>,
-    on_change: impl Fn(Option<String>) -> Message + 'static,
+    on_change: impl Fn(Option<Value>) -> Message + 'static,
 ) -> StringInputComponent<Message> {
     StringInputComponent::new(value, on_change)
 }
@@ -133,7 +134,7 @@ pub enum StringInputComponentEvent {
 impl<Message> StringInputComponent<Message> {
     pub fn new(
         value: Option<String>,
-        on_change: impl Fn(Option<String>) -> Message + 'static,
+        on_change: impl Fn(Option<Value>) -> Message + 'static,
     ) -> Self {
         Self {
             value,
@@ -155,7 +156,14 @@ impl<Message> Component<Message, Renderer> for StringInputComponent<Message> {
                     Some((self.on_change)(None))
                 } else {
                     info!("Input changed: {}", value);
-                    value.parse().ok().map(Some).map(self.on_change.as_ref())
+                    let parsed_value = value.parse();
+                    match parsed_value {
+                        Ok(parsed_value) => Some((self.on_change)(Some(parsed_value))),
+                        Err(e) => {
+                            tracing::warn!("Error parsing input: {:?}", e);
+                            None
+                        }
+                    }
                 }
             }
         }

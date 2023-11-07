@@ -9,22 +9,27 @@ use iced::{
     widget::{button, column, component, text, Component},
     Element, Length, Renderer,
 };
-use simulation::simulations;
+use simulation::{
+    settings::{parameters::Multiple, SimulationConfig},
+    simulations,
+};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct RunSimButton {
-    config_path: PathBuf,
+    config: SimulationConfig<Multiple>,
 }
 
 impl Default for RunSimButton {
     fn default() -> Self {
-        Self {
-            config_path: Path::new(std::env::current_dir().unwrap().to_str().unwrap())
-                .join("simulation")
-                .join("configs")
-                .join("test")
-                .join("static.toml"),
-        }
+        let config_path = Path::new(std::env::current_dir().unwrap().to_str().unwrap())
+            .join("simulation")
+            .join("configs")
+            .join("test")
+            .join("static.toml");
+
+        let config = simulations::import(&config_path.to_str().unwrap()).unwrap();
+        Self { config }
     }
 }
 
@@ -34,17 +39,30 @@ pub enum Event {
 }
 
 impl RunSimButton {
-    pub fn new(config_path: PathBuf) -> Self {
-        Self { config_path }
+    pub fn new(config: SimulationConfig<Multiple>) -> Self {
+        Self { config }
+    }
+
+    pub fn new_from_path(config_path: PathBuf) -> Self {
+        let config = simulations::import(&config_path.to_str().unwrap()).unwrap();
+        Self { config }
+    }
+
+    pub fn run(&self) -> anyhow::Result<()> {
+        self.run_with_config(self.config.clone())
+    }
+
+    pub fn run_with_path(&self, config_path: PathBuf) -> anyhow::Result<()> {
+        let config = simulations::import(&config_path.to_str().unwrap())?;
+        self.run_with_config(config)
     }
 
     /// Runs the simulation on a separate thread.
-    pub fn run(&self) -> anyhow::Result<()> {
-        let config_path = self.config_path.clone();
-
+    pub fn run_with_config(&self, config: SimulationConfig<Multiple>) -> anyhow::Result<()> {
+        info!("Running simulation with config: {:?}", config);
         std::thread::spawn(move || {
             let start = Instant::now();
-            match simulations::batch(config_path.to_str().unwrap()) {
+            match simulations::batch(config) {
                 Ok(_) => {
                     let duration = start.elapsed();
                     tracing::info!("Total duration of simulations: {:?}", duration);

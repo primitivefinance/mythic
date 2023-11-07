@@ -74,8 +74,13 @@ macro_rules! linspace {
     };
 }
 
-impl std::fmt::Display for WeightChangerParameters {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "WeightChangerParameters {{ target_volatility: {}, update_frequency: {}, max_weight_change: {}, sensitivity: {} }}", self.target_volatility, self.update_frequency, self.max_weight_change, self.sensitivity)
+impl Default for Multiple {
+    fn default() -> Self {
+        Self(LinspaceParameters {
+            start: Some(0.0),
+            end: Some(1.0),
+            steps: Some(1),
+            fixed: None,
+        })
     }
 }

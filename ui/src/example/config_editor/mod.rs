@@ -21,18 +21,14 @@
 //! - Converting the store back into a config is a little jank because of data
 //!   validation.
 
-#[macro_use]
-pub mod config_macros;
-pub mod config;
-pub mod config_simulation;
-pub mod config_store;
+use std::collections::BTreeMap;
 
-use config::*;
-use config_store::*;
 use iced::{
     widget::{button, text, Column},
     Element, Renderer,
 };
+use serde_json::Value;
+use simulation::settings::{Parameterized, SimulationConfig};
 use tracing::info;
 
 use crate::example::components::create_input_component;
@@ -44,11 +40,12 @@ pub enum EditorToAppMessage {
 
 #[derive(Debug, Clone)]
 pub enum EditorEvent {
-    FieldChanged(String, String),
-    NestedFieldChanged(String, String, String),
+    FieldChanged(String, Value),
     SaveButtonPressed,
     DebugConfig,
 }
+
+type ConfigStore = BTreeMap<String, Value>;
 
 /// A dedicated component for editing a config that implements the Config trait.
 /// The ConfigEditor makes use of a "store", which is an important intermediary
@@ -63,14 +60,43 @@ pub struct ConfigEditor {
     store: ConfigStore,
 }
 
+pub trait Config: serde::Serialize {
+    fn to_store(&self) -> ConfigStore;
+    fn from_store(store: ConfigStore) -> Self;
+}
+
+impl<P> Config for SimulationConfig<P>
+where
+    P: Parameterized
+        + Default
+        + std::fmt::Debug
+        + Clone
+        + 'static
+        + serde::de::DeserializeOwned
+        + serde::Serialize,
+{
+    fn to_store(&self) -> ConfigStore {
+        let store: BTreeMap<String, serde_json::Value> = serde_json::to_value(&self)
+            .unwrap()
+            .as_object()
+            .unwrap()
+            .clone()
+            .into_iter()
+            .collect();
+        store
+    }
+
+    fn from_store(store: ConfigStore) -> Self {
+        let map: serde_json::Map<String, serde_json::Value> = store.into_iter().collect();
+        serde_json::from_value(serde_json::Value::Object(map)).unwrap()
+    }
+}
+
 impl ConfigEditor {
-    pub fn new<C: Config>(config: C) -> Self
-    where
-        ConfigStore: From<C>,
-    {
-        Self {
-            store: config.into(),
-        }
+    pub fn new<C: Config>(config: C) -> Self {
+        let store = config.to_store();
+        info!("Loading config into ConfigEditor: {:?}", store);
+        Self { store }
     }
 
     pub fn update(&mut self, event: EditorEvent) -> Option<EditorToAppMessage> {
@@ -78,14 +104,14 @@ impl ConfigEditor {
             EditorEvent::FieldChanged(field_name, value) => {
                 self.set_field(field_name, value);
             }
-            EditorEvent::NestedFieldChanged(nested_name, field_name, value) => {
-                self.set_nested_field(nested_name, field_name, value);
-            }
             EditorEvent::SaveButtonPressed => {
                 return Some(EditorToAppMessage::SaveConfig(self.store.clone()));
             }
             EditorEvent::DebugConfig => {
-                info!("ConfigStore: {:?}", self.store.0.clone());
+                info!(
+                    "Debug ConfigStore in ConfigEditor: {:?}",
+                    self.store.clone()
+                );
             }
         }
 
@@ -93,31 +119,10 @@ impl ConfigEditor {
     }
 
     pub fn view<'a>(&self) -> Element<'a, EditorEvent> {
-        let mut column = Column::new();
+        let mut column = Column::new().max_width(512).spacing(10).padding(10);
 
-        // Iterate through the store and render each field.
-        for (field_name, field_value) in self.store.0.iter() {
-            match field_value {
-                StoreField::Value(s) => {
-                    column = column.push(create_field_input(field_name.clone(), s.clone()));
-                }
-                StoreField::Nested(nested_store) => {
-                    column = column.push(text(field_name.as_str()));
-                    for (nested_field_name, nested_field_value) in nested_store.0.iter() {
-                        match nested_field_value {
-                            StoreField::Value(s) => {
-                                column = column.push(create_nested_field_input(
-                                    field_name.clone(),
-                                    nested_field_name.clone(),
-                                    s.clone(),
-                                ))
-                            }
-                            // Nested fields with depth 2 are unsupported.
-                            StoreField::Nested(_) => {}
-                        }
-                    }
-                }
-            }
+        for (field_name, field_value) in self.store.iter() {
+            column = self.render_field(column, field_name, field_value);
         }
 
         column = column.push(button(text("Save")).on_press(EditorEvent::SaveButtonPressed));
@@ -126,45 +131,41 @@ impl ConfigEditor {
         column.into()
     }
 
-    pub fn set_field(&mut self, field_name: String, value: String) {
-        let current_value = self.store.0.get(&field_name).unwrap();
-        let current_value = match current_value {
-            StoreField::Value(s) => s.clone(),
-            StoreField::Nested(_) => String::new(),
-        };
+    /// Recursively renders each field of a config.
+    fn render_field<'a>(
+        &self,
+        mut column: Column<'a, EditorEvent>,
+        field_name: &String,
+        field_value: &Value,
+    ) -> Column<'a, EditorEvent> {
+        match field_value {
+            Value::Object(obj) => {
+                for (nested_field_name, nested_field_value) in obj {
+                    column = self.render_field(
+                        column,
+                        &format!("{}.{}", field_name, nested_field_name),
+                        nested_field_value,
+                    );
+                }
+            }
+            _ => {
+                column = column.push(create_field_input(field_name.clone(), field_value.clone()));
+            }
+        }
 
-        info!(
-            "Changing field: {} from {} to {}",
-            field_name, current_value, value
-        );
-        // Edit the store's field value.
-        self.store
-            .0
-            .insert(field_name.clone(), StoreField::Value(value.clone()));
+        column
     }
 
-    pub fn set_nested_field(&mut self, nested_name: String, field_name: String, value: String) {
-        let current_value = self.store.0.get(&nested_name).unwrap();
-        let current_value = match current_value {
-            StoreField::Value(s) => s.clone(),
-            StoreField::Nested(_) => String::new(),
-        };
+    pub fn set_field(&mut self, field_name: String, value: Value) {
+        let parts: Vec<&str> = field_name.split('.').collect();
+        let mut current_value = self.store.get_mut(parts[0]).unwrap();
 
-        info!(
-            "Changing nested field: {} from {} to {}",
-            field_name, current_value, value
-        );
+        for part in parts.iter().skip(1) {
+            current_value = current_value.get_mut(part).unwrap();
+        }
 
-        // Edit the store's nested field value.
-        let nested_store = self.store.0.get_mut(&nested_name).unwrap();
-        let nested_store = match nested_store {
-            StoreField::Value(_) => return,
-            StoreField::Nested(s) => s,
-        };
-
-        nested_store
-            .0
-            .insert(field_name.clone(), StoreField::Value(value.clone()));
+        info!("Changing field {} to {}", field_name, value);
+        *current_value = value;
     }
 }
 
@@ -172,35 +173,15 @@ impl ConfigEditor {
 /// when the field is changed.
 pub fn create_field_input<'a>(
     field_name: String,
-    field_value: String,
+    field_value: Value,
 ) -> Element<'a, EditorEvent, Renderer> {
     let mut column = Column::new();
 
     column = column.push(text(field_name.as_str()));
-    column = column.push(create_input_component(Some(field_value), move |x| {
-        EditorEvent::FieldChanged(field_name.clone(), x.unwrap_or_default())
-    }));
-
-    column.into()
-}
-
-/// Renders a field with a depth > 1 and emits
-/// [`EditorEvent::NestedFieldChanged`] when the field is changed.
-pub fn create_nested_field_input<'a>(
-    nested_field_label: String,
-    field_label: String,
-    field_value: String,
-) -> Element<'a, EditorEvent, Renderer> {
-    let mut column = Column::new();
-
-    column = column.push(text(field_label.as_str()));
-    column = column.push(create_input_component(Some(field_value), move |x| {
-        EditorEvent::NestedFieldChanged(
-            nested_field_label.clone(),
-            field_label.clone(),
-            x.unwrap_or_default(),
-        )
-    }));
+    column = column.push(create_input_component(
+        Some(field_value.to_string()),
+        move |x| EditorEvent::FieldChanged(field_name.clone(), x.unwrap_or_default()),
+    ));
 
     column.into()
 }
