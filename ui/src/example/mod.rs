@@ -14,8 +14,12 @@ use crate::sdk::production::*;
 pub mod components;
 mod config_editor;
 mod deployer;
+mod firehose;
+mod footer;
+mod header;
 mod run_sim_button;
 mod screen;
+mod sidebar;
 mod watcher;
 
 #[allow(clippy::large_enum_variant)]
@@ -213,14 +217,11 @@ impl Application for ExampleApp {
             ExampleApp::Loading => text("Loading...").into(),
             ExampleApp::Running { client, screen, .. } => {
                 // Base container for the Running state
-                let restart_button = button("Restart").on_press(Message::ChangePage(Screen::Start));
 
                 // Header with title and restart button
-                let header = Row::new()
-                    .push(restart_button)
-                    .push(text(title).size(50))
-                    .align_items(alignment::Alignment::Center)
-                    .spacing(20);
+                let header = header::Header::new(title)
+                    .view()
+                    .map(|_| Message::Debug("header press".into()));
 
                 // Renders the current screen.
                 let screen_content = match screen {
