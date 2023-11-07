@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
 use iced::{
-    widget::{column, Scrollable},
+    widget::{Column, Row},
     Element,
 };
 use simulation::settings::{parameters::Multiple, *};
@@ -141,36 +141,37 @@ impl ExampleScreen {
     }
 
     pub fn view<'a>(&self) -> Element<'a, ExampleScreenMessage> {
-        let mut content = column![];
+        // Create a row for the Deployer and Watcher components
+        let deployer_watcher_row = Row::new()
+            .push(
+                self.deployer
+                    .view()
+                    .map(|message| ExampleScreenMessage::DeployerComponent(message)),
+            )
+            .push(
+                self.watcher
+                    .view()
+                    .map(|message| ExampleScreenMessage::WatcherComponent(message)),
+            )
+            .spacing(10);
 
-        // Render the Deployer component, wraps the component's messages in a screen
-        // message.
-        content = content.push(
-            self.deployer
-                .view()
-                .map(|message| ExampleScreenMessage::DeployerComponent(message)),
-        );
+        // Create a column for the config editor and run sim button
+        let editor_run_sim_column = Column::new()
+            .push(
+                self.config_editor
+                    .view("Simulation Config")
+                    .map(|message| ExampleScreenMessage::EditorComponent(message)),
+            )
+            .push(run_sim_button::RunSimButton::new(self.config.clone()))
+            .spacing(10);
 
-        // Render the Watcher component, wraps the component's messages in a screen
-        // message.
-        content = content.push(
-            self.watcher
-                .view()
-                .map(|message| ExampleScreenMessage::WatcherComponent(message)),
-        );
+        // Combine the row and column into a single column
+        let content = Column::new()
+            .push(deployer_watcher_row)
+            .push(editor_run_sim_column)
+            .spacing(10)
+            .padding(10);
 
-        // Render the config editor
-        let mut editor_container = column![];
-        editor_container = editor_container.push(
-            self.config_editor
-                .view()
-                .map(|message| ExampleScreenMessage::EditorComponent(message)),
-        );
-        content = content.push(editor_container.padding(10));
-
-        // Render the run sim button
-        content = content.push(run_sim_button::RunSimButton::new(self.config.clone()));
-
-        Scrollable::new(content.spacing(4)).into()
+        content.into()
     }
 }

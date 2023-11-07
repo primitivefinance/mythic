@@ -5,6 +5,7 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::prelude::*;
+use iced::widget::scrollable;
 use tracing::info;
 
 use super::*;
@@ -205,55 +206,53 @@ impl Application for ExampleApp {
     }
 
     fn view(&self) -> Element<Message> {
+        let title = self.title();
+        let version = env!("CARGO_PKG_VERSION");
+
         let content: Element<_> = match self {
             ExampleApp::Loading => text("Loading...").into(),
             ExampleApp::Running { client, screen, .. } => {
                 // Base container for the Running state
-                let mut content = self::column![];
-                // Button for routing back to start screen.
-                content = content
-                    .push(button("Restart").on_press(Message::ChangePage(Screen::Start)))
-                    .spacing(10)
-                    .align_items(alignment::Alignment::Center);
+                let restart_button = button("Restart").on_press(Message::ChangePage(Screen::Start));
+
+                // Header with title and restart button
+                let header = Row::new()
+                    .push(restart_button)
+                    .push(text(title).size(50))
+                    .align_items(alignment::Alignment::Center)
+                    .spacing(20);
 
                 // Renders the current screen.
-                // note: Each screen is instantiated when its routed to. This has the effect
-                // of completely wiping any state that was on the screen before.
-                // This could be a benefit, as its a clean way to reset the state of a screen.
-                // But there may be scenarios where we want to preserve state of a screen.
-                match screen {
+                let screen_content = match screen {
                     Screen::Start => {
                         let start_screen =
                             screen::start::StartScreen::new(|| Message::ChangePage(Screen::Home));
-                        content = content.push(start_screen);
+                        start_screen.into()
                     }
                     Screen::Home => {
                         // Button to go to the example screen.
                         let example_screen = screen::ExampleScreen::new(client.clone());
-                        content =
-                            content
-                                .push(button("Go to Example").on_press(Message::ChangePage(
-                                    Screen::Example(example_screen),
-                                )));
+                        button("Go to Example")
+                            .on_press(Message::ChangePage(Screen::Example(example_screen)))
+                            .into()
                     }
-                    Screen::Example(example) => {
-                        content = content.push(example.view().map(Message::ExampleScreen));
-                    }
-                }
+                    Screen::Example(example) => example.view().map(Message::ExampleScreen),
+                };
 
-                // Push text on whether the watcher is ON or OFF
-                content = content.push(
-                    text(match screen {
-                        Screen::Example(example) => match example.watcher.status {
-                            true => "Watcher is ON",
-                            false => "Watcher is OFF",
-                        },
-                        _ => "",
-                    })
-                    .size(30)
+                let screen_content = scrollable(screen_content)
                     .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-                );
+                    .height(Length::Fill);
+
+                // Footer with version information
+                let footer = text(format!("Version: {}", version)).size(20);
+
+                // Combine all elements into a column
+                let content = Column::new()
+                    .push(header)
+                    .push(screen_content)
+                    .push(footer)
+                    .spacing(10)
+                    .align_items(alignment::Alignment::Center);
 
                 content.into()
             }

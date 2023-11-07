@@ -24,7 +24,7 @@
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{button, text, Column},
+    widget::{button, text, Checkbox, Column, Row},
     Element, Renderer,
 };
 use serde_json::Value;
@@ -43,6 +43,7 @@ pub enum EditorEvent {
     FieldChanged(String, Value),
     SaveButtonPressed,
     DebugConfig,
+    ToggleNullFields,
 }
 
 type ConfigStore = BTreeMap<String, Value>;
@@ -58,6 +59,7 @@ type ConfigStore = BTreeMap<String, Value>;
 #[derive(Debug, Clone)]
 pub struct ConfigEditor {
     store: ConfigStore,
+    show_null_fields: bool,
 }
 
 pub trait Config: serde::Serialize {
@@ -96,7 +98,10 @@ impl ConfigEditor {
     pub fn new<C: Config>(config: C) -> Self {
         let store = config.to_store();
         info!("Loading config into ConfigEditor: {:?}", store);
-        Self { store }
+        Self {
+            store,
+            show_null_fields: false,
+        }
     }
 
     pub fn update(&mut self, event: EditorEvent) -> Option<EditorToAppMessage> {
@@ -113,47 +118,132 @@ impl ConfigEditor {
                     self.store.clone()
                 );
             }
+            EditorEvent::ToggleNullFields => {
+                self.show_null_fields = !self.show_null_fields;
+            }
         }
 
         None
     }
 
-    pub fn view<'a>(&self) -> Element<'a, EditorEvent> {
-        let mut column = Column::new().max_width(512).spacing(10).padding(10);
+    pub fn view<'a>(&self, title: &str) -> Element<'a, EditorEvent> {
+        // Create a title
+        let title = text(title).size(50);
 
-        for (field_name, field_value) in self.store.iter() {
-            column = self.render_field(column, field_name, field_value);
+        // Create a row for the buttons
+        let buttons = Row::new()
+            .push(button(text("Save")).on_press(EditorEvent::SaveButtonPressed))
+            .push(button(text("Debug")).on_press(EditorEvent::DebugConfig))
+            .push(Checkbox::new(
+                "Show null fields",
+                self.show_null_fields,
+                |_| EditorEvent::ToggleNullFields,
+            ))
+            .spacing(10);
+
+        // Create a vector of field elements
+        let mut fields: Vec<Element<EditorEvent>> = Vec::new();
+        for (field_name, field_value) in &self.store {
+            // Here we are matching on the value of each field in the store
+            // The store is a collection of key-value pairs where the key is the field name
+            // and the value is the field value We are checking if the value is
+            // an object or not If it is an object, we iterate over its fields
+            // (nested_field_name, nested_field_value) If the nested field value
+            // is null and we are not showing null fields, we skip this iteration
+            // If the nested field value is not null or we are showing null fields, we
+            // render the field and push it to the fields vector If the value is
+            // not an object, we check if it is null and we are not showing null fields, if
+            // so we skip this iteration If the value is not null or we are
+            // showing null fields, we render the field and push it to the fields vector
+            match field_value {
+                Value::Object(obj) => {
+                    for (nested_field_name, nested_field_value) in obj {
+                        if nested_field_value.is_null() && !self.show_null_fields {
+                            continue;
+                        }
+                        if let Some(field) = self.render_field(
+                            &format!("{}.{}", field_name, nested_field_name),
+                            nested_field_value,
+                            self.show_null_fields,
+                        ) {
+                            fields.push(field);
+                        }
+                    }
+                }
+                _ => {
+                    if field_value.is_null() && !self.show_null_fields {
+                        continue;
+                    }
+
+                    if let Some(field) =
+                        self.render_field(field_name, field_value, self.show_null_fields)
+                    {
+                        fields.push(field);
+                    }
+                }
+            }
         }
 
-        column = column.push(button(text("Save")).on_press(EditorEvent::SaveButtonPressed));
-        column = column.push(button(text("Debug")).on_press(EditorEvent::DebugConfig));
+        // Arrange the fields into two columns
+        let half = fields.len() / 2;
+        let mut column1 = Column::new()
+            .width(iced::Length::FillPortion(2))
+            .spacing(10)
+            .align_items(iced::Alignment::Start);
+        let mut column2 = Column::new()
+            .width(iced::Length::FillPortion(2))
+            .spacing(10)
+            .align_items(iced::Alignment::Start);
 
-        column.into()
+        for (i, field) in fields.into_iter().enumerate() {
+            if i < half {
+                column1 = column1.push(field);
+            } else {
+                column2 = column2.push(field);
+            }
+        }
+
+        let columns = Row::new().push(column1).push(column2).spacing(10);
+
+        // Combine the title, buttons, and fields into a column
+        let content = Column::new()
+            .push(title)
+            .push(buttons)
+            .push(columns)
+            .spacing(10)
+            .padding(10);
+
+        content.into()
     }
 
     /// Recursively renders each field of a config.
     fn render_field<'a>(
         &self,
-        mut column: Column<'a, EditorEvent>,
         field_name: &String,
         field_value: &Value,
-    ) -> Column<'a, EditorEvent> {
-        match field_value {
-            Value::Object(obj) => {
-                for (nested_field_name, nested_field_value) in obj {
-                    column = self.render_field(
-                        column,
-                        &format!("{}.{}", field_name, nested_field_name),
-                        nested_field_value,
-                    );
-                }
-            }
-            _ => {
-                column = column.push(create_field_input(field_name.clone(), field_value.clone()));
-            }
+        show_null_fields: bool,
+    ) -> Option<Element<'a, EditorEvent>> {
+        if field_value.is_null() && !show_null_fields {
+            // If the field value is null, return None
+            return None;
         }
 
-        column
+        Some(match field_value {
+            Value::Object(obj) => {
+                let mut column = Column::new().spacing(10);
+                for (nested_field_name, nested_field_value) in obj {
+                    if let Some(field) = self.render_field(
+                        &format!("{}.{}", field_name, nested_field_name),
+                        nested_field_value,
+                        show_null_fields,
+                    ) {
+                        column = column.push(field);
+                    }
+                }
+                column.into()
+            }
+            _ => create_field_input(field_name.clone(), field_value.clone()),
+        })
     }
 
     pub fn set_field(&mut self, field_name: String, value: Value) {
