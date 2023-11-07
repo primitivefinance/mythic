@@ -96,14 +96,14 @@ impl AnalyzerApp {
         let mut events_column = Column::new().align_items(Alignment::End).spacing(10);
         if let Some(sim_data) = &self.simulation_data {
             // Iterate over contracts
-            for contract_name in sim_data.0.keys() {
+            for contract_name in sim_data.contract_events.keys() {
                 let mut contract_column = Column::new()
                     .align_items(Alignment::Start)
                     .spacing(5)
                     .push(Text::new(contract_name).size(20)); // Displaying the contract name
 
                 // Iterate over events inside the current contract
-                let events_map = sim_data.0.get(contract_name).unwrap();
+                let events_map = sim_data.contract_events.get(contract_name).unwrap();
                 for event_name in events_map.keys() {
                     let checkbox = Checkbox::new(
                         event_name,
