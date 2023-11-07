@@ -102,9 +102,8 @@ pub fn batch(config: SimulationConfig<Multiple>) -> Result<()> {
                 };
 
                 warn!(
-                    "Running environment with label: {}\nFull config: {:#?}",
+                    "Running environment with label: {}",
                     config.output_file_name.clone().unwrap(),
-                    config
                 );
                 let result = SimulationType::run(config).await;
                 match result {
