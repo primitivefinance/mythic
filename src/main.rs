@@ -5,8 +5,6 @@ use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
 use simulation::simulations;
 use tracing_subscriber::filter::EnvFilter;
-use tracing_subscriber::fmt::Subscriber;
-use tracing_subscriber::prelude::*;
 use ui as interface;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
@@ -32,6 +30,9 @@ struct Args {
 
     #[clap(long, global = true)]
     analysis: bool,
+
+    #[clap(long, global = true)]
+    arbiter_core: bool,
 }
 
 /// Defines available subcommands for the `Arbiter` tool.
@@ -54,26 +55,11 @@ fn main() -> Result<()> {
     let args = Args::parse();
 
     let log_level = match args.verbose.unwrap_or(0) {
-        0 => {
-            println!("Running with tracing::Level::Error");
-            tracing::Level::ERROR
-        }
-        1 => {
-            println!("Running with tracing::Level::WARN");
-            tracing::Level::WARN
-        }
-        2 => {
-            println!("Running with tracing::Level::INFO");
-            tracing::Level::INFO
-        }
-        3 => {
-            println!("Running with tracing::Level::DEBUG");
-            tracing::Level::DEBUG
-        }
-        _ => {
-            println!("Running with tracing::Level::TRACE");
-            tracing::Level::TRACE
-        }
+        0 => tracing::Level::ERROR,
+        1 => tracing::Level::WARN,
+        2 => tracing::Level::INFO,
+        3 => tracing::Level::DEBUG,
+        _ => tracing::Level::TRACE,
     };
     let mut filter = format!("excalibur={}", log_level);
 
@@ -88,6 +74,10 @@ fn main() -> Result<()> {
     if args.analysis {
         filter.push_str(&format!(",analysis={}", log_level));
     }
+    if args.arbiter_core {
+        filter.push_str(&format!(",arbiter_core={}", log_level));
+    }
+
     let env_filter = EnvFilter::new(filter);
     tracing_subscriber::fmt()
         .with_max_level(log_level)
