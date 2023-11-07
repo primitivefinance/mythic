@@ -25,7 +25,6 @@ pub async fn setup(
     let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
     let mut price_changer =
         PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
-    println!("bruh moment");
     let rmm_portfolio_manager = PortfolioManagerType::new(
         &environment,
         &config,
@@ -33,8 +32,6 @@ pub async fn setup(
         price_changer.liquid_exchange.address(),
     )
     .await?;
-    println!("bruh moment2");
-
     let mut lp = RmmLiquidityProvider::<RmmStrategy>::new(
         &environment,
         &config,
@@ -44,7 +41,6 @@ pub async fn setup(
         rmm_portfolio_manager.0.high_vol_pool().address(),
     )
     .await?;
-    println!("bruh moment3");
     let mut arbitrageur = RmmArbitrageur::<RmmStrategy>::new(
         &environment,
         &token_admin,
@@ -53,14 +49,13 @@ pub async fn setup(
         rmm_portfolio_manager.0.high_vol_pool().address(),
     )
     .await?;
-    println!("bruh moment4");
 
     println!(
         "low vol pool: {}",
         rmm_portfolio_manager.0.low_vol_pool().address()
     );
     println!(
-        "low vol pool: {}",
+        "high vol pool: {}",
         rmm_portfolio_manager.0.high_vol_pool().address()
     );
 

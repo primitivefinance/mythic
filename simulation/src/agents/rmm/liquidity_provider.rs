@@ -45,7 +45,6 @@ impl<S: LiquidityStrategy> RmmLiquidityProvider<S> {
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let low_vol_strategy: S = S::new(low_vol_strategy_contract, client.clone());
         let high_vol_strategy: S = S::new(high_vol_strategy_contract, client.clone());
-
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 

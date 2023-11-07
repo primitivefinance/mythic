@@ -52,7 +52,7 @@ specialty.VolatilityTargeting.update_frequency.fixed = 150
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 
 # Liquidity provider settings
-[agent.lp.LiquidityProvider]
+[agent.lp.RmmLiquidityProvider]
 # The amount of `token_x` to provide in ether
 x_liquidity.fixed = 1
 # The initial price of the pair

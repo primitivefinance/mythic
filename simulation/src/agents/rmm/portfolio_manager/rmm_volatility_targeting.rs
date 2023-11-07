@@ -96,7 +96,8 @@ impl PortfolioManager for RmmVolatilityTargetingStrategist {
         // debug!("portfolio_rv: {}", portfolio_rv);
         // let rv_difference = portfolio_rv - self.target_volatility;
         // let current_weight_x = self.g3m.weight_x().call().await?;
-        // let current_weight_float = format_ether(current_weight_x).parse::<f64>().unwrap();
+        // let current_weight_float =
+        // format_ether(current_weight_x).parse::<f64>().unwrap();
         // let weight_change = self.sensitivity * rv_difference;
         // debug!("current_weight_float: {}", current_weight_float);
         // let mut weight_delta = weight_change;
@@ -122,10 +123,10 @@ impl PortfolioManager for RmmVolatilityTargetingStrategist {
         Ok(())
     }
     fn low_vol_pool(&self) -> &RMM<RevmMiddleware> {
-        self.low_vol_pool()
+        &self.low_vol_pool
     }
     fn high_vol_pool(&self) -> &RMM<RevmMiddleware> {
-        self.low_vol_pool()
+        &self.high_vol_pool
     }
 }
 
@@ -133,12 +134,14 @@ impl PortfolioManager for RmmVolatilityTargetingStrategist {
 impl Agent for RmmVolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
         // let timestamp = self.client.get_block_timestamp().await?.as_u64();
-        // let asset_price = format_ether(self.lex.price().call().await?).parse::<f64>()?;
+        // let asset_price =
+        // format_ether(self.lex.price().call().await?).parse::<f64>()?;
         // let reserve_x =
-        //     format_ether(self.g3m.reserve_x_without_precision().call().await?).parse::<f64>()?;
-        // let reserve_y =
-        //     format_ether(self.g3m.reserve_y_without_precision().call().await?).parse::<f64>()?;
-        // let portfolio_price = reserve_x * asset_price + reserve_y;
+        //     format_ether(self.g3m.reserve_x_without_precision().call().await?).
+        // parse::<f64>()?; let reserve_y =
+        //     format_ether(self.g3m.reserve_y_without_precision().call().await?).
+        // parse::<f64>()?; let portfolio_price = reserve_x * asset_price +
+        // reserve_y;
 
         // if self.portfolio_prices.is_empty() {
         //     info!("portfolio_price: {}", portfolio_price);

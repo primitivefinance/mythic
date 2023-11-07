@@ -1,6 +1,7 @@
+use ethers::types::TransactionReceipt;
+
 use super::*;
 use crate::bindings::i_strategy::IStrategy;
-use ethers::types::TransactionReceipt;
 
 /// Type of data that is specific to the G3M strategy.
 /// Each G3M pool has weights for each side of the pool.
@@ -69,8 +70,8 @@ impl LiquidityStrategy for RmmStrategy {
 impl ArbitrageStrategy for RmmStrategy {
     async fn get_x_input(
         &self,
-        target_price_wad: U256,
-        math: &SD59x18Math<RevmMiddleware>,
+        _target_price_wad: U256,
+        _math: &SD59x18Math<RevmMiddleware>,
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let sigma = I256::from_raw(strategy_data.sigma);
@@ -93,16 +94,16 @@ impl ArbitrageStrategy for RmmStrategy {
 
         // let inside = ratio * iwad / I256::from_raw(target_price_wad);
         // trace!("inside: {}", inside);
-        // let delta_x = invariant * math.pow(inside, weight_y).call().await? / iwad - reserve_x;
-        // trace!("delta_x: {}", delta_x);
+        // let delta_x = invariant * math.pow(inside, weight_y).call().await? / iwad -
+        // reserve_x; trace!("delta_x: {}", delta_x);
 
         Ok(U256::zero())
     }
 
     async fn get_y_input(
         &self,
-        target_price_wad: U256,
-        math: &SD59x18Math<RevmMiddleware>,
+        _target_price_wad: U256,
+        _math: &SD59x18Math<RevmMiddleware>,
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let sigma = I256::from_raw(strategy_data.sigma);
@@ -125,8 +126,8 @@ impl ArbitrageStrategy for RmmStrategy {
 
         // let inside = ratio * I256::from_raw(target_price_wad) / iwad;
         // trace!("inside: {}", inside);
-        // let delta_y = invariant * math.pow(inside, weight_x).call().await? / iwad - reserve_y;
-        // trace!("delta_y: {}", delta_y);
+        // let delta_y = invariant * math.pow(inside, weight_x).call().await? / iwad -
+        // reserve_y; trace!("delta_y: {}", delta_y);
 
         Ok(U256::zero())
     }
