@@ -47,7 +47,6 @@ impl SimulationType {
                 stable_portfolio::setup(environment, config.clone()).await?
             }
             SimulationType::RmmVolatilityTargeting => {
-                println!("we getting here?");
                 rmm_vol_targeting::setup(environment, config.clone()).await?
             }
         };

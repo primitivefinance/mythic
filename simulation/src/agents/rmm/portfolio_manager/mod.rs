@@ -91,15 +91,15 @@ impl PortfolioManagerType {
                     let high_vol_args = (
                         lex.arbiter_token_x().call().await?,
                         lex.arbiter_token_y().call().await?,
-                        parse_ether(1)?,
+                        parse_ether(1.5)?,
                         parse_ether(1)?,
                         U256::from(31_536_000),
                         U256::from(30),
                     );
                     let low_vol_pool = RMM::deploy(client.clone(), low_vol_args)?.send().await?;
-                    println!("Deployed G3M at address: {:?}", low_vol_pool.address(),);
+                    println!("Deployed G3M at address: {:?}", low_vol_pool.address());
                     let high_vol_pool = RMM::deploy(client.clone(), high_vol_args)?.send().await?;
-                    println!("Deployed G3M at address: {:?}", high_vol_pool.address(),);
+                    println!("Deployed G3M at address: {:?}", high_vol_pool.address());
                     let strategist = RmmVolatilityTargetingStrategist {
                         client,
                         lex,
@@ -117,7 +117,9 @@ impl PortfolioManagerType {
                 }
             }
         } else {
-            Err(anyhow::anyhow!("No parameters found for weight changer"))
+            Err(anyhow::anyhow!(
+                "No parameters found for volatility targeting portfolio manager"
+            ))
         }
     }
 }
