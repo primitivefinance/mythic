@@ -4,6 +4,9 @@ use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
 use simulation::simulations;
+use tracing_subscriber::filter::EnvFilter;
+use tracing_subscriber::fmt::Subscriber;
+use tracing_subscriber::prelude::*;
 use ui as interface;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
@@ -20,14 +23,22 @@ struct Args {
     #[clap(short, long, global = true, required = false, action = ArgAction::Count, value_parser(
         clap::value_parser!(u8)))]
     verbose: Option<u8>,
+
+    #[clap(long, global = true)]
+    simulation: bool,
+
+    #[clap(long, global = true)]
+    ui: bool,
+
+    #[clap(long, global = true)]
+    analysis: bool,
 }
 
 /// Defines available subcommands for the `Arbiter` tool.
 #[derive(Subcommand)]
 enum Commands {
-    /// Represents the `Bind` subcommand.
     Simulate {
-        #[clap(index = 1, default_value = "simulation/src/tests/configs/static.toml")]
+        #[clap(index = 1, default_value = "configs/volatility_targeting/static.toml")]
         config_path: String,
     },
     Analyze,
@@ -64,8 +75,24 @@ fn main() -> Result<()> {
             tracing::Level::TRACE
         }
     };
+    let mut filter = format!("excalibur={}", log_level);
 
-    tracing_subscriber::fmt().with_max_level(log_level).init();
+    if args.simulation {
+        filter.push_str(&format!(",simulation={}", log_level));
+    }
+
+    if args.ui {
+        filter.push_str(&format!(",ui={}", log_level));
+    }
+
+    if args.analysis {
+        filter.push_str(&format!(",analysis={}", log_level));
+    }
+    let env_filter = EnvFilter::new(filter);
+    tracing_subscriber::fmt()
+        .with_max_level(log_level)
+        .with_env_filter(env_filter)
+        .init();
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => {
