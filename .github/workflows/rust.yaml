@@ -8,7 +8,13 @@ env:
 
 jobs:
   build-clippy:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
@@ -39,7 +45,13 @@ jobs:
         args: --all --all-features -- -D warnings
   
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
 
@@ -62,7 +74,13 @@ jobs:
   udeps:
     name: udeps
     if: github.ref == 'refs/heads/main' && github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       
@@ -78,8 +96,8 @@ jobs:
         run: cargo +nightly udeps
 
   codespell:
+    runs-on: ubuntu-latest # codespell only runs on linux
     name: codespell
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Run CodeSpell

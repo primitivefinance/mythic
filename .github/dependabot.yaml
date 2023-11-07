@@ -24,3 +24,9 @@ updates:
     directory: "analysis"
     schedule:
       interval: "daily"
+      
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    # Check for updates every Monday
+    schedule:
+      interval: "weekly"

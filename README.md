@@ -1,13 +1,25 @@
-# Portfolio in a box
+# Excalibur
 
 Construct, implement, and model a portfolio strategy.
 
 ## Installation
+To install from source you can run
 
 ```bash
-./build.sh
+cargo install --path .
+```
+Then you can see the help menu with
+```bash
+excalibur --help
+```
 
-cargo run
+To use the binary without installation you can run
+```bash
+cargo run -- --help
+```
+and then 
+```bash
+cargo run -- <args>
 ```
 
 ## Run tests
