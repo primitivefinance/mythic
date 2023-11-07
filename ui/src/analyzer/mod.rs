@@ -181,17 +181,14 @@ impl AnalyzerApp {
                 .enumerate()
                 .map(|(idx, val)| (idx as f64, val.clone()))
                 .unzip();
-            println!("values as value: {:?}", values);
             let values = values
                 .into_iter()
                 .map(|x| x.as_str().unwrap().to_owned())
                 .collect::<Vec<String>>();
-            println!("values as string: {:?}", values);
             let values = values
                 .into_iter()
                 .map(|x| U256::from_str_radix(&x, 16).unwrap())
                 .collect::<Vec<U256>>();
-            println!("values as u256: {:?}", values);
             let values = values
                 .into_iter()
                 .map(|x| wad_to_float(x))
@@ -204,7 +201,7 @@ impl AnalyzerApp {
             figure.add_plot(lineplot);
         }
 
-        figure.create();
+        figure.create().unwrap();
 
         // Load the image data
         let img = image::open("Data.png").unwrap();

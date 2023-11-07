@@ -1,9 +1,10 @@
+use std::{env, path::PathBuf};
+
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use simulation::{
     settings::{parameters::Single, SimulationConfig},
     simulations::Simulation,
 };
-use std::{env, path::PathBuf};
 
 use super::*;
 
