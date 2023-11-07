@@ -89,34 +89,24 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
     /// Returns the direction of the swap `XtoY` or `YtoX` if there is an
     /// arbitrage opportunity. Returns `None` if there is no arbitrage
     /// opportunity.
-    async fn detect_arbitrage(&self) -> Result<Swap> {
+    async fn detect_arbitrage(&self, pool: &S) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        // info!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
-        let g3m_price_wad = self.high_vol_strategy.get_spot_price().await?;
-        // info!("g3m_price_wad: {:?}", g3m_price_wad);
+        let price = pool.get_spot_price().await?;
 
-        let gamma_wad =
-            WAD - (self.low_vol_strategy.get_swap_fee().await?) * U256::from(10u128.pow(14));
-        // info!("gamma_wad: {:?}", gamma_wad);
+        let gamma_wad = WAD - pool.get_swap_fee().await?;
 
-        // Compute the no-arbitrage bounds.
-        let upper_arb_bound = WAD * g3m_price_wad / gamma_wad;
-        // info!("upper_arb_bound: {:?}", upper_arb_bound);
-        let lower_arb_bound = g3m_price_wad * gamma_wad / WAD;
-        // info!("lower_arb_bound: {:?}", lower_arb_bound);
+        let upper_arb_bound = WAD * price / gamma_wad;
+        let lower_arb_bound = price * gamma_wad / WAD;
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.
         // If these conditions are not satisfied, there cannot be a profitable
         // arbitrage. See: [An Analysis of Uniswap Markets](https://arxiv.org/pdf/1911.03380.pdf) Eq. 3, for example.
-        if liquid_exchange_price_wad > upper_arb_bound && liquid_exchange_price_wad > g3m_price_wad
-        {
+        if liquid_exchange_price_wad > upper_arb_bound && liquid_exchange_price_wad > price {
             // Raise the portfolio price by selling asset for quote
             Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
-        } else if liquid_exchange_price_wad < lower_arb_bound
-            && liquid_exchange_price_wad < g3m_price_wad
-        {
+        } else if liquid_exchange_price_wad < lower_arb_bound && liquid_exchange_price_wad < price {
             // Lower the exchange price by selling asset for quote
             Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
         } else {
@@ -131,64 +121,66 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.
-        match self.detect_arbitrage().await? {
-            Swap::RaiseExchangePrice(target_price) => {
-                info!(
-                    "Detected the need to increase price to {:?}",
-                    format_units(target_price, "ether")?
-                );
-                let input = self
-                    .high_vol_strategy
-                    .get_y_input(target_price, &self.math)
-                    .await?;
+        for i in vec![&self.low_vol_strategy, &self.high_vol_strategy] {
+            match self.detect_arbitrage(i).await? {
+                Swap::RaiseExchangePrice(target_price) => {
+                    info!(
+                        "Detected the need to increase price to {:?}",
+                        format_units(target_price, "ether")?
+                    );
+                    let input = self
+                        .high_vol_strategy
+                        .get_y_input(target_price, &self.math)
+                        .await?;
 
-                info!(
-                    "Increasing price by selling input amount of quote tokens: {:?}",
-                    input,
-                );
-                let tx = self.atomic_arbitrage.raise_exchange_price(input);
-                let output = tx.send().await;
-                match output {
-                    Ok(output) => {
-                        output.await?;
-                    }
-                    Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                            e.as_middleware_error().unwrap()
-                        {
-                            info!("Execution revert: {:?}", output);
+                    info!(
+                        "Increasing price by selling input amount of quote tokens: {:?}",
+                        input,
+                    );
+                    let tx = self.atomic_arbitrage.raise_exchange_price(input);
+                    let output = tx.send().await;
+                    match output {
+                        Ok(output) => {
+                            output.await?;
+                        }
+                        Err(e) => {
+                            if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                                e.as_middleware_error().unwrap()
+                            {
+                                info!("Execution revert: {:?}", output);
+                            }
                         }
                     }
                 }
-            }
-            Swap::LowerExchangePrice(target_price) => {
-                info!(
-                    "Detected the need to lower price to {:?}",
-                    format_units(target_price, "ether")?
-                );
-                let input = self
-                    .high_vol_strategy
-                    .get_x_input(target_price, &self.math)
-                    .await?;
-                info!("Got input: {:?}", input);
-                let tx = self.atomic_arbitrage.lower_exchange_price(input);
-                let output = tx.send().await;
-                match output {
-                    Ok(output) => {
-                        output.await?;
-                    }
-                    Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                            e.as_middleware_error().unwrap()
-                        {
-                            info!("Execution revert: {:?}", output);
+                Swap::LowerExchangePrice(target_price) => {
+                    info!(
+                        "Detected the need to lower price to {:?}",
+                        format_units(target_price, "ether")?
+                    );
+                    let input = self
+                        .high_vol_strategy
+                        .get_x_input(target_price, &self.math)
+                        .await?;
+                    info!("Got input: {:?}", input);
+                    let tx = self.atomic_arbitrage.lower_exchange_price(input);
+                    let output = tx.send().await;
+                    match output {
+                        Ok(output) => {
+                            output.await?;
+                        }
+                        Err(e) => {
+                            if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                                e.as_middleware_error().unwrap()
+                            {
+                                info!("Execution revert: {:?}", output);
+                            }
                         }
                     }
+                    info!("Sent arbitrage.");
                 }
-                info!("Sent arbitrage.");
-            }
-            Swap::None => {
-                info!("No arbitrage opportunity");
+                Swap::None => {
+                    info!("No arbitrage opportunity");
+                }
             }
         }
         Ok(())
