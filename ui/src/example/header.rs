@@ -43,7 +43,7 @@ impl Header {
         .on_press(Message::ButtonPressed);
 
         let row = row![button]
-            .push(column![title].padding(4))
+            .push(column![title].padding(8))
             .spacing(4)
             .align_items(alignment::Alignment::Center)
             .height(Length::Fill);
@@ -59,9 +59,9 @@ impl Header {
 pub struct HeaderTheme;
 
 pub const HEADER_COLOR: Color = Color::from_rgb(
-    0x2C as f32 / 255.0,
-    0x2C as f32 / 255.0,
-    0x2C as f32 / 255.0,
+    0x1E as f32 / 255.0,
+    0x1E as f32 / 255.0,
+    0x1E as f32 / 255.0,
 );
 
 impl iced::widget::container::StyleSheet for HeaderTheme {

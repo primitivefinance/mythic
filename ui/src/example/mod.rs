@@ -5,7 +5,10 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::prelude::*;
-use iced::{widget::scrollable, Color};
+use iced::{
+    widget::{row, scrollable},
+    Color,
+};
 use tracing::info;
 
 use super::*;
@@ -118,6 +121,11 @@ impl Application for ExampleApp {
                     let entity = Arc::new(result);
                     *production = Some(entity.clone());
                 }
+
+                return Command::batch(vec![iced::font::load(
+                    iced_aw::graphics::icons::ICON_FONT_BYTES,
+                )
+                .map(|_| Message::Empty)]);
             }
             // Mutates this application's `screen` state to the new screen.
             Message::ChangePage(page) => {
@@ -240,8 +248,11 @@ impl Application for ExampleApp {
                 };
 
                 let screen_content = scrollable(screen_content)
-                    .width(Length::Fill)
+                    .width(Length::FillPortion(8))
                     .height(Length::Fill);
+
+                let screen_container =
+                    row![sidebar::Sidebar::new(), screen_content].height(Length::Fill);
 
                 // Footer with version information
                 let footer = footer::FooterBuilder::new()
@@ -255,9 +266,8 @@ impl Application for ExampleApp {
                 // Combine all elements into a column
                 let content = Column::new()
                     .push(header)
-                    .push(screen_content)
+                    .push(screen_container)
                     .push(footer)
-                    .spacing(10)
                     .align_items(alignment::Alignment::Center);
 
                 content.into()
