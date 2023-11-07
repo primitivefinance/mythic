@@ -62,6 +62,21 @@ impl From<SimulationConfig<Multiple>> for Vec<SimulationConfig<Single>> {
     }
 }
 
+impl<P> Default for SimulationConfig<P>
+where
+    P: Parameterized,
+{
+    fn default() -> Self {
+        Self {
+            simulation: SimulationType::DynamicWeights,
+            max_parallel: None,
+            output_directory: "output".to_string(),
+            output_file_name: None,
+            agent_parameters: BTreeMap::new(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -5,13 +5,16 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::prelude::*;
+use iced::{widget::scrollable, Color};
 use tracing::info;
 
 use super::*;
 use crate::sdk::production::*;
 
-mod components;
+pub mod components;
+mod config_editor;
 mod deployer;
+mod run_sim_button;
 mod screen;
 mod watcher;
 
@@ -72,11 +75,11 @@ impl Application for ExampleApp {
                 // Load sim environment
                 let env = EnvironmentBuilder::new().build();
                 let client = RevmMiddleware::new(&env, Some("client")).unwrap();
-
+                let client_cloned = client.clone();
                 Self::Running {
                     environment: env,
                     client,
-                    screen: Screen::Start,
+                    screen: Screen::Example(screen::ExampleScreen::new(client_cloned)),
                     production: None,
                 }
             },
@@ -203,55 +206,58 @@ impl Application for ExampleApp {
     }
 
     fn view(&self) -> Element<Message> {
+        let title = self.title();
+        let version = env!("CARGO_PKG_VERSION");
+
         let content: Element<_> = match self {
             ExampleApp::Loading => text("Loading...").into(),
             ExampleApp::Running { client, screen, .. } => {
                 // Base container for the Running state
-                let mut content = self::column![];
-                // Button for routing back to start screen.
-                content = content
-                    .push(button("Restart").on_press(Message::ChangePage(Screen::Start)))
-                    .spacing(10)
-                    .align_items(alignment::Alignment::Center);
+                let restart_button = button("Restart").on_press(Message::ChangePage(Screen::Start));
+
+                // Header with title and restart button
+                let header = Row::new()
+                    .push(restart_button)
+                    .push(text(title).size(50))
+                    .align_items(alignment::Alignment::Center)
+                    .spacing(20);
 
                 // Renders the current screen.
-                // note: Each screen is instantiated when its routed to. This has the effect
-                // of completely wiping any state that was on the screen before.
-                // This could be a benefit, as its a clean way to reset the state of a screen.
-                // But there may be scenarios where we want to preserve state of a screen.
-                match screen {
+                let screen_content = match screen {
                     Screen::Start => {
                         let start_screen =
                             screen::start::StartScreen::new(|| Message::ChangePage(Screen::Home));
-                        content = content.push(start_screen);
+                        start_screen.into()
                     }
                     Screen::Home => {
                         // Button to go to the example screen.
                         let example_screen = screen::ExampleScreen::new(client.clone());
-                        content =
-                            content
-                                .push(button("Go to Example").on_press(Message::ChangePage(
-                                    Screen::Example(example_screen),
-                                )));
+                        button("Go to Example")
+                            .on_press(Message::ChangePage(Screen::Example(example_screen)))
+                            .into()
                     }
-                    Screen::Example(example) => {
-                        content = content.push(example.view().map(Message::ExampleScreen));
-                    }
-                }
+                    Screen::Example(example) => example.view().map(Message::ExampleScreen),
+                };
 
-                // Push text on whether the watcher is ON or OFF
-                content = content.push(
-                    text(match screen {
-                        Screen::Example(example) => match example.watcher.status {
-                            true => "Watcher is ON",
-                            false => "Watcher is OFF",
-                        },
-                        _ => "",
-                    })
-                    .size(30)
+                let screen_content = scrollable(screen_content)
                     .width(Length::Fill)
-                    .horizontal_alignment(alignment::Horizontal::Center),
-                );
+                    .height(Length::Fill);
+
+                // Footer with version information
+                let footer = container(text(format!("Version: {}", version)).size(12))
+                    .padding(4)
+                    .center_x()
+                    .center_y()
+                    .width(Length::Fill)
+                    .style(ContainerTheme::theme());
+
+                // Combine all elements into a column
+                let content = Column::new()
+                    .push(header)
+                    .push(screen_content)
+                    .push(footer)
+                    .spacing(10)
+                    .align_items(alignment::Alignment::Center);
 
                 content.into()
             }
@@ -266,6 +272,49 @@ impl Application for ExampleApp {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
+        Theme::custom(iced::theme::Palette {
+            background: WHITE,
+            text: BLACK,
+            primary: BLACK,
+            success: Color::from_rgb(0.0, 1.0, 0.0),
+            danger: Color::from_rgb(1.0, 0.0, 0.0),
+        })
+    }
+}
+
+pub const WHITE: Color = Color::from_rgb(
+    0xfc as f32 / 255.0,
+    0xfc as f32 / 255.0,
+    0xfc as f32 / 255.0,
+);
+
+pub const BLACK: Color = Color::from_rgb(
+    0x00 as f32 / 255.0,
+    0x00 as f32 / 255.0,
+    0x00 as f32 / 255.0,
+);
+
+pub const SECONDARY: Color = Color::from_rgb(
+    0xf8 as f32 / 255.0,
+    0xf9 as f32 / 255.0,
+    0xf9 as f32 / 255.0,
+);
+
+pub struct ContainerTheme;
+
+impl iced::widget::container::StyleSheet for ContainerTheme {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Background::Color(SECONDARY)),
+            ..Default::default()
+        }
+    }
+}
+
+impl ContainerTheme {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(ContainerTheme))
     }
 }

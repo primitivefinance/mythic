@@ -36,7 +36,7 @@ pub mod bindings;
 #[allow(unused)]
 mod math;
 #[allow(unused)]
-mod settings;
+pub mod settings;
 #[allow(unused)]
 pub mod simulations;
 pub mod strategy;

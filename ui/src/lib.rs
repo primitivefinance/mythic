@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use iced::{
     alignment, executor,
-    widget::{button, column, container, text, Button, Checkbox, Column, Row, Scrollable, Text},
+    widget::{button, container, text, Button, Checkbox, Column, Row, Scrollable, Text},
     Alignment, Application, Command, Element, Length, Settings, Theme,
 };
 

@@ -6,9 +6,14 @@
 use std::sync::Arc;
 
 use arbiter_core::middleware::RevmMiddleware;
-use iced::{widget::column, Element};
+use iced::{
+    widget::{Column, Row},
+    Element,
+};
+use simulation::settings::{parameters::Multiple, *};
+use tracing::info;
 
-use super::{deployer, watcher};
+use super::{config_editor, deployer, run_sim_button, watcher};
 
 mod banner;
 pub mod start;
@@ -19,6 +24,8 @@ pub struct ExampleScreen {
     pub client: Arc<RevmMiddleware>,
     pub watcher: watcher::WatcherComponent,
     pub deployer: deployer::DeployerComponent,
+    pub config: SimulationConfig<Multiple>,
+    pub config_editor: config_editor::ConfigEditor,
 }
 
 /// Messages for Application -> Screen communication.
@@ -27,6 +34,7 @@ pub struct ExampleScreen {
 pub enum ExampleScreenMessage {
     WatcherComponent(watcher::AppToWatcherMessage),
     DeployerComponent(deployer::AppToDeployerMessage),
+    EditorComponent(config_editor::EditorEvent),
 }
 
 /// Messages for Screen -> Application communication.
@@ -42,10 +50,27 @@ pub enum Event {
 /// - view - renders the screen, called by the Application.
 impl ExampleScreen {
     pub fn new(client: Arc<RevmMiddleware>) -> Self {
+        // todo: config management feature
+        let config = simulation::simulations::import(
+            &std::env::current_dir()
+                .unwrap()
+                .join("simulation")
+                .join("src")
+                .join("tests")
+                .join("configs")
+                .join("static.toml")
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap();
+
+        info!("Loaded config: {:?}", config);
         Self {
             client,
             watcher: watcher::WatcherComponent::new(),
             deployer: deployer::DeployerComponent::new(),
+            config: config.clone(),
+            config_editor: config_editor::ConfigEditor::new(config),
         }
     }
 
@@ -97,28 +122,56 @@ impl ExampleScreen {
                     None => None,
                 }
             }
+            ExampleScreenMessage::EditorComponent(message) => {
+                let editor_message = self.config_editor.update(message);
+
+                match editor_message {
+                    Some(config_editor::EditorToAppMessage::SaveConfig(store)) => {
+                        info!("Saving config: {:?}", store);
+                        let config = config_editor::Config::from_store(store);
+                        self.config = config;
+                        info!("Config saved: {:?}", self.config);
+
+                        None
+                    }
+                    None => None,
+                }
+            }
         }
     }
 
     pub fn view<'a>(&self) -> Element<'a, ExampleScreenMessage> {
-        let mut content = column![];
+        // Create a row for the Deployer and Watcher components
+        let deployer_watcher_row = Row::new()
+            .push(
+                self.deployer
+                    .view()
+                    .map(|message| ExampleScreenMessage::DeployerComponent(message)),
+            )
+            .push(
+                self.watcher
+                    .view()
+                    .map(|message| ExampleScreenMessage::WatcherComponent(message)),
+            )
+            .spacing(10);
 
-        // Render the Deployer component, wraps the component's messages in a screen
-        // message.
-        content = content.push(
-            self.deployer
-                .view()
-                .map(|message| ExampleScreenMessage::DeployerComponent(message)),
-        );
+        // Create a column for the config editor and run sim button
+        let editor_run_sim_column = Column::new()
+            .push(
+                self.config_editor
+                    .view("Simulation Config")
+                    .map(|message| ExampleScreenMessage::EditorComponent(message)),
+            )
+            .push(run_sim_button::RunSimButton::new(self.config.clone()))
+            .spacing(10);
 
-        // Render the Watcher component, wraps the component's messages in a screen
-        // message.
-        content = content.push(
-            self.watcher
-                .view()
-                .map(|message| ExampleScreenMessage::WatcherComponent(message)),
-        );
+        // Combine the row and column into a single column
+        let content = Column::new()
+            .push(deployer_watcher_row)
+            .push(editor_run_sim_column)
+            .spacing(10)
+            .padding(10);
 
-        content.spacing(4).into()
+        content.into()
     }
 }

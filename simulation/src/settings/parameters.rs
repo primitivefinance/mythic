@@ -34,7 +34,7 @@ impl Parameterized for Multiple {
     }
 }
 
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default)]
 pub struct LinspaceParameters {
     pub start: Option<f64>,
     pub end: Option<f64>,
@@ -72,4 +72,15 @@ macro_rules! linspace {
         }
         .generate()
     };
+}
+
+impl Default for Multiple {
+    fn default() -> Self {
+        Self(LinspaceParameters {
+            start: Some(0.0),
+            end: Some(1.0),
+            steps: Some(1),
+            fixed: None,
+        })
+    }
 }
