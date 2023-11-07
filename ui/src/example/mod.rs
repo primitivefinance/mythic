@@ -5,7 +5,7 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::prelude::*;
-use iced::widget::scrollable;
+use iced::{widget::scrollable, Color};
 use tracing::info;
 
 use super::*;
@@ -244,7 +244,12 @@ impl Application for ExampleApp {
                     .height(Length::Fill);
 
                 // Footer with version information
-                let footer = text(format!("Version: {}", version)).size(20);
+                let footer = container(text(format!("Version: {}", version)).size(12))
+                    .padding(4)
+                    .center_x()
+                    .center_y()
+                    .width(Length::Fill)
+                    .style(ContainerTheme::theme());
 
                 // Combine all elements into a column
                 let content = Column::new()
@@ -267,6 +272,49 @@ impl Application for ExampleApp {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
+        Theme::custom(iced::theme::Palette {
+            background: WHITE,
+            text: BLACK,
+            primary: BLACK,
+            success: Color::from_rgb(0.0, 1.0, 0.0),
+            danger: Color::from_rgb(1.0, 0.0, 0.0),
+        })
+    }
+}
+
+pub const WHITE: Color = Color::from_rgb(
+    0xfc as f32 / 255.0,
+    0xfc as f32 / 255.0,
+    0xfc as f32 / 255.0,
+);
+
+pub const BLACK: Color = Color::from_rgb(
+    0x00 as f32 / 255.0,
+    0x00 as f32 / 255.0,
+    0x00 as f32 / 255.0,
+);
+
+pub const SECONDARY: Color = Color::from_rgb(
+    0xf8 as f32 / 255.0,
+    0xf9 as f32 / 255.0,
+    0xf9 as f32 / 255.0,
+);
+
+pub struct ContainerTheme;
+
+impl iced::widget::container::StyleSheet for ContainerTheme {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Background::Color(SECONDARY)),
+            ..Default::default()
+        }
+    }
+}
+
+impl ContainerTheme {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(ContainerTheme))
     }
 }
