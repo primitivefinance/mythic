@@ -5,7 +5,10 @@ use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
 use simulation::simulations;
 use ui as interface;
+#[cfg(feature = "docker")]
+pub mod container;
 
+#[cfg(not(feature = "docker"))]
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
 #[clap(name = "Excalibur")]
@@ -22,6 +25,7 @@ struct Args {
     verbose: Option<u8>,
 }
 
+#[cfg(not(feature = "docker"))]
 /// Defines available subcommands for the `Arbiter` tool.
 #[derive(Subcommand)]
 enum Commands {
@@ -37,6 +41,7 @@ enum Commands {
     },
 }
 
+#[cfg(not(feature = "docker"))]
 fn main() -> Result<()> {
     dotenv().ok();
 
@@ -84,5 +89,12 @@ fn main() -> Result<()> {
         },
         None => Args::command().print_long_help()?,
     }
+    Ok(())
+}
+
+#[cfg(feature = "docker")]
+#[tokio::main]
+async fn main() -> Result<()> {
+    container::run().await;
     Ok(())
 }

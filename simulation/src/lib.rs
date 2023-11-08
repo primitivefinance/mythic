@@ -33,6 +33,8 @@ mod agents;
 #[allow(clippy::all)]
 #[rustfmt::skip]
 pub mod bindings;
+#[cfg(feature = "docker")]
+pub mod container;
 #[allow(unused)]
 mod math;
 #[allow(unused)]

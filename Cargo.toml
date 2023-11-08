@@ -55,6 +55,13 @@ anyhow.workspace = true
 clap = { version = "4.4.6", features = ["derive"] }
 tracing-subscriber.workspace = true
 dotenv.workspace = true
+toml = { version = "0.8.8", optional = true }
+
+# TCP communication
+hyper = { version = "0.14.10", features = ["full"], optional = true }
+
+[features]
+docker = ["hyper", "toml"]
 
 [dev-dependencies]
 # For book
