@@ -70,16 +70,7 @@ impl ExampleScreen {
 
         info!("Loaded config: {:?}", config);
 
-        /*  let (sender, receiver) = std::sync::mpsc::channel();
-        let sender = Arc::new(Mutex::new(sender));
-        let receiver = Arc::new(Mutex::new(receiver)); */
         let firehose = firehose::Firehose::new(receiver);
-
-        /* let subscriber = firehose::FirehoseSubscriber::new(sender.lock().unwrap().clone());
-        tracing::subscriber::with_default(subscriber, || {
-            // Now you can use tracing::info! to log messages
-            tracing::info!("This is a log message");
-        }); */
 
         Self {
             client,
