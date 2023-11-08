@@ -1,3 +1,5 @@
+use arbiter_core::bindings::arbiter_math::ArbiterMath;
+
 use super::*;
 use crate::{agents::Agent, strategy::ArbitrageStrategy};
 
@@ -12,7 +14,8 @@ pub struct RmmArbitrageur<S: ArbitrageStrategy> {
     pub high_vol_strategy: S,
     /// The atomic arbitrage contract.
     pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
-    pub math: SD59x18Math<RevmMiddleware>,
+    pub g3m_math: SD59x18Math<RevmMiddleware>,
+    pub rmm_math: ArbiterMath<RevmMiddleware>,
 }
 
 impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
@@ -73,7 +76,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
             .await?
             .await?;
 
-        let math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
+        let g3m_math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
+        let rmm_math = ArbiterMath::deploy(client.clone(), ())?.send().await?;
 
         Ok(Self {
             client,
@@ -81,7 +85,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
             atomic_arbitrage,
             low_vol_strategy,
             high_vol_strategy,
-            math,
+            g3m_math,
+            rmm_math,
         })
     }
 
@@ -93,6 +98,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
         let price = pool.get_spot_price().await?;
+        trace!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
+        trace!("rmm_price_wad: {:?}", price);
 
         let gamma_wad = WAD - pool.get_swap_fee().await?;
 
@@ -121,66 +128,64 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.
-        for i in vec![&self.low_vol_strategy, &self.high_vol_strategy] {
-            match self.detect_arbitrage(i).await? {
-                Swap::RaiseExchangePrice(target_price) => {
-                    info!(
-                        "Detected the need to increase price to {:?}",
-                        format_units(target_price, "ether")?
-                    );
-                    let input = self
-                        .high_vol_strategy
-                        .get_y_input(target_price, &self.math)
-                        .await?;
+        match self.detect_arbitrage(&self.high_vol_strategy).await? {
+            Swap::RaiseExchangePrice(target_price) => {
+                info!(
+                    "Detected the need to increase price to {:?}",
+                    format_units(target_price, "ether")?
+                );
+                let input = self
+                    .high_vol_strategy
+                    .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
+                    .await?;
 
-                    info!(
-                        "Increasing price by selling input amount of quote tokens: {:?}",
-                        input,
-                    );
-                    let tx = self.atomic_arbitrage.raise_exchange_price(input);
-                    let output = tx.send().await;
-                    match output {
-                        Ok(output) => {
-                            output.await?;
-                        }
-                        Err(e) => {
-                            if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                                e.as_middleware_error().unwrap()
-                            {
-                                info!("Execution revert: {:?}", output);
-                            }
+                info!(
+                    "Increasing price by selling input amount of quote tokens: {:?}",
+                    input,
+                );
+                let tx = self.atomic_arbitrage.raise_exchange_price(input);
+                let output = tx.send().await;
+                match output {
+                    Ok(output) => {
+                        output.await?;
+                    }
+                    Err(e) => {
+                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                            e.as_middleware_error().unwrap()
+                        {
+                            info!("Execution revert: {:?}", output);
                         }
                     }
                 }
-                Swap::LowerExchangePrice(target_price) => {
-                    info!(
-                        "Detected the need to lower price to {:?}",
-                        format_units(target_price, "ether")?
-                    );
-                    let input = self
-                        .high_vol_strategy
-                        .get_x_input(target_price, &self.math)
-                        .await?;
-                    info!("Got input: {:?}", input);
-                    let tx = self.atomic_arbitrage.lower_exchange_price(input);
-                    let output = tx.send().await;
-                    match output {
-                        Ok(output) => {
-                            output.await?;
-                        }
-                        Err(e) => {
-                            if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                                e.as_middleware_error().unwrap()
-                            {
-                                info!("Execution revert: {:?}", output);
-                            }
+            }
+            Swap::LowerExchangePrice(target_price) => {
+                info!(
+                    "Detected the need to lower price to {:?}",
+                    format_units(target_price, "ether")?
+                );
+                let input = self
+                    .high_vol_strategy
+                    .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
+                    .await?;
+                info!("Got input: {:?}", input);
+                let tx = self.atomic_arbitrage.lower_exchange_price(input);
+                let output = tx.send().await;
+                match output {
+                    Ok(output) => {
+                        output.await?;
+                    }
+                    Err(e) => {
+                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                            e.as_middleware_error().unwrap()
+                        {
+                            info!("Execution revert: {:?}", output);
                         }
                     }
-                    info!("Sent arbitrage.");
                 }
-                Swap::None => {
-                    info!("No arbitrage opportunity");
-                }
+                info!("Sent arbitrage.");
+            }
+            Swap::None => {
+                info!("No arbitrage opportunity");
             }
         }
         Ok(())

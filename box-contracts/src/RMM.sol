@@ -258,44 +258,81 @@ contract RMM is IStrategy {
         return (liquidityDelta, amountX);
     }
 
-    function swap(uint256 amountX) external returns (uint256 amountY) {
-        uint256 fees = amountX * (ONE - swapFee) / ONE;
-        uint256 deltaX = amountX - fees;
+    function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
 
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
-        uint256 deltaL = computeLGivenX(deltaX, price, strikePrice, sigma);
-        uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
+        if (swapDirection) {
+            uint256 fees = amountIn * (ONE - swapFee) / ONE;
+            uint256 deltaX = amountIn - fees;
+            uint256 deltaL = computeLGivenX(deltaX, price, strikePrice, sigma);
+            uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
 
-        amountY = uint256(
-            ~(
-                computeOutputYGivenX(
-                    reserveX,
-                    amountX,
-                    reserveY,
-                    deltaY,
-                    totalLiquidity,
-                    deltaL,
-                    strikePrice,
-                    sigma
-                ) - 1
-            )
-        );
+            amountOut = uint256(
+                ~(
+                    computeOutputYGivenX(
+                        reserveX,
+                        amountIn,
+                        reserveY,
+                        deltaY,
+                        totalLiquidity,
+                        deltaL,
+                        strikePrice,
+                        sigma
+                    ) - 1
+                )
+            );
 
-        reserveX += amountX;
-        reserveY -= amountY;
+            totalLiquidity += deltaL;
+            reserveX += amountIn;
+            reserveY -= amountOut;
 
-        tokenX.transferFrom(msg.sender, address(this), amountX);
-        tokenY.transfer(msg.sender, amountY);
+            tokenX.transferFrom(msg.sender, address(this), amountIn);
+            tokenY.transfer(msg.sender, amountOut);
+        } else {
+            uint256 fees = amountIn * (ONE - swapFee) / ONE;
+            uint256 deltaY = amountIn - fees;
+            uint256 deltaL = computeLGivenY(deltaY, price, strikePrice, sigma);
+            uint256 deltaX = computeXGivenL(deltaL, price, strikePrice, sigma);
+
+            amountOut = uint256(
+                ~(
+                    computeOutputXGivenY(
+                        reserveX,
+                        amountIn,
+                        reserveY,
+                        deltaX,
+                        totalLiquidity,
+                        deltaL,
+                        strikePrice,
+                        sigma
+                    ) - 1
+                )
+            );
+
+            totalLiquidity += deltaL;
+            reserveY += amountIn;
+            reserveX -= amountOut;
+
+            tokenX.transferFrom(msg.sender, address(this), amountIn);
+            tokenY.transfer(msg.sender, amountOut);
+        }
 
         emit Swap(
             msg.sender,
-            true,
-            amountX,
-            amountY,
+            swapDirection,
+            amountIn,
+            amountOut,
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau)
         );
+    }
+
+    function swapAmountIn(
+        bool swapDirection,
+        uint256 amountIn
+    ) external returns (uint256) {
+        return _swap(swapDirection, amountIn);
     }
 
     function setSwapFee(uint256 newSwapFee) external {
@@ -318,6 +355,10 @@ contract RMM is IStrategy {
 
     function getReserveY() external view returns (uint256) {
         return reserveY;
+    }
+
+    function getLiquidity() external view returns (uint256) {
+        return totalLiquidity;
     }
 
     function getInvariant() external view returns (int256) {

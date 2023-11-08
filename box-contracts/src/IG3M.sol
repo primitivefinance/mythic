@@ -142,6 +142,9 @@ interface IG3M {
     /// @notice Computes the invariant of the pool.
     function getInvariant() external view returns (int256);
 
+    /// @notice Total units of liquidity in the pool.
+    function getLiquidity() external view returns (uint256);
+
     /// @notice Address of token X.
     function tokenX() external view returns (address);
 

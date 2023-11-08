@@ -67,6 +67,7 @@ impl ArbitrageStrategy for G3mStrategy {
         &self,
         target_price_wad: U256,
         math: &SD59x18Math<RevmMiddleware>,
+        rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let weight_x = I256::from_raw(strategy_data.weight_x);
@@ -97,6 +98,7 @@ impl ArbitrageStrategy for G3mStrategy {
         &self,
         target_price_wad: U256,
         math: &SD59x18Math<RevmMiddleware>,
+        rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let weight_x = I256::from_raw(strategy_data.weight_x);
