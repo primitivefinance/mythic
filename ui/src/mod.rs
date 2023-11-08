@@ -128,7 +128,7 @@ impl Firehose {
             .spacing(4)
             .padding(8);
 
-        scrollable(content).into()
+        scrollable(content.height(Length::Fixed(500.0))).into()
     }
 
     pub fn subscription(&self) -> iced::Subscription<super::example::screen::ExampleScreenMessage> {

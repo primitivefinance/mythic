@@ -263,7 +263,7 @@ impl Application for ExampleApp {
                     Screen::Example(example) => example.view().map(Message::ExampleScreen),
                 };
 
-                let screen_content = scrollable(screen_content)
+                let screen_content = container(screen_content)
                     .width(Length::FillPortion(8))
                     .height(Length::Fill);
 

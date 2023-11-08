@@ -214,8 +214,11 @@ impl ExampleScreen {
                 button(text(format!("Run sim"))).on_press(ExampleScreenMessage::RunSimulation),
                 firehose,
             ]
+            .height(Length::Fixed(500.0))
             .width(Length::FillPortion(2))
         ]
+        .height(Length::Fill)
+        .width(Length::Fill)
         .into()
     }
 
