@@ -24,7 +24,7 @@
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{button, text, Checkbox, Column, Row},
+    widget::{button, scrollable, text, Checkbox, Column, Row},
     Element, Renderer,
 };
 use serde_json::Value;
@@ -213,7 +213,7 @@ impl ConfigEditor {
             .spacing(10)
             .padding(10);
 
-        content.into()
+        scrollable(content).into()
     }
 
     /// Recursively renders each field of a config.

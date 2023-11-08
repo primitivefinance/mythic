@@ -4,7 +4,7 @@
 use iced::{
     alignment,
     widget::{button, column, container, row, text},
-    Color, Element, Font, Length, Renderer,
+    Element, Font, Length, Renderer,
 };
 
 pub struct Header {
@@ -32,7 +32,7 @@ impl Header {
             .horizontal_alignment(alignment::Horizontal::Right)
             .vertical_alignment(alignment::Vertical::Center)
             .font(self.font)
-            .style(iced::theme::Text::Color(iced::Color::WHITE));
+            .style(iced::theme::Text::Color(iced::Color::BLACK));
 
         let button = button(
             text("Home")
@@ -51,32 +51,7 @@ impl Header {
         container(row)
             .width(iced::Length::Fill)
             .height(iced::Length::Fixed(45.0))
-            .style(HeaderTheme::theme())
+            .style(super::styles::background::BackgroundContainer::theme())
             .into()
-    }
-}
-
-pub struct HeaderTheme;
-
-pub const HEADER_COLOR: Color = Color::from_rgb(
-    0x1E as f32 / 255.0,
-    0x1E as f32 / 255.0,
-    0x1E as f32 / 255.0,
-);
-
-impl iced::widget::container::StyleSheet for HeaderTheme {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(HEADER_COLOR)),
-            ..Default::default()
-        }
-    }
-}
-
-impl HeaderTheme {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(HeaderTheme))
     }
 }

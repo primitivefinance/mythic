@@ -7,7 +7,7 @@ use std::sync::{mpsc::Receiver, Arc, Mutex};
 
 use arbiter_core::middleware::RevmMiddleware;
 use iced::{
-    widget::{button, column, row, text, Column, Row},
+    widget::{button, column, container, row, text, Column, Row},
     Element, Length,
 };
 use simulation::settings::{parameters::Multiple, *};
@@ -208,17 +208,19 @@ impl ExampleScreen {
             .view()
             .map(|message| ExampleScreenMessage::FirehoseComponent(message));
 
-        row![
-            content,
-            column![
-                button(text(format!("Run sim"))).on_press(ExampleScreenMessage::RunSimulation),
-                firehose,
+        container(
+            row![
+                content,
+                column![
+                    button(text(format!("Run sim"))).on_press(ExampleScreenMessage::RunSimulation),
+                    firehose,
+                ]
+                .height(Length::Fixed(500.0))
+                .width(Length::FillPortion(2))
             ]
-            .height(Length::Fixed(500.0))
-            .width(Length::FillPortion(2))
-        ]
-        .height(Length::Fill)
-        .width(Length::Fill)
+            .height(Length::Fill)
+            .width(Length::Fill),
+        )
         .into()
     }
 

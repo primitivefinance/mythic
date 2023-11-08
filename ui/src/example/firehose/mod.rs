@@ -1,14 +1,19 @@
-use iced::widget::{button, column, scrollable, text, Scrollable, Text};
-use iced::{time, Element, Length};
-use std::sync::Mutex;
-use std::sync::{mpsc, Arc};
-use std::time::Duration;
-use tracing::field::{Field, Visit};
-use tracing::metadata::Level;
-use tracing::Id;
-use tracing::{Event, Subscriber};
-use tracing_subscriber::layer::Context;
-use tracing_subscriber::Layer;
+use std::{
+    sync::{mpsc, Arc, Mutex},
+    time::Duration,
+};
+
+use iced::{
+    time,
+    widget::{button, column, scrollable, text, Scrollable, Text},
+    Element, Length,
+};
+use tracing::{
+    field::{Field, Visit},
+    metadata::Level,
+    Event, Id, Subscriber,
+};
+use tracing_subscriber::{layer::Context, Layer};
 
 struct LogVisitor {
     message: String,

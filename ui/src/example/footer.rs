@@ -35,7 +35,7 @@ impl Footer {
             .width(Length::Fill)
             .height(Length::Fixed(45.0))
             .align_x(alignment::Horizontal::Left)
-            .style(ContainerTheme::theme())
+            .style(super::styles::background::BackgroundContainer::theme())
             .into()
     }
 }
@@ -114,30 +114,5 @@ impl FooterBuilder {
 
     pub fn build(self) -> Footer {
         Footer { info: self.info }
-    }
-}
-
-pub const BG: Color = Color::from_rgb(
-    0x2C as f32 / 255.0,
-    0x2C as f32 / 255.0,
-    0x2C as f32 / 255.0,
-);
-
-pub struct ContainerTheme;
-
-impl iced::widget::container::StyleSheet for ContainerTheme {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(BG)),
-            ..Default::default()
-        }
-    }
-}
-
-impl ContainerTheme {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(ContainerTheme))
     }
 }

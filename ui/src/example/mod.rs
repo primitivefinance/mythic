@@ -5,10 +5,7 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use ethers::prelude::*;
-use iced::{
-    widget::{row, scrollable},
-    Color,
-};
+use iced::{widget::row, Color};
 use tracing::info;
 
 use super::*;
@@ -265,25 +262,17 @@ impl Application for ExampleApp {
 
                 let screen_content = container(screen_content)
                     .width(Length::FillPortion(8))
-                    .height(Length::Fill);
+                    .height(Length::Fill)
+                    .padding(16)
+                    .style(styles::background::Layer1Container::theme());
 
                 let screen_container =
                     row![sidebar::Sidebar::new(), screen_content].height(Length::Fill);
-
-                // Footer with version information
-                let footer = footer::FooterBuilder::new()
-                    .add_crate_info()
-                    .add_git_commit()
-                    .add_system_info()
-                    .build()
-                    .view()
-                    .map(|_| Message::Debug("footer press".into()));
 
                 // Combine all elements into a column
                 let content = Column::new()
                     .push(header)
                     .push(screen_container)
-                    .push(footer)
                     .align_items(alignment::Alignment::Center);
 
                 content.into()
@@ -295,6 +284,7 @@ impl Application for ExampleApp {
             .center_y()
             .width(Length::Fill)
             .height(Length::Fill)
+            .style(styles::background::BackgroundContainer::theme())
             .into()
     }
 

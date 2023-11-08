@@ -5,6 +5,8 @@ use iced::{
 };
 use iced_aw::graphics::icons::{icon_to_char, Icon::Plus, ICON_FONT};
 
+use super::footer;
+
 #[derive(Debug, Clone)]
 pub enum Event {
     Debug(String),
@@ -121,13 +123,30 @@ where
         .padding(10)
         .style(iced::theme::Button::Custom(Box::new(AddWorkspaceButton {})));
 
-        container(
-            column![workspaces, add_workspace_button].align_items(alignment::Alignment::Center),
-        )
-        .style(SidebarTheme::theme())
-        .width(Length::Fixed(200.0))
-        .height(Length::Fill)
-        .into()
+        let footer = footer::FooterBuilder::new()
+            .add_crate_info()
+            .add_git_commit()
+            .add_system_info()
+            .build()
+            .view()
+            .map(|_| Event::Debug("footer press".into()));
+
+        let mut sidebar_content = column![];
+
+        // Sidebar has 80% of its height dedicated to workspace management, and the
+        // remainder to the footer.
+        sidebar_content = sidebar_content.push(
+            column![workspaces, add_workspace_button]
+                .height(Length::FillPortion(8))
+                .align_items(alignment::Alignment::Center),
+        );
+        sidebar_content = sidebar_content.push(footer);
+
+        container(sidebar_content.align_items(alignment::Alignment::Center))
+            .style(SidebarTheme::theme())
+            .width(Length::Fixed(200.0))
+            .height(Length::Fill)
+            .into()
     }
 }
 
@@ -140,12 +159,7 @@ where
     }
 }
 
-pub const SIDEBAR_BG: Color = Color::from_rgb(
-    0xF3 as f32 / 255.0,
-    0xF3 as f32 / 255.0,
-    0xF3 as f32 / 255.0,
-);
-
+pub const SIDEBAR_BG: Color = super::styles::background::BG_CONTAINER;
 pub struct SidebarTheme;
 
 impl iced::widget::container::StyleSheet for SidebarTheme {

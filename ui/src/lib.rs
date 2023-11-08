@@ -3,6 +3,7 @@
 pub mod analyzer;
 pub mod example;
 pub mod sdk;
+pub mod styles;
 
 use std::path::PathBuf;
 
@@ -12,7 +13,6 @@ use iced::{
     widget::{button, container, text, Button, Checkbox, Column, Row, Scrollable, Text},
     Alignment, Application, Command, Element, Length, Settings, Theme,
 };
-
 use tracing_subscriber::prelude::*;
 
 pub fn example() -> iced::Result {
