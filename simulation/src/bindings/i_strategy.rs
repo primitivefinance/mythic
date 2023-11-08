@@ -36,6 +36,28 @@ pub mod i_strategy {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("getLiquidity"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("getLiquidity"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("getReserveX"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -366,6 +388,14 @@ pub mod i_strategy {
                 .method_hash([192, 255, 26, 21], ())
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `getLiquidity` (0x0910a510) function
+        pub fn get_liquidity(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            self.0
+                .method_hash([9, 16, 165, 16], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `getReserveX` (0x559d1602) function
         pub fn get_reserve_x(
             &self,
@@ -607,6 +637,21 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "getInvariant", abi = "getInvariant()")]
     pub struct GetInvariantCall;
+    ///Container type for all input parameters for the `getLiquidity` function with signature `getLiquidity()` and selector `0x0910a510`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "getLiquidity", abi = "getLiquidity()")]
+    pub struct GetLiquidityCall;
     ///Container type for all input parameters for the `getReserveX` function with signature `getReserveX()` and selector `0x559d1602`
     #[derive(
         Clone,
@@ -713,6 +758,7 @@ pub mod i_strategy {
     )]
     pub enum IStrategyCalls {
         GetInvariant(GetInvariantCall),
+        GetLiquidity(GetLiquidityCall),
         GetReserveX(GetReserveXCall),
         GetReserveY(GetReserveYCall),
         GetSpotPrice(GetSpotPriceCall),
@@ -729,6 +775,11 @@ pub mod i_strategy {
                 data,
             ) {
                 return Ok(Self::GetInvariant(decoded));
+            }
+            if let Ok(decoded) = <GetLiquidityCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::GetLiquidity(decoded));
             }
             if let Ok(decoded) = <GetReserveXCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -769,6 +820,9 @@ pub mod i_strategy {
                 Self::GetInvariant(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
+                Self::GetLiquidity(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::GetReserveX(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -794,6 +848,7 @@ pub mod i_strategy {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::GetInvariant(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetLiquidity(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetReserveX(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetReserveY(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetSpotPrice(element) => ::core::fmt::Display::fmt(element, f),
@@ -806,6 +861,11 @@ pub mod i_strategy {
     impl ::core::convert::From<GetInvariantCall> for IStrategyCalls {
         fn from(value: GetInvariantCall) -> Self {
             Self::GetInvariant(value)
+        }
+    }
+    impl ::core::convert::From<GetLiquidityCall> for IStrategyCalls {
+        fn from(value: GetLiquidityCall) -> Self {
+            Self::GetLiquidity(value)
         }
     }
     impl ::core::convert::From<GetReserveXCall> for IStrategyCalls {
@@ -852,6 +912,20 @@ pub mod i_strategy {
         Hash
     )]
     pub struct GetInvariantReturn(pub ::ethers::core::types::I256);
+    ///Container type for all return fields from the `getLiquidity` function with signature `getLiquidity()` and selector `0x0910a510`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct GetLiquidityReturn(pub ::ethers::core::types::U256);
     ///Container type for all return fields from the `getReserveX` function with signature `getReserveX()` and selector `0x559d1602`
     #[derive(
         Clone,

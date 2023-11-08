@@ -86,7 +86,7 @@ function computeYGivenL(
         K, FixedPointMathLib.mulWadUp(L, uint256(cdf))
     );
 }
-
+// p = Ke^{\Phi^{-1}(1-R_1)}\sigma\sqrt{T - \frac{1}{2}\sigma^2 \tau}.
 function computeSpotPrice(
     uint256 x,
     uint256 L,
@@ -142,6 +142,32 @@ function computeOutputYGivenX(
 
     return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
         - int256(deltaY);
+}
+/* \boxed{\widetilde{\Delta_x} = 
+(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x} 
+*/
+
+function computeOutputXGivenY(
+    uint256 x, 
+    uint256 deltaX, 
+    uint256 y, 
+    uint256 deltaY, 
+    uint256 L, 
+    uint256 deltaL, 
+    uint256 K, 
+    uint256 sigma
+) pure returns (int256) {
+    uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
+
+    int256 cdf = Gaussian.cdf(
+        int256(sigma)
+            + Gaussian.ppf(
+                int256(FixedPointMathLib.divWadDown(y + deltaY, KL))
+            )
+    );
+
+    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(x)
+        - int256(deltaX);
 }
 
 function computeInvariant(

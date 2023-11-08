@@ -83,7 +83,7 @@ impl PortfolioManagerType {
                 lex.arbiter_token_y().call().await?,
                 parse_ether(1.5)?,
                 parse_ether(1)?,
-                U256::from(31_536_000),
+                U256::from(3_536_000),
                 parse_ether(0.003)?,
             );
             let low_vol_args = (
@@ -91,9 +91,10 @@ impl PortfolioManagerType {
                 lex.arbiter_token_y().call().await?,
                 parse_ether(1)?,
                 parse_ether(1)?,
-                U256::from(31_536_000),
+                U256::from(3_536_000),
                 parse_ether(0.003)?,
             );
+            println!("low vol args: {:?}", low_vol_args);
             match params.specialty {
                 PortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
                     let low_vol_pool = RMM::deploy(client.clone(), low_vol_args)?.send().await?;

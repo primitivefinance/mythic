@@ -458,6 +458,16 @@ contract G3M is IG3M, IStrategy {
         );
     }
 
+    /// @inheritdoc IG3M
+    function getLiquidity()
+        public
+        view
+        override(IStrategy, IG3M)
+        returns (uint256)
+    {
+        return convert(totalLiquidity);
+    }
+
     function reserveXWithoutPrecision() public view returns (uint256) {
         return convert(reserveX);
     }

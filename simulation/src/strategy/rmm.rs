@@ -8,8 +8,8 @@ use crate::bindings::i_strategy::IStrategy;
 /// These weights are used in the G3M invariant and its derived functions.
 pub struct RmmStrategyData {
     sigma: U256,
-    tau: U256,
     strike_price: U256,
+    tau: U256,
 }
 
 pub struct RmmStrategy(IStrategy<RevmMiddleware>);
@@ -24,12 +24,12 @@ impl Strategy for RmmStrategy {
         let data = self.0.get_strategy_data().call().await?;
         // decode the bytes data into the weight x and weight y U256 types:
         let sigma = U256::from_big_endian(&data[0..32]);
-        let tau = U256::from_big_endian(&data[32..64]);
-        let strike_price = U256::from_big_endian(&data[64..96]);
+        let strike_price = U256::from_big_endian(&data[32..64]);
+        let tau = U256::from_big_endian(&data[64..96]);
         Ok(RmmStrategyData {
             sigma,
-            tau,
             strike_price,
+            tau,
         })
     }
 
@@ -70,8 +70,9 @@ impl LiquidityStrategy for RmmStrategy {
 impl ArbitrageStrategy for RmmStrategy {
     async fn get_x_input(
         &self,
-        _target_price_wad: U256,
-        _math: &SD59x18Math<RevmMiddleware>,
+        target_price_wad: U256,
+        _g3m_math: &SD59x18Math<RevmMiddleware>,
+        rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let sigma = I256::from_raw(strategy_data.sigma);
@@ -84,26 +85,36 @@ impl ArbitrageStrategy for RmmStrategy {
         trace!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.0.get_reserve_y().call().await?);
         trace!("reserve_y: {}", reserve_y);
-        let invariant = self.0.get_invariant().call().await?;
-        trace!("invariant: {}", invariant);
+        let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
+        trace!("liquidity: {}", liquidity);
+        let i_wad = I256::from_raw(WAD);
+        // \boxed{\Delta x = L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x}
+        let dx = liquidity
+            * (i_wad
+                - rmm_math
+                    .cdf(
+                        rmm_math
+                            .log(I256::from_raw(target_price_wad) * i_wad / strike_price)
+                            .call()
+                            .await?
+                            * i_wad
+                            / sigma
+                            + sigma / 2,
+                    )
+                    .call()
+                    .await?)
+            / i_wad
+            - reserve_x;
 
-        // let iwad = I256::from_raw(WAD);
-
-        // let ratio = weight_x * iwad / weight_y;
-        // trace!("ratio: {}", ratio);
-
-        // let inside = ratio * iwad / I256::from_raw(target_price_wad);
-        // trace!("inside: {}", inside);
-        // let delta_x = invariant * math.pow(inside, weight_y).call().await? / iwad -
-        // reserve_x; trace!("delta_x: {}", delta_x);
-
-        Ok(U256::zero())
+        trace!("dx: {}", dx);
+        Ok(dx.into_raw())
     }
 
     async fn get_y_input(
         &self,
-        _target_price_wad: U256,
-        _math: &SD59x18Math<RevmMiddleware>,
+        target_price_wad: U256,
+        _g3m_math: &SD59x18Math<RevmMiddleware>,
+        rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let sigma = I256::from_raw(strategy_data.sigma);
@@ -116,19 +127,27 @@ impl ArbitrageStrategy for RmmStrategy {
         trace!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.0.get_reserve_y().call().await?);
         trace!("reserve_y: {}", reserve_y);
-        let invariant = self.0.get_invariant().call().await?;
-        trace!("invariant: {}", invariant);
+        let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
+        trace!("liquidity: {}", liquidity);
 
-        // let iwad = I256::from_raw(WAD);
-
-        // let ratio = weight_y * iwad / weight_x;
-        // trace!("ratio: {}", ratio);
-
-        // let inside = ratio * I256::from_raw(target_price_wad) / iwad;
-        // trace!("inside: {}", inside);
-        // let delta_y = invariant * math.pow(inside, weight_x).call().await? / iwad -
-        // reserve_y; trace!("delta_y: {}", delta_y);
-
-        Ok(U256::zero())
+        let i_wad = I256::from_raw(WAD);
+        // \boxed{\Delta_y = y'-y = K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}
+        let dy = liquidity
+            * rmm_math
+                .cdf(
+                    rmm_math
+                        .log(I256::from_raw(target_price_wad) * i_wad / strike_price)
+                        .call()
+                        .await?
+                        * i_wad
+                        / sigma
+                        - sigma / 2,
+                )
+                .call()
+                .await?
+            / i_wad
+            - reserve_y;
+        trace!("dy: {}", dy);
+        Ok(dy.into_raw())
     }
 }

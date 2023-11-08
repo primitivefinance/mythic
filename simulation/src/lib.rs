@@ -6,7 +6,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use arbiter_core::{
-    bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange},
+    bindings::{
+        arbiter_math::ArbiterMath, arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange,
+    },
     data_collection::EventLogger,
     environment::{builder::EnvironmentBuilder, Environment},
     math::{OrnsteinUhlenbeck, StochasticProcess, Trajectories},

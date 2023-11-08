@@ -50,11 +50,13 @@ pub trait ArbitrageStrategy: Strategy {
     async fn get_x_input(
         &self,
         target_price_wad: U256,
-        math: &SD59x18Math<RevmMiddleware>,
+        g3m_math: &SD59x18Math<RevmMiddleware>,
+        rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256>;
     async fn get_y_input(
         &self,
         target_price_wad: U256,
-        math: &SD59x18Math<RevmMiddleware>,
+        g3m_math: &SD59x18Math<RevmMiddleware>,
+        rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256>;
 }
