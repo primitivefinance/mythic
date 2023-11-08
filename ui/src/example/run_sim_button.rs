@@ -13,7 +13,6 @@ use simulation::{
     settings::{parameters::Multiple, SimulationConfig},
     simulations,
 };
-use tracing::info;
 
 #[derive(Debug)]
 pub struct RunSimButton {

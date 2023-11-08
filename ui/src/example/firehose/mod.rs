@@ -5,7 +5,7 @@ use std::{
 
 use iced::{
     time,
-    widget::{button, column, scrollable, text, Scrollable, Text},
+    widget::{button, column, container, row, scrollable, text, Text},
     Element, Length,
 };
 use tracing::{
@@ -108,32 +108,45 @@ impl Firehose {
                     self.logs.push(log);
                 }
             }
-            _ => {}
         }
     }
 
     pub fn view<'a>(&self) -> Element<'a, FirehoseMessage> {
+        let firehose_title = text("Firehose")
+            .size(24)
+            .vertical_alignment(iced::alignment::Vertical::Center)
+            .horizontal_alignment(iced::alignment::Horizontal::Center);
+
         let firehose = self
             .logs
             .iter()
             .rev()
             .fold(column![], |column, log| column.push(Text::new(log.clone())));
+        let firehose_content = container(scrollable(firehose))
+            .style(super::styles::background::Layer2Container::theme())
+            .height(Length::Fixed(500.0))
+            .width(Length::Fill)
+            .padding(16);
 
+        let mut firehose_actions = row![].width(Length::Fill).height(Length::Fill).spacing(4);
         let debug_trace_button = button(text("Send log")).on_press(FirehoseMessage::Empty);
         let process_button = button(text("Process log")).on_press(FirehoseMessage::ProcessLogs);
         let add_log_button = button(text("Add Log directly"))
             .on_press(FirehoseMessage::AddLog("New log".to_string()));
 
-        let mut content = column![];
-        content = content
+        firehose_actions = firehose_actions
             .push(debug_trace_button)
             .push(process_button)
-            .push(add_log_button)
-            .push(firehose)
-            .spacing(4)
-            .padding(8);
+            .push(add_log_button);
 
-        scrollable(content).into()
+        let mut content_container = column![].width(Length::Fill);
+        content_container = content_container
+            .push(firehose_title)
+            .push(firehose_content)
+            .push(firehose_actions)
+            .spacing(16);
+
+        container(content_container).padding(24).into()
     }
 
     pub fn subscription(&self) -> iced::Subscription<super::example::screen::ExampleScreenMessage> {

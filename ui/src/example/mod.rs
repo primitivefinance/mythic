@@ -263,8 +263,7 @@ impl Application for ExampleApp {
                 let screen_content = container(screen_content)
                     .width(Length::FillPortion(8))
                     .height(Length::Fill)
-                    .padding(16)
-                    .style(styles::background::Layer1Container::theme());
+                    .style(styles::background::WhiteContainer::theme());
 
                 let screen_container =
                     row![sidebar::Sidebar::new(), screen_content].height(Length::Fill);

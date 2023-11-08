@@ -6,6 +6,7 @@ use iced::{
 use iced_aw::graphics::icons::{icon_to_char, Icon::Plus, ICON_FONT};
 
 use super::footer;
+use crate::styles;
 
 #[derive(Debug, Clone)]
 pub enum Event {
@@ -143,7 +144,7 @@ where
         sidebar_content = sidebar_content.push(footer);
 
         container(sidebar_content.align_items(alignment::Alignment::Center))
-            .style(SidebarTheme::theme())
+            .style(styles::background::BackgroundContainer::theme())
             .width(Length::Fixed(200.0))
             .height(Length::Fill)
             .into()
@@ -156,26 +157,6 @@ where
 {
     fn from(sidebar: Sidebar) -> Self {
         component(sidebar).into()
-    }
-}
-
-pub const SIDEBAR_BG: Color = super::styles::background::BG_CONTAINER;
-pub struct SidebarTheme;
-
-impl iced::widget::container::StyleSheet for SidebarTheme {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(SIDEBAR_BG)),
-            ..Default::default()
-        }
-    }
-}
-
-impl SidebarTheme {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(SidebarTheme))
     }
 }
 
