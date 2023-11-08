@@ -59,7 +59,6 @@ impl RunSimButton {
 
     /// Runs the simulation on a separate thread.
     pub fn run_with_config(&self, config: SimulationConfig<Multiple>) -> anyhow::Result<()> {
-        info!("Running simulation with config: {:?}", config);
         std::thread::spawn(move || {
             let start = Instant::now();
             match simulations::batch(config) {
@@ -72,6 +71,21 @@ impl RunSimButton {
                 }
             }
         });
+
+        Ok(())
+    }
+
+    pub fn run_on_thread(config: SimulationConfig<Multiple>) -> anyhow::Result<()> {
+        let start = Instant::now();
+        match simulations::batch(config) {
+            Ok(_) => {
+                let duration = start.elapsed();
+                tracing::info!("Total duration of simulations: {:?}", duration);
+            }
+            Err(e) => {
+                tracing::error!("Simulation failed: {:?}", e);
+            }
+        }
 
         Ok(())
     }

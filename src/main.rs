@@ -65,10 +65,9 @@ fn main() -> Result<()> {
         }
     };
 
-    tracing_subscriber::fmt().with_max_level(log_level).init();
-
     match &args.command {
         Some(Commands::Simulate { config_path }) => {
+            tracing_subscriber::fmt().with_max_level(log_level).init();
             println!("Reading from config path: {}", config_path);
             let start = Instant::now();
             let config = simulations::import(config_path)?;

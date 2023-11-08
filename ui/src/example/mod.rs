@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{mpsc::Receiver, Arc, Mutex};
 
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
@@ -17,7 +17,7 @@ use crate::sdk::production::*;
 pub mod components;
 mod config_editor;
 mod deployer;
-mod firehose;
+pub mod firehose;
 mod footer;
 mod header;
 mod run_sim_button;
@@ -35,6 +35,7 @@ pub enum ExampleApp {
         client: Arc<RevmMiddleware>,
         production: Option<Arc<Production<Ws>>>,
         screen: Screen,
+        trace_receiver: Arc<Mutex<Receiver<String>>>,
     },
 }
 
@@ -70,24 +71,33 @@ pub enum Message {
     Empty,
 }
 
+pub struct Flags {
+    pub receiver: std::sync::mpsc::Receiver<String>,
+}
+
 impl Application for ExampleApp {
     type Message = Message;
     type Theme = Theme;
     type Executor = executor::Default;
-    type Flags = ();
+    type Flags = Flags;
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+    fn new(flags: Flags) -> (Self, Command<Message>) {
         (
             {
                 // Load sim environment
                 let env = EnvironmentBuilder::new().build();
                 let client = RevmMiddleware::new(&env, Some("client")).unwrap();
                 let client_cloned = client.clone();
+                let trace_receiver = Arc::new(Mutex::new(flags.receiver));
                 Self::Running {
                     environment: env,
                     client,
-                    screen: Screen::Example(screen::ExampleScreen::new(client_cloned)),
+                    screen: Screen::Example(screen::ExampleScreen::new(
+                        client_cloned,
+                        trace_receiver.clone(),
+                    )),
                     production: None,
+                    trace_receiver,
                 }
             },
             Command::perform(Production::new(), |res| match res {
@@ -222,7 +232,12 @@ impl Application for ExampleApp {
 
         let content: Element<_> = match self {
             ExampleApp::Loading => text("Loading...").into(),
-            ExampleApp::Running { client, screen, .. } => {
+            ExampleApp::Running {
+                client,
+                screen,
+                trace_receiver,
+                ..
+            } => {
                 // Base container for the Running state
 
                 // Header with title and restart button
@@ -239,7 +254,8 @@ impl Application for ExampleApp {
                     }
                     Screen::Home => {
                         // Button to go to the example screen.
-                        let example_screen = screen::ExampleScreen::new(client.clone());
+                        let example_screen =
+                            screen::ExampleScreen::new(client.clone(), trace_receiver.clone());
                         button("Go to Example")
                             .on_press(Message::ChangePage(Screen::Example(example_screen)))
                             .into()
@@ -290,6 +306,17 @@ impl Application for ExampleApp {
             success: Color::from_rgb(0.0, 1.0, 0.0),
             danger: Color::from_rgb(1.0, 0.0, 0.0),
         })
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        if let Self::Running { screen, .. } = self {
+            match screen {
+                Screen::Example(example) => example.subscription().map(Message::ExampleScreen),
+                _ => iced::Subscription::none(),
+            }
+        } else {
+            iced::Subscription::none()
+        }
     }
 }
 

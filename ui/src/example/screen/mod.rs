@@ -3,17 +3,17 @@
 //! The application also handles the execution of the screen's messages and
 //! events.
 
-use std::sync::Arc;
+use std::sync::{mpsc::Receiver, Arc, Mutex};
 
 use arbiter_core::middleware::RevmMiddleware;
 use iced::{
-    widget::{Column, Row},
-    Element,
+    widget::{button, column, row, text, Column, Row},
+    Element, Length,
 };
 use simulation::settings::{parameters::Multiple, *};
 use tracing::info;
 
-use super::{config_editor, deployer, run_sim_button, watcher};
+use super::{config_editor, deployer, firehose, run_sim_button, watcher};
 
 mod banner;
 pub mod start;
@@ -26,15 +26,19 @@ pub struct ExampleScreen {
     pub deployer: deployer::DeployerComponent,
     pub config: SimulationConfig<Multiple>,
     pub config_editor: config_editor::ConfigEditor,
+    pub firehose: firehose::Firehose,
 }
 
 /// Messages for Application -> Screen communication.
 /// Handles the messages for the components that are rendered in this screen.
 #[derive(Clone, Debug)]
 pub enum ExampleScreenMessage {
+    Empty,
+    FirehoseComponent(firehose::FirehoseMessage),
     WatcherComponent(watcher::AppToWatcherMessage),
     DeployerComponent(deployer::AppToDeployerMessage),
     EditorComponent(config_editor::EditorEvent),
+    RunSimulation,
 }
 
 /// Messages for Screen -> Application communication.
@@ -49,7 +53,7 @@ pub enum Event {
 /// - update - handles messages and returns events, called by the Application.
 /// - view - renders the screen, called by the Application.
 impl ExampleScreen {
-    pub fn new(client: Arc<RevmMiddleware>) -> Self {
+    pub fn new(client: Arc<RevmMiddleware>, receiver: Arc<Mutex<Receiver<String>>>) -> Self {
         // todo: config management feature
         let config = simulation::simulations::import(
             &std::env::current_dir()
@@ -65,12 +69,25 @@ impl ExampleScreen {
         .unwrap();
 
         info!("Loaded config: {:?}", config);
+
+        /*  let (sender, receiver) = std::sync::mpsc::channel();
+        let sender = Arc::new(Mutex::new(sender));
+        let receiver = Arc::new(Mutex::new(receiver)); */
+        let firehose = firehose::Firehose::new(receiver);
+
+        /* let subscriber = firehose::FirehoseSubscriber::new(sender.lock().unwrap().clone());
+        tracing::subscriber::with_default(subscriber, || {
+            // Now you can use tracing::info! to log messages
+            tracing::info!("This is a log message");
+        }); */
+
         Self {
             client,
             watcher: watcher::WatcherComponent::new(),
             deployer: deployer::DeployerComponent::new(),
             config: config.clone(),
             config_editor: config_editor::ConfigEditor::new(config),
+            firehose,
         }
     }
 
@@ -92,6 +109,7 @@ impl ExampleScreen {
     /// because only the `Application` can execute commands that are async.
     pub fn update(&mut self, message: ExampleScreenMessage) -> Option<Event> {
         match message {
+            ExampleScreenMessage::Empty => None,
             ExampleScreenMessage::WatcherComponent(message) => {
                 // Call the update method to get the component's updates.
                 let watcher_message = self.watcher.update(message);
@@ -137,6 +155,27 @@ impl ExampleScreen {
                     None => None,
                 }
             }
+            ExampleScreenMessage::FirehoseComponent(message) => {
+                self.firehose.update(message);
+                None
+            }
+            ExampleScreenMessage::RunSimulation => {
+                //let sender_clone = self.sim_log_sender.lock().unwrap().clone();
+                let config = self.config.clone();
+                run_sim_button::RunSimButton::run_on_thread(config).unwrap();
+                /* std::thread::spawn(move || {
+                    let subscriber = firehose::FirehoseSubscriber::new(sender_clone);
+                    tracing::subscriber::with_default(subscriber, || {
+                        // Now you can use tracing::info! to log messages
+                        tracing::info!("This is a log message");
+
+                        // todo: fix unwrap on running sim
+                        run_sim_button::RunSimButton::run_on_thread(config).unwrap();
+                    });
+                }); */
+
+                None
+            }
         }
     }
 
@@ -170,8 +209,26 @@ impl ExampleScreen {
             .push(deployer_watcher_row)
             .push(editor_run_sim_column)
             .spacing(10)
-            .padding(10);
+            .padding(10)
+            .width(Length::FillPortion(2));
 
-        content.into()
+        let firehose = self
+            .firehose
+            .view()
+            .map(|message| ExampleScreenMessage::FirehoseComponent(message));
+
+        row![
+            content,
+            column![
+                button(text(format!("Run sim"))).on_press(ExampleScreenMessage::RunSimulation),
+                firehose,
+            ]
+            .width(Length::FillPortion(2))
+        ]
+        .into()
+    }
+
+    pub fn subscription(&self) -> iced::Subscription<ExampleScreenMessage> {
+        self.firehose.subscription()
     }
 }

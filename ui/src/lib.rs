@@ -6,14 +6,27 @@ pub mod sdk;
 
 use std::path::PathBuf;
 
+use example::Flags;
 use iced::{
     alignment, executor,
     widget::{button, container, text, Button, Checkbox, Column, Row, Scrollable, Text},
     Alignment, Application, Command, Element, Length, Settings, Theme,
 };
 
+use tracing_subscriber::prelude::*;
+
 pub fn example() -> iced::Result {
-    example::ExampleApp::run(Settings::default())
+    let (sender, receiver) = std::sync::mpsc::channel::<String>();
+    let firehose_subscriber = example::firehose::FirehoseSubscriber::new(sender);
+
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .finish();
+    let subs = subscriber.with(firehose_subscriber);
+
+    tracing::subscriber::set_global_default(subs)
+        .expect("Failed to set global default subscriber in UI");
+    example::ExampleApp::run(Settings::with_flags(Flags { receiver }))
 }
 
 pub fn analyzer() -> iced::Result {
