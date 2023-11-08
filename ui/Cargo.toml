@@ -38,5 +38,6 @@ iced_aw = { version = "0.7.0", default-features = false, features = [
     "menu",
     "icon_text",
     "icons",
+    "spinner",
 ] }
 native-dialog = "0.7.0"

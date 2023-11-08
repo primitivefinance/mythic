@@ -3,9 +3,8 @@ use iced::{
     widget::{button, column, component, container, row, text, Component},
     Color, Element, Length, Renderer,
 };
-use iced_aw::graphics::icons::{icon_to_char, Icon::Plus, ICON_FONT};
 
-use super::footer;
+use super::footer::{self, Footer};
 use crate::styles;
 
 #[derive(Debug, Clone)]
@@ -17,13 +16,15 @@ pub enum Event {
 pub struct Sidebar {
     pub workspaces: Vec<String>,
     active_workspace: usize,
+    footer: footer::Footer,
 }
 
 impl Sidebar {
-    pub fn new() -> Self {
+    pub fn new(footer: Footer) -> Self {
         Self {
             workspaces: vec!["Workspace 1".to_string(), "Workspace 2".to_string()],
             active_workspace: 0,
+            footer,
         }
     }
 
@@ -111,24 +112,15 @@ where
             workspaces = workspaces.push(button);
         }
 
-        let add_workspace_button = button(row![
-            text(icon_to_char(Plus).to_string())
-                .font(ICON_FONT)
-                .horizontal_alignment(alignment::Horizontal::Center)
-                .vertical_alignment(alignment::Vertical::Center),
-            text("New Workspace")
-                .horizontal_alignment(alignment::Horizontal::Center)
-                .vertical_alignment(alignment::Vertical::Center)
-        ])
+        let add_workspace_button = button(row![text("New Workspace")
+            .horizontal_alignment(alignment::Horizontal::Center)
+            .vertical_alignment(alignment::Vertical::Center)])
         .on_press(Event::AddWorkspace("New Workspace".to_string()))
         .padding(10)
         .style(iced::theme::Button::Custom(Box::new(AddWorkspaceButton {})));
 
-        let footer = footer::FooterBuilder::new()
-            .add_crate_info()
-            .add_git_commit()
-            .add_system_info()
-            .build()
+        let footer = self
+            .footer
             .view()
             .map(|_| Event::Debug("footer press".into()));
 

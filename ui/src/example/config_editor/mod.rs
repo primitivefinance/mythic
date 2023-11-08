@@ -138,8 +138,6 @@ impl ConfigEditor {
             ))
             .spacing(10);
 
-        info!("Store: {:?}", self.store.clone());
-
         // Will group together all the non-nested fields as the "simulation" settings.
         let mut single_field_group = column![text(format!("Sim Settings"))];
 
@@ -150,8 +148,6 @@ impl ConfigEditor {
             if field_value.is_null() && !self.show_null_fields {
                 continue;
             }
-
-            info!("Rendering field: {} value {}", field_name, field_value);
 
             // We go one layer deep into the store.
             // If the value is an object, this is a group of fields.

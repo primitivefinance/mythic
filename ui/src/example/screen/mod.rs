@@ -40,6 +40,7 @@ pub enum ExampleScreenMessage {
     DeployerComponent(deployer::AppToDeployerMessage),
     EditorComponent(config_editor::EditorEvent),
     RunSimulation,
+    SimulationComplete,
 }
 
 /// Messages for Screen -> Application communication.
@@ -47,6 +48,7 @@ pub enum ExampleScreenMessage {
 pub enum Event {
     Deploy,
     Toggle(bool),
+    SimulationComplete,
 }
 
 /// Implements the following functions
@@ -153,7 +155,14 @@ impl ExampleScreen {
             }
             ExampleScreenMessage::RunSimulation => {
                 let config = self.config.clone();
-                run_sim_button::RunSimButton::run_on_thread(config).unwrap();
+                run_sim_button::RunSimButton::new(config).run().unwrap();
+
+                Some(Event::SimulationComplete)
+            }
+            ExampleScreenMessage::SimulationComplete => {
+                info!("Simulation complete");
+                self.firehose
+                    .update(firehose::FirehoseMessage::SimulationComplete);
 
                 None
             }

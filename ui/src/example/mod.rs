@@ -8,6 +8,7 @@ use ethers::prelude::*;
 use iced::{widget::row, Color};
 use tracing::info;
 
+use self::footer::Footer;
 use super::*;
 use crate::sdk::production::*;
 
@@ -33,6 +34,7 @@ pub enum ExampleApp {
         production: Option<Arc<Production<Ws>>>,
         screen: Screen,
         trace_receiver: Arc<Mutex<Receiver<String>>>,
+        footer: Footer,
     },
 }
 
@@ -95,6 +97,11 @@ impl Application for ExampleApp {
                     )),
                     production: None,
                     trace_receiver,
+                    footer: footer::FooterBuilder::new()
+                        .add_crate_info()
+                        .add_git_commit()
+                        .add_system_info()
+                        .build(),
                 }
             },
             Command::perform(Production::new(), |res| match res {
@@ -152,6 +159,14 @@ impl Application for ExampleApp {
 
                     if let Some(event) = example.update(message) {
                         match event {
+                            screen::Event::SimulationComplete => {
+                                // Pass ExampleScreenMessage::SimulationComplete
+                                return Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                                    Message::ExampleScreen(
+                                        screen::ExampleScreenMessage::SimulationComplete,
+                                    )
+                                });
+                            }
                             screen::Event::Toggle(state) => {
                                 if let Some(production) = production {
                                     match state {
@@ -233,6 +248,7 @@ impl Application for ExampleApp {
                 client,
                 screen,
                 trace_receiver,
+                footer,
                 ..
             } => {
                 // Base container for the Running state
@@ -265,8 +281,9 @@ impl Application for ExampleApp {
                     .height(Length::Fill)
                     .style(styles::background::WhiteContainer::theme());
 
-                let screen_container =
-                    row![sidebar::Sidebar::new(), screen_content].height(Length::Fill);
+                let mut screen_container = row![].height(Length::Fill);
+                screen_container = screen_container.push(sidebar::Sidebar::new(footer.clone()));
+                screen_container = screen_container.push(screen_content);
 
                 // Combine all elements into a column
                 let content = Column::new()

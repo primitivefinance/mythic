@@ -5,8 +5,8 @@ use std::{
 
 use iced::{
     time,
-    widget::{button, column, container, row, scrollable, text, Text},
-    Element, Length,
+    widget::{button, column, container, row, scrollable, text},
+    Element, Length, Renderer,
 };
 use tracing::{
     field::{Field, Visit},
@@ -38,7 +38,7 @@ impl FirehoseSubscriber {
 
 impl Subscriber for FirehoseSubscriber {
     fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
-        metadata.level() == &Level::INFO
+        metadata.target().starts_with("simulation::") && metadata.level() <= &Level::DEBUG
     }
 
     fn new_span(&self, _: &tracing::span::Attributes<'_>) -> Id {
@@ -67,11 +67,13 @@ where
     S: Subscriber,
 {
     fn on_event(&self, event: &Event<'_>, _ctx: Context<S>) {
-        let mut visitor = LogVisitor {
-            message: String::new(),
-        };
-        event.record(&mut visitor);
-        let _ = self.sender.send(visitor.message);
+        if event.metadata().target().starts_with("simulation::") {
+            let mut visitor = LogVisitor {
+                message: String::new(),
+            };
+            event.record(&mut visitor);
+            let _ = self.sender.send(visitor.message);
+        }
     }
 }
 
@@ -87,6 +89,8 @@ pub enum FirehoseMessage {
     Empty,
     AddLog(String),
     ProcessLogs,
+    PurgeLogs,
+    SimulationComplete,
 }
 
 impl Firehose {
@@ -108,6 +112,10 @@ impl Firehose {
                     self.logs.push(log);
                 }
             }
+            FirehoseMessage::PurgeLogs => {
+                self.logs.clear();
+            }
+            FirehoseMessage::SimulationComplete => {}
         }
     }
 
@@ -121,7 +129,9 @@ impl Firehose {
             .logs
             .iter()
             .rev()
-            .fold(column![], |column, log| column.push(Text::new(log.clone())));
+            .fold(column![].spacing(2), |column, log| {
+                column.push(style_log_for_firehose(log.clone()))
+            });
         let firehose_content = container(scrollable(firehose))
             .style(super::styles::background::Layer2Container::theme())
             .height(Length::Fixed(500.0))
@@ -133,15 +143,24 @@ impl Firehose {
         let process_button = button(text("Process log")).on_press(FirehoseMessage::ProcessLogs);
         let add_log_button = button(text("Add Log directly"))
             .on_press(FirehoseMessage::AddLog("New log".to_string()));
+        let purge_log_button = button(text("Purge logs")).on_press(FirehoseMessage::PurgeLogs);
 
         firehose_actions = firehose_actions
             .push(debug_trace_button)
             .push(process_button)
-            .push(add_log_button);
+            .push(add_log_button)
+            .push(purge_log_button);
+
+        let mut firehose_header = row![]
+            .width(Length::Fill)
+            .height(Length::Fixed(45.0))
+            .padding(8);
+
+        firehose_header = firehose_header.push(firehose_title);
 
         let mut content_container = column![].width(Length::Fill);
         content_container = content_container
-            .push(firehose_title)
+            .push(firehose_header)
             .push(firehose_content)
             .push(firehose_actions)
             .spacing(16);
@@ -150,10 +169,24 @@ impl Firehose {
     }
 
     pub fn subscription(&self) -> iced::Subscription<super::example::screen::ExampleScreenMessage> {
-        time::every(Duration::from_millis(1000)).map(|_| {
+        time::every(Duration::from_millis(100)).map(|_| {
             super::example::screen::ExampleScreenMessage::FirehoseComponent(
                 FirehoseMessage::ProcessLogs,
             )
         })
     }
+}
+
+pub fn style_log_for_firehose<'a>(log: String) -> Element<'a, FirehoseMessage, Renderer> {
+    let firehose_element = text(log)
+        .style(iced::theme::Text::Color(super::styles::GRAY))
+        .size(12)
+        .vertical_alignment(iced::alignment::Vertical::Center)
+        .horizontal_alignment(iced::alignment::Horizontal::Left);
+
+    container(firehose_element)
+        .style(super::styles::background::FirehoseContainer::theme())
+        .width(Length::Fill)
+        .padding(4)
+        .into()
 }

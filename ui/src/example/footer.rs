@@ -1,6 +1,6 @@
 //! Simple footer component that has system and version info for Excalibur.
 
-use std::collections::{HashMap, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 use iced::{
     alignment,
@@ -14,8 +14,9 @@ pub enum Message {
     Debug,
 }
 
+#[derive(Debug, Clone)]
 pub struct Footer {
-    pub info: HashMap<String, String>,
+    pub info: BTreeMap<String, String>,
 }
 
 impl Footer {
@@ -78,13 +79,13 @@ pub const DIMMED_TEXT: Color = Color::from_rgb(
 use std::{env, process::Command};
 
 pub struct FooterBuilder {
-    info: HashMap<String, String>,
+    info: BTreeMap<String, String>,
 }
 
 impl FooterBuilder {
     pub fn new() -> Self {
         Self {
-            info: HashMap::new(),
+            info: BTreeMap::new(),
         }
     }
 

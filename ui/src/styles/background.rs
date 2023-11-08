@@ -141,3 +141,25 @@ impl BorderedContainer {
         iced::theme::Container::Custom(Box::from(BorderedContainer))
     }
 }
+
+pub struct FirehoseContainer;
+
+impl iced::widget::container::StyleSheet for FirehoseContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Background::Color(LEVEL_3_COLOR)),
+            border_radius: 2.0.into(),
+            border_width: 1.0,
+            border_color: BORDER_COLOR,
+            ..Default::default()
+        }
+    }
+}
+
+impl FirehoseContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(FirehoseContainer))
+    }
+}

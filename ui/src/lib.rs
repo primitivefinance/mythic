@@ -20,8 +20,9 @@ pub fn example() -> iced::Result {
     let firehose_subscriber = example::firehose::FirehoseSubscriber::new(sender);
 
     let subscriber = tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::DEBUG)
         .finish();
+
     let subs = subscriber.with(firehose_subscriber);
 
     tracing::subscriber::set_global_default(subs)
