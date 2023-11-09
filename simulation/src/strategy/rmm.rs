@@ -107,6 +107,9 @@ impl ArbitrageStrategy for RmmStrategy {
             - reserve_x;
 
         trace!("dx: {}", dx);
+        if dx < 0.into() {
+            return Ok(0.into());
+        }
         Ok(dx.into_raw())
     }
 

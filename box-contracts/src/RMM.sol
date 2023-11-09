@@ -255,7 +255,10 @@ contract RMM is IStrategy {
 
         return (liquidityDelta, amountX);
     }
-
+    event deltaLEvent(uint256 deltaL);
+    event deltaYEvent(uint256 deltaY);
+    event amountOutEvent(int256 amountOut);
+    event amountOutEvent2(uint256 amountOut);
     function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
 
         uint256 price =
@@ -266,6 +269,20 @@ contract RMM is IStrategy {
             uint256 deltaX = amountIn - fees;
             uint256 deltaL = computeLGivenX(deltaX, price, strikePrice, sigma);
             uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
+
+            int256 computedAmountOut = computeOutputYGivenX(
+                reserveX,
+                amountIn,
+                reserveY,
+                deltaY,
+                totalLiquidity,
+                deltaL,
+                strikePrice,
+                sigma
+            );
+            emit deltaLEvent(deltaL);
+            emit deltaYEvent(deltaY);
+            emit amountOutEvent(computedAmountOut);
 
             amountOut = uint256(
                 ~(
@@ -281,6 +298,8 @@ contract RMM is IStrategy {
                     ) - 1
                 )
             );
+
+            emit amountOutEvent2(amountOut);
 
             totalLiquidity += deltaL;
             reserveX += amountIn;
