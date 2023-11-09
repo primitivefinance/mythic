@@ -10,7 +10,6 @@ use tracing::info;
 
 use self::footer::Footer;
 use super::*;
-use crate::sdk::production::*;
 
 pub mod components;
 mod config_editor;
@@ -20,8 +19,12 @@ mod footer;
 mod header;
 mod run_sim_button;
 mod screen;
+mod sdk;
 mod sidebar;
+mod styles;
 mod watcher;
+
+use sdk::production::*;
 
 #[allow(clippy::large_enum_variant)]
 /// Application state of an example app that runs arbiter's environment in the
@@ -218,9 +221,9 @@ impl Application for ExampleApp {
                             screen::Event::Deploy => {
                                 info!("Deploying vault");
                                 return Command::perform(
-                                    crate::sdk::vault::Vault::deploy::<deployer::DeployerError>(
-                                        example.client.clone(),
-                                    ),
+                                    crate::example::sdk::vault::Vault::deploy::<
+                                        deployer::DeployerError,
+                                    >(example.client.clone()),
                                     |res| {
                                         Message::ExampleScreen(
                                             screen::ExampleScreenMessage::DeployerComponent(

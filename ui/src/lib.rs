@@ -1,11 +1,6 @@
 #![allow(clippy::all)]
-
 pub mod analyzer;
 pub mod example;
-pub mod sdk;
-pub mod styles;
-
-use std::path::PathBuf;
 
 use example::Flags;
 use iced::{
@@ -28,8 +23,4 @@ pub fn example() -> iced::Result {
     // tracing::subscriber::set_global_default(subs)
     //     .expect("Failed to set global default subscriber in UI");
     example::ExampleApp::run(Settings::with_flags(Flags { receiver }))
-}
-
-pub fn analyzer() -> iced::Result {
-    analyzer::AnalyzerApp::run(Settings::default())
 }

@@ -9,7 +9,6 @@ use image;
 use native_dialog::FileDialog;
 
 use super::*;
-
 pub struct AnalyzerApp {
     state: AnalyzerState,
     simulation_data: Option<SimulationData>,
@@ -229,4 +228,8 @@ fn open_file_dialog() -> Option<PathBuf> {
         .add_filter("JSON Files", &["json"])
         .show_open_single_file()
         .unwrap()
+}
+
+pub fn analyzer() -> iced::Result {
+    analyzer::AnalyzerApp::run(Settings::default())
 }
