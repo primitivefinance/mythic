@@ -1,6 +1,8 @@
 use ethers::prelude::*;
 use iced::{
-    executor, widget::column, window, Application, Command, Element, Settings, Subscription, Theme,
+    executor,
+    widget::{column, Column, Text},
+    window, Application, Command, Element, Settings, Subscription, Theme,
 };
 
 mod app;
@@ -10,6 +12,7 @@ mod logos;
 mod state;
 mod styles;
 mod tracer;
+mod view;
 
 use app::App;
 use loader::Loader;
