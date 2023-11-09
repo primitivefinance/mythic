@@ -1,6 +1,7 @@
 #![allow(clippy::all)]
 pub mod analyzer;
 pub mod example;
+pub mod mvp;
 
 use example::Flags;
 use iced::{
