@@ -1,8 +1,14 @@
+use std::path::PathBuf;
+
 use analysis::reader::SimulationData;
+use iced::{
+    executor,
+    widget::{container, Button, Checkbox, Column, Row, Scrollable, Text},
+    Alignment, Application, Command, Element, Length, Settings, Theme,
+};
 use native_dialog::FileDialog;
 
 use super::*;
-
 pub struct AnalyzerApp {
     state: AnalyzerState,
     simulation_data: Option<SimulationData>,
@@ -208,4 +214,8 @@ fn open_file_dialog() -> Option<PathBuf> {
         .add_filter("JSON Files", &["json"])
         .show_open_single_file()
         .unwrap()
+}
+
+pub fn analyzer() -> iced::Result {
+    analyzer::AnalyzerApp::run(Settings::default())
 }

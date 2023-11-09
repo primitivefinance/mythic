@@ -5,7 +5,7 @@ use iced::{
 };
 
 use super::footer::{self, Footer};
-use crate::styles;
+use super::styles;
 
 #[derive(Debug, Clone)]
 pub enum Event {
