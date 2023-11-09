@@ -1,6 +1,10 @@
-use iced::{executor, widget::column, window, Application, Command, Element, Settings, Theme};
+use iced::{
+    executor, widget::column, window, Application, Command, Element, Settings, Subscription, Theme,
+};
 
 mod logos;
+mod styles;
+mod tracer;
 
 pub struct MVP;
 
@@ -18,6 +22,29 @@ impl Application for MVP {
     type Flags = Flags;
 
     fn new(_flags: Flags) -> (MVP, Command<Message>) {
+        let trace = tracer::setup_with_channel();
+
+        // log a message to see if its works
+        tracing::info!("Hello from Excalibur!");
+
+        // get the last item from the receiver channel and log it
+        match trace {
+            Ok(tracer) => {
+                let res = tracer.receiver.clone().lock().unwrap().try_recv();
+                match res {
+                    Ok(msg) => {
+                        tracing::info!("Received message: {:?}", msg);
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to receive message: {:?}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Failed to setup tracer: {:?}", e);
+            }
+        }
+
         (MVP, Command::none())
     }
 
@@ -33,6 +60,14 @@ impl Application for MVP {
 
     fn view(&self) -> Element<Message> {
         column![].into()
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        Subscription::none()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::default()
     }
 }
 
