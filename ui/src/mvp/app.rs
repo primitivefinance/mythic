@@ -5,11 +5,15 @@ use iced::{
     Length,
 };
 
-use super::*;
+use super::{
+    state::{Screen, Terminal},
+    *,
+};
 
 #[derive(Debug)]
 pub enum Message {
     Empty,
+    View(view::Message),
 }
 
 /// Storage for the entire application.
@@ -17,11 +21,20 @@ pub enum Message {
 pub struct App {
     arbiter: Environment,
     local: Local<Ws>,
+    screen: Screen,
 }
 
 impl App {
     pub fn new(arbiter: Environment, local: Local<Ws>) -> (Self, Command<Message>) {
-        (Self { arbiter, local }, Command::none())
+        let screen = Screen::new(Box::new(Terminal::new()));
+        (
+            Self {
+                arbiter,
+                local,
+                screen,
+            },
+            Command::none(),
+        )
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -29,13 +42,6 @@ impl App {
     }
 
     pub fn view(&self) -> Element<Message> {
-        container(column![
-            text("running app!").style(iced::theme::Text::Color(iced::Color::BLACK))
-        ])
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
-        .into()
+        self.screen.view().map(Message::View)
     }
 }
