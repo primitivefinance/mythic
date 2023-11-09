@@ -1,4 +1,8 @@
-use super::*;
+use iced::time;
+
+use super::{app::Message, view::terminal_view, *};
+
+use std::{sync::mpsc::Receiver, time::Duration};
 
 /// Implement this trait to make a new screen for the app.
 pub trait State
@@ -36,20 +40,45 @@ impl Screen {
     }
 }
 
-pub struct Terminal {}
+pub struct Terminal {
+    logs: Vec<String>,
+    receiver: Arc<Mutex<Receiver<String>>>,
+}
 
 impl Terminal {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(receiver: Arc<Mutex<Receiver<String>>>) -> Self {
+        Self {
+            logs: Vec::new(),
+            receiver,
+        }
     }
 }
 
 impl State for Terminal {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        Column::new().push(Text::new("Terminal").size(50)).into()
+        view::app_layout(terminal_view(self.logs.clone())).into()
     }
 
-    fn update(&mut self, _message: Message) -> Command<Message> {
-        Command::none()
+    fn update(&mut self, message: Message) -> Command<Message> {
+        match message {
+            Message::ProcessTracer => {
+                while let Ok(log) = self.receiver.lock().unwrap().try_recv() {
+                    self.logs.push(log);
+                }
+                Command::none()
+            }
+            Message::View(msg) => match msg {
+                view::Message::LogTrace => {
+                    tracing::info!("LogTrace message received!");
+                    Command::none()
+                }
+                _ => Command::none(),
+            },
+            _ => Command::none(),
+        }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        time::every(Duration::from_millis(100)).map(|_| Message::ProcessTracer)
     }
 }
