@@ -1,3 +1,4 @@
+use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use iced::{
     alignment,
     widget::{button, column, container, text},
@@ -10,12 +11,15 @@ use super::*;
 pub enum Message {
     View,
     Loaded,
-    Ready,
+    Ready(anyhow::Result<(Environment, Local<Ws>)>),
 }
 pub struct Loader;
 
-pub async fn load_app() -> anyhow::Result<()> {
-    Ok(())
+/// Starts arbiter in the background and connects to a local blockchain.
+pub async fn load_app() -> anyhow::Result<(Environment, Local<Ws>), anyhow::Error> {
+    let arbiter = EnvironmentBuilder::new().build();
+    let local = Local::new().await?;
+    Ok((arbiter, local))
 }
 
 pub async fn connect_to_server() -> anyhow::Result<()> {
@@ -33,7 +37,7 @@ impl Loader {
     }
 
     fn on_load(&mut self) -> Command<Message> {
-        Command::perform(load_app(), |_| Message::Ready)
+        Command::perform(load_app(), Message::Ready)
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {

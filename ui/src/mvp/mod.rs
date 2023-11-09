@@ -1,9 +1,11 @@
+use ethers::prelude::*;
 use iced::{
     executor, widget::column, window, Application, Command, Element, Settings, Subscription, Theme,
 };
 
 mod app;
 mod loader;
+mod local;
 mod logos;
 mod state;
 mod styles;
@@ -11,6 +13,7 @@ mod tracer;
 
 use app::App;
 use loader::Loader;
+use local::Local;
 
 pub struct MVP {
     state: State,
@@ -62,9 +65,9 @@ impl Application for MVP {
             (_, Message::Quit) => window::close(),
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready => {
+                loader::Message::Ready(Ok((arbiter, local))) => {
                     // 4. Create our app and move to the app state.
-                    let (app, command) = App::new();
+                    let (app, command) = App::new(arbiter, local);
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.

@@ -1,3 +1,4 @@
+use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use iced::{
     alignment,
     widget::{button, column, container, text},
@@ -10,11 +11,17 @@ use super::*;
 pub enum Message {
     Empty,
 }
-pub struct App;
+
+/// Storage for the entire application.
+/// This should hold the most important pieces of data that many children components will need.
+pub struct App {
+    arbiter: Environment,
+    local: Local<Ws>,
+}
 
 impl App {
-    pub fn new() -> (Self, Command<Message>) {
-        (Self {}, Command::none())
+    pub fn new(arbiter: Environment, local: Local<Ws>) -> (Self, Command<Message>) {
+        (Self { arbiter, local }, Command::none())
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {

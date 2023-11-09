@@ -252,6 +252,7 @@ impl Application for ExampleApp {
                 screen,
                 trace_receiver,
                 footer,
+                environment,
                 ..
             } => {
                 // Base container for the Running state
@@ -270,8 +271,9 @@ impl Application for ExampleApp {
                     }
                     Screen::Home => {
                         // Button to go to the example screen.
+                        let clx = RevmMiddleware::new(&environment, Some("client")).unwrap();
                         let example_screen =
-                            screen::ExampleScreen::new(client.clone(), trace_receiver.clone());
+                            screen::ExampleScreen::new(clx.clone(), trace_receiver.clone());
                         button("Go to Example")
                             .on_press(Message::ChangePage(Screen::Example(example_screen)))
                             .into()
