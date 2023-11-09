@@ -2,14 +2,30 @@ use iced::{
     executor, widget::column, window, Application, Command, Element, Settings, Subscription, Theme,
 };
 
+mod app;
+mod loader;
 mod logos;
+mod state;
 mod styles;
 mod tracer;
 
-pub struct MVP;
+use app::App;
+use loader::Loader;
+
+pub struct MVP {
+    state: State,
+    tracer: tracer::Tracer,
+}
+
+enum State {
+    App(App),
+    Loader(Loader),
+}
 
 #[derive(Debug)]
 pub enum Message {
+    Load(Box<loader::Message>),
+    Update(Box<app::Message>),
     Quit,
 }
 
@@ -22,23 +38,57 @@ impl Application for MVP {
     type Flags = Flags;
 
     fn new(_flags: Flags) -> (MVP, Command<Message>) {
-        let trace = tracer::setup_with_channel();
+        let tracer = tracer::setup_with_channel();
 
-        (MVP, Command::none())
+        // 1. Initialize application with the Loader state and Message::Load.
+        let (loader, command) = Loader::new();
+        let state = State::Loader(loader);
+
+        (
+            MVP { state, tracer },
+            command.map(|msg| Message::Load(Box::new(msg))),
+        )
     }
 
     fn title(&self) -> String {
-        String::from("Excalibur")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::Quit => window::close(),
+        match &self.state {
+            State::Loader(_) => String::from("Loading Excalibur"),
+            State::App(_) => String::from("Excalibur"),
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        column![].into()
+    fn update(&mut self, message: Message) -> Command<Message> {
+        match (&mut self.state, message) {
+            (_, Message::Quit) => window::close(),
+            (State::Loader(l), Message::Load(msg)) => match *msg {
+                // 3. Got the message from the loader we are ready to go!
+                loader::Message::Ready => {
+                    // 4. Create our app and move to the app state.
+                    let (app, command) = App::new();
+                    self.state = State::App(app);
+
+                    // 5. Get to the next branch.
+                    command.map(|msg| Message::Update(Box::new(msg)))
+                }
+                // 2. Loader emits the Load message, update the loader state.
+                _ => l.update(*msg).map(|msg| Message::Load(Box::new(msg))),
+            },
+            (State::App(app), Message::Update(msg)) => {
+                // 6. Arrived at main application loop.
+                // note: application loop is by mapping the result of update with Update
+                // message.
+                app.update(*msg).map(|msg| Message::Update(Box::new(msg)))
+            }
+            _ => Command::none(),
+        }
+    }
+
+    // View gets called before `perform` gets called in `new`, by the way.
+    fn view(&self) -> Element<Self::Message> {
+        match &self.state {
+            State::Loader(loader) => loader.view().map(|msg| Message::Load(Box::new(msg))),
+            State::App(app) => app.view().map(|msg| Message::Update(Box::new(msg))),
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -52,6 +102,6 @@ impl Application for MVP {
 
 pub fn run() -> iced::Result {
     let mut settings = Settings::with_flags(Flags);
-    settings.window.icon = Some(logos::excalibur_logo());
+    settings.window.icon = Some(logos::excalibur_logo_2());
     MVP::run(settings)
 }

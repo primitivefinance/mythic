@@ -16,7 +16,8 @@ use tracing::{
 use tracing_subscriber::{prelude::*, registry::LookupSpan, Layer};
 
 // todo: handle generic channel values
-// abstraction over our sender and receiver channels that we can pipe trace events over.
+// abstraction over our sender and receiver channels that we can pipe trace
+// events over.
 pub struct Tracer {
     pub sender: Arc<Mutex<Sender<String>>>,
     pub receiver: Arc<Mutex<Receiver<String>>>,
@@ -195,7 +196,7 @@ pub fn setup() {
 }
 
 /// Creates a tracer with a channel that can be used to send and receive traces.
-pub fn setup_with_channel() -> anyhow::Result<Tracer, anyhow::Error> {
+pub fn setup_with_channel() -> Tracer {
     let tracer = Tracer::default();
 
     // for some reason, if you don't add the filter_layer here it gets some type
@@ -209,7 +210,7 @@ pub fn setup_with_channel() -> anyhow::Result<Tracer, anyhow::Error> {
     // Actually initialize the layer to be used by the subscriber.
     tracing_subscriber::registry().with(layer).init();
 
-    Ok(tracer)
+    tracer
 }
 
 #[cfg(test)]
@@ -262,9 +263,11 @@ mod tests {
         assert!(output.contains("Tracing initialized"));
     }
 
+    // todo: fix this, it breaks when all tests run because global dispatch is set
+    // in the other one...
     #[test]
     fn test_tracer_with_channel() {
-        let trace = setup_with_channel();
+        let tracer = setup_with_channel();
 
         let message = "Hello from Excalibur!";
 
@@ -272,21 +275,14 @@ mod tests {
         tracing::info!(message);
 
         // get the last item from the receiver channel and log it
-        match trace {
-            Ok(tracer) => {
-                let res = tracer.receiver.clone().lock().unwrap().try_recv();
-                match res {
-                    Ok(msg) => {
-                        tracing::info!("Received message: {:?}", msg);
-                        assert!(msg.contains(message));
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to receive message: {:?}", e);
-                    }
-                }
+        let res = tracer.receiver.clone().lock().unwrap().try_recv();
+        match res {
+            Ok(msg) => {
+                tracing::info!("Received message: {:?}", msg);
+                assert!(msg.contains(message));
             }
             Err(e) => {
-                tracing::error!("Failed to setup tracer: {:?}", e);
+                tracing::error!("Failed to receive message: {:?}", e);
             }
         }
     }
