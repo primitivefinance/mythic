@@ -4,8 +4,10 @@ use iced::{
     Color, Element, Length, Renderer,
 };
 
-use super::footer::{self, Footer};
-use super::styles;
+use super::{
+    footer::{self, Footer},
+    styles,
+};
 
 #[derive(Debug, Clone)]
 pub enum Event {
