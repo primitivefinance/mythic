@@ -17,3 +17,33 @@ pub const SECONDARY: Color = Color::from_rgb(
     0xf9 as f32 / 255.0,
     0xf9 as f32 / 255.0,
 );
+
+pub const LEVEL_1_COLOR: Color = Color::from_rgb(
+    0xF8 as f32 / 255.0,
+    0xF8 as f32 / 255.0,
+    0xF8 as f32 / 255.0,
+);
+
+pub const LEVEL_2_COLOR: Color = Color::from_rgb(
+    0xF4 as f32 / 255.0,
+    0xF4 as f32 / 255.0,
+    0xF5 as f32 / 255.0,
+);
+
+pub const LEVEL_3_COLOR: Color = Color::from_rgb(
+    0xEA as f32 / 255.0,
+    0xEA as f32 / 255.0,
+    0xEB as f32 / 255.0,
+);
+
+pub const LEVEL_4_COLOR: Color = Color::from_rgb(
+    0xD4 as f32 / 255.0,
+    0xD4 as f32 / 255.0,
+    0xD6 as f32 / 255.0,
+);
+
+pub const BORDER_COLOR: Color = Color::from_rgb(
+    0xEE as f32 / 255.0,
+    0xEE as f32 / 255.0,
+    0xEE as f32 / 255.0,
+);

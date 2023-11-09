@@ -1,8 +1,8 @@
 use ethers::prelude::*;
 use iced::{
-    executor,
-    widget::{column, Column, Text},
-    window, Application, Command, Element, Settings, Subscription, Theme,
+    alignment, executor,
+    widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text},
+    window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
 mod app;
@@ -17,6 +17,8 @@ mod view;
 use app::App;
 use loader::Loader;
 use local::Local;
+use std::sync::{Arc, Mutex};
+use styles::*;
 
 pub struct MVP {
     state: State,
@@ -70,7 +72,7 @@ impl Application for MVP {
                 // 3. Got the message from the loader we are ready to go!
                 loader::Message::Ready(Ok((arbiter, local))) => {
                     // 4. Create our app and move to the app state.
-                    let (app, command) = App::new(arbiter, local);
+                    let (app, command) = App::new(arbiter, local, self.tracer.receiver.clone());
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.
@@ -98,7 +100,10 @@ impl Application for MVP {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        Subscription::none()
+        match &self.state {
+            State::App(app) => app.subscription().map(|msg| Message::Update(Box::new(msg))),
+            _ => Subscription::none(),
+        }
     }
 
     fn theme(&self) -> Theme {
