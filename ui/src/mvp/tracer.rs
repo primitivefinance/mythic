@@ -253,12 +253,41 @@ mod tests {
     }
 
     #[test]
-    fn test_tracer() {
+    fn test_tracer_builder() {
         let mut buffer = Vec::new();
         setup(&mut buffer); // triggers a warn tracer with a special layer with a warn depth filter.
         let output = String::from_utf8(buffer).unwrap();
 
         // assert the output contains the warn trace we triggered.
         assert!(output.contains("Tracing initialized"));
+    }
+
+    #[test]
+    fn test_tracer_with_channel() {
+        let trace = setup_with_channel();
+
+        let message = "Hello from Excalibur!";
+
+        // log a message to see if its works
+        tracing::info!(message);
+
+        // get the last item from the receiver channel and log it
+        match trace {
+            Ok(tracer) => {
+                let res = tracer.receiver.clone().lock().unwrap().try_recv();
+                match res {
+                    Ok(msg) => {
+                        tracing::info!("Received message: {:?}", msg);
+                        assert!(msg.contains(message));
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to receive message: {:?}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Failed to setup tracer: {:?}", e);
+            }
+        }
     }
 }

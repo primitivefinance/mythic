@@ -24,27 +24,6 @@ impl Application for MVP {
     fn new(_flags: Flags) -> (MVP, Command<Message>) {
         let trace = tracer::setup_with_channel();
 
-        // log a message to see if its works
-        tracing::info!("Hello from Excalibur!");
-
-        // get the last item from the receiver channel and log it
-        match trace {
-            Ok(tracer) => {
-                let res = tracer.receiver.clone().lock().unwrap().try_recv();
-                match res {
-                    Ok(msg) => {
-                        tracing::info!("Received message: {:?}", msg);
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to receive message: {:?}", e);
-                    }
-                }
-            }
-            Err(e) => {
-                tracing::error!("Failed to setup tracer: {:?}", e);
-            }
-        }
-
         (MVP, Command::none())
     }
 
