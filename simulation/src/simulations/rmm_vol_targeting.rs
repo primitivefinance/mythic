@@ -38,38 +38,24 @@ pub async fn setup(
         &config,
         "lp",
         &token_admin,
-        rmm_portfolio_manager.0.low_vol_pool().address(),
-        rmm_portfolio_manager.0.high_vol_pool().address(),
+        rmm_portfolio_manager.0.rmm().address(),
     )
     .await?;
     let mut arbitrageur = RmmArbitrageur::<RmmStrategy>::new(
         &environment,
         &token_admin,
         price_changer.liquid_exchange.address(),
-        rmm_portfolio_manager.0.low_vol_pool().address(),
-        rmm_portfolio_manager.0.high_vol_pool().address(),
+        rmm_portfolio_manager.0.rmm().address(),
     )
     .await?;
 
-    println!(
-        "low vol pool: {}",
-        rmm_portfolio_manager.0.low_vol_pool().address()
-    );
-    println!(
-        "high vol pool: {}",
-        rmm_portfolio_manager.0.high_vol_pool().address()
-    );
-
     EventLogger::builder()
+        .directory(config.output_directory.clone())
+        .file_name(config.output_file_name.clone().unwrap())
         .add(price_changer.liquid_exchange.events(), "lex")
-        .add(
-            rmm_portfolio_manager.0.low_vol_pool().events(),
-            "low_vol_pool",
-        )
-        .add(
-            rmm_portfolio_manager.0.high_vol_pool().events(),
-            "low_vol_pool",
-        )
+        .add(rmm_portfolio_manager.0.rmm().events(), "rmm")
+        .add(token_admin.arbx.events(), "arbx")
+        .add(token_admin.arby.events(), "arby")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

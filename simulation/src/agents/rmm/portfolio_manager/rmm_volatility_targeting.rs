@@ -5,8 +5,7 @@ use crate::math::*;
 pub struct RmmVolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
-    pub high_vol_pool: RMM<RevmMiddleware>,
-    pub low_vol_pool: RMM<RevmMiddleware>,
+    pub rmm: RMM<RevmMiddleware>,
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
@@ -122,11 +121,8 @@ impl PortfolioManager for RmmVolatilityTargetingStrategist {
         //     .await?;
         Ok(())
     }
-    fn low_vol_pool(&self) -> &RMM<RevmMiddleware> {
-        &self.low_vol_pool
-    }
-    fn high_vol_pool(&self) -> &RMM<RevmMiddleware> {
-        &self.high_vol_pool
+    fn rmm(&self) -> &RMM<RevmMiddleware> {
+        &self.rmm
     }
 }
 

@@ -8,8 +8,7 @@ pub mod rmm_volatility_targeting;
 #[async_trait::async_trait]
 pub trait PortfolioManager: Agent {
     async fn execute_rebalance(&mut self) -> Result<()>;
-    fn low_vol_pool(&self) -> &RMM<RevmMiddleware>;
-    fn high_vol_pool(&self) -> &RMM<RevmMiddleware>;
+    fn rmm(&self) -> &RMM<RevmMiddleware>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -78,34 +77,22 @@ impl PortfolioManagerType {
 
         if let Some(AgentParameters::PortfolioManager(params)) = config.agent_parameters.get(&label)
         {
-            let high_vol_args = (
+            let rmm_args = (
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
-                parse_ether(1.5)?,
+                parse_ether(0.3)?,
                 parse_ether(1)?,
-                U256::from(3_536_000),
+                parse_ether(0.5)?,
                 parse_ether(0.003)?,
             );
-            let low_vol_args = (
-                lex.arbiter_token_x().call().await?,
-                lex.arbiter_token_y().call().await?,
-                parse_ether(1)?,
-                parse_ether(1)?,
-                U256::from(3_536_000),
-                parse_ether(0.003)?,
-            );
-            println!("low vol args: {:?}", low_vol_args);
             match params.specialty {
                 PortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
-                    let low_vol_pool = RMM::deploy(client.clone(), low_vol_args)?.send().await?;
-                    println!("Deployed G3M at address: {:?}", low_vol_pool.address());
-                    let high_vol_pool = RMM::deploy(client.clone(), high_vol_args)?.send().await?;
-                    println!("Deployed G3M at address: {:?}", high_vol_pool.address());
+                    let rmm = RMM::deploy(client.clone(), rmm_args)?.send().await?;
+                    trace!("Deployed rmm at address: {:?}", rmm.address());
                     let strategist = RmmVolatilityTargetingStrategist {
                         client,
                         lex,
-                        low_vol_pool,
-                        high_vol_pool,
+                        rmm,
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,
                         target_volatility: parameters.target_volatility.0,
@@ -142,11 +129,7 @@ impl PortfolioManager for PortfolioManagerType {
         self.0.execute_rebalance().await
     }
 
-    fn low_vol_pool(&self) -> &RMM<RevmMiddleware> {
-        self.0.low_vol_pool()
-    }
-
-    fn high_vol_pool(&self) -> &RMM<RevmMiddleware> {
-        self.0.high_vol_pool()
+    fn rmm(&self) -> &RMM<RevmMiddleware> {
+        self.0.rmm()
     }
 }

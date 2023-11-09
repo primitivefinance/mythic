@@ -8,10 +8,8 @@ pub struct RmmArbitrageur<S: ArbitrageStrategy> {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
-    /// The low vol strategy used by the exchange.
-    pub low_vol_strategy: S,
-    /// The high vol strategy used by the exchange.
-    pub high_vol_strategy: S,
+    /// The rmm strategy used by the exchange.
+    pub rmm_strategy: S,
     /// The atomic arbitrage contract.
     pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
     pub g3m_math: SD59x18Math<RevmMiddleware>,
@@ -23,31 +21,18 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         environment: &Environment,
         token_admin: &token_admin::TokenAdmin,
         liquid_exchange_address: Address,
-        low_vol_strategy_address: Address,
-        high_vol_strategy_address: Address,
+        rmm_address: Address,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, "arbitrageur".into())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
-        let low_vol_strategy = S::new(low_vol_strategy_address, client.clone());
-        let high_vol_strategy = S::new(high_vol_strategy_address, client.clone());
+        let rmm_strategy = S::new(rmm_address, client.clone());
         let atomic_arbitrage = AtomicArbitrage::deploy(
             client.clone(),
             (
-                low_vol_strategy_address,
-                liquid_exchange_address,
-                token_admin.arbx.address(),
-                token_admin.arby.address(),
-            ),
-        )?
-        .send()
-        .await?;
-        let atomic_arbitrage = AtomicArbitrage::deploy(
-            client.clone(),
-            (
-                high_vol_strategy_address,
+                rmm_address,
                 liquid_exchange_address,
                 token_admin.arbx.address(),
                 token_admin.arby.address(),
@@ -83,8 +68,7 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
             client,
             liquid_exchange,
             atomic_arbitrage,
-            low_vol_strategy,
-            high_vol_strategy,
+            rmm_strategy,
             g3m_math,
             rmm_math,
         })
@@ -128,14 +112,23 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.
-        match self.detect_arbitrage(&self.high_vol_strategy).await? {
+        let arbx = self.atomic_arbitrage.asset().call().await?;
+        let arby = self.atomic_arbitrage.quote().call().await?;
+        let arbx = ArbiterToken::new(arbx, self.client.clone());
+        let arby = ArbiterToken::new(arby, self.client.clone());
+        let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
+        let arby_balance = arby.balance_of(self.client.address()).call().await?;
+        trace!("arbx_balance: {:?}", arbx_balance);
+        trace!("arby_balance: {:?}", arby_balance);
+
+        match self.detect_arbitrage(&self.rmm_strategy).await? {
             Swap::RaiseExchangePrice(target_price) => {
                 info!(
                     "Detected the need to increase price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = self
-                    .high_vol_strategy
+                    .rmm_strategy
                     .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
 
@@ -143,8 +136,15 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                     "Increasing price by selling input amount of quote tokens: {:?}",
                     input,
                 );
+                if input < 0.into() {
+                    return Ok(());
+                }
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
                 let output = tx.send().await;
+                let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
+                let arby_balance = arby.balance_of(self.client.address()).call().await?;
+                trace!("arbx_balance: {:?}", arbx_balance);
+                trace!("arby_balance: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
                         output.await?;
@@ -164,12 +164,19 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                     format_units(target_price, "ether")?
                 );
                 let input = self
-                    .high_vol_strategy
+                    .rmm_strategy
                     .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
                 info!("Got input: {:?}", input);
+                if input <= 0.into() {
+                    return Ok(());
+                }
                 let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;
+                let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
+                let arby_balance = arby.balance_of(self.client.address()).call().await?;
+                trace!("arbx_balance after: {:?}", arbx_balance);
+                trace!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
                         output.await?;
