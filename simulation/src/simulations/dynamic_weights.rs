@@ -62,13 +62,16 @@ pub async fn setup(
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
     let steps = price_changer.trajectory.paths[0].len() - 1;
+
+    let mut agents = Agents::new();
+    agents.add(price_changer);
+    agents.add(arbitrageur);
+    agents.add(block_admin);
+    agents.add(weight_changer);
+    agents.add(lp);
+
     Ok(Simulation {
-        agents: Agents::new()
-            .add(price_changer)
-            .add(arbitrageur)
-            .add(block_admin)
-            .add(weight_changer)
-            .add(lp),
+        agents,
         steps,
         environment,
     })

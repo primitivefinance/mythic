@@ -14,6 +14,7 @@ use crate::settings::{
 
 pub mod arbitrageur;
 pub mod block_admin;
+pub mod counter;
 pub mod liquidity_provider;
 pub mod price_changer;
 pub mod swapper;
@@ -34,9 +35,11 @@ impl Agents {
         Self(vec![])
     }
 
-    pub fn add(mut self, agent: impl Agent + 'static) -> Self {
+    /// Modifies the agents in place.
+    /// dev: We can't consume this object and return Self, because we might want to mutate it later.
+    /// so for now we just push and don't return anything.
+    pub fn add(&mut self, agent: impl Agent + 'static) {
         self.0.push(Box::new(agent));
-        self
     }
 }
 
