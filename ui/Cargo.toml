@@ -29,6 +29,7 @@ image = "0.24.7"
 analysis.workspace = true
 simulation.workspace = true
 anyhow.workspace = true
+async-trait.workspace = true
 arbiter-core.workspace = true
 bytesize.workspace = true
 dotenv.workspace = true

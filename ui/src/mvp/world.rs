@@ -1,11 +1,16 @@
 //! Abstraction layer for managing and communicating with the simulation
 //! environment.
 
+use std::path::Path;
+
 use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use rand::Rng;
 use simulation::{
     agents::{Agent, Agents},
-    settings::{parameters::Single, SimulationConfig},
+    settings::{
+        parameters::{Multiple, Single},
+        SimulationConfig,
+    },
 };
 use tokio::{
     runtime::Builder,
@@ -48,10 +53,12 @@ pub struct World {
     // The state of the simulation.
     pub state: State,
     // Global simulation settings
-    pub config: SimulationConfig<Single>,
+    pub config: SimulationConfig<Multiple>,
     // Rough rng for world.
     pub seed: u64,
 }
+
+const WORLD_TRACE_IDENTIFIER: &str = "world";
 
 impl World {
     pub fn new(arbiter: Environment, agents: Arc<Mutex<Agents>>, seed: u64) -> Self {
@@ -67,13 +74,14 @@ impl World {
     /// Cycles the core simulation loop.
     /// Exits early if not running.
     pub async fn update(&mut self) -> anyhow::Result<(), anyhow::Error> {
-        tracing::trace!("World {}: Updating.", self.seed);
+        tracing::trace!("{}.{}.: Updating.", WORLD_TRACE_IDENTIFIER, self.seed);
 
         // Call the step function.
         self.step().await?;
 
         tracing::debug!(
-            "World {}: Simulation step complete. Step: {}",
+            "{}.{}.: Simulation step complete. Step: {}",
+            WORLD_TRACE_IDENTIFIER,
             self.seed,
             self.state.current_step
         );
@@ -88,7 +96,11 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("World {}: Running simulation.", self.seed);
+        tracing::trace!(
+            "{}.{}.: Running simulation.",
+            WORLD_TRACE_IDENTIFIER,
+            self.seed
+        );
 
         self.state.status = Status::Running;
 
@@ -96,13 +108,18 @@ impl World {
     }
 
     /// Handles pausing the simulation.
+    /// todo: does not need to be async?
     pub async fn pause(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already paused.
         if self.state.status == Status::Paused {
             return Ok(());
         }
 
-        tracing::trace!("World {}: Pausing simulation.", self.seed);
+        tracing::trace!(
+            "{}.{}.: Pausing simulation.",
+            WORLD_TRACE_IDENTIFIER,
+            self.seed
+        );
 
         self.state.status = Status::Paused;
 
@@ -110,13 +127,17 @@ impl World {
     }
 
     /// Handles stopping the simulation.
-    pub async fn stop(&mut self) -> anyhow::Result<(), anyhow::Error> {
+    pub fn stop(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already stopped.
         if self.state.status == Status::Stopped {
             return Ok(());
         }
 
-        tracing::trace!("World {}: Stopping simulation.", self.seed);
+        tracing::trace!(
+            "{}.{}.: Stopping simulation.",
+            WORLD_TRACE_IDENTIFIER,
+            self.seed
+        );
 
         self.state.status = Status::Stopped;
 
@@ -131,7 +152,11 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("World {}: Starting up agents.", self.seed);
+        tracing::trace!(
+            "{}.{}.: Starting up agents.",
+            WORLD_TRACE_IDENTIFIER,
+            self.seed
+        );
 
         for agent in self.agents.lock().await.iter_mut() {
             agent.startup().await?;
@@ -148,7 +173,11 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("World {}: Stepping agents.", self.seed);
+        tracing::trace!(
+            "{}.{}.: Stepping agents.",
+            WORLD_TRACE_IDENTIFIER,
+            self.seed
+        );
 
         self.state.current_step += 1;
 
@@ -167,7 +196,7 @@ impl World {
 pub struct WorldBuilder {
     arbiter: Option<Environment>,
     agents: Option<Agents>,
-    config: Option<SimulationConfig<Single>>,
+    config: Option<SimulationConfig<Multiple>>,
     seed: u64, // Add a field for the seed
 }
 
@@ -194,7 +223,7 @@ impl WorldBuilder {
         self
     }
 
-    pub fn config(mut self, config: SimulationConfig<Single>) -> Self {
+    pub fn config(mut self, config: SimulationConfig<Multiple>) -> Self {
         self.config = Some(config);
         self
     }
@@ -206,7 +235,9 @@ impl WorldBuilder {
         let agents = self
             .agents
             .ok_or_else(|| anyhow::anyhow!("Agents not set"))?;
-        let config = self.config.unwrap_or_else(SimulationConfig::default);
+
+        // todo: lots to fix here
+        let config = self.config.unwrap();
 
         Ok(World {
             arbiter,
@@ -228,10 +259,19 @@ impl Default for WorldBuilder {
     fn default() -> Self {
         let mut rng = rand::thread_rng();
         let seed = rng.gen::<u64>(); // Generate a random seed
+
+        let config_path = Path::new(std::env::current_dir().unwrap().to_str().unwrap())
+            .join("simulation")
+            .join("src")
+            .join("tests")
+            .join("configs")
+            .join("static.toml");
+
+        let config = simulation::simulations::import(&config_path.to_str().unwrap()).unwrap();
         Self {
             arbiter: Some(EnvironmentBuilder::new().build()),
             agents: Some(Agents::new()),
-            config: Some(SimulationConfig::default()),
+            config: Some(config),
             seed,
         }
     }
@@ -339,6 +379,99 @@ pub fn spawn_worlds(
     Ok((tx_clone, worlds, slice))
 }
 
+/// Manages the worlds and the thread that runs them.
+pub struct WorldManager {
+    pub worlds: Vec<Arc<Mutex<World>>>,
+    pub tx: Option<Arc<Mutex<broadcast::Sender<usize>>>>,
+    pub slice:
+        Option<Arc<Mutex<std::thread::JoinHandle<Result<Vec<Arc<Mutex<World>>>, anyhow::Error>>>>>,
+}
+
+#[derive(PartialEq)]
+pub enum WorldManagerState {
+    Running,
+    Paused,
+    Stopped,
+}
+
+impl WorldManager {
+    pub fn status(&self) -> WorldManagerState {
+        match self.tx {
+            Some(_) => WorldManagerState::Running,
+            None => WorldManagerState::Stopped,
+        }
+    }
+
+    /// Consumes the world manager and spawns the worlds.
+    pub fn spawn(mut self, num_worlds: usize) -> anyhow::Result<Self, anyhow::Error> {
+        let (tx, worlds, slice) = spawn_worlds(num_worlds)?;
+        self.tx = Some(Arc::new(Mutex::new(tx)));
+        self.worlds = worlds;
+        self.slice = Some(Arc::new(Mutex::new(slice)));
+        Ok(self)
+    }
+
+    pub fn new(
+        worlds: Vec<Arc<Mutex<World>>>,
+        tx: Option<Arc<Mutex<broadcast::Sender<usize>>>>,
+        slice: Option<
+            Arc<Mutex<std::thread::JoinHandle<Result<Vec<Arc<Mutex<World>>>, anyhow::Error>>>>,
+        >,
+    ) -> Self {
+        Self { worlds, tx, slice }
+    }
+
+    pub fn add_world(&mut self, world: Arc<Mutex<World>>) {
+        self.worlds.push(world);
+    }
+
+    pub async fn run(&self) -> anyhow::Result<(), anyhow::Error> {
+        // for each world, call run.
+        for world in &self.worlds {
+            {
+                let mut world_lock = world.lock().await;
+                world_lock.run().await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn stop(&self) -> anyhow::Result<(), anyhow::Error> {
+        // for each world, call stop.
+        for world in &self.worlds {
+            {
+                let mut world_lock = world.lock().await;
+                world_lock.stop()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub async fn pause(&self) -> anyhow::Result<(), anyhow::Error> {
+        // for each world, call pause.
+        for world in &self.worlds {
+            {
+                let mut world_lock = world.lock().await;
+                world_lock.pause().await?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl Default for WorldManager {
+    fn default() -> Self {
+        Self {
+            worlds: vec![],
+            tx: None,
+            slice: None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use simulation::agents::{counter::CounterAgent, token_admin::TokenAdmin};
@@ -346,6 +479,12 @@ mod tests {
     use tracing_subscriber::prelude::*;
 
     use super::*;
+
+    #[tokio::test]
+    async fn test_world_manager() {
+        let world_manager = WorldManager::default().spawn(5).unwrap();
+        assert_eq!(world_manager.worlds.len(), 5);
+    }
 
     #[tokio::test]
     async fn test_world_builder() {
@@ -450,10 +589,12 @@ mod tests {
 
             tracing::info!("Adding a counter agent");
 
+            let direct_configs: Vec<SimulationConfig<Single>> = world_lock.config.clone().into();
+
             // Create a new agent
             let counter_agent = CounterAgent::new(
                 &world_lock.arbiter,
-                &world_lock.config,
+                &direct_configs[0],
                 "counter".to_string(),
             )
             .await
