@@ -43,7 +43,7 @@ pub struct World {
     // The simulation instance.
     pub arbiter: Environment,
     // The agents in the simulation.
-    pub agents: Agents,
+    pub agents: Arc<Mutex<Agents>>,
     // The state of the simulation.
     pub state: State,
     // Global simulation settings
@@ -53,7 +53,7 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(arbiter: Environment, agents: Agents, seed: u64) -> Self {
+    pub fn new(arbiter: Environment, agents: Arc<Mutex<Agents>>, seed: u64) -> Self {
         Self {
             arbiter,
             agents,
@@ -66,12 +66,12 @@ impl World {
     /// Cycles the core simulation loop.
     /// Exits early if not running.
     pub async fn update(&mut self) -> anyhow::Result<(), anyhow::Error> {
-        tracing::trace!("Updating simulation.");
+        tracing::trace!("World {}: Updating.", self.seed);
 
         // Call the step function.
         self.step().await?;
 
-        tracing::warn!(
+        tracing::debug!(
             "World {}: Simulation step complete. Step: {}",
             self.seed,
             self.state.current_step
@@ -87,7 +87,7 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("Running simulation.");
+        tracing::trace!("World {}: Running simulation.", self.seed);
 
         self.state.status = Status::Running;
 
@@ -101,7 +101,7 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("Pausing simulation.");
+        tracing::trace!("World {}: Pausing simulation.", self.seed);
 
         self.state.status = Status::Paused;
 
@@ -115,7 +115,7 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("Stopping simulation.");
+        tracing::trace!("World {}: Stopping simulation.", self.seed);
 
         self.state.status = Status::Stopped;
 
@@ -130,9 +130,9 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("Starting agents.");
+        tracing::trace!("World {}: Starting up agents.", self.seed);
 
-        for agent in self.agents.iter_mut() {
+        for agent in self.agents.lock().await.iter_mut() {
             agent.startup().await?;
         }
 
@@ -147,15 +147,15 @@ impl World {
             return Ok(());
         }
 
-        tracing::trace!("Stepping simulation.");
+        tracing::trace!("World {}: Stepping agents.", self.seed);
 
         self.state.current_step += 1;
 
-        for agent in self.agents.iter_mut() {
+        for agent in self.agents.lock().await.iter_mut() {
             agent.priority_step().await?;
         }
 
-        for agent in self.agents.iter_mut() {
+        for agent in self.agents.lock().await.iter_mut() {
             agent.step().await?;
         }
 
@@ -209,7 +209,7 @@ impl WorldBuilder {
 
         Ok(World {
             arbiter,
-            agents,
+            agents: Arc::new(Mutex::new(agents)),
             state: State::new(),
             config,
             seed: self.seed,
@@ -234,85 +234,6 @@ impl Default for WorldBuilder {
             seed,
         }
     }
-}
-
-fn example_world() -> anyhow::Result<(mpsc::Sender<usize>, Arc<Mutex<World>>)> {
-    let mut world = WorldBuilder::default().build_arc()?;
-
-    // Create a channel for sending update signals
-    let (tx, mut rx) = mpsc::channel::<usize>(100);
-
-    let tx_clone = tx.clone();
-
-    let world_thread = world.clone();
-
-    std::thread::spawn(move || {
-        let start = Instant::now();
-
-        // Create a multi-threaded runtime
-        let rt = Builder::new_multi_thread().build()?;
-
-        // Create a semaphore with a given number of permits
-        let semaphore = Arc::new(Semaphore::new(1));
-
-        let rx = Arc::new(Mutex::new(rx));
-
-        let thread_call = async {
-            let mut handles = vec![];
-            let errors = Arc::new(tokio::sync::Mutex::new(vec![]));
-
-            for i in 0..1 {
-                let errors_clone = errors.clone();
-                let semaphore_clone = semaphore.clone();
-                let rx_clone = rx.clone();
-                let world_clone = world_thread.clone();
-                handles.push(tokio::spawn(async move {
-                    // Acquire a world lock.
-                    let mut world = world_clone.lock().await;
-
-                    tracing::warn!("Running environment; Full config: {:#?}", world.config);
-                    world.run().await.unwrap(); // Running simulation.
-
-                    while let Some(_) = rx_clone.lock().await.recv().await {
-                        tracing::warn!("Received message");
-                        // Acquire a permit outside the spawned task
-                        let permit = semaphore_clone.acquire().await.unwrap();
-                        let result: anyhow::Result<(), anyhow::Error> = world.update().await;
-                        match result {
-                            Err(e) => {
-                                tracing::error!("Got step error: {:?}", e);
-                                let mut errors_clone_lock = errors_clone.lock().await;
-                                errors_clone_lock.push(e);
-                                // Drop the permit when the simulation is done.
-                                drop(permit);
-                            }
-                            Ok(_) => {
-                                tracing::warn!("Got step result.");
-                                drop(permit);
-                                return;
-                            }
-                        }
-                    }
-                }));
-            }
-
-            for handle in handles {
-                handle.await?;
-                tracing::warn!("Simulation complete");
-            }
-
-            Ok(())
-        };
-
-        let res: anyhow::Result<()> = rt.block_on(thread_call);
-
-        let duration = start.elapsed();
-        tracing::info!("Total duration of simulations: {:?}", duration);
-
-        res
-    });
-
-    Ok((tx_clone, world.clone()))
 }
 
 async fn spawn_tasks(
@@ -351,11 +272,11 @@ fn create_task(
     tokio::spawn(async move {
         let mut world = world_clone.lock().await;
 
-        tracing::warn!("Running environment; Full config: {:#?}", world.config);
+        tracing::debug!("Running environment; Full config: {:#?}", world.config);
         world.run().await.unwrap(); // Running simulation.
 
         while let Ok(_) = rx_clone.lock().await.recv().await {
-            tracing::warn!("Received message");
+            tracing::trace!("Received message");
             let permit = semaphore_clone.acquire().await.unwrap();
             let result: anyhow::Result<(), anyhow::Error> = world.update().await;
             match result {
@@ -367,18 +288,24 @@ fn create_task(
                     drop(permit);
                 }
                 Ok(_) => {
-                    tracing::warn!("Got step result.");
+                    tracing::trace!("Got step result.");
                     drop(permit);
-                    return;
                 }
             }
         }
     })
 }
 
-fn example_worlds_concurrent(
+pub fn spawn_worlds(
     num_worlds: usize,
-) -> anyhow::Result<(broadcast::Sender<usize>, Vec<Arc<Mutex<World>>>), anyhow::Error> {
+) -> anyhow::Result<
+    (
+        broadcast::Sender<usize>,
+        Vec<Arc<Mutex<World>>>,
+        std::thread::JoinHandle<Result<Vec<Arc<Mutex<World>>>, anyhow::Error>>,
+    ),
+    anyhow::Error,
+> {
     // Create a broadcast channel instead of a standard channel
     let (tx, _) = broadcast::channel::<usize>(100);
 
@@ -390,7 +317,7 @@ fn example_worlds_concurrent(
 
     let worlds_clone = worlds.clone();
 
-    std::thread::spawn(move || {
+    let slice = std::thread::spawn(move || {
         let rt = Builder::new_multi_thread().build()?;
         let semaphore = Arc::new(Semaphore::new(num_worlds));
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<anyhow::Error>));
@@ -399,11 +326,7 @@ fn example_worlds_concurrent(
         res
     });
 
-    Ok((tx_clone, worlds))
-}
-
-pub enum Error {
-    Empty,
+    Ok((tx_clone, worlds, slice))
 }
 
 #[cfg(test)]
@@ -411,6 +334,7 @@ mod tests {
     use tracing::Level;
 
     use super::*;
+    use simulation::agents::{counter::CounterAgent, token_admin::TokenAdmin};
     use tracing_subscriber::prelude::*;
 
     #[tokio::test]
@@ -432,11 +356,11 @@ mod tests {
     async fn test_concurrent_worlds() {
         // start tracer
         let subscriber = tracing_subscriber::fmt()
-            .with_max_level(Level::DEBUG)
+            .with_max_level(Level::TRACE)
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
 
-        let (tx, worlds) = example_worlds_concurrent(2).unwrap();
+        let (tx, worlds, slice) = spawn_worlds(5).unwrap();
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -451,29 +375,101 @@ mod tests {
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        // Lock world and check its state
-        let world_lock = worlds[0].lock().await;
-        assert_eq!(world_lock.state.current_step, 1);
+        // for each world, lock it, and check its state step changed.
+        for world in worlds {
+            let world_lock = world.lock().await;
+            assert_eq!(world_lock.state.current_step, 1);
+        }
     }
 
     #[tokio::test]
-    async fn test_example_world() {
+    async fn test_single_world() {
         // start tracer
         let subscriber = tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
+            .with_max_level(tracing::Level::TRACE)
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
 
-        let (tx, world) = example_world().unwrap();
+        let (tx, worlds, slice) = spawn_worlds(1).unwrap();
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         // Send a message
-        tx.send(1).await.unwrap();
+        tx.send(1).unwrap();
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         // Lock world and check its state
-        let world_lock = world.lock().await;
+        let world_lock = worlds[0].lock().await;
         assert_eq!(world_lock.state.current_step, 1);
+
+        drop(slice);
+    }
+
+    #[tokio::test]
+    async fn test_changing_agents_in_worlds() {
+        // start tracer
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .finish();
+        tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
+
+        let (tx, worlds, slice) = spawn_worlds(1).unwrap();
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        // Send a message
+        tx.send(1).unwrap();
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        // Lock world and check its state
+        let world_lock = worlds[0].lock().await;
+        assert_eq!(world_lock.state.current_step, 1);
+
+        tracing::info!("Adding a counter agent");
+
+        // Create a new agent
+        let counter_agent = CounterAgent::new(
+            &world_lock.arbiter,
+            &world_lock.config,
+            "counter".to_string(),
+        )
+        .await
+        .unwrap();
+
+        // Change the agents in the world
+        let mut agents = world_lock.agents.lock().await;
+
+        tracing::info!("Current agents: {}", agents.0.len());
+        agents.add(counter_agent);
+        tracing::info!("New agents: {}", agents.0.len());
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        tracing::info!("Sending another message after adding agent to agents.");
+
+        // Send a message
+        tx.send(1).unwrap();
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        // Lock world and check its state
+        let world_lock = worlds[0].lock().await;
+        assert_eq!(world_lock.state.current_step, 2);
+
+        // stop the sim by dropping the tx channel
+        drop(tx);
+
+        // Check the counter is the current step - 1, because we added the agent in the middle.
+        /* let counter_agent = world_lock.agents.lock().await.0[0].downcast();
+
+        assert_eq!(counter_agent.get().await.unwrap(), U256::from(1)); */
     }
 }

@@ -18,6 +18,7 @@ use crate::settings::{
 };
 
 pub mod block_admin;
+pub mod counter;
 pub mod g3m;
 pub mod price_changer;
 pub mod rmm;
