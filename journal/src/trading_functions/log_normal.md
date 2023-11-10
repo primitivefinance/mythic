@@ -175,12 +175,16 @@ y' = K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}
 $$ 
 therefore the amount of $Y$ to tender is:
 $$
-\boxed{\Delta_y = y'-y = K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}
+\boxed{\Delta_y = y'-y = K\cdot L_Y(y+\delta_y,S) \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}\\
+\Delta_y = \left(KL + \frac{(1-\gamma)\Delta_y}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}\right)\cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\\
+\Delta_y=\frac{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)\left(KL\Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\right)}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)+(\gamma-1) \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
+
+x = (b (a c - d))/(b + c g - c)
 
 ### Lowering the price
 When we need to lower the price, we need to tender in $X$.
 If the current price is $S$ and we want to lower it to $S'$, then we need to tender in $X$ such that we go from $x$ to $x'$ and:
 $$
-\Delta x = L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x
+\boxed{\Delta x = L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x}
 $$
