@@ -21,6 +21,7 @@ use app::App;
 use loader::Loader;
 use local::Local;
 use styles::*;
+use world::*;
 
 pub struct MVP {
     state: State,
@@ -109,7 +110,7 @@ impl Application for MVP {
     }
 
     fn theme(&self) -> Theme {
-        Theme::default()
+        Theme::Dark
     }
 }
 

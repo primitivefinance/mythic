@@ -49,13 +49,11 @@ impl Loader {
     }
 
     pub fn view(&self) -> Element<Message> {
-        container(column![
-            text("Running Loader!").style(iced::theme::Text::Color(iced::Color::BLACK))
-        ])
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
-        .into()
+        container(column![text("Running Loader!")])
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .into()
     }
 }
