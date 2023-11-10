@@ -287,9 +287,23 @@ impl State for Terminal {
                         self.continue_simulation();
 
                         // Triggers a step, which will start the run loop.
-                        return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                            Message::View(view::Message::Simulation(view::SimulationMessage::Step))
-                        });
+                        let m = self.world_manager.clone();
+                        return Command::perform(
+                            async move {
+                                let locked = m.lock().await;
+
+                                if locked.status() == WorldManagerState::Running {
+                                    return locked.run().await;
+                                }
+
+                                Ok(())
+                            },
+                            |_| {
+                                Message::View(view::Message::Simulation(
+                                    view::SimulationMessage::Step,
+                                ))
+                            },
+                        );
                     }
                     view::SimulationMessage::Stop => {
                         tracing::trace!(
