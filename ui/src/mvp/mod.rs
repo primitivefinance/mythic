@@ -13,6 +13,7 @@ mod state;
 mod styles;
 mod tracer;
 mod view;
+mod world;
 
 use app::App;
 use loader::Loader;

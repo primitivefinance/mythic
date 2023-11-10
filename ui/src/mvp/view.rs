@@ -38,7 +38,7 @@ pub fn firehose_view<'a>(logs: Vec<String>) -> Element<'a, Message> {
     let firehose_content = container(scrollable(firehose))
         .style(FirehoseContainer::theme())
         .height(Length::Fixed(500.0))
-        .max_width(Length::Fixed(750.0))
+        .width(Length::Fixed(750.0))
         .padding(16);
 
     let mut actions = row![].width(Length::Fill).height(Length::Fill).spacing(8);
