@@ -69,6 +69,10 @@ impl TokenAdmin {
 
 #[async_trait::async_trait]
 impl Agent for TokenAdmin {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn startup(&mut self) -> Result<()> {
         Ok(())
     }

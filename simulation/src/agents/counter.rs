@@ -1,7 +1,8 @@
 //! The most basic agent... it just increments a counter.
 
-use super::*;
 use bindings::counter::Counter;
+
+use super::*;
 
 #[derive(Clone)]
 pub struct CounterAgent {
@@ -40,6 +41,10 @@ impl CounterAgent {
 
 #[async_trait::async_trait]
 impl Agent for CounterAgent {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         tracing::trace!("Incrementing counter");
         // very simple!

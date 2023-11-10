@@ -27,6 +27,10 @@ impl WeightChanger for DollarCostAveragingStategist {
 
 #[async_trait::async_trait]
 impl Agent for DollarCostAveragingStategist {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         Ok(())
     }

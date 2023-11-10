@@ -125,6 +125,10 @@ impl WeightChanger for MomentumStrategist {
 
 #[async_trait::async_trait]
 impl Agent for MomentumStrategist {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         debug!("Entered `step()` for `MomentumStrategist`");
         if self.portfolio_prices.is_empty() {

@@ -49,6 +49,10 @@ impl BlockAdmin {
 
 #[async_trait::async_trait]
 impl Agent for BlockAdmin {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         debug!("Updating block");
         self.update_block()?;

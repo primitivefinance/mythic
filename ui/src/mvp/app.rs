@@ -1,11 +1,11 @@
+use std::sync::mpsc::Receiver;
+
 use arbiter_core::environment::Environment;
 
 use super::{
     state::{Screen, Terminal},
     *,
 };
-
-use std::sync::mpsc::Receiver;
 
 #[derive(Debug)]
 pub enum Message {
@@ -15,7 +15,8 @@ pub enum Message {
 }
 
 /// Storage for the entire application.
-/// This should hold the most important pieces of data that many children components will need.
+/// This should hold the most important pieces of data that many children
+/// components will need.
 pub struct App {
     arbiter: Environment,
     local: Local<Ws>,

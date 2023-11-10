@@ -114,7 +114,13 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
+impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Agent
+    for Arbitrageur<S>
+{
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         debug!("Entered `step()` for arbitrageur");

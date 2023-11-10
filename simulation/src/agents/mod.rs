@@ -21,7 +21,10 @@ pub mod swapper;
 pub mod token_admin;
 pub mod weight_changer;
 
-use std::marker::{Send, Sync};
+use std::{
+    any::Any,
+    marker::{Send, Sync},
+};
 
 pub struct Agents(pub Vec<Box<dyn Agent>>);
 
@@ -36,8 +39,9 @@ impl Agents {
     }
 
     /// Modifies the agents in place.
-    /// dev: We can't consume this object and return Self, because we might want to mutate it later.
-    /// so for now we just push and don't return anything.
+    /// dev: We can't consume this object and return Self, because we might want
+    /// to mutate it later. so for now we just push and don't return
+    /// anything.
     pub fn add(&mut self, agent: impl Agent + 'static) {
         self.0.push(Box::new(agent));
     }
@@ -46,7 +50,7 @@ impl Agents {
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send {
+pub trait Agent: Sync + Send + Any {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())
@@ -62,6 +66,8 @@ pub trait Agent: Sync + Send {
     async fn priority_step(&mut self) -> Result<()> {
         Ok(())
     }
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[async_trait::async_trait]
@@ -72,6 +78,10 @@ impl Agent for Agents {
 
     async fn priority_step(&mut self) -> Result<()> {
         Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

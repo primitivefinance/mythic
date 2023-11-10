@@ -66,6 +66,9 @@ impl Swapper {
 
 #[async_trait::async_trait]
 impl Agent for Swapper {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
     // async fn step(&mut self) -> Result<()> {
     //     if self.client.get_block_timestamp().await? == self.next_swap_time {
     //         self.liquid_exchange.swap(self.input_token, self.amount_in)

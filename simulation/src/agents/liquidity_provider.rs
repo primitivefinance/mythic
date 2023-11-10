@@ -69,7 +69,11 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: LiquidityStrategy> Agent for LiquidityProvider<S> {
+impl<S: LiquidityStrategy + 'static> Agent for LiquidityProvider<S> {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn startup(&mut self) -> Result<()> {
         debug!("Entering `LiquidityProvider` startup");
         // Initializes the liquidity of a pool with a target price given an initial

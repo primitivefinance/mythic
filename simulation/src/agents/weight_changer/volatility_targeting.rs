@@ -136,6 +136,10 @@ impl WeightChanger for VolatilityTargetingStrategist {
 
 #[async_trait::async_trait]
 impl Agent for VolatilityTargetingStrategist {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         debug!("Entered `step()` for `VolatilityTargetingStrategist`");
         let timestamp = self.client.get_block_timestamp().await?.as_u64();

@@ -146,6 +146,10 @@ impl WeightChangerType {
 
 #[async_trait::async_trait]
 impl Agent for WeightChangerType {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         self.0.step().await
     }
