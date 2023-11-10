@@ -204,7 +204,7 @@ impl AnalyzerApp {
         figure.create().unwrap();
 
         // Load the image data
-        let img = image::open("Data.png").unwrap();
+        let img = image::open("data.png").unwrap();
         let img = img.to_rgba8();
         let (width, height) = img.dimensions();
         let img_data = img.into_raw();
