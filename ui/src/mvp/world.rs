@@ -1,13 +1,15 @@
 //! Abstraction layer for managing and communicating with the simulation environment.
 
 use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
+use rand::Rng;
 use simulation::{
     agents::{Agent, Agents},
     settings::{parameters::Single, SimulationConfig},
 };
 use tokio::{
     runtime::Builder,
-    sync::{mpsc, Mutex, Semaphore},
+    sync::{broadcast, mpsc, Mutex, Semaphore},
+    task::JoinHandle,
     time::Instant,
 };
 
@@ -46,15 +48,18 @@ pub struct World {
     pub state: State,
     // Global simulation settings
     pub config: SimulationConfig<Single>,
+    // Rough rng for world.
+    pub seed: u64,
 }
 
 impl World {
-    pub fn new(arbiter: Environment, agents: Agents) -> Self {
+    pub fn new(arbiter: Environment, agents: Agents, seed: u64) -> Self {
         Self {
             arbiter,
             agents,
             state: State::new(),
             config: SimulationConfig::default(),
+            seed,
         }
     }
 
@@ -67,7 +72,8 @@ impl World {
         self.step().await?;
 
         tracing::warn!(
-            "Simulation step complete. Step: {}",
+            "World {}: Simulation step complete. Step: {}",
+            self.seed,
             self.state.current_step
         );
 
@@ -157,10 +163,81 @@ impl World {
     }
 }
 
+pub struct WorldBuilder {
+    arbiter: Option<Environment>,
+    agents: Option<Agents>,
+    config: Option<SimulationConfig<Single>>,
+    seed: u64, // Add a field for the seed
+}
+
+impl WorldBuilder {
+    pub fn new() -> Self {
+        let mut rng = rand::thread_rng();
+        let seed = rng.gen::<u64>(); // Generate a random seed
+
+        Self {
+            arbiter: None,
+            agents: None,
+            config: None,
+            seed, // Store the seed
+        }
+    }
+
+    pub fn arbiter(mut self, arbiter: Environment) -> Self {
+        self.arbiter = Some(arbiter);
+        self
+    }
+
+    pub fn agents(mut self, agents: Agents) -> Self {
+        self.agents = Some(agents);
+        self
+    }
+
+    pub fn config(mut self, config: SimulationConfig<Single>) -> Self {
+        self.config = Some(config);
+        self
+    }
+
+    pub fn build(self) -> anyhow::Result<World> {
+        let arbiter = self
+            .arbiter
+            .ok_or_else(|| anyhow::anyhow!("Arbiter not set"))?;
+        let agents = self
+            .agents
+            .ok_or_else(|| anyhow::anyhow!("Agents not set"))?;
+        let config = self.config.unwrap_or_else(SimulationConfig::default);
+
+        Ok(World {
+            arbiter,
+            agents,
+            state: State::new(),
+            config,
+            seed: self.seed,
+        })
+    }
+
+    /// Wrap it with arc and mutex
+    pub fn build_arc(self) -> anyhow::Result<Arc<Mutex<World>>> {
+        let world = self.build()?;
+        Ok(Arc::new(Mutex::new(world)))
+    }
+}
+
+impl Default for WorldBuilder {
+    fn default() -> Self {
+        let mut rng = rand::thread_rng();
+        let seed = rng.gen::<u64>(); // Generate a random seed
+        Self {
+            arbiter: Some(EnvironmentBuilder::new().build()),
+            agents: Some(Agents::new()),
+            config: Some(SimulationConfig::default()),
+            seed,
+        }
+    }
+}
+
 fn example_world() -> anyhow::Result<(mpsc::Sender<usize>, Arc<Mutex<World>>)> {
-    let arbiter = EnvironmentBuilder::new().build();
-    let agents = Agents::new();
-    let mut world = Arc::new(Mutex::new(World::new(arbiter, agents)));
+    let mut world = WorldBuilder::default().build_arc()?;
 
     // Create a channel for sending update signals
     let (tx, mut rx) = mpsc::channel::<usize>(100);
@@ -180,7 +257,7 @@ fn example_world() -> anyhow::Result<(mpsc::Sender<usize>, Arc<Mutex<World>>)> {
 
         let rx = Arc::new(Mutex::new(rx));
 
-        let res: anyhow::Result<()> = rt.block_on(async {
+        let thread_call = async {
             let mut handles = vec![];
             let errors = Arc::new(tokio::sync::Mutex::new(vec![]));
 
@@ -225,7 +302,9 @@ fn example_world() -> anyhow::Result<(mpsc::Sender<usize>, Arc<Mutex<World>>)> {
             }
 
             Ok(())
-        });
+        };
+
+        let res: anyhow::Result<()> = rt.block_on(thread_call);
 
         let duration = start.elapsed();
         tracing::info!("Total duration of simulations: {:?}", duration);
@@ -234,6 +313,93 @@ fn example_world() -> anyhow::Result<(mpsc::Sender<usize>, Arc<Mutex<World>>)> {
     });
 
     Ok((tx_clone, world.clone()))
+}
+
+async fn spawn_tasks(
+    worlds: Vec<Arc<Mutex<World>>>,
+    tx: broadcast::Sender<usize>,
+    semaphore: Arc<Semaphore>,
+    errors: Arc<tokio::sync::Mutex<Vec<anyhow::Error>>>,
+) -> anyhow::Result<Vec<Arc<Mutex<World>>>, anyhow::Error> {
+    let mut handles = vec![];
+
+    for world in &worlds {
+        let world_clone = world.clone();
+        let rx = tx.subscribe();
+        let rx = Arc::new(Mutex::new(rx));
+        let handle = create_task(world_clone, rx, semaphore.clone(), errors.clone());
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.await?;
+    }
+
+    Ok(worlds)
+}
+
+fn create_task(
+    world: Arc<Mutex<World>>,
+    rx: Arc<Mutex<broadcast::Receiver<usize>>>,
+    semaphore: Arc<Semaphore>,
+    errors: Arc<tokio::sync::Mutex<Vec<anyhow::Error>>>,
+) -> JoinHandle<()> {
+    let errors_clone = errors.clone();
+    let semaphore_clone = semaphore.clone();
+    let rx_clone = rx.clone();
+    let world_clone = world.clone();
+    tokio::spawn(async move {
+        let mut world = world_clone.lock().await;
+
+        tracing::warn!("Running environment; Full config: {:#?}", world.config);
+        world.run().await.unwrap(); // Running simulation.
+
+        while let Ok(_) = rx_clone.lock().await.recv().await {
+            tracing::warn!("Received message");
+            let permit = semaphore_clone.acquire().await.unwrap();
+            let result: anyhow::Result<(), anyhow::Error> = world.update().await;
+            match result {
+                Err(e) => {
+                    tracing::error!("Got step error: {:?}", e);
+                    let mut errors_clone_lock = errors_clone.lock().await;
+                    errors_clone_lock.push(e);
+                    // Drop the permit when the simulation is done.
+                    drop(permit);
+                }
+                Ok(_) => {
+                    tracing::warn!("Got step result.");
+                    drop(permit);
+                    return;
+                }
+            }
+        }
+    })
+}
+
+fn example_worlds_concurrent(
+    num_worlds: usize,
+) -> anyhow::Result<(broadcast::Sender<usize>, Vec<Arc<Mutex<World>>>), anyhow::Error> {
+    // Create a broadcast channel instead of a standard channel
+    let (tx, _) = broadcast::channel::<usize>(100);
+
+    let tx_clone = tx.clone();
+
+    let worlds: Vec<_> = (0..num_worlds)
+        .map(|_| WorldBuilder::default().build_arc().unwrap())
+        .collect();
+
+    let worlds_clone = worlds.clone();
+
+    std::thread::spawn(move || {
+        let rt = Builder::new_multi_thread().build()?;
+        let semaphore = Arc::new(Semaphore::new(num_worlds));
+        let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<anyhow::Error>));
+
+        let res = rt.block_on(spawn_tasks(worlds_clone, tx, semaphore, errors));
+        res
+    });
+
+    Ok((tx_clone, worlds))
 }
 
 pub enum Error {
@@ -246,6 +412,49 @@ mod tests {
 
     use super::*;
     use tracing_subscriber::prelude::*;
+
+    #[tokio::test]
+    async fn test_world_builder() {
+        let mut world = WorldBuilder::default().build().unwrap();
+        assert_eq!(world.state.current_step, 0);
+
+        // try running the simulation
+        world.run().await.unwrap();
+
+        // try updating
+        world.update().await.unwrap();
+
+        // assert step changed
+        assert_eq!(world.state.current_step, 1);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_worlds() {
+        // start tracer
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(Level::DEBUG)
+            .finish();
+        tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
+
+        let (tx, worlds) = example_worlds_concurrent(2).unwrap();
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        // Send a message
+        let msg_result = tx.send(1);
+        match msg_result {
+            Ok(_) => tracing::warn!("Message sent"),
+            Err(e) => tracing::error!("Failed to send message: {:?}", e),
+        }
+
+        // Add a delay here so it has time to process.
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+        // Lock world and check its state
+        let world_lock = worlds[0].lock().await;
+        assert_eq!(world_lock.state.current_step, 1);
+    }
 
     #[tokio::test]
     async fn test_example_world() {
