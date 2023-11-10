@@ -9,8 +9,8 @@ __pycache__
 
 *.json
 !analysis/test.json
-!analysis/src/tests/test_output/trajectory=0.json
-!analysis/src/tests/test_output/trajectory=1.json
+!analysis/src/tests/output/0.json
+!analysis/src/tests/output/1.json
 
 Cargo.lock
 Cargo.lock~serde
