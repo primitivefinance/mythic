@@ -160,6 +160,10 @@ impl PriceChanger {
 
 #[async_trait::async_trait]
 impl Agent for PriceChanger {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         debug!("Updating price on lex");
         self.update_price().await?;

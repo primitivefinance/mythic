@@ -1,8 +1,8 @@
+use std::{sync::mpsc::Receiver, time::Duration};
+
 use iced::time;
 
 use super::{app::Message, view::terminal_view, *};
-
-use std::{sync::mpsc::Receiver, time::Duration};
 
 /// Implement this trait to make a new screen for the app.
 pub trait State

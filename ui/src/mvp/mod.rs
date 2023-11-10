@@ -15,10 +15,11 @@ mod tracer;
 mod view;
 mod world;
 
+use std::sync::{Arc, Mutex};
+
 use app::App;
 use loader::Loader;
 use local::Local;
-use std::sync::{Arc, Mutex};
 use styles::*;
 
 pub struct MVP {

@@ -26,7 +26,10 @@ pub mod rmm;
 pub mod tests;
 pub mod token_admin;
 
-use std::marker::{Send, Sync};
+use std::{
+    any::Any,
+    marker::{Send, Sync},
+};
 
 use linked_hash_map::LinkedHashMap;
 
@@ -49,12 +52,16 @@ impl Agents {
             Box::new(agent),
         );
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.3
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send + std::fmt::Debug {
+pub trait Agent: Sync + Send + Any + std::fmt::Debug {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())
@@ -74,6 +81,8 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
     /// In order to be able to track agents by their label, each agent must
     /// implement a label method.
     fn client(&self) -> Arc<RevmMiddleware>;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

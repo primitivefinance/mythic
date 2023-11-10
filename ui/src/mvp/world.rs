@@ -1,4 +1,5 @@
-//! Abstraction layer for managing and communicating with the simulation environment.
+//! Abstraction layer for managing and communicating with the simulation
+//! environment.
 
 use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use rand::Rng;
@@ -340,11 +341,11 @@ pub fn spawn_worlds(
 
 #[cfg(test)]
 mod tests {
+    use simulation::agents::{counter::CounterAgent, token_admin::TokenAdmin};
     use tracing::Level;
+    use tracing_subscriber::prelude::*;
 
     use super::*;
-    use simulation::agents::{counter::CounterAgent, token_admin::TokenAdmin};
-    use tracing_subscriber::prelude::*;
 
     #[tokio::test]
     async fn test_world_builder() {
@@ -488,12 +489,17 @@ mod tests {
             assert_eq!(world_lock.state.current_step, 2);
         }
 
-        /* {
+        {
             let world_lock = worlds[0].lock().await;
-            // Check the counter is the current step - 1, because we added the agent in the middle.
-            let counter_agent = world_lock.agents.lock().await.0[0].downcast();
+            let agents_lock = world_lock.agents.lock().await;
+            // Check the counter is the current step - 1, because we added the agent in the
+            // middle.
+            let counter_agent = agents_lock.0[0]
+                .as_any()
+                .downcast_ref::<CounterAgent>()
+                .unwrap();
             assert_eq!(counter_agent.get().await.unwrap(), U256::from(1));
-        } */
+        }
 
         // stop the sim by dropping the tx channel
         drop(tx);
