@@ -120,29 +120,28 @@ function computeSpotPrice(
         )
     );
 }
+// function computeOutputYGivenX(
+//     uint256 x,
+//     uint256 deltaX,
+//     uint256 y,
+//     uint256 deltaY,
+//     uint256 L,
+//     uint256 deltaL,
+//     uint256 K,
+//     uint256 sigma
+// ) pure returns (int256) {
+//     uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
 
-function computeOutputYGivenX(
-    uint256 x,
-    uint256 deltaX,
-    uint256 y,
-    uint256 deltaY,
-    uint256 L,
-    uint256 deltaL,
-    uint256 K,
-    uint256 sigma
-) pure returns (int256) {
-    uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
+//     int256 cdf = Gaussian.cdf(
+//         -int256(sigma)
+//             - Gaussian.ppf(
+//                 int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
+//             )
+//     );
 
-    int256 cdf = Gaussian.cdf(
-        -int256(sigma)
-            - Gaussian.ppf(
-                int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
-            )
-    );
-
-    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
-        - int256(deltaY);
-}
+//     return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
+//         - int256(deltaY);
+// }
 /* \boxed{\widetilde{\Delta_x} = 
 (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x} 
 */
