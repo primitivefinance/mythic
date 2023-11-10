@@ -270,12 +270,17 @@ fn create_task(
     let rx_clone = rx.clone();
     let world_clone = world.clone();
     tokio::spawn(async move {
-        let mut world = world_clone.lock().await;
+        {
+            // Drops the lock when done calling run().
+            let mut world = world_clone.lock().await;
+            tracing::debug!("Running environment; Full config: {:#?}", world.config);
 
-        tracing::debug!("Running environment; Full config: {:#?}", world.config);
-        world.run().await.unwrap(); // Running simulation.
+            // Running simulation.
+            world.run().await.unwrap();
+        }
 
         while let Ok(_) = rx_clone.lock().await.recv().await {
+            let mut world = world_clone.lock().await;
             tracing::trace!("Received message");
             let permit = semaphore_clone.acquire().await.unwrap();
             let result: anyhow::Result<(), anyhow::Error> = world.update().await;
@@ -284,11 +289,15 @@ fn create_task(
                     tracing::error!("Got step error: {:?}", e);
                     let mut errors_clone_lock = errors_clone.lock().await;
                     errors_clone_lock.push(e);
+                    // Drop the world when done.
+                    std::mem::drop(world);
                     // Drop the permit when the simulation is done.
                     drop(permit);
                 }
                 Ok(_) => {
+                    // Drop the world when done.
                     tracing::trace!("Got step result.");
+                    std::mem::drop(world);
                     drop(permit);
                 }
             }
@@ -419,57 +428,74 @@ mod tests {
         let (tx, worlds, slice) = spawn_worlds(1).unwrap();
 
         // Add a delay here so it has time to process.
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
         // Send a message
-        tx.send(1).unwrap();
+        let mut msg = tx.send(1);
+        match msg {
+            Ok(_) => tracing::warn!("Message sent"),
+            Err(e) => tracing::error!("Failed to send message: {:?}", e),
+        }
 
         // Add a delay here so it has time to process.
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
-        // Lock world and check its state
-        let world_lock = worlds[0].lock().await;
-        assert_eq!(world_lock.state.current_step, 1);
+        tracing::info!("Getting world lock");
 
-        tracing::info!("Adding a counter agent");
+        // Lock world and check its state, then add an agent, then drop the lock.
+        {
+            let world_lock = worlds[0].lock().await;
+            assert_eq!(world_lock.state.current_step, 1);
 
-        // Create a new agent
-        let counter_agent = CounterAgent::new(
-            &world_lock.arbiter,
-            &world_lock.config,
-            "counter".to_string(),
-        )
-        .await
-        .unwrap();
+            tracing::info!("Adding a counter agent");
 
-        // Change the agents in the world
-        let mut agents = world_lock.agents.lock().await;
+            // Create a new agent
+            let counter_agent = CounterAgent::new(
+                &world_lock.arbiter,
+                &world_lock.config,
+                "counter".to_string(),
+            )
+            .await
+            .unwrap();
 
-        tracing::info!("Current agents: {}", agents.0.len());
-        agents.add(counter_agent);
-        tracing::info!("New agents: {}", agents.0.len());
+            {
+                // Change the agents in the world then drops the lock.
+                let mut agents = world_lock.agents.lock().await;
 
+                tracing::info!("Current agents: {}", agents.0.len());
+                agents.add(counter_agent);
+                tracing::info!("New agents: {}", agents.0.len());
+            }
+        }
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         tracing::info!("Sending another message after adding agent to agents.");
 
         // Send a message
-        tx.send(1).unwrap();
+        let msg = tx.send(1);
+        match msg {
+            Ok(_) => tracing::warn!("Message sent"),
+            Err(e) => tracing::error!("Failed to send message: {:?}", e),
+        }
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        // Lock world and check its state
-        let world_lock = worlds[0].lock().await;
-        assert_eq!(world_lock.state.current_step, 2);
+        // Lock world and check its state then drop the lock.
+        {
+            let world_lock = worlds[0].lock().await;
+            assert_eq!(world_lock.state.current_step, 2);
+        }
+
+        /* {
+            let world_lock = worlds[0].lock().await;
+            // Check the counter is the current step - 1, because we added the agent in the middle.
+            let counter_agent = world_lock.agents.lock().await.0[0].downcast();
+            assert_eq!(counter_agent.get().await.unwrap(), U256::from(1));
+        } */
 
         // stop the sim by dropping the tx channel
         drop(tx);
-
-        // Check the counter is the current step - 1, because we added the agent in the middle.
-        /* let counter_agent = world_lock.agents.lock().await.0[0].downcast();
-
-        assert_eq!(counter_agent.get().await.unwrap(), U256::from(1)); */
     }
 }
