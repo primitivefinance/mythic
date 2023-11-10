@@ -162,3 +162,29 @@ $$
 x+\delta_x + \widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
 \boxed{\widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x}
 $$
+
+## Arbitrage Math
+
+NOTE THAT THIS MAY NOT BE QUITE CORRECT WHEN TAKING FEES INTO ACCOUNT.
+
+### Raising the price
+When we need to raise the price, we need to tender in $Y$. 
+If the current price is $S$ and we want to raise it to $S'$, then we need to tender in $Y$ such that we go from $y$ to $y'$ and:
+$$
+y' = K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+$$ 
+therefore the amount of $Y$ to tender is:
+$$
+\boxed{\Delta_y = y'-y = K\cdot L_Y(y+\delta_y,S) \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}\\
+\Delta_y = \left(KL + \frac{(1-\gamma)\Delta_y}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}\right)\cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\\
+\Delta_y=\frac{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)\left(KL\Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\right)}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)+(\gamma-1) \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+$$
+
+x = (b (a c - d))/(b + c g - c)
+
+### Lowering the price
+When we need to lower the price, we need to tender in $X$.
+If the current price is $S$ and we want to lower it to $S'$, then we need to tender in $X$ such that we go from $x$ to $x'$ and:
+$$
+\boxed{\Delta x = L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x}
+$$

@@ -40,7 +40,7 @@ impl Figure {
         }
 
         // Split the main drawing area into sub-areas
-        let sub_areas = drawing_area.split_evenly((1, num_plots));
+        let sub_areas = drawing_area.split_evenly((num_plots, 1));
 
         // Plot each plot on its respective drawing area
         for (i, plot) in self.plots.iter().enumerate() {

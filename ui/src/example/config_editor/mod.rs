@@ -24,8 +24,8 @@
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{button, text, Checkbox, Column, Row},
-    Element, Renderer,
+    widget::{button, column, container, row, scrollable, text, Checkbox, Column, Row},
+    Element, Length, Renderer,
 };
 use serde_json::Value;
 use simulation::settings::{Parameterized, SimulationConfig};
@@ -126,12 +126,9 @@ impl ConfigEditor {
         None
     }
 
-    pub fn view<'a>(&self, title: &str) -> Element<'a, EditorEvent> {
-        // Create a title
-        let title = text(title).size(50);
-
+    pub fn view<'a>(&self) -> Element<'a, EditorEvent> {
         // Create a row for the buttons
-        let buttons = Row::new()
+        let editor_buttons = Row::new()
             .push(button(text("Save")).on_press(EditorEvent::SaveButtonPressed))
             .push(button(text("Debug")).on_press(EditorEvent::DebugConfig))
             .push(Checkbox::new(
@@ -141,48 +138,98 @@ impl ConfigEditor {
             ))
             .spacing(10);
 
+        // Will group together all the non-nested fields as the "simulation" settings.
+        let mut single_field_group = column![text(format!("Sim Settings"))];
+
         // Create a vector of field elements
         let mut fields: Vec<Element<EditorEvent>> = Vec::new();
         for (field_name, field_value) in &self.store {
-            // Here we are matching on the value of each field in the store
-            // The store is a collection of key-value pairs where the key is the field name
-            // and the value is the field value We are checking if the value is
-            // an object or not If it is an object, we iterate over its fields
-            // (nested_field_name, nested_field_value) If the nested field value
-            // is null and we are not showing null fields, we skip this iteration
-            // If the nested field value is not null or we are showing null fields, we
-            // render the field and push it to the fields vector If the value is
-            // not an object, we check if it is null and we are not showing null fields, if
-            // so we skip this iteration If the value is not null or we are
-            // showing null fields, we render the field and push it to the fields vector
+            // Skip null fields if checked.
+            if field_value.is_null() && !self.show_null_fields {
+                continue;
+            }
+
+            // We go one layer deep into the store.
+            // If the value is an object, this is a group of fields.
+            // If it's a value, its a top level config field that we can render directly.
             match field_value {
-                Value::Object(obj) => {
-                    for (nested_field_name, nested_field_value) in obj {
+                Value::Object(field_group) => {
+                    // We go one more layer deep and start to render the fields recursively.
+                    // All fields are then grouped by the second layer.
+                    // For example, if we are at "agent.admin", all these fields are grouped for the
+                    // "admin".
+                    for (nested_field_name, nested_field_value) in field_group {
                         if nested_field_value.is_null() && !self.show_null_fields {
                             continue;
                         }
-                        if let Some(field) = self.render_field(
-                            &format!("{}.{}", field_name, nested_field_name),
-                            nested_field_value,
-                            self.show_null_fields,
-                        ) {
-                            fields.push(field);
+
+                        // We go another layer deep because the value is stored as an object.
+                        // Since its stored as an object, its key "object" is the same as the value
+                        // "Object {}".
+                        match nested_field_value {
+                            Value::Object(field_object) => {
+                                for (doubled_nested_field_name, double_nested_field_value) in
+                                    field_object
+                                {
+                                    if double_nested_field_value.is_null() && !self.show_null_fields
+                                    {
+                                        continue;
+                                    }
+
+                                    if let Some(field) = self.render_field(
+                                        &format!("{}", doubled_nested_field_name),
+                                        double_nested_field_value,
+                                        self.show_null_fields,
+                                    ) {
+                                        let field_content = column![
+                                            text(nested_field_name.clone())
+                                                .size(16)
+                                                .vertical_alignment(
+                                                    iced::alignment::Vertical::Center
+                                                ),
+                                            field
+                                        ]
+                                        .width(iced::Length::Fill)
+                                        .align_items(iced::alignment::Alignment::Center)
+                                        .spacing(4);
+
+                                        let group_of_fields = container(field_content)
+                                            .padding(8)
+                                            .style(
+                                                super::styles::background::Layer2Container::theme(),
+                                            )
+                                            .into();
+
+                                        fields.push(group_of_fields);
+                                    }
+                                }
+                            }
+                            _ => {
+                                // todo: shouldn't get here due to how store is
+                                // saved, but we should make sure.
+                                // it has its key and value as an object the
+                                // same as the key.
+                                // so you get stuff like agent.example.Example,
+                                // because the value is Example {}, an object.
+                            }
                         }
                     }
                 }
                 _ => {
-                    if field_value.is_null() && !self.show_null_fields {
-                        continue;
-                    }
-
-                    if let Some(field) =
-                        self.render_field(field_name, field_value, self.show_null_fields)
-                    {
-                        fields.push(field);
-                    }
+                    // Render a single field input if the value is not an object, because only an
+                    // object can have nested fields.
+                    single_field_group = single_field_group
+                        .push(create_field_input(field_name.clone(), field_value.clone()));
                 }
             }
         }
+
+        fields.push(
+            container(single_field_group)
+                .style(super::styles::background::Layer2Container::theme())
+                .padding(8)
+                .into(),
+        );
 
         // Arrange the fields into two columns
         let half = fields.len() / 2;
@@ -195,7 +242,7 @@ impl ConfigEditor {
             .spacing(10)
             .align_items(iced::Alignment::Start);
 
-        for (i, field) in fields.into_iter().enumerate() {
+        for (i, field) in fields.into_iter().rev().enumerate() {
             if i < half {
                 column1 = column1.push(field);
             } else {
@@ -203,17 +250,23 @@ impl ConfigEditor {
             }
         }
 
-        let columns = Row::new().push(column1).push(column2).spacing(10);
+        let editor_title = text("Config Editor")
+            .size(24)
+            .vertical_alignment(iced::alignment::Vertical::Center)
+            .horizontal_alignment(iced::alignment::Horizontal::Center);
 
-        // Combine the title, buttons, and fields into a column
-        let content = Column::new()
-            .push(title)
-            .push(buttons)
-            .push(columns)
-            .spacing(10)
-            .padding(10);
+        let editor_content = container(scrollable(row![column1, column2].spacing(10)))
+            .padding(16)
+            .style(super::styles::background::Layer2Container::theme());
 
-        content.into()
+        let mut editor_container = column![].width(Length::Fill).height(Length::Fill);
+        editor_container = editor_container
+            .push(editor_title)
+            .push(editor_buttons)
+            .push(editor_content)
+            .spacing(16);
+
+        container(editor_container).padding(24).into()
     }
 
     /// Recursively renders each field of a config.
@@ -230,17 +283,17 @@ impl ConfigEditor {
 
         Some(match field_value {
             Value::Object(obj) => {
-                let mut column = Column::new().spacing(10);
+                let mut group = Column::new().spacing(10);
                 for (nested_field_name, nested_field_value) in obj {
                     if let Some(field) = self.render_field(
                         &format!("{}.{}", field_name, nested_field_name),
                         nested_field_value,
                         show_null_fields,
                     ) {
-                        column = column.push(field);
+                        group = group.push(field);
                     }
                 }
-                column.into()
+                group.into()
             }
             _ => create_field_input(field_name.clone(), field_value.clone()),
         })
@@ -261,6 +314,8 @@ impl ConfigEditor {
 
 /// Renders a single field of a config and emits [`EditorEvent::FieldChanged`]
 /// when the field is changed.
+/// Renders the field name as a label and the field value as an input, stacked
+/// on each other.
 pub fn create_field_input<'a>(
     field_name: String,
     field_value: Value,

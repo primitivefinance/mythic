@@ -32,5 +32,14 @@ iced = { version = "0.10.0", features = [
     "lazy",
     "image",
     "palette",
+    "advanced",
+] }
+iced_aw = { version = "0.7.0", default-features = false, features = [
+    "menu",
+    "icon_text",
+    "icons",
+    "spinner",
 ] }
 native-dialog = "0.7.0"
+
+image = "0.24.7"

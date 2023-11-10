@@ -170,7 +170,7 @@ impl<Message> Component<Message, Renderer> for StringInputComponent<Message> {
     }
 
     fn view(&self, _state: &Self::State) -> Element<Self::Event, Renderer> {
-        row![text_input(
+        let input = text_input(
             "Type a value...",
             self.value
                 .as_ref()
@@ -178,10 +178,9 @@ impl<Message> Component<Message, Renderer> for StringInputComponent<Message> {
                 .as_deref()
                 .unwrap_or(""),
         )
-        .on_input(StringInputComponentEvent::InputChanged)
-        .padding(10)]
-        .spacing(10)
-        .into()
+        .on_input(StringInputComponentEvent::InputChanged);
+
+        input.into()
     }
 }
 

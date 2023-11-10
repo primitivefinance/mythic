@@ -1,4 +1,11 @@
-use analysis::reader::SimulationData;
+use analysis::{
+    reader::SimulationData,
+    visualize::{plots::line::LinePlot, Figure},
+    wad_to_float,
+};
+use ethers::types::U256;
+use iced::widget::Image;
+use image;
 use native_dialog::FileDialog;
 
 use super::*;
@@ -6,19 +13,19 @@ use super::*;
 pub struct AnalyzerApp {
     state: AnalyzerState,
     simulation_data: Option<SimulationData>,
-    selected_events: Vec<(String, String)>,
+    selected_variables: Vec<(String, String, String)>,
 }
 
 #[derive(Debug, Clone)]
 pub enum AnalyzerMessage {
     OpenFileExplorerClicked,
-    ChooseEvents((String, String)),
-    EventsChosen,
+    ChooseVariables((String, String, String)),
+    VariablesChosen,
 }
 
 pub enum AnalyzerState {
     Selection,
-    DisplayEvents,
+    DisplayFigure,
 }
 
 impl Application for AnalyzerApp {
@@ -32,7 +39,7 @@ impl Application for AnalyzerApp {
             AnalyzerApp {
                 state: AnalyzerState::Selection,
                 simulation_data: None,
-                selected_events: Vec::new(),
+                selected_variables: Vec::new(),
             },
             Command::none(),
         )
@@ -53,15 +60,15 @@ impl Application for AnalyzerApp {
                         .unwrap();
                 }
             }
-            AnalyzerMessage::ChooseEvents(selected) => {
-                if self.selected_events.contains(&selected) {
-                    self.selected_events.retain(|x| x.clone() != selected);
+            AnalyzerMessage::ChooseVariables(selected) => {
+                if self.selected_variables.contains(&selected) {
+                    self.selected_variables.retain(|x| x.clone() != selected);
                 } else {
-                    self.selected_events.push(selected);
+                    self.selected_variables.push(selected);
                 }
             }
-            AnalyzerMessage::EventsChosen => {
-                self.state = AnalyzerState::DisplayEvents;
+            AnalyzerMessage::VariablesChosen => {
+                self.state = AnalyzerState::DisplayFigure;
             }
         }
         Command::none()
@@ -70,7 +77,7 @@ impl Application for AnalyzerApp {
     fn view(&self) -> Element<AnalyzerMessage> {
         match self.state {
             AnalyzerState::Selection => self.view_selection(),
-            AnalyzerState::DisplayEvents => self.view_events(),
+            AnalyzerState::DisplayFigure => self.view_events(),
         }
     }
 
@@ -96,27 +103,39 @@ impl AnalyzerApp {
         let mut events_column = Column::new().align_items(Alignment::End).spacing(10);
         if let Some(sim_data) = &self.simulation_data {
             // Iterate over contracts
-            for contract_name in sim_data.0.keys() {
+            for contract_name in sim_data.contract_events.keys() {
                 let mut contract_column = Column::new()
                     .align_items(Alignment::Start)
                     .spacing(5)
                     .push(Text::new(contract_name).size(20)); // Displaying the contract name
 
                 // Iterate over events inside the current contract
-                let events_map = sim_data.0.get(contract_name).unwrap();
+                let events_map = sim_data.contract_events.get(contract_name).unwrap();
                 for event_name in events_map.keys() {
-                    let checkbox = Checkbox::new(
-                        event_name,
-                        self.selected_events
-                            .contains(&(contract_name.clone(), event_name.clone())),
-                        move |_| {
-                            AnalyzerMessage::ChooseEvents((
+                    let data = self
+                        .simulation_data
+                        .as_ref()
+                        .unwrap()
+                        .get_vectorized_events_from_str(contract_name, event_name);
+
+                    for (variable_name, _values) in data {
+                        let checkbox = Checkbox::new(
+                            variable_name.clone(),
+                            self.selected_variables.contains(&(
                                 contract_name.clone(),
                                 event_name.clone(),
-                            ))
-                        },
-                    );
-                    contract_column = contract_column.push(checkbox);
+                                variable_name.clone(),
+                            )),
+                            move |_| {
+                                AnalyzerMessage::ChooseVariables((
+                                    contract_name.clone(),
+                                    event_name.clone(),
+                                    variable_name.clone(),
+                                ))
+                            },
+                        );
+                        contract_column = contract_column.push(checkbox);
+                    }
                 }
 
                 // Add the current contract's column to the events column
@@ -125,7 +144,7 @@ impl AnalyzerApp {
 
             events_column = events_column.push(
                 Button::new("Analyze Events")
-                    .on_press(AnalyzerMessage::EventsChosen)
+                    .on_press(AnalyzerMessage::VariablesChosen)
                     .width(100),
             );
         }
@@ -147,50 +166,55 @@ impl AnalyzerApp {
 
     fn view_events(&self) -> Element<AnalyzerMessage> {
         let mut content = Row::new().spacing(20); // Spacing between columns
-
-        for (contract_name, event_name) in &self.selected_events {
+        let mut figure = Figure::new("data", None);
+        for (contract_name, event_name, variable_name) in &self.selected_variables {
             let data = self
                 .simulation_data
                 .as_ref()
                 .unwrap()
                 .get_vectorized_events_from_str(contract_name, event_name);
 
-            for (variable_name, values) in data {
-                let mut column = Column::new().spacing(5); // Spacing between items in the column
+            let variable = data.get(variable_name).unwrap();
+            let (indices, values): (Vec<_>, Vec<_>) = variable
+                .into_iter()
+                .cloned()
+                .enumerate()
+                .map(|(idx, val)| (idx as f64, val.clone()))
+                .unzip();
+            let values = values
+                .into_iter()
+                .map(|x| x.as_str().unwrap().to_owned())
+                .collect::<Vec<String>>();
+            let values = values
+                .into_iter()
+                .map(|x| U256::from_str_radix(&x, 16).unwrap())
+                .collect::<Vec<U256>>();
+            let values = values
+                .into_iter()
+                .map(|x| wad_to_float(x))
+                .collect::<Vec<f64>>();
 
-                // Title for the column
-                let title = Text::new(variable_name.clone()).size(20);
-                column = column.push(title);
-
-                // Calculate the breakpoints for displaying values
-                let breakpoint = values.len().min(25);
-                let start_of_last = values.len().saturating_sub(25);
-
-                // Add the first 25 values
-                for value in values.iter().take(breakpoint) {
-                    let text = Text::new(value.to_string()).size(16);
-                    column = column.push(text);
-                }
-
-                // Add the separator if there are more than 50 values
-                if values.len() > 50 {
-                    let separator = Text::new("...................").size(16);
-                    column = column.push(separator);
-                }
-
-                // Add the last 25 values
-                for value in values.iter().skip(start_of_last) {
-                    let text = Text::new(value.to_string()).size(16);
-                    column = column.push(text);
-                }
-
-                // Create a Scrollable for the Column
-                let column = Scrollable::new(column)
-                    .width(Length::FillPortion(1)) // Fill an equal portion of the row
-                    .height(Length::Fill); // Fill the vertical space
-                content = content.push(column);
-            }
+            let lineplot = LinePlot {
+                x_data: indices,
+                y_data: values,
+            };
+            figure.add_plot(lineplot);
         }
+
+        figure.create().unwrap();
+
+        // Load the image data
+        let img = image::open("data.png").unwrap();
+        let img = img.to_rgba8();
+        let (width, height) = img.dimensions();
+        let img_data = img.into_raw();
+
+        // Create an iced::Image
+        let handle = iced::widget::image::Handle::from_pixels(width, height, img_data);
+        let img_widget = Image::new(handle);
+
+        // Add the image to the UI
+        content = content.push(img_widget);
 
         // Finalize
         container(content)
