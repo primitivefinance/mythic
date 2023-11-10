@@ -1,4 +1,7 @@
+use std::str::FromStr;
+
 use arbiter_core::bindings::arbiter_math::ArbiterMath;
+use ethers::abi::AbiEncode;
 
 use super::*;
 use crate::{agents::Agent, strategy::ArbitrageStrategy};
@@ -87,8 +90,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
 
         let gamma_wad = WAD - pool.get_swap_fee().await?;
 
-        let upper_arb_bound = WAD * price / gamma_wad;
-        let lower_arb_bound = price * gamma_wad / WAD;
+        let upper_arb_bound = WAD * price / (WAD - gamma_wad);
+        let lower_arb_bound = price * (WAD - gamma_wad) / WAD;
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.
@@ -143,8 +146,8 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                trace!("arbx_balance: {:?}", arbx_balance);
-                trace!("arby_balance: {:?}", arby_balance);
+                trace!("arbx_balance after: {:?}", arbx_balance);
+                trace!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
                         output.await?;

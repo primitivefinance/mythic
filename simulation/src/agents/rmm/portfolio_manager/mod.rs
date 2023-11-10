@@ -83,7 +83,7 @@ impl PortfolioManagerType {
                 parse_ether(0.3)?,
                 parse_ether(1)?,
                 parse_ether(0.5)?,
-                parse_ether(0.003)?,
+                parse_ether(0.997)?,
             );
             match params.specialty {
                 PortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
