@@ -5,24 +5,46 @@ use tracing::Span;
 
 use super::{column, *};
 
+/// Messages emitted from user interaction with agents.
 #[derive(Debug, Clone)]
-pub enum SimulationMessage {
+pub enum AgentOperations {
+    Add,
+}
+
+/// Messages emitted from user interaction with the simulation.
+#[derive(Debug, Clone)]
+pub enum Operation {
     Spawn,
     Continue,
     Stop,
     Pause,
     Step,
+    Agent(AgentOperations),
 }
 
+/// Messages emitted from user interaction with the settings.
+#[derive(Debug, Clone)]
+pub enum Settings {
+    ToggleRealtime,
+    ToggleFirehoseVisibility,
+}
+
+/// Messages emitted from user interaction with data components.
+#[derive(Debug, Clone)]
+pub enum Data {
+    // for debugging...
+    LogTrace,
+    // todo: this needs a refactor
+    UpdateWatchedValue(HashMap<String, String>),
+}
+
+/// Root message for the Terminal component.
 #[derive(Debug, Clone)]
 pub enum Message {
     Empty,
-    LogTrace,
-    Simulation(SimulationMessage),
-    ToggleRealtime,
-    AddAgent,
-    UpdateWatchedValue(HashMap<String, String>),
-    ToggleFirehoseVisibility,
+    Simulation(Operation),
+    Settings(Settings),
+    Data(Data),
 }
 
 pub fn view_span() -> Span {
@@ -65,18 +87,23 @@ pub fn terminal_view_multiple_firehose<'a>(
     let mut content = Column::new();
     let mut actions = row![].width(Length::Fill).height(Length::Shrink).spacing(8);
     actions = actions
-        .push(button(text("Spawn Worlds")).on_press(Message::Simulation(SimulationMessage::Spawn)))
-        .push(button(text("Play")).on_press(Message::Simulation(SimulationMessage::Continue)))
-        .push(button(text("Pause")).on_press(Message::Simulation(SimulationMessage::Pause)))
-        .push(button(text("Stop")).on_press(Message::Simulation(SimulationMessage::Stop)))
-        .push(button(text("Spawn Agent")).on_press(Message::AddAgent))
-        .push(button(text("Log debug trace")).on_press(Message::LogTrace))
-        .push(button(text("Step")).on_press(Message::Simulation(SimulationMessage::Step)));
+        .push(button(text("Spawn Worlds")).on_press(Message::Simulation(Operation::Spawn)))
+        .push(button(text("Play")).on_press(Message::Simulation(Operation::Continue)))
+        .push(button(text("Pause")).on_press(Message::Simulation(Operation::Pause)))
+        .push(button(text("Stop")).on_press(Message::Simulation(Operation::Stop)))
+        .push(
+            button(text("Spawn Agent"))
+                .on_press(Message::Simulation(Operation::Agent(AgentOperations::Add))),
+        )
+        .push(button(text("Log debug trace")).on_press(Message::Data(Data::LogTrace)))
+        .push(button(text("Step")).on_press(Message::Simulation(Operation::Step)));
 
     actions = actions
-        .push(checkbox("realtime", realtime, |_| Message::ToggleRealtime))
+        .push(checkbox("realtime", realtime, |_| {
+            Message::Settings(Settings::ToggleRealtime)
+        }))
         .push(checkbox("firehose visible", !firehose_visible, |_| {
-            Message::ToggleFirehoseVisibility
+            Message::Settings(Settings::ToggleFirehoseVisibility)
         }));
 
     let mut watched = column![text("watching:").size(16)]
