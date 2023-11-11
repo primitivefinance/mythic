@@ -18,7 +18,8 @@ pub struct Loader;
 /// Starts arbiter in the background and connects to a local blockchain.
 pub async fn load_app() -> anyhow::Result<(Environment, Local<Ws>), anyhow::Error> {
     let arbiter = EnvironmentBuilder::new().build();
-    let local = Local::new().await?;
+    // todo: get this working without running anvil in background
+    let local = Local::default();
     Ok((arbiter, local))
 }
 

@@ -8,7 +8,13 @@ const CHAIN_ID: u64 = 31337;
 
 #[derive(Debug)]
 pub struct Local<C> {
-    pub client: Arc<SignerMiddleware<Provider<C>, LocalWallet>>,
+    pub client: Option<Arc<SignerMiddleware<Provider<C>, LocalWallet>>>,
+}
+
+impl Default for Local<Ws> {
+    fn default() -> Self {
+        Self { client: None }
+    }
 }
 
 impl Local<Ws> {
@@ -27,7 +33,7 @@ impl Local<Ws> {
         let client = Arc::new(SignerMiddleware::new(provider, wallet));
 
         Ok(Self {
-            client: client.clone(),
+            client: Some(client.clone()),
         })
     }
 }
