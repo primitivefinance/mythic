@@ -1,4 +1,4 @@
-use iced::Color;
+use iced::{Color, Font};
 
 pub const BLACK: Color = Color::from_rgb(
     0x00 as f32 / 255.0,
@@ -65,3 +65,6 @@ pub const BORDER_COLOR: Color = Color::from_rgb(
     0x38 as f32 / 255.0,
     0x38 as f32 / 255.0,
 );
+
+// pretty sure this breaks if they don't have daggersquare installed?
+pub const FONT_DAGGERSQUARE: Font = Font::with_name("DAGGERSQUARE");
