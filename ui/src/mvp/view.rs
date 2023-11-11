@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use iced::widget::checkbox;
 
@@ -20,7 +20,7 @@ pub enum Message {
     Simulation(SimulationMessage),
     ToggleRealtime,
     AddAgent,
-    UpdateWatchedValue(Vec<String>),
+    UpdateWatchedValue(HashMap<String, String>),
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {

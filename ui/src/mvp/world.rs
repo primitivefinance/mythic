@@ -162,9 +162,9 @@ impl World {
     /// Startup should be called before the simulation is started.
     pub async fn startup(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already running.
-        if self.state.status == Status::Running {
-            return Ok(());
-        }
+        // if self.state.status == Status::Running {
+        // return Ok(());
+        // }
 
         tracing::trace!(
             "{}.{}.: Starting up agents.",
@@ -380,6 +380,10 @@ fn create_task(
             // Drops the lock when done calling run().
             let mut world = world_clone.lock().await;
             tracing::debug!("Running environment; Full config: {:#?}", world.config);
+
+            // Startup agents.
+            // todo: figure out why this reverts, probably something with agents?
+            // world.startup().await.unwrap();
 
             // Running simulation.
             world.run().await.unwrap();
