@@ -3,8 +3,7 @@ use std::collections::{HashMap, VecDeque};
 use iced::widget::checkbox;
 use tracing::Span;
 
-use self::control::{action_button, controls_container, labeled_controls, *};
-use super::{column, *};
+use super::{column, components::*, *};
 
 pub mod control;
 
