@@ -4,6 +4,7 @@ use iced::{
     widget::{button, column, container, text},
     Length,
 };
+use tracing::{Instrument, Span};
 
 use super::*;
 
@@ -15,11 +16,16 @@ pub enum Message {
 }
 pub struct Loader;
 
+pub fn loader_span() -> Span {
+    tracing::info_span!("Loader")
+}
+
 /// Starts arbiter in the background and connects to a local blockchain.
+#[tracing::instrument(level = "info", name = "load_app")]
 pub async fn load_app() -> anyhow::Result<(Environment, Local<Ws>), anyhow::Error> {
     let arbiter = EnvironmentBuilder::new().build();
     // todo: get this working without running anvil in background
-    let local = Local::default();
+    let local = Local::new().await?;
     Ok((arbiter, local))
 }
 
@@ -38,7 +44,7 @@ impl Loader {
     }
 
     fn on_load(&mut self) -> Command<Message> {
-        Command::perform(load_app(), Message::Ready)
+        Command::perform(load_app().instrument(loader_span()), Message::Ready)
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {

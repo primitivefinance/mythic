@@ -30,6 +30,7 @@ use tokio::{
     task::JoinHandle,
     time::Instant,
 };
+use tracing_futures::Instrument;
 
 use super::*;
 
@@ -342,6 +343,7 @@ impl Default for WorldBuilder {
     }
 }
 
+#[tracing::instrument(skip(worlds, tx, semaphore, errors), fields(worlds = worlds.len()))]
 async fn spawn_tasks(
     worlds: Vec<Arc<Mutex<World>>>,
     tx: broadcast::Sender<usize>,
@@ -354,7 +356,10 @@ async fn spawn_tasks(
         let world_clone = world.clone();
         let rx = tx.subscribe();
         let rx = Arc::new(Mutex::new(rx));
-        let handle = create_task(world_clone, rx, semaphore.clone(), errors.clone());
+        let current_span = tracing::Span::current();
+        let new_span = current_span.clone();
+        let handle =
+            create_task(world_clone, rx, semaphore.clone(), errors.clone()).instrument(new_span);
         handles.push(handle);
     }
 
@@ -415,6 +420,7 @@ fn create_task(
     })
 }
 
+#[tracing::instrument()]
 pub async fn spawn_worlds(
     num_worlds: usize,
 ) -> anyhow::Result<
@@ -459,7 +465,7 @@ pub struct WorldManager {
         Option<Arc<Mutex<std::thread::JoinHandle<Result<Vec<Arc<Mutex<World>>>, anyhow::Error>>>>>,
 }
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum WorldManagerState {
     Running,
     Paused,
@@ -476,6 +482,7 @@ impl WorldManager {
     }
 
     /// Consumes the world manager and spawns the worlds.
+    #[tracing::instrument(skip(self))]
     pub async fn spawn(mut self, num_worlds: usize) -> anyhow::Result<Self, anyhow::Error> {
         let (tx, worlds, slice) = spawn_worlds(num_worlds).await?;
         self.tx = Some(Arc::new(Mutex::new(tx)));
@@ -498,6 +505,7 @@ impl WorldManager {
         self.worlds.push(world);
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn run(&self) -> anyhow::Result<(), anyhow::Error> {
         // for each world, call run.
         for world in &self.worlds {
@@ -510,6 +518,7 @@ impl WorldManager {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn stop(&self) -> anyhow::Result<(), anyhow::Error> {
         // for each world, call stop.
         for world in &self.worlds {
@@ -522,6 +531,7 @@ impl WorldManager {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn pause(&self) -> anyhow::Result<(), anyhow::Error> {
         // for each world, call pause.
         for world in &self.worlds {
@@ -543,6 +553,25 @@ impl Default for WorldManager {
             slice: None,
         }
     }
+}
+
+pub fn world_span(world: &World) -> tracing::Span {
+    tracing::span!(
+        tracing::Level::TRACE,
+        "world",
+        seed = world.seed,
+        step = world.state.current_step,
+        status = ?world.state.status
+    )
+}
+
+pub fn world_manager_span(world_manager: &WorldManager) -> tracing::Span {
+    tracing::span!(
+        tracing::Level::TRACE,
+        "world_manager",
+        worlds = world_manager.worlds.len(),
+        status = ?world_manager.status()
+    )
 }
 
 #[cfg(test)]

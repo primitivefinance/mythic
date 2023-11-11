@@ -42,10 +42,10 @@ pub const LEVEL_4_COLOR: Color = Color::from_rgb(
     0xD6 as f32 / 255.0,
 );
 
-pub const BORDER_COLOR: Color = Color::from_rgb(
-    0x40 as f32 / 255.0,
-    0x40 as f32 / 255.0,
-    0x40 as f32 / 255.0,
+pub const BACKGROUND: Color = Color::from_rgb(
+    0x12 as f32 / 255.0,
+    0x12 as f32 / 255.0,
+    0x12 as f32 / 255.0,
 );
 
 pub const PANEL: Color = Color::from_rgb(
@@ -54,14 +54,14 @@ pub const PANEL: Color = Color::from_rgb(
     0x18 as f32 / 255.0,
 );
 
-pub const BACKGROUND: Color = Color::from_rgb(
-    0x12 as f32 / 255.0,
-    0x12 as f32 / 255.0,
-    0x12 as f32 / 255.0,
-);
-
 pub const MODAL: Color = Color::from_rgb(
     0x28 as f32 / 255.0,
     0x28 as f32 / 255.0,
     0x28 as f32 / 255.0,
+);
+
+pub const BORDER_COLOR: Color = Color::from_rgb(
+    0x38 as f32 / 255.0,
+    0x38 as f32 / 255.0,
+    0x38 as f32 / 255.0,
 );
