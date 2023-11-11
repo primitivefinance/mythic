@@ -65,12 +65,14 @@ pub struct Terminal {
     realtime: bool,
     // storage slots to keep track of for giving feedback to user.
     watching_state: HashMap<String, String>,
+    // render the firehose logs or not
+    hide_logs: bool,
 }
 
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
     // Override the world manager with a new one that has spawned worlds.
     Ok(Arc::new(tokio::sync::Mutex::new(
-        WorldManager::default().spawn(3).await?,
+        WorldManager::default().spawn(2).await?,
     )))
 }
 
@@ -92,6 +94,7 @@ impl Terminal {
             status: WorldManagerState::Stopped,
             realtime: true,
             watching_state: HashMap::new(),
+            hide_logs: false,
         }
     }
 
@@ -178,11 +181,16 @@ impl State for Terminal {
             .iter()
             .map(|(k, v)| format!("{}: {}", k, v))
             .collect::<Vec<String>>();
-        let filtered_logs = self.firehoses.clone();
+        let mut filtered_logs = self.firehoses.clone();
+        if self.hide_logs {
+            filtered_logs = vec![VecDeque::new()];
+        }
+
         view::app_layout(view::terminal_view_multiple_firehose(
             filtered_logs,
             self.realtime,
             watching_state_vec.clone(),
+            self.hide_logs,
         ))
         .into()
     }
@@ -252,6 +260,10 @@ impl State for Terminal {
                 Command::none()
             }
             Message::View(msg) => match msg {
+                view::Message::ToggleFirehoseVisibility => {
+                    self.hide_logs = !self.hide_logs;
+                    Command::none()
+                }
                 view::Message::UpdateWatchedValue(value) => {
                     // Update the current watched values with the new ones, if any.
                     for (k, v) in value {
