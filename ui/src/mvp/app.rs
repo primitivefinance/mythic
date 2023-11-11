@@ -17,7 +17,7 @@ pub enum Message {
     Empty,
     View(view::Message),
     ProcessTracer,
-    Spawn(anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error>),
+    Spawned(anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error>),
     Completed,
 }
 

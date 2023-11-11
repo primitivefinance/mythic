@@ -165,9 +165,9 @@ impl Terminal {
         self.logs = new_logs;
     }
 
-    /// Executes the logic when a spawn message is received.
+    /// Executes the logic when a spawned message is received.
     #[tracing::instrument(level = "trace", skip(self, world_manager))]
-    pub fn handle_spawn(
+    pub fn handle_startup(
         &mut self,
         world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
     ) -> Command<Message> {
@@ -182,7 +182,7 @@ impl Terminal {
     }
 
     /// Executes the logic when a continue message is received.
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "continue"))]
     pub fn handle_continue(&mut self) -> Command<Message> {
         if self.status == WorldManagerState::Completed {
             tracing::warn!("Simulation world already completed!");
@@ -211,6 +211,315 @@ impl Terminal {
             .instrument(terminal_span()),
             |_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)),
         )
+    }
+
+    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "spawn"))]
+    pub fn handle_spawn(&mut self) -> Command<Message> {
+        if self.status != WorldManagerState::Stopped {
+            tracing::warn!("Simulation already spawned! Stop before spawning a new one.");
+            return Command::none();
+        }
+
+        tracing::trace!("Spawn simulation message received!");
+        self.purge_non_main_logs();
+
+        // Triggers a step, which will start the run loop.
+        Command::perform(
+            async { spawn().instrument(terminal_span()).await },
+            Message::Spawned,
+        )
+    }
+
+    // todo: this is triggered on View::Step, but it should be a root level message.
+    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "step"))]
+    pub fn handle_step(&mut self) -> Command<Message> {
+        if self.status == WorldManagerState::Stopped {
+            tracing::trace!("Simulation is stopped, cannot step.");
+            return Command::none();
+        }
+
+        // If paused, we can still step.
+        tracing::trace!("Step simulation message received!");
+
+        let m = self.world_manager.clone();
+        let trace_id = "process.step";
+
+        // Message emitted after step completes.
+        let mut exit_msg = Message::Empty;
+        if self.status == WorldManagerState::Running && !self.realtime {
+            exit_msg = Message::View(view::Message::Simulation(view::SimulationMessage::Step));
+        }
+
+        return Command::perform(
+            async move {
+                let mut m_locked = m.lock().await;
+                if let Some(ref mut tx) = m_locked.tx {
+                    let msg = tx.lock().await.send(1);
+                    tracing::trace!("{} Sent message {:?}", trace_id, msg);
+                    match msg {
+                        Ok(_) => {
+                            // tracing::trace!(
+                            // "{} Simulation world
+                            // stepped!",
+                            // trace_id
+                            // );
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                "{}  Simulation world failed to step: {:?}",
+                                trace_id,
+                                e
+                            );
+                            return Err(anyhow!("{} Simulation world failed to step:", trace_id));
+                        }
+                    }
+                }
+
+                // for each world get the watched vars
+                let mut finished_path = false;
+                let mut watched_vars: HashMap<String, String> = HashMap::new();
+                for world in m_locked.worlds.iter() {
+                    let world = world.lock().await;
+                    let world_id = world.seed;
+                    let mut agents = world.agents.lock().await;
+
+                    // tracing::debug!("agents: {}", agents.0.len());
+                    // We also need to get the PriceChanger agent and check if
+                    // its reached the end of its price path.
+                    // If so, we need to stop the simulation.
+                    for agent in agents.0.iter_mut() {
+                        let counter_agent = agent.as_any().downcast_ref::<CounterAgent>();
+
+                        match counter_agent {
+                            Some(counter_agent) => {
+                                let counter = counter_agent.get().await;
+                                match counter {
+                                    Ok(counter) => {
+                                        tracing::debug!(
+                                            "world.{}.: Got counter agent state {}",
+                                            world_id.clone(),
+                                            counter.as_u128()
+                                        );
+                                        watched_vars.insert(
+                                            format!("world.{}.counter", world_id.clone(),),
+                                            format!("{}", counter.as_u128()),
+                                        );
+                                        // watched_vars.
+                                        // push(format!(
+                                        // "world.{}.{}",
+                                        // world_id.clone(),
+                                        // counter
+                                        // ));
+                                    }
+                                    Err(e) => {
+                                        tracing::error!(
+                                            "world.{}.: Failed to get counter agent state: {:?}",
+                                            world_id.clone(),
+                                            e
+                                        );
+                                    }
+                                }
+                            }
+                            None => {
+                                // else we got another agent...
+                                let price_changer = agent.as_any().downcast_ref::<PriceChanger>();
+
+                                match price_changer {
+                                    Some(price_changer) => {
+                                        // todo: fix this index, its hardcoded
+                                        // to just one trajectory for now.
+                                        let price_path = price_changer.trajectory.paths[0].clone();
+
+                                        let current_index = price_changer.index;
+
+                                        let last_index = price_path.len();
+
+                                        if current_index == last_index {
+                                            tracing::debug!(
+                                                "world.{}.: Price path is empty, stopping simulation",
+                                                world_id.clone()
+                                            );
+                                            finished_path = true;
+                                        }
+                                    }
+                                    None => {
+                                        // else its another agent...
+                                        let temp = agent.get_state().await;
+
+                                        match temp {
+                                            Ok(temp) => {
+                                                tracing::debug!(
+                                                    "world.{}.: Got LP agent state {}",
+                                                    world_id.clone(),
+                                                    temp,
+                                                );
+
+                                                if temp.as_u128() != 0 {
+                                                    tracing::debug!(
+                                                        "world.{}.: Got LP agent pvf {}",
+                                                        world_id.clone(),
+                                                        temp
+                                                    );
+                                                    watched_vars.insert(
+                                                        format!("world.{}.pvf", world_id.clone(),),
+                                                        format!("{}", temp.as_u128()),
+                                                    );
+                                                }
+                                            }
+                                            Err(e) => {
+                                                tracing::error!(
+                                                    "world.{}.: Failed to get LP agent state: {:?}",
+                                                    world_id.clone(),
+                                                    e
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Ok((watched_vars, finished_path))
+            },
+            |result| {
+                match result {
+                    Ok((watched_vars, finished_path)) => {
+                        tracing::trace!("Simulation world stepped!");
+
+                        // todo: this short-circuits the last update watched
+                        // value!
+                        if finished_path {
+                            tracing::trace!("Simulation world finished!");
+                            return Message::Completed;
+                        }
+
+                        return Message::View(view::Message::UpdateWatchedValue(watched_vars));
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            "Simulation world failed to step:
+     {:?}",
+                            e
+                        );
+                    }
+                }
+
+                exit_msg
+            },
+        );
+    }
+
+    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "stop"))]
+    pub fn handle_stop(&mut self) -> Command<Message> {
+        tracing::trace!("Stop simulation message received!");
+        self.status = WorldManagerState::Stopped;
+
+        // If world manager is set, then we need to stop it.
+        let m = self.world_manager.clone();
+        Command::perform(
+            async move {
+                let locked = m.lock().await;
+
+                if locked.status() == WorldManagerState::Running {
+                    return locked.stop().await;
+                }
+
+                Ok(())
+            },
+            |result| {
+                match result {
+                    Ok(_) => {
+                        tracing::trace!("Simulation world stopped!");
+                    }
+                    Err(e) => {
+                        tracing::error!("Simulation world failed to stop: {:?}", e);
+                    }
+                }
+                Message::Empty
+            },
+        )
+    }
+
+    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "pause"))]
+    pub fn handle_pause(&mut self) -> Command<Message> {
+        tracing::trace!("Pause simulation message received!");
+        self.status = WorldManagerState::Paused;
+
+        let m = self.world_manager.clone();
+        Command::perform(
+            async move {
+                let locked = m.lock().await;
+
+                if locked.status() == WorldManagerState::Running {
+                    return locked.pause().await;
+                }
+
+                Ok(())
+            },
+            |_| Message::Empty,
+        )
+    }
+
+    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "add_agent"))]
+    pub fn handle_add_agent(&mut self) -> Command<Message> {
+        tracing::warn!(
+            "{}.{}: Add agent message received!",
+            USER_ACTION_FILTER,
+            "add_agent"
+        );
+        let m = self.world_manager.clone();
+        return Command::perform(
+            async move {
+                let locked = m.lock().await;
+
+                for world in locked.worlds.iter() {
+                    let world = world.lock().await;
+                    let world_id = world.seed;
+                    let mut agents = world.agents.lock().await;
+
+                    tracing::info!("world.{}.: Adding agent", world_id.clone());
+                    let direct_configs: Vec<SimulationConfig<Single>> = world.config.clone().into();
+
+                    // loop through the agents, and find the LP agent by checking the
+                    // label on the agent's client.
+                    let mut lp_address = Address::zero();
+
+                    for agent in agents.0.iter_mut() {
+                        let name = agent.get_name();
+
+                        if name.contains("liquidity_provider") {
+                            tracing::trace!("world.{}.: Found LP agent", world_id.clone());
+                            lp_address = agent.get_client().unwrap().address();
+                        }
+                    }
+
+                    // Create a new agent
+                    let counter_agent = CounterAgent::new(
+                        &world.arbiter,
+                        &direct_configs[0],
+                        "counter".to_string(),
+                        lp_address.clone(),
+                    )
+                    .await
+                    .unwrap();
+
+                    tracing::trace!(
+                        "world.{}.: Current agents: {}",
+                        world_id.clone(),
+                        agents.0.len()
+                    );
+                    agents.add(counter_agent);
+                    tracing::trace!(
+                        "world.{}.: New agents: {}",
+                        world_id.clone(),
+                        agents.0.len()
+                    );
+                }
+            },
+            |_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)),
+        );
     }
 }
 
@@ -278,10 +587,10 @@ impl State for Terminal {
                 self.status = WorldManagerState::Completed;
                 Command::none()
             }
-            Message::Spawn(world_manager) => {
+            Message::Spawned(world_manager) => {
                 match world_manager {
                     Ok(world_manager) => {
-                        return self.handle_spawn(world_manager);
+                        return self.handle_startup(world_manager);
                     }
                     Err(e) => {
                         tracing::error!("Simulation world failed to spawn: {:?}", e);
@@ -327,349 +636,19 @@ impl State for Terminal {
 
                     Command::none()
                 }
-                view::Message::AddAgent => {
-                    tracing::warn!(
-                        "{}.{}: Add agent message received!",
-                        USER_ACTION_FILTER,
-                        "add_agent"
-                    );
-                    let m = self.world_manager.clone();
-                    return Command::perform(
-                        async move {
-                            let locked = m.lock().await;
-
-                            for world in locked.worlds.iter() {
-                                let world = world.lock().await;
-                                let world_id = world.seed;
-                                let mut agents = world.agents.lock().await;
-
-                                tracing::info!("world.{}.: Adding agent", world_id.clone());
-                                let direct_configs: Vec<SimulationConfig<Single>> =
-                                    world.config.clone().into();
-
-                                // loop through the agents, and find the LP agent by checking the
-                                // label on the agent's client.
-                                let mut lp_address = Address::zero();
-
-                                for agent in agents.0.iter_mut() {
-                                    let name = agent.get_name();
-
-                                    if name.contains("liquidity_provider") {
-                                        tracing::trace!(
-                                            "world.{}.: Found LP agent",
-                                            world_id.clone()
-                                        );
-                                        lp_address = agent.get_client().unwrap().address();
-                                    }
-                                }
-
-                                // Create a new agent
-                                let counter_agent = CounterAgent::new(
-                                    &world.arbiter,
-                                    &direct_configs[0],
-                                    "counter".to_string(),
-                                    lp_address.clone(),
-                                )
-                                .await
-                                .unwrap();
-
-                                tracing::trace!(
-                                    "world.{}.: Current agents: {}",
-                                    world_id.clone(),
-                                    agents.0.len()
-                                );
-                                agents.add(counter_agent);
-                                tracing::trace!(
-                                    "world.{}.: New agents: {}",
-                                    world_id.clone(),
-                                    agents.0.len()
-                                );
-                            }
-                        },
-                        |_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)),
-                    );
-                }
+                view::Message::AddAgent => self.handle_add_agent(),
                 view::Message::ToggleRealtime => {
                     self.realtime = !self.realtime;
                     Command::none()
                 }
                 view::Message::Simulation(msg) => {
                     match msg {
-                        view::SimulationMessage::Spawn => {
-                            if self.status != WorldManagerState::Stopped {
-                                tracing::warn!(
-                                "{}.{}: Simulation already spawned! Stop before spawning a new one.", USER_ACTION_FILTER, "spawn"
-                            );
-                                return Command::none();
-                            }
-
-                            tracing::trace!("Spawn simulation message received!");
-
-                            self.purge_non_main_logs();
-
-                            // Triggers a step, which will start the run loop.
-                            return Command::perform(async { spawn().await }, Message::Spawn);
-                        }
+                        view::SimulationMessage::Spawn => self.handle_spawn(),
                         view::SimulationMessage::Continue => self.handle_continue(),
-                        view::SimulationMessage::Stop => {
-                            tracing::trace!(
-                                "{}.{}: Stop simulation world message received!",
-                                USER_ACTION_FILTER,
-                                "stop"
-                            );
-                            self.status = WorldManagerState::Stopped;
-
-                            // If world manager is set, then we need to stop it.
-                            let m = self.world_manager.clone();
-                            return Command::perform(
-                                async move {
-                                    let locked = m.lock().await;
-
-                                    if locked.status() == WorldManagerState::Running {
-                                        return locked.stop().await;
-                                    }
-
-                                    Ok(())
-                                },
-                                |result| {
-                                    match result {
-                                        Ok(_) => {
-                                            tracing::trace!("Simulation world stopped!");
-                                        }
-                                        Err(e) => {
-                                            tracing::error!(
-                                                "Simulation world failed to stop:
-                         {:?}",
-                                                e
-                                            );
-                                        }
-                                    }
-                                    Message::Empty
-                                },
-                            );
-                        }
-                        view::SimulationMessage::Pause => {
-                            tracing::trace!(
-                                "{}.{}: Pause simulation message received!",
-                                USER_ACTION_FILTER,
-                                "pause"
-                            );
-                            self.status = WorldManagerState::Paused;
-
-                            let mut m = self.world_manager.clone();
-                            return Command::perform(
-                                async move {
-                                    let locked = m.lock().await;
-
-                                    if locked.status() == WorldManagerState::Running {
-                                        return locked.pause().await;
-                                    }
-
-                                    Ok(())
-                                },
-                                |_| Message::Empty,
-                            );
-                        }
+                        view::SimulationMessage::Stop => self.handle_stop(),
+                        view::SimulationMessage::Pause => self.handle_pause(),
                         // todo: I don't like this logic in this place.
-                        view::SimulationMessage::Step => {
-                            if self.status == WorldManagerState::Stopped {
-                                tracing::trace!("Simulation is stopped, cannot step.");
-                                return Command::none();
-                            }
-
-                            // If paused, we can still step.
-                            tracing::trace!("Step simulation message received!");
-
-                            let m = self.world_manager.clone();
-                            let trace_id = "process.step";
-
-                            // Message emitted after step completes.
-                            let mut exit_msg = Message::Empty;
-                            if self.status == WorldManagerState::Running && !self.realtime {
-                                exit_msg = Message::View(view::Message::Simulation(
-                                    view::SimulationMessage::Step,
-                                ));
-                            }
-
-                            return Command::perform(
-                                async move {
-                                    let mut m_locked = m.lock().await;
-                                    if let Some(ref mut tx) = m_locked.tx {
-                                        let msg = tx.lock().await.send(1);
-                                        tracing::trace!("{} Sent message {:?}", trace_id, msg);
-                                        match msg {
-                                            Ok(_) => {
-                                                // tracing::trace!(
-                                                // "{} Simulation world
-                                                // stepped!",
-                                                // trace_id
-                                                // );
-                                            }
-                                            Err(e) => {
-                                                tracing::error!(
-                                                    "{}  Simulation world failed to step: {:?}",
-                                                    trace_id,
-                                                    e
-                                                );
-                                                return Err(anyhow!(
-                                                    "{} Simulation world failed to step:",
-                                                    trace_id
-                                                ));
-                                            }
-                                        }
-                                    }
-
-                                    // for each world get the watched vars
-                                    let mut finished_path = false;
-                                    let mut watched_vars: HashMap<String, String> = HashMap::new();
-                                    for world in m_locked.worlds.iter() {
-                                        let world = world.lock().await;
-                                        let world_id = world.seed;
-                                        let mut agents = world.agents.lock().await;
-
-                                        // tracing::debug!("agents: {}", agents.0.len());
-                                        // We also need to get the PriceChanger agent and check if
-                                        // its reached the end of its price path.
-                                        // If so, we need to stop the simulation.
-                                        for agent in agents.0.iter_mut() {
-                                            let counter_agent =
-                                                agent.as_any().downcast_ref::<CounterAgent>();
-
-                                            match counter_agent {
-                                                Some(counter_agent) => {
-                                                    let counter = counter_agent.get().await;
-                                                    match counter {
-                                                        Ok(counter) => {
-                                                            tracing::debug!(
-                                                                "world.{}.: Got counter agent state {}",
-                                                                world_id.clone(),
-                                                                counter.as_u128()
-                                                            );
-                                                            watched_vars.insert(
-                                                                format!(
-                                                                    "world.{}.counter",
-                                                                    world_id.clone(),
-                                                                ),
-                                                                format!("{}", counter.as_u128()),
-                                                            );
-                                                            // watched_vars.
-                                                            // push(format!(
-                                                            // "world.{}.{}",
-                                                            // world_id.clone(),
-                                                            // counter
-                                                            // ));
-                                                        }
-                                                        Err(e) => {
-                                                            tracing::error!(
-                                                                "world.{}.: Failed to get counter agent state: {:?}",
-                                                                world_id.clone(),
-                                                                e
-                                                            );
-                                                        }
-                                                    }
-                                                }
-                                                None => {
-                                                    // else we got another agent...
-                                                    let price_changer = agent
-                                                        .as_any()
-                                                        .downcast_ref::<PriceChanger>();
-
-                                                    match price_changer {
-                                                        Some(price_changer) => {
-                                                            // todo: fix this index, its hardcoded
-                                                            // to just one trajectory for now.
-                                                            let price_path =
-                                                                price_changer.trajectory.paths[0]
-                                                                    .clone();
-
-                                                            let current_index = price_changer.index;
-
-                                                            let last_index = price_path.len();
-
-                                                            if current_index == last_index {
-                                                                tracing::debug!(
-                                                                    "world.{}.: Price path is empty, stopping simulation",
-                                                                    world_id.clone()
-                                                                );
-                                                                finished_path = true;
-                                                            }
-                                                        }
-                                                        None => {
-                                                            // else its another agent...
-                                                            let temp = agent.get_state().await;
-
-                                                            match temp {
-                                                                Ok(temp) => {
-                                                                    tracing::debug!(
-                                                                "world.{}.: Got LP agent state {}",
-                                                                world_id.clone(),
-                                                                temp,
-                                                            );
-
-                                                                    if temp.as_u128() != 0 {
-                                                                        tracing::debug!(
-                                                                    "world.{}.: Got LP agent pvf {}",
-                                                                    world_id.clone(),
-                                                                    temp
-                                                                );
-                                                                        watched_vars.insert(
-                                                                            format!(
-                                                                                "world.{}.pvf",
-                                                                                world_id.clone(),
-                                                                            ),
-                                                                            format!(
-                                                                                "{}",
-                                                                                temp.as_u128()
-                                                                            ),
-                                                                        );
-                                                                    }
-                                                                }
-                                                                Err(e) => {
-                                                                    tracing::error!(
-                                                                "world.{}.: Failed to get LP agent state: {:?}",
-                                                                world_id.clone(),
-                                                                e
-                                                            );
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Ok((watched_vars, finished_path))
-                                },
-                                |result| {
-                                    match result {
-                                        Ok((watched_vars, finished_path)) => {
-                                            tracing::trace!("Simulation world stepped!");
-
-                                            // todo: this short-circuits the last update watched
-                                            // value!
-                                            if finished_path {
-                                                tracing::trace!("Simulation world finished!");
-                                                return Message::Completed;
-                                            }
-
-                                            return Message::View(
-                                                view::Message::UpdateWatchedValue(watched_vars),
-                                            );
-                                        }
-                                        Err(e) => {
-                                            tracing::error!(
-                                                "Simulation world failed to step:
-                         {:?}",
-                                                e
-                                            );
-                                        }
-                                    }
-
-                                    exit_msg
-                                },
-                            );
-                        }
+                        view::SimulationMessage::Step => self.handle_step(),
                     }
                 }
                 view::Message::LogTrace => {
