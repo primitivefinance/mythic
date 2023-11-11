@@ -464,6 +464,7 @@ pub enum WorldManagerState {
     Running,
     Paused,
     Stopped,
+    Completed,
 }
 
 impl WorldManager {

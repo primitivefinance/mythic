@@ -13,6 +13,7 @@ pub enum Message {
     View(view::Message),
     ProcessTracer,
     Spawn(anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error>),
+    Completed,
 }
 
 /// Storage for the entire application.
