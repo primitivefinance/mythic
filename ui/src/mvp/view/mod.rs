@@ -3,6 +3,7 @@ use std::collections::{HashMap, VecDeque};
 use iced::widget::checkbox;
 use tracing::Span;
 
+use self::control::{action_button, controls_container, labeled_controls, *};
 use super::{column, *};
 
 pub mod control;
@@ -72,36 +73,54 @@ pub fn terminal_view_multiple_firehose<'a>(
     let mut content = Column::new();
     let mut actions = row![].width(Length::Fill).height(Length::Shrink).spacing(8);
 
-    actions = actions
-        .push(control::play())
-        .push(control::pause())
-        .push(control::stop())
-        .push(control::step());
-    actions = actions
-        .push(button(text("Spawn Worlds")).on_press(Message::Simulation(control::Operation::Spawn)))
-        .push(
-            button(text("Spawn Agent")).on_press(Message::Simulation(control::Operation::Agent(
-                control::AgentOperations::Add,
-            ))),
-        )
-        .push(button(text("Log debug trace")).on_press(Message::Data(Data::LogTrace)));
+    actions = actions.push(labeled_controls(vec![
+        ("play".to_string(), control::play()),
+        ("pause".to_string(), control::pause()),
+        ("step".to_string(), control::step()),
+        ("stop".to_string(), control::stop()),
+    ]));
+    actions = actions.push(controls_container(
+        "actions".to_string(),
+        vec![
+            action_button("Spawn".to_string().to_lowercase())
+                .on_press(Message::Simulation(control::Operation::Spawn)),
+            action_button("Spawn Agent".to_string().to_lowercase()).on_press(Message::Simulation(
+                control::Operation::Agent(control::AgentOperations::Add),
+            )),
+            action_button("Log debug trace".to_string().to_lowercase())
+                .on_press(Message::Data(Data::LogTrace)),
+        ],
+    ));
+    actions = actions.push(controls_container(
+        "settings".to_string(),
+        vec![
+            checkbox("realtime", realtime, |_| {
+                Message::Settings(Settings::ToggleRealtime)
+            }),
+            checkbox("firehose visible", !firehose_visible, |_| {
+                Message::Settings(Settings::ToggleFirehoseVisibility)
+            }),
+        ],
+    ));
 
-    actions = actions
-        .push(checkbox("realtime", realtime, |_| {
-            Message::Settings(Settings::ToggleRealtime)
-        }))
-        .push(checkbox("firehose visible", !firehose_visible, |_| {
-            Message::Settings(Settings::ToggleFirehoseVisibility)
-        }));
+    // For each state var, split it into a label and a data item,
+    // then push it into a row as a tuple.
+
+    let mut labeled_data = vec![];
+    for state_var in state_vars.clone() {
+        let mut split = state_var.split(":");
+        let label = split.next().unwrap().to_string();
+        let data = split.next().unwrap().to_string();
+        labeled_data.push((label, data));
+    }
+
+    let mut data = labeled_data_row(labeled_data, 3);
 
     let mut watched = column![text("watching:").size(16)]
         .width(Length::Fill)
         .spacing(4)
         .align_items(iced::Alignment::End);
-    for state_var in state_vars {
-        watched = watched.push(Text::new(state_var).size(18));
-    }
-    actions = actions.push(watched);
+    actions = actions.push(watched.push(data));
 
     content = content
         .push(
