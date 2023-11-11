@@ -15,6 +15,7 @@ use simulation::{
     settings::{parameters::Single, SimulationConfig},
     strategy::LiquidityStrategy,
 };
+use tracing::{Instrument, Span};
 
 use super::{app::Message, view::terminal_view, *};
 
@@ -72,7 +73,7 @@ pub struct Terminal {
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
     // Override the world manager with a new one that has spawned worlds.
     Ok(Arc::new(tokio::sync::Mutex::new(
-        WorldManager::default().spawn(2).await?,
+        WorldManager::default().spawn(1).await?,
     )))
 }
 
@@ -96,15 +97,6 @@ impl Terminal {
             watching_state: HashMap::new(),
             hide_logs: false,
         }
-    }
-
-    pub fn continue_simulation(&mut self) {
-        if self.status == WorldManagerState::Running {
-            tracing::warn!("Simulation world already running!");
-            return;
-        }
-
-        self.status = WorldManagerState::Running;
     }
 
     // todo: this iterates over the flattened logs storage, it should only effect
@@ -172,6 +164,90 @@ impl Terminal {
         }
         self.logs = new_logs;
     }
+
+    /// Executes the logic when a spawn message is received.
+    #[tracing::instrument(level = "trace", skip(self, world_manager))]
+    pub fn handle_spawn(
+        &mut self,
+        world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
+    ) -> Command<Message> {
+        tracing::trace!("Setting world manager.");
+        self.world_manager = world_manager.clone();
+
+        let m = world_manager.clone();
+        let f = sim_startup(m);
+        Command::perform(f.instrument(terminal_span()), |_| {
+            Message::View(view::Message::Simulation(view::SimulationMessage::Continue))
+        })
+    }
+
+    /// Executes the logic when a continue message is received.
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub fn handle_continue(&mut self) -> Command<Message> {
+        if self.status == WorldManagerState::Completed {
+            tracing::warn!("Simulation world already completed!");
+            return Command::none();
+        }
+
+        if self.status == WorldManagerState::Running {
+            tracing::warn!("Simulation world already running!");
+            return Command::none();
+        }
+
+        self.status = WorldManagerState::Running;
+
+        // Triggers a step, which will start the run loop.
+        let m = self.world_manager.clone();
+        Command::perform(
+            async move {
+                let locked = m.lock().await;
+
+                if locked.status() == WorldManagerState::Running {
+                    return locked.run().await;
+                }
+
+                Ok(())
+            }
+            .instrument(terminal_span()),
+            |_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)),
+        )
+    }
+}
+
+async fn sim_complete() -> anyhow::Result<(), anyhow::Error> {
+    Ok(())
+}
+
+async fn sim_spawn() -> anyhow::Result<(), anyhow::Error> {
+    Ok(())
+}
+
+#[tracing::instrument(level = "trace", skip(m))]
+pub async fn sim_startup(
+    m: Arc<tokio::sync::Mutex<WorldManager>>,
+) -> anyhow::Result<(), anyhow::Error> {
+    let locked = m.lock().await;
+
+    for world in locked.worlds.iter() {
+        let mut world = world.lock().await;
+        let world_id = world.seed;
+        tracing::debug!("world.{}.: Running startup", world_id.clone());
+        world.startup().await?;
+    }
+
+    Ok(())
+}
+
+async fn sim_pause() -> anyhow::Result<(), anyhow::Error> {
+    Ok(())
+}
+
+async fn sim_stop() -> anyhow::Result<(), anyhow::Error> {
+    Ok(())
+}
+
+pub fn terminal_span() -> Span {
+    tracing::info_span!("terminal")
 }
 
 impl State for Terminal {
@@ -205,34 +281,7 @@ impl State for Terminal {
             Message::Spawn(world_manager) => {
                 match world_manager {
                     Ok(world_manager) => {
-                        tracing::info!("Simulation world spawned!");
-
-                        self.world_manager = world_manager;
-
-                        // uncomment this to have it automatically play after spawned...
-                        // self.status = WorldManagerState::Running;
-
-                        let m = self.world_manager.clone();
-                        return Command::perform(
-                            async move {
-                                // Run the startup method.
-                                let locked = m.lock().await;
-
-                                for world in locked.worlds.iter() {
-                                    let mut world = world.lock().await;
-                                    let world_id = world.seed;
-                                    tracing::debug!("world.{}.: Running startup", world_id.clone());
-                                    world.startup().await?;
-                                }
-
-                                Ok(())
-                            },
-                            |_: anyhow::Result<(), anyhow::Error>| {
-                                Message::View(view::Message::Simulation(
-                                    view::SimulationMessage::Step,
-                                ))
-                            },
-                        );
+                        return self.handle_spawn(world_manager);
                     }
                     Err(e) => {
                         tracing::error!("Simulation world failed to spawn: {:?}", e);
@@ -361,39 +410,7 @@ impl State for Terminal {
                             // Triggers a step, which will start the run loop.
                             return Command::perform(async { spawn().await }, Message::Spawn);
                         }
-                        view::SimulationMessage::Continue => {
-                            // Return early if completed
-                            if self.status == WorldManagerState::Completed {
-                                tracing::warn!("Simulation world already completed!");
-                                return Command::none();
-                            }
-
-                            tracing::trace!(
-                                "{}.{}: Start simulation message received!",
-                                USER_ACTION_FILTER,
-                                "start"
-                            );
-                            self.continue_simulation();
-
-                            // Triggers a step, which will start the run loop.
-                            let m = self.world_manager.clone();
-                            return Command::perform(
-                                async move {
-                                    let locked = m.lock().await;
-
-                                    if locked.status() == WorldManagerState::Running {
-                                        return locked.run().await;
-                                    }
-
-                                    Ok(())
-                                },
-                                |_| {
-                                    Message::View(view::Message::Simulation(
-                                        view::SimulationMessage::Step,
-                                    ))
-                                },
-                            );
-                        }
+                        view::SimulationMessage::Continue => self.handle_continue(),
                         view::SimulationMessage::Stop => {
                             tracing::trace!(
                                 "{}.{}: Stop simulation world message received!",

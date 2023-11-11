@@ -1,6 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use iced::widget::checkbox;
+use tracing::Span;
 
 use super::{column, *};
 
@@ -22,6 +23,10 @@ pub enum Message {
     AddAgent,
     UpdateWatchedValue(HashMap<String, String>),
     ToggleFirehoseVisibility,
+}
+
+pub fn view_span() -> Span {
+    tracing::info_span!("View")
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {

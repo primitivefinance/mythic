@@ -1,11 +1,16 @@
 use std::sync::mpsc::Receiver;
 
 use arbiter_core::environment::Environment;
+use tracing::Span;
 
 use super::{
     state::{Screen, Terminal},
     *,
 };
+
+pub fn app_span() -> Span {
+    tracing::info_span!("App")
+}
 
 #[derive(Debug)]
 pub enum Message {
@@ -43,9 +48,11 @@ impl App {
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
+        let msg = app_span().in_scope(|| match message {
             _ => self.screen.update(message),
-        }
+        });
+
+        msg
     }
 
     pub fn view(&self) -> Element<Message> {
