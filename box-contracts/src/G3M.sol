@@ -40,7 +40,8 @@ contract G3M is IG3M, IStrategy {
     }
 
     function getPortfolioValue() public view returns (uint256) {
-        return getReserveX() + getReserveY();
+        // todo: remove counter
+        return getReserveX() + getReserveY() + counter;
     }
 
     //! ======== END PROTOTYPE FUNCTIONS ======== !//

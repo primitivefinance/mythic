@@ -245,14 +245,9 @@ impl State for Terminal {
             }
             Message::View(msg) => match msg {
                 view::Message::UpdateWatchedValue(value) => {
-                    for v in value.iter() {
-                        let parts: Vec<&str> = v.split(':').collect();
-                        if parts.len() != 2 {
-                            tracing::error!("Failed to parse watched value: {}", v);
-                            continue;
-                        }
-                        self.watching_state
-                            .insert(parts[0].to_string(), parts[1].to_string());
+                    // Update the current watched values with the new ones, if any.
+                    for (k, v) in value {
+                        self.watching_state.insert(k, v);
                     }
 
                     if self.status == WorldManagerState::Running && !self.realtime {
@@ -484,7 +479,7 @@ impl State for Terminal {
                                     }
 
                                     // for each world get the watched vars
-                                    let mut watched_vars: Vec<String> = vec![];
+                                    let mut watched_vars: HashMap<String, String> = HashMap::new();
                                     for world in m_locked.worlds.iter() {
                                         let world = world.lock().await;
                                         let world_id = world.seed;
@@ -505,11 +500,19 @@ impl State for Terminal {
                                                                 world_id.clone(),
                                                                 counter.as_u128()
                                                             );
-                                                            watched_vars.push(format!(
-                                                                "world.{}. counter: {}",
-                                                                world_id.clone(),
-                                                                counter
-                                                            ));
+                                                            watched_vars.insert(
+                                                                format!(
+                                                                    "world.{}.counter",
+                                                                    world_id.clone(),
+                                                                ),
+                                                                format!("{}", counter.as_u128()),
+                                                            );
+                                                            // watched_vars.
+                                                            // push(format!(
+                                                            // "world.{}.{}",
+                                                            // world_id.clone(),
+                                                            // counter
+                                                            // ));
                                                         }
                                                         Err(e) => {
                                                             tracing::error!(
@@ -538,11 +541,13 @@ impl State for Terminal {
                                                                     world_id.clone(),
                                                                     temp
                                                                 );
-                                                                watched_vars.push(format!(
-                                                                    "world.{}.: pvf: {}",
-                                                                    world_id.clone(),
-                                                                    temp.as_u128()
-                                                                ));
+                                                                watched_vars.insert(
+                                                                    format!(
+                                                                        "world.{}.pvf",
+                                                                        world_id.clone(),
+                                                                    ),
+                                                                    format!("{}", temp.as_u128()),
+                                                                );
                                                             }
                                                         }
                                                         Err(e) => {
