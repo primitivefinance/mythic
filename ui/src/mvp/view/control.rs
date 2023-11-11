@@ -22,6 +22,49 @@ pub enum Operation {
     Agent(AgentOperations),
 }
 
+pub fn control_panel<'a>(
+    data: Vec<(String, String)>,
+    realtime: bool,
+    firehose_visible: bool,
+) -> Element<'a, Message> {
+    let mut content = Row::new().spacing(16);
+    content = content.push(labeled_controls(vec![
+        ("play".to_string(), control::play()),
+        ("pause".to_string(), control::pause()),
+        ("step".to_string(), control::step()),
+        ("stop".to_string(), control::stop()),
+    ]));
+
+    content = content.push(controls_container(
+        "settings".to_string(),
+        vec![
+            checkbox("realtime", realtime, |_| {
+                Message::Settings(Settings::ToggleRealtime)
+            }),
+            checkbox("firehose visible", !firehose_visible, |_| {
+                Message::Settings(Settings::ToggleFirehoseVisibility)
+            }),
+        ],
+    ));
+
+    content = content.push(controls_container(
+        "actions".to_string(),
+        vec![
+            action_button("Spawn".to_string().to_lowercase())
+                .on_press(Message::Simulation(control::Operation::Spawn)),
+            action_button("Spawn Agent".to_string().to_lowercase()).on_press(Message::Simulation(
+                control::Operation::Agent(control::AgentOperations::Add),
+            )),
+            action_button("Log debug trace".to_string().to_lowercase())
+                .on_press(Message::Data(Data::LogTrace)),
+        ],
+    ));
+
+    content = content.push(labeled_data_container("watched".to_string(), data, 3));
+
+    content.into()
+}
+
 pub fn control_button<'a>(icon: icons::Icon) -> iced::widget::Button<'a, Message> {
     let content = text(icon_to_char(icon))
         .font(ICON_FONT)
