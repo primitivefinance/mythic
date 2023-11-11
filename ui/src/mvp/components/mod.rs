@@ -81,6 +81,17 @@ pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
     content.spacing(8).into()
 }
 
+/// Containers that groups multiple labeled data pieces under a label
+pub fn labeled_data_container<'a>(
+    label: String,
+    data: Vec<(String, String)>,
+    max_elements: usize,
+) -> Element<'a, Message> {
+    let mut content = Column::new().push(label_item(label));
+    content = content.push(labeled_data_row(data, max_elements));
+    content.into()
+}
+
 /// Renders a row of labeled data elements using labeled_data. Specify the
 /// maximum amount of elements in the row, if the total amount of elements
 /// exceeds the value, it will push a new row to the column.
