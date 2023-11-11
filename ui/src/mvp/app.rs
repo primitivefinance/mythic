@@ -12,13 +12,28 @@ pub fn app_span() -> Span {
     tracing::info_span!("App")
 }
 
+pub type SpawnResult = anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error>;
+
+/// Emitted on simulation events.
+#[derive(Debug)]
+pub enum Simulation {
+    Spawned(SpawnResult),
+    Completed,
+}
+
+/// Emitted when data is involved.
+#[derive(Debug)]
+pub enum Data {
+    ProcessTracer,
+}
+
+/// Root message for the Application.
 #[derive(Debug)]
 pub enum Message {
     Empty,
     View(view::Message),
-    ProcessTracer,
-    Spawned(anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error>),
-    Completed,
+    Simulation(Simulation),
+    Data(Data),
 }
 
 /// Storage for the entire application.

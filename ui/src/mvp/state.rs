@@ -177,7 +177,7 @@ impl Terminal {
         let m = world_manager.clone();
         let f = sim_startup(m);
         Command::perform(f.instrument(terminal_span()), |_| {
-            Message::View(view::Message::Simulation(view::SimulationMessage::Continue))
+            Message::View(view::Message::Simulation(view::Operation::Continue))
         })
     }
 
@@ -209,7 +209,7 @@ impl Terminal {
                 Ok(())
             }
             .instrument(terminal_span()),
-            |_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)),
+            |_| Message::View(view::Message::Simulation(view::Operation::Step)),
         )
     }
 
@@ -224,10 +224,9 @@ impl Terminal {
         self.purge_non_main_logs();
 
         // Triggers a step, which will start the run loop.
-        Command::perform(
-            async { spawn().instrument(terminal_span()).await },
-            Message::Spawned,
-        )
+        Command::perform(async { spawn().instrument(terminal_span()).await }, |res| {
+            Message::Simulation(app::Simulation::Spawned(res))
+        })
     }
 
     // todo: this is triggered on View::Step, but it should be a root level message.
@@ -247,7 +246,7 @@ impl Terminal {
         // Message emitted after step completes.
         let mut exit_msg = Message::Empty;
         if self.status == WorldManagerState::Running && !self.realtime {
-            exit_msg = Message::View(view::Message::Simulation(view::SimulationMessage::Step));
+            exit_msg = Message::View(view::Message::Simulation(view::Operation::Step));
         }
 
         return Command::perform(
@@ -392,10 +391,12 @@ impl Terminal {
                         // value!
                         if finished_path {
                             tracing::trace!("Simulation world finished!");
-                            return Message::Completed;
+                            return Message::Simulation(app::Simulation::Completed);
                         }
 
-                        return Message::View(view::Message::UpdateWatchedValue(watched_vars));
+                        return Message::View(view::Message::Data(view::Data::UpdateWatchedValue(
+                            watched_vars,
+                        )));
                     }
                     Err(e) => {
                         tracing::error!(
@@ -518,7 +519,7 @@ impl Terminal {
                     );
                 }
             },
-            |_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)),
+            |_| Message::View(view::Message::Simulation(view::Operation::Step)),
         );
     }
 }
@@ -582,79 +583,98 @@ impl State for Terminal {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Completed => {
-                tracing::info!("Simulation world completed!");
-                self.status = WorldManagerState::Completed;
-                Command::none()
-            }
-            Message::Spawned(world_manager) => {
-                match world_manager {
-                    Ok(world_manager) => {
-                        return self.handle_startup(world_manager);
+            Message::Data(msg) => match msg {
+                app::Data::ProcessTracer => {
+                    while let Ok(log) = self.receiver.lock().unwrap().try_recv() {
+                        // Define the maximum number of logs
+                        const MAX_LOGS: usize = 100;
+
+                        // Push the new log
+                        self.logs.push_back(log);
+
+                        // If the number of logs exceeds the maximum, remove the oldest one
+                        if self.logs.len() > MAX_LOGS {
+                            self.logs.pop_front();
+                        }
+
+                        // Process the logs.
+                        self.firehoses = self.filter_logs_into_firehoses();
                     }
-                    Err(e) => {
-                        tracing::error!("Simulation world failed to spawn: {:?}", e);
-                    }
+
+                    Command::none()
                 }
-                Command::none()
-            }
-            Message::ProcessTracer => {
-                while let Ok(log) = self.receiver.lock().unwrap().try_recv() {
-                    // Define the maximum number of logs
-                    const MAX_LOGS: usize = 100;
+            },
 
-                    // Push the new log
-                    self.logs.push_back(log);
-
-                    // If the number of logs exceeds the maximum, remove the oldest one
-                    if self.logs.len() > MAX_LOGS {
-                        self.logs.pop_front();
+            Message::Simulation(msg) => match msg {
+                app::Simulation::Spawned(world_manager) => {
+                    match world_manager {
+                        Ok(world_manager) => {
+                            tracing::info!("Simulation world spawned!");
+                            return self.handle_startup(world_manager);
+                        }
+                        Err(e) => {
+                            tracing::error!("Simulation world failed to spawn: {:?}", e);
+                        }
                     }
 
-                    // Process the logs.
-                    self.firehoses = self.filter_logs_into_firehoses();
+                    Command::none()
                 }
+                app::Simulation::Completed => {
+                    tracing::info!("Simulation world completed!");
+                    self.status = WorldManagerState::Completed;
+                    Command::none()
+                }
+            },
 
-                Command::none()
-            }
             Message::View(msg) => match msg {
-                view::Message::ToggleFirehoseVisibility => {
-                    self.hide_logs = !self.hide_logs;
-                    Command::none()
-                }
-                view::Message::UpdateWatchedValue(value) => {
-                    // Update the current watched values with the new ones, if any.
-                    for (k, v) in value {
-                        self.watching_state.insert(k, v);
+                view::Message::Settings(msg) => match msg {
+                    view::Settings::ToggleRealtime => {
+                        self.realtime = !self.realtime;
+                        Command::none()
+                    }
+                    view::Settings::ToggleFirehoseVisibility => {
+                        self.hide_logs = !self.hide_logs;
+                        Command::none()
+                    }
+                },
+
+                view::Message::Data(msg) => match msg {
+                    view::Data::LogTrace => {
+                        tracing::info!("LogTrace message received!");
+                        Command::none()
+                    }
+                    view::Data::UpdateWatchedValue(value) => {
+                        // Update the current watched values with the new ones, if any.
+                        for (k, v) in value {
+                            self.watching_state.insert(k, v);
+                        }
+
+                        if self.status == WorldManagerState::Running && !self.realtime {
+                            return Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                                Message::View(view::Message::Simulation(view::Operation::Step))
+                            });
+                        }
+
+                        Command::none()
                     }
 
-                    if self.status == WorldManagerState::Running && !self.realtime {
-                        return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                            Message::View(view::Message::Simulation(view::SimulationMessage::Step))
-                        });
-                    }
+                    _ => Command::none(),
+                },
 
-                    Command::none()
-                }
-                view::Message::AddAgent => self.handle_add_agent(),
-                view::Message::ToggleRealtime => {
-                    self.realtime = !self.realtime;
-                    Command::none()
-                }
                 view::Message::Simulation(msg) => {
                     match msg {
-                        view::SimulationMessage::Spawn => self.handle_spawn(),
-                        view::SimulationMessage::Continue => self.handle_continue(),
-                        view::SimulationMessage::Stop => self.handle_stop(),
-                        view::SimulationMessage::Pause => self.handle_pause(),
+                        view::Operation::Spawn => self.handle_spawn(),
+                        view::Operation::Continue => self.handle_continue(),
+                        view::Operation::Stop => self.handle_stop(),
+                        view::Operation::Pause => self.handle_pause(),
                         // todo: I don't like this logic in this place.
-                        view::SimulationMessage::Step => self.handle_step(),
+                        view::Operation::Step => self.handle_step(),
+                        view::Operation::Agent(msg) => match msg {
+                            view::AgentOperations::Add => self.handle_add_agent(),
+                        },
                     }
                 }
-                view::Message::LogTrace => {
-                    tracing::info!("LogTrace message received!");
-                    Command::none()
-                }
+
                 _ => Command::none(),
             },
             _ => Command::none(),
@@ -663,7 +683,7 @@ impl State for Terminal {
 
     fn subscription(&self) -> Subscription<Message> {
         let process_tracer_subscription = time::every(Duration::from_millis(100))
-            .map(|_| Message::ProcessTracer)
+            .map(|_| Message::Data(app::Data::ProcessTracer))
             .into();
         let mut subs = vec![process_tracer_subscription];
 
@@ -673,7 +693,7 @@ impl State for Terminal {
 
         // Runs on a 1s timer.
         let step_sim_subscription = time::every(Duration::from_millis(1000))
-            .map(|_| Message::View(view::Message::Simulation(view::SimulationMessage::Step)))
+            .map(|_| Message::View(view::Message::Simulation(view::Operation::Step)))
             .into();
 
         subs.push(step_sim_subscription);
