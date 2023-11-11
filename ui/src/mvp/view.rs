@@ -20,7 +20,7 @@ pub enum Message {
     Simulation(SimulationMessage),
     ToggleRealtime,
     AddAgent,
-    UpdateWatchedValue(String),
+    UpdateWatchedValue(Vec<String>),
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {
@@ -68,12 +68,12 @@ pub fn terminal_view_multiple_firehose<'a>(
 
     actions = actions.push(checkbox("realtime", realtime, |_| Message::ToggleRealtime));
 
-    let mut watched = column![]
+    let mut watched = column![text("watching:").size(16)]
         .width(Length::Fill)
         .spacing(4)
         .align_items(iced::Alignment::End);
     for state_var in state_vars {
-        watched = watched.push(Text::new(state_var).size(28));
+        watched = watched.push(Text::new(state_var).size(18));
     }
     actions = actions.push(watched);
 

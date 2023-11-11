@@ -28,6 +28,7 @@ pub mod token_admin;
 
 use std::{
     any::Any,
+    fmt::Debug,
     marker::{Send, Sync},
 };
 
@@ -35,6 +36,14 @@ use linked_hash_map::LinkedHashMap;
 
 #[derive(Debug)]
 pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);
+
+impl std::fmt::Debug for Agents {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Agents")
+            .field("agents", &self.0.len())
+            .finish()
+    }
+}
 
 impl Agents {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&String, &mut Box<dyn Agent>)> {
@@ -61,7 +70,7 @@ impl Agents {
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.3
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send + Any + std::fmt::Debug {
+pub trait Agent: Sync + Send + Any + Debug {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())
@@ -81,6 +90,31 @@ pub trait Agent: Sync + Send + Any + std::fmt::Debug {
     /// In order to be able to track agents by their label, each agent must
     /// implement a label method.
     fn client(&self) -> Arc<RevmMiddleware>;
+    fn as_any(&self) -> &dyn Any;
+
+    /// basic method to watch some data.
+    async fn get_state(&self) -> Result<U256> {
+        Ok(U256::zero())
+    }
+
+    fn get_client(&self) -> Result<Arc<RevmMiddleware>> {
+        Err(anyhow::anyhow!("No client found for this agent"))
+    }
+
+    fn get_name(&self) -> String {
+        format!("default")
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for Agents {
+    async fn step(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    async fn priority_step(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     fn as_any(&self) -> &dyn Any;
 }

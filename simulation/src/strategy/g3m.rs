@@ -63,6 +63,12 @@ impl LiquidityStrategy for G3mStrategy {
             .await?
             .await?)
     }
+
+    async fn get_pfv(&self) -> Result<U256> {
+        let p = self.get_portfolio_value().call().await?;
+        tracing::warn!("Calling pvf on liquidity strategy trait {}", p);
+        Ok(p)
+    }
 }
 
 /// Uses algebraic methods based on the G3M invariant math to compute the amount

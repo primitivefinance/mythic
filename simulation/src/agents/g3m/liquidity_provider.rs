@@ -2,7 +2,10 @@ use super::{strategy::Strategy, token_admin::TokenAdmin, *};
 use crate::strategy::LiquidityStrategy;
 
 #[derive(Clone, Debug)]
-pub struct LiquidityProvider<S: LiquidityStrategy> {
+pub struct LiquidityProvider<S: LiquidityStrategy>
+where
+    Self: Sized,
+{
     pub client: Arc<RevmMiddleware>,
     pub strategy: S,
     initial_x: U256,
@@ -29,7 +32,7 @@ impl From<LiquidityProviderParameters<Multiple>> for Vec<LiquidityProviderParame
     }
 }
 
-impl<S: LiquidityStrategy> LiquidityProvider<S> {
+impl<S: LiquidityStrategy + Sized> LiquidityProvider<S> {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
@@ -66,16 +69,49 @@ impl<S: LiquidityStrategy> LiquidityProvider<S> {
             ))
         }
     }
+
+    pub async fn get(&self) -> Result<U256> {
+        let res = self.strategy.get_pfv().await;
+        match res {
+            Ok(res) => Ok(res),
+            Err(err) => {
+                tracing::warn!("Error getting pvf: {}", err);
+                Err(anyhow::anyhow!("Error getting pvf: {}", err))
+            }
+        }
+    }
+}
+
+pub trait LiquidityProviderWrapper: Sized {
+    fn as_liquidity_provider(&self) -> &dyn Any;
+}
+
+impl<S: LiquidityStrategy + 'static + Debug> LiquidityProviderWrapper for LiquidityProvider<S> {
+    fn as_liquidity_provider(&self) -> &dyn Any {
+        self
+    }
 }
 
 #[async_trait::async_trait]
-impl<S: LiquidityStrategy + 'static> Agent for LiquidityProvider<S> {
+impl<S: LiquidityStrategy + 'static + Debug> Agent for LiquidityProvider<S> {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
+    fn get_client(&self) -> Result<Arc<RevmMiddleware>> {
+        Ok(self.client.clone())
+    }
+
+    fn get_name(&self) -> String {
+        format!("liquidity_provider")
+    }
+
     async fn startup(&mut self) -> Result<()> {
         debug!("Entering `LiquidityProvider` startup");
+        debug!(
+            "Getting pvf state {}",
+            self.strategy.get_pfv().await?.to_string()
+        );
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
 
@@ -100,5 +136,15 @@ impl<S: LiquidityStrategy + 'static> Agent for LiquidityProvider<S> {
     async fn step(&mut self) -> Result<()> {
         self.strategy.get_strategy_logs().await;
         Ok(())
+
+    async fn get_state(&self) -> Result<U256> {
+        let res = self.strategy.get_pfv().await;
+        match res {
+            Ok(res) => Ok(res),
+            Err(err) => {
+                tracing::warn!("Error getting pvf: {}", err);
+                Err(anyhow::anyhow!("Error getting pvf: {}", err))
+            }
+        }
     }
 }
