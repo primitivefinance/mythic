@@ -21,6 +21,7 @@ pub enum Message {
     ToggleRealtime,
     AddAgent,
     UpdateWatchedValue(HashMap<String, String>),
+    ToggleFirehoseVisibility,
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {
@@ -54,6 +55,7 @@ pub fn terminal_view_multiple_firehose<'a>(
     log_containers: Vec<VecDeque<String>>,
     realtime: bool,
     state_vars: Vec<String>,
+    firehose_visible: bool,
 ) -> Element<'a, Message> {
     let mut content = Column::new();
     let mut actions = row![].width(Length::Fill).height(Length::Shrink).spacing(8);
@@ -66,7 +68,11 @@ pub fn terminal_view_multiple_firehose<'a>(
         .push(button(text("Log debug trace")).on_press(Message::LogTrace))
         .push(button(text("Step")).on_press(Message::Simulation(SimulationMessage::Step)));
 
-    actions = actions.push(checkbox("realtime", realtime, |_| Message::ToggleRealtime));
+    actions = actions
+        .push(checkbox("realtime", realtime, |_| Message::ToggleRealtime))
+        .push(checkbox("firehose visible", !firehose_visible, |_| {
+            Message::ToggleFirehoseVisibility
+        }));
 
     let mut watched = column![text("watching:").size(16)]
         .width(Length::Fill)
