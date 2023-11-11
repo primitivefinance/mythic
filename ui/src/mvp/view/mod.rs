@@ -5,22 +5,7 @@ use tracing::Span;
 
 use super::{column, *};
 
-/// Messages emitted from user interaction with agents.
-#[derive(Debug, Clone)]
-pub enum AgentOperations {
-    Add,
-}
-
-/// Messages emitted from user interaction with the simulation.
-#[derive(Debug, Clone)]
-pub enum Operation {
-    Spawn,
-    Continue,
-    Stop,
-    Pause,
-    Step,
-    Agent(AgentOperations),
-}
+pub mod control;
 
 /// Messages emitted from user interaction with the settings.
 #[derive(Debug, Clone)]
@@ -42,7 +27,7 @@ pub enum Data {
 #[derive(Debug, Clone)]
 pub enum Message {
     Empty,
-    Simulation(Operation),
+    Simulation(control::Operation),
     Settings(Settings),
     Data(Data),
 }
@@ -86,17 +71,20 @@ pub fn terminal_view_multiple_firehose<'a>(
 ) -> Element<'a, Message> {
     let mut content = Column::new();
     let mut actions = row![].width(Length::Fill).height(Length::Shrink).spacing(8);
+
     actions = actions
-        .push(button(text("Spawn Worlds")).on_press(Message::Simulation(Operation::Spawn)))
-        .push(button(text("Play")).on_press(Message::Simulation(Operation::Continue)))
-        .push(button(text("Pause")).on_press(Message::Simulation(Operation::Pause)))
-        .push(button(text("Stop")).on_press(Message::Simulation(Operation::Stop)))
+        .push(control::play())
+        .push(control::pause())
+        .push(control::stop())
+        .push(control::step());
+    actions = actions
+        .push(button(text("Spawn Worlds")).on_press(Message::Simulation(control::Operation::Spawn)))
         .push(
-            button(text("Spawn Agent"))
-                .on_press(Message::Simulation(Operation::Agent(AgentOperations::Add))),
+            button(text("Spawn Agent")).on_press(Message::Simulation(control::Operation::Agent(
+                control::AgentOperations::Add,
+            ))),
         )
-        .push(button(text("Log debug trace")).on_press(Message::Data(Data::LogTrace)))
-        .push(button(text("Step")).on_press(Message::Simulation(Operation::Step)));
+        .push(button(text("Log debug trace")).on_press(Message::Data(Data::LogTrace)));
 
     actions = actions
         .push(checkbox("realtime", realtime, |_| {
