@@ -1,9 +1,10 @@
 use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use iced::{
-    alignment,
+    alignment, font,
     widget::{button, column, container, text},
     Length,
 };
+use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use tracing::{Instrument, Span};
 
 use super::*;
@@ -12,6 +13,7 @@ use super::*;
 pub enum Message {
     View,
     Loaded,
+    LoadingFailed,
     Ready(anyhow::Result<(Environment, Local<Ws>)>),
 }
 pub struct Loader;
@@ -39,7 +41,24 @@ impl Loader {
         // message.
         (
             Self {},
-            Command::perform(connect_to_server(), |_| Message::Loaded),
+            Command::batch(vec![
+                Command::perform(connect_to_server(), |res| {
+                    if let Err(e) = res {
+                        tracing::error!("Failed to connect to server: {:?}", e);
+                        return Message::LoadingFailed;
+                    }
+
+                    Message::Loaded
+                }),
+                font::load(ICON_FONT_BYTES).map(|res| {
+                    if let Err(e) = res {
+                        tracing::error!("Failed to load icon font: {:?}", e);
+                        return Message::LoadingFailed;
+                    }
+
+                    Message::Loaded
+                }),
+            ]),
         )
     }
 

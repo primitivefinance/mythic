@@ -177,7 +177,9 @@ impl Terminal {
         let m = world_manager.clone();
         let f = sim_startup(m);
         Command::perform(f.instrument(terminal_span()), |_| {
-            Message::View(view::Message::Simulation(view::Operation::Continue))
+            Message::View(view::Message::Simulation(
+                view::control::Operation::Continue,
+            ))
         })
     }
 
@@ -209,7 +211,7 @@ impl Terminal {
                 Ok(())
             }
             .instrument(terminal_span()),
-            |_| Message::View(view::Message::Simulation(view::Operation::Step)),
+            |_| Message::View(view::Message::Simulation(view::control::Operation::Step)),
         )
     }
 
@@ -246,7 +248,7 @@ impl Terminal {
         // Message emitted after step completes.
         let mut exit_msg = Message::Empty;
         if self.status == WorldManagerState::Running && !self.realtime {
-            exit_msg = Message::View(view::Message::Simulation(view::Operation::Step));
+            exit_msg = Message::View(view::Message::Simulation(view::control::Operation::Step));
         }
 
         return Command::perform(
@@ -519,7 +521,7 @@ impl Terminal {
                     );
                 }
             },
-            |_| Message::View(view::Message::Simulation(view::Operation::Step)),
+            |_| Message::View(view::Message::Simulation(view::control::Operation::Step)),
         );
     }
 }
@@ -635,7 +637,9 @@ impl State for Terminal {
 
                         if self.status == WorldManagerState::Running && !self.realtime {
                             return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                                Message::View(view::Message::Simulation(view::Operation::Step))
+                                Message::View(view::Message::Simulation(
+                                    view::control::Operation::Step,
+                                ))
                             });
                         }
 
@@ -647,14 +651,14 @@ impl State for Terminal {
 
                 view::Message::Simulation(msg) => {
                     match msg {
-                        view::Operation::Spawn => self.handle_spawn(),
-                        view::Operation::Continue => self.handle_continue(),
-                        view::Operation::Stop => self.handle_stop(),
-                        view::Operation::Pause => self.handle_pause(),
+                        view::control::Operation::Spawn => self.handle_spawn(),
+                        view::control::Operation::Continue => self.handle_continue(),
+                        view::control::Operation::Stop => self.handle_stop(),
+                        view::control::Operation::Pause => self.handle_pause(),
                         // todo: I don't like this logic in this place.
-                        view::Operation::Step => self.handle_step(),
-                        view::Operation::Agent(msg) => match msg {
-                            view::AgentOperations::Add => self.handle_add_agent(),
+                        view::control::Operation::Step => self.handle_step(),
+                        view::control::Operation::Agent(msg) => match msg {
+                            view::control::AgentOperations::Add => self.handle_add_agent(),
                         },
                     }
                 }
@@ -677,7 +681,7 @@ impl State for Terminal {
 
         // Runs on a 1s timer.
         let step_sim_subscription = time::every(Duration::from_millis(1000))
-            .map(|_| Message::View(view::Message::Simulation(view::Operation::Step)))
+            .map(|_| Message::View(view::Message::Simulation(view::control::Operation::Step)))
             .into();
 
         subs.push(step_sim_subscription);
