@@ -5,7 +5,7 @@ use ethers::providers::Middleware;
 
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BlockAdmin {
     pub client: Arc<RevmMiddleware>,
     pub timestep_size: u64,

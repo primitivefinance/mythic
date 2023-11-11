@@ -3,7 +3,7 @@ use itertools::iproduct;
 use super::*;
 use crate::math::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,

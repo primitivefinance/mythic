@@ -74,6 +74,12 @@ impl From<WeightChangerSpecialty<Multiple>> for Vec<WeightChangerSpecialty<Singl
 
 pub struct WeightChangerType(pub Box<dyn WeightChanger>);
 
+impl std::fmt::Debug for WeightChangerType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WeightChangerType").finish()
+    }
+}
+
 impl WeightChangerType {
     pub async fn new(
         environment: &Environment,

@@ -39,6 +39,10 @@ contract RMM is IStrategy {
         swapFee = swapFee_;
     }
 
+    function getPortfolioValue() public view returns (uint256) {
+        return reserveX * getSpotPrice() / 1e18 + reserveY;
+    }
+
     function initPool(
         bool exactX,
         uint256 amount,
@@ -294,7 +298,7 @@ contract RMM is IStrategy {
         swapFee = newSwapFee;
     }
 
-    function getSpotPrice() external view returns (uint256) {
+    function getSpotPrice() public view returns (uint256) {
         return
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
     }

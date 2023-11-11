@@ -16,6 +16,7 @@ interface IStrategy {
     function getReserveY() external view returns (uint256);
     function getInvariant() external view returns (int256);
     function getStrategyData() external view returns (bytes memory);
+    function getPortfolioValue()external view returns (uint256);
 
     event AddLiquidity(
         address indexed sender,

@@ -37,6 +37,10 @@ contract G3M is IG3M, IStrategy {
         return reserveYWithoutPrecision();
     }
 
+    function getPortfolioValue() public view returns (uint256) {
+        return getReserveX() + getReserveY();
+    }
+
     //! ======== END PROTOTYPE FUNCTIONS ======== !//
 
     /// @notice Thrown when the old invariant is greater than the new one.
@@ -468,5 +472,17 @@ contract G3M is IG3M, IStrategy {
 
     function liquidityWithoutPrecision() public view returns (uint256) {
         return convert(totalLiquidity);
+    }
+
+    // todo: for testing purposes!
+    uint public counter;
+
+    // increments by a random increment factor!
+    // a random number makes multiple instances slightly different
+    // increment is triggered by an agent, and its affected by this contracts
+    // parameters (i.e. the random variable)
+    function increment() public {
+        uint random = uint(keccak256(abi.encodePacked(block.timestamp, block.difficulty, msg.sender)));
+        counter += random % 100;
     }
 }

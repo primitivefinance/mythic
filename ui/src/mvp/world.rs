@@ -3,10 +3,22 @@
 
 use std::path::Path;
 
-use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
+use analysis::i_strategy::IStrategy;
+use arbiter_core::{
+    environment::{builder::EnvironmentBuilder, Environment},
+    middleware::RevmMiddleware,
+};
 use rand::Rng;
 use simulation::{
-    agents::{Agent, Agents},
+    agents::{
+        arbitrageur::Arbitrageur,
+        block_admin::BlockAdmin,
+        liquidity_provider::LiquidityProvider,
+        price_changer::PriceChanger,
+        token_admin::TokenAdmin,
+        weight_changer::{WeightChanger, WeightChangerType},
+        Agent, Agents,
+    },
     settings::{
         parameters::{Multiple, Single},
         SimulationConfig,
@@ -21,7 +33,7 @@ use tokio::{
 
 use super::*;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Status {
     Running,
     Paused,
@@ -29,6 +41,7 @@ pub enum Status {
 }
 
 /// State of the world, past, present, and future.
+#[derive(Debug)]
 pub struct State {
     pub current_step: usize,
 
@@ -45,6 +58,7 @@ impl State {
     }
 }
 
+#[derive(Debug)]
 pub struct World {
     // The simulation instance.
     pub arbiter: Environment,
@@ -228,29 +242,80 @@ impl WorldBuilder {
         self
     }
 
-    pub fn build(self) -> anyhow::Result<World> {
+    pub async fn setup(
+        environment: &Environment,
+        config: SimulationConfig<Single>,
+    ) -> anyhow::Result<Agents, anyhow::Error> {
+        let mut block_admin = BlockAdmin::new(environment, &config, "block_admin").await?;
+        let token_admin = TokenAdmin::new(environment, &config, "token_admin").await?;
+        let mut price_changer =
+            PriceChanger::new(environment, &config, "price_changer", &token_admin).await?;
+
+        let weight_changer = WeightChangerType::new(
+            environment,
+            &config,
+            "weight_changer",
+            price_changer.liquid_exchange.address(),
+        )
+        .await?;
+
+        let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
+            environment,
+            &config,
+            "lp",
+            &token_admin,
+            weight_changer.g3m().address(),
+        )
+        .await?;
+
+        let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
+            environment,
+            &token_admin,
+            price_changer.liquid_exchange.address(),
+            weight_changer.g3m().address(),
+        )
+        .await?;
+
+        let mut agents = Agents::new();
+        agents.add(price_changer);
+        agents.add(arbitrageur);
+        agents.add(block_admin);
+        agents.add(weight_changer);
+        agents.add(lp);
+
+        Ok(agents)
+    }
+
+    pub async fn build(self) -> anyhow::Result<World> {
         let arbiter = self
             .arbiter
             .ok_or_else(|| anyhow::anyhow!("Arbiter not set"))?;
-        let agents = self
+        let mut agents = self
             .agents
             .ok_or_else(|| anyhow::anyhow!("Agents not set"))?;
 
         // todo: lots to fix here
         let config = self.config.unwrap();
+        let seed = self.seed;
+
+        let direct_configs: Vec<SimulationConfig<Single>> = config.clone().into();
+
+        for config in direct_configs {
+            agents = Self::setup(&arbiter, config).await?;
+        }
 
         Ok(World {
             arbiter,
             agents: Arc::new(Mutex::new(agents)),
             state: State::new(),
             config,
-            seed: self.seed,
+            seed,
         })
     }
 
     /// Wrap it with arc and mutex
-    pub fn build_arc(self) -> anyhow::Result<Arc<Mutex<World>>> {
-        let world = self.build()?;
+    pub async fn build_arc(self) -> anyhow::Result<Arc<Mutex<World>>> {
+        let world = self.build().await?;
         Ok(Arc::new(Mutex::new(world)))
     }
 }
@@ -346,7 +411,7 @@ fn create_task(
     })
 }
 
-pub fn spawn_worlds(
+pub async fn spawn_worlds(
     num_worlds: usize,
 ) -> anyhow::Result<
     (
@@ -361,9 +426,11 @@ pub fn spawn_worlds(
 
     let tx_clone = tx.clone();
 
-    let worlds: Vec<_> = (0..num_worlds)
-        .map(|_| WorldBuilder::default().build_arc().unwrap())
-        .collect();
+    let mut worlds = vec![];
+    for _ in 0..num_worlds {
+        let world = WorldBuilder::default().build_arc().await?;
+        worlds.push(world);
+    }
 
     let worlds_clone = worlds.clone();
 
@@ -380,6 +447,7 @@ pub fn spawn_worlds(
 }
 
 /// Manages the worlds and the thread that runs them.
+#[derive(Debug)]
 pub struct WorldManager {
     pub worlds: Vec<Arc<Mutex<World>>>,
     pub tx: Option<Arc<Mutex<broadcast::Sender<usize>>>>,
@@ -403,8 +471,8 @@ impl WorldManager {
     }
 
     /// Consumes the world manager and spawns the worlds.
-    pub fn spawn(mut self, num_worlds: usize) -> anyhow::Result<Self, anyhow::Error> {
-        let (tx, worlds, slice) = spawn_worlds(num_worlds)?;
+    pub async fn spawn(mut self, num_worlds: usize) -> anyhow::Result<Self, anyhow::Error> {
+        let (tx, worlds, slice) = spawn_worlds(num_worlds).await?;
         self.tx = Some(Arc::new(Mutex::new(tx)));
         self.worlds = worlds;
         self.slice = Some(Arc::new(Mutex::new(slice)));
@@ -482,13 +550,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_world_manager() {
-        let world_manager = WorldManager::default().spawn(5).unwrap();
+        let world_manager = WorldManager::default().spawn(5).await.unwrap();
         assert_eq!(world_manager.worlds.len(), 5);
     }
 
     #[tokio::test]
     async fn test_world_builder() {
-        let mut world = WorldBuilder::default().build().unwrap();
+        let mut world = WorldBuilder::default().build().await.unwrap();
         assert_eq!(world.state.current_step, 0);
 
         // try running the simulation
@@ -509,7 +577,7 @@ mod tests {
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
 
-        let (tx, worlds, slice) = spawn_worlds(5).unwrap();
+        let (tx, worlds, slice) = spawn_worlds(5).await.unwrap();
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -539,7 +607,7 @@ mod tests {
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
 
-        let (tx, worlds, slice) = spawn_worlds(1).unwrap();
+        let (tx, worlds, slice) = spawn_worlds(1).await.unwrap();
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
@@ -565,7 +633,7 @@ mod tests {
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
 
-        let (tx, worlds, slice) = spawn_worlds(1).unwrap();
+        let (tx, worlds, slice) = spawn_worlds(1).await.unwrap();
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
@@ -592,10 +660,12 @@ mod tests {
             let direct_configs: Vec<SimulationConfig<Single>> = world_lock.config.clone().into();
 
             // Create a new agent
+            // todo: get lp address
             let counter_agent = CounterAgent::new(
                 &world_lock.arbiter,
                 &direct_configs[0],
                 "counter".to_string(),
+                Address::zero(),
             )
             .await
             .unwrap();

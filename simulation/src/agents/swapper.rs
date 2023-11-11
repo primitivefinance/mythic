@@ -1,6 +1,7 @@
 use super::*;
 use crate::settings::parameters::LinspaceParameters;
 
+#[derive(Clone, Debug)]
 pub struct Swapper {
     pub client: Arc<RevmMiddleware>,
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,

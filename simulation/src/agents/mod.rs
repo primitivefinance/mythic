@@ -23,10 +23,19 @@ pub mod weight_changer;
 
 use std::{
     any::Any,
+    fmt::Debug,
     marker::{Send, Sync},
 };
 
 pub struct Agents(pub Vec<Box<dyn Agent>>);
+
+impl std::fmt::Debug for Agents {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Agents")
+            .field("agents", &self.0.len())
+            .finish()
+    }
+}
 
 impl Agents {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
@@ -50,7 +59,7 @@ impl Agents {
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send + Any {
+pub trait Agent: Sync + Send + Any + Debug {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())
@@ -68,6 +77,19 @@ pub trait Agent: Sync + Send + Any {
     }
 
     fn as_any(&self) -> &dyn Any;
+
+    /// basic method to watch some data.
+    async fn get_state(&self) -> Result<U256> {
+        Ok(U256::zero())
+    }
+
+    fn get_client(&self) -> Result<Arc<RevmMiddleware>> {
+        Err(anyhow::anyhow!("No client found for this agent"))
+    }
+
+    fn get_name(&self) -> String {
+        format!("default")
+    }
 }
 
 #[async_trait::async_trait]

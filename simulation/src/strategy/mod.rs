@@ -8,7 +8,7 @@ pub mod rmm;
 /// Strategy trait to provide additional functionality that is specific to
 /// different agents.
 #[async_trait::async_trait]
-pub trait Strategy: Sized + Send + Sync {
+pub trait Strategy: Sized + Send + Sync + std::fmt::Debug {
     /// Strategy stored is fetched from the strategy smart contract as bytes.
     /// This type defines how those bytes are decoded into a strategy data type.
     type StrategyData;
@@ -30,7 +30,7 @@ pub trait Strategy: Sized + Send + Sync {
 /// A sub-trait for liquidity providers to implement their specific logic for
 /// providing/setting up a pool.
 #[async_trait::async_trait]
-pub trait LiquidityStrategy: Strategy {
+pub trait LiquidityStrategy: Strategy + Sized {
     /// Provides the pool with an initial amount of reserves and liquidity, at a
     /// price.
     async fn initialize_pool(
@@ -38,6 +38,8 @@ pub trait LiquidityStrategy: Strategy {
         initial_x_wad: U256,
         initial_price_wad: U256,
     ) -> Result<Option<TransactionReceipt>>;
+
+    async fn get_pfv(&self) -> Result<U256>;
 }
 
 /// A sub-trait for arbitrageurs to implement their logic for computing how many
