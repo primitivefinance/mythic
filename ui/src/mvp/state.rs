@@ -524,14 +524,6 @@ impl Terminal {
     }
 }
 
-async fn sim_complete() -> anyhow::Result<(), anyhow::Error> {
-    Ok(())
-}
-
-async fn sim_spawn() -> anyhow::Result<(), anyhow::Error> {
-    Ok(())
-}
-
 #[tracing::instrument(level = "trace", skip(m))]
 pub async fn sim_startup(
     m: Arc<tokio::sync::Mutex<WorldManager>>,
@@ -545,14 +537,6 @@ pub async fn sim_startup(
         world.startup().await?;
     }
 
-    Ok(())
-}
-
-async fn sim_pause() -> anyhow::Result<(), anyhow::Error> {
-    Ok(())
-}
-
-async fn sim_stop() -> anyhow::Result<(), anyhow::Error> {
     Ok(())
 }
 
