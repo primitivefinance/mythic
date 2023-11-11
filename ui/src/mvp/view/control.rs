@@ -9,6 +9,7 @@ use super::{components::button::*, *};
 #[derive(Debug, Clone)]
 pub enum AgentOperations {
     Add,
+    Settings(String),
 }
 
 /// Messages emitted from user interaction with the simulation.

@@ -1,7 +1,7 @@
 pub mod button;
 
 use button::*;
-use iced::Color;
+use iced::{Color, Element, Renderer};
 
 // These components should return View messages.
 use super::{view::Message, *};
@@ -39,7 +39,7 @@ pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
 
 /// Renders a column with a label and a piece of data with the DAGGERSQUARE
 /// font.
-pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message> {
+pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Renderer> {
     let mut content = Column::new()
         .push(label_item(label))
         .push(text(data).font(FONT_DAGGERSQUARE).size(20));
@@ -98,7 +98,7 @@ pub fn labeled_data_container<'a>(
 pub fn labeled_data_row<'a>(
     label_data: Vec<(String, String)>,
     max_elements: usize,
-) -> Element<'a, Message> {
+) -> Element<'a, Message, Renderer> {
     let mut content = Column::new();
     let mut row = Row::new().spacing(4);
     let mut i = 0;
@@ -113,4 +113,32 @@ pub fn labeled_data_row<'a>(
     }
     content = content.push(row);
     content.spacing(8).into()
+}
+
+/// A container that spaces the elements in a row out so they fill the space.
+pub fn space_between_row<'a, T: Into<Element<'a, Message, Renderer>>>(
+    elements: Vec<T>,
+) -> Element<'a, Message> {
+    let mut content = Row::new()
+        .spacing(8)
+        .width(Length::Shrink)
+        .align_items(alignment::Alignment::Center);
+
+    // The first element should be wrapped in a column that has align_items with
+    // Start The last element should have the same but with End alignment.
+    // All other elements should have center alignment.
+    let len = elements.len();
+    for (i, element) in elements.into_iter().enumerate() {
+        content = content.push(
+            Column::new()
+                .align_items(match i {
+                    0 => alignment::Alignment::Start,
+                    _ if i == len - 1 => alignment::Alignment::End,
+                    _ => alignment::Alignment::Center,
+                })
+                .push(element.into())
+                .width(Length::FillPortion(1)),
+        );
+    }
+    content.into()
 }
