@@ -659,6 +659,7 @@ impl State for Terminal {
                         view::control::Operation::Step => self.handle_step(),
                         view::control::Operation::Agent(msg) => match msg {
                             view::control::AgentOperations::Add => self.handle_add_agent(),
+                            _ => Command::none(),
                         },
                     }
                 }

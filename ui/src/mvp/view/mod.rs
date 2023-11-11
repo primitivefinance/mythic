@@ -6,6 +6,7 @@ use tracing::Span;
 use self::control::control_panel;
 use super::{column, components::*, *};
 
+pub mod agent;
 pub mod control;
 
 /// Messages emitted from user interaction with the settings.
@@ -80,6 +81,12 @@ pub fn terminal_view_multiple_firehose<'a>(
     }
 
     let mut actions = control_panel(labeled_data, realtime, firehose_visible);
+    let agents = agent::agent_card(vec![
+        ("name".to_string(), "agent".to_string()),
+        ("name".to_string(), "agent".to_string()),
+        ("name".to_string(), "agent".to_string()),
+        ("name".to_string(), "agent".to_string()),
+    ]);
 
     content = content
         .push(
@@ -88,6 +95,7 @@ pub fn terminal_view_multiple_firehose<'a>(
                 .style(MenuContainerTheme::theme())
                 .width(Length::Fill),
         )
+        .push(agents)
         .push(multiple_firehose(log_containers.clone()));
     content
         .spacing(16)
