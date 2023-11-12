@@ -17,7 +17,12 @@ use simulation::{
 };
 use tracing::{Instrument, Span};
 
-use super::{app::Message, tracer::AppEventLog, view::terminal_view, *};
+use super::{
+    app::Message,
+    tracer::{AppEventLayer, AppEventLog},
+    view::terminal_view,
+    *,
+};
 
 /// Implement this trait to make a new screen for the app.
 pub trait State
@@ -159,28 +164,41 @@ impl Terminal {
         let mut firehoses = vec![VecDeque::new(), VecDeque::new()]; // system and user firehoses
         let mut world_to_firehose_index: HashMap<usize, usize> = HashMap::new();
 
-        // for log in &self.structured_logs {
-        // let id = log.id.clone();
-        // let entity = log.entity.clone();
-        // if entity.as_deref() == Some("system") {
-        // system events
-        // firehoses[0].push_back(log.clone());
-        // } else if entity.as_deref() == Some("user") {
-        // user events
-        // firehoses[1].push_back(log.clone());
-        // } else {
-        // world events
-        // if let Some(id) = id {
-        // let id = id.parse().unwrap();
-        // if !world_to_firehose_index.contains_key(&id) {
-        // firehoses.push(VecDeque::new());
-        // world_to_firehose_index.insert(id, firehoses.len() - 1);
-        // }
-        // let firehose_index = *world_to_firehose_index.get(&id).unwrap();
-        // firehoses[firehose_index].push_back(log.clone());
-        // }
-        // }
-        // }
+        // Add a system and user firehose
+        world_to_firehose_index.insert(0, 0); // Main thread
+        world_to_firehose_index.insert(1, 1); // User
+
+        const MAX_LOGS: usize = 100;
+
+        for log in &self.structured_logs {
+            let world_id = log.data.get(&AppEventLayer::World).map(|meta| meta.id);
+            let user_id = log.data.get(&AppEventLayer::User).map(|meta| meta.id);
+            let system_id = log.data.get(&AppEventLayer::System).map(|meta| meta.id);
+
+            if let Some(world_id) = world_id {
+                if !world_to_firehose_index.contains_key(&(world_id as usize)) {
+                    firehoses.push(VecDeque::new());
+                    world_to_firehose_index.insert(world_id as usize, firehoses.len() - 1);
+                }
+                let firehose_index = *world_to_firehose_index.get(&(world_id as usize)).unwrap();
+                firehoses[firehose_index].push_back(log.clone());
+                if firehoses[firehose_index].len() > MAX_LOGS {
+                    firehoses[firehose_index].pop_front();
+                }
+            } else if user_id.is_some() {
+                firehoses[1].push_back(log.clone());
+                if firehoses[1].len() > MAX_LOGS {
+                    firehoses[1].pop_front();
+                }
+            } else if system_id.is_some() {
+                firehoses[0].push_back(log.clone());
+                if firehoses[0].len() > MAX_LOGS {
+                    firehoses[0].pop_front();
+                }
+            }
+        }
+
+        println!("firehoses: {:?}", firehoses);
 
         firehoses
     }
@@ -626,6 +644,7 @@ impl State for Terminal {
                         const MAX_LOGS: usize = 100;
 
                         self.structured_logs.push_back(log.clone());
+                        println!("log: {:?}", log);
 
                         // serialize the log into a string
                         // this is temp
@@ -644,8 +663,8 @@ impl State for Terminal {
                         }
 
                         // Process the logs.
-                        // self.firehoses = self.convert_structured_firehose_to_firehose();
-                        self.firehoses = self.filter_logs_into_firehoses();
+                        self.firehoses = self.convert_structured_firehose_to_firehose();
+                        // self.firehoses = self.filter_logs_into_firehoses();
                     }
 
                     Command::none()
@@ -687,7 +706,7 @@ impl State for Terminal {
 
                 view::Message::Data(msg) => match msg {
                     view::Data::LogTrace => {
-                        tracing::info!("LogTrace message received!");
+                        trigger_debug_trace();
                         Command::none()
                     }
                     view::Data::UpdateWatchedValue(value) => {
@@ -749,4 +768,9 @@ impl State for Terminal {
         subs.push(step_sim_subscription);
         Subscription::batch(subs)
     }
+}
+
+#[tracing::instrument(fields(layer = %"user"))]
+fn trigger_debug_trace() {
+    tracing::info!("LogTrace message received!");
 }

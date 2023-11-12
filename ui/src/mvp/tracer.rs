@@ -192,6 +192,7 @@ pub enum AppEventLayer {
     System,
     World,
     Agent,
+    Default,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -206,7 +207,7 @@ pub enum AppEventAction {
 pub struct AppEventMetadata {
     pub id: u32,
     pub action: AppEventAction,
-    pub data: Option<String>,
+    pub data: Vec<String>,
 }
 
 /// Structures the data for the application.
@@ -227,10 +228,12 @@ impl Visit for FieldVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
         let field_name = field.name();
         let field_value = format!("{:?}", value);
+        println!("field: {:?}, value: {:?}", field_name, field_value);
 
         // Check if the field is the layer
         if field_name == "layer" {
             // Convert the layer string to the corresponding AppEventLayer enum value
+            // todo: this does not feel right
             self.current_layer = match field_value.as_str() {
                 "user" => Some(AppEventLayer::User),
                 "system" => Some(AppEventLayer::System),
@@ -238,17 +241,17 @@ impl Visit for FieldVisitor {
                 "agent" => Some(AppEventLayer::Agent),
                 _ => None,
             };
-        } else {
-            // Get the current layer's fields
-            if let Some(layer) = &self.current_layer {
-                let layer_fields = self
-                    .fields
-                    .entry(layer.clone())
-                    .or_insert_with(HashMap::new);
+        }
 
-                // Insert the attribute and its value
-                layer_fields.insert(field_name.to_string(), field_value);
-            }
+        // Get the current layer's fields
+        if let Some(layer) = &self.current_layer {
+            let layer_fields = self
+                .fields
+                .entry(layer.clone())
+                .or_insert_with(HashMap::new);
+
+            // Insert the attribute and its value
+            layer_fields.insert(field_name.to_string(), field_value);
         }
 
         // Store the fields in the CURRENT_SPAN_FIELDS thread-local variable
@@ -260,23 +263,8 @@ impl Visit for FieldVisitor {
 
 impl Visit for AppEventLog {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-        // Get the current layer from the current span fields
-        let current_layer = CURRENT_SPAN_FIELDS.with(|fields| {
-            let fields = fields.borrow();
-            // it should be the last item in the hashmap
-            fields.keys().last().cloned()
-        });
-
-        // Determine the next layer based on the current layer
-        let next_layer = match current_layer.clone() {
-            Some(AppEventLayer::User) => AppEventLayer::System,
-            Some(AppEventLayer::System) => AppEventLayer::World,
-            Some(AppEventLayer::World) => AppEventLayer::Agent,
-            _ => return, // Ignore if there's no next layer
-        };
-
         // Update self.data with the span fields for each layer
-        CURRENT_SPAN_FIELDS.with(|fields| {
+        let current_layer: Option<AppEventLayer> = CURRENT_SPAN_FIELDS.with(|fields| {
             let fields = fields.borrow();
             for layer in &[
                 AppEventLayer::User,
@@ -287,11 +275,14 @@ impl Visit for AppEventLog {
                 if let Some(layer_fields) = fields.get(layer) {
                     if let Some(id) = layer_fields.get("id") {
                         if let Some(action) = layer_fields.get("action") {
-                            let data = layer_fields.get("data").cloned();
+                            let data = layer_fields
+                                .get("data")
+                                .cloned()
+                                .unwrap_or_else(|| "".to_string());
                             let metadata = AppEventMetadata {
                                 id: id.parse().unwrap_or(0),
                                 action: AppEventAction::Custom(action.clone()),
-                                data,
+                                data: vec![data],
                             };
 
                             self.data.insert(layer.clone(), metadata);
@@ -299,17 +290,48 @@ impl Visit for AppEventLog {
                     }
                 }
             }
+
+            // Get the current layer
+            fields
+                .iter()
+                .last()
+                .map(|(layer, _)| Some(layer.clone()))
+                .unwrap_or(None)
         });
 
-        // Set the message as the data for the next layer
-        let metadata = AppEventMetadata {
-            id: 0, // Set appropriate id
-            action: AppEventAction::Custom(field.name().to_string()),
-            data: Some(format!("{:?}", value)),
-        };
+        // Set the message as the data for the current layer
+        let message = format!("{:?}", value);
 
-        // Insert the new layer and metadata
-        self.data.insert(next_layer, metadata);
+        println!("message: {:?}, layer: {:?}", message, current_layer);
+        // Check if there is already an AppEventMetadata for the current_layer
+        if let Some(layer) = current_layer {
+            if let Some(existing_metadata) = self.data.get_mut(&layer) {
+                // If there is, append the new message to the existing data
+                existing_metadata.data.push(message);
+            } else {
+                // If there isn't, insert a new AppEventMetadata
+                let metadata = AppEventMetadata {
+                    id: 0, // Set appropriate id
+                    action: AppEventAction::Custom(field.name().to_string()),
+                    data: vec![message],
+                };
+                self.data.insert(layer, metadata);
+            }
+        } else {
+            // Handle the case where current_layer is None
+            // For example, you can add the message to the last non-None layer:
+            if let Some((last_layer, existing_metadata)) = self.data.iter_mut().last() {
+                existing_metadata.data.push(message);
+            } else {
+                // If there are no non-None layers, create a default layer:
+                let metadata = AppEventMetadata {
+                    id: 0, // Set appropriate id
+                    action: AppEventAction::Custom(field.name().to_string()),
+                    data: vec![message],
+                };
+                self.data.insert(AppEventLayer::Default, metadata);
+            }
+        }
     }
 }
 
@@ -354,7 +376,6 @@ where
         // Store the new span fields
         CURRENT_SPAN_FIELDS.with(|fields| {
             *fields.borrow_mut() = visitor.fields.clone();
-            println!("CURRENT_SPAN_FIELDS: {:?}", fields.borrow());
         });
     }
 }
@@ -463,17 +484,6 @@ mod tests {
         }
     }
 
-    #[tracing::instrument(fields(id = %"1"))]
-    fn identified_trace() {
-        tracing::info!("Hello, Excalibur!");
-        entity_trace();
-    }
-
-    #[tracing::instrument(fields(id = %"4", entity = %"agent", action = %"add", data = %"agent_data"))]
-    fn entity_trace() {
-        tracing::info!("I'm an agent doing stuff!");
-    }
-
     #[tracing::instrument(fields(layer = %"user", id = %"1", action = %"click"))]
     fn user_trace() {
         tracing::info!("I'm a user doing stuff!");
@@ -486,15 +496,23 @@ mod tests {
         world_trace();
     }
 
+    // todo: if you add a data label, it overwrites the message, and adds it to
+    // previous layer's metadata?
     #[tracing::instrument(fields(layer = %"world", id = %"3", action = %"manage"))]
     fn world_trace() {
         tracing::info!("I'm a world doing stuff!");
         agent_trace();
     }
 
-    #[tracing::instrument(fields(layer = %"agent", id = %"4", action = %"act", data = %"agent_data"))]
+    #[tracing::instrument(fields(layer = %"agent", id = %"4", action = %"act"))]
     fn agent_trace() {
         tracing::info!("I'm an agent doing stuff!");
+        default_tracing();
+    }
+
+    #[tracing::instrument]
+    fn default_tracing() {
+        tracing::info!("I'm a default trace!");
     }
 
     #[test]
@@ -510,6 +528,24 @@ mod tests {
             if msg.data.len() > 3 {
                 println!("Received message: {:?}", msg.data);
             }
+        }
+    }
+
+    #[tracing::instrument(fields(layer = %"user"))]
+    fn single_trace() {
+        tracing::info!("I'm a single trace!");
+    }
+
+    #[test]
+    fn test_single_layer_field() {
+        let tracer = setup_with_channel();
+
+        // log a message with a span that sets an id field
+        single_trace();
+
+        // get the last item from the receiver channel and log it
+        while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
+            println!("Received message: {:?}", msg.data);
         }
     }
 }
