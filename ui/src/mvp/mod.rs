@@ -19,6 +19,7 @@ mod world;
 use std::sync::{Arc, Mutex};
 
 use app::App;
+use components::*;
 use loader::Loader;
 use local::Local;
 use styles::*;
