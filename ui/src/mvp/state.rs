@@ -79,7 +79,7 @@ pub struct Terminal {
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
     // Override the world manager with a new one that has spawned worlds.
     Ok(Arc::new(tokio::sync::Mutex::new(
-        WorldManager::default().spawn(1).await?,
+        WorldManager::default().spawn(2).await?,
     )))
 }
 
@@ -106,161 +106,9 @@ impl Terminal {
         }
     }
 
-    // todo: this iterates over the flattened logs storage, it should only effect
-    // storage of each existing firehose storage...
-    // this way we can keep logs for a firehose even if we aren't storing them in
-    // the main log storage.
-    pub fn filter_logs_into_firehoses(&self) -> Vec<VecDeque<String>> {
-        // Need to fill this log to render the main terminal!
-        let mut welcome = VecDeque::new();
-        welcome.push_back(format!("Welcome to Excalibur"));
-
-        let mut firehoses = vec![welcome];
-
-        const MAX_LOGS: usize = 100;
-
-        let mut world_to_firehose_index: HashMap<usize, usize> = HashMap::new();
-        world_to_firehose_index.insert(0, 0); // Main thread
-
-        // Add a firehose for the user
-        firehoses.push(VecDeque::new());
-        world_to_firehose_index.insert(1, 1); // User
-
-        for log in &self.logs {
-            let parts: Vec<&str> = log.split('.').collect();
-            if parts[0] == "world" {
-                let world_id: usize = parts[1]
-                    .split('.')
-                    .next()
-                    .unwrap()
-                    .parse()
-                    .unwrap_or_else(|_| panic!("Failed to parse world_id"));
-                if !world_to_firehose_index.contains_key(&world_id) {
-                    firehoses.push(VecDeque::new());
-                    world_to_firehose_index.insert(world_id, firehoses.len() - 1);
-                }
-                let firehose_index = *world_to_firehose_index.get(&world_id).unwrap();
-                firehoses[firehose_index].push_back(log.clone());
-                if firehoses[firehose_index].len() > MAX_LOGS {
-                    firehoses[firehose_index].pop_front();
-                }
-            } else if parts[0] == "user" {
-                firehoses[1].push_back(log.clone());
-                if firehoses[1].len() > MAX_LOGS {
-                    firehoses[1].pop_front();
-                }
-            } else {
-                firehoses[0].push_back(log.clone());
-                if firehoses[0].len() > MAX_LOGS {
-                    firehoses[0].pop_front();
-                }
-            }
-        }
-
-        firehoses
-    }
-
-    fn filter_structured_logs_into_firehoses(&self) -> Vec<VecDeque<AppEventLog>> {
-        let mut firehoses = vec![VecDeque::new(), VecDeque::new()]; // system and user firehoses
-        let mut world_to_firehose_index: HashMap<usize, usize> = HashMap::new();
-
-        // Add a system and user firehose
-        world_to_firehose_index.insert(0, 0); // Main thread
-        world_to_firehose_index.insert(1, 1); // User
-
-        const MAX_LOGS: usize = 100;
-
-        for log in &self.structured_logs {
-            let world_id = log.data.get(&AppEventLayer::World).map(|meta| meta.id);
-            let user_id = log.data.get(&AppEventLayer::User).map(|meta| meta.id);
-            let system_id = log.data.get(&AppEventLayer::System).map(|meta| meta.id);
-
-            if let Some(world_id) = world_id {
-                if !world_to_firehose_index.contains_key(&(world_id as usize)) {
-                    firehoses.push(VecDeque::new());
-                    world_to_firehose_index.insert(world_id as usize, firehoses.len() - 1);
-                }
-                let firehose_index = *world_to_firehose_index.get(&(world_id as usize)).unwrap();
-                firehoses[firehose_index].push_back(log.clone());
-                if firehoses[firehose_index].len() > MAX_LOGS {
-                    firehoses[firehose_index].pop_front();
-                }
-            } else if user_id.is_some() {
-                firehoses[1].push_back(log.clone());
-                if firehoses[1].len() > MAX_LOGS {
-                    firehoses[1].pop_front();
-                }
-            } else if system_id.is_some() {
-                firehoses[0].push_back(log.clone());
-                if firehoses[0].len() > MAX_LOGS {
-                    firehoses[0].pop_front();
-                }
-            }
-        }
-
-        firehoses
-    }
-
-    fn convert_structured_firehose_to_firehose(&self) -> Vec<VecDeque<String>> {
-        let firehoses = self.filter_structured_logs_into_firehoses();
-
-        // Create buckets "user", "system", and buckets for each "world"
-        // place all the firehose messages respective to their buckets, only put
-        // their data value.
-        let mut firehose_logs = vec![VecDeque::new(), VecDeque::new()]; // system and user firehoses
-        let mut world_to_firehose_index: HashMap<usize, usize> = HashMap::new();
-
-        // Add a system and user firehose
-        world_to_firehose_index.insert(0, 0); // Main thread
-        world_to_firehose_index.insert(1, 1); // User
-
-        for log in &self.structured_logs {
-            let agent_id = log.data.get(&AppEventLayer::Agent).map(|meta| meta.id);
-            let world_id = log.data.get(&AppEventLayer::World).map(|meta| meta.id);
-            let user_id = log.data.get(&AppEventLayer::User).map(|meta| meta.id);
-            let system_id = log.data.get(&AppEventLayer::System).map(|meta| meta.id);
-            let default_id = log.data.get(&AppEventLayer::Default).map(|meta| meta.id);
-
-            if let Some(world_id) = world_id {
-                if !world_to_firehose_index.contains_key(&(world_id as usize)) {
-                    firehose_logs.push(VecDeque::new());
-                    world_to_firehose_index.insert(world_id as usize, firehose_logs.len() - 1);
-                }
-                let firehose_index = *world_to_firehose_index.get(&(world_id as usize)).unwrap();
-                firehose_logs[firehose_index].push_back(format!(
-                    "{:?}",
-                    log.data.get(&AppEventLayer::World).unwrap().action.clone()
-                ));
-            } else if user_id.is_some() {
-                firehose_logs[1].push_back(format!(
-                    "{:?}",
-                    log.data.get(&AppEventLayer::User).unwrap().action.clone()
-                ));
-            } else if system_id.is_some() {
-                firehose_logs[0].push_back(format!(
-                    "{:?}",
-                    log.data.get(&AppEventLayer::System).unwrap().action.clone()
-                ));
-            } else if agent_id.is_some() {
-                firehose_logs[0].push_back(format!(
-                    "{:?}",
-                    log.data.get(&AppEventLayer::Agent).unwrap().action.clone()
-                ));
-            } else if default_id.is_some() {
-                firehose_logs[0].push_back(format!(
-                    "{:?}",
-                    log.data
-                        .get(&AppEventLayer::Default)
-                        .unwrap()
-                        .action
-                        .clone()
-                ));
-            }
-        }
-
-        println!("firehose_logs: {:?}", firehose_logs);
-
-        firehose_logs
+    fn parse_logs(&self) -> Vec<VecDeque<String>> {
+        let logs = self.structured_logs.clone();
+        convert_to_vecdeque(logs)
     }
 
     pub fn purge_non_main_logs(&mut self) {
@@ -708,7 +556,7 @@ impl State for Terminal {
                         }
 
                         // Process the logs.
-                        self.firehoses = self.convert_structured_firehose_to_firehose();
+                        self.firehoses = self.parse_logs();
                     }
 
                     Command::none()
@@ -719,7 +567,6 @@ impl State for Terminal {
                 app::Simulation::Spawned(world_manager) => {
                     match world_manager {
                         Ok(world_manager) => {
-                            tracing::info!("Simulation world spawned!");
                             return self.handle_startup(world_manager);
                         }
                         Err(e) => {
@@ -751,6 +598,7 @@ impl State for Terminal {
                 view::Message::Data(msg) => match msg {
                     view::Data::LogTrace => {
                         trigger_debug_trace();
+                        println!("Logs: {:?}", self.structured_logs.clone());
                         Command::none()
                     }
                     view::Data::UpdateWatchedValue(value) => {
@@ -817,4 +665,57 @@ impl State for Terminal {
 #[tracing::instrument(fields(layer = %"user"))]
 fn trigger_debug_trace() {
     tracing::info!("LogTrace message received!");
+}
+
+// todo: we assume the last trace message is the last element of the data...
+fn convert_to_vecdeque(logs: VecDeque<AppEventLog>) -> Vec<VecDeque<String>> {
+    let mut system_logs = VecDeque::new();
+    let mut user_logs = VecDeque::new();
+    let mut world_logs: HashMap<u32, VecDeque<String>> = HashMap::new();
+    let mut agent_logs = VecDeque::new();
+    let mut default_logs = VecDeque::new();
+
+    // Iterate over each log in the VecDeque
+    for log in logs {
+        if let Some(metadata) = log.data.get(&AppEventLayer::System) {
+            // Take the last element from the data vector and push it to system_logs
+            if let Some(last_element) = metadata.data.last() {
+                system_logs.push_back(last_element.clone());
+            }
+        }
+        if let Some(metadata) = log.data.get(&AppEventLayer::User) {
+            // Take the last element from the data vector and push it to user_logs
+            if let Some(last_element) = metadata.data.last() {
+                user_logs.push_back(last_element.clone());
+            }
+        }
+        if let Some(metadata) = log.data.get(&AppEventLayer::World) {
+            // Take the last element from the data vector and push it to world_logs
+            if let Some(last_element) = metadata.data.last() {
+                let world_id = metadata.id;
+                world_logs
+                    .entry(world_id)
+                    .or_insert_with(VecDeque::new)
+                    .push_back(last_element.clone());
+            }
+        }
+        if let Some(metadata) = log.data.get(&AppEventLayer::Agent) {
+            // Take the last element from the data vector and push it to agent_logs
+            if let Some(last_element) = metadata.data.last() {
+                agent_logs.push_back(last_element.clone());
+            }
+        }
+        if let Some(metadata) = log.data.get(&AppEventLayer::Default) {
+            // Take the last element from the data vector and push it to default_logs
+            if let Some(last_element) = metadata.data.last() {
+                default_logs.push_back(last_element.clone());
+            }
+        }
+    }
+
+    let mut result = vec![system_logs, user_logs, default_logs, agent_logs];
+    for (_, world_log) in world_logs {
+        result.push(world_log);
+    }
+    result
 }
