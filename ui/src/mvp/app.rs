@@ -5,6 +5,7 @@ use tracing::Span;
 
 use super::{
     state::{Screen, Terminal},
+    tracer::AppEventLog,
     *,
 };
 
@@ -49,7 +50,7 @@ impl App {
     pub fn new(
         arbiter: Environment,
         local: Local<Ws>,
-        receiver: Arc<Mutex<Receiver<String>>>,
+        receiver: Arc<Mutex<Receiver<AppEventLog>>>,
     ) -> (Self, Command<Message>) {
         let screen = Screen::new(Box::new(Terminal::new(receiver.clone())));
         (
