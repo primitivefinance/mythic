@@ -1,5 +1,7 @@
+use ethers::abi::Tokenizable;
+
 use super::{strategy::Strategy, token_admin::TokenAdmin, *};
-use crate::strategy::LiquidityStrategy;
+use crate::{bindings::ig3m::IG3M, strategy::LiquidityStrategy};
 
 #[derive(Clone, Debug)]
 pub struct LiquidityProvider<S: LiquidityStrategy>
@@ -10,6 +12,7 @@ where
     pub strategy: S,
     initial_x: U256,
     initial_price: U256,
+    pub token_admin: TokenAdmin,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -48,7 +51,11 @@ impl<S: LiquidityStrategy + Sized> LiquidityProvider<S> {
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 
         token_admin
-            .mint(client.address(), U256::MAX / 2, U256::MAX / 2)
+            .mint(
+                client.address(),
+                parse_ether(100_000_u64).unwrap(),
+                parse_ether(100_000_u64).unwrap(),
+            )
             .await?;
 
         arbx.approve(strategy_address, U256::MAX).send().await?;
@@ -62,6 +69,7 @@ impl<S: LiquidityStrategy + Sized> LiquidityProvider<S> {
                 strategy,
                 initial_x: ethers::utils::parse_ether(params.x_liquidity.0)?,
                 initial_price: ethers::utils::parse_ether(params.initial_price.0)?,
+                token_admin: token_admin.clone(),
             })
         } else {
             Err(anyhow::anyhow!(
@@ -71,7 +79,7 @@ impl<S: LiquidityStrategy + Sized> LiquidityProvider<S> {
     }
 
     pub async fn get(&self) -> Result<U256> {
-        let res = self.strategy.get_pfv().await;
+        let res = self.strategy.get_portfolio_value().await;
         match res {
             Ok(res) => Ok(res),
             Err(err) => {
@@ -106,11 +114,57 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for LiquidityProvider<S> {
         format!("liquidity_provider")
     }
 
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        // get spot price, reserves, invariant, portfolio value.
+
+        let spot_price = self.strategy.get_spot_price().await?;
+        let reserve_x = self.strategy.get_reserve_x().await?;
+        let reserve_y = self.strategy.get_reserve_y().await?;
+        let invariant = self.strategy.get_invariant().await?;
+        let portfolio_value = self.strategy.get_portfolio_value().await?;
+        let this = self.client.address();
+        let x_balance = self.token_admin.arbx.balance_of(this).call().await?;
+        let y_balance = self.token_admin.arby.balance_of(this).call().await?;
+
+        let subbed = vec![
+            SubscribedData {
+                name: "spot_price".to_string(),
+                data: spot_price.into_token(),
+            },
+            SubscribedData {
+                name: "x_balance".to_string(),
+                data: x_balance.into_token(),
+            },
+            SubscribedData {
+                name: "y_balance".to_string(),
+                data: y_balance.into_token(),
+            },
+            SubscribedData {
+                name: "reserve_x".to_string(),
+                data: reserve_x.into_token(),
+            },
+            SubscribedData {
+                name: "reserve_y".to_string(),
+                data: reserve_y.into_token(),
+            },
+            SubscribedData {
+                name: "invariant".to_string(),
+                data: invariant.into_token(),
+            },
+            SubscribedData {
+                name: "portfolio_value".to_string(),
+                data: portfolio_value.into_token(),
+            },
+        ];
+
+        Ok(subbed)
+    }
+
     async fn startup(&mut self) -> Result<()> {
         debug!("Entering `LiquidityProvider` startup");
         debug!(
             "Getting pvf state {}",
-            self.strategy.get_pfv().await?.to_string()
+            self.strategy.get_portfolio_value().await?.to_string()
         );
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
@@ -132,7 +186,7 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for LiquidityProvider<S> {
     }
 
     async fn get_state(&self) -> Result<U256> {
-        let res = self.strategy.get_pfv().await;
+        let res = self.strategy.get_portfolio_value().await;
         match res {
             Ok(res) => Ok(res),
             Err(err) => {

@@ -4,6 +4,7 @@ use std::{
 };
 
 use arbiter_core::math::GeometricBrownianMotion;
+use ethers::abi::Tokenizable;
 use itertools::iproduct;
 use rand::random;
 
@@ -149,6 +150,16 @@ impl Agent for PriceChanger {
         self.update_price().await?;
         debug!("Price updated on lex");
         Ok(())
+    }
+
+    fn get_name(&self) -> String {
+        format!("price_changer")
+    }
+
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        let price = self.liquid_exchange.price().call().await?;
+        let subbed = vec![SubscribedData::new("price".to_string(), price.into_token())];
+        Ok(subbed)
     }
 }
 

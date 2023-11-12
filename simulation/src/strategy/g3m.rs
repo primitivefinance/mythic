@@ -52,10 +52,26 @@ impl LiquidityStrategy for IStrategy<RevmMiddleware> {
             .await?)
     }
 
-    async fn get_pfv(&self) -> Result<U256> {
-        let p = self.get_portfolio_value().call().await?;
-        tracing::warn!("Calling pvf on liquidity strategy trait {}", p);
-        Ok(p)
+    async fn get_reserve_x(&self) -> Result<U256> {
+        Ok(self.get_reserve_x().call().await?)
+    }
+
+    async fn get_reserve_y(&self) -> Result<U256> {
+        Ok(self.get_reserve_y().call().await?)
+    }
+
+    async fn get_invariant(&self) -> Result<U256> {
+        Ok(self
+            .get_invariant()
+            .call()
+            .await?
+            .checked_abs()
+            .and_then(|x| Some(x.twos_complement()))
+            .unwrap_or_default())
+    }
+
+    async fn get_portfolio_value(&self) -> Result<U256> {
+        Ok(self.get_portfolio_value().call().await?)
     }
 }
 

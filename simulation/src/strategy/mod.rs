@@ -39,7 +39,13 @@ pub trait LiquidityStrategy: Strategy + Sized {
         initial_price_wad: U256,
     ) -> Result<Option<TransactionReceipt>>;
 
-    async fn get_pfv(&self) -> Result<U256>;
+    async fn get_reserve_x(&self) -> Result<U256>;
+
+    async fn get_reserve_y(&self) -> Result<U256>;
+
+    async fn get_invariant(&self) -> Result<U256>;
+
+    async fn get_portfolio_value(&self) -> Result<U256>;
 }
 
 /// A sub-trait for arbitrageurs to implement their logic for computing how many

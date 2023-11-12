@@ -1,3 +1,5 @@
+use ethers::abi::Token;
+
 use self::{
     block_admin::BlockAdminParameters,
     liquidity_provider::LiquidityProviderParameters,
@@ -17,6 +19,7 @@ pub mod block_admin;
 pub mod counter;
 pub mod liquidity_provider;
 pub mod price_changer;
+pub mod strategy_monitor;
 pub mod swapper;
 pub mod token_admin;
 pub mod weight_changer;
@@ -34,6 +37,18 @@ impl std::fmt::Debug for Agents {
         f.debug_struct("Agents")
             .field("agents", &self.0.len())
             .finish()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SubscribedData {
+    pub name: String,
+    pub data: Token,
+}
+
+impl SubscribedData {
+    pub fn new(name: String, data: Token) -> Self {
+        Self { name, data }
     }
 }
 
@@ -89,6 +104,11 @@ pub trait Agent: Sync + Send + Any + Debug {
 
     fn get_name(&self) -> String {
         format!("default")
+    }
+
+    /// Returns a list of subscribed data in the form of a vector of tokens.
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        Ok(vec![])
     }
 }
 

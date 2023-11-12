@@ -22,6 +22,24 @@ impl Feed {
         }
     }
 
+    pub fn ingest(&mut self, log: AppEventLog) {
+        let (layer, metadata) = log.data.into_iter().next().unwrap();
+        let name = match layer {
+            AppEventLayer::System => "System",
+            AppEventLayer::User => "User",
+            AppEventLayer::World => "World",
+            AppEventLayer::Agent => "Agent",
+            AppEventLayer::Default => "Default",
+        }
+        .to_string()
+        .to_lowercase();
+        let bucket = self.buckets.entry(name).or_insert_with(VecDeque::new);
+        bucket.push_back(metadata);
+        if bucket.len() > self.max_size {
+            bucket.pop_front();
+        }
+    }
+
     /// Buckets the logs into the appropriate buckets.
     pub fn vec_to_bucketed_logs(&mut self, logs: VecDeque<AppEventLog>) {
         let (parsed, names) = filter_to_buckets(logs);
@@ -101,7 +119,13 @@ fn filter_to_buckets(
 pub fn convert_metadata_to_data(metadata: VecDeque<AppEventMetadata>) -> VecDeque<String> {
     metadata
         .iter()
-        .map(|metadata| metadata.data.last().unwrap().clone())
+        .map(|metadata| {
+            metadata
+                .data
+                .last()
+                .unwrap_or(&"No data".to_string())
+                .clone()
+        })
         .collect::<VecDeque<String>>()
 }
 

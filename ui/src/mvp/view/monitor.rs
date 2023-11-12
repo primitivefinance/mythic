@@ -7,7 +7,7 @@ use super::*;
 pub fn labeled_data_card<'a>(label: String, data: String, max_width: u16) -> Element<'a, Message> {
     let mut content = Column::new()
         .push(labeled_data(label, data))
-        .width(Length::Shrink);
+        .width(Length::Fixed(100.0));
     content = content.spacing(8);
     container(content)
         .style(MenuContainerTheme::theme())
