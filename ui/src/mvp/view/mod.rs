@@ -6,17 +6,20 @@ use tracing::Span;
 use self::{
     control::control_panel,
     event::{event_item, event_view, mock_event_groups, EventFeed},
+    feed::Feed,
     monitor::{labeled_data_card, labeled_data_cards},
 };
 use super::{
     column,
     components::{containers::*, *},
+    tracer::AppEventLog,
     *,
 };
 
 pub mod agent;
 pub mod control;
 pub mod event;
+pub mod feed;
 pub mod monitor;
 
 /// Messages emitted from user interaction with the settings.
@@ -69,14 +72,14 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, 
     .into()
 }
 
-pub fn terminal_view<'a>(logs: Vec<String>) -> Element<'a, Message> {
-    let mut content = Column::new().push(Text::new("Terminal").size(28));
-    content = content.push(firehose_view(logs.clone(), "main".to_string()));
-    content.spacing(16).into()
-}
+// pub fn terminal_view<'a>(logs: Vec<String>) -> Element<'a, Message> {
+// let mut content = Column::new().push(Text::new("Terminal").size(28));
+// content = content.push(firehose_view(logs.clone(), "main".to_string()));
+// content.spacing(16).into()
+// }
 
 pub fn terminal_view_multiple_firehose<'a>(
-    log_containers: Vec<VecDeque<String>>,
+    log_containers: Vec<VecDeque<AppEventLog>>,
     realtime: bool,
     state_vars: Vec<String>,
     firehose_visible: bool,
@@ -118,10 +121,20 @@ pub fn terminal_view_multiple_firehose<'a>(
     }
     .view();
 
+    let mut feeds: Vec<Feed> = vec![];
+    for log_container in log_containers {
+        let mut feed = Feed::new(20);
+        feed.vec_to_bucketed_logs(log_container);
+        feeds.push(feed);
+    }
+
+    let feed_view: Element<'a, Message> = feeds[0].view("default").into();
+
     let content_row = row![
-        column![agents, monitored, monitor_group].width(Length::FillPortion(3)),
-        column![eventing].width(Length::FillPortion(1))
-    ];
+        column![agents, monitored, monitor_group].width(Length::FillPortion(2)),
+        column![feed_view, eventing,].width(Length::FillPortion(2))
+    ]
+    .width(Length::Fill);
 
     content = content
         .push(
@@ -130,7 +143,7 @@ pub fn terminal_view_multiple_firehose<'a>(
                 .style(MenuContainerTheme::theme())
                 .width(Length::Fill),
         )
-        .push(multiple_firehose(log_containers.clone()));
+        .push(content_row);
     content
         .spacing(16)
         .padding(16)
@@ -139,68 +152,56 @@ pub fn terminal_view_multiple_firehose<'a>(
         .into()
 }
 
-pub fn firehose_view<'a>(logs: Vec<String>, label: String) -> Element<'a, Message> {
-    let mut content = Column::new().push(Text::new(label).size(24));
+// pub fn firehose_view<'a>(logs: Vec<String>, label: String) -> Element<'a,
+// Message> { let mut content = Column::new().push(Text::new(label).size(24));
+//
+// let firehose = logs.iter().rev().fold(column![].spacing(2), |column, log| {
+// column.push(firehose_log(log.clone()))
+// });
+// let firehose_content = container(scrollable(firehose))
+// .style(FirehoseContainer::theme())
+// .height(Length::Fixed(400.0))
+// .width(Length::Fixed(300.0))
+// .padding(4);
+//
+// content = content.push(firehose_content);
+// content.spacing(16).padding(16).into()
+// }
 
-    let firehose = logs.iter().rev().fold(column![].spacing(2), |column, log| {
-        column.push(firehose_log(log.clone()))
-    });
-    let firehose_content = container(scrollable(firehose))
-        .style(FirehoseContainer::theme())
-        .height(Length::Fixed(400.0))
-        .width(Length::Fixed(300.0))
-        .padding(4);
-
-    content = content.push(firehose_content);
-    content.spacing(16).padding(16).into()
-}
-
-/// warning! Adding logging in here can lead to infinite loops.
-pub fn multiple_firehose<'a>(log_containers: Vec<VecDeque<String>>) -> Element<'a, Message> {
-    let mut firehose_column = column![];
-    let mut firehose_row = row![].spacing(4).width(Length::Fill);
-    let mut count = 0;
-
-    for firehose_logs in log_containers {
-        let mut label = format!("firehose_{}", count);
-        if count == 0 {
-            label = format!("main");
-        }
-        if count == 1 {
-            label = format!("user (you)");
-        }
-
-        firehose_row = firehose_row.push(firehose_view(firehose_logs.clone().into(), label));
-        count += 1;
-
-        // todo: this spacing should be based on current window length or something...
-        if count % 4 == 0 {
-            firehose_column = firehose_column.push(firehose_row);
-            firehose_row = row![].spacing(4).width(Length::Fill);
-        }
-    }
-
-    // Push the last row if it has any firehoses
-    if count % 2 != 0 {
-        firehose_column = firehose_column.push(firehose_row);
-    }
-
-    firehose_column
-        .spacing(4)
-        .height(Length::Fill)
-        .width(Length::Fill)
-        .into()
-}
-
-pub fn firehose_log<'a>(log: String) -> Element<'a, Message> {
-    let firehose_element = text(log)
-        .size(12)
-        .vertical_alignment(alignment::Vertical::Center)
-        .horizontal_alignment(alignment::Horizontal::Left);
-
-    container(firehose_element)
-        .style(FirehoseTrace::theme())
-        .width(Length::Fill)
-        .padding(4)
-        .into()
-}
+// warning! Adding logging in here can lead to infinite loops.
+// pub fn multiple_firehose<'a>(log_containers: Vec<VecDeque<String>>) ->
+// Element<'a, Message> { let mut firehose_column = column![];
+// let mut firehose_row = row![].spacing(4).width(Length::Fill);
+// let mut count = 0;
+//
+// for firehose_logs in log_containers {
+// let mut label = format!("firehose_{}", count);
+// if count == 0 {
+// label = format!("main");
+// }
+// if count == 1 {
+// label = format!("user (you)");
+// }
+//
+// firehose_row =
+// firehose_row.push(finite_firehose(firehose_logs.clone().into(), label));
+// count += 1;
+//
+// todo: this spacing should be based on current window length or something...
+// if count % 4 == 0 {
+// firehose_column = firehose_column.push(firehose_row);
+// firehose_row = row![].spacing(4).width(Length::Fill);
+// }
+// }
+//
+// Push the last row if it has any firehoses
+// if count % 2 != 0 {
+// firehose_column = firehose_column.push(firehose_row);
+// }
+//
+// firehose_column
+// .spacing(4)
+// .height(Length::Fill)
+// .width(Length::Fill)
+// .into()
+// }

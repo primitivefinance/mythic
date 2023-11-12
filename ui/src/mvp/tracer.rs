@@ -217,6 +217,23 @@ pub struct AppEventLog {
     pub last_message: Option<AppEventMetadata>,
 }
 
+/// Can use for mocking event logs.
+impl AppEventLog {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+            last_message: None,
+        }
+    }
+
+    pub fn with_data(data: HashMap<AppEventLayer, AppEventMetadata>) -> Self {
+        Self {
+            data,
+            last_message: None,
+        }
+    }
+}
+
 /// Stores the current span's fields in a hashmap.
 struct FieldVisitor {
     fields: HashMap<AppEventLayer, AppEventMetadata>,
