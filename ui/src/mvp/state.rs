@@ -198,23 +198,69 @@ impl Terminal {
             }
         }
 
-        println!("firehoses: {:?}", firehoses);
-
         firehoses
     }
 
     fn convert_structured_firehose_to_firehose(&self) -> Vec<VecDeque<String>> {
         let firehoses = self.filter_structured_logs_into_firehoses();
 
-        firehoses
-            .iter()
-            .map(|firehose| {
-                firehose
-                    .iter()
-                    .map(|log| serde_json::to_string(&log).unwrap())
-                    .collect::<VecDeque<String>>()
-            })
-            .collect::<Vec<VecDeque<String>>>()
+        // Create buckets "user", "system", and buckets for each "world"
+        // place all the firehose messages respective to their buckets, only put
+        // their data value.
+        let mut firehose_logs = vec![VecDeque::new(), VecDeque::new()]; // system and user firehoses
+        let mut world_to_firehose_index: HashMap<usize, usize> = HashMap::new();
+
+        // Add a system and user firehose
+        world_to_firehose_index.insert(0, 0); // Main thread
+        world_to_firehose_index.insert(1, 1); // User
+
+        for log in &self.structured_logs {
+            let agent_id = log.data.get(&AppEventLayer::Agent).map(|meta| meta.id);
+            let world_id = log.data.get(&AppEventLayer::World).map(|meta| meta.id);
+            let user_id = log.data.get(&AppEventLayer::User).map(|meta| meta.id);
+            let system_id = log.data.get(&AppEventLayer::System).map(|meta| meta.id);
+            let default_id = log.data.get(&AppEventLayer::Default).map(|meta| meta.id);
+
+            if let Some(world_id) = world_id {
+                if !world_to_firehose_index.contains_key(&(world_id as usize)) {
+                    firehose_logs.push(VecDeque::new());
+                    world_to_firehose_index.insert(world_id as usize, firehose_logs.len() - 1);
+                }
+                let firehose_index = *world_to_firehose_index.get(&(world_id as usize)).unwrap();
+                firehose_logs[firehose_index].push_back(format!(
+                    "{:?}",
+                    log.data.get(&AppEventLayer::World).unwrap().action.clone()
+                ));
+            } else if user_id.is_some() {
+                firehose_logs[1].push_back(format!(
+                    "{:?}",
+                    log.data.get(&AppEventLayer::User).unwrap().action.clone()
+                ));
+            } else if system_id.is_some() {
+                firehose_logs[0].push_back(format!(
+                    "{:?}",
+                    log.data.get(&AppEventLayer::System).unwrap().action.clone()
+                ));
+            } else if agent_id.is_some() {
+                firehose_logs[0].push_back(format!(
+                    "{:?}",
+                    log.data.get(&AppEventLayer::Agent).unwrap().action.clone()
+                ));
+            } else if default_id.is_some() {
+                firehose_logs[0].push_back(format!(
+                    "{:?}",
+                    log.data
+                        .get(&AppEventLayer::Default)
+                        .unwrap()
+                        .action
+                        .clone()
+                ));
+            }
+        }
+
+        println!("firehose_logs: {:?}", firehose_logs);
+
+        firehose_logs
     }
 
     pub fn purge_non_main_logs(&mut self) {
@@ -233,7 +279,7 @@ impl Terminal {
     #[tracing::instrument(
         level = "trace",
         skip(self, world_manager),
-        fields(system_id = "spawned", system_action = "startup")
+        fields(layer = %"system", id = %"spawned", action = %"startup")
     )]
     pub fn handle_startup(
         &mut self,
@@ -252,7 +298,7 @@ impl Terminal {
     }
 
     /// Executes the logic when a continue message is received.
-    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "continue"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(layer = %"user", action = "%continue"))]
     pub fn handle_continue(&mut self) -> Command<Message> {
         if self.status == WorldManagerState::Completed {
             tracing::warn!("Simulation world already completed!");
@@ -283,7 +329,7 @@ impl Terminal {
         )
     }
 
-    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "spawn"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(layer = %"user", action = %"spawn"))]
     pub fn handle_spawn(&mut self) -> Command<Message> {
         if self.status != WorldManagerState::Stopped {
             tracing::warn!("Simulation already spawned! Stop before spawning a new one.");
@@ -300,7 +346,7 @@ impl Terminal {
     }
 
     // todo: this is triggered on View::Step, but it should be a root level message.
-    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "step"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(layer = %"user", action = %"step"))]
     pub fn handle_step(&mut self) -> Command<Message> {
         if self.status == WorldManagerState::Stopped {
             tracing::trace!("Simulation is stopped, cannot step.");
@@ -482,7 +528,7 @@ impl Terminal {
         );
     }
 
-    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "stop"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(layer = %"user", action = %"stop"))]
     pub fn handle_stop(&mut self) -> Command<Message> {
         tracing::trace!("Stop simulation message received!");
         self.status = WorldManagerState::Stopped;
@@ -513,7 +559,7 @@ impl Terminal {
         )
     }
 
-    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "pause"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(layer = %"user", action = %"pause"))]
     pub fn handle_pause(&mut self) -> Command<Message> {
         tracing::trace!("Pause simulation message received!");
         self.status = WorldManagerState::Paused;
@@ -533,7 +579,7 @@ impl Terminal {
         )
     }
 
-    #[tracing::instrument(level = "trace", skip(self), fields(user_action = "add_agent"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(layer = %"user", action = %"add_agent"))]
     pub fn handle_add_agent(&mut self) -> Command<Message> {
         tracing::warn!(
             "{}.{}: Add agent message received!",
@@ -644,7 +690,6 @@ impl State for Terminal {
                         const MAX_LOGS: usize = 100;
 
                         self.structured_logs.push_back(log.clone());
-                        println!("log: {:?}", log);
 
                         // serialize the log into a string
                         // this is temp
@@ -664,7 +709,6 @@ impl State for Terminal {
 
                         // Process the logs.
                         self.firehoses = self.convert_structured_firehose_to_firehose();
-                        // self.firehoses = self.filter_logs_into_firehoses();
                     }
 
                     Command::none()

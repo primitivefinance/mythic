@@ -130,8 +130,7 @@ pub fn terminal_view_multiple_firehose<'a>(
                 .style(MenuContainerTheme::theme())
                 .width(Length::Fill),
         )
-        .push(multiple_firehose(log_containers.clone()))
-        .push(content_row);
+        .push(multiple_firehose(log_containers.clone()));
     content
         .spacing(16)
         .padding(16)
