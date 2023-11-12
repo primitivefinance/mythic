@@ -62,17 +62,13 @@ impl Screen {
 const USER_ACTION_FILTER: &str = "user.";
 
 pub struct Terminal {
-    logs: VecDeque<String>,
-    firehoses: Vec<VecDeque<String>>,
+    data_feed: VecDeque<AppEventLog>,
     receiver: Arc<Mutex<Receiver<tracer::AppEventLog>>>,
     world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
     status: WorldManagerState,
-    realtime: bool,
-    // storage slots to keep track of for giving feedback to user.
     watching_state: HashMap<String, String>,
-    // render the firehose logs or not
-    hide_logs: bool,
-    structured_logs: VecDeque<AppEventLog>,
+    realtime: bool,
+    hide_firehoses: bool,
 }
 
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
@@ -84,42 +80,31 @@ pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, an
 
 impl Terminal {
     pub fn new(receiver: Arc<Mutex<Receiver<tracer::AppEventLog>>>) -> Self {
-        // Need to fill this log to render the main terminal!
-        let mut welcome = VecDeque::new();
-        welcome.push_back(format!("Welcome to Excalibur"));
-
-        let mut firehoses = vec![welcome.clone()];
-        // Add a firehose for the user
-        firehoses.push(VecDeque::new());
-
         Self {
-            logs: welcome.clone(),
-            firehoses,
+            data_feed: VecDeque::new(),
             receiver,
             world_manager: Arc::new(tokio::sync::Mutex::new(WorldManager::default())),
             status: WorldManagerState::Stopped,
-            realtime: true,
             watching_state: HashMap::new(),
-            hide_logs: false,
-            structured_logs: VecDeque::new(),
+            realtime: true,
+            hide_firehoses: false,
         }
-    }
-
-    fn parse_logs(&self) -> Vec<VecDeque<String>> {
-        let logs = self.structured_logs.clone();
-        convert_to_vecdeque(logs)
     }
 
     pub fn purge_non_main_logs(&mut self) {
-        let mut new_logs = VecDeque::new();
-        for log in &self.logs {
-            let parts: Vec<&str> = log.split('.').collect();
-            if parts[0] == "world" {
-                continue;
+        // Clears all the logs that are not keyed with "system".
+        let mut new_data_feed = VecDeque::new();
+
+        for log in self.data_feed.iter() {
+            if let Some(metadata) = log.data.get(&AppEventLayer::System) {
+                // Take the last element from the data vector and push it to system_logs
+                if let Some(last_element) = metadata.data.last() {
+                    new_data_feed.push_back(log.clone());
+                }
             }
-            new_logs.push_back(log.clone());
         }
-        self.logs = new_logs;
+
+        self.data_feed = new_data_feed;
     }
 
     /// Executes the logic when a spawned message is received.
@@ -514,16 +499,16 @@ impl State for Terminal {
             .iter()
             .map(|(k, v)| format!("{}: {}", k, v))
             .collect::<Vec<String>>();
-        let mut filtered_logs = vec![self.structured_logs.clone()];
-        if self.hide_logs {
-            filtered_logs = vec![VecDeque::new()];
+        let mut data = self.data_feed.clone();
+        if self.hide_firehoses {
+            data = VecDeque::new();
         }
 
         view::app_layout(view::terminal_view_multiple_firehose(
-            filtered_logs,
+            data,
             self.realtime,
             watching_state_vec.clone(),
-            self.hide_logs,
+            self.hide_firehoses,
         ))
         .into()
     }
@@ -536,26 +521,13 @@ impl State for Terminal {
                         // Define the maximum number of logs
                         const MAX_LOGS: usize = 100;
 
-                        self.structured_logs.push_back(log.clone());
-
-                        // serialize the log into a string
-                        // this is temp
-                        let serialized = serde_json::to_string(&log).unwrap();
-
                         // Push the new log
-                        self.logs.push_back(serialized);
+                        self.data_feed.push_back(log);
 
-                        // If the number of logs exceeds the maximum, remove the oldest one
-                        if self.logs.len() > MAX_LOGS {
-                            self.logs.pop_front();
+                        // If the number of data_feed exceeds the maximum, remove the oldest one
+                        if self.data_feed.len() > MAX_LOGS {
+                            self.data_feed.pop_front();
                         }
-
-                        if self.structured_logs.len() > MAX_LOGS {
-                            self.structured_logs.pop_front();
-                        }
-
-                        // Process the logs.
-                        self.firehoses = self.parse_logs();
                     }
 
                     Command::none()
@@ -589,7 +561,7 @@ impl State for Terminal {
                         Command::none()
                     }
                     view::Settings::ToggleFirehoseVisibility => {
-                        self.hide_logs = !self.hide_logs;
+                        self.hide_firehoses = !self.hide_firehoses;
                         Command::none()
                     }
                 },
@@ -597,7 +569,7 @@ impl State for Terminal {
                 view::Message::Data(msg) => match msg {
                     view::Data::LogTrace => {
                         trigger_debug_trace();
-                        println!("Logs: {:?}", self.structured_logs.clone());
+                        println!("Logs: {:?}", self.data_feed.clone());
                         Command::none()
                     }
                     view::Data::UpdateWatchedValue(value) => {
@@ -664,57 +636,4 @@ impl State for Terminal {
 #[tracing::instrument(fields(layer = %"user"))]
 fn trigger_debug_trace() {
     tracing::info!("LogTrace message received!");
-}
-
-// todo: we assume the last trace message is the last element of the data...
-fn convert_to_vecdeque(logs: VecDeque<AppEventLog>) -> Vec<VecDeque<String>> {
-    let mut system_logs = VecDeque::new();
-    let mut user_logs = VecDeque::new();
-    let mut world_logs: HashMap<u32, VecDeque<String>> = HashMap::new();
-    let mut agent_logs = VecDeque::new();
-    let mut default_logs = VecDeque::new();
-
-    // Iterate over each log in the VecDeque
-    for log in logs {
-        if let Some(metadata) = log.data.get(&AppEventLayer::System) {
-            // Take the last element from the data vector and push it to system_logs
-            if let Some(last_element) = metadata.data.last() {
-                system_logs.push_back(last_element.clone());
-            }
-        }
-        if let Some(metadata) = log.data.get(&AppEventLayer::User) {
-            // Take the last element from the data vector and push it to user_logs
-            if let Some(last_element) = metadata.data.last() {
-                user_logs.push_back(last_element.clone());
-            }
-        }
-        if let Some(metadata) = log.data.get(&AppEventLayer::World) {
-            // Take the last element from the data vector and push it to world_logs
-            if let Some(last_element) = metadata.data.last() {
-                let world_id = metadata.id;
-                world_logs
-                    .entry(world_id)
-                    .or_insert_with(VecDeque::new)
-                    .push_back(last_element.clone());
-            }
-        }
-        if let Some(metadata) = log.data.get(&AppEventLayer::Agent) {
-            // Take the last element from the data vector and push it to agent_logs
-            if let Some(last_element) = metadata.data.last() {
-                agent_logs.push_back(last_element.clone());
-            }
-        }
-        if let Some(metadata) = log.data.get(&AppEventLayer::Default) {
-            // Take the last element from the data vector and push it to default_logs
-            if let Some(last_element) = metadata.data.last() {
-                default_logs.push_back(last_element.clone());
-            }
-        }
-    }
-
-    let mut result = vec![system_logs, user_logs, default_logs, agent_logs];
-    for (_, world_log) in world_logs {
-        result.push(world_log);
-    }
-    result
 }
