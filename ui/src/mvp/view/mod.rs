@@ -3,11 +3,19 @@ use std::collections::{HashMap, VecDeque};
 use iced::widget::checkbox;
 use tracing::Span;
 
-use self::control::control_panel;
-use super::{column, components::*, *};
+use self::{
+    control::control_panel,
+    monitor::{labeled_data_card, labeled_data_cards},
+};
+use super::{
+    column,
+    components::{containers::*, *},
+    *,
+};
 
 pub mod agent;
 pub mod control;
+pub mod monitor;
 
 /// Messages emitted from user interaction with the settings.
 #[derive(Debug, Clone)]
@@ -80,7 +88,7 @@ pub fn terminal_view_multiple_firehose<'a>(
         labeled_data.push((label, data));
     }
 
-    let mut actions = control_panel(labeled_data, realtime, firehose_visible);
+    let mut actions = control_panel(labeled_data.clone(), realtime, firehose_visible);
     let agents = agent::agent_card(vec![
         ("name".to_string(), "agent".to_string()),
         ("name".to_string(), "agent".to_string()),
@@ -88,6 +96,20 @@ pub fn terminal_view_multiple_firehose<'a>(
         ("name".to_string(), "agent".to_string()),
     ]);
 
+    let monitored = labeled_data_card("monitored".to_string(), "data".to_string(), 200);
+
+    let monitor_group = labeled_data_cards(
+        "protocol".to_string(),
+        vec![
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+        ],
+        3,
+    );
     content = content
         .push(
             container(actions)
@@ -96,6 +118,8 @@ pub fn terminal_view_multiple_firehose<'a>(
                 .width(Length::Fill),
         )
         .push(agents)
+        .push(monitored)
+        .push(monitor_group)
         .push(multiple_firehose(log_containers.clone()));
     content
         .spacing(16)
@@ -169,89 +193,4 @@ pub fn firehose_log<'a>(log: String) -> Element<'a, Message> {
         .width(Length::Fill)
         .padding(4)
         .into()
-}
-
-pub struct MenuContainerTheme;
-
-impl container::StyleSheet for MenuContainerTheme {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(PANEL)),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: BORDER_COLOR,
-            ..Default::default()
-        }
-    }
-}
-
-impl MenuContainerTheme {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(MenuContainerTheme))
-    }
-}
-
-pub struct BackgroundContainerTheme;
-
-impl container::StyleSheet for BackgroundContainerTheme {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(BACKGROUND)),
-            ..Default::default()
-        }
-    }
-}
-
-impl BackgroundContainerTheme {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(BackgroundContainerTheme))
-    }
-}
-
-pub struct FirehoseContainer;
-
-impl container::StyleSheet for FirehoseContainer {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(PANEL)),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: BORDER_COLOR,
-            ..Default::default()
-        }
-    }
-}
-
-impl FirehoseContainer {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(FirehoseContainer))
-    }
-}
-
-pub struct FirehoseTrace;
-
-impl container::StyleSheet for FirehoseTrace {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(MODAL)),
-            border_radius: 4.0.into(),
-            border_width: 1.0,
-            border_color: BORDER_COLOR,
-            ..Default::default()
-        }
-    }
-}
-
-impl FirehoseTrace {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(FirehoseTrace))
-    }
 }

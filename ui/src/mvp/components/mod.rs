@@ -1,19 +1,22 @@
 pub mod button;
+pub mod containers;
 
 use button::*;
+use containers::*;
 use iced::{Color, Element, Renderer};
 
 // These components should return View messages.
 use super::{view::Message, *};
 
 /// Renders a gray text label in lowercase.
-pub fn label_item<'a>(t: String) -> Element<'a, Message> {
+pub fn label_item<'a>(t: String) -> Text<'a> {
     let content = t.to_lowercase();
+    text(content).size(16).style(Color::from_rgb(0.5, 0.5, 0.5))
+}
 
-    text(content)
-        .size(16)
-        .style(Color::from_rgb(0.5, 0.5, 0.5))
-        .into()
+/// Renders white text in the DAGGERSQUARE font.
+pub fn data_item<'a>(t: String) -> Text<'a> {
+    text(t).font(FONT_DAGGERSQUARE).style(Color::WHITE)
 }
 
 /// Renders a column with a label and an element.
@@ -42,7 +45,7 @@ pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
 pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Renderer> {
     let mut content = Column::new()
         .push(label_item(label))
-        .push(text(data).font(FONT_DAGGERSQUARE).size(20));
+        .push(data_item(data).size(20));
     content = content.spacing(8);
     content.into()
 }
