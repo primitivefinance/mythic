@@ -207,7 +207,7 @@ pub enum AppEventAction {
 pub struct AppEventMetadata {
     pub id: u32,
     pub action: AppEventAction,
-    pub data: Vec<String>,
+    pub data: String,
 }
 
 /// Structures the data for the application.
@@ -228,7 +228,10 @@ impl Visit for FieldVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
         let field_name = field.name();
         let field_value = format!("{:?}", value);
-        println!("field: {:?}, value: {:?}", field_name, field_value);
+        println!(
+            "field name: {:?}, field value: {:?}",
+            field_name, field_value
+        );
 
         // Check if the field is the layer
         if field_name == "layer" {
@@ -239,7 +242,7 @@ impl Visit for FieldVisitor {
                 "system" => Some(AppEventLayer::System),
                 "world" => Some(AppEventLayer::World),
                 "agent" => Some(AppEventLayer::Agent),
-                _ => None,
+                _ => Some(AppEventLayer::Default),
             };
         }
 
@@ -263,6 +266,8 @@ impl Visit for FieldVisitor {
 
 impl Visit for AppEventLog {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+        let curr_fields = CURRENT_SPAN_FIELDS.with(|fields| fields.borrow().clone());
+
         // Update self.data with the span fields for each layer
         let current_layer: Option<AppEventLayer> = CURRENT_SPAN_FIELDS.with(|fields| {
             let fields = fields.borrow();
@@ -278,11 +283,11 @@ impl Visit for AppEventLog {
                             let data = layer_fields
                                 .get("data")
                                 .cloned()
-                                .unwrap_or_else(|| "".to_string());
+                                .unwrap_or_else(|| "empty".to_string());
                             let metadata = AppEventMetadata {
                                 id: id.parse().unwrap_or(0),
                                 action: AppEventAction::Custom(action.clone()),
-                                data: vec![data],
+                                data,
                             };
 
                             self.data.insert(layer.clone(), metadata);
@@ -299,39 +304,49 @@ impl Visit for AppEventLog {
                 .unwrap_or(None)
         });
 
+        println!(
+            "fields {:?} and current layer {:?}",
+            self.data,
+            current_layer.clone()
+        );
+
         // Set the message as the data for the current layer
         let message = format!("{:?}", value);
+        println!("message: {:?}", message.clone());
 
-        println!("message: {:?}, layer: {:?}", message, current_layer);
         // Check if there is already an AppEventMetadata for the current_layer
-        if let Some(layer) = current_layer {
-            if let Some(existing_metadata) = self.data.get_mut(&layer) {
-                // If there is, append the new message to the existing data
-                existing_metadata.data.push(message);
-            } else {
-                // If there isn't, insert a new AppEventMetadata
-                let metadata = AppEventMetadata {
-                    id: 0, // Set appropriate id
-                    action: AppEventAction::Custom(field.name().to_string()),
-                    data: vec![message],
-                };
-                self.data.insert(layer, metadata);
-            }
+        if let Some(layer) = current_layer.clone() {
+            let metadata = self.data.entry(layer).or_insert_with(|| AppEventMetadata {
+                id: 0, // Set appropriate id
+                action: AppEventAction::Custom(field.name().to_string()),
+                data: message.clone(),
+            });
+            metadata.data = format!("{},{}", metadata.data, message.clone());
+            println!("some case");
         } else {
-            // Handle the case where current_layer is None
-            // For example, you can add the message to the last non-None layer:
-            if let Some((last_layer, existing_metadata)) = self.data.iter_mut().last() {
-                existing_metadata.data.push(message);
-            } else {
-                // If there are no non-None layers, create a default layer:
-                let metadata = AppEventMetadata {
-                    id: 0, // Set appropriate id
-                    action: AppEventAction::Custom(field.name().to_string()),
-                    data: vec![message],
-                };
-                self.data.insert(AppEventLayer::Default, metadata);
-            }
+            // If there are no non-None layers, create a default layer:
+            let metadata = AppEventMetadata {
+                id: 0, // Set appropriate id
+                action: AppEventAction::Custom(field.name().to_string()),
+                data: message.clone(),
+            };
+            println!("non case");
+            self.data.insert(AppEventLayer::Default, metadata);
         }
+
+        // Write the metadata.data to the current fields
+        // this is super important! If you don't do this, the data will be
+        // overwritten by the next span's data, and with empty data.
+        CURRENT_SPAN_FIELDS.with(|fields| {
+            let mut fields = fields.borrow_mut();
+            if let Some(layer) = current_layer.clone() {
+                if let Some(layer_fields) = fields.get_mut(&layer) {
+                    layer_fields.insert("data".to_string(), message.clone());
+                }
+            }
+        });
+
+        println!("data: {:?}", self.data);
     }
 }
 
@@ -346,15 +361,6 @@ where
         };
 
         event.record(&mut visitor);
-
-        // Walk up the span hierarchy and collect the IDs
-        let mut current_span = ctx.lookup_current();
-        while let Some(span) = current_span {
-            if let Some(fields) = span.extensions().get::<tracing::field::ValueSet>() {
-                fields.record(&mut visitor);
-            }
-            current_span = span.parent();
-        }
 
         let _ = self.sender.lock().unwrap().send(visitor);
     }
@@ -377,6 +383,7 @@ where
         CURRENT_SPAN_FIELDS.with(|fields| {
             *fields.borrow_mut() = visitor.fields.clone();
         });
+        println!("new span: {:?}", visitor.fields);
     }
 }
 
@@ -525,9 +532,7 @@ mod tests {
         // get the last item from the receiver channel and log it
         while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
             // println the app event log if the data's hashmap has more than 2 items
-            if msg.data.len() > 3 {
-                println!("Received message: {:?}", msg.data);
-            }
+            println!("Received message: {:?}", msg.data);
         }
     }
 

@@ -28,7 +28,7 @@ pub fn control_panel<'a>(
     realtime: bool,
     firehose_visible: bool,
 ) -> Element<'a, Message> {
-    let mut content = Row::new().spacing(16);
+    let mut content = Row::new().spacing(16).height(Length::Shrink);
     content = content.push(labeled_controls(vec![
         ("play".to_string(), control::play()),
         ("pause".to_string(), control::pause()),
