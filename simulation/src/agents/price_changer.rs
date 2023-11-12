@@ -3,6 +3,8 @@ use std::{
     hash::{Hash, Hasher},
 };
 
+use arbiter_core::math::GeometricBrownianMotion;
+use ethers::abi::Tokenizable;
 use itertools::iproduct;
 use rand::random;
 use RustQuant::stochastics::{
@@ -172,6 +174,16 @@ impl Agent for PriceChanger {
     }
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
+    }
+
+    fn get_name(&self) -> String {
+        format!("price_changer")
+    }
+
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        let price = self.liquid_exchange.price().call().await?;
+        let subbed = vec![SubscribedData::new("price".to_string(), price.into_token())];
+        Ok(subbed)
     }
 }
 

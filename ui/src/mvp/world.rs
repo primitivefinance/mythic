@@ -15,6 +15,7 @@ use simulation::{
         block_admin::BlockAdmin,
         liquidity_provider::LiquidityProvider,
         price_changer::PriceChanger,
+        strategy_monitor::StrategyMonitorAgent,
         token_admin::TokenAdmin,
         weight_changer::{WeightChanger, WeightChangerType},
         Agent, Agents,
@@ -260,6 +261,7 @@ impl WorldBuilder {
         self
     }
 
+    // AGENT-SETUP
     pub async fn setup(
         environment: &Environment,
         config: SimulationConfig<Single>,
@@ -294,12 +296,23 @@ impl WorldBuilder {
         )
         .await?;
 
+        let mut strategy_monitor = StrategyMonitorAgent::<IStrategy<RevmMiddleware>>::new(
+            environment,
+            &config,
+            "strategy_monitor",
+            weight_changer.g3m().address(),
+            &token_admin,
+        )
+        .await?;
+
         let mut agents = Agents::new();
         agents.add(price_changer);
         agents.add(arbitrageur);
         agents.add(block_admin);
         agents.add(weight_changer);
         agents.add(lp);
+        agents.add(token_admin);
+        agents.add(strategy_monitor);
 
         Ok(agents)
     }

@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use arbiter_core::bindings::arbiter_token::ArbiterToken;
+use ethers::abi::Tokenizable;
 
 use super::*;
 
@@ -78,5 +79,21 @@ impl Agent for TokenAdmin {
     }
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
+    }
+
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        let total_x_supply = self.arbx.total_supply().call().await?;
+        let total_y_supply = self.arby.total_supply().call().await?;
+
+        let subbed = vec![
+            SubscribedData::new("x_supply".to_string(), total_x_supply.into_token()),
+            SubscribedData::new("y_supply".to_string(), total_y_supply.into_token()),
+        ];
+
+        Ok(subbed)
+    }
+
+    fn get_name(&self) -> String {
+        format!("token_admin")
     }
 }

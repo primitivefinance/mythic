@@ -5,21 +5,16 @@ use std::{
 };
 
 use anyhow::anyhow;
-use iced::{futures::io::Empty, time};
+use iced::time;
 use simulation::{
-    agents::{
-        counter::CounterAgent,
-        liquidity_provider::{LiquidityProvider, LiquidityProviderWrapper},
-        price_changer::PriceChanger,
-    },
+    agents::{counter::CounterAgent, price_changer::PriceChanger, SubscribedData},
     settings::{parameters::Single, SimulationConfig},
-    strategy::LiquidityStrategy,
 };
 use tracing::{Instrument, Span};
 
 use super::{
     app::Message,
-    tracer::{AppEventLayer, AppEventLog, AppEventMetadata},
+    tracer::{AppEventLayer, AppEventLog},
     *,
 };
 
@@ -61,12 +56,15 @@ impl Screen {
 
 const USER_ACTION_FILTER: &str = "user.";
 
+pub type StateSubscriptionStore = HashMap<u64, HashMap<String, StateSubscription>>;
+
 pub struct Terminal {
     data_feed: VecDeque<AppEventLog>,
     receiver: Arc<Mutex<Receiver<tracer::AppEventLog>>>,
     world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
     status: WorldManagerState,
-    watching_state: HashMap<String, String>,
+    // State subscription from the chain, indexed by world.
+    state_data: StateSubscriptionStore,
     realtime: bool,
     hide_firehoses: bool,
 }
@@ -74,8 +72,136 @@ pub struct Terminal {
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
     // Override the world manager with a new one that has spawned worlds.
     Ok(Arc::new(tokio::sync::Mutex::new(
-        WorldManager::default().spawn(2).await?,
+        WorldManager::default().spawn(1).await?,
     )))
+}
+
+#[tracing::instrument(level = "trace", skip(m))]
+pub async fn sim_startup(
+    m: Arc<tokio::sync::Mutex<WorldManager>>,
+) -> anyhow::Result<(), anyhow::Error> {
+    let locked = m.lock().await;
+
+    for world in locked.worlds.iter() {
+        let mut world = world.lock().await;
+        let world_id = world.seed;
+        tracing::debug!("world.{}.: Running startup", world_id.clone());
+        world.startup().await?;
+    }
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "trace", skip(m), fields(layer = %"system", action = %"step"))]
+pub async fn step_simulation(
+    m: Arc<tokio::sync::Mutex<WorldManager>>,
+) -> anyhow::Result<(), anyhow::Error> {
+    let mut m_locked = m.lock().await;
+    if let Some(ref mut tx) = m_locked.tx {
+        let msg = tx.lock().await.send(1);
+        tracing::trace!("Sent message {:?}", msg);
+        match msg {
+            Ok(_) => {}
+            Err(e) => {
+                tracing::error!("Simulation world failed to step: {:?}", e);
+                return Err(anyhow!("Simulation world failed to step: {:?} ", e));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "trace", skip(m), fields(layer = %"system", action = %"step"))]
+pub async fn handle_state_subscriptions(
+    m: Arc<tokio::sync::Mutex<WorldManager>>,
+) -> anyhow::Result<StateSubscriptionStore, anyhow::Error> {
+    let locked = m.lock().await;
+    let mut state_data = HashMap::new();
+
+    for world in locked.worlds.iter() {
+        let world = world.lock().await;
+        let world_id = world.seed;
+        let mut agents = world.agents.lock().await;
+
+        // truncate the world id to just leave the first three characters
+        let formatted_world_id = world_id.clone().to_string();
+        let formatted_world_id = &formatted_world_id[0..3];
+
+        for agent in agents.0.iter_mut() {
+            let subscribed = agent.get_subscribed().await?;
+
+            // Skip empty subscriptions to avoid populating the state data with empty
+            // subscriptions.
+            if subscribed.len() == 0 {
+                continue;
+            }
+
+            if agent.get_name().to_lowercase().contains("monitor") {
+                state_data
+                    .entry(world_id.clone())
+                    .or_insert(HashMap::new())
+                    .insert(
+                        agent.get_name(),
+                        StateSubscription {
+                            logs: subscribed,
+                            label: format!("{} {}", formatted_world_id, agent.get_name()),
+                            category: AppEventLayer::System,
+                            id: world_id,
+                        },
+                    );
+            } else {
+                // Add the subscribed data as a state subscription inside the hashm ap with keys
+                // world id -> agent name
+                state_data
+                    .entry(world_id.clone())
+                    .or_insert(HashMap::new())
+                    .insert(
+                        agent.get_name(),
+                        StateSubscription {
+                            logs: subscribed,
+                            label: format!("{} {}", formatted_world_id, agent.get_name()),
+                            category: AppEventLayer::Agent,
+                            id: world_id,
+                        },
+                    );
+            }
+        }
+    }
+
+    Ok(state_data)
+}
+
+#[tracing::instrument(level = "trace", skip(m), fields(layer = %"system", action = %"step"))]
+pub async fn handle_price_path(
+    m: Arc<tokio::sync::Mutex<WorldManager>>,
+) -> anyhow::Result<bool, anyhow::Error> {
+    let locked = m.lock().await;
+
+    for world in locked.worlds.iter() {
+        let world = world.lock().await;
+        let mut agents = world.agents.lock().await;
+
+        tracing::debug!("Getting subscribed data");
+        for agent in agents.0.iter_mut() {
+            let price_changer = agent.as_any().downcast_ref::<PriceChanger>();
+
+            match price_changer {
+                Some(price_changer) => {
+                    let price_path = price_changer.trajectory.paths[0].clone();
+                    let current_index = price_changer.index;
+                    let last_index = price_path.len();
+                    if current_index == last_index {
+                        tracing::debug!("Price path is empty, stopping simulation");
+                        return Ok(true);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    Ok(false)
 }
 
 impl Terminal {
@@ -85,7 +211,7 @@ impl Terminal {
             receiver,
             world_manager: Arc::new(tokio::sync::Mutex::new(WorldManager::default())),
             status: WorldManagerState::Stopped,
-            watching_state: HashMap::new(),
+            state_data: HashMap::new(),
             realtime: true,
             hide_firehoses: false,
         }
@@ -199,140 +325,16 @@ impl Terminal {
 
         return Command::perform(
             async move {
-                let mut m_locked = m.lock().await;
-                if let Some(ref mut tx) = m_locked.tx {
-                    let msg = tx.lock().await.send(1);
-                    tracing::trace!("{} Sent message {:?}", trace_id, msg);
-                    match msg {
-                        Ok(_) => {
-                            // tracing::trace!(
-                            // "{} Simulation world
-                            // stepped!",
-                            // trace_id
-                            // );
-                        }
-                        Err(e) => {
-                            tracing::error!(
-                                "{}  Simulation world failed to step: {:?}",
-                                trace_id,
-                                e
-                            );
-                            return Err(anyhow!("{} Simulation world failed to step:", trace_id));
-                        }
-                    }
-                }
+                step_simulation(m.clone()).await?;
 
-                // for each world get the watched vars
-                let mut finished_path = false;
-                let mut watched_vars: HashMap<String, String> = HashMap::new();
-                for world in m_locked.worlds.iter() {
-                    let world = world.lock().await;
-                    let world_id = world.seed;
-                    let mut agents = world.agents.lock().await;
+                let subscription_data = handle_state_subscriptions(m.clone()).await?;
+                let finished_path = handle_price_path(m.clone()).await?;
 
-                    // tracing::debug!("agents: {}", agents.0.len());
-                    // We also need to get the PriceChanger agent and check if
-                    // its reached the end of its price path.
-                    // If so, we need to stop the simulation.
-                    for agent in agents.0.iter_mut() {
-                        let counter_agent = agent.as_any().downcast_ref::<CounterAgent>();
-
-                        match counter_agent {
-                            Some(counter_agent) => {
-                                let counter = counter_agent.get().await;
-                                match counter {
-                                    Ok(counter) => {
-                                        tracing::debug!(
-                                            "world.{}.: Got counter agent state {}",
-                                            world_id.clone(),
-                                            counter.as_u128()
-                                        );
-                                        watched_vars.insert(
-                                            format!("world.{}.counter", world_id.clone(),),
-                                            format!("{}", counter.as_u128()),
-                                        );
-                                        // watched_vars.
-                                        // push(format!(
-                                        // "world.{}.{}",
-                                        // world_id.clone(),
-                                        // counter
-                                        // ));
-                                    }
-                                    Err(e) => {
-                                        tracing::error!(
-                                            "world.{}.: Failed to get counter agent state: {:?}",
-                                            world_id.clone(),
-                                            e
-                                        );
-                                    }
-                                }
-                            }
-                            None => {
-                                // else we got another agent...
-                                let price_changer = agent.as_any().downcast_ref::<PriceChanger>();
-
-                                match price_changer {
-                                    Some(price_changer) => {
-                                        // todo: fix this index, its hardcoded
-                                        // to just one trajectory for now.
-                                        let price_path = price_changer.trajectory.paths[0].clone();
-
-                                        let current_index = price_changer.index;
-
-                                        let last_index = price_path.len();
-
-                                        if current_index == last_index {
-                                            tracing::debug!(
-                                                "world.{}.: Price path is empty, stopping simulation",
-                                                world_id.clone()
-                                            );
-                                            finished_path = true;
-                                        }
-                                    }
-                                    None => {
-                                        // else its another agent...
-                                        let temp = agent.get_state().await;
-
-                                        match temp {
-                                            Ok(temp) => {
-                                                tracing::debug!(
-                                                    "world.{}.: Got LP agent state {}",
-                                                    world_id.clone(),
-                                                    temp,
-                                                );
-
-                                                if temp.as_u128() != 0 {
-                                                    tracing::debug!(
-                                                        "world.{}.: Got LP agent pvf {}",
-                                                        world_id.clone(),
-                                                        temp
-                                                    );
-                                                    watched_vars.insert(
-                                                        format!("world.{}.pvf", world_id.clone(),),
-                                                        format!("{}", temp.as_u128()),
-                                                    );
-                                                }
-                                            }
-                                            Err(e) => {
-                                                tracing::error!(
-                                                    "world.{}.: Failed to get LP agent state: {:?}",
-                                                    world_id.clone(),
-                                                    e
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Ok((watched_vars, finished_path))
+                Ok((subscription_data, finished_path))
             },
-            |result| {
+            |result: Result<(StateSubscriptionStore, bool), anyhow::Error>| {
                 match result {
-                    Ok((watched_vars, finished_path)) => {
+                    Ok((subscription_data, finished_path)) => {
                         tracing::trace!("Simulation world stepped!");
 
                         // todo: this short-circuits the last update watched
@@ -343,7 +345,7 @@ impl Terminal {
                         }
 
                         return Message::View(view::Message::Data(view::Data::UpdateWatchedValue(
-                            watched_vars,
+                            subscription_data,
                         )));
                     }
                     Err(e) => {
@@ -472,33 +474,21 @@ impl Terminal {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(m))]
-pub async fn sim_startup(
-    m: Arc<tokio::sync::Mutex<WorldManager>>,
-) -> anyhow::Result<(), anyhow::Error> {
-    let locked = m.lock().await;
-
-    for world in locked.worlds.iter() {
-        let mut world = world.lock().await;
-        let world_id = world.seed;
-        tracing::debug!("world.{}.: Running startup", world_id.clone());
-        world.startup().await?;
-    }
-
-    Ok(())
-}
-
 pub fn terminal_span() -> Span {
     tracing::info_span!("terminal")
 }
 
+#[derive(Debug, Clone)]
+pub struct StateSubscription {
+    pub logs: Vec<SubscribedData>,
+    pub label: String,
+    pub category: AppEventLayer,
+    pub id: u64,
+}
+
 impl State for Terminal {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        let watching_state_vec = self
-            .watching_state
-            .iter()
-            .map(|(k, v)| format!("{}: {}", k, v))
-            .collect::<Vec<String>>();
+        let state_data = self.state_data.clone();
         let mut data = self.data_feed.clone();
         if self.hide_firehoses {
             data = VecDeque::new();
@@ -507,7 +497,7 @@ impl State for Terminal {
         view::app_layout(view::terminal_view_multiple_firehose(
             data,
             self.realtime,
-            watching_state_vec.clone(),
+            state_data.clone(),
             self.hide_firehoses,
         ))
         .into()
@@ -574,9 +564,7 @@ impl State for Terminal {
                     }
                     view::Data::UpdateWatchedValue(value) => {
                         // Update the current watched values with the new ones, if any.
-                        for (k, v) in value {
-                            self.watching_state.insert(k, v);
-                        }
+                        self.state_data = value;
 
                         if self.status == WorldManagerState::Running && !self.realtime {
                             return Command::perform(async { Ok::<(), ()>(()) }, |_| {

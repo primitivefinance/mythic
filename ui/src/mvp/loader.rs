@@ -27,7 +27,7 @@ pub fn loader_span() -> Span {
 pub async fn load_app() -> anyhow::Result<(Environment, Local<Ws>), anyhow::Error> {
     let arbiter = EnvironmentBuilder::new().build();
     // todo: get this working without running anvil in background
-    let local = Local::new().await?;
+    let local = Local::default();
     Ok((arbiter, local))
 }
 

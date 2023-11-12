@@ -7,25 +7,35 @@ use iced_aw::{
 
 use super::{control::control_button, *};
 
-pub fn agent_card<'a>(agent_data: Vec<(String, String)>) -> Element<'a, Message> {
+pub fn agent_card<'a>(agent_data: Vec<(String, String)>, actions: bool) -> Element<'a, Message> {
     let mut content = Column::new().spacing(16);
 
-    // Agent name and settings button
+    // Try finding the agent name, else use a default value
     let agent_name = agent_data
         .iter()
-        .find(|(k, _)| k == "name")
-        .unwrap()
-        .1
-        .clone();
+        .find(|(name, _)| name == "name")
+        .map(|(_, value)| value.clone())
+        .unwrap_or("default".to_string());
+
+    // Remove the name from the agent data so its not rendered in the content
+    let filtered_data = agent_data
+        .clone()
+        .into_iter()
+        .filter(|(name, _)| name != "name")
+        .collect::<Vec<(String, String)>>();
 
     content = content
         .push(agent_header(agent_name.clone()))
-        .push(agent_content(agent_data.clone()))
-        .push(agent_actions());
+        .push(agent_content(filtered_data.clone()));
+
+    if actions {
+        content = content.push(agent_actions());
+    }
 
     container(content)
         .style(MenuContainerTheme::theme())
         .padding(16)
+        .height(Length::Fixed(300.0))
         .into()
 }
 
@@ -36,14 +46,13 @@ pub fn agent_header<'a>(agent_name: String) -> Element<'a, Message> {
         control::Operation::Agent(control::AgentOperations::Settings(agent_name.clone())),
     ));
 
-    let agent_icon = text(icon_to_char(icons::Icon::Cpu))
-        .font(ICON_FONT)
-        .size(32)
-        .style(Color::WHITE);
+    //  let agent_icon = text(icon_to_char(icons::Icon::Cpu))
+    // .font(ICON_FONT)
+    // .size(32)
+    // .style(Color::WHITE);
 
     let header_elements: Vec<Element<'_, Message>> = vec![
-        agent_icon.clone().into(),
-        text(agent_name).font(FONT_DAGGERSQUARE).size(24).into(),
+        text(agent_name).font(FONT_DAGGERSQUARE).size(20).into(),
         settings_button.into(),
     ];
 
