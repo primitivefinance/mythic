@@ -155,7 +155,7 @@ where
     }
 }
 
-type LayerThreadStorageType = HashMap<AppEventLayer, HashMap<String, String>>;
+type LayerThreadStorageType = HashMap<AppEventLayer, AppEventMetadata>;
 
 /// A layer with a tracer, which has a sender and receiver.
 pub struct LayerWithChannel {
@@ -207,7 +207,7 @@ pub enum AppEventAction {
 pub struct AppEventMetadata {
     pub id: u32,
     pub action: AppEventAction,
-    pub data: String,
+    pub data: Vec<String>,
 }
 
 /// Structures the data for the application.
@@ -219,7 +219,7 @@ pub struct AppEventLog {
 
 /// Stores the current span's fields in a hashmap.
 struct FieldVisitor {
-    fields: HashMap<AppEventLayer, HashMap<String, String>>,
+    fields: HashMap<AppEventLayer, AppEventMetadata>,
     current_layer: Option<AppEventLayer>,
 }
 
@@ -228,10 +228,6 @@ impl Visit for FieldVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
         let field_name = field.name();
         let field_value = format!("{:?}", value);
-        println!(
-            "field name: {:?}, field value: {:?}",
-            field_name, field_value
-        );
 
         // Check if the field is the layer
         if field_name == "layer" {
@@ -248,13 +244,18 @@ impl Visit for FieldVisitor {
 
         // Get the current layer's fields
         if let Some(layer) = &self.current_layer {
-            let layer_fields = self
-                .fields
-                .entry(layer.clone())
-                .or_insert_with(HashMap::new);
+            let metadata = self.fields.entry(layer.clone()).or_insert_with(|| {
+                AppEventMetadata {
+                    id: 0, // Set appropriate id
+                    action: AppEventAction::Custom(field.name().to_string()),
+                    data: Vec::new(),
+                }
+            });
 
-            // Insert the attribute and its value
-            layer_fields.insert(field_name.to_string(), field_value);
+            // Push the field value to the metadata.data if the field name is data
+            if field_name.contains("data") {
+                metadata.data.push(field_value);
+            }
         }
 
         // Store the fields in the CURRENT_SPAN_FIELDS thread-local variable
@@ -278,21 +279,7 @@ impl Visit for AppEventLog {
                 AppEventLayer::Agent,
             ] {
                 if let Some(layer_fields) = fields.get(layer) {
-                    if let Some(id) = layer_fields.get("id") {
-                        if let Some(action) = layer_fields.get("action") {
-                            let data = layer_fields
-                                .get("data")
-                                .cloned()
-                                .unwrap_or_else(|| "empty".to_string());
-                            let metadata = AppEventMetadata {
-                                id: id.parse().unwrap_or(0),
-                                action: AppEventAction::Custom(action.clone()),
-                                data,
-                            };
-
-                            self.data.insert(layer.clone(), metadata);
-                        }
-                    }
+                    self.data.insert(layer.clone(), layer_fields.clone());
                 }
             }
 
@@ -304,33 +291,30 @@ impl Visit for AppEventLog {
                 .unwrap_or(None)
         });
 
-        println!(
-            "fields {:?} and current layer {:?}",
-            self.data,
-            current_layer.clone()
-        );
-
         // Set the message as the data for the current layer
         let message = format!("{:?}", value);
-        println!("message: {:?}", message.clone());
 
         // Check if there is already an AppEventMetadata for the current_layer
         if let Some(layer) = current_layer.clone() {
-            let metadata = self.data.entry(layer).or_insert_with(|| AppEventMetadata {
-                id: 0, // Set appropriate id
-                action: AppEventAction::Custom(field.name().to_string()),
-                data: message.clone(),
-            });
-            metadata.data = format!("{},{}", metadata.data, message.clone());
-            println!("some case");
+            if let Some(layer_metadata) = self.data.get_mut(&layer) {
+                layer_metadata.data.push(message.clone());
+            } else {
+                // If there is no AppEventMetadata for the current_layer, create one
+                let metadata = AppEventMetadata {
+                    id: 0, // Set appropriate id
+                    action: AppEventAction::Custom(field.name().to_string()),
+                    data: vec![message.clone()],
+                };
+                self.data.insert(layer, metadata);
+            }
         } else {
-            // If there are no non-None layers, create a default layer:
+            // If there is no current_layer, create a new AppEventMetadata with the
+            // message as the data
             let metadata = AppEventMetadata {
                 id: 0, // Set appropriate id
                 action: AppEventAction::Custom(field.name().to_string()),
-                data: message.clone(),
+                data: vec![message.clone()],
             };
-            println!("non case");
             self.data.insert(AppEventLayer::Default, metadata);
         }
 
@@ -341,12 +325,10 @@ impl Visit for AppEventLog {
             let mut fields = fields.borrow_mut();
             if let Some(layer) = current_layer.clone() {
                 if let Some(layer_fields) = fields.get_mut(&layer) {
-                    layer_fields.insert("data".to_string(), message.clone());
+                    layer_fields.data = self.data.get(&layer).unwrap().data.clone();
                 }
             }
         });
-
-        println!("data: {:?}", self.data);
     }
 }
 
@@ -383,7 +365,6 @@ where
         CURRENT_SPAN_FIELDS.with(|fields| {
             *fields.borrow_mut() = visitor.fields.clone();
         });
-        println!("new span: {:?}", visitor.fields);
     }
 }
 
