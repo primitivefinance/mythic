@@ -88,6 +88,7 @@ impl World {
 
     /// Cycles the core simulation loop.
     /// Exits early if not running.
+    #[tracing::instrument(skip(self), fields(layer = %"world", id = self.seed, action = %"update"))]
     pub async fn update(&mut self) -> anyhow::Result<(), anyhow::Error> {
         tracing::trace!("{}.{}.: Updating.", WORLD_TRACE_IDENTIFIER, self.seed);
 
@@ -105,6 +106,7 @@ impl World {
     }
 
     /// Handles running the simulation.
+    #[tracing::instrument(skip(self), fields(layer = %"world", id = self.seed, action = %"run"))]
     pub async fn run(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already running.
         if self.state.status == Status::Running {
@@ -124,6 +126,7 @@ impl World {
 
     /// Handles pausing the simulation.
     /// todo: does not need to be async?
+    #[tracing::instrument(skip(self), fields(layer = %"world", id = self.seed, action = %"pause"))]
     pub async fn pause(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already paused.
         if self.state.status == Status::Paused {
@@ -142,6 +145,7 @@ impl World {
     }
 
     /// Handles stopping the simulation.
+    #[tracing::instrument(skip(self), fields(layer = %"world", id = self.seed, action = %"stop"))]
     pub fn stop(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already stopped.
         if self.state.status == Status::Stopped {
@@ -161,6 +165,7 @@ impl World {
 
     /// Handles agent startup functions.
     /// Startup should be called before the simulation is started.
+    #[tracing::instrument(skip(self), fields(layer = %"world", id = self.seed, action = %"startup"))]
     pub async fn startup(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if simulation is already running.
         // if self.state.status == Status::Running {
@@ -174,7 +179,13 @@ impl World {
         );
 
         for agent in self.agents.lock().await.iter_mut() {
-            agent.startup().await?;
+            let layer = "agent";
+            let id = agent.get_name();
+            let action = "startup";
+            let agent_span =
+                tracing::debug_span!("agent", layer = %layer, id = %id, action = %action);
+
+            agent.startup().instrument(agent_span).await?;
         }
 
         Ok(())
@@ -182,6 +193,7 @@ impl World {
 
     /// Moves the simulation forward one step.
     /// Handles the execution of agent steps.
+    #[tracing::instrument(skip(self), fields(layer = %"world", id = self.seed, action = %"step"))]
     pub async fn step(&mut self) -> anyhow::Result<(), anyhow::Error> {
         // Exit if the simulation is not running.
         if self.state.status != Status::Running {
@@ -201,7 +213,12 @@ impl World {
         }
 
         for agent in self.agents.lock().await.iter_mut() {
-            agent.step().await?;
+            let layer = "agent";
+            let id = agent.get_name();
+            let action = "step";
+            let agent_span =
+                tracing::debug_span!("agent", layer = %layer, id = %id, action = %action);
+            agent.step().instrument(agent_span).await?;
         }
 
         Ok(())
