@@ -1,11 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 
-use iced::widget::checkbox;
-use tracing::Span;
+use iced::widget::{checkbox, Column, Row};
 
 use self::{
     control::control_panel,
-    event::{event_item, event_view, mock_event_groups, EventFeed},
+    event::{mock_event_groups, EventFeed},
     feed::Feed,
     monitor::{labeled_data_card, labeled_data_cards},
 };
@@ -47,10 +46,6 @@ pub enum Message {
     Data(Data),
 }
 
-pub fn view_span() -> Span {
-    tracing::info_span!("View")
-}
-
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {
     container(row![
         Space::with_width(Length::FillPortion(1)),
@@ -72,19 +67,12 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, 
     .into()
 }
 
-// pub fn terminal_view<'a>(logs: Vec<String>) -> Element<'a, Message> {
-// let mut content = Column::new().push(Text::new("Terminal").size(28));
-// content = content.push(firehose_view(logs.clone(), "main".to_string()));
-// content.spacing(16).into()
-// }
-
 pub fn terminal_view_multiple_firehose<'a>(
-    log_containers: Vec<VecDeque<AppEventLog>>,
+    data: VecDeque<AppEventLog>,
     realtime: bool,
     state_vars: Vec<String>,
     firehose_visible: bool,
 ) -> Element<'a, Message> {
-    let mut content = Column::new();
     let mut labeled_data = vec![];
     for state_var in state_vars.clone() {
         let mut split = state_var.split(":");
@@ -94,57 +82,44 @@ pub fn terminal_view_multiple_firehose<'a>(
     }
 
     let mut actions = control_panel(labeled_data.clone(), realtime, firehose_visible);
-    let agents = agent::agent_card(vec![
-        ("name".to_string(), "agent".to_string()),
-        ("name".to_string(), "agent".to_string()),
-        ("name".to_string(), "agent".to_string()),
-        ("name".to_string(), "agent".to_string()),
-    ]);
-
+    let agents = mock_agent_card();
     let monitored = labeled_data_card("monitored".to_string(), "data".to_string(), 200);
-
-    let monitor_group = labeled_data_cards(
-        "protocol".to_string(),
-        vec![
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-        ],
-        3,
-    );
+    let monitor_group = mock_monitor_group();
 
     let eventing = EventFeed {
         events: mock_event_groups(),
     }
     .view();
 
-    let mut feeds: Vec<Feed> = vec![];
-    for log_container in log_containers {
-        let mut feed = Feed::new(20);
-        feed.vec_to_bucketed_logs(log_container);
-        feeds.push(feed);
-    }
+    let mut feed = Feed::new(20);
+    feed.vec_to_bucketed_logs(data);
 
-    let feed_view: Element<'a, Message> = feeds[0].view("default").into();
+    let feed_view: Element<'a, Message> = feed.view("default").into();
 
-    let content_row = row![
-        column![agents, monitored, monitor_group].width(Length::FillPortion(2)),
-        column![feed_view, eventing,].width(Length::FillPortion(2))
-    ]
-    .width(Length::Fill);
+    let content_row = Row::new()
+        .push(
+            Column::new()
+                .push(agents)
+                .push(monitored)
+                .push(monitor_group)
+                .width(Length::FillPortion(2)),
+        )
+        .push(
+            Column::new()
+                .push(feed_view)
+                .push(eventing)
+                .width(Length::FillPortion(2)),
+        )
+        .width(Length::Fill);
 
-    content = content
+    Column::new()
         .push(
             container(actions)
                 .padding(8)
                 .style(MenuContainerTheme::theme())
                 .width(Length::Fill),
         )
-        .push(content_row);
-    content
+        .push(content_row)
         .spacing(16)
         .padding(16)
         .width(Length::Fill)
@@ -152,56 +127,24 @@ pub fn terminal_view_multiple_firehose<'a>(
         .into()
 }
 
-// pub fn firehose_view<'a>(logs: Vec<String>, label: String) -> Element<'a,
-// Message> { let mut content = Column::new().push(Text::new(label).size(24));
-//
-// let firehose = logs.iter().rev().fold(column![].spacing(2), |column, log| {
-// column.push(firehose_log(log.clone()))
-// });
-// let firehose_content = container(scrollable(firehose))
-// .style(FirehoseContainer::theme())
-// .height(Length::Fixed(400.0))
-// .width(Length::Fixed(300.0))
-// .padding(4);
-//
-// content = content.push(firehose_content);
-// content.spacing(16).padding(16).into()
-// }
+fn mock_agent_card() -> Element<'static, Message> {
+    agent::agent_card(vec![
+        ("name".to_string(), "agent".to_string()),
+        ("name".to_string(), "agent".to_string()),
+        ("name".to_string(), "agent".to_string()),
+        ("name".to_string(), "agent".to_string()),
+    ])
+}
 
-// warning! Adding logging in here can lead to infinite loops.
-// pub fn multiple_firehose<'a>(log_containers: Vec<VecDeque<String>>) ->
-// Element<'a, Message> { let mut firehose_column = column![];
-// let mut firehose_row = row![].spacing(4).width(Length::Fill);
-// let mut count = 0;
-//
-// for firehose_logs in log_containers {
-// let mut label = format!("firehose_{}", count);
-// if count == 0 {
-// label = format!("main");
-// }
-// if count == 1 {
-// label = format!("user (you)");
-// }
-//
-// firehose_row =
-// firehose_row.push(finite_firehose(firehose_logs.clone().into(), label));
-// count += 1;
-//
-// todo: this spacing should be based on current window length or something...
-// if count % 4 == 0 {
-// firehose_column = firehose_column.push(firehose_row);
-// firehose_row = row![].spacing(4).width(Length::Fill);
-// }
-// }
-//
-// Push the last row if it has any firehoses
-// if count % 2 != 0 {
-// firehose_column = firehose_column.push(firehose_row);
-// }
-//
-// firehose_column
-// .spacing(4)
-// .height(Length::Fill)
-// .width(Length::Fill)
-// .into()
-// }
+fn mock_monitor_group() -> Element<'static, Message> {
+    labeled_data_cards(
+        "protocol".to_string(),
+        vec![
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+            ("name".to_string(), "agent".to_string()),
+        ],
+        3,
+    )
+}
