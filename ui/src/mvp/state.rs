@@ -19,8 +19,7 @@ use tracing::{Instrument, Span};
 
 use super::{
     app::Message,
-    tracer::{AppEventLayer, AppEventLog},
-    view::terminal_view,
+    tracer::{AppEventLayer, AppEventLog, AppEventMetadata},
     *,
 };
 
@@ -515,7 +514,7 @@ impl State for Terminal {
             .iter()
             .map(|(k, v)| format!("{}: {}", k, v))
             .collect::<Vec<String>>();
-        let mut filtered_logs = self.firehoses.clone();
+        let mut filtered_logs = vec![self.structured_logs.clone()];
         if self.hide_logs {
             filtered_logs = vec![VecDeque::new()];
         }
