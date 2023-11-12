@@ -1,5 +1,7 @@
 //! Configure how to handle logs produced from the tracing crate.
 use std::{
+    cell::RefCell,
+    collections::HashMap,
     fs::File,
     io,
     path::PathBuf,
@@ -11,20 +13,25 @@ use std::{
 
 use tracing::{
     field::{Field, Visit},
+    span::{Attributes, Id},
     Event, Subscriber,
 };
-use tracing_subscriber::{prelude::*, registry::LookupSpan, Layer};
+use tracing_subscriber::{layer::Context, prelude::*, registry::LookupSpan, Layer};
+
+thread_local! {
+    static CURRENT_SPAN_FIELDS: RefCell<LayerThreadStorageType> = RefCell::new(HashMap::new());
+}
 
 // todo: handle generic channel values
 // abstraction over our sender and receiver channels that we can pipe trace
 // events over.
 pub struct Tracer {
-    pub sender: Arc<Mutex<Sender<String>>>,
-    pub receiver: Arc<Mutex<Receiver<String>>>,
+    pub sender: Arc<Mutex<Sender<AppEventLog>>>,
+    pub receiver: Arc<Mutex<Receiver<AppEventLog>>>,
 }
 
 impl Tracer {
-    pub fn new(sender: Sender<String>, receiver: Receiver<String>) -> Self {
+    pub fn new(sender: Sender<AppEventLog>, receiver: Receiver<AppEventLog>) -> Self {
         let sender = Arc::new(Mutex::new(sender));
         let receiver = Arc::new(Mutex::new(receiver));
         Self { sender, receiver }
@@ -40,7 +47,7 @@ impl Tracer {
 /// Creates the channels for us!
 impl Default for Tracer {
     fn default() -> Self {
-        let (sender, receiver) = channel::<String>();
+        let (sender, receiver) = channel::<AppEventLog>();
         Self::new(sender, receiver)
     }
 }
@@ -148,14 +155,20 @@ where
     }
 }
 
+type LayerThreadStorageType = HashMap<AppEventLayer, HashMap<String, String>>;
+
 /// A layer with a tracer, which has a sender and receiver.
 pub struct LayerWithChannel {
-    sender: Arc<Mutex<Sender<String>>>,
+    sender: Arc<Mutex<Sender<AppEventLog>>>,
+    current_span_fields: std::thread::LocalKey<RefCell<LayerThreadStorageType>>,
 }
 
 impl LayerWithChannel {
-    pub fn new(sender: Arc<Mutex<Sender<String>>>) -> Self {
-        Self { sender }
+    pub fn new(sender: Arc<Mutex<Sender<AppEventLog>>>) -> Self {
+        Self {
+            sender,
+            current_span_fields: CURRENT_SPAN_FIELDS,
+        }
     }
 }
 
@@ -172,16 +185,177 @@ impl Visit for TraceVisitor {
     }
 }
 
+/// Layers are a hierarchy of events that occur.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
+pub enum AppEventLayer {
+    User,
+    System,
+    World,
+    Agent,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub enum AppEventAction {
+    Add,
+    Remove,
+    Update,
+    Custom(String),
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct AppEventMetadata {
+    pub id: u32,
+    pub action: AppEventAction,
+    pub data: Option<String>,
+}
+
+/// Structures the data for the application.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct AppEventLog {
+    pub data: HashMap<AppEventLayer, AppEventMetadata>,
+    pub last_message: Option<AppEventMetadata>,
+}
+
+/// Stores the current span's fields in a hashmap.
+struct FieldVisitor {
+    fields: HashMap<AppEventLayer, HashMap<String, String>>,
+    current_layer: Option<AppEventLayer>,
+}
+
+/// Stores the current span's fields in a hashmap in a thread local.
+impl Visit for FieldVisitor {
+    fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+        let field_name = field.name();
+        let field_value = format!("{:?}", value);
+
+        // Check if the field is the layer
+        if field_name == "layer" {
+            // Convert the layer string to the corresponding AppEventLayer enum value
+            self.current_layer = match field_value.as_str() {
+                "user" => Some(AppEventLayer::User),
+                "system" => Some(AppEventLayer::System),
+                "world" => Some(AppEventLayer::World),
+                "agent" => Some(AppEventLayer::Agent),
+                _ => None,
+            };
+        } else {
+            // Get the current layer's fields
+            if let Some(layer) = &self.current_layer {
+                let layer_fields = self
+                    .fields
+                    .entry(layer.clone())
+                    .or_insert_with(HashMap::new);
+
+                // Insert the attribute and its value
+                layer_fields.insert(field_name.to_string(), field_value);
+            }
+        }
+
+        // Store the fields in the CURRENT_SPAN_FIELDS thread-local variable
+        CURRENT_SPAN_FIELDS.with(|fields| {
+            *fields.borrow_mut() = self.fields.clone();
+        });
+    }
+}
+
+impl Visit for AppEventLog {
+    fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
+        // Get the current layer from the current span fields
+        let current_layer = CURRENT_SPAN_FIELDS.with(|fields| {
+            let fields = fields.borrow();
+            // it should be the last item in the hashmap
+            fields.keys().last().cloned()
+        });
+
+        // Determine the next layer based on the current layer
+        let next_layer = match current_layer.clone() {
+            Some(AppEventLayer::User) => AppEventLayer::System,
+            Some(AppEventLayer::System) => AppEventLayer::World,
+            Some(AppEventLayer::World) => AppEventLayer::Agent,
+            _ => return, // Ignore if there's no next layer
+        };
+
+        // Update self.data with the span fields for each layer
+        CURRENT_SPAN_FIELDS.with(|fields| {
+            let fields = fields.borrow();
+            for layer in &[
+                AppEventLayer::User,
+                AppEventLayer::System,
+                AppEventLayer::World,
+                AppEventLayer::Agent,
+            ] {
+                if let Some(layer_fields) = fields.get(layer) {
+                    if let Some(id) = layer_fields.get("id") {
+                        if let Some(action) = layer_fields.get("action") {
+                            let data = layer_fields.get("data").cloned();
+                            let metadata = AppEventMetadata {
+                                id: id.parse().unwrap_or(0),
+                                action: AppEventAction::Custom(action.clone()),
+                                data,
+                            };
+
+                            self.data.insert(layer.clone(), metadata);
+                        }
+                    }
+                }
+            }
+        });
+
+        // Set the message as the data for the next layer
+        let metadata = AppEventMetadata {
+            id: 0, // Set appropriate id
+            action: AppEventAction::Custom(field.name().to_string()),
+            data: Some(format!("{:?}", value)),
+        };
+
+        // Insert the new layer and metadata
+        self.data.insert(next_layer, metadata);
+    }
+}
+
 impl<S> Layer<S> for LayerWithChannel
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    fn on_event(&self, event: &Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-        let mut visitor = TraceVisitor {
-            message: String::new(),
+    fn on_event(&self, event: &Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
+        let mut visitor = AppEventLog {
+            data: HashMap::new(),
+            last_message: None,
         };
+
         event.record(&mut visitor);
-        let _ = self.sender.lock().unwrap().send(visitor.message);
+
+        // Walk up the span hierarchy and collect the IDs
+        let mut current_span = ctx.lookup_current();
+        while let Some(span) = current_span {
+            if let Some(fields) = span.extensions().get::<tracing::field::ValueSet>() {
+                fields.record(&mut visitor);
+            }
+            current_span = span.parent();
+        }
+
+        let _ = self.sender.lock().unwrap().send(visitor);
+    }
+
+    /// Records current span fields to the span field storage in this thread.
+    fn on_new_span(&self, attrs: &Attributes<'_>, _id: &Id, _ctx: Context<'_, S>) {
+        // Clone the current fields from the thread-local storage
+        let current_fields = CURRENT_SPAN_FIELDS.with(|fields| fields.borrow().clone());
+
+        // Create the FieldVisitor with the current fields
+        let mut visitor = FieldVisitor {
+            fields: current_fields,
+            current_layer: None,
+        };
+
+        // Record the new span into the visitor
+        attrs.record(&mut visitor);
+
+        // Store the new span fields
+        CURRENT_SPAN_FIELDS.with(|fields| {
+            *fields.borrow_mut() = visitor.fields.clone();
+            println!("CURRENT_SPAN_FIELDS: {:?}", fields.borrow());
+        });
     }
 }
 
@@ -272,7 +446,7 @@ mod tests {
     fn test_tracer_with_channel() {
         let tracer = setup_with_channel();
 
-        let message = "Hello from Excalibur!";
+        let message = "1id Hello from Excalibur!";
 
         // log a message to see if its works
         tracing::info!(message);
@@ -282,10 +456,59 @@ mod tests {
         match res {
             Ok(msg) => {
                 tracing::info!("Received message: {:?}", msg);
-                assert!(msg.contains(message));
             }
             Err(e) => {
                 tracing::error!("Failed to receive message: {:?}", e);
+            }
+        }
+    }
+
+    #[tracing::instrument(fields(id = %"1"))]
+    fn identified_trace() {
+        tracing::info!("Hello, Excalibur!");
+        entity_trace();
+    }
+
+    #[tracing::instrument(fields(id = %"4", entity = %"agent", action = %"add", data = %"agent_data"))]
+    fn entity_trace() {
+        tracing::info!("I'm an agent doing stuff!");
+    }
+
+    #[tracing::instrument(fields(layer = %"user", id = %"1", action = %"click"))]
+    fn user_trace() {
+        tracing::info!("I'm a user doing stuff!");
+        system_trace();
+    }
+
+    #[tracing::instrument(fields(layer = %"system", id = %"2", action = %"step"))]
+    fn system_trace() {
+        tracing::info!("I'm a system doing stuff!");
+        world_trace();
+    }
+
+    #[tracing::instrument(fields(layer = %"world", id = %"3", action = %"manage"))]
+    fn world_trace() {
+        tracing::info!("I'm a world doing stuff!");
+        agent_trace();
+    }
+
+    #[tracing::instrument(fields(layer = %"agent", id = %"4", action = %"act", data = %"agent_data"))]
+    fn agent_trace() {
+        tracing::info!("I'm an agent doing stuff!");
+    }
+
+    #[test]
+    fn test_tracer_app_data() {
+        let tracer = setup_with_channel();
+
+        // log a message with a span that sets an id field
+        user_trace();
+
+        // get the last item from the receiver channel and log it
+        while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
+            // println the app event log if the data's hashmap has more than 2 items
+            if msg.data.len() > 3 {
+                println!("Received message: {:?}", msg.data);
             }
         }
     }

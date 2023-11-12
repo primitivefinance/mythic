@@ -17,7 +17,7 @@ use simulation::{
 };
 use tracing::{Instrument, Span};
 
-use super::{app::Message, view::terminal_view, *};
+use super::{app::Message, tracer::AppEventLog, view::terminal_view, *};
 
 /// Implement this trait to make a new screen for the app.
 pub trait State
@@ -60,7 +60,7 @@ const USER_ACTION_FILTER: &str = "user.";
 pub struct Terminal {
     logs: VecDeque<String>,
     firehoses: Vec<VecDeque<String>>,
-    receiver: Arc<Mutex<Receiver<String>>>,
+    receiver: Arc<Mutex<Receiver<tracer::AppEventLog>>>,
     world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
     status: WorldManagerState,
     realtime: bool,
@@ -68,6 +68,7 @@ pub struct Terminal {
     watching_state: HashMap<String, String>,
     // render the firehose logs or not
     hide_logs: bool,
+    structured_logs: VecDeque<AppEventLog>,
 }
 
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
@@ -78,7 +79,7 @@ pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, an
 }
 
 impl Terminal {
-    pub fn new(receiver: Arc<Mutex<Receiver<String>>>) -> Self {
+    pub fn new(receiver: Arc<Mutex<Receiver<tracer::AppEventLog>>>) -> Self {
         // Need to fill this log to render the main terminal!
         let mut welcome = VecDeque::new();
         welcome.push_back(format!("Welcome to Excalibur"));
@@ -96,6 +97,7 @@ impl Terminal {
             realtime: true,
             watching_state: HashMap::new(),
             hide_logs: false,
+            structured_logs: VecDeque::new(),
         }
     }
 
@@ -153,6 +155,50 @@ impl Terminal {
         firehoses
     }
 
+    fn filter_structured_logs_into_firehoses(&self) -> Vec<VecDeque<AppEventLog>> {
+        let mut firehoses = vec![VecDeque::new(), VecDeque::new()]; // system and user firehoses
+        let mut world_to_firehose_index: HashMap<usize, usize> = HashMap::new();
+
+        // for log in &self.structured_logs {
+        // let id = log.id.clone();
+        // let entity = log.entity.clone();
+        // if entity.as_deref() == Some("system") {
+        // system events
+        // firehoses[0].push_back(log.clone());
+        // } else if entity.as_deref() == Some("user") {
+        // user events
+        // firehoses[1].push_back(log.clone());
+        // } else {
+        // world events
+        // if let Some(id) = id {
+        // let id = id.parse().unwrap();
+        // if !world_to_firehose_index.contains_key(&id) {
+        // firehoses.push(VecDeque::new());
+        // world_to_firehose_index.insert(id, firehoses.len() - 1);
+        // }
+        // let firehose_index = *world_to_firehose_index.get(&id).unwrap();
+        // firehoses[firehose_index].push_back(log.clone());
+        // }
+        // }
+        // }
+
+        firehoses
+    }
+
+    fn convert_structured_firehose_to_firehose(&self) -> Vec<VecDeque<String>> {
+        let firehoses = self.filter_structured_logs_into_firehoses();
+
+        firehoses
+            .iter()
+            .map(|firehose| {
+                firehose
+                    .iter()
+                    .map(|log| serde_json::to_string(&log).unwrap())
+                    .collect::<VecDeque<String>>()
+            })
+            .collect::<Vec<VecDeque<String>>>()
+    }
+
     pub fn purge_non_main_logs(&mut self) {
         let mut new_logs = VecDeque::new();
         for log in &self.logs {
@@ -166,7 +212,11 @@ impl Terminal {
     }
 
     /// Executes the logic when a spawned message is received.
-    #[tracing::instrument(level = "trace", skip(self, world_manager))]
+    #[tracing::instrument(
+        level = "trace",
+        skip(self, world_manager),
+        fields(system_id = "spawned", system_action = "startup")
+    )]
     pub fn handle_startup(
         &mut self,
         world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
@@ -575,15 +625,26 @@ impl State for Terminal {
                         // Define the maximum number of logs
                         const MAX_LOGS: usize = 100;
 
+                        self.structured_logs.push_back(log.clone());
+
+                        // serialize the log into a string
+                        // this is temp
+                        let serialized = serde_json::to_string(&log).unwrap();
+
                         // Push the new log
-                        self.logs.push_back(log);
+                        self.logs.push_back(serialized);
 
                         // If the number of logs exceeds the maximum, remove the oldest one
                         if self.logs.len() > MAX_LOGS {
                             self.logs.pop_front();
                         }
 
+                        if self.structured_logs.len() > MAX_LOGS {
+                            self.structured_logs.pop_front();
+                        }
+
                         // Process the logs.
+                        // self.firehoses = self.convert_structured_firehose_to_firehose();
                         self.firehoses = self.filter_logs_into_firehoses();
                     }
 

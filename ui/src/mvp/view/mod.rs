@@ -5,6 +5,7 @@ use tracing::Span;
 
 use self::{
     control::control_panel,
+    event::{event_item, event_view, mock_event_groups, EventFeed},
     monitor::{labeled_data_card, labeled_data_cards},
 };
 use super::{
@@ -15,6 +16,7 @@ use super::{
 
 pub mod agent;
 pub mod control;
+pub mod event;
 pub mod monitor;
 
 /// Messages emitted from user interaction with the settings.
@@ -110,6 +112,17 @@ pub fn terminal_view_multiple_firehose<'a>(
         ],
         3,
     );
+
+    let eventing = EventFeed {
+        events: mock_event_groups(),
+    }
+    .view();
+
+    let content_row = row![
+        column![agents, monitored, monitor_group].width(Length::FillPortion(3)),
+        column![eventing].width(Length::FillPortion(1))
+    ];
+
     content = content
         .push(
             container(actions)
@@ -117,10 +130,8 @@ pub fn terminal_view_multiple_firehose<'a>(
                 .style(MenuContainerTheme::theme())
                 .width(Length::Fill),
         )
-        .push(agents)
-        .push(monitored)
-        .push(monitor_group)
-        .push(multiple_firehose(log_containers.clone()));
+        .push(multiple_firehose(log_containers.clone()))
+        .push(content_row);
     content
         .spacing(16)
         .padding(16)
