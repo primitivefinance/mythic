@@ -22,6 +22,15 @@ pub struct PriceChanger {
     pub index: usize,
 }
 
+impl std::fmt::Debug for PriceChanger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PriceChanger")
+            .field("liquid_exchange", &self.liquid_exchange)
+            .field("index", &self.index)
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PriceChangerParameters<P: Parameterized> {
     /// The initial price of the asset.

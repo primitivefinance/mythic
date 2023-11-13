@@ -3,6 +3,7 @@ use ethers::utils::{parse_units, ParseUnits};
 use super::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin, *};
 use crate::settings::parameters::LinspaceParameters;
 
+#[derive(Clone, Debug)]
 pub struct Swapper {
     pub client: Arc<RevmMiddleware>,
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,

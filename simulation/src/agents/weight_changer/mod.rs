@@ -72,6 +72,7 @@ impl From<WeightChangerSpecialty<Multiple>> for Vec<WeightChangerSpecialty<Singl
     }
 }
 
+#[derive(Debug)]
 pub struct WeightChangerType(pub Box<dyn WeightChanger>);
 
 impl WeightChangerType {

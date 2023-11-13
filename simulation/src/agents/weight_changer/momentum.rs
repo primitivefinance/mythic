@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MomentumStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,

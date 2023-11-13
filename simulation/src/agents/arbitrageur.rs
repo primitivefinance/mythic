@@ -1,7 +1,7 @@
 use super::*;
 use crate::{agents::Agent, strategy::ArbitrageStrategy};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Arbitrageur<S: ArbitrageStrategy> {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.

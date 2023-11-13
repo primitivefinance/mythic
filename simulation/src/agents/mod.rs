@@ -17,11 +17,14 @@ pub mod block_admin;
 pub mod liquidity_provider;
 pub mod price_changer;
 pub mod swapper;
+#[cfg(test)]
+pub mod tests;
 pub mod token_admin;
 pub mod weight_changer;
 
 use std::marker::{Send, Sync};
 
+#[derive(Debug)]
 pub struct Agents(pub Vec<Box<dyn Agent>>);
 
 impl Agents {
@@ -43,7 +46,7 @@ impl Agents {
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send {
+pub trait Agent: Sync + Send + std::fmt::Debug {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())

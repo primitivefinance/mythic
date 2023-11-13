@@ -1,7 +1,7 @@
 use super::{strategy::Strategy, token_admin::TokenAdmin, *};
 use crate::strategy::LiquidityStrategy;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LiquidityProvider<S: LiquidityStrategy> {
     pub client: Arc<RevmMiddleware>,
     pub strategy: S,

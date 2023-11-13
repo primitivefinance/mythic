@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DollarCostAveragingStategist {
     pub client: Arc<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
