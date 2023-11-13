@@ -87,7 +87,7 @@ impl Plot for StatisticalPlot {
             .plot_settings
             .clone()
             .unwrap_or_default()
-            .x_desc
+            .y_desc
             .unwrap_or("Y".to_owned());
         let mut chart = ChartBuilder::on(drawing_area)
             .caption(caption, ("Arial", 24).into_font())

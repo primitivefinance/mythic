@@ -108,7 +108,7 @@ fn plot_dca_weights() {
     let portfolio_value_plot =
         LinePlot::new(indices, portfolio_value.collect()).settings(plot_settings);
 
-    let mut figure = Figure::new("plot_dca_weights", None);
+    let mut figure = Figure::new("plot_dca_weights", Some((1920, 1080)));
     figure.add_plot(line_plot);
     figure.add_plot(reserves_plot);
     figure.add_plot(prices_plot);

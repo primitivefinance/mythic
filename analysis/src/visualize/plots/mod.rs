@@ -25,9 +25,9 @@ impl PlotSettings {
         }
     }
 
-    pub fn labels(mut self, x_label: &str, y_label: &str) -> Self {
-        self.x_desc = Some(x_label.to_owned());
-        self.y_desc = Some(y_label.to_owned());
+    pub fn labels(mut self, x_desc: &str, y_desc: &str) -> Self {
+        self.x_desc = Some(x_desc.to_owned());
+        self.y_desc = Some(y_desc.to_owned());
         self
     }
 
