@@ -62,4 +62,7 @@ impl Agent for BlockAdmin {
         debug!("Block updated");
         Ok(())
     }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
 }

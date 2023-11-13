@@ -173,7 +173,7 @@ impl Agent for MomentumStrategist {
         Ok(())
     }
 
-    async fn startup(&mut self) -> Result<()> {
-        Ok(())
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

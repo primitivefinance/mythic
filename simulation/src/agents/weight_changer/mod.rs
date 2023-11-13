@@ -154,8 +154,8 @@ impl Agent for WeightChangerType {
     async fn startup(&mut self) -> Result<()> {
         self.0.startup().await
     }
-    fn label(&self) -> String {
-        self.0.label()
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.0.client()
     }
 }
 

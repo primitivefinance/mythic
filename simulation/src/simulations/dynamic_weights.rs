@@ -7,6 +7,7 @@ use crate::{
         block_admin::BlockAdmin,
         liquidity_provider::LiquidityProvider,
         price_changer::{PriceChanger, PriceChangerParameters},
+        swapper::Swapper,
         token_admin::TokenAdmin,
         weight_changer::{
             momentum::MomentumStrategist, volatility_targeting::VolatilityTargetingStrategist,
@@ -52,6 +53,15 @@ pub async fn setup(
     )
     .await?;
 
+    let mut swapper = Swapper::new(
+        &environment,
+        &config,
+        "swapper",
+        &price_changer,
+        &token_admin,
+    )
+    .await?;
+
     EventLogger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
@@ -68,6 +78,7 @@ pub async fn setup(
             .add(arbitrageur)
             .add(block_admin)
             .add(weight_changer)
+            .add(swapper)
             .add(lp),
         steps,
         environment,

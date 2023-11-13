@@ -29,7 +29,7 @@ use std::marker::{Send, Sync};
 pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);
 
 impl Agents {
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut (String, Box<dyn Agent>)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&String, &mut Box<dyn Agent>)> {
         self.0.iter_mut()
     }
 
@@ -39,13 +39,16 @@ impl Agents {
     }
 
     pub fn add(mut self, agent: impl Agent + 'static) -> Self {
-        self.0.insert(agent.label(), Box::new(agent));
+        self.0.insert(
+            agent.client().label.as_ref().unwrap().clone(),
+            Box::new(agent),
+        );
         self
     }
 }
 
 /// Universal agent methods for interacting with the simulation environment or
-/// loop.
+/// loop.3
 #[async_trait::async_trait]
 pub trait Agent: Sync + Send + std::fmt::Debug {
     /// Executed outside the main simulation loop.
@@ -66,7 +69,7 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
 
     /// In order to be able to track agents by their label, each agent must
     /// implement a label method.
-    fn label(&self) -> Option<String>;
+    fn client(&self) -> Arc<RevmMiddleware>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

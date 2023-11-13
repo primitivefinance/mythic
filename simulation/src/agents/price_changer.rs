@@ -14,6 +14,8 @@ use super::*;
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
 pub struct PriceChanger {
+    /// The client for the `PriceChanger`
+    pub client: Arc<RevmMiddleware>,
     /// The path the price process takes.
     pub trajectory: Trajectories,
 
@@ -67,7 +69,7 @@ impl PriceChanger {
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
             let liquid_exchange = LiquidExchange::deploy(
-                client,
+                client.clone(),
                 (
                     token_admin.arbx.address(),
                     token_admin.arby.address(),
@@ -115,6 +117,7 @@ impl PriceChanger {
             };
 
             Ok(Self {
+                client,
                 trajectory,
                 liquid_exchange,
                 index: 1, /* start after the initial price since it is already set on contract
@@ -147,6 +150,9 @@ impl Agent for PriceChanger {
         self.update_price().await?;
         debug!("Price updated on lex");
         Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }
 

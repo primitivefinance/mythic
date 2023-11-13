@@ -16,9 +16,10 @@ pub struct Swapper {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct SwapperParameters<P: Parameterized> {
     pub num_swaps: P,
-    pub initial_balance: U256,
+    pub initial_balance: f64,
     /// True swaps X for Y
     pub swap_direction: bool,
+    pub end_timestamp: f64,
 }
 
 impl From<SwapperParameters<Multiple>> for Vec<SwapperParameters<Single>> {
@@ -30,6 +31,7 @@ impl From<SwapperParameters<Multiple>> for Vec<SwapperParameters<Single>> {
                 num_swaps: Single(num_swaps),
                 initial_balance: item.initial_balance,
                 swap_direction: item.swap_direction,
+                end_timestamp: item.end_timestamp,
             })
             .collect()
     }
@@ -37,29 +39,30 @@ impl From<SwapperParameters<Multiple>> for Vec<SwapperParameters<Single>> {
 
 // TODO: Mint the amounts here.
 impl Swapper {
-    async fn new(
+    pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
         label: &str,
         price_changer: &PriceChanger,
         token_admin: &TokenAdmin,
-        liquid_exchange_address: Address,
     ) -> Result<Self> {
         let client = RevmMiddleware::new(environment, Some(label))?;
-        let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
+        let liquid_exchange =
+            LiquidExchange::new(price_changer.liquid_exchange.address(), client.clone());
 
         if let Some(AgentParameters::Swapper(params)) = config.agent_parameters.get(label).cloned()
         {
+            let initial_balance = parse_ether(params.initial_balance)?;
             let input_token = if params.swap_direction {
                 token_admin
                     .arbx
-                    .mint(client.address(), params.initial_balance)
+                    .mint(client.address(), initial_balance)
                     .send()
                     .await?
                     .await?;
                 token_admin
                     .arbx
-                    .approve(client.address(), params.initial_balance)
+                    .approve(client.address(), initial_balance)
                     .send()
                     .await?
                     .await?;
@@ -67,24 +70,20 @@ impl Swapper {
             } else {
                 token_admin
                     .arby
-                    .mint(client.address(), params.initial_balance)
+                    .mint(client.address(), initial_balance)
                     .send()
                     .await?
                     .await?;
                 token_admin
                     .arby
-                    .approve(client.address(), params.initial_balance)
+                    .approve(client.address(), initial_balance)
                     .send()
                     .await?
                     .await?;
                 liquid_exchange.arbiter_token_y().call().await?
             };
 
-            let swap_times = linspace!(
-                price_changer.trajectory.times[0],
-                price_changer.trajectory.times.last().unwrap().clone(),
-                params.num_swaps.0 as usize
-            );
+            let swap_times = linspace!(0_f64, params.end_timestamp, params.num_swaps.0 as usize);
             trace!(
                 "Swapper will be tendering token with address: {:?}",
                 input_token
@@ -103,7 +102,7 @@ impl Swapper {
                 .collect();
             trace!("Swap times for the swapper are: {:?}", swap_times);
 
-            let amount_in = params.initial_balance / params.num_swaps.0 as u128;
+            let amount_in = initial_balance / params.num_swaps.0 as u128;
             trace!(
                 "Amount in for each of the swapper's swaps is: {}",
                 amount_in
@@ -126,14 +125,20 @@ impl Swapper {
 #[async_trait::async_trait]
 impl Agent for Swapper {
     async fn step(&mut self) -> Result<()> {
+        debug!("Entering swapper step");
         if self.client.get_block_timestamp().await? >= self.swap_times[self.swap_index] {
             self.liquid_exchange
                 .swap(self.input_token, self.amount_in)
                 .send()
                 .await?
                 .await?;
+            trace!("Swapper swapped and is incrementing index");
             self.swap_index += 1;
         }
+        debug!("Exiting swapper step");
         Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

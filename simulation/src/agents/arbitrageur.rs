@@ -188,6 +188,9 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
         debug!("Finished `step()` for `Arbitrageur`");
         Ok(())
     }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
 }
 
 enum Swap {

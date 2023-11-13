@@ -163,7 +163,7 @@ impl Agent for VolatilityTargetingStrategist {
         Ok(())
     }
 
-    async fn startup(&mut self) -> Result<()> {
-        Ok(())
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

@@ -90,4 +90,7 @@ impl<S: LiquidityStrategy> Agent for LiquidityProvider<S> {
         );
         Ok(())
     }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
 }

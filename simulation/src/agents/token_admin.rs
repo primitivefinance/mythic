@@ -72,4 +72,7 @@ impl Agent for TokenAdmin {
     async fn startup(&mut self) -> Result<()> {
         Ok(())
     }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
 }

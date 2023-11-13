@@ -19,7 +19,7 @@ decimals = 18
 # The seed to use (optional)
 seed = 1
 # The number of steps in the process
-num_steps = 100
+num_steps = 36500
 # The number of distinct paths to use
 num_paths = 5
 # The initial price of the asset
@@ -27,7 +27,7 @@ initial_price.fixed = 1.0
 # The start time of the process
 t_0.fixed = 0.0
 # The end time of the process
-t_n.fixed = 0.01
+t_n.fixed = 1.0
 ## Parameters for the type of process to use.
 # The drift for GBM
 process.GBM.drift.fixed = 0.1
@@ -45,7 +45,7 @@ fee.fixed = 30
 # The final weight to reach
 specialty.DollarCostAveraging.end_weight = 0.99
 # The amount of time to reach the final weight (in seconds)
-specialty.DollarCostAveraging.end_timestamp = 1485 # One before very end
+specialty.DollarCostAveraging.end_timestamp = 547485 # One before very end
 
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]
@@ -57,6 +57,6 @@ initial_price.fixed = 1.0
 # Swapper settings
 [agent.swapper.Swapper]
 num_swaps.fixed = 12
-end_timestamp = 1485
+end_timestamp = 547485
 initial_balance = 1.0
 swap_direction = true

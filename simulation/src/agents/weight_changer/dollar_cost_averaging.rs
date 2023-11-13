@@ -44,5 +44,7 @@ impl Agent for DollarCostAveragingStategist {
         debug!("Finished startup for `DollarCostAveragingStategist`");
         Ok(())
     }
-    fn label(&self) -> Option<String> {}
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
 }
