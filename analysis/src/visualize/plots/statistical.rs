@@ -150,7 +150,14 @@ mod tests {
 
     #[test]
     fn settings() {
-        todo!()
+        let x_data = vec![0.0, 1.0, 2.0];
+        let y_data = vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]];
+        let plot = StatisticalPlot::new(x_data, y_data);
+        let plot_settings = PlotSettings::new()
+            .title("Test Title")
+            .labels("Test X", "Test Y");
+        let plot = plot.settings(plot_settings);
+        assert!(plot.plot_settings.is_some());
     }
 
     #[test]
