@@ -57,6 +57,7 @@ initial_price.fixed = 1.0
 # Swapper settings
 [agent.swapper.Swapper]
 num_swaps.fixed = 12
+start_timestamp = 15
 end_timestamp = 547485
 initial_balance = 1.0
 swap_direction = false

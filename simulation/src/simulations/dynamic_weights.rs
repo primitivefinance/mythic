@@ -53,7 +53,14 @@ pub async fn setup(
     )
     .await?;
 
-    let mut swapper = Swapper::new(&environment, &config, "swapper", &price_changer).await?;
+    let mut swapper = Swapper::new(
+        &environment,
+        &config,
+        "swapper",
+        &price_changer,
+        &token_admin,
+    )
+    .await?;
 
     EventLogger::builder()
         .directory(config.output_directory.clone())
