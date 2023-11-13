@@ -21,7 +21,7 @@ seed = 1
 # The number of steps in the process
 num_steps = 365
 # The number of distinct paths to use
-num_paths = 1
+num_paths = 10
 # The initial price of the asset
 initial_price.fixed = 1.0
 # The start time of the process
