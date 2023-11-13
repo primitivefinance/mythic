@@ -93,4 +93,8 @@ impl<S: LiquidityStrategy> Agent for LiquidityProvider<S> {
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
     }
+    async fn step(&mut self) -> Result<()> {
+        self.strategy.get_strategy_logs().await;
+        Ok(())
+    }
 }

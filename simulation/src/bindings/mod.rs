@@ -8,5 +8,6 @@ pub mod counter;
 pub mod g3m;
 pub mod i_strategy;
 pub mod ig3m;
+pub mod portfolio_tracker;
 pub mod rmm;
 pub mod sd5_9x_18_math;

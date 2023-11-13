@@ -67,6 +67,7 @@ pub async fn setup(
         .file_name(config.output_file_name.clone().unwrap())
         .add(price_changer.liquid_exchange.events(), "lex")
         .add(weight_changer.g3m().events(), "g3m")
+        .add(swapper.portfolio_tracker.events(), "portfolio_tracker")
         .metadata(config)
         .map_err(|e| SimulationError::GenericError(e.to_string()))?
         .run()

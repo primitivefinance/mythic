@@ -679,38 +679,6 @@ pub mod ig3m {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("LogReserves"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("LogReserves"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("blockTimestamp"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
-                ),
-                (
                     ::std::borrow::ToOwned::to_owned("LogSyncingWeight"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Event {
@@ -1138,16 +1106,6 @@ pub mod ig3m {
         > {
             self.0.event()
         }
-        ///Gets the contract's `LogReserves` event
-        pub fn log_reserves_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            LogReservesFilter,
-        > {
-            self.0.event()
-        }
         ///Gets the contract's `LogSyncingWeight` event
         pub fn log_syncing_weight_filter(
             &self,
@@ -1233,24 +1191,6 @@ pub mod ig3m {
         pub liquidity: ::ethers::core::types::U256,
         pub amount_x: ::ethers::core::types::U256,
         pub amount_y: ::ethers::core::types::U256,
-    }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethevent(name = "LogReserves", abi = "LogReserves(uint256,uint256,uint256)")]
-    pub struct LogReservesFilter {
-        pub reserve_x: ::ethers::core::types::U256,
-        pub reserve_y: ::ethers::core::types::U256,
-        pub block_timestamp: ::ethers::core::types::U256,
     }
     #[derive(
         Clone,
@@ -1364,7 +1304,6 @@ pub mod ig3m {
     )]
     pub enum IG3MEvents {
         AddLiquidityFilter(AddLiquidityFilter),
-        LogReservesFilter(LogReservesFilter),
         LogSyncingWeightFilter(LogSyncingWeightFilter),
         LogWeightsFilter(LogWeightsFilter),
         RemoveLiquidityFilter(RemoveLiquidityFilter),
@@ -1377,9 +1316,6 @@ pub mod ig3m {
         ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
             if let Ok(decoded) = AddLiquidityFilter::decode_log(log) {
                 return Ok(IG3MEvents::AddLiquidityFilter(decoded));
-            }
-            if let Ok(decoded) = LogReservesFilter::decode_log(log) {
-                return Ok(IG3MEvents::LogReservesFilter(decoded));
             }
             if let Ok(decoded) = LogSyncingWeightFilter::decode_log(log) {
                 return Ok(IG3MEvents::LogSyncingWeightFilter(decoded));
@@ -1405,7 +1341,6 @@ pub mod ig3m {
                 Self::AddLiquidityFilter(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
-                Self::LogReservesFilter(element) => ::core::fmt::Display::fmt(element, f),
                 Self::LogSyncingWeightFilter(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
@@ -1423,11 +1358,6 @@ pub mod ig3m {
     impl ::core::convert::From<AddLiquidityFilter> for IG3MEvents {
         fn from(value: AddLiquidityFilter) -> Self {
             Self::AddLiquidityFilter(value)
-        }
-    }
-    impl ::core::convert::From<LogReservesFilter> for IG3MEvents {
-        fn from(value: LogReservesFilter) -> Self {
-            Self::LogReservesFilter(value)
         }
     }
     impl ::core::convert::From<LogSyncingWeightFilter> for IG3MEvents {

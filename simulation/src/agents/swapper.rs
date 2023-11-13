@@ -1,16 +1,21 @@
 use ethers::utils::{parse_units, ParseUnits};
 
 use super::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin, *};
-use crate::settings::parameters::LinspaceParameters;
+use crate::{
+    bindings::portfolio_tracker::PortfolioTracker, settings::parameters::LinspaceParameters,
+};
 
 #[derive(Clone, Debug)]
 pub struct Swapper {
     pub client: Arc<RevmMiddleware>,
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
-    pub input_token: Address,
+    pub portfolio_tracker: PortfolioTracker<RevmMiddleware>,
+    pub input_token_address: Address,
+    pub output_token_address: Address,
     pub swap_times: Vec<U256>,
     pub amount_in: U256,
     pub swap_index: usize,
+    pub swap_direction: bool,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -56,14 +61,17 @@ impl Swapper {
         {
             let initial_balance = parse_ether(params.initial_balance)?;
             debug!("Initial balance for swapper is: {}", initial_balance);
-            let input_token = if params.swap_direction {
+            let (input_token_address, output_token_address) = if params.swap_direction {
                 token_admin
                     .arbx
                     .mint(client.clone().address(), initial_balance)
                     .send()
                     .await?
                     .await?;
-                liquid_exchange.arbiter_token_x().call().await?
+                (
+                    liquid_exchange.arbiter_token_x().call().await?,
+                    liquid_exchange.arbiter_token_y().call().await?,
+                )
             } else {
                 token_admin
                     .arby
@@ -71,11 +79,14 @@ impl Swapper {
                     .send()
                     .await?
                     .await?;
-                liquid_exchange.arbiter_token_y().call().await?
+                (
+                    liquid_exchange.arbiter_token_y().call().await?,
+                    liquid_exchange.arbiter_token_x().call().await?,
+                )
             };
 
-            let token = ArbiterToken::new(input_token, client.clone());
-            token
+            let input_token = ArbiterToken::new(input_token_address, client.clone());
+            input_token
                 .approve(liquid_exchange.address(), U256::MAX)
                 .send()
                 .await?
@@ -109,14 +120,17 @@ impl Swapper {
                 "Amount in for each of the swapper's swaps is: {}",
                 amount_in
             );
-
+            let portfolio_tracker = PortfolioTracker::deploy(client.clone(), ())?.send().await?;
             Ok(Self {
                 client,
                 liquid_exchange,
-                input_token,
+                input_token_address,
+                output_token_address,
                 swap_times,
                 amount_in,
                 swap_index: 0,
+                portfolio_tracker,
+                swap_direction: params.swap_direction,
             })
         } else {
             Err(anyhow::anyhow!("No agent parameters found for {}", label))
@@ -128,11 +142,30 @@ impl Swapper {
 impl Agent for Swapper {
     async fn step(&mut self) -> Result<()> {
         debug!("Entering swapper step");
+        if self.swap_direction {
+            self.portfolio_tracker
+                .log_portfolio(self.input_token_address, self.output_token_address)
+                .send()
+                .await?
+                .await?;
+        } else {
+            self.portfolio_tracker
+                .log_portfolio(self.output_token_address, self.input_token_address)
+                .send()
+                .await?
+                .await?;
+        }
+        if self.swap_index >= self.swap_times.len() - 1
+            && self.client.get_block_timestamp().await? >= self.swap_times[self.swap_index]
+        {
+            // Make sure we can't go past the last time
+            return Ok(());
+        }
         if self.client.get_block_timestamp().await? >= self.swap_times[self.swap_index] {
             trace!("Swapper is swapping: {:?}", self.amount_in);
 
             self.liquid_exchange
-                .swap(self.input_token, self.amount_in)
+                .swap(self.input_token_address, self.amount_in)
                 .send()
                 .await?
                 .await?;

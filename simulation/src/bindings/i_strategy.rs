@@ -193,6 +193,18 @@ pub mod i_strategy {
                         },
                     ],
                 ),
+                (
+                    ::std::borrow::ToOwned::to_owned("logData"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("logData"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
             ]),
             events: ::core::convert::From::from([
                 (
@@ -222,6 +234,38 @@ pub mod i_strategy {
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("amountY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                            ],
+                            anonymous: false,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("LogReserves"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Event {
+                            name: ::std::borrow::ToOwned::to_owned("LogReserves"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("blockTimestamp"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -422,6 +466,12 @@ pub mod i_strategy {
                 .method_hash([249, 161, 200, 90], (amount_x, price))
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `logData` (0xbcc17dc7) function
+        pub fn log_data(&self) -> ::ethers::contract::builders::ContractCall<M, ()> {
+            self.0
+                .method_hash([188, 193, 125, 199], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Gets the contract's `AddLiquidity` event
         pub fn add_liquidity_filter(
             &self,
@@ -429,6 +479,16 @@ pub mod i_strategy {
             ::std::sync::Arc<M>,
             M,
             AddLiquidityFilter,
+        > {
+            self.0.event()
+        }
+        ///Gets the contract's `LogReserves` event
+        pub fn log_reserves_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            LogReservesFilter,
         > {
             self.0.event()
         }
@@ -500,6 +560,24 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
+    #[ethevent(name = "LogReserves", abi = "LogReserves(uint256,uint256,uint256)")]
+    pub struct LogReservesFilter {
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub block_timestamp: ::ethers::core::types::U256,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
     #[ethevent(
         name = "RemoveLiquidity",
         abi = "RemoveLiquidity(address,uint256,uint256,uint256)"
@@ -545,6 +623,7 @@ pub mod i_strategy {
     )]
     pub enum IStrategyEvents {
         AddLiquidityFilter(AddLiquidityFilter),
+        LogReservesFilter(LogReservesFilter),
         RemoveLiquidityFilter(RemoveLiquidityFilter),
         SwapFilter(SwapFilter),
     }
@@ -554,6 +633,9 @@ pub mod i_strategy {
         ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
             if let Ok(decoded) = AddLiquidityFilter::decode_log(log) {
                 return Ok(IStrategyEvents::AddLiquidityFilter(decoded));
+            }
+            if let Ok(decoded) = LogReservesFilter::decode_log(log) {
+                return Ok(IStrategyEvents::LogReservesFilter(decoded));
             }
             if let Ok(decoded) = RemoveLiquidityFilter::decode_log(log) {
                 return Ok(IStrategyEvents::RemoveLiquidityFilter(decoded));
@@ -570,6 +652,7 @@ pub mod i_strategy {
                 Self::AddLiquidityFilter(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
+                Self::LogReservesFilter(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RemoveLiquidityFilter(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
@@ -580,6 +663,11 @@ pub mod i_strategy {
     impl ::core::convert::From<AddLiquidityFilter> for IStrategyEvents {
         fn from(value: AddLiquidityFilter) -> Self {
             Self::AddLiquidityFilter(value)
+        }
+    }
+    impl ::core::convert::From<LogReservesFilter> for IStrategyEvents {
+        fn from(value: LogReservesFilter) -> Self {
+            Self::LogReservesFilter(value)
         }
     }
     impl ::core::convert::From<RemoveLiquidityFilter> for IStrategyEvents {
@@ -700,6 +788,21 @@ pub mod i_strategy {
         pub amount_x: ::ethers::core::types::U256,
         pub price: ::ethers::core::types::U256,
     }
+    ///Container type for all input parameters for the `logData` function with signature `logData()` and selector `0xbcc17dc7`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "logData", abi = "logData()")]
+    pub struct LogDataCall;
     ///Container type for all of the contract's call
     #[derive(
         Clone,
@@ -719,6 +822,7 @@ pub mod i_strategy {
         GetStrategyData(GetStrategyDataCall),
         GetSwapFee(GetSwapFeeCall),
         InitExactX(InitExactXCall),
+        LogData(LogDataCall),
     }
     impl ::ethers::core::abi::AbiDecode for IStrategyCalls {
         fn decode(
@@ -760,6 +864,11 @@ pub mod i_strategy {
             ) {
                 return Ok(Self::InitExactX(decoded));
             }
+            if let Ok(decoded) = <LogDataCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::LogData(decoded));
+            }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
@@ -787,6 +896,7 @@ pub mod i_strategy {
                 Self::InitExactX(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
+                Self::LogData(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
     }
@@ -800,6 +910,7 @@ pub mod i_strategy {
                 Self::GetStrategyData(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetSwapFee(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InitExactX(element) => ::core::fmt::Display::fmt(element, f),
+                Self::LogData(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
     }
@@ -836,6 +947,11 @@ pub mod i_strategy {
     impl ::core::convert::From<InitExactXCall> for IStrategyCalls {
         fn from(value: InitExactXCall) -> Self {
             Self::InitExactX(value)
+        }
+    }
+    impl ::core::convert::From<LogDataCall> for IStrategyCalls {
+        fn from(value: LogDataCall) -> Self {
+            Self::LogData(value)
         }
     }
     ///Container type for all return fields from the `getInvariant` function with signature `getInvariant()` and selector `0xc0ff1a15`

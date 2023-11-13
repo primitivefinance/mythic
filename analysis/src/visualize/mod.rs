@@ -30,7 +30,8 @@ impl Figure {
     }
 
     pub fn create(&self) -> Result<()> {
-        let drawing_area = BitMapBackend::new(&self.file_name, (800, 600)).into_drawing_area();
+        let dimensions = self.dimensions.unwrap_or((1920, 1080));
+        let drawing_area = BitMapBackend::new(&self.file_name, dimensions).into_drawing_area();
         drawing_area.fill(&WHITE)?;
 
         // Partition the main drawing area into subplots

@@ -25,6 +25,8 @@ pub trait Strategy: Sized + Send + Sync + std::fmt::Debug {
     /// Responsible for decoding the strategy data into the strategy data type
     /// defined above.
     async fn decode_strategy_data(&self) -> Result<Self::StrategyData>;
+
+    async fn get_strategy_logs(&self);
 }
 
 /// A sub-trait for liquidity providers to implement their specific logic for
