@@ -154,6 +154,9 @@ impl Agent for WeightChangerType {
     async fn startup(&mut self) -> Result<()> {
         self.0.startup().await
     }
+    fn label(&self) -> String {
+        self.0.label()
+    }
 }
 
 #[async_trait::async_trait]

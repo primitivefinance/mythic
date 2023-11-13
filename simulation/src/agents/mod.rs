@@ -22,23 +22,24 @@ pub mod tests;
 pub mod token_admin;
 pub mod weight_changer;
 
+use linked_hash_map::LinkedHashMap;
 use std::marker::{Send, Sync};
 
 #[derive(Debug)]
-pub struct Agents(pub Vec<Box<dyn Agent>>);
+pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);
 
 impl Agents {
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut (String, Box<dyn Agent>)> {
         self.0.iter_mut()
     }
 
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self(vec![])
+        Self(LinkedHashMap::new())
     }
 
     pub fn add(mut self, agent: impl Agent + 'static) -> Self {
-        self.0.push(Box::new(agent));
+        self.0.insert(agent.label(), Box::new(agent));
         self
     }
 }
@@ -62,17 +63,10 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
     async fn priority_step(&mut self) -> Result<()> {
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Agent for Agents {
-    async fn step(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    async fn priority_step(&mut self) -> Result<()> {
-        Ok(())
-    }
+    /// In order to be able to track agents by their label, each agent must
+    /// implement a label method.
+    fn label(&self) -> Option<String>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
