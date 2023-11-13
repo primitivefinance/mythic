@@ -23,10 +23,10 @@ pub fn example() -> iced::Result {
         .with_max_level(tracing::Level::DEBUG)
         .finish();
 
-    let subs = subscriber.with(firehose_subscriber);
+    let _subs = subscriber.with(firehose_subscriber);
 
-    tracing::subscriber::set_global_default(subs)
-        .expect("Failed to set global default subscriber in UI");
+    // tracing::subscriber::set_global_default(subs)
+    //     .expect("Failed to set global default subscriber in UI");
     example::ExampleApp::run(Settings::with_flags(Flags { receiver }))
 }
 
