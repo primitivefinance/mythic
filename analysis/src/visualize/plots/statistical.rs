@@ -3,14 +3,31 @@ use plotters::drawing;
 use super::{line::LinePlot, *};
 
 pub struct StatisticalPlot {
+    pub plot_settings: Option<PlotSettings>,
     pub x_data: Vec<f64>,
     pub y_data: Vec<Vec<f64>>,
+}
+
+impl StatisticalPlot {
+    pub fn new(x_data: Vec<f64>, y_data: Vec<Vec<f64>>) -> Self {
+        Self {
+            plot_settings: None,
+            x_data,
+            y_data,
+        }
+    }
+
+    pub fn settings(mut self, plot_settings: PlotSettings) -> Self {
+        self.plot_settings = Some(plot_settings);
+        self
+    }
 }
 
 impl From<&LinePlot> for StatisticalPlot {
     fn from(line_plot: &LinePlot) -> Self {
         let y_data = vec![line_plot.y_data.clone()];
         Self {
+            plot_settings: line_plot.plot_settings.clone(),
             x_data: line_plot.x_data.clone(),
             y_data,
         }
@@ -54,17 +71,36 @@ impl Plot for StatisticalPlot {
             .max_by(|a, b| a.partial_cmp(b).unwrap())
             .unwrap_or(1.0);
 
+        let caption = &self
+            .plot_settings
+            .clone()
+            .unwrap_or_default()
+            .title
+            .unwrap_or("Statistical Plot".to_owned());
+        let x_desc = &self
+            .plot_settings
+            .clone()
+            .unwrap_or_default()
+            .x_desc
+            .unwrap_or("X".to_owned());
+        let y_desc = &self
+            .plot_settings
+            .clone()
+            .unwrap_or_default()
+            .y_desc
+            .unwrap_or("Y".to_owned());
         let mut chart = ChartBuilder::on(drawing_area)
-            .caption(
-                "Average Signal with Standard Deviation",
-                ("Arial", 24).into_font(),
-            )
+            .caption(caption, ("Arial", 24).into_font())
             .margin(5)
             .x_label_area_size(30)
             .y_label_area_size(30)
             .build_cartesian_2d(x_min..x_max, y_min..y_max)?;
 
-        chart.configure_mesh().draw()?;
+        chart
+            .configure_mesh()
+            .x_desc(x_desc)
+            .y_desc(y_desc)
+            .draw()?;
 
         let average_signal: Vec<(f64, f64)> =
             avg_with_std.iter().map(|&(x, mean, _)| (x, mean)).collect();
@@ -106,12 +142,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn new() {
+        let x_data = vec![0.0, 1.0, 2.0];
+        let y_data = vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]];
+        let plot = StatisticalPlot::new(x_data, y_data);
+    }
+
+    #[test]
+    fn settings() {
+        let x_data = vec![0.0, 1.0, 2.0];
+        let y_data = vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]];
+        let plot = StatisticalPlot::new(x_data, y_data);
+        let plot_settings = PlotSettings::new()
+            .title("Test Title")
+            .labels("Test X", "Test Y");
+        let plot = plot.settings(plot_settings);
+        assert!(plot.plot_settings.is_some());
+    }
+
+    #[test]
     fn add_statistical_plot() {
         let mut figure = Figure::new("test_add_statistical_plot", None);
-        let plot = StatisticalPlot {
-            x_data: vec![0.0, 1.0, 2.0],
-            y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
-        };
+        let x_data = vec![0.0, 1.0, 2.0];
+        let y_data = vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]];
+        let plot = StatisticalPlot::new(x_data, y_data);
         figure.add_plot(plot);
         assert_eq!(figure.plots.len(), 1);
     }
@@ -119,10 +173,9 @@ mod tests {
     #[test]
     fn create_statistical_plot() {
         let mut figure = Figure::new("test_create_statistical_plot", None);
-        let plot = StatisticalPlot {
-            x_data: vec![0.0, 1.0, 2.0],
-            y_data: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
-        };
+        let x_data = vec![0.0, 1.0, 2.0];
+        let y_data = vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]];
+        let plot = StatisticalPlot::new(x_data, y_data);
         figure.add_plot(plot);
         figure.create().unwrap();
         assert!(std::path::Path::new("test_create_statistical_plot.png").exists());

@@ -3,9 +3,11 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use arbiter_core::math::GeometricBrownianMotion;
 use itertools::iproduct;
 use rand::random;
+use RustQuant::stochastics::{
+    GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
+};
 
 use super::*;
 
