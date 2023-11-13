@@ -59,4 +59,4 @@ initial_price.fixed = 1.0
 num_swaps.fixed = 12
 end_timestamp = 547485
 initial_balance = 1.0
-swap_direction = true
+swap_direction = false

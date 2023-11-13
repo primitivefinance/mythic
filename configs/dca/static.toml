@@ -21,7 +21,7 @@ seed = 1
 # The number of steps in the process
 num_steps = 100
 # The number of distinct paths to use
-num_paths = 5
+num_paths = 1
 # The initial price of the asset
 initial_price.fixed = 1.0
 # The start time of the process
@@ -59,4 +59,4 @@ initial_price.fixed = 1.0
 num_swaps.fixed = 12
 end_timestamp = 1485
 initial_balance = 1.0
-swap_direction = true
+swap_direction = false
