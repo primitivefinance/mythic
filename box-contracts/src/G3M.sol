@@ -411,6 +411,8 @@ contract G3M is IG3M, IStrategy {
         uint256 new_price =
             computeSpotPrice(reserveX, currentWeightX, reserveY, currentWeightY);
         emit Swap(msg.sender, swapDirection, amountIn, amountOut, new_price);
+        emit LogSyncingWeight(weightX(), weightY(), block.timestamp);
+        emit LogReserves(reserveX, reserveY, block.timestamp);
 
         return exactIn ? amountOut : amountIn;
     }

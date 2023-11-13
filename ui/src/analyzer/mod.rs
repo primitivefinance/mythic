@@ -194,10 +194,7 @@ impl AnalyzerApp {
                 .map(|x| wad_to_float(x))
                 .collect::<Vec<f64>>();
 
-            let lineplot = LinePlot {
-                x_data: indices,
-                y_data: values,
-            };
+            let lineplot = LinePlot::new(indices, values);
             figure.add_plot(lineplot);
         }
 
