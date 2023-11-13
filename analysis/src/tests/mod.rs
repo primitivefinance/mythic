@@ -5,7 +5,7 @@ use super::*;
 use crate::{
     reader::SimulationData,
     visualize::{
-        plots::{line::LinePlot, statistical::StatisticalPlot},
+        plots::{line::LinePlot, statistical::StatisticalPlot, PlotSettings},
         Figure,
     },
 };
@@ -32,7 +32,7 @@ fn read_in_and_plot_statistical() {
         .collect();
 
     let y_data = vec![y_data1, y_data2];
-    let statistical_plot = StatisticalPlot { x_data, y_data };
+    let statistical_plot = StatisticalPlot::new(x_data, y_data);
 
     let mut figure = Figure::new("test_read_in_and_plot_statistical", None);
     figure.add_plot(statistical_plot);
@@ -45,36 +45,57 @@ fn read_in_and_plot_statistical() {
 fn plot_dca_weights() {
     let file1 = "dca/static/1.json";
     let data1 = SimulationData::new(file1).unwrap();
-    let values1 = data1.get_vectorized_events::<g3m::LogSyncingWeightFilter>("g3m");
-    let indices: Vec<f64> = values1
+    let weight_filter = data1.get_vectorized_events::<g3m::LogSyncingWeightFilter>("g3m");
+    let indices: Vec<f64> = weight_filter
         .iter()
         .enumerate()
         .map(|(index, _)| index as f64)
         .collect();
-    let line_plot = LinePlot {
-        x_data: indices.clone(),
-        y_data: values1
+
+    // Plot the weights
+    let plot_settings = PlotSettings::new()
+        .title("DCA Weights")
+        .labels("Index", "Weight X");
+
+    let line_plot = LinePlot::new(
+        indices.clone(),
+        weight_filter
             .iter()
             .map(|event| wad_to_float(event.weight_x))
             .collect(),
-    };
+    )
+    .settings(plot_settings);
 
+    // Plot the reserves
+    let plot_settings = PlotSettings::new()
+        .title("Reserves")
+        .labels("Index", "Reserve X");
     let reserves = data1.get_vectorized_events::<g3m::LogReservesFilter>("g3m");
-    let reserves_plot = LinePlot {
-        x_data: indices.clone(),
-        y_data: reserves
+    let reserves_plot = LinePlot::new(
+        indices.clone(),
+        reserves
             .iter()
             .map(|event| wad_to_float(event.reserve_x))
             .collect(),
-    };
+    )
+    .settings(plot_settings);
+
+    // Plot the prices
+    let plot_settings = PlotSettings::new().title("Prices").labels("Index", "Price");
     let swap_filter = data1.get_vectorized_events::<g3m::SwapFilter>("g3m");
-    let prices_plot = LinePlot {
-        x_data: indices.clone(),
-        y_data: swap_filter
+    let prices_plot = LinePlot::new(
+        indices.clone(),
+        swap_filter
             .iter()
             .map(|event| wad_to_float(event.new_price))
             .collect(),
-    };
+    )
+    .settings(plot_settings);
+
+    // Plot the portfolio value
+    let plot_settings = PlotSettings::new()
+        .title("Portfolio Value")
+        .labels("Index", "Portfolio Value");
     let portfolio_value = reserves
         .iter()
         .zip(swap_filter)
@@ -84,11 +105,8 @@ fn plot_dca_weights() {
             let price = wad_to_float(price_event.new_price);
             reserve_x * price + reserve_y
         });
-
-    let portfolio_value_plot = LinePlot {
-        x_data: indices,
-        y_data: portfolio_value.collect(),
-    };
+    let portfolio_value_plot =
+        LinePlot::new(indices, portfolio_value.collect()).settings(plot_settings);
 
     let mut figure = Figure::new("plot_dca_weights", None);
     figure.add_plot(line_plot);
