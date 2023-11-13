@@ -1,8 +1,24 @@
 use super::*;
 
 pub struct LinePlot {
+    pub plot_settings: Option<PlotSettings>,
     pub x_data: Vec<f64>,
     pub y_data: Vec<f64>,
+}
+
+impl LinePlot {
+    pub fn new(x_data: Vec<f64>, y_data: Vec<f64>) -> Self {
+        Self {
+            plot_settings: None,
+            x_data,
+            y_data,
+        }
+    }
+
+    pub fn settings(mut self, plot_settings: PlotSettings) -> Self {
+        self.plot_settings = Some(plot_settings);
+        self
+    }
 }
 
 impl Plot for LinePlot {
@@ -20,6 +36,7 @@ mod tests {
     #[test]
     fn add_line_plot() {
         let line_plot = LinePlot {
+            plot_settings: None,
             x_data: vec![0.0, 1.0, 2.0],
             y_data: vec![0.0, 1.0, 2.0],
         };
@@ -31,6 +48,7 @@ mod tests {
     #[test]
     fn create_line_plot() {
         let line_plot = LinePlot {
+            plot_settings: None,
             x_data: vec![0.0, 1.0, 2.0],
             y_data: vec![0.0, 1.0, 2.0],
         };
