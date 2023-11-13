@@ -85,7 +85,7 @@ pub fn compute_target_volatility_delta(
 ) -> f64 {
     (target_volatility_pct - current_volatility_pct) / current_delta_pct
 }
-
+#[allow(clippy::approx_constant)]
 // todo: make sure these tests are correct, used copilot for them.
 mod tests {
     use super::*;
