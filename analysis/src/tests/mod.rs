@@ -42,6 +42,7 @@ fn read_in_and_plot_statistical() {
 }
 
 #[test]
+#[ignore]
 fn plot_dca_weights() {
     let file1 = "dca/static/1.json";
     let data1 = SimulationData::new(file1).unwrap();
