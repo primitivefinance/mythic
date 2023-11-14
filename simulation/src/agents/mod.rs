@@ -38,12 +38,11 @@ impl Agents {
         Self(LinkedHashMap::new())
     }
 
-    pub fn add(mut self, agent: impl Agent + 'static) -> Self {
+    pub fn add(&mut self, agent: impl Agent + 'static) {
         self.0.insert(
             agent.client().label.as_ref().unwrap().clone(),
             Box::new(agent),
         );
-        self
     }
 }
 

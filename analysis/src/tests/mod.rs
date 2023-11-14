@@ -94,10 +94,7 @@ fn plot_dca_weights() {
         prices_statistical.1.push(
             swap_filter
                 .iter()
-                .map(|event| {
-                    println!("Spot price for G3M: {:?}", event.spot_price);
-                    wad_to_float(event.spot_price)
-                })
+                .map(|event| wad_to_float(event.spot_price))
                 .collect::<Vec<f64>>(),
         );
 

@@ -26,6 +26,21 @@ pub struct PriceChanger {
     pub index: usize,
 }
 
+impl Clone for PriceChanger {
+    fn clone(&self) -> Self {
+        let trajectory = Trajectories {
+            times: self.trajectory.times.clone(),
+            paths: self.trajectory.paths.clone(),
+        };
+        Self {
+            client: self.client.clone(),
+            trajectory,
+            liquid_exchange: self.liquid_exchange.clone(),
+            index: self.index,
+        }
+    }
+}
+
 impl std::fmt::Debug for PriceChanger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PriceChanger")
