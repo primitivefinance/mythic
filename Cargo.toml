@@ -48,6 +48,7 @@ plotters = "0.3.5"
 
 [dependencies]
 simulation.workspace = true
+analysis.workspace = true
 ui.workspace = true
 tokio.workspace = true
 tracing.workspace = true

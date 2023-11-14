@@ -141,6 +141,7 @@ y+\delta_y+\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\
 $$
 
 ##### $\Delta_x$ given $\Delta_y$
+<!-- TODO UPDATE THIS MATH -->
 Suppose that the user wants to swap $y$ for $x$ and the price is $S$.
 They specifically tender $\Delta_y$ and the fee parameter is $\gamma$.
 Now $\delta_y=(1-\gamma)\Delta_y$ and $\widetilde{\Delta_y}=\gamma\Delta_y$.
@@ -160,7 +161,7 @@ $$
 \Phi^{-1}\left(\frac{x+\delta_x + \widetilde{\Delta_x}}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
 \frac{x+\delta_x + \widetilde{\Delta_x}}{L+\delta_L} = \Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
 x+\delta_x + \widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
-\boxed{\widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x}
+\boxed{\widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x}
 $$
 
 ## Arbitrage Math
