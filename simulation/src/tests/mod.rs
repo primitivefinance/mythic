@@ -1,6 +1,9 @@
 use std::{env, fs, io::Read, path::Path};
 
+use arbiter_core::environment::{builder::BlockSettings, Environment};
+
 use super::*;
+use crate::agents::portfolio_deployer::PortfolioDeployer;
 
 #[test]
 fn static_output() {
