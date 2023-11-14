@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use ethers::utils::format_ether;
-use iced::widget::{checkbox, Column, Row};
+use iced::widget::{checkbox, Column, Container, Row};
 use simulation::agents::SubscribedData;
 
 use self::{
@@ -47,11 +47,17 @@ pub enum Message {
     Simulation(control::Operation),
     Settings(Settings),
     Data(Data),
+    Page(Page),
 }
 
-pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {
+pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
+    menu: &Page,
+    content: T,
+) -> Element<'a, Message> {
     container(row![
-        Space::with_width(Length::FillPortion(1)),
+        Column::new()
+            .push(page_menu(menu))
+            .width(Length::FillPortion(1)),
         column![container(
             column![content.into()]
                 .width(Length::Fill)
@@ -68,6 +74,33 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, 
     .center_x()
     .center_y()
     .into()
+}
+
+#[derive(Debug, Clone)]
+pub enum Page {
+    Terminal,
+    Execute,
+}
+
+pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
+    let terminal_button = button(text("terminal")).on_press(Message::Page(Page::Terminal));
+    let transact_button = button(text("execute")).on_press(Message::Page(Page::Execute));
+
+    Container::new(
+        Column::new().push(
+            Column::new()
+                .push(terminal_button)
+                .push(transact_button)
+                .height(Length::Fill)
+                .spacing(8),
+        ),
+    )
+    .style(MenuContainerTheme::theme())
+    .padding(16)
+}
+
+pub fn execution_view<'a>() -> Element<'a, Message> {
+    Container::new(Column::new().push(data_item("execution".to_string()).size(36))).into()
 }
 
 pub fn terminal_view_multiple_firehose<'a>(

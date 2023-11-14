@@ -7,6 +7,7 @@ use iced::{
 
 mod app;
 mod components;
+mod execution;
 mod loader;
 mod local;
 mod logos;
