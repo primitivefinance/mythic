@@ -15,6 +15,8 @@ use crate::settings::{
 pub mod arbitrageur;
 pub mod block_admin;
 pub mod liquidity_provider;
+pub mod portfolio_deployer;
+pub mod portfolio_pool_initializer;
 pub mod price_changer;
 pub mod swapper;
 #[cfg(test)]
