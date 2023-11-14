@@ -90,7 +90,7 @@ jobs:
           check_hidden: true
           check_filenames: true
           skip: .git,Cargo.lock,target
-          ignore_words_list: crate,Crate,functio
+          ignore_words_list: crate,Crate,functio,virtualY,virtualX
 
 
     
