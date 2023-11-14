@@ -39,6 +39,45 @@ We require that the trading function remain invariant like so:
 $$
 k = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
 $$
+while also taking fees as a liquidity deposit. 
+#### Trade in $\Delta_X$ for $\Delta_Y$
+Suppose that we want to trade in $\Delta_X$ for $\Delta_Y$. 
+Then we have that we are really inputting $\gamma\Delta_X$ while raising $k\mapsto k+\delta_k$.
+This gives us a new invariant, noting that we can create
+Noting that 
+$$
+y= \frac{w_y}{w_x}p x
+$$
+$$
+L_X(x,p) = x(\frac{w_y}{w_x}p)^{w_y}
+$$
+and note that $k_X(x,p)$ is linear in $x$.
+Then we have that:
+$$
+L_X(x+\delta_x) = L_X(x) + \delta_L \\= k_X(x) + \delta_x(\frac{w_y}{w_x}p)^{w_y}
+$$
+so 
+$$
+\delta_L = \delta_x\left(\frac{w_y}{w_x}p\right)^{w_y}
+$$
+Hence we have for a swap with fees that (note $\Delta$ are what users input and receive):
+$$
+L+\delta_L = (x+\gamma \Delta_X)^{w_x}(y+\Delta_y)^{w_y}
+$$
+Then:
+$$
+\Delta_y = \left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}-y
+$$
+
+#### Trade in $\Delta_Y$ for $\Delta_X$
+We can get the
+$$
+x = y\left(\frac{w_x}{w_y}\frac{1}{p}\right)^{1/w_x}
+$$
+$$
+k_Y(x,t) = y \left( \frac{w_y}{w_x} \right)
+$$
+<!-- 
 Now let's get the $\delta_y$ from $\delta_x$:
 $$
 \begin{align*}
@@ -55,7 +94,7 @@ k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y} \\
 \implies \qquad (x+\delta_x)^{w_x} = \frac{k}{(y+\delta_y)^{w_y}}\\
 \implies \qquad \boxed{ \delta_x = \left(\frac{k}{(y+\delta_y)^{w_y}}\right)^{1/w_x} - x }
 \end{align*}
-$$
+$$ -->
 
 
 
@@ -80,7 +119,7 @@ $$
 
 ---
 
-## G3M Arbitrage Math
+## Arbitrage Math
 
 
 We can solve for each variable in terms of the other and the invariant $k$:
@@ -153,3 +192,6 @@ Using the trading function:
 $$
 x^{w_x}y^{w_y} = \left(\frac{w_x}{w_y}y\right)^{w_x} y^{w_y}= \left(\frac{w_x}{w_y}\right)^{w_x} y = k
 $$
+
+## Value Function on $L(S)$
+Relate to value on $V(L(S))$ and $V(x,y)$. Then we can use this to tokenize. We have $L_X(x, S)$ and $L_Y(y, S)$.
