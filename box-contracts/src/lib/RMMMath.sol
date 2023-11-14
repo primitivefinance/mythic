@@ -94,16 +94,20 @@ function computeSpotPrice(
     uint256 sigma,
     uint256 tau
 ) pure returns (uint256) {
-    uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
-        HALF,
-        FixedPointMathLib.mulWadDown(
-            uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
-        )
+    uint256 innerTerm = FixedPointMathLib.mulWadDown(
+        uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
     );
 
+    uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
+        HALF,
+        innerTerm
+    );
+
+    uint256 sqrtTau = FixedPointMathLib.sqrt(tau) * 10 ** 9;
+
     uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
-        uint256(sigma), FixedPointMathLib.sqrt(tau)
-    ) * 10 ** 9;
+        sigma, sqrtTau
+    );
 
     uint256 R1 = FixedPointMathLib.divWadDown(x, L);
 
@@ -111,41 +115,37 @@ function computeSpotPrice(
         K,
         uint256(
             FixedPointMathLib.expWad(
-                int256(
-                    FixedPointMathLib.mulWadDown(
-                        uint256(Gaussian.ppf(int256(ONE - R1))), sigmaSqrtTau
-                    ) - halfSigmaPower2Tau
-                )
+                Gaussian.ppf(int256(ONE - R1)) * int256(sigmaSqrtTau) / int256(ONE) - int256(halfSigmaPower2Tau)
             )
         )
     );
 }
-// function computeOutputYGivenX(
-//     uint256 x,
-//     uint256 deltaX,
-//     uint256 y,
-//     uint256 deltaY,
-//     uint256 L,
-//     uint256 deltaL,
-//     uint256 K,
-//     uint256 sigma
-// ) pure returns (int256) {
-//     uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
 
-//     int256 cdf = Gaussian.cdf(
-//         -int256(sigma)
-//             - Gaussian.ppf(
-//                 int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
-//             )
-//     );
+function computeOutputYGivenX(
+    uint256 x,
+    uint256 deltaX,
+    uint256 y,
+    uint256 deltaY,
+    uint256 L,
+    uint256 deltaL,
+    uint256 K,
+    uint256 sigma
+) pure returns (int256) {
+    uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
 
-//     return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
-//         - int256(deltaY);
-// }
+    int256 cdf = Gaussian.cdf(
+        -int256(sigma)
+            - Gaussian.ppf(
+                int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
+            )
+    );
+
+    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y);
+}
+
 /* \boxed{\widetilde{\Delta_x} = 
 (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x} 
 */
-
 function computeOutputXGivenY(
     uint256 x, 
     uint256 deltaX, 
@@ -165,8 +165,8 @@ function computeOutputXGivenY(
             )
     );
 
-    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(x)
-        - int256(deltaX);
+    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(x);
+    // return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(x);
 }
 
 function computeInvariant(

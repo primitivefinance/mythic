@@ -45,6 +45,9 @@ dotenv = "0.15.0"
 # Visualization
 plotters = "0.3.5"
 
+# math
+RustQuant = { version = "0.0.37", features = ["seedable"] }
+
 
 [dependencies]
 simulation.workspace = true
@@ -55,6 +58,7 @@ anyhow.workspace = true
 clap = { version = "4.4.6", features = ["derive"] }
 tracing-subscriber.workspace = true
 dotenv.workspace = true
+RustQuant.workspace = true
 
 [dev-dependencies]
 # For book

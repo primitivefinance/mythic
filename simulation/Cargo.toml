@@ -14,6 +14,7 @@ async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 config.workspace = true
+RustQuant.workspace = true
 
 unit-conversions = "0.1.13"
 itertools = "0.11.0"

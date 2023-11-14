@@ -1,5 +1,6 @@
 simulation = "RmmVolatilityTargeting"
 output_directory = "analysis/rmm/vol_targeting/static"
+max_parallel = 5
 
 
 [agent.block_admin.BlockAdmin]

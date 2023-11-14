@@ -28,6 +28,7 @@ use ethers::{
 use serde::{Deserialize, Serialize};
 use settings::SimulationConfig;
 use tracing::{debug, error, info, trace, warn};
+use RustQuant::stochastics::*;
 
 #[allow(unused)]
 mod agents;

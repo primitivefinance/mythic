@@ -75,7 +75,7 @@ impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent
         info!("LiquidityProvider.startup: starting up");
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
-
+        println!("we get here");
         let tx = self
             .rmm_strategy
             .initialize_pool(self.initial_x, self.initial_price)

@@ -11,6 +11,10 @@ use RustQuant::stochastics::{
 
 use super::*;
 
+use RustQuant::stochastics::{
+    GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
+};
+
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
 pub struct PriceChanger {

@@ -76,17 +76,17 @@ impl ArbitrageStrategy for RmmStrategy {
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let sigma = I256::from_raw(strategy_data.sigma);
-        trace!("sigma: {}", sigma);
+        debug!("sigma: {}", sigma);
         let tau = I256::from_raw(strategy_data.tau);
-        trace!("tau: {}", tau);
+        debug!("tau: {}", tau);
         let strike_price = I256::from_raw(strategy_data.strike_price);
-        trace!("strike: {}", strike_price);
+        debug!("strike: {}", strike_price);
         let reserve_x = I256::from_raw(self.0.get_reserve_x().call().await?);
-        trace!("reserve_x: {}", reserve_x);
+        debug!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.0.get_reserve_y().call().await?);
-        trace!("reserve_y: {}", reserve_y);
+        debug!("reserve_y: {}", reserve_y);
         let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
-        trace!("liquidity: {}", liquidity);
+        debug!("liquidity: {}", liquidity);
         let i_wad = I256::from_raw(WAD);
         // \boxed{\Delta x = L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x}
         let dx = liquidity
@@ -106,7 +106,7 @@ impl ArbitrageStrategy for RmmStrategy {
             / i_wad
             - reserve_x;
 
-        trace!("dx: {}", dx);
+        debug!("dx: {}", dx);
         if dx < 0.into() {
             return Ok(0.into());
         }
@@ -121,17 +121,17 @@ impl ArbitrageStrategy for RmmStrategy {
     ) -> Result<U256> {
         let strategy_data = self.decode_strategy_data().await?;
         let sigma = I256::from_raw(strategy_data.sigma);
-        trace!("sigma: {}", sigma);
+        debug!("sigma: {}", sigma);
         let tau = I256::from_raw(strategy_data.tau);
-        trace!("tau: {}", tau);
+        debug!("tau: {}", tau);
         let strike_price = I256::from_raw(strategy_data.strike_price);
-        trace!("strike: {}", strike_price);
+        debug!("strike: {}", strike_price);
         let reserve_x = I256::from_raw(self.0.get_reserve_x().call().await?);
-        trace!("reserve_x: {}", reserve_x);
+        debug!("reserve_x: {}", reserve_x);
         let reserve_y = I256::from_raw(self.0.get_reserve_y().call().await?);
-        trace!("reserve_y: {}", reserve_y);
+        debug!("reserve_y: {}", reserve_y);
         let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
-        trace!("liquidity: {}", liquidity);
+        debug!("liquidity: {}", liquidity);
 
         let i_wad = I256::from_raw(WAD);
         // \boxed{\Delta_y = y'-y = K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}
@@ -150,7 +150,7 @@ impl ArbitrageStrategy for RmmStrategy {
                 .await?
             / i_wad
             - reserve_y;
-        trace!("dy: {}", dy);
+        debug!("dy: {}", dy);
         Ok(dy.into_raw())
     }
     async fn get_strategy_logs(&self) {

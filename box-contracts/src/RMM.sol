@@ -257,44 +257,20 @@ contract RMM is IStrategy {
 
         return (liquidityDelta, amountX);
     }
-    event dlEvent(uint256 deltaL);
-    event dyEvent(uint256 deltaY);
-    event dxEvent(uint256 dx);
-    event feeEvent(uint256 fees);
-    event amountOutIntEvent(int256 amountOut);
+
+    event deltaLEvent(uint256 deltaL);
+    event deltaXEvent(uint256 deltaX);
     event amountOutEvent(uint256 amountOut);
-    event amountOutAbsEvent(int256 amountOut);
-    event amountOutEvent3(uint256 amountOut);
-    event spotPriceEvent(uint256 spotPrice);
-    event amountInEvent(uint256 amountIn);
+    event reserveXEvent(uint256 reserveX);
+    event outputEvent(int256 output);
     function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
-        emit amountInEvent(amountIn);
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
-        emit spotPriceEvent(price);
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            emit feeEvent(fees);
-            uint256 deltaX = amountIn - fees;
-            emit dxEvent(deltaX);
-            uint256 deltaL = computeLGivenX(deltaX, price, strikePrice, sigma);
-            emit dlEvent(deltaL);
+            uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma);
             uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
-            emit dyEvent(deltaY);
-
-            int256 computedAmountOut = computeOutputYGivenX(
-                reserveX,
-                amountIn,
-                reserveY,
-                deltaY,
-                totalLiquidity,
-                deltaL,
-                strikePrice,
-                sigma
-            );
-            emit amountOutIntEvent(computedAmountOut);
-            emit amountOutAbsEvent(-computedAmountOut);
 
             amountOut = uint256(
                 ~(
@@ -311,7 +287,6 @@ contract RMM is IStrategy {
                 )
             );
 
-            emit amountOutEvent(amountOut);
 
             totalLiquidity += deltaL;
             reserveX += amountIn;
@@ -321,9 +296,23 @@ contract RMM is IStrategy {
             tokenY.transfer(msg.sender, amountOut);
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaY = amountIn - fees;
-            uint256 deltaL = computeLGivenY(deltaY, price, strikePrice, sigma);
+            uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma);
+            emit deltaLEvent(deltaL);
             uint256 deltaX = computeXGivenL(deltaL, price, strikePrice, sigma);
+            emit deltaXEvent(deltaX);
+
+            int256 output = computeOutputXGivenY(
+                            reserveX,
+                            amountIn,
+                            reserveY,
+                            deltaX,
+                            totalLiquidity,
+                            deltaL,
+                            strikePrice,
+                            sigma
+                        );
+            emit outputEvent(-output);
+            
 
             amountOut = uint256(
                 ~(
@@ -339,10 +328,12 @@ contract RMM is IStrategy {
                     ) - 1
                 )
             );
+            emit amountOutEvent(amountOut);
 
             totalLiquidity += deltaL;
             reserveY += amountIn;
             reserveX -= amountOut;
+            emit reserveXEvent(reserveX);
 
             tokenX.transferFrom(msg.sender, address(this), amountIn);
             tokenY.transfer(msg.sender, amountOut);
@@ -396,51 +387,5 @@ contract RMM is IStrategy {
 
     function getStrategyData() external view returns (bytes memory data) { 
         return abi.encode(sigma, strikePrice, tau);
-    }
-
-    function logData() external { 
-        emit LogReserves(reserveX, reserveY, block.timestamp);
-        emit LogParameters(sigma, strikePrice, tau, block.timestamp);
-    }
-
-    event logKL(uint256 K, uint256 L, uint256 KL);
-    event logCDF(int256 negativeSigma, int256 ppf, int256 cdf);
-    event logFinal(int256 intMulWadDown, int256 intY, int256 intDeltaY, int256 intAmountOut);
-    function computeOutputYGivenX(
-        uint256 x,
-        uint256 deltaX,
-        uint256 y,
-        uint256 deltaY,
-        uint256 L,
-        uint256 deltaL,
-        uint256 K,
-        uint256 sigmaParam
-    ) public returns (int256) {
-        uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
-        emit logKL(K, L, KL);
-
-        int256 negativeSigma = -int256(sigmaParam);
-        int256 ppf = Gaussian.ppf(
-            int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
-        );
-        int256 cdf = Gaussian.cdf(negativeSigma - ppf);
-        emit logCDF(-negativeSigma, -ppf, cdf);
-
-        // int256 cdf = Gaussian.cdf(
-        //     negativeSigma
-        //         - Gaussian.ppf(
-        //             int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
-        //         )
-        // );
-        int256 intMulWadDown = int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf)));
-        int256 intY = int256(y);
-        int256 intDeltaY = int256(deltaY);
-        int256 intAmountOut = intMulWadDown - intY - intDeltaY;
-        emit logFinal(intMulWadDown, intY, intDeltaY, -intAmountOut);
-
-
-        // return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
-        //     - int256(deltaY);
-        return intAmountOut;
     }
 }
