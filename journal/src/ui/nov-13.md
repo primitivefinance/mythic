@@ -6,7 +6,7 @@
 
 ## What's weak
 - Data pipes. The app is piped data from stack traces in a... suboptimal format. The AppEventLog
-- Separation of compute, rendering, and business logic. For example, view components are handling logic and parsing data then rendering, which happens repeatedly and slows down the entire application. View components are basically forced to be pure to have high performance
+- Separation of compute, rendering, and business logic. For example, view components are handling logic and parsing data then rendering, which happens repeatedly and slows down the entire application. View components should be forced to be pure to have high performance, a change we need to make.
 - Application updates are coupled with simulation updates, which could drag/entangle the performance of simulations with  the application runtime, also not desired.
 - Still missing some primitive components for styling, but not too much of a priority
 - Testing is weak
