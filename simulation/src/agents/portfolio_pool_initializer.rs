@@ -11,6 +11,7 @@ use crate::{
     settings::{parameters::Single, SimulationConfig},
 };
 
+#[derive(Debug)]
 pub struct PortfolioPoolInitializer {
     pub client: Arc<RevmMiddleware>,
     pub label: String,
@@ -52,6 +53,10 @@ impl PortfolioPoolInitializer {
 
 #[async_trait::async_trait]
 impl super::Agent for PortfolioPoolInitializer {
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
+
     async fn startup(&mut self) -> Result<()> {
         self.initialize_pool(self.client.address(), self.client.address())
             .await?;
