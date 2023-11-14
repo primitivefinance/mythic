@@ -22,8 +22,9 @@ pub mod tests;
 pub mod token_admin;
 pub mod weight_changer;
 
-use linked_hash_map::LinkedHashMap;
 use std::marker::{Send, Sync};
+
+use linked_hash_map::LinkedHashMap;
 
 #[derive(Debug)]
 pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);

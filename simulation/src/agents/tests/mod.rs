@@ -1,8 +1,7 @@
 use arbiter_core::environment::builder::BlockSettings;
 
-use crate::simulations::{dynamic_weights, Simulation};
-
 use super::*;
+use crate::simulations::{dynamic_weights, Simulation};
 mod swapper_integration;
 
 async fn startup_static() -> Simulation {

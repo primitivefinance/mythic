@@ -1,12 +1,11 @@
 // use crate::visualize::statistical::plot_statistical;
 use arbiter_core::bindings::liquid_exchange;
-use simulation::WAD;
 
 use super::*;
 use crate::{
     reader::SimulationData,
     visualize::{
-        plots::{line::LinePlot, statistical::StatisticalPlot, PlotSettings},
+        plots::{statistical::StatisticalPlot, PlotSettings},
         Figure,
     },
 };
