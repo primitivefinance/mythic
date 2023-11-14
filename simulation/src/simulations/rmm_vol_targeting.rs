@@ -76,8 +76,6 @@ pub async fn setup(
         .add(token_admin.arbx.events(), "arbx")
         .add(token_admin.arby.events(), "arby")
         .add(arbitrageur.atomic_arbitrage.events(), "atomic_arbitrage")
-        .metadata(config)
-        .map_err(|e| SimulationError::GenericError(e.to_string()))?
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

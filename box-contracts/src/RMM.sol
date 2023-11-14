@@ -295,22 +295,7 @@ contract RMM is IStrategy {
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
             uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma);
-            emit deltaLEvent(deltaL);
             uint256 deltaX = computeXGivenL(deltaL, price, strikePrice, sigma);
-            emit deltaXEvent(deltaX);
-
-            int256 output = computeOutputXGivenY(
-                            reserveX,
-                            amountIn,
-                            reserveY,
-                            deltaX,
-                            totalLiquidity,
-                            deltaL,
-                            strikePrice,
-                            sigma
-                        );
-            emit outputEvent(-output);
-            
 
             amountOut = uint256(
                 ~(
@@ -326,15 +311,13 @@ contract RMM is IStrategy {
                     ) - 1
                 )
             );
-            emit amountOutEvent(amountOut);
 
             totalLiquidity += deltaL;
             reserveY += amountIn;
             reserveX -= amountOut;
-            emit reserveXEvent(reserveX);
 
-            tokenX.transferFrom(msg.sender, address(this), amountIn);
-            tokenY.transfer(msg.sender, amountOut);
+            tokenY.transferFrom(msg.sender, address(this), amountIn);
+            tokenX.transfer(msg.sender, amountOut);
         }
 
         emit Swap(
