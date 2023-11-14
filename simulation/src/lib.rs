@@ -34,6 +34,7 @@ mod agents;
 pub mod bindings;
 #[allow(unused)]
 mod math;
+pub mod portfolio_bindings;
 #[allow(unused)]
 pub mod settings;
 #[allow(unused)]
@@ -41,7 +42,6 @@ pub mod simulations;
 pub mod strategy;
 #[cfg(test)]
 pub(crate) mod tests;
-pub mod portfolio_bindings;
 
 /// The number 10^18.
 pub const WAD: ethers::types::U256 = ethers::types::U256([10_u64.pow(18), 0, 0, 0]);

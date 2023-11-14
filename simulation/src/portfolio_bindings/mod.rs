@@ -6,4 +6,6 @@
 pub mod i_strategy;
 pub mod math;
 pub mod portfolio;
+pub mod portfolio_registry;
+pub mod position_renderer;
 pub mod shared_types;
