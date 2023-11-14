@@ -6,6 +6,7 @@ use tracing::Span;
 use super::{
     state::{Screen, Terminal},
     tracer::AppEventLog,
+    view::Page,
     *,
 };
 
@@ -44,6 +45,7 @@ pub struct App {
     arbiter: Environment,
     local: Local<Ws>,
     screen: Screen,
+    receiver: Arc<Mutex<Receiver<AppEventLog>>>,
 }
 
 impl App {
@@ -58,6 +60,7 @@ impl App {
                 arbiter,
                 local,
                 screen,
+                receiver,
             },
             Command::none(),
         )
@@ -65,6 +68,7 @@ impl App {
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
         let msg = app_span().in_scope(|| match message {
+            Message::View(view::Message::Page(navigate_to)) => self.switch_page(&navigate_to),
             _ => self.screen.update(message),
         });
 
@@ -77,5 +81,14 @@ impl App {
 
     pub fn subscription(&self) -> Subscription<Message> {
         self.screen.subscription()
+    }
+
+    fn switch_page(&mut self, navigate_to: &Page) -> Command<Message> {
+        self.screen = match navigate_to {
+            view::Page::Execute => Screen::new(Box::new(execution::Execution::new())),
+            _ => Screen::new(Box::new(Terminal::new(self.receiver.clone()))),
+        };
+
+        self.screen.load()
     }
 }

@@ -31,6 +31,10 @@ where
     fn subscription(&self) -> Subscription<Message> {
         Subscription::none()
     }
+
+    fn load(&self) -> Command<Message> {
+        Command::none()
+    }
 }
 
 /// Wraps anything that implements the State trait into an easier to use struct.
@@ -51,6 +55,10 @@ impl Screen {
 
     pub fn subscription(&self) -> Subscription<Message> {
         self.0.subscription()
+    }
+
+    pub fn load(&self) -> Command<Message> {
+        self.0.load()
     }
 }
 
@@ -494,12 +502,15 @@ impl State for Terminal {
             data = VecDeque::new();
         }
 
-        view::app_layout(view::terminal_view_multiple_firehose(
-            data,
-            self.realtime,
-            state_data.clone(),
-            self.hide_firehoses,
-        ))
+        view::app_layout(
+            &view::Page::Terminal,
+            view::terminal_view_multiple_firehose(
+                data,
+                self.realtime,
+                state_data.clone(),
+                self.hide_firehoses,
+            ),
+        )
         .into()
     }
 
