@@ -4,6 +4,7 @@ use arbiter_core::bindings::weth::WETH;
 use super::*;
 use crate::portfolio_bindings::portfolio::Portfolio;
 
+#[derive(Debug)]
 pub struct PortfolioDeployer {
     pub client: Arc<RevmMiddleware>,
     pub portfolio: Portfolio<RevmMiddleware>,
@@ -37,6 +38,10 @@ impl PortfolioDeployer {
 
 #[async_trait::async_trait]
 impl Agent for PortfolioDeployer {
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
+
     async fn startup(&mut self) -> Result<()> {
         Ok(())
     }

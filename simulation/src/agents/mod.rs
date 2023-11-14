@@ -19,6 +19,7 @@ pub mod portfolio_deployer;
 pub mod portfolio_pool_initializer;
 pub mod price_changer;
 pub mod swapper;
+#[cfg(test)]
 pub mod tests;
 pub mod token_admin;
 pub mod weight_changer;
