@@ -1,4 +1,4 @@
-# Portfolio in a box
+# Excalibur
 
 Construct, implement, and model a portfolio strategy.
 
