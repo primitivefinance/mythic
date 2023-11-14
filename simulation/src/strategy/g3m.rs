@@ -36,6 +36,9 @@ impl Strategy for IStrategy<RevmMiddleware> {
     async fn get_swap_fee(&self) -> Result<U256> {
         Ok(self.get_swap_fee().call().await?)
     }
+    async fn get_strategy_logs(&self) {
+        self.log_data().send().await.unwrap().await.unwrap();
+    }
 }
 
 #[async_trait::async_trait]

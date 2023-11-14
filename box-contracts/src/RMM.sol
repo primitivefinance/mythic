@@ -6,6 +6,8 @@ import "./IStrategy.sol";
 import "./lib/RMMMath.sol";
 
 contract RMM is IStrategy {
+    event LogParameters(uint256 sigma, uint256 strikePrice, uint256 tau, uint256 blockTimestamp);
+
     ERC20 public tokenX;
     ERC20 public tokenY;
 
@@ -316,4 +318,9 @@ contract RMM is IStrategy {
     }
 
     function getStrategyData() external view returns (bytes memory data) { }
+
+    function logData() external { 
+        emit LogReserves(reserveX, reserveY, block.timestamp);
+        emit LogParameters(sigma, strikePrice, tau, block.timestamp);
+    }
 }

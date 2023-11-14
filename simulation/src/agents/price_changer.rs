@@ -14,6 +14,8 @@ use super::*;
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.
 pub struct PriceChanger {
+    /// The client for the `PriceChanger`
+    pub client: Arc<RevmMiddleware>,
     /// The path the price process takes.
     pub trajectory: Trajectories,
 
@@ -22,6 +24,30 @@ pub struct PriceChanger {
 
     /// The index of the current price in the trajectory.
     pub index: usize,
+}
+
+impl Clone for PriceChanger {
+    fn clone(&self) -> Self {
+        let trajectory = Trajectories {
+            times: self.trajectory.times.clone(),
+            paths: self.trajectory.paths.clone(),
+        };
+        Self {
+            client: self.client.clone(),
+            trajectory,
+            liquid_exchange: self.liquid_exchange.clone(),
+            index: self.index,
+        }
+    }
+}
+
+impl std::fmt::Debug for PriceChanger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PriceChanger")
+            .field("liquid_exchange", &self.liquid_exchange)
+            .field("index", &self.index)
+            .finish()
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -58,7 +84,7 @@ impl PriceChanger {
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
             let liquid_exchange = LiquidExchange::deploy(
-                client,
+                client.clone(),
                 (
                     token_admin.arbx.address(),
                     token_admin.arby.address(),
@@ -106,6 +132,7 @@ impl PriceChanger {
             };
 
             Ok(Self {
+                client,
                 trajectory,
                 liquid_exchange,
                 index: 1, /* start after the initial price since it is already set on contract
@@ -138,6 +165,9 @@ impl Agent for PriceChanger {
         self.update_price().await?;
         debug!("Price updated on lex");
         Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }
 

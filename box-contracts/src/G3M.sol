@@ -10,6 +10,7 @@ import "./IStrategy.sol";
  * @notice Geometric Mean Market Maker.
  */
 contract G3M is IG3M, IStrategy {
+    event LogPrices(uint256 spotPrice, uint256 blockTimestamp);
     //! ======== PROTOTYPE FUNCTIONS ======== !//
     function instantiate(uint256 initial_x, uint256 initial_price) public {
         // y = x * (1 - w_x) / (price * w_y)
@@ -411,8 +412,6 @@ contract G3M is IG3M, IStrategy {
         uint256 new_price =
             computeSpotPrice(reserveX, currentWeightX, reserveY, currentWeightY);
         emit Swap(msg.sender, swapDirection, amountIn, amountOut, new_price);
-        emit LogSyncingWeight(weightX(), weightY(), block.timestamp);
-        emit LogReserves(reserveX, reserveY, block.timestamp);
 
         return exactIn ? amountOut : amountIn;
     }
@@ -470,5 +469,11 @@ contract G3M is IG3M, IStrategy {
 
     function liquidityWithoutPrecision() public view returns (uint256) {
         return convert(totalLiquidity);
+    }
+
+    function logData() external {
+        emit LogPrices(getSpotPrice(), block.timestamp);
+        emit LogReserves(UD60x18.unwrap(reserveX), UD60x18.unwrap(reserveY), block.timestamp);
+        emit LogSyncingWeight(weightX(), weightY(), block.timestamp);
     }
 }

@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DollarCostAveragingStategist {
     pub client: Arc<RevmMiddleware>,
     pub g3m: G3M<RevmMiddleware>,
@@ -43,5 +43,8 @@ impl Agent for DollarCostAveragingStategist {
             .await?;
         debug!("Finished startup for `DollarCostAveragingStategist`");
         Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

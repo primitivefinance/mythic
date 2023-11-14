@@ -17,33 +17,40 @@ pub mod block_admin;
 pub mod liquidity_provider;
 pub mod price_changer;
 pub mod swapper;
+#[cfg(test)]
+pub mod tests;
 pub mod token_admin;
 pub mod weight_changer;
 
 use std::marker::{Send, Sync};
 
-pub struct Agents(pub Vec<Box<dyn Agent>>);
+use linked_hash_map::LinkedHashMap;
+
+#[derive(Debug)]
+pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);
 
 impl Agents {
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Box<dyn Agent>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&String, &mut Box<dyn Agent>)> {
         self.0.iter_mut()
     }
 
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self(vec![])
+        Self(LinkedHashMap::new())
     }
 
-    pub fn add(mut self, agent: impl Agent + 'static) -> Self {
-        self.0.push(Box::new(agent));
-        self
+    pub fn add(&mut self, agent: impl Agent + 'static) {
+        self.0.insert(
+            agent.client().label.as_ref().unwrap().clone(),
+            Box::new(agent),
+        );
     }
 }
 
 /// Universal agent methods for interacting with the simulation environment or
-/// loop.
+/// loop.3
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send {
+pub trait Agent: Sync + Send + std::fmt::Debug {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())
@@ -59,17 +66,10 @@ pub trait Agent: Sync + Send {
     async fn priority_step(&mut self) -> Result<()> {
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Agent for Agents {
-    async fn step(&mut self) -> Result<()> {
-        Ok(())
-    }
-
-    async fn priority_step(&mut self) -> Result<()> {
-        Ok(())
-    }
+    /// In order to be able to track agents by their label, each agent must
+    /// implement a label method.
+    fn client(&self) -> Arc<RevmMiddleware>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

@@ -4,7 +4,7 @@ use arbiter_core::bindings::arbiter_token::ArbiterToken;
 
 use super::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TokenAdmin {
     pub client: Arc<RevmMiddleware>,
     pub arbx: ArbiterToken<RevmMiddleware>,
@@ -71,5 +71,8 @@ impl TokenAdmin {
 impl Agent for TokenAdmin {
     async fn startup(&mut self) -> Result<()> {
         Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

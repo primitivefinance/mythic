@@ -1,7 +1,7 @@
 use super::*;
 use crate::{agents::Agent, strategy::ArbitrageStrategy};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Arbitrageur<S: ArbitrageStrategy> {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
@@ -187,6 +187,9 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
         }
         debug!("Finished `step()` for `Arbitrageur`");
         Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }
 

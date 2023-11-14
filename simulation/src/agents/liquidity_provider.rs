@@ -1,7 +1,7 @@
 use super::{strategy::Strategy, token_admin::TokenAdmin, *};
 use crate::strategy::LiquidityStrategy;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LiquidityProvider<S: LiquidityStrategy> {
     pub client: Arc<RevmMiddleware>,
     pub strategy: S,
@@ -88,6 +88,13 @@ impl<S: LiquidityStrategy> Agent for LiquidityProvider<S> {
             "Exited `LiquidityProvider` startup, instantiated pool at price {:?} wei",
             self.strategy.get_spot_price().await?
         );
+        Ok(())
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
+    async fn step(&mut self) -> Result<()> {
+        self.strategy.get_strategy_logs().await;
         Ok(())
     }
 }

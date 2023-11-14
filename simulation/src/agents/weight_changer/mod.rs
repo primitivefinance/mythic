@@ -72,6 +72,7 @@ impl From<WeightChangerSpecialty<Multiple>> for Vec<WeightChangerSpecialty<Singl
     }
 }
 
+#[derive(Debug)]
 pub struct WeightChangerType(pub Box<dyn WeightChanger>);
 
 impl WeightChangerType {
@@ -152,6 +153,9 @@ impl Agent for WeightChangerType {
 
     async fn startup(&mut self) -> Result<()> {
         self.0.startup().await
+    }
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.0.client()
     }
 }
 

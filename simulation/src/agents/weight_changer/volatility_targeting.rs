@@ -3,7 +3,7 @@ use itertools::iproduct;
 use super::*;
 use crate::math::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
@@ -163,7 +163,7 @@ impl Agent for VolatilityTargetingStrategist {
         Ok(())
     }
 
-    async fn startup(&mut self) -> Result<()> {
-        Ok(())
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

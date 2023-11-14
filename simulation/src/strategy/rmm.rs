@@ -19,4 +19,7 @@ impl Strategy for RMM<RevmMiddleware> {
     async fn get_swap_fee(&self) -> Result<U256> {
         todo!()
     }
+    async fn get_strategy_logs(&self) {
+        self.log_data().send().await.unwrap().await.unwrap();
+    }
 }

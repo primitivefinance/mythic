@@ -8,7 +8,7 @@ pub mod rmm;
 /// Strategy trait to provide additional functionality that is specific to
 /// different agents.
 #[async_trait::async_trait]
-pub trait Strategy: Sized + Send + Sync {
+pub trait Strategy: Sized + Send + Sync + std::fmt::Debug {
     /// Strategy stored is fetched from the strategy smart contract as bytes.
     /// This type defines how those bytes are decoded into a strategy data type.
     type StrategyData;
@@ -25,6 +25,8 @@ pub trait Strategy: Sized + Send + Sync {
     /// Responsible for decoding the strategy data into the strategy data type
     /// defined above.
     async fn decode_strategy_data(&self) -> Result<Self::StrategyData>;
+
+    async fn get_strategy_logs(&self);
 }
 
 /// A sub-trait for liquidity providers to implement their specific logic for

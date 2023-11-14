@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MomentumStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
@@ -173,7 +173,7 @@ impl Agent for MomentumStrategist {
         Ok(())
     }
 
-    async fn startup(&mut self) -> Result<()> {
-        Ok(())
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

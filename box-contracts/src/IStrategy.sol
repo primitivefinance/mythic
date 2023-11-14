@@ -16,6 +16,7 @@ interface IStrategy {
     function getReserveY() external view returns (uint256);
     function getInvariant() external view returns (int256);
     function getStrategyData() external view returns (bytes memory);
+    function logData() external;
 
     event AddLiquidity(
         address indexed sender,
@@ -38,4 +39,6 @@ interface IStrategy {
         uint256 output,
         uint256 newPrice
     );
+
+    event LogReserves(uint256 reserveX, uint256 reserveY, uint256 blockTimestamp);
 }
