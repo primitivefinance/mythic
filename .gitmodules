@@ -10,3 +10,6 @@
 [submodule "box-contracts/lib/solstat"]
 	path = box-contracts/lib/solstat
 	url = https://github.com/primitivefinance/solstat
+[submodule "box-contracts/lib/portfolio"]
+	path = box-contracts/lib/portfolio
+	url = https://github.com/primitivefinance/portfolio
