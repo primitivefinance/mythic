@@ -49,6 +49,25 @@ pub async fn setup(
     )
     .await?;
 
+    println!("arbx addr: {}", token_admin.arbx.address().to_string());
+    println!("arby addr: {}", token_admin.arby.address().to_string());
+    println!(
+        "liquid exchange addr: {}",
+        price_changer.liquid_exchange.address().to_string()
+    );
+    println!(
+        "rmm addr: {}",
+        rmm_portfolio_manager.0.rmm().address().to_string()
+    );
+    println!(
+        "arbitrageur addr: {}",
+        arbitrageur.atomic_arbitrage.address().to_string()
+    );
+    println!(
+        "atomic arbitrage addr: {}",
+        arbitrageur.atomic_arbitrage.address().to_string()
+    );
+
     EventLogger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
@@ -56,6 +75,9 @@ pub async fn setup(
         .add(rmm_portfolio_manager.0.rmm().events(), "rmm")
         .add(token_admin.arbx.events(), "arbx")
         .add(token_admin.arby.events(), "arby")
+        .add(arbitrageur.atomic_arbitrage.events(), "atomic_arbitrage")
+        .metadata(config)
+        .map_err(|e| SimulationError::GenericError(e.to_string()))?
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

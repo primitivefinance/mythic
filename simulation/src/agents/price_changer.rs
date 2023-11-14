@@ -3,11 +3,14 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use arbiter_core::math::GeometricBrownianMotion;
 use itertools::iproduct;
 use rand::random;
 
 use super::*;
+
+use RustQuant::stochastics::{
+    GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
+};
 
 /// The `PriceChanger` holds the data and has methods that allow it to update
 /// the price of the `LiquidExchange`.

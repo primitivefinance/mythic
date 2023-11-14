@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::atomic};
 
 use arbiter_core::bindings::arbiter_math::ArbiterMath;
 use ethers::abi::AbiEncode;
@@ -50,7 +50,7 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         token_admin
             .mint(
                 client.address(),
-                parse_ether(100_000).unwrap(),
+                parse_ether(100_000_000).unwrap(),
                 parse_ether(100_000_000).unwrap(),
             )
             .await?;
@@ -63,6 +63,18 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
             .send()
             .await?
             .await?;
+
+        let arby_allowance = arby
+            .allowance(client.address(), atomic_arbitrage.address())
+            .call()
+            .await?;
+        let arbx_allowance = arbx
+            .allowance(client.address(), atomic_arbitrage.address())
+            .call()
+            .await?;
+
+        println!("arbx_allowance: {:?}", arbx_allowance);
+        println!("arby_allowance: {:?}", arby_allowance);
 
         let g3m_math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
         let rmm_math = ArbiterMath::deploy(client.clone(), ())?.send().await?;
@@ -85,8 +97,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
         let price = pool.get_spot_price().await?;
-        trace!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
-        trace!("rmm_price_wad: {:?}", price);
+        debug!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
+        debug!("rmm_price_wad: {:?}", price);
 
         let gamma_wad = WAD - pool.get_swap_fee().await?;
 
@@ -121,13 +133,13 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
         let arby = ArbiterToken::new(arby, self.client.clone());
         let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
         let arby_balance = arby.balance_of(self.client.address()).call().await?;
-        trace!("arbx_balance: {:?}", arbx_balance);
-        trace!("arby_balance: {:?}", arby_balance);
+        debug!("arbx_balance: {:?}", arbx_balance);
+        debug!("arby_balance: {:?}", arby_balance);
 
         match self.detect_arbitrage(&self.rmm_strategy).await? {
             Swap::RaiseExchangePrice(target_price) => {
                 info!(
-                    "Detected the need to increase price to {:?}",
+                    "Detected the need to raise price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = self
@@ -135,10 +147,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                     .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
 
-                info!(
-                    "Increasing price by selling input amount of quote tokens: {:?}",
-                    input,
-                );
+                info!("got input: {:?}", input);
                 if input < 0.into() {
                     return Ok(());
                 }
@@ -146,8 +155,8 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                trace!("arbx_balance after: {:?}", arbx_balance);
-                trace!("arby_balance after: {:?}", arby_balance);
+                debug!("arbx_balance after: {:?}", arbx_balance);
+                debug!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
                         output.await?;
