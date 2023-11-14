@@ -1,12 +1,12 @@
-[submodule "box-contracts/lib/forge-std"]
-	path = box-contracts/lib/forge-std
+[submodule "contracts/lib/forge-std"]
+	path = contracts/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
-[submodule "box-contracts/lib/solmate"]
-	path = box-contracts/lib/solmate
+[submodule "contracts/lib/solmate"]
+	path = contracts/lib/solmate
 	url = https://github.com/transmissions11/solmate
-[submodule "box-contracts/lib/prb-math"]
-	path = box-contracts/lib/prb-math
+[submodule "contracts/lib/prb-math"]
+	path = contracts/lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
-[submodule "box-contracts/lib/solstat"]
-	path = box-contracts/lib/solstat
+[submodule "contracts/lib/solstat"]
+	path = contracts/lib/solstat
 	url = https://github.com/primitivefinance/solstat
