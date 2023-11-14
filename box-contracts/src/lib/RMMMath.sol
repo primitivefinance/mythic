@@ -166,7 +166,6 @@ function computeOutputXGivenY(
     );
 
     return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(x);
-    // return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(x);
 }
 
 function computeInvariant(

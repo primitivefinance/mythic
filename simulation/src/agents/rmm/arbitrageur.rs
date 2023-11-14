@@ -165,7 +165,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }

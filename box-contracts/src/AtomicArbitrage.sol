@@ -23,6 +23,12 @@ contract AtomicArbitrage {
     address public asset;
     address public quote;
 
+    event TestEvent0(uint256 t1);
+    event TestEvent1(uint256 t1);
+    event TestEvent2(uint256 t1);
+    event TestEvent3(uint256 t1);
+    event TestEvent4(uint256 t1);
+
     constructor(address exchangeAddress, address liquidExchangeAddress, address assetAddress, address quoteAddress) {
         exchange = exchangeAddress;
         liquidExchange = liquidExchangeAddress;
@@ -56,30 +62,19 @@ contract AtomicArbitrage {
         }
         // require(quote_balance > input, "Not profitable");
     }
-    event TestEvent0(uint256 t1);
-    event TestEvent1(uint256 t1);
-    event TestEvent2(uint256 t1);
-    event TestEvent3(uint256 t1);
-    event TestEvent4(uint256 t1);
     function raise_exchange_price(
         uint256 input
     ) external {
         // pull in tokens from arbitrageur
-        emit TestEvent0(input);
         TokenLike(quote).transferFrom(msg.sender, address(this), input);
-        emit TestEvent0(input);
 
         // exchange quote for asset on Exchange
         TokenLike(quote).approve(exchange, input);
-        emit TestEvent1(input);
         StrategyLike(exchange).swapAmountIn(false, input);
-        emit TestEvent2(input);
 
         // do swap on LiquidExchange
         uint256 asset_balance = TokenLike(asset).balanceOf(address(this));
-        emit TestEvent3(asset_balance);
         TokenLike(asset).approve(liquidExchange, asset_balance);
-        emit TestEvent4(asset_balance);
         ExchangeLike(liquidExchange).swap(asset, asset_balance);
 
         // send quote tokens to arbitrageur if we have tokens and the trade is profitable
