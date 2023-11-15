@@ -19,6 +19,10 @@ pub struct G3MStrategyData {
 impl Strategy for G3mStrategy {
     type StrategyData = G3MStrategyData;
 
+    fn get_address(&self) -> Address {
+        self.0.address()
+    }
+
     async fn decode_strategy_data(&self) -> Result<Self::StrategyData> {
         let data = self.0.get_strategy_data().call().await?;
         // decode the bytes data into the weight x and weight y U256 types:
@@ -120,5 +124,13 @@ impl ArbitrageStrategy for G3mStrategy {
         trace!("delta_y: {}", delta_y);
 
         Ok(delta_y.into_raw())
+    }
+
+    #[tracing::instrument(ret, skip(self))]
+    async fn get_reserves_and_liquidity(&self) -> Result<(U256, U256, U256)> {
+        let reserve_x = self.0.get_reserve_x().call().await?;
+        let reserve_y = self.0.get_reserve_y().call().await?;
+        let liquidity = self.0.get_liquidity().call().await?;
+        Ok((reserve_x, reserve_y, liquidity))
     }
 }

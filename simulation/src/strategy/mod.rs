@@ -11,7 +11,7 @@ pub mod rmm;
 pub trait Strategy: Sized + Send + Sync {
     /// Strategy stored is fetched from the strategy smart contract as bytes.
     /// This type defines how those bytes are decoded into a strategy data type.
-    type StrategyData;
+    type StrategyData: Send;
 
     /// Creates a new strategy instance.
     fn new(strategy_address: Address, client: Arc<RevmMiddleware>) -> Self;
@@ -25,6 +25,8 @@ pub trait Strategy: Sized + Send + Sync {
     /// Responsible for decoding the strategy data into the strategy data type
     /// defined above.
     async fn decode_strategy_data(&self) -> Result<Self::StrategyData>;
+
+    fn get_address(&self) -> Address;
 }
 
 /// A sub-trait for liquidity providers to implement their specific logic for
@@ -59,4 +61,6 @@ pub trait ArbitrageStrategy: Strategy {
         g3m_math: &SD59x18Math<RevmMiddleware>,
         rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256>;
+
+    async fn get_reserves_and_liquidity(&self) -> Result<(U256, U256, U256)>;
 }

@@ -47,7 +47,7 @@ plotters = "0.3.5"
 
 # math
 RustQuant = { version = "0.0.37", features = ["seedable"] }
-
+statrs = "0.16.0"
 
 [dependencies]
 simulation.workspace = true
@@ -59,6 +59,8 @@ clap = { version = "4.4.6", features = ["derive"] }
 tracing-subscriber.workspace = true
 dotenv.workspace = true
 RustQuant.workspace = true
+statrs.workspace = true
+
 
 [dev-dependencies]
 # For book
