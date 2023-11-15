@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use ethers::utils::format_ether;
-use iced::widget::{checkbox, Column, Container, Row};
+use iced::widget::{checkbox, text_input, Column, Container, Row};
 use simulation::agents::SubscribedData;
 
 use self::{
@@ -21,6 +21,7 @@ use super::{
 pub mod agent;
 pub mod control;
 pub mod event;
+pub mod execute;
 pub mod feed;
 pub mod monitor;
 
@@ -48,6 +49,13 @@ pub enum Message {
     Settings(Settings),
     Data(Data),
     Page(Page),
+    Execution(Execution),
+}
+
+#[derive(Debug, Clone)]
+pub enum Execution {
+    Next,
+    Previous,
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
@@ -99,8 +107,85 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
     .padding(16)
 }
 
-pub fn execution_view<'a>() -> Element<'a, Message> {
-    Container::new(Column::new().push(data_item("execution".to_string()).size(36))).into()
+pub fn input_row<'a>() -> Element<'a, Message> {
+    let input = text_input("0x", "value").padding(8).width(Length::Fill);
+
+    let button = button(text("send")).padding(8);
+
+    Row::new().push(input).push(button).into()
+}
+
+pub fn execution_view<'a>(step: execution::TransactionSteps) -> Element<'a, Message> {
+    let mut content = Column::new().spacing(16).padding(32).width(Length::Fill);
+
+    let title = data_item("execution".to_string()).size(36);
+    let input = input_row();
+    let input2 = input_row();
+
+    let action_column = Column::new()
+        .width(Length::FillPortion(2))
+        .spacing(32)
+        .push(label_item("action".to_string()).size(28))
+        .push(input)
+        .push(label_item("action".to_string()).size(28))
+        .push(input2)
+        .push(
+            Row::new()
+                .push(label_item("transaction cost".to_string()))
+                .push(text("$20.00")),
+        );
+
+    let summary = Column::new()
+        .spacing(4)
+        .push(label_item("summary".to_string()).size(16))
+        .push(text("Transaction will succeed"))
+        .push("Transaction has warnings");
+
+    let review_button = Column::new()
+        .height(Length::Fill)
+        .width(Length::Shrink)
+        .push(
+            Row::new()
+                .height(Length::Fill)
+                .push(
+                    Column::new().align_items(alignment::Alignment::End).push(
+                        button(text("review"))
+                            .padding(8)
+                            .on_press(Message::Execution(Execution::Next)),
+                    ),
+                )
+                .align_items(alignment::Alignment::End),
+        );
+
+    let info_column = Column::new()
+        .height(Length::Fill)
+        .width(Length::FillPortion(2))
+        .spacing(16)
+        .push(summary)
+        .push(review_button);
+
+    let content_row = Row::new()
+        .width(Length::Fill)
+        .spacing(8)
+        .align_items(alignment::Alignment::Center)
+        .push(action_column)
+        .push(info_column);
+
+    content = content.push(title).push(content_row);
+    let center_container = Container::new(content)
+        .width(Length::Fixed(800.0))
+        .height(Length::Fixed(800.0))
+        .style(MenuContainerTheme::theme());
+
+    Container::new(center_container)
+        .center_x()
+        .center_y()
+        .align_x(alignment::Horizontal::Center)
+        .align_y(alignment::Vertical::Center)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .padding(36)
+        .into()
 }
 
 pub fn terminal_view_multiple_firehose<'a>(
