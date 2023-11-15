@@ -197,17 +197,4 @@ $$
 V(L,S) = \frac{LS}{\left(\frac{w_y}{w_x}S\right)^{w_y}} + \frac{L}{\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}\\
 \boxed{V(L,S)=LS^{w_x}\left(\left( \frac{w_x}{w_y}\right)^{w_y}+\left( \frac{w_y}{w_x}\right)^{w_x}\right)}
 $$
-
----
-# Works in Progress
-## WIP: Liquidity
-The way we can think about liquidity is how many tokens would be in the pool if their prices were equal, i.e., $p=1$. 
-If this is the case, then:
-$$
-x=\frac{w_x}{w_y}y
-$$
-Using the trading function:
-$$
-x^{w_x}y^{w_y} = \left(\frac{w_x}{w_y}y\right)^{w_x} y^{w_y}= \left(\frac{w_x}{w_y}\right)^{w_x} y = k
-$$
-
+Note that $V$ is linear in $L$ and so we can use this to tokenize.

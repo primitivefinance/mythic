@@ -174,3 +174,21 @@ $$
 \Delta x = (L + \delta_L)\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x \\
 \implies \boxed{ \Delta_x = \frac{L\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)-x}{1+(\gamma-1)\frac{1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}}
 $$
+
+## Value Function on $L(S)$
+Relate to value on $V(L,S)$ and $V(x,y)$. 
+Then we can use this to tokenize. We have $L_X(x, S)$ and $L_Y(y, S)$.
+We know that:
+$$
+V(x(S),y(S)) = x S + y
+$$
+Now we also have the following
+$$
+x = LS\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)\\
+y = K\cdot L\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+$$
+Therefore:
+$$
+\boxed{V(L,S) = L\left( S\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) + K\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
+$$
+Note that $V$ is linear in $L$ and so we can use this to tokenize.
