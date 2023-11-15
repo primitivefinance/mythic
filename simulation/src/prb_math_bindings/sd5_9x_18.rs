@@ -7,7 +7,7 @@ pub use sd5_9x_18::*;
     clippy::upper_case_acronyms,
     clippy::type_complexity,
     dead_code,
-    non_camel_case_types,
+    non_camel_case_types
 )]
 pub mod sd5_9x_18 {
     #[allow(deprecated)]
@@ -21,10 +21,9 @@ pub mod sd5_9x_18 {
             fallback: false,
         }
     }
-    ///The parsed JSON ABI of the contract.
-    pub static SD59X18_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
-        __abi,
-    );
+    /// The parsed JSON ABI of the contract.
+    pub static SD59X18_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
+        ::ethers::contract::Lazy::new(__abi);
     pub struct SD59x18<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for SD59x18<M> {
         fn clone(&self) -> Self {
@@ -44,27 +43,27 @@ pub mod sd5_9x_18 {
     }
     impl<M> ::core::fmt::Debug for SD59x18<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(SD59x18)).field(&self.address()).finish()
+            f.debug_tuple(::core::stringify!(SD59x18))
+                .field(&self.address())
+                .finish()
         }
     }
     impl<M: ::ethers::providers::Middleware> SD59x18<M> {
-        /// Creates a new contract instance with the specified `ethers` client at
-        /// `address`. The contract derefs to a `ethers::Contract` object.
+        /// Creates a new contract instance with the specified `ethers` client
+        /// at `address`. The contract derefs to a `ethers::Contract`
+        /// object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            Self(
-                ::ethers::contract::Contract::new(
-                    address.into(),
-                    SD59X18_ABI.clone(),
-                    client,
-                ),
-            )
+            Self(::ethers::contract::Contract::new(
+                address.into(),
+                SD59X18_ABI.clone(),
+                client,
+            ))
         }
     }
-    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for SD59x18<M> {
+    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for SD59x18<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
