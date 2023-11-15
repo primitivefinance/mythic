@@ -37,7 +37,7 @@ $$
 
 We require that the trading function remain invariant like so:
 $$
-L = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
+L(x,y) = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
 $$
 while also taking fees as a liquidity deposit. 
 #### Trade in $\Delta_X$ for $\Delta_Y$
@@ -50,6 +50,9 @@ y= \frac{w_y}{w_x}p x
 $$
 $$
 \boxed{L_X(x,S) = x\left(\frac{w_y}{w_x}S\right)^{w_y}}
+$$
+$$
+L_X(x+a\delta_x) = L_X(x) + aL_X(\delta_X)
 $$
 which also tells us:
 $$
@@ -70,7 +73,7 @@ L+\delta_L = (x+\gamma \Delta_X)^{w_x}(y+\Delta_y)^{w_y}
 $$
 Then:
 $$
-\boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_{L_Y}}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}-y}
+\boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_{L_Y}}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y}
 $$
 
 #### Trade in $\Delta_Y$ for $\Delta_X$
@@ -144,7 +147,7 @@ $$
 Now we want to do this all for a given $p'$ and only with $X$.
 Note that
 $$
-\Delta_Y(\Delta_X) = \left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}-y
+\Delta_Y(\Delta_X) = \left(\frac{L+\delta_L}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y
 $$
 Then using this:
 $$
@@ -152,11 +155,18 @@ x = \frac{L}{(\frac{w_y}{w_x}p)^{w_y}}
 $$
 we can do
 $$
-p' = \frac{w_x}{w_y}\frac{\left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}}{x+\Delta_X}\\
-(x+\Delta_X)^{1+w_x/w_y}=\frac{w_x}{p'w_y}(L+(1-\gamma)\Delta_X\left(\frac{w_y}{w_x}p\right)^{w_y})^{w_x}\\
-= \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}(x+\Delta_X)^{w_x}\\
+p' = \frac{w_x}{w_y}\frac{\left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}}{x+\gamma\Delta_X}\\
+(x+\gamma\Delta_X)^{1+w_x/w_y}=\frac{w_x}{p'w_y}(L+(1-\gamma)\Delta_X\left(\frac{w_y}{w_x}p\right)^{w_y})^{w_x}\\
+= \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}(x+(1-\gamma)\Delta_X)^{w_x}\\
 \implies (x+\Delta_x)^{1+w_x/w_y-w_x} = \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}\\
-\boxed{\Delta_x = \left(L\frac{w_x}{w_y}\frac{1}{p'x}\right)^{\frac{1}{1+w_x/w_y-w_x}}-x}
+\boxed{\Delta_x = \frac{1}{\gamma}\left(\left(L\frac{w_x}{w_y}\frac{1}{p'x}\right)^{\frac{1}{1+w_x/w_y-w_x}}-x\right)}
+$$
+
+TRY AGAIN:
+$$
+\Delta_x = \frac{1}{\gamma}\left(L \left( \frac{w_x}{pw_y}\right)^{w_y}+(1-\gamma) \Delta_x  \right)\\
+\Delta_x + \frac{\gamma-1}{\gamma}\Delta_x = \frac{1}{\gamma}L \left( \frac{w_x}{pw_y}\right)^{w_y}\\
+\implies \boxed{\Delta_x = \frac{1}{\gamma}\left(L \left( \frac{w_x}{pw_y}\right)^{w_y}-x\right)}
 $$
 
 #### For Raising Price

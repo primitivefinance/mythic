@@ -8,6 +8,7 @@ $$
 $$
 In the equation above, $x$ and $y$ are reserves, and $L$ is *a* measure of liquidity.
 Given the domain of $\Phi^{-1}$ we can see that $x\in[0,L]$ and $y\in[0,KL]$.
+
 As the pool's liquidity increases, the maximal amount of each reserve increases.
 
 ## Determining $L$
@@ -129,7 +130,7 @@ Using the trading function, we solve for $\Delta_y$:
 $$
 \Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
 
-\boxed{\Delta_y = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y}
+\boxed{\Delta_y(\Delta_x) = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y}
 $$
 
 ##### $\Delta_x$ given $\Delta_y$
@@ -144,7 +145,7 @@ $$
 Using the trading function, we solve for $\Delta_x$:
 $$
 \Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
-\boxed{\Delta_x = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x}
+\boxed{\Delta_x(\Delta_y) = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x}
 $$
 
 ## Arbitrage Math
