@@ -51,14 +51,18 @@ $$
 $$
 L_X(x,p) = x(\frac{w_y}{w_x}p)^{w_y}
 $$
-and note that $k_X(x,p)$ is linear in $x$.
+which also tells us:
+$$
+x = \frac{L}{(\frac{w_y}{w_x}p)^{w_y}}
+$$
+and note that $L_X(x,p)$ is linear in $x$.
 Then we have that:
 $$
-L_X(x+\delta_x) = L_X(x) + \delta_L \\= k_X(x) + \delta_x(\frac{w_y}{w_x}p)^{w_y}
+L_X(x+\delta_x) = L_X(x) + \delta_L \\= L_X(x) + \delta_X(\frac{w_y}{w_x}p)^{w_y}
 $$
 so 
 $$
-\delta_L = \delta_x\left(\frac{w_y}{w_x}p\right)^{w_y}
+\delta_L = \delta_X\left(\frac{w_y}{w_x}p\right)^{w_y}
 $$
 Hence we have for a swap with fees that (note $\Delta$ are what users input and receive):
 $$
@@ -66,7 +70,7 @@ L+\delta_L = (x+\gamma \Delta_X)^{w_x}(y+\Delta_y)^{w_y}
 $$
 Then:
 $$
-\Delta_y = \left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}-y
+\boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}-y}
 $$
 
 #### Trade in $\Delta_Y$ for $\Delta_X$
@@ -77,25 +81,14 @@ $$
 $$
 k_Y(x,t) = y \left( \frac{w_y}{w_x} \right)
 $$
-<!-- 
-Now let's get the $\delta_y$ from $\delta_x$:
+We have
 $$
-\begin{align*}
-k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y} \\
-\implies \qquad (y+\delta_y)^{w_y} = \frac{k}{(x+\delta_x)^{w_x}}\\
-\implies \qquad y+\delta_y = \left(\frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y}\\
-\implies \qquad \boxed{ \delta_y = \left(\frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y} - y }
-\end{align*}
+L_Y(y,p)=y\left(\frac{w_x}{w_y}\frac{1}{p}\right)^{w_x}
 $$
-On the other hand, if we want to get out $\delta_x$ from $\delta_y$:
+Then
 $$
-\begin{align*}
-k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y} \\
-\implies \qquad (x+\delta_x)^{w_x} = \frac{k}{(y+\delta_y)^{w_y}}\\
-\implies \qquad \boxed{ \delta_x = \left(\frac{k}{(y+\delta_y)^{w_y}}\right)^{1/w_x} - x }
-\end{align*}
-$$ -->
-
+\boxed{\Delta_X = \left(\frac{L+\delta_L}{(y+\gamma \Delta_Y)^{w_y}}\right)^{1/w_x}-x}
+$$
 
 
 ### Liquidity Provision
@@ -129,12 +122,12 @@ $$
 
 First, $x$:
 $$
-\implies \boxed{x = \left(\frac{k}{y^{w_y}}\right)^{1/w_x} }
+\implies \boxed{x = \left(\frac{L}{y^{w_y}}\right)^{1/w_x} }
 $$
 
 The work is analogous for $y$:
 $$
-\implies \boxed{y = \left(\frac{k}{x^{w_x}}\right)^{1/w_y}}
+\implies \boxed{y = \left(\frac{L}{x^{w_x}}\right)^{1/w_y}}
 $$
 
 ### Getting the arbitrage calculation
@@ -144,8 +137,30 @@ Suppose that we need the price to move $p\mapsto p'$ with $p'<p$.
 This means we tender $x$ in the swap so $x\mapsto x+\delta_x$. 
 Then we want $p'$ and $x\mapsto x+\delta_x$:
 $$
-p' = \frac{w_x}{w_y}\frac{y+\delta_y}{x+\delta_x}
+p(x+\Delta_X,y+\Delta_Y) = \frac{w_x}{w_y}\frac{y+\Delta_Y}{x+\Delta_X}
 $$
+Now we want to do this all for a given $p'$ and only with $X$.
+Note that
+$$
+\Delta_Y(\Delta_X) = \left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}-y
+$$
+Then using this:
+$$
+x = \frac{L}{(\frac{w_y}{w_x}p)^{w_y}}
+$$
+we can do
+$$
+p' = \frac{w_x}{w_y}\frac{\left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}}{x+\Delta_X}\\
+(x+\Delta_X)^{1+w_x/w_y}=\frac{w_x}{p'w_y}(L+(1-\gamma)\Delta_X\left(\frac{w_y}{w_x}p\right)^{w_y})^{w_x}\\
+= \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}(x+\Delta_X)^{w_x}\\
+\implies (x+\Delta_x)^{1+w_x/w_y-w_x} = \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}\\
+\boxed{\Delta_x = \left(\frac{w_x}{w_y}\frac{1}{p'}\left(\frac{w_y}{w_x}p\right)^{w_y}\right)^{\frac{1}{1+w_x/w_y-w_x}}-x}
+$$
+
+
+
+
+<!-- 
 Now we can replace the $y+\delta_y$ with our equation above to get:
 $$
 p'=\frac{w_x}{w_y}\frac{\left( \frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y}}{x+\delta_x}
@@ -157,7 +172,7 @@ $$
 Which we can simplified to:
 $$
 \implies \boxed{ \delta_x = k\left(\frac{w_x}{w_y}\frac{1}{p'}\right)^{w_y}-x }
-$$
+$$ -->
 
 #### For Raising Price
 Suppose that we need the price to move $p\mapsto p'$ with $p'>p$. 
