@@ -268,15 +268,13 @@ contract RMM is IStrategy {
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
             uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma);
-            uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
 
             amountOut = uint256(
                 ~(
                     computeOutputYGivenX(
                         reserveX,
-                        amountIn,
                         reserveY,
-                        deltaY,
+                        amountIn,
                         totalLiquidity,
                         deltaL,
                         strikePrice,
@@ -295,15 +293,13 @@ contract RMM is IStrategy {
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
             uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma);
-            uint256 deltaX = computeXGivenL(deltaL, price, strikePrice, sigma);
 
             amountOut = uint256(
                 ~(
                     computeOutputXGivenY(
                         reserveX,
-                        amountIn,
                         reserveY,
-                        deltaX,
+                        amountIn,
                         totalLiquidity,
                         deltaL,
                         strikePrice,
