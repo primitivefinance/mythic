@@ -35,6 +35,7 @@ pub mod bindings;
 #[allow(unused)]
 mod math;
 pub mod portfolio_bindings;
+pub mod prb_math_bindings;
 #[allow(unused)]
 pub mod settings;
 #[allow(unused)]
