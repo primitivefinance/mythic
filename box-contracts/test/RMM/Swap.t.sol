@@ -54,8 +54,4 @@ contract RMMSwap is RMMSetUp {
         assertEq(preBalanceX - deltaX, postBalanceX);
         assertEq(preBalanceY + amountY, postBalanceY);
     }
-
-    function test_int() public {
-        console2.logUint(uint256(bytes32("ffffffffffffffffffffffffffffffffffffffffffffffffff8d2693ed22ec91")));
-    }
 }

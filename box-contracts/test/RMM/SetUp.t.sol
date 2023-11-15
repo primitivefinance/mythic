@@ -19,7 +19,7 @@ contract RMMSetUp is Test {
     function setUp() public {
         tokenX = new MockERC20("TokenX", "X", 18);
         tokenY = new MockERC20("TokenY", "Y", 18);
-        rmm = new RMM(tokenX, tokenY, sigma, strikePrice, tau, swapFee);
+        rmm = new RMM(address(tokenX), address(tokenY), sigma, strikePrice, tau, swapFee);
 
         tokenX.mint(address(this), type(uint256).max);
         tokenY.mint(address(this), type(uint256).max);
