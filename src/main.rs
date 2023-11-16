@@ -47,7 +47,6 @@ enum Commands {
         #[clap(index = 1, default_value = "example")]
         app: String,
     },
-    View,
 }
 
 fn main() -> Result<()> {
@@ -100,9 +99,6 @@ fn main() -> Result<()> {
             "analyzer" => interface::analyzer()?,
             _ => println!("Unknown app: {}, or no app provided", app),
         },
-        Some(Commands::View) => {
-            analysis::plot_dca_weights();
-        }
         None => Args::command().print_long_help()?,
     }
     Ok(())

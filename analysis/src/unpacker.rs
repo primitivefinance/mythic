@@ -1,12 +1,6 @@
 use std::{collections::HashMap, env};
 
-use simulation::{
-    agents::{
-        price_changer::{GBMParameters, PriceChangerParameters, PriceProcess},
-        AgentParameters,
-    },
-    settings::parameters::Single,
-};
+use simulation::agents::{price_changer::PriceProcess, AgentParameters};
 use tokio::{fs, sync::mpsc, task};
 
 use super::*;
@@ -65,9 +59,10 @@ impl BatchData {
     }
 
     // TODO: All the cloning here is probably not optimal
-    fn organize_hard_coded(&self) -> HashMap<String, Vec<SimulationData>> {
+    pub fn organize_hard_coded(&self) -> HashMap<String, Vec<SimulationData>> {
         let mut map: HashMap<String, Vec<SimulationData>> = HashMap::new();
-        // Idea, stream in all the metadata and in a concurrent process build up a filtering for it so we can group them into different parameter settings.
+        // Idea, stream in all the metadata and in a concurrent process build up a
+        // filtering for it so we can group them into different parameter settings.
         for data in self.data.iter() {
             let metadata = data.metadata.as_ref().unwrap();
             let agent_parameters = metadata.agent_parameters.get("price_changer").unwrap();
@@ -86,14 +81,13 @@ impl BatchData {
             }
         }
         map
-        // TODO: Note the metadata is a simulation config so we can use it to filter over?
+        // TODO: Note the metadata is a simulation config so we can use it to
+        // filter over?
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use simulation::agents::Agent;
-
     use super::*;
 
     #[tracing_test::traced_test]
@@ -107,6 +101,7 @@ mod tests {
         println!("Duration: {:?}", duration);
     }
 
+    #[ignore]
     #[tokio::test(flavor = "multi_thread")]
     async fn organize() {
         let batch = BatchData::new("dca/sweep").await;

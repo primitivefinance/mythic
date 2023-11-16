@@ -24,7 +24,7 @@ pub fn wad_to_float(wad: U256) -> f64 {
     wad.as_u128() as f64 / 10f64.powi(18)
 }
 
-pub fn plot_dca_weights(data_set: &Vec<SimulationData>, name: &str) {
+pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
     let mut weights_statistical = (vec![], vec![]);
     let mut reserves_statistical = (vec![], vec![]);
     let mut prices_statistical = (vec![], vec![]);
