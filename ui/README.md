@@ -13,6 +13,15 @@ cargo run ui analyzer
 cargo run ui <application name>
 ```
 
+## Testing
+
+```bash
+cargo test --package ui
+
+# for verbose testing
+RUST_TRACING_LEVEL="trace" cargo test --package ui
+```
+
 ## MVP Architecture
 - [./src/](./src/)
     - [lib.rs](./src/lib.rs) - Exports the "apps" inside the ui directory.

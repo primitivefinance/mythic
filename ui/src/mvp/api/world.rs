@@ -353,7 +353,7 @@ impl Default for WorldBuilder {
         let mut rng = rand::thread_rng();
         let seed = rng.gen::<u64>(); // Generate a random seed
 
-        let config_path = Path::new(std::env::current_dir().unwrap().to_str().unwrap())
+        let config_path = Path::new(std::env::current_dir().unwrap().parent().unwrap())
             .join("simulation")
             .join("src")
             .join("tests")
@@ -604,14 +604,14 @@ pub fn world_manager_span(world_manager: &WorldManager) -> tracing::Span {
 #[cfg(test)]
 mod tests {
     use ethers::types::{Address, U256};
-    use simulation::agents::{counter::CounterAgent, token_admin::TokenAdmin};
-    use tracing::Level;
-    use tracing_subscriber::prelude::*;
+    use simulation::agents::counter::CounterAgent;
 
     use super::*;
+    use crate::mvp::api::tests::TEST_SUBSCRIBER;
 
     #[tokio::test]
     async fn test_world_manager() {
+        let _ = *TEST_SUBSCRIBER;
         let world_manager = WorldManager::default().spawn(5).await.unwrap();
         assert_eq!(world_manager.worlds.len(), 5);
     }
@@ -633,11 +633,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_concurrent_worlds() {
-        // start tracer
-        let subscriber = tracing_subscriber::fmt()
-            .with_max_level(Level::TRACE)
-            .finish();
-        tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
+        let _ = *TEST_SUBSCRIBER;
 
         let (tx, worlds, slice) = spawn_worlds(5).await.unwrap();
 
@@ -663,11 +659,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_single_world() {
-        // start tracer
-        let subscriber = tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .finish();
-        tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
+        let _ = *TEST_SUBSCRIBER;
 
         let (tx, worlds, slice) = spawn_worlds(1).await.unwrap();
 
@@ -689,11 +681,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_changing_agents_in_worlds() {
-        // start tracer
-        let subscriber = tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .finish();
-        tracing::subscriber::set_global_default(subscriber).expect("Failed to set global default");
+        let _ = *TEST_SUBSCRIBER;
 
         let (tx, worlds, slice) = spawn_worlds(1).await.unwrap();
 
