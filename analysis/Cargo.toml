@@ -13,3 +13,4 @@ serde_json.workspace = true
 simulation.workspace = true
 plotters.workspace = true
 arbiter-core.workspace = true
+linked-hash-map.workspace = true

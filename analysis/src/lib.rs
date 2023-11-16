@@ -15,6 +15,7 @@ use visualize::{
 pub mod reader;
 #[cfg(test)]
 mod tests;
+pub mod unpacker;
 #[allow(unused)]
 pub mod visualize;
 
