@@ -1,9 +1,11 @@
 pub mod button;
 pub mod containers;
+pub mod input;
 
 use button::*;
 use containers::*;
 use iced::{Color, Element, Renderer};
+use input::*;
 
 // These components should return View messages.
 use super::{view::Message, *};
@@ -144,4 +146,29 @@ pub fn space_between_row<'a, T: Into<Element<'a, Message, Renderer>>>(
         );
     }
     content.into()
+}
+
+/// Creates a row of two 50% width columns with the given elements.
+/// todo: replace proper spacing and padding sizes.
+pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
+    first_column: Vec<T>,
+    second_column: Vec<T>,
+) -> Row<'a, Message> {
+    let first_column = Column::with_children(first_column.into_iter().map(|e| e.into()).collect())
+        .height(Length::Fill)
+        .width(Length::FillPortion(2))
+        .spacing(16);
+
+    let second_column =
+        Column::with_children(second_column.into_iter().map(|e| e.into()).collect())
+            .height(Length::Fill)
+            .width(Length::FillPortion(2))
+            .spacing(16);
+
+    Row::new()
+        .width(Length::Fill)
+        .spacing(8)
+        .align_items(alignment::Alignment::Center)
+        .push(first_column)
+        .push(second_column)
 }

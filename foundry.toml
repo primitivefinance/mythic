@@ -4,6 +4,7 @@ out = "box-contracts/out"
 remappings = [
   "/solmate=box-contracts/lib/solmate/src",
   "@prb/math/=box-contracts/lib/prb-math/src/",
+  "forge-std/=box-contracts/lib/forge-std/src/",
 ]
 solc_version = "0.8.19"
 src = "box-contracts/src"
