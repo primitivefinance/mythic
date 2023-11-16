@@ -1,7 +1,7 @@
 use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use iced::{
-    alignment, font,
-    widget::{button, column, container, text},
+    font,
+    widget::{column, container, text},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
