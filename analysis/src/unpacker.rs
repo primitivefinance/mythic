@@ -4,7 +4,10 @@ use tokio::{fs, sync::mpsc, task};
 
 use super::*;
 
-pub struct BatchData(pub (Vec<SimulationData>, Value));
+pub struct BatchData {
+    pub data: Vec<SimulationData>,
+    pub errors: Value,
+}
 
 impl BatchData {
     pub async fn new(dir: &str) -> Self {
@@ -50,7 +53,18 @@ impl BatchData {
 
         let errors = errors_receiver.recv().await.unwrap();
 
-        Self((data, errors))
+        Self { data, errors }
+    }
+
+    fn organize(self) -> Self {
+        // Idea, stream in all the metadata and in a concurrent process build up a filtering for it so we can group them into different parameter settings.
+        for data in self.data.iter() {
+            let metadata = data.metadata.as_ref().unwrap();
+            print!("metadata: {:?}", data.metadata);
+        }
+
+        // TODO: Note the metadata is a simulation config so we can use it to filter over?
+        self
     }
 }
 
@@ -62,11 +76,18 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn new() {
         let now = std::time::Instant::now();
-        let batch_data = BatchData::new("dca/sweep").await;
-        assert_eq!(batch_data.0 .0.len(), 100);
-        assert!(batch_data.0 .1.is_array());
+        let batch = BatchData::new("dca/sweep").await;
+        assert_eq!(batch.data.len(), 100);
+        assert!(batch.errors.is_array());
         let duration = now.elapsed();
         println!("Duration: {:?}", duration);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn organize() {
+        let batch = BatchData::new("dca/sweep").await;
+        let batch = batch.organize();
+        assert_eq!(batch.data.len(), 100);
     }
 }
 
