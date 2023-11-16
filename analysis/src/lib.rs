@@ -6,6 +6,7 @@ use ethers::types::U256;
 use reader::SimulationData;
 use serde_json::{from_reader, Value};
 pub use simulation::bindings::*;
+use tracing::{debug, info};
 use visualize::{
     plots::{statistical::StatisticalPlot, PlotSettings},
     Figure,

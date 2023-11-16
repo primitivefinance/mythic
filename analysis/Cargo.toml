@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 tracing.workspace = true
+tracing-subscriber.workspace = true
 thiserror.workspace = true
 ethers.workspace = true
 serde.workspace = true
@@ -14,3 +15,7 @@ simulation.workspace = true
 plotters.workspace = true
 arbiter-core.workspace = true
 linked-hash-map.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+tracing-test = "0.2.4"
