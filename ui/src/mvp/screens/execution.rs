@@ -8,8 +8,8 @@ use iced::{
 
 use super::{
     app::Message,
-    state::State,
     view::{self, execute::Addresses},
+    State,
 };
 
 #[derive(Default)]

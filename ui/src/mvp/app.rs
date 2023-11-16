@@ -3,7 +3,12 @@ use std::sync::mpsc::Receiver;
 use arbiter_core::environment::Environment;
 use tracing::Span;
 
-use super::{state::Screen, terminal::Terminal, tracer::AppEventLog, view::Page, *};
+use super::{
+    screens::{terminal::Terminal, Screen},
+    tracer::AppEventLog,
+    view::Page,
+    *,
+};
 
 pub fn app_span() -> Span {
     tracing::info_span!("App")

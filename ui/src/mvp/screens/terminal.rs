@@ -14,9 +14,8 @@ use tracing::{Instrument, Span};
 
 use super::{
     app::Message,
-    state::State,
     tracer::{AppEventLayer, AppEventLog},
-    *,
+    State, *,
 };
 
 const USER_ACTION_FILTER: &str = "user.";

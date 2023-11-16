@@ -8,10 +8,8 @@ use iced::{
 pub mod api;
 mod app;
 mod components;
-mod execution;
 mod loader;
-mod state;
-mod terminal;
+mod screens;
 mod tracer;
 mod view;
 
@@ -21,6 +19,7 @@ use api::{forking::*, local::*, world::*, *};
 use app::App;
 use components::*;
 use loader::Loader;
+use screens::*;
 use styles::*;
 
 pub struct MVP {
