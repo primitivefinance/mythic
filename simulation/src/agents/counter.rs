@@ -44,7 +44,8 @@ impl CounterAgent {
 
         // we are also going to call increment on the g3m.
         // we setup this increment so that it affects each g3m differently.
-        if (self.lp_address.clone() != Address::zero()) {
+        if (!self.lp_address.clone().is_zero()) {
+            tracing::debug!("Incrementing g3m {}", self.lp_address.clone().to_string());
             let g3m = G3M::new(self.lp_address, self.client.clone());
             g3m.increment().send().await?.await?;
         }

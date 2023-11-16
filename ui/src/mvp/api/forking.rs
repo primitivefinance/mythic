@@ -187,9 +187,11 @@ mod tests {
     use simulation::bindings::counter::Counter;
 
     use super::*;
+    use crate::mvp::api::tests::TEST_SUBSCRIBER;
 
     #[tokio::test]
     async fn test_spawn_ethers_db() -> anyhow::Result<(), anyhow::Error> {
+        let _ = *TEST_SUBSCRIBER;
         let battler = Forker::connect(None, None).await?;
         let ethers_db = battler.spawn_ethers_db()?;
 
@@ -199,9 +201,7 @@ mod tests {
     /// Is anvil in your user path?
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_digest_into_db() -> anyhow::Result<(), anyhow::Error> {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .init();
+        let _ = *TEST_SUBSCRIBER;
         let anvil = Anvil::default()
             .arg("--gas-limit")
             .arg("20000000")
@@ -243,9 +243,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_storage_mutation() -> anyhow::Result<(), anyhow::Error> {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::DEBUG)
-            .init();
+        let _ = *TEST_SUBSCRIBER;
         let anvil = Anvil::default()
             .arg("--gas-limit")
             .arg("20000000")
