@@ -8,6 +8,7 @@ use iced::{
 mod app;
 mod battletester;
 mod components;
+mod digest;
 mod execution;
 mod loader;
 mod local;
