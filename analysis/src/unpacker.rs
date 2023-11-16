@@ -1,5 +1,12 @@
-use std::env;
+use std::{collections::HashMap, env};
 
+use simulation::{
+    agents::{
+        price_changer::{GBMParameters, PriceChangerParameters, PriceProcess},
+        AgentParameters,
+    },
+    settings::parameters::Single,
+};
 use tokio::{fs, sync::mpsc, task};
 
 use super::*;
@@ -35,6 +42,7 @@ impl BatchData {
                             }
                         }
                     } else {
+                        // TODO: Stream out K,V pairs
                         data_sender
                             .send(SimulationData::new(path.to_str().unwrap()).unwrap())
                             .unwrap();
@@ -56,20 +64,36 @@ impl BatchData {
         Self { data, errors }
     }
 
-    fn organize(self) -> Self {
+    // TODO: All the cloning here is probably not optimal
+    fn organize_hard_coded(&self) -> HashMap<String, Vec<SimulationData>> {
+        let mut map: HashMap<String, Vec<SimulationData>> = HashMap::new();
         // Idea, stream in all the metadata and in a concurrent process build up a filtering for it so we can group them into different parameter settings.
         for data in self.data.iter() {
             let metadata = data.metadata.as_ref().unwrap();
-            print!("metadata: {:?}", data.metadata);
-        }
+            let agent_parameters = metadata.agent_parameters.get("price_changer").unwrap();
 
+            if let AgentParameters::PriceChanger(params) = agent_parameters {
+                println!("{:?}", params);
+                if let PriceProcess::Gbm(params) = params.process {
+                    println!("{:?}", params);
+                    let key = params.volatility.0.to_string();
+                    if let Some(vec) = map.get_mut(&key) {
+                        vec.push(data.clone());
+                    } else {
+                        map.insert(key, vec![data.clone()]);
+                    }
+                }
+            }
+        }
+        map
         // TODO: Note the metadata is a simulation config so we can use it to filter over?
-        self
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use simulation::agents::Agent;
+
     use super::*;
 
     #[tracing_test::traced_test]
@@ -86,8 +110,8 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn organize() {
         let batch = BatchData::new("dca/sweep").await;
-        let batch = batch.organize();
-        assert_eq!(batch.data.len(), 100);
+        let data = batch.organize_hard_coded();
+        plot_dca_weights(data.get("0.8").unwrap(), "0.8");
     }
 }
 

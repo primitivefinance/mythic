@@ -1,6 +1,5 @@
 pub mod parameters;
 use std::{collections::BTreeMap, env, hash::Hasher, path::Path};
-use std::{hash::Hash}
 
 use itertools::{Itertools, MultiProduct};
 use parameters::*;
@@ -21,12 +20,6 @@ pub struct SimulationConfig<P: Parameterized> {
     pub output_file_name: Option<String>,
     #[serde(rename = "agent")]
     pub agent_parameters: BTreeMap<String, AgentParameters<P>>,
-}
-
-impl Hash for SimulationConfig<Single> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.agent_parameters.hash(state);
-    }
 }
 
 impl SimulationConfig<Multiple> {

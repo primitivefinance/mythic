@@ -28,7 +28,7 @@ use settings::SimulationConfig;
 use tracing::{debug, error, info, trace, warn};
 
 #[allow(unused)]
-mod agents;
+pub mod agents;
 #[allow(clippy::all)]
 #[rustfmt::skip]
 pub mod bindings;

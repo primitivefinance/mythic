@@ -24,7 +24,7 @@ pub fn wad_to_float(wad: U256) -> f64 {
     wad.as_u128() as f64 / 10f64.powi(18)
 }
 
-pub fn plot_dca_weights() {
+pub fn plot_dca_weights(data_set: &Vec<SimulationData>, name: &str) {
     let mut weights_statistical = (vec![], vec![]);
     let mut reserves_statistical = (vec![], vec![]);
     let mut prices_statistical = (vec![], vec![]);
@@ -32,11 +32,7 @@ pub fn plot_dca_weights() {
     let mut swapper_reserves_statistical = (vec![], vec![]);
     let mut swapper_portfolio_value_statistical = (vec![], vec![]);
 
-    for idx in 0..1 {
-        // Chose the file and get the data
-        let file = format!("analysis/dca/debug/{}.json", idx);
-        let data = SimulationData::new(&file).unwrap();
-
+    for (idx, data) in data_set.iter().enumerate() {
         // Get the weights and indices for the plots
         let weight_filter = data.get_vectorized_events::<g3m::LogSyncingWeightFilter>("g3m");
         let indices: Vec<f64> = weight_filter
@@ -134,7 +130,7 @@ pub fn plot_dca_weights() {
             .push(swapper_portfolio_value_plot);
     }
     // Create the figure
-    let mut figure = Figure::new("debug_dca", Some((2000, 2000)));
+    let mut figure = Figure::new(name, Some((2000, 2000)));
 
     // Plot the prices
     let plot_settings = PlotSettings::new().title("Prices").labels("Index", "Price");

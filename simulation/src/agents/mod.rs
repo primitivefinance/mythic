@@ -72,7 +72,7 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
     fn client(&self) -> Arc<RevmMiddleware>;
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Hash)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
     WeightChanger(WeightChangerParameters<P>),
     Swapper(SwapperParameters<P>),
