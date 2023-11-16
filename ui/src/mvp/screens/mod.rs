@@ -1,6 +1,9 @@
 //! Traits for implementing new application screens.
 use super::{app::Message, *};
 
+pub mod execution;
+pub mod terminal;
+
 /// Implement this trait to make a new screen for the app.
 pub trait State
 where
