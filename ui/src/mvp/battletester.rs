@@ -49,6 +49,11 @@ impl BattleTester {
         }
     }
 
+    pub fn with_block_number(mut self, block_number: u64) -> Self {
+        self.block_number = block_number;
+        self
+    }
+
     pub async fn connect(url: Option<String>, wallet: Option<LocalWallet>) -> anyhow::Result<Self> {
         // connect to the network
         let provider = match url {
@@ -253,7 +258,7 @@ mod tests {
             anvil.chain_id()
         );
         let wallet: LocalWallet = anvil.keys().get(0).unwrap().clone().into();
-        let battler = BattleTester::connect(Some(anvil.endpoint()), Some(wallet)).await?;
+        let mut battler = BattleTester::connect(Some(anvil.endpoint()), Some(wallet)).await?;
 
         let client = battler.client.clone().unwrap();
         let counter = Counter::deploy(client.clone(), ())?.send().await?;
@@ -262,6 +267,8 @@ mod tests {
 
         let tx = counter.increment().send().await?.await?;
         tracing::info!("Tx: {:?}", tx);
+
+        let battler = battler.with_block_number(2_u64);
 
         // VERY IMPORTANT
         let handle = std::thread::spawn(move || {
@@ -278,6 +285,11 @@ mod tests {
         // increment the counter
         let tx = counter.increment().send().await?.await?;
         tracing::info!("Tx: {:?}", tx);
+
+        let count = counter.number().call().await?;
+        tracing::info!("Count: {:?}", count);
+
+        let battler = battler.with_block_number(3_u64);
 
         // re-digest
         let handle = std::thread::spawn(move || {
@@ -299,6 +311,12 @@ mod tests {
             .unwrap();
 
         tracing::info!("Loaded after: {:?}", acc_after);
+
+        let count_from_storage = acc_after
+            .storage
+            .get(&revm::primitives::U256::ZERO)
+            .unwrap();
+        assert_eq!(*count_from_storage, revm::primitives::U256::from(2_u64));
 
         Ok(())
     }
