@@ -7,9 +7,10 @@ remappings = [
   "forge-std/=box-contracts/lib/forge-std/src/",
 ]
 solc_version = "0.8.19"
-src = "box-contracts/src"
+src = "./box-contracts/src"
 bytecode_hash = "none"
 cbor_metadata = false
+extra_output = ["storageLayout"]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
 [fmt]
@@ -20,3 +21,6 @@ multiline_func_header = 'params_first'
 quote_style = 'double'
 tab_width = 4
 wrap_comments = false
+
+[rpc_endpoints]
+local = "http://localhost:8545"

@@ -20,7 +20,7 @@ analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
 arbiter-core = { version = "=0.7.2", features = ["contracts"] }
-ethers = { version = "2.0.10", features = ["ws"] }
+ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
 
 ## Config and parsing
 serde = "1.0.188"
