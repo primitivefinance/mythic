@@ -134,7 +134,7 @@ impl ArbitrageStrategy for RmmStrategy {
         rmm_math: &ArbiterMath<RevmMiddleware>,
     ) -> Result<U256> {
         let (sigma, strike_price, tau) = get_strategy_args(self).await?;
-        let (sigma, strike_price, tau) = (
+        let (sigma, strike_price, _tau) = (
             I256::from_raw(sigma),
             I256::from_raw(strike_price),
             I256::from_raw(tau),

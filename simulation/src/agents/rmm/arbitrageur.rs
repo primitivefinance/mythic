@@ -170,19 +170,13 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                 let tau = contract.tau().call().await?;
                 let delta_y = input;
                 let delta_l = rmm_math_like
-                    .compute_l_given_x(
-                        reserve_x.clone(),
-                        spot_price.clone(),
-                        strike_price.clone(),
-                        sigma.clone(),
-                    )
+                    .compute_l_given_x(reserve_x, spot_price, strike_price, sigma)
                     .call()
                     .await?;
 
                 let output_solidity = compute_output_x_given_y_solidity(
                     &rmm_math_like,
                     reserve_x,
-                    0.into(),
                     reserve_y,
                     delta_y,
                     liquidity,
@@ -400,7 +394,6 @@ mod tests {
         let x = compute_output_x_given_y_solidity(
             &rmm_math_like,
             reserve_x,
-            delta_x,
             reserve_y,
             delta_y,
             liquidity,
@@ -496,7 +489,6 @@ pub fn compute_l_given_x_rust(
 pub async fn compute_output_x_given_y_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,
-    delta_x: U256,
     reserve_y: U256,
     delta_y: U256,
     liquidity: U256,
@@ -541,8 +533,7 @@ pub fn compute_output_x_given_y_rust(
     );
 
     let adjusted_l = liquidity_float + delta_l_float;
-    let adjusted_x = adjusted_l * cdf_term - reserve_x_float - delta_x_float;
-    adjusted_x
+    adjusted_l * cdf_term - reserve_x_float - delta_x_float
 }
 
 #[tracing::instrument(ret, level = "trace")]
