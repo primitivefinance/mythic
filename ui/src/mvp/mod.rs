@@ -6,6 +6,7 @@ use iced::{
 };
 
 mod app;
+mod battletester;
 mod components;
 mod execution;
 mod loader;

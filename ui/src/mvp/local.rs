@@ -6,7 +6,7 @@ use tracing::info;
 const RPC_URL_WS: &str = "ws://localhost:8545";
 const CHAIN_ID: u64 = 31337;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Local<C> {
     pub client: Option<Arc<SignerMiddleware<Provider<C>, LocalWallet>>>,
 }

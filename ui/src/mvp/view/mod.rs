@@ -7,6 +7,7 @@ use simulation::agents::SubscribedData;
 use self::{
     control::control_panel,
     event::{mock_event_groups, EventFeed},
+    execute::Addresses,
     feed::Feed,
     monitor::{labeled_data_card, labeled_data_cards},
 };
@@ -56,6 +57,8 @@ pub enum Message {
 pub enum Execution {
     Next,
     Previous,
+    AmountChanged(Option<String>),
+    ToAddressChanged(Addresses),
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
