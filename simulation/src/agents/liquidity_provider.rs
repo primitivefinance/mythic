@@ -111,7 +111,7 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for LiquidityProvider<S> {
     }
 
     fn get_name(&self) -> String {
-        format!("liquidity_provider")
+        "liquidity_provider".to_string()
     }
 
     async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {

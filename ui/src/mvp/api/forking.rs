@@ -4,15 +4,11 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::anyhow;
 use arbiter_core::environment::{builder::EnvironmentBuilder, fork::ContractMetadata, Environment};
-use ethers::{
-    core::{k256::Secp256k1, rand::thread_rng},
-    prelude::*,
-};
+use ethers::{core::rand::thread_rng, prelude::*};
 use revm::{
     db::{ethersdb::EthersDB, CacheDB, EmptyDB},
     Database,
 };
-use serde::{Deserialize, Serialize};
 
 use super::digest;
 

@@ -62,7 +62,3 @@ dotenv.workspace = true
 mdbook = "0.4.35"
 cargo-make = "0.37.2"
 mdbook-katex = "0.5.8"
-
-[arbiter]
-bindings_workspace = "simulation" # must be a valid workspace member
-submodules = false                # change to true if you want the submodule bindings to be generated

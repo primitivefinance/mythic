@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use ethers::utils::format_ether;
-use iced::widget::{checkbox, text_input, Column, Container, Row};
+use iced::widget::{checkbox, Column, Container, Row};
 use simulation::agents::SubscribedData;
 
 use self::{
@@ -9,7 +9,7 @@ use self::{
     event::{mock_event_groups, EventFeed},
     execute::Addresses,
     feed::Feed,
-    monitor::{labeled_data_card, labeled_data_cards},
+    monitor::labeled_data_cards,
 };
 use super::{
     column,
@@ -93,7 +93,7 @@ pub enum Page {
     Execute,
 }
 
-pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
+pub fn page_menu<'a>(_menu: &Page) -> Container<'a, Message> {
     let terminal_button = button(text("terminal")).on_press(Message::Page(Page::Terminal));
     let transact_button = button(text("execute")).on_press(Message::Page(Page::Execute));
 
@@ -110,87 +110,6 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
     .padding(16)
 }
 
-pub fn input_row<'a>() -> Element<'a, Message> {
-    let input = text_input("0x", "value").padding(8).width(Length::Fill);
-
-    let button = button(text("send")).padding(8);
-
-    Row::new().push(input).push(button).into()
-}
-
-pub fn execution_view<'a>(step: execution::TransactionSteps) -> Element<'a, Message> {
-    let mut content = Column::new().spacing(16).padding(32).width(Length::Fill);
-
-    let title = data_item("execution".to_string()).size(36);
-    let input = input_row();
-    let input2 = input_row();
-
-    let action_column = Column::new()
-        .width(Length::FillPortion(2))
-        .spacing(32)
-        .push(label_item("action".to_string()).size(28))
-        .push(input)
-        .push(label_item("action".to_string()).size(28))
-        .push(input2)
-        .push(
-            Row::new()
-                .push(label_item("transaction cost".to_string()))
-                .push(text("$20.00")),
-        );
-
-    let summary = Column::new()
-        .spacing(4)
-        .push(label_item("summary".to_string()).size(16))
-        .push(text("Transaction will succeed"))
-        .push("Transaction has warnings");
-
-    let review_button = Column::new()
-        .height(Length::Fill)
-        .width(Length::Shrink)
-        .push(
-            Row::new()
-                .height(Length::Fill)
-                .push(
-                    Column::new().align_items(alignment::Alignment::End).push(
-                        button(text("review"))
-                            .padding(8)
-                            .on_press(Message::Execution(Execution::Next)),
-                    ),
-                )
-                .align_items(alignment::Alignment::End),
-        );
-
-    let info_column = Column::new()
-        .height(Length::Fill)
-        .width(Length::FillPortion(2))
-        .spacing(16)
-        .push(summary)
-        .push(review_button);
-
-    let content_row = Row::new()
-        .width(Length::Fill)
-        .spacing(8)
-        .align_items(alignment::Alignment::Center)
-        .push(action_column)
-        .push(info_column);
-
-    content = content.push(title).push(content_row);
-    let center_container = Container::new(content)
-        .width(Length::Fixed(800.0))
-        .height(Length::Fixed(800.0))
-        .style(MenuContainerTheme::theme());
-
-    Container::new(center_container)
-        .center_x()
-        .center_y()
-        .align_x(alignment::Horizontal::Center)
-        .align_y(alignment::Vertical::Center)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(36)
-        .into()
-}
-
 pub fn terminal_view_multiple_firehose<'a>(
     event_data: VecDeque<AppEventLog>,
     realtime: bool,
@@ -201,7 +120,7 @@ pub fn terminal_view_multiple_firehose<'a>(
 
     let control_view = control_panel(vec![], realtime, firehose_visible);
 
-    let event_view = EventFeed {
+    let _event_view = EventFeed {
         events: mock_event_groups(),
     }
     .view();
@@ -253,7 +172,7 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
 
     let cloned: StateSubscriptionStore = state_data.clone();
 
-    for (i, (world_id, world_data)) in cloned.into_iter().enumerate() {
+    for (_i, (world_id, world_data)) in cloned.into_iter().enumerate() {
         // todo: handle rendering for multiple worlds, should probably be grouped.
         // if i > 0 {
         // continue;
@@ -329,9 +248,9 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
 
     let mut agent_groups = Column::new().spacing(16);
 
-    for (world_id, world_data) in agent_data.into_iter() {
+    for (_world_id, world_data) in agent_data.into_iter() {
         let mut agent_cards = Vec::new();
-        for (agent_name, agent) in world_data.into_iter() {
+        for (_agent_name, agent) in world_data.into_iter() {
             agent_cards.push(agent);
         }
 
@@ -342,7 +261,7 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
 
     for (world_id, world_data) in monitored_data.into_iter() {
         let mut monitored_cards = Vec::new();
-        for (agent_name, agent) in world_data.into_iter() {
+        for (_agent_name, agent) in world_data.into_iter() {
             monitored_cards.push(agent);
         }
 
@@ -387,6 +306,7 @@ fn agent_card_grid<'a>(data: Vec<Vec<(String, String)>>, max: usize) -> Element<
     content.spacing(8).into()
 }
 
+#[allow(dead_code)]
 fn mock_agent_card() -> Element<'static, Message> {
     agent::agent_card(
         vec![
@@ -399,6 +319,7 @@ fn mock_agent_card() -> Element<'static, Message> {
     )
 }
 
+#[allow(dead_code)]
 fn mock_monitor_group() -> Element<'static, Message> {
     labeled_data_cards(
         "protocol".to_string(),

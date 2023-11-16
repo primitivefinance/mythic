@@ -1,4 +1,6 @@
 //! Configure how to handle logs produced from the tracing crate.
+#![allow(dead_code)]
+
 use std::{
     cell::RefCell,
     collections::HashMap,
@@ -284,8 +286,6 @@ impl Visit for FieldVisitor {
 
 impl Visit for AppEventLog {
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-        let curr_fields = CURRENT_SPAN_FIELDS.with(|fields| fields.borrow().clone());
-
         // Update self.data with the span fields for each layer
         let current_layer: Option<AppEventLayer> = CURRENT_SPAN_FIELDS.with(|fields| {
             let fields = fields.borrow();
@@ -353,7 +353,7 @@ impl<S> Layer<S> for LayerWithChannel
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    fn on_event(&self, event: &Event<'_>, ctx: tracing_subscriber::layer::Context<'_, S>) {
+    fn on_event(&self, event: &Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
         let mut visitor = AppEventLog {
             data: HashMap::new(),
             last_message: None,

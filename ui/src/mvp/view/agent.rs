@@ -1,9 +1,6 @@
 //! View components for Agents.
-use iced::Color;
-use iced_aw::{
-    graphics::icons::{self, icon_to_char},
-    ICON_FONT,
-};
+
+use iced_aw::graphics::icons::{self};
 
 use super::{control::control_button, *};
 
@@ -45,11 +42,6 @@ pub fn agent_header<'a>(agent_name: String) -> Element<'a, Message> {
     let settings_button = control_button(icons::Icon::Gear).on_press(Message::Simulation(
         control::Operation::Agent(control::AgentOperations::Settings(agent_name.clone())),
     ));
-
-    //  let agent_icon = text(icon_to_char(icons::Icon::Cpu))
-    // .font(ICON_FONT)
-    // .size(32)
-    // .style(Color::WHITE);
 
     let header_elements: Vec<Element<'_, Message>> = vec![
         text(agent_name).font(FONT_DAGGERSQUARE).size(20).into(),

@@ -27,7 +27,7 @@ impl<S: LiquidityStrategy + Sized> StrategyMonitorAgent<S> {
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
-        let strategy: S = S::new(strategy_address.clone(), client.clone());
+        let strategy: S = S::new(strategy_address, client.clone());
 
         tracing::trace!("Made a new counter agent with label {}", label);
         Ok(Self {
@@ -55,7 +55,7 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for StrategyMonitorAgent<S> {
         let reserve_y = self.strategy.get_reserve_y().await?;
         let invariant = self.strategy.get_invariant().await?;
         let portfolio_value = self.strategy.get_portfolio_value().await?;
-        let strategy_address = self.strategy_address.clone();
+        let strategy_address = self.strategy_address;
         let x_balance = self
             .token_admin
             .arbx

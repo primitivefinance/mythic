@@ -188,7 +188,7 @@ impl Terminal {
         for log in self.data_feed.iter() {
             if let Some(metadata) = log.data.get(&AppEventLayer::System) {
                 // Take the last element from the data vector and push it to system_logs
-                if let Some(last_element) = metadata.data.last() {
+                if let Some(_) = metadata.data.last() {
                     new_data_feed.push_back(log.clone());
                 }
             }
@@ -279,7 +279,6 @@ impl Terminal {
         tracing::trace!("Step simulation message received!");
 
         let m = self.world_manager.clone();
-        let trace_id = "process.step";
 
         // Message emitted after step completes.
         let mut exit_msg = Message::Empty;
@@ -543,8 +542,6 @@ impl State for Terminal {
 
                         Command::none()
                     }
-
-                    _ => Command::none(),
                 },
 
                 view::Message::Simulation(msg) => {

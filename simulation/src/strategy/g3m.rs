@@ -66,7 +66,7 @@ impl LiquidityStrategy for IStrategy<RevmMiddleware> {
             .call()
             .await?
             .checked_abs()
-            .and_then(|x| Some(x.twos_complement()))
+            .map(|x| x.twos_complement())
             .unwrap_or_default())
     }
 

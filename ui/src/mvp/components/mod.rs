@@ -5,10 +5,7 @@ pub mod logos;
 pub mod styles;
 
 use button::*;
-use containers::*;
 use iced::{Color, Element, Renderer};
-use input::*;
-use logos::*;
 use styles::*;
 
 // These components should return View messages.

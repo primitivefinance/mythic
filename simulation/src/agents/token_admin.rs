@@ -91,6 +91,6 @@ impl Agent for TokenAdmin {
     }
 
     fn get_name(&self) -> String {
-        format!("token_admin")
+        "token_admin".to_string()
     }
 }

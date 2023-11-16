@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use iced::{widget::container, Color};
 
 pub const LEVEL_1_COLOR: Color = Color::from_rgb(
