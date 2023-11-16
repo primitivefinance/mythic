@@ -484,7 +484,7 @@ pub fn compute_l_given_x_rust(
 }
 
 // I have no idea why this says i need to do this for clippy to pass but sure
-#[warn(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(ret, skip(instance), level = "info")]
 pub async fn compute_output_x_given_y_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
