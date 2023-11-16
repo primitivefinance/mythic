@@ -3,6 +3,7 @@ use ethers::types::TransactionReceipt;
 use super::*;
 use crate::bindings::i_strategy::IStrategy;
 
+#[derive(Debug, Clone)]
 pub struct G3mStrategy(IStrategy<RevmMiddleware>);
 
 /// Type of data that is specific to the G3M strategy.
@@ -42,8 +43,9 @@ impl Strategy for G3mStrategy {
     async fn get_swap_fee(&self) -> Result<U256> {
         Ok(self.0.get_swap_fee().call().await?)
     }
+
     async fn get_strategy_logs(&self) {
-        self.log_data().send().await.unwrap().await.unwrap();
+        self.0.log_data().send().await.unwrap().await.unwrap();
     }
 }
 

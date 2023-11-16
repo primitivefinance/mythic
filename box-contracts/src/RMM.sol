@@ -364,6 +364,10 @@ contract RMM is IStrategy {
         return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice);
     }
 
+    function logData() external {
+        emit LogParameters(sigma, strikePrice, tau, block.timestamp);
+    }
+
     function getStrategyData() external view returns (bytes memory data) { 
         return abi.encode(sigma, strikePrice, tau);
     }

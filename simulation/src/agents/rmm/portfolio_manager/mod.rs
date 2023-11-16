@@ -61,7 +61,7 @@ impl From<PortfolioManagerSpecialty<Multiple>> for Vec<PortfolioManagerSpecialty
         }
     }
 }
-
+#[derive(Debug)]
 pub struct PortfolioManagerType(pub Box<dyn PortfolioManager>);
 
 impl PortfolioManagerType {
@@ -120,6 +120,10 @@ impl Agent for PortfolioManagerType {
 
     async fn startup(&mut self) -> Result<()> {
         self.0.startup().await
+    }
+
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.0.client()
     }
 }
 

@@ -1,7 +1,7 @@
 use super::*;
 use crate::math::*;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RmmVolatilityTargetingStrategist {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
@@ -158,5 +158,9 @@ impl Agent for RmmVolatilityTargetingStrategist {
 
     async fn startup(&mut self) -> Result<()> {
         Ok(())
+    }
+
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

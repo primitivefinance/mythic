@@ -27,6 +27,7 @@ pub trait Strategy: Sized + Send + Sync + std::fmt::Debug {
     async fn decode_strategy_data(&self) -> Result<Self::StrategyData>;
 
     async fn get_strategy_logs(&self);
+
     fn get_address(&self) -> Address;
 }
 

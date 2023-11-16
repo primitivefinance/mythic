@@ -1,7 +1,7 @@
 use super::{strategy::Strategy, token_admin::TokenAdmin, *};
 use crate::strategy::LiquidityStrategy;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RmmLiquidityProvider<S: LiquidityStrategy> {
     pub client: Arc<RevmMiddleware>,
     pub rmm_strategy: S,
@@ -86,5 +86,9 @@ impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent
             self.rmm_strategy.get_spot_price().await?
         );
         Ok(())
+    }
+
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
     }
 }

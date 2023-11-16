@@ -13,6 +13,7 @@ pub struct RmmStrategyData {
     pub tau: U256,
 }
 
+#[derive(Debug, Clone)]
 pub struct RmmStrategy(IStrategy<RevmMiddleware>);
 
 /// Implements the G3M strategy invariant and its derived functions.
@@ -49,6 +50,10 @@ impl Strategy for RmmStrategy {
 
     async fn get_swap_fee(&self) -> Result<U256> {
         Ok(self.0.get_swap_fee().call().await?)
+    }
+
+    async fn get_strategy_logs(&self) {
+        self.0.log_data().send().await.unwrap().await.unwrap();
     }
 }
 
@@ -154,10 +159,6 @@ impl ArbitrageStrategy for RmmStrategy {
         )
         .await?;
         Ok(dy.into_raw())
-    }
-
-    async fn get_strategy_logs(&self) {
-        self.log_data().send().await.unwrap().await.unwrap();
     }
 
     #[tracing::instrument(ret, skip(self))]

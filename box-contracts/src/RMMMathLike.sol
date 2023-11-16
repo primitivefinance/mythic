@@ -50,22 +50,20 @@ contract RMMMathLike {
 
     function computeOutputYGivenX(
         uint256 x,
-        uint256 deltaX,
         uint256 y,
-        uint256 deltaY,
+        uint256 deltaX,
         uint256 L,
         uint256 deltaL,
         uint256 K,
         uint256 sigma
     ) public view returns (int256 outputY) {
         return RMMMath.computeOutputYGivenX(
-            x, deltaX, y, deltaY, L, deltaL, K, sigma
+            x, y, deltaX, L, deltaL, K, sigma
         );
     }
 
     function computeOutputXGivenY(
         uint256 x,
-        uint256 deltaX,
         uint256 y,
         uint256 deltaY,
         uint256 L,
@@ -74,7 +72,7 @@ contract RMMMathLike {
         uint256 sigma
     ) public view returns (int256 outputX) {
         return RMMMath.computeOutputXGivenY(
-            x, deltaX, y, deltaY, L, deltaL, K, sigma
+            x, y, deltaY, L, deltaL, K, sigma
         );
     }
 

@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RmmArbitrageur<S: ArbitrageStrategy> {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
@@ -263,6 +263,10 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
         }
         Ok(())
     }
+
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
 }
 
 enum Swap {
@@ -503,7 +507,6 @@ pub async fn compute_output_x_given_y_solidity(
     let x = instance
         .compute_output_x_given_y(
             reserve_x,
-            delta_x,
             reserve_y,
             delta_y,
             liquidity,

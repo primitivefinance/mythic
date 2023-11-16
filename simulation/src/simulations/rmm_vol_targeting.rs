@@ -22,10 +22,18 @@ pub async fn setup(
     environment: Environment,
     config: SimulationConfig<Single>,
 ) -> Result<Simulation, SimulationError> {
+    let mut agents = Agents::new();
+
     let mut block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
+    agents.add(block_admin);
+
     let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
+    agents.add(token_admin.clone());
+
     let mut price_changer =
         PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
+    agents.add(price_changer.clone());
+
     let rmm_portfolio_manager = PortfolioManagerType::new(
         &environment,
         &config,
@@ -33,6 +41,8 @@ pub async fn setup(
         price_changer.liquid_exchange.address(),
     )
     .await?;
+    agents.add(rmm_portfolio_manager.clone());
+
     let mut lp = RmmLiquidityProvider::<RmmStrategy>::new(
         &environment,
         &config,
@@ -41,6 +51,8 @@ pub async fn setup(
         rmm_portfolio_manager.0.rmm().address(),
     )
     .await?;
+    agents.add(lp);
+
     let mut arbitrageur = RmmArbitrageur::<RmmStrategy>::new(
         &environment,
         &token_admin,
@@ -48,25 +60,7 @@ pub async fn setup(
         rmm_portfolio_manager.0.rmm().address(),
     )
     .await?;
-
-    println!("arbx addr: {}", token_admin.arbx.address().to_string());
-    println!("arby addr: {}", token_admin.arby.address().to_string());
-    println!(
-        "liquid exchange addr: {}",
-        price_changer.liquid_exchange.address().to_string()
-    );
-    println!(
-        "rmm addr: {}",
-        rmm_portfolio_manager.0.rmm().address().to_string()
-    );
-    println!(
-        "arbitrageur addr: {}",
-        arbitrageur.atomic_arbitrage.address().to_string()
-    );
-    println!(
-        "atomic arbitrage addr: {}",
-        arbitrageur.atomic_arbitrage.address().to_string()
-    );
+    agents.add(arbitrageur.clone());
 
     EventLogger::builder()
         .directory(config.output_directory.clone())
@@ -82,12 +76,7 @@ pub async fn setup(
     let steps = price_changer.trajectory.paths[0].len() - 1;
 
     Ok(Simulation {
-        agents: Agents::new()
-            .add(price_changer)
-            .add(arbitrageur)
-            .add(block_admin)
-            .add(rmm_portfolio_manager)
-            .add(lp),
+        agents,
         steps,
         environment,
     })
