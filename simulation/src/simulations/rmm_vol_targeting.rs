@@ -41,14 +41,16 @@ pub async fn setup(
         price_changer.liquid_exchange.address(),
     )
     .await?;
-    agents.add(rmm_portfolio_manager.clone());
+    let rmm_address = rmm_portfolio_manager.0.rmm().address();
+    let rmm_events = rmm_portfolio_manager.0.rmm().events();
+    agents.add(rmm_portfolio_manager);
 
     let mut lp = RmmLiquidityProvider::<RmmStrategy>::new(
         &environment,
         &config,
         "lp",
         &token_admin,
-        rmm_portfolio_manager.0.rmm().address(),
+        rmm_address,
     )
     .await?;
     agents.add(lp);
@@ -57,7 +59,7 @@ pub async fn setup(
         &environment,
         &token_admin,
         price_changer.liquid_exchange.address(),
-        rmm_portfolio_manager.0.rmm().address(),
+        rmm_address,
     )
     .await?;
     agents.add(arbitrageur.clone());
@@ -66,7 +68,7 @@ pub async fn setup(
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
         .add(price_changer.liquid_exchange.events(), "lex")
-        .add(rmm_portfolio_manager.0.rmm().events(), "rmm")
+        .add(rmm_events, "rmm")
         .add(token_admin.arbx.events(), "arbx")
         .add(token_admin.arby.events(), "arby")
         .add(arbitrageur.atomic_arbitrage.events(), "atomic_arbitrage")
