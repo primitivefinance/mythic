@@ -118,7 +118,7 @@ pub trait Agent: Sync + Send + Any + Debug {
     }
 
     fn get_name(&self) -> String {
-        format!("default")
+        "default".to_string()
     }
 
     /// Returns a list of subscribed data in the form of a vector of tokens.

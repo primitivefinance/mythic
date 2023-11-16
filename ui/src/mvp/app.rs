@@ -42,7 +42,9 @@ pub enum Message {
 /// This should hold the most important pieces of data that many children
 /// components will need.
 pub struct App {
+    #[allow(dead_code)]
     arbiter: Environment,
+    #[allow(dead_code)]
     local: Local<Ws>,
     screen: Screen,
     receiver: Arc<Mutex<Receiver<AppEventLog>>>,

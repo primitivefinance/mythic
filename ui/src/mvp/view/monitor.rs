@@ -4,7 +4,7 @@ use super::*;
 
 /// Renders a single piece of labeled data in a container with a panel
 /// background and padding.
-pub fn labeled_data_card<'a>(label: String, data: String, max_width: u16) -> Element<'a, Message> {
+pub fn labeled_data_card<'a>(label: String, data: String, _max_width: u16) -> Element<'a, Message> {
     let mut content = Column::new()
         .push(labeled_data(label, data))
         .width(Length::Fixed(100.0));

@@ -1,7 +1,7 @@
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
-    widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text},
+    widget::{button, column, container, row, scrollable, text, Column, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
@@ -15,7 +15,7 @@ mod view;
 
 use std::sync::{Arc, Mutex};
 
-use api::{forking::*, local::*, world::*, *};
+use api::{local::*, world::*};
 use app::App;
 use components::*;
 use loader::Loader;

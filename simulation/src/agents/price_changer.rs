@@ -177,7 +177,7 @@ impl Agent for PriceChanger {
     }
 
     fn get_name(&self) -> String {
-        format!("price_changer")
+        "price_changer".to_string()
     }
 
     async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {

@@ -237,7 +237,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
     }
 
     fn get_name(&self) -> String {
-        format!("arbitrageur")
+        "arbitrageur".to_string()
     }
 }
 

@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use ethers::types::{Address, U256};
-use iced::{
-    widget::{Column, Text},
-    Command, Element, Subscription,
-};
+use iced::{Command, Element, Subscription};
 
 use super::{
     app::Message,
@@ -30,6 +27,7 @@ pub enum TransactionSteps {
 pub struct Execution {
     transaction: CraftingTransaction,
     step: TransactionSteps,
+    #[allow(dead_code)]
     review: Review,
 }
 
@@ -51,7 +49,7 @@ impl Execution {
     /// Uses the `apply_cheatcode` method on a client to fetch the storage slots
     /// of the target address.
     fn handle_review(&self) -> Command<Message> {
-        let target_address = Address::zero();
+        let _target_address = Address::zero();
 
         Command::none()
     }
@@ -93,7 +91,6 @@ impl State for Execution {
                             }
                             None => {}
                         },
-                        _ => {}
                     },
                     _ => {}
                 }

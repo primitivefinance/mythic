@@ -35,10 +35,6 @@ pub struct EventFeed {
 }
 
 impl EventFeed {
-    pub fn new() -> Self {
-        Self { events: vec![] }
-    }
-
     pub fn view<'a>(&self) -> Element<'a, Message> {
         let mut content = Column::new();
         for event in &self.events {
@@ -75,14 +71,6 @@ impl EventFeed {
             }
         }
         content.into()
-    }
-
-    pub fn add_event(&mut self, event: EventGroup) {
-        self.events.push(event);
-    }
-
-    pub fn clear(&mut self) {
-        self.events.clear();
     }
 }
 

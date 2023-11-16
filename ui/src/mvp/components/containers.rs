@@ -59,6 +59,7 @@ impl StyleSheet for MenuItemContainerTheme {
 }
 
 impl MenuItemContainerTheme {
+    #[allow(dead_code)]
     pub fn theme() -> iced::theme::Container {
         iced::theme::Container::Custom(Box::from(MenuItemContainerTheme))
     }

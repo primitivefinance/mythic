@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use iced::{Color, Font};
 
 pub const BLACK: Color = Color::from_rgb(

@@ -248,7 +248,6 @@ impl Application for ExampleApp {
         let content: Element<_> = match self {
             ExampleApp::Loading => text("Loading...").into(),
             ExampleApp::Running {
-                client,
                 screen,
                 trace_receiver,
                 footer,

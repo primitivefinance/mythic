@@ -18,7 +18,7 @@ use simulation::{
         strategy_monitor::StrategyMonitorAgent,
         token_admin::TokenAdmin,
         weight_changer::{WeightChanger, WeightChangerType},
-        Agent, Agents,
+        Agents,
     },
     settings::{
         parameters::{Multiple, Single},
@@ -263,9 +263,9 @@ impl WorldBuilder {
         environment: &Environment,
         config: SimulationConfig<Single>,
     ) -> anyhow::Result<Agents, anyhow::Error> {
-        let mut block_admin = BlockAdmin::new(environment, &config, "block_admin").await?;
+        let block_admin = BlockAdmin::new(environment, &config, "block_admin").await?;
         let token_admin = TokenAdmin::new(environment, &config, "token_admin").await?;
-        let mut price_changer =
+        let price_changer =
             PriceChanger::new(environment, &config, "price_changer", &token_admin).await?;
 
         let weight_changer = WeightChangerType::new(
@@ -276,7 +276,7 @@ impl WorldBuilder {
         )
         .await?;
 
-        let mut lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
+        let lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
             environment,
             &config,
             "lp",
@@ -285,7 +285,7 @@ impl WorldBuilder {
         )
         .await?;
 
-        let mut arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
+        let arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
             environment,
             &token_admin,
             price_changer.liquid_exchange.address(),
@@ -293,7 +293,7 @@ impl WorldBuilder {
         )
         .await?;
 
-        let mut strategy_monitor = StrategyMonitorAgent::<IStrategy<RevmMiddleware>>::new(
+        let strategy_monitor = StrategyMonitorAgent::<IStrategy<RevmMiddleware>>::new(
             environment,
             &config,
             "strategy_monitor",
@@ -353,8 +353,8 @@ impl Default for WorldBuilder {
         let mut rng = rand::thread_rng();
         let seed = rng.gen::<u64>(); // Generate a random seed
 
-        let config_path = Path::new(std::env::current_dir().unwrap().parent().unwrap())
-            .join("simulation")
+        // todo: this breaks tests because the test calls this from within ui/ crate...
+        let config_path = Path::new("simulation")
             .join("src")
             .join("tests")
             .join("configs")
@@ -635,7 +635,7 @@ mod tests {
     async fn test_concurrent_worlds() {
         let _ = *TEST_SUBSCRIBER;
 
-        let (tx, worlds, slice) = spawn_worlds(5).await.unwrap();
+        let (tx, worlds, _slice) = spawn_worlds(5).await.unwrap();
 
         // Add a delay here so it has time to process.
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
