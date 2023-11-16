@@ -7,7 +7,7 @@ use crate::{
         price_changer::PriceChanger,
         rmm::{
             arbitrageur::RmmArbitrageur, liquidity_provider::RmmLiquidityProvider,
-            portfolio_manager::PortfolioManagerType,
+            rmm_portfolio_manager::RmmPortfolioManagerType,
         },
         token_admin::TokenAdmin,
         Agent, Agents,
@@ -33,7 +33,7 @@ pub async fn setup(
         PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
     agents.add(price_changer.clone());
 
-    let rmm_portfolio_manager = PortfolioManagerType::new(
+    let rmm_portfolio_manager = RmmPortfolioManagerType::new(
         &environment,
         &config,
         "portfolio_manager",

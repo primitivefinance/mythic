@@ -8,7 +8,9 @@ use unit_conversions::time::*;
 pub use self::parameters::Parameterized;
 use super::*;
 use crate::{
-    agents::{price_changer::PriceChangerParameters, swapper::SwapperParameters, AgentParameters},
+    agents::{
+        g3m::swapper::SwapperParameters, price_changer::PriceChangerParameters, AgentParameters,
+    },
     simulations::SimulationType,
 };
 

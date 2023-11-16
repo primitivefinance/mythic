@@ -1,14 +1,15 @@
 use self::{
     block_admin::BlockAdminParameters,
-    liquidity_provider::LiquidityProviderParameters,
+    g3m::{
+        arbitrageur::Arbitrageur, g3m_portfolio_manager::G3mPortfolioManagerParameters,
+        liquidity_provider::LiquidityProviderParameters, swapper::SwapperParameters,
+    },
     price_changer::PriceChangerParameters,
     rmm::{
         liquidity_provider::RmmLiquidityProviderParameters,
-        portfolio_manager::PortfolioManagerParameters,
+        rmm_portfolio_manager::RmmPortfolioManagerParameters,
     },
-    swapper::SwapperParameters,
     token_admin::TokenAdminParameters,
-    weight_changer::{WeightChangerParameters, WeightChangerSpecialty},
 };
 use super::*;
 use crate::settings::{
@@ -16,16 +17,13 @@ use crate::settings::{
     Parameterized,
 };
 
-pub mod arbitrageur;
 pub mod block_admin;
-pub mod liquidity_provider;
+pub mod g3m;
 pub mod price_changer;
 pub mod rmm;
-pub mod swapper;
 #[cfg(test)]
 pub mod tests;
 pub mod token_admin;
-pub mod weight_changer;
 
 use std::marker::{Send, Sync};
 
@@ -79,8 +77,8 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
-    WeightChanger(WeightChangerParameters<P>),
-    PortfolioManager(PortfolioManagerParameters<P>),
+    G3mPortfolioManager(G3mPortfolioManagerParameters<P>),
+    RmmPortfolioManager(RmmPortfolioManagerParameters<P>),
     RmmLiquidityProvider(RmmLiquidityProviderParameters<P>),
     Swapper(SwapperParameters<P>),
     LiquidityProvider(LiquidityProviderParameters<P>),
@@ -92,18 +90,18 @@ pub enum AgentParameters<P: Parameterized> {
 impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
     fn from(item: AgentParameters<Multiple>) -> Self {
         match item {
-            AgentParameters::WeightChanger(parameters) => {
-                let parameters: Vec<WeightChangerParameters<Single>> = parameters.into();
+            AgentParameters::G3mPortfolioManager(parameters) => {
+                let parameters: Vec<G3mPortfolioManagerParameters<Single>> = parameters.into();
                 parameters
                     .into_iter()
-                    .map(AgentParameters::WeightChanger)
+                    .map(AgentParameters::G3mPortfolioManager)
                     .collect()
             }
-            AgentParameters::PortfolioManager(parameters) => {
-                let parameters: Vec<PortfolioManagerParameters<Single>> = parameters.into();
+            AgentParameters::RmmPortfolioManager(parameters) => {
+                let parameters: Vec<RmmPortfolioManagerParameters<Single>> = parameters.into();
                 parameters
                     .into_iter()
-                    .map(AgentParameters::PortfolioManager)
+                    .map(AgentParameters::RmmPortfolioManager)
                     .collect()
             }
             AgentParameters::RmmLiquidityProvider(parameters) => {

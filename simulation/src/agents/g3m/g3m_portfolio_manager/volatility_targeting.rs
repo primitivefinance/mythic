@@ -94,7 +94,7 @@ impl VolatilityTargetingStrategist {
 }
 
 #[async_trait::async_trait]
-impl WeightChanger for VolatilityTargetingStrategist {
+impl G3mPortfolioManager for VolatilityTargetingStrategist {
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
         if self.portfolio_rv.len() < 2 {
             return Ok(());

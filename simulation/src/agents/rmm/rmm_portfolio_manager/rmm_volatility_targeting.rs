@@ -86,7 +86,7 @@ impl RmmVolatilityTargetingStrategist {
 }
 
 #[async_trait::async_trait]
-impl PortfolioManager for RmmVolatilityTargetingStrategist {
+impl RmmPortfolioManager for RmmVolatilityTargetingStrategist {
     async fn execute_rebalance(&mut self) -> Result<()> {
         // if self.portfolio_rv.len() < 2 {
         //     return Ok(());

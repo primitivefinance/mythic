@@ -36,8 +36,8 @@ process.GBM.volatility.start = 0.1
 process.GBM.volatility.end = 1.0
 process.GBM.volatility.steps = 10
 
-# Weight settings
-[agent.weight_changer.WeightChanger]
+# Portfolio manager settings
+[agent.portfolio_manager.G3mPortfolioManager]
 # The weight for the `token_x` in the pool
 # `weight_y = 1 - weight_x`
 initial_weight_x.fixed = 0.5

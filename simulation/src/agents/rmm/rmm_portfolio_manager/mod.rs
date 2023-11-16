@@ -6,30 +6,30 @@ use super::*;
 pub mod rmm_volatility_targeting;
 
 #[async_trait::async_trait]
-pub trait PortfolioManager: Agent {
+pub trait RmmPortfolioManager: Agent {
     async fn execute_rebalance(&mut self) -> Result<()>;
     fn rmm(&self) -> &RMM<RevmMiddleware>;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct PortfolioManagerParameters<P: Parameterized> {
+pub struct RmmPortfolioManagerParameters<P: Parameterized> {
     sigma: P,
     tau: P,
     strike_price: P,
     pub fee: P,
-    pub specialty: PortfolioManagerSpecialty<P>,
+    pub specialty: RmmPortfolioManagerSpecialty<P>,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum PortfolioManagerSpecialty<P: Parameterized> {
+pub enum RmmPortfolioManagerSpecialty<P: Parameterized> {
     VolatilityTargeting(RmmVolatilityTargetingParameters<P>),
 }
 
 use itertools::iproduct;
 
-impl From<PortfolioManagerParameters<Multiple>> for Vec<PortfolioManagerParameters<Single>> {
-    fn from(item: PortfolioManagerParameters<Multiple>) -> Self {
-        let specialties: Vec<PortfolioManagerSpecialty<Single>> = item.specialty.into();
+impl From<RmmPortfolioManagerParameters<Multiple>> for Vec<RmmPortfolioManagerParameters<Single>> {
+    fn from(item: RmmPortfolioManagerParameters<Multiple>) -> Self {
+        let specialties: Vec<RmmPortfolioManagerSpecialty<Single>> = item.specialty.into();
         iproduct!(
             item.sigma.parameters(),
             item.tau.parameters(),
@@ -37,7 +37,7 @@ impl From<PortfolioManagerParameters<Multiple>> for Vec<PortfolioManagerParamete
             item.fee.parameters(),
             specialties
         )
-        .map(|(s, tau, sp, f, specialty)| PortfolioManagerParameters {
+        .map(|(s, tau, sp, f, specialty)| RmmPortfolioManagerParameters {
             sigma: Single(s),
             tau: Single(tau),
             strike_price: Single(sp),
@@ -48,23 +48,23 @@ impl From<PortfolioManagerParameters<Multiple>> for Vec<PortfolioManagerParamete
     }
 }
 
-impl From<PortfolioManagerSpecialty<Multiple>> for Vec<PortfolioManagerSpecialty<Single>> {
-    fn from(item: PortfolioManagerSpecialty<Multiple>) -> Self {
+impl From<RmmPortfolioManagerSpecialty<Multiple>> for Vec<RmmPortfolioManagerSpecialty<Single>> {
+    fn from(item: RmmPortfolioManagerSpecialty<Multiple>) -> Self {
         match item {
-            PortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
+            RmmPortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
                 let parameters: Vec<RmmVolatilityTargetingParameters<Single>> = parameters.into();
                 parameters
                     .into_iter()
-                    .map(PortfolioManagerSpecialty::VolatilityTargeting)
+                    .map(RmmPortfolioManagerSpecialty::VolatilityTargeting)
                     .collect()
             }
         }
     }
 }
 #[derive(Debug)]
-pub struct PortfolioManagerType(pub Box<dyn PortfolioManager>);
+pub struct RmmPortfolioManagerType(pub Box<dyn RmmPortfolioManager>);
 
-impl PortfolioManagerType {
+impl RmmPortfolioManagerType {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
@@ -75,7 +75,8 @@ impl PortfolioManagerType {
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
-        if let Some(AgentParameters::PortfolioManager(params)) = config.agent_parameters.get(&label)
+        if let Some(AgentParameters::RmmPortfolioManager(params)) =
+            config.agent_parameters.get(&label)
         {
             let rmm_args = (
                 lex.arbiter_token_x().call().await?,
@@ -86,7 +87,7 @@ impl PortfolioManagerType {
                 parse_ether(0.997)?,
             );
             match params.specialty {
-                PortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
+                RmmPortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
                     let rmm = RMM::deploy(client.clone(), rmm_args)?.send().await?;
                     trace!("Deployed rmm at address: {:?}", rmm.address());
                     let strategist = RmmVolatilityTargetingStrategist {
@@ -113,7 +114,7 @@ impl PortfolioManagerType {
 }
 
 #[async_trait::async_trait]
-impl Agent for PortfolioManagerType {
+impl Agent for RmmPortfolioManagerType {
     async fn step(&mut self) -> Result<()> {
         self.0.step().await
     }
@@ -128,7 +129,7 @@ impl Agent for PortfolioManagerType {
 }
 
 #[async_trait::async_trait]
-impl PortfolioManager for PortfolioManagerType {
+impl RmmPortfolioManager for RmmPortfolioManagerType {
     async fn execute_rebalance(&mut self) -> Result<()> {
         self.0.execute_rebalance().await
     }

@@ -4,16 +4,18 @@ use tracing::event;
 use super::{errors::SimulationError, *};
 use crate::{
     agents::{
-        arbitrageur::Arbitrageur,
         block_admin::BlockAdmin,
-        liquidity_provider::LiquidityProvider,
-        price_changer::{PriceChanger, PriceChangerParameters},
-        swapper::Swapper,
-        token_admin::TokenAdmin,
-        weight_changer::{
-            momentum::MomentumStrategist, volatility_targeting::VolatilityTargetingStrategist,
-            WeightChanger, WeightChangerType,
+        g3m::{
+            arbitrageur::Arbitrageur,
+            g3m_portfolio_manager::{
+                momentum::MomentumStrategist, volatility_targeting::VolatilityTargetingStrategist,
+                G3mPortfolioManager, G3mPortfolioManagerType,
+            },
+            liquidity_provider::LiquidityProvider,
+            swapper::Swapper,
         },
+        price_changer::{PriceChanger, PriceChangerParameters},
+        token_admin::TokenAdmin,
         Agent, Agents,
     },
     bindings::i_strategy::IStrategy,
@@ -41,7 +43,7 @@ pub async fn setup(
     agents.add(price_changer.clone());
     event_logger = event_logger.add(price_changer.liquid_exchange.events(), "lex");
 
-    let weight_changer = WeightChangerType::new(
+    let weight_changer = G3mPortfolioManagerType::new(
         &environment,
         &config,
         "weight_changer",

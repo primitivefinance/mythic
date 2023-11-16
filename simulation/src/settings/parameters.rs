@@ -7,7 +7,7 @@ use ethers::abi::Param;
 use serde_json::Value;
 
 use super::*;
-use crate::agents::swapper::SwapperParameters;
+use crate::agents::g3m::swapper::SwapperParameters;
 
 pub trait Parameterized {
     fn parameters(&self) -> Vec<f64>;
