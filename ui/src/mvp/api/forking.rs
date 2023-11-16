@@ -16,13 +16,13 @@ use serde::{Deserialize, Serialize};
 
 use super::digest;
 
-pub struct BattleTester {
+pub struct Forker {
     pub environment: Environment,
     pub client: Option<Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
     pub block_number: u64,
 }
 
-impl Default for BattleTester {
+impl Default for Forker {
     fn default() -> Self {
         Self {
             environment: EnvironmentBuilder::new().build(),
@@ -34,9 +34,8 @@ impl Default for BattleTester {
 
 const RPC_URL_WS: &str = "ws://localhost:8545";
 const CHAIN_ID: u64 = 31337;
-const COUNTER_ADDRESS: &str = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 
-impl BattleTester {
+impl Forker {
     pub fn new(
         environment: Environment,
         client: Option<Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
@@ -191,7 +190,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_spawn_ethers_db() -> anyhow::Result<(), anyhow::Error> {
-        let battler = BattleTester::connect(None, None).await?;
+        let battler = Forker::connect(None, None).await?;
         let ethers_db = battler.spawn_ethers_db()?;
 
         Ok(())
@@ -214,7 +213,7 @@ mod tests {
             anvil.chain_id()
         );
         let wallet: LocalWallet = anvil.keys().get(0).unwrap().clone().into();
-        let battler = BattleTester::connect(Some(anvil.endpoint()), Some(wallet)).await?;
+        let battler = Forker::connect(Some(anvil.endpoint()), Some(wallet)).await?;
 
         let client = battler.client.clone().unwrap();
         let counter = Counter::deploy(client.clone(), ())?.send().await?;
@@ -258,7 +257,7 @@ mod tests {
             anvil.chain_id()
         );
         let wallet: LocalWallet = anvil.keys().get(0).unwrap().clone().into();
-        let mut battler = BattleTester::connect(Some(anvil.endpoint()), Some(wallet)).await?;
+        let mut battler = Forker::connect(Some(anvil.endpoint()), Some(wallet)).await?;
 
         let client = battler.client.clone().unwrap();
         let counter = Counter::deploy(client.clone(), ())?.send().await?;

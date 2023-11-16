@@ -1,14 +1,14 @@
 //! Abstraction layer for managing and communicating with the simulation
 //! environment.
 
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use analysis::i_strategy::IStrategy;
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use rand::Rng;
+use ethers::prelude::rand::{self, Rng};
 use simulation::{
     agents::{
         arbitrageur::Arbitrageur,
@@ -27,13 +27,10 @@ use simulation::{
 };
 use tokio::{
     runtime::Builder,
-    sync::{broadcast, mpsc, Mutex, Semaphore},
+    sync::{broadcast, Mutex, Semaphore},
     task::JoinHandle,
-    time::Instant,
 };
 use tracing_futures::Instrument;
-
-use super::*;
 
 #[derive(Debug, PartialEq)]
 pub enum Status {
@@ -606,6 +603,7 @@ pub fn world_manager_span(world_manager: &WorldManager) -> tracing::Span {
 
 #[cfg(test)]
 mod tests {
+    use ethers::types::{Address, U256};
     use simulation::agents::{counter::CounterAgent, token_admin::TokenAdmin};
     use tracing::Level;
     use tracing_subscriber::prelude::*;

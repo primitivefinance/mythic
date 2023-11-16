@@ -14,7 +14,7 @@ use self::{
 use super::{
     column,
     components::{containers::*, *},
-    state::{StateSubscription, StateSubscriptionStore},
+    terminal::{StateSubscription, StateSubscriptionStore},
     tracer::{AppEventLayer, AppEventLog},
     *,
 };

@@ -5,28 +5,23 @@ use iced::{
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
+pub mod api;
 mod app;
-mod battletester;
 mod components;
-mod digest;
 mod execution;
 mod loader;
-mod local;
-mod logos;
 mod state;
-mod styles;
+mod terminal;
 mod tracer;
 mod view;
-mod world;
 
 use std::sync::{Arc, Mutex};
 
+use api::{forking::*, local::*, world::*, *};
 use app::App;
 use components::*;
 use loader::Loader;
-use local::Local;
 use styles::*;
-use world::*;
 
 pub struct MVP {
     state: State,

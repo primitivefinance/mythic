@@ -1,5 +1,5 @@
 //! Custom stylesheet wrapper for iced::Button.
-
+#[allow(dead_code)]
 use iced::{
     widget::button::{Appearance, StyleSheet},
     Background, BorderRadius, Color,
