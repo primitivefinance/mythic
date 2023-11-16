@@ -188,7 +188,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
 
                 let output_rust = compute_output_x_given_y_rust(
                     to_float(reserve_x),
-                    to_float(0.into()),
                     to_float(reserve_y),
                     to_float(delta_y),
                     to_float(liquidity),
@@ -405,7 +404,6 @@ mod tests {
 
         let x_rust = compute_output_x_given_y_rust(
             to_float(reserve_x),
-            to_float(delta_x),
             to_float(reserve_y),
             to_float(delta_y),
             to_float(liquidity),
@@ -485,6 +483,8 @@ pub fn compute_l_given_x_rust(
     reserve_x_float / one_minus_cdf_inner_term
 }
 
+// I have no idea why this says i need to do this for clippy to pass but sure
+#[warn(clippy::too_many_arguments)]
 #[tracing::instrument(ret, skip(instance), level = "info")]
 pub async fn compute_output_x_given_y_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
@@ -515,7 +515,6 @@ pub async fn compute_output_x_given_y_solidity(
 #[tracing::instrument(ret, level = "info")]
 pub fn compute_output_x_given_y_rust(
     reserve_x_float: f64,
-    delta_x_float: f64,
     reserve_y_float: f64,
     delta_y_float: f64,
     liquidity_float: f64,
@@ -533,7 +532,7 @@ pub fn compute_output_x_given_y_rust(
     );
 
     let adjusted_l = liquidity_float + delta_l_float;
-    adjusted_l * cdf_term - reserve_x_float - delta_x_float
+    adjusted_l * cdf_term - reserve_x_float
 }
 
 #[tracing::instrument(ret, level = "trace")]
