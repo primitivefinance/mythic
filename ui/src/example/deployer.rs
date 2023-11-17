@@ -9,7 +9,7 @@ use iced::{
 use thiserror::Error;
 use tracing::info;
 
-use crate::sdk::vault::*;
+use super::sdk::vault::*;
 
 #[derive(Debug, Clone)]
 pub enum DeployerToAppMessage {

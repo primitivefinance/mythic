@@ -5,9 +5,11 @@ remappings = [
   "/solmate=/lib/solmate/src",
   "@prb/math/=lib/prb-math/src/",
   "/solstat=/lib/solstat/src",
+  "forge-std/=lib/forge-std/src/",
 ]
 solc_version = "0.8.19"
 src = "src"
+extra_output = ["storageLayout"]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 
 [fmt]
@@ -18,3 +20,6 @@ multiline_func_header = 'params_first'
 quote_style = 'double'
 tab_width = 4
 wrap_comments = false
+
+[rpc_endpoints]
+local = "http://localhost:8545"

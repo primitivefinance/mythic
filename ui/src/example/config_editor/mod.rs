@@ -97,7 +97,6 @@ where
 impl ConfigEditor {
     pub fn new<C: Config>(config: C) -> Self {
         let store = config.to_store();
-        info!("Loading config into ConfigEditor: {:?}", store);
         Self {
             store,
             show_null_fields: false,

@@ -163,4 +163,8 @@ impl Agent for RmmVolatilityTargetingStrategist {
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }

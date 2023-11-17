@@ -36,6 +36,7 @@ impl FirehoseSubscriber {
     }
 }
 
+/// note: we might not actually need this since we impl Layer?
 impl Subscriber for FirehoseSubscriber {
     fn enabled(&self, metadata: &tracing::Metadata<'_>) -> bool {
         metadata.target().starts_with("simulation::") && metadata.level() <= &Level::DEBUG

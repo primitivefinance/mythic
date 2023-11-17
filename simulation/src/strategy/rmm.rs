@@ -73,6 +73,29 @@ impl LiquidityStrategy for RmmStrategy {
             .await?
             .await?)
     }
+
+    async fn get_reserve_x(&self) -> Result<U256> {
+        self.0.get_reserve_x().call().await.map_err(Into::into)
+    }
+
+    async fn get_reserve_y(&self) -> Result<U256> {
+        self.0.get_reserve_y().call().await.map_err(Into::into)
+    }
+
+    async fn get_invariant(&self) -> Result<U256> {
+        Ok(self
+            .0
+            .get_invariant()
+            .call()
+            .await?
+            .checked_abs()
+            .map(|x| x.twos_complement())
+            .unwrap_or_default())
+    }
+
+    async fn get_portfolio_value(&self) -> Result<U256> {
+        Ok(self.0.get_portfolio_value().call().await?)
+    }
 }
 
 /// Uses algebraic methods based on the G3M invariant math to compute the amount

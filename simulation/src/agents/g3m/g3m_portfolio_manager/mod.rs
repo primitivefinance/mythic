@@ -150,6 +150,10 @@ impl G3mPortfolioManagerType {
 
 #[async_trait::async_trait]
 impl Agent for G3mPortfolioManagerType {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     async fn step(&mut self) -> Result<()> {
         self.0.step().await
     }

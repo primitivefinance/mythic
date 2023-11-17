@@ -96,7 +96,8 @@ fn main() -> Result<()> {
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app }) => match app.as_str() {
             "example" => interface::example()?,
-            "analyzer" => interface::analyzer()?,
+            "analyzer" => interface::analyzer::analyzer()?,
+            "mvp" => interface::mvp::run()?,
             _ => println!("Unknown app: {}, or no app provided", app),
         },
         None => Args::command().print_long_help()?,

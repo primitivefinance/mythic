@@ -1,3 +1,5 @@
+use ethers::abi::Token;
+
 use self::{
     block_admin::BlockAdminParameters,
     g3m::{
@@ -18,19 +20,37 @@ use crate::settings::{
 };
 
 pub mod block_admin;
+pub mod counter;
 pub mod g3m;
 pub mod price_changer;
 pub mod rmm;
+pub mod strategy_monitor;
 #[cfg(test)]
 pub mod tests;
 pub mod token_admin;
 
-use std::marker::{Send, Sync};
+use std::{
+    any::Any,
+    fmt::Debug,
+    marker::{Send, Sync},
+};
 
 use linked_hash_map::LinkedHashMap;
 
 #[derive(Debug)]
 pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);
+
+#[derive(Debug, Clone)]
+pub struct SubscribedData {
+    pub name: String,
+    pub data: Token,
+}
+
+impl SubscribedData {
+    pub fn new(name: String, data: Token) -> Self {
+        Self { name, data }
+    }
+}
 
 impl Agents {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&String, &mut Box<dyn Agent>)> {
@@ -48,12 +68,16 @@ impl Agents {
             Box::new(agent),
         );
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 /// Universal agent methods for interacting with the simulation environment or
 /// loop.3
 #[async_trait::async_trait]
-pub trait Agent: Sync + Send + std::fmt::Debug {
+pub trait Agent: Sync + Send + Any + Debug {
     /// Executed outside the main simulation loop.
     async fn startup(&mut self) -> Result<()> {
         Ok(())
@@ -73,6 +97,44 @@ pub trait Agent: Sync + Send + std::fmt::Debug {
     /// In order to be able to track agents by their label, each agent must
     /// implement a label method.
     fn client(&self) -> Arc<RevmMiddleware>;
+    fn as_any(&self) -> &dyn Any;
+
+    /// basic method to watch some data.
+    async fn get_state(&self) -> Result<U256> {
+        Ok(U256::zero())
+    }
+
+    fn get_client(&self) -> Result<Arc<RevmMiddleware>> {
+        Err(anyhow::anyhow!("No client found for this agent"))
+    }
+
+    fn get_name(&self) -> String {
+        "default".to_string()
+    }
+
+    /// Returns a list of subscribed data in the form of a vector of tokens.
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        Ok(vec![])
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for Agents {
+    fn client(&self) -> Arc<RevmMiddleware> {
+        unimplemented!()
+    }
+
+    async fn step(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    async fn priority_step(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

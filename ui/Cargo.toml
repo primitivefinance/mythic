@@ -6,25 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# local
-simulation = { path = "../simulation" }
-
-# workspace
-arbiter-core = { workspace = true }
-tokio = { workspace = true }
-ethers = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-bytesize = { workspace = true }
-dotenv = { workspace = true }
-thiserror = { workspace = true }
-analysis = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-tokio-util = { workspace = true }
-anyhow = { workspace = true }
-
-# deps for ui
+# gui
 eyre = "0.6.8"
 iced = { version = "0.10.0", features = [
     "system",
@@ -43,3 +25,25 @@ iced_aw = { version = "0.7.0", default-features = false, features = [
 native-dialog = "0.7.0"
 
 image = "0.24.7"
+# revm
+revm = { version = "=3.5.0", features = ["ethersdb", "std", "serde"] }
+revm-primitives = { version = "1.3.0" }
+lazy_static = "1.4.0"
+
+# excalibur deps
+analysis.workspace = true
+simulation.workspace = true
+anyhow.workspace = true
+async-trait.workspace = true
+arbiter-core.workspace = true
+bytesize.workspace = true
+dotenv.workspace = true
+ethers.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-futures.workspace = true

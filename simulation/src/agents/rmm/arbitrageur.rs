@@ -130,7 +130,9 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
 }
 // TODO: make sure we're swapping on low and high vol strategies
 #[async_trait::async_trait]
-impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for RmmArbitrageur<S> {
+impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Agent
+    for RmmArbitrageur<S>
+{
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.
@@ -259,6 +261,10 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
 
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

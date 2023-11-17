@@ -12,6 +12,7 @@ import "./IStrategy.sol";
 contract G3M is IG3M, IStrategy {
     event LogPrices(uint256 spotPrice, uint256 blockTimestamp);
     //! ======== PROTOTYPE FUNCTIONS ======== !//
+
     function instantiate(uint256 initial_x, uint256 initial_price) public {
         // y = x * (1 - w_x) / (price * w_y)
         // y = ( p * w_y * x ) / w_x
@@ -36,6 +37,11 @@ contract G3M is IG3M, IStrategy {
 
     function getReserveY() public view returns (uint256) {
         return reserveYWithoutPrecision();
+    }
+
+    function getPortfolioValue() public view returns (uint256) {
+        // todo: remove counter
+        return getReserveX() + getReserveY() + counter;
     }
 
     //! ======== END PROTOTYPE FUNCTIONS ======== !//
@@ -177,8 +183,7 @@ contract G3M is IG3M, IStrategy {
     ) external returns (uint256, uint256) {
         uint256 weight_x = UD60x18.unwrap(lastWeightX);
         uint256 weight_y = 1 ether - weight_x;
-        uint256 initial_y =
-            price * weight_y * amountX / weight_x / 1 ether;
+        uint256 initial_y = price * weight_y * amountX / weight_x / 1 ether;
         _initPool(amountX, initial_y);
     }
 
@@ -483,7 +488,25 @@ contract G3M is IG3M, IStrategy {
 
     function logData() external {
         emit LogPrices(getSpotPrice(), block.timestamp);
-        emit LogReserves(UD60x18.unwrap(reserveX), UD60x18.unwrap(reserveY), block.timestamp);
+        emit LogReserves(
+            UD60x18.unwrap(reserveX), UD60x18.unwrap(reserveY), block.timestamp
+        );
         emit LogSyncingWeight(weightX(), weightY(), block.timestamp);
+    }
+
+    // todo: for testing purposes!
+    uint256 public counter;
+
+    // increments by a random increment factor!
+    // a random number makes multiple instances slightly different
+    // increment is triggered by an agent, and its affected by this contracts
+    // parameters (i.e. the random variable)
+    function increment() public {
+        uint256 random = uint256(
+            keccak256(
+                abi.encodePacked(block.timestamp, block.difficulty, msg.sender)
+            )
+        );
+        counter += random % 100;
     }
 }
