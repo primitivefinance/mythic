@@ -16,7 +16,7 @@ use std::{fs::File, io::BufReader, path::PathBuf};
 
 use arbiter_core::middleware::RevmMiddleware;
 use ethers::{
-    abi::{Token, Tokenizable, Tokenize},
+    abi::Token,
     types::{transaction::eip2718::TypedTransaction, Address},
 };
 use revm::db::{CacheDB, EmptyDB};
@@ -202,11 +202,15 @@ pub struct ContractAbi {
 
 impl UnsealedTransaction {
     /// Creates a new UnsealedTransaction that can be built into a Scroll.
-    pub fn new(target: Address) -> Self {
+    pub fn new() -> Self {
         Self {
-            target,
             ..Default::default()
         }
+    }
+
+    pub fn target(mut self, target: Address) -> Self {
+        self.target = target;
+        self
     }
 
     pub fn artifact(mut self, artifact: PathBuf) -> Self {
@@ -229,6 +233,12 @@ impl UnsealedTransaction {
     /// Sets the arguments of the transaction.
     pub fn arguments(mut self, arguments: Vec<Token>) -> Self {
         self.arguments = arguments;
+        self
+    }
+
+    /// Adds an argument to the transaction.
+    pub fn arg(mut self, arg: Token) -> Self {
+        self.arguments.push(arg);
         self
     }
 
@@ -282,7 +292,8 @@ mod tests {
         let value = U256::zero();
         let method = "increment";
         let arguments = vec![];
-        let mut scroll = UnsealedTransaction::new(target)
+        let mut scroll = UnsealedTransaction::new()
+            .target(target)
             .artifact(get_counter_path().unwrap())
             .value(value)
             .method(method)
