@@ -29,6 +29,7 @@ pub enum TransactionSteps {
 }
 
 pub struct Execution {
+    #[allow(dead_code)]
     unsealed: UnsealedTransaction,
     #[allow(dead_code)]
     sealed: Option<Scroll>,
@@ -118,7 +119,7 @@ impl State for Execution {
             &view::Page::Execute,
             view::execute::execution_layout(
                 self.step.clone(),
-                self.unsealed.arguments[0].clone().to_string(),
+                "temp".to_string(),
                 Addresses::Trusted,
             ),
         )
