@@ -1,13 +1,13 @@
 [profile.default]
-libs = ["box-contracts/lib"]
-out = "box-contracts/out"
+libs = ["contracts/lib"]
+out = "contracts/out"
 remappings = [
-  "/solmate=box-contracts/lib/solmate/src",
-  "@prb/math/=box-contracts/lib/prb-math/src/",
-  "forge-std/=box-contracts/lib/forge-std/src/",
+  "/solmate=contracts/lib/solmate/src",
+  "@prb/math/=contracts/lib/prb-math/src/",
+  "forge-std/=contracts/lib/forge-std/src/",
 ]
 solc_version = "0.8.19"
-src = "./box-contracts/src"
+src = "./contracts/src"
 bytecode_hash = "none"
 cbor_metadata = false
 extra_output = ["storageLayout"]
