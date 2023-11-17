@@ -1,10 +1,6 @@
 //! Handles simulation transactions that will go over live networks
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-    thread::JoinHandle,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use anyhow::anyhow;
 use arbiter_core::environment::{builder::EnvironmentBuilder, fork::ContractMetadata, Environment};
@@ -21,6 +17,7 @@ pub struct Forker {
     pub environment: Environment,
     pub client: Option<Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
     pub block_number: u64,
+    pub last_db: Option<CacheDB<EmptyDB>>,
 }
 
 impl Default for Forker {
@@ -29,6 +26,7 @@ impl Default for Forker {
             environment: EnvironmentBuilder::new().build(),
             client: None,
             block_number: 2,
+            last_db: None,
         }
     }
 }
@@ -37,7 +35,7 @@ const RPC_URL_WS: &str = "ws://localhost:8545";
 const CHAIN_ID: u64 = 31337;
 
 /// Payload that is used for loading a target account's db info into a
-/// `CacheDB`.
+/// [`CacheDB`].
 #[derive(Debug, Clone)]
 pub struct IngestPayload {
     pub target: Address,
@@ -59,11 +57,13 @@ impl Forker {
         environment: Environment,
         client: Option<Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
         block_number: u64,
+        last_db: Option<CacheDB<EmptyDB>>,
     ) -> Self {
         Self {
             environment,
             client,
             block_number,
+            last_db,
         }
     }
 
@@ -112,6 +112,7 @@ impl Forker {
             EnvironmentBuilder::new().build(),
             Some(client.clone()),
             1,
+            None,
         ))
     }
 
@@ -143,6 +144,7 @@ impl Forker {
     /// be fetched from the blockchain.
     /// Once all the `AccountInfo` for the contracts are fetched, we digest the
     /// contract artifacts to get the storage layout.
+    /// todo: remove this
     #[tracing::instrument(skip(self))]
     pub fn digest_config(&self, addy: Address) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
         // Spawn the `EthersDB` and the `CacheDB` we will write to.
@@ -215,6 +217,7 @@ impl Forker {
         let start_block = BlockId::Number(BlockNumber::Number(self.block_number.into()));
 
         // Load account information from its own thread.
+        // This is because ethers_db is not very compatible with tokio runtime.
         let handle = std::thread::spawn(move || {
             let mut ethers_db = EthersDB::new(provider, Some(start_block)).unwrap();
 
@@ -257,7 +260,7 @@ impl Forker {
     }
 
     #[tracing::instrument(skip(self))]
-    fn load_cached_db(
+    pub fn load_cached_db(
         &self,
         payload: IngestPayload,
     ) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
@@ -282,21 +285,28 @@ impl Forker {
         Ok(db)
     }
 
+    /// Loads an Arbiter [`Environment`] with a database..
+    pub fn load_env(&self, db: CacheDB<EmptyDB>) -> Environment {
+        EnvironmentBuilder::new().db(db).build()
+    }
+
     /// Overrides `environment` with a database that was loaded from an
-    /// `IngestPayload.
+    /// [`IngestPayload`].
     #[tracing::instrument(skip(self))]
     pub fn evolve(mut self, payload: IngestPayload) -> Self {
         let db = self.load_cached_db(payload).unwrap();
 
         let _ = self.environment.stop();
 
+        self.last_db = Some(db.clone());
         self.environment = EnvironmentBuilder::new().db(db.clone()).build();
+
         tracing::debug!("Environment evolved with db: {:?}", db.clone());
         self
     }
 }
 
-fn get_counter_path() -> anyhow::Result<std::path::PathBuf, anyhow::Error> {
+pub fn get_counter_path() -> anyhow::Result<std::path::PathBuf, anyhow::Error> {
     let current_dir = std::env::current_dir().unwrap();
     let parent_dir = current_dir.parent().unwrap();
     let path = std::path::Path::new(parent_dir)
