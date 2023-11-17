@@ -1,6 +1,10 @@
 //! Handles simulation transactions that will go over live networks
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+    thread::JoinHandle,
+};
 
 use anyhow::anyhow;
 use arbiter_core::environment::{builder::EnvironmentBuilder, fork::ContractMetadata, Environment};
@@ -9,8 +13,9 @@ use revm::{
     db::{ethersdb::EthersDB, CacheDB, EmptyDB},
     Database,
 };
+use revm_primitives::AccountInfo;
 
-use super::digest;
+use super::digest::{self, Artifacts};
 
 pub struct Forker {
     pub environment: Environment,
@@ -31,6 +36,24 @@ impl Default for Forker {
 const RPC_URL_WS: &str = "ws://localhost:8545";
 const CHAIN_ID: u64 = 31337;
 
+/// Payload that is used for loading a target account's db info into a
+/// `CacheDB`.
+#[derive(Debug, Clone)]
+pub struct IngestPayload {
+    pub target: Address,
+    pub artifacts_path: String,
+}
+
+impl From<IngestPayload> for ContractMetadata {
+    fn from(payload: IngestPayload) -> Self {
+        Self {
+            address: payload.target,
+            mappings: HashMap::new(),
+            artifacts_path: payload.artifacts_path,
+        }
+    }
+}
+
 impl Forker {
     pub fn new(
         environment: Environment,
@@ -44,11 +67,15 @@ impl Forker {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     pub fn with_block_number(mut self, block_number: u64) -> Self {
+        tracing::debug!("Setting block number to {}", block_number);
+
         self.block_number = block_number;
         self
     }
 
+    #[tracing::instrument(skip(wallet))]
     pub async fn connect(url: Option<String>, wallet: Option<LocalWallet>) -> anyhow::Result<Self> {
         // connect to the network
         let provider = match url {
@@ -56,11 +83,14 @@ impl Forker {
                 // Replace http with ws
                 let url = url.replace("http", "ws");
 
+                tracing::info!("Connecting to network at url {}", url);
                 Provider::<Ws>::connect(&url).await?
             }
-            None => Provider::<Ws>::connect(RPC_URL_WS).await?,
+            None => {
+                tracing::info!("Connecting to network at url {}", RPC_URL_WS);
+                Provider::<Ws>::connect(RPC_URL_WS).await?
+            }
         };
-        tracing::info!("Connected to network at url {}", RPC_URL_WS);
 
         // make a wallet to use
         let wallet = match wallet {
@@ -175,10 +205,112 @@ impl Forker {
 
         Ok(db)
     }
+
+    #[tracing::instrument(skip(self))]
+    fn fetch_account_info(
+        &self,
+        payload: IngestPayload,
+    ) -> anyhow::Result<AccountInfo, anyhow::Error> {
+        let provider = Arc::new(self.client.clone().unwrap().provider().clone());
+        let start_block = BlockId::Number(BlockNumber::Number(self.block_number.into()));
+
+        // Load account information from its own thread.
+        let handle = std::thread::spawn(move || {
+            let mut ethers_db = EthersDB::new(provider, Some(start_block)).unwrap();
+
+            tracing::info!("fetching account info for {:?}", payload.target);
+            let info = ethers_db
+                .basic(payload.target.to_fixed_bytes().into())
+                .map_err(|_| {
+                    anyhow!("Failed to fetch account info with
+                EthersDB."
+                        .to_string(),)
+                })
+                .unwrap()
+                .ok_or(anyhow!(
+                    "Failed to fetch account info with EthersDB.".to_string(),
+                ))
+                .unwrap();
+
+            info
+        });
+
+        let info = handle.join();
+
+        tracing::debug!("Success Account info: {:?}", info);
+        let info = match info {
+            Ok(info) => info,
+            Err(e) => {
+                tracing::error!("Error: {:?}", e);
+                panic!("Error: {:?}", e);
+            }
+        };
+
+        Ok(info)
+    }
+
+    #[tracing::instrument(skip(self))]
+    fn fetch_artifacts(&self, payload: IngestPayload) -> anyhow::Result<Artifacts, anyhow::Error> {
+        let artifacts = digest::digest_artifacts(payload.artifacts_path.as_str())?;
+
+        Ok(artifacts)
+    }
+
+    #[tracing::instrument(skip(self))]
+    fn load_cached_db(
+        &self,
+        payload: IngestPayload,
+    ) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
+        let mut db = CacheDB::new(EmptyDB::new());
+
+        let info = self.fetch_account_info(payload.clone())?;
+        db.insert_account_info(payload.target.to_fixed_bytes().into(), info);
+
+        tracing::debug!("Fetching storage layout...");
+
+        let artifacts = self.fetch_artifacts(payload.clone())?;
+        let storage_layout = artifacts.storage_layout;
+        digest::create_storage_layout(
+            &payload.into(),
+            storage_layout,
+            &mut db,
+            &mut self.spawn_ethers_db()?,
+        )?;
+
+        tracing::debug!("Storage layout fetched.");
+
+        Ok(db)
+    }
+
+    /// Overrides `environment` with a database that was loaded from an
+    /// `IngestPayload.
+    #[tracing::instrument(skip(self))]
+    pub fn evolve(mut self, payload: IngestPayload) -> Self {
+        let db = self.load_cached_db(payload).unwrap();
+
+        let _ = self.environment.stop();
+
+        self.environment = EnvironmentBuilder::new().db(db.clone()).build();
+        tracing::debug!("Environment evolved with db: {:?}", db.clone());
+        self
+    }
+}
+
+fn get_counter_path() -> anyhow::Result<std::path::PathBuf, anyhow::Error> {
+    let current_dir = std::env::current_dir().unwrap();
+    let parent_dir = current_dir.parent().unwrap();
+    let path = std::path::Path::new(parent_dir)
+        .join("box-contracts")
+        .join("out")
+        .join("Counter.sol")
+        .join("counter.json");
+
+    Ok(path)
 }
 
 #[cfg(test)]
 mod tests {
+    use arbiter_core::middleware::RevmMiddleware;
     use ethers::{prelude::*, utils::Anvil};
     use simulation::bindings::counter::Counter;
 
@@ -190,6 +322,74 @@ mod tests {
         let _ = *TEST_SUBSCRIBER;
         let battler = Forker::connect(None, None).await?;
         let ethers_db = battler.spawn_ethers_db()?;
+
+        Ok(())
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn test_evolve() -> anyhow::Result<(), anyhow::Error> {
+        let _ = *TEST_SUBSCRIBER;
+
+        // Start anvil in the background.
+        let anvil = Anvil::default()
+            .arg("--gas-limit")
+            .arg("20000000")
+            .chain_id(31337_u64)
+            .spawn();
+
+        // Load the dev wallet from anvil and have the Forker make a client with it.
+        let wallet: LocalWallet = anvil.keys().get(0).unwrap().clone().into();
+        let battler = Forker::connect(Some(anvil.endpoint()), Some(wallet)).await?;
+
+        // Deploy the counter contract.
+        let client = battler.client.clone().unwrap();
+        let counter = Counter::deploy(client.clone(), ())?.send().await?;
+        let counter_address = counter.address();
+
+        // Increment the counter so it's one.
+        // This also increments the block to 1.
+        let _ = counter.increment().send().await?.await?;
+
+        // Assert the count is one, and get the block number.
+        let count = counter.number().call().await?;
+        assert_eq!(count, 1_u64.into());
+
+        let block_number = client.get_block_number().await?;
+        tracing::debug!("Block number: {}", block_number);
+
+        // Create an ingest payload to load the counter contract into the database.
+        let payload = IngestPayload {
+            target: counter_address,
+            artifacts_path: get_counter_path().unwrap().to_str().unwrap().to_string(),
+        };
+
+        // Evolve the Forker with the payload.
+        let battler = battler
+            .with_block_number(block_number.as_u64())
+            .evolve(payload);
+
+        // Get the arbiter client to talk to the evolved Forker.
+        let arbiter_client = RevmMiddleware::new(&battler.environment, Some("evolve"))?;
+
+        // Get the Counter contract in Arbiter.
+        let counter_arbiter = Counter::new(counter_address, arbiter_client.clone());
+
+        // Call the counter's current count in the arbiter environment.
+        let count = counter_arbiter.number().call().await?;
+
+        // Check that the count is one.
+        assert_eq!(count, 1_u64.into());
+
+        // Increment the counter again so it's two, but in arbiter.
+        tracing::debug!("Incrementing counter in arbiter...");
+        let _ = counter_arbiter.increment().send().await?.await?.unwrap();
+
+        // Call the counter's current count in the arbiter environment.
+        let count = counter_arbiter.number().call().await?;
+
+        // Check that the count is two.
+        assert_eq!(count, 2_u64.into());
+        tracing::debug!("Final count: {}", count);
 
         Ok(())
     }

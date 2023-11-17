@@ -87,7 +87,9 @@ impl App {
 
     fn switch_page(&mut self, navigate_to: &Page) -> Command<Message> {
         self.screen = match navigate_to {
-            view::Page::Execute => Screen::new(Box::new(execution::Execution::new())),
+            view::Page::Execute => {
+                Screen::new(Box::new(execution::Execution::new(self.local.clone())))
+            }
             _ => Screen::new(Box::new(Terminal::new(self.receiver.clone()))),
         };
 
