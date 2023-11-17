@@ -1,5 +1,5 @@
 pub mod parameters;
-use std::{collections::BTreeMap, env, path::Path};
+use std::{collections::BTreeMap, env, hash::Hasher, path::Path};
 
 use itertools::{Itertools, MultiProduct};
 use parameters::*;

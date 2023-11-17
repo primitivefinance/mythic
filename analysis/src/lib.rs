@@ -6,6 +6,7 @@ use ethers::types::U256;
 use reader::SimulationData;
 use serde_json::{from_reader, Value};
 pub use simulation::bindings::*;
+use tracing::{debug, info};
 use visualize::{
     plots::{statistical::StatisticalPlot, PlotSettings},
     Figure,
@@ -15,6 +16,7 @@ use visualize::{
 pub mod reader;
 #[cfg(test)]
 mod tests;
+pub mod unpacker;
 #[allow(unused)]
 pub mod visualize;
 
@@ -22,7 +24,7 @@ pub fn wad_to_float(wad: U256) -> f64 {
     wad.as_u128() as f64 / 10f64.powi(18)
 }
 
-pub fn plot_dca_weights() {
+pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
     let mut weights_statistical = (vec![], vec![]);
     let mut reserves_statistical = (vec![], vec![]);
     let mut prices_statistical = (vec![], vec![]);
@@ -30,11 +32,7 @@ pub fn plot_dca_weights() {
     let mut swapper_reserves_statistical = (vec![], vec![]);
     let mut swapper_portfolio_value_statistical = (vec![], vec![]);
 
-    for idx in 0..1 {
-        // Chose the file and get the data
-        let file = format!("analysis/dca/debug/{}.json", idx);
-        let data = SimulationData::new(&file).unwrap();
-
+    for (idx, data) in data_set.iter().enumerate() {
         // Get the weights and indices for the plots
         let weight_filter = data.get_vectorized_events::<g3m::LogSyncingWeightFilter>("g3m");
         let indices: Vec<f64> = weight_filter
@@ -117,10 +115,6 @@ pub fn plot_dca_weights() {
                 let x_balance = wad_to_float(event.token_x_balance);
                 let y_balance = wad_to_float(event.token_y_balance);
                 let price = wad_to_float(price_change_event.price);
-                // println!(
-                //     "SWAPPER reserve_x: {}, reserve_y: {}, price: {}",
-                //     x_balance, y_balance, price
-                // );
                 x_balance * price + y_balance
             })
             .collect::<Vec<f64>>();
@@ -132,7 +126,7 @@ pub fn plot_dca_weights() {
             .push(swapper_portfolio_value_plot);
     }
     // Create the figure
-    let mut figure = Figure::new("debug_dca", Some((2000, 2000)));
+    let mut figure = Figure::new(name, Some((2000, 2000)));
 
     // Plot the prices
     let plot_settings = PlotSettings::new().title("Prices").labels("Index", "Price");

@@ -21,26 +21,27 @@ Next, we define the trading function to be:
 $$
 \varphi(x,y) = x^{w_x} y^{w_y} = k
 $$
-where $k$ is the invariant of the pool. 
+where $L$ is the invariant of the pool. 
 We can put:
 $$
-k \equiv \mathtt{invariant}
+L \equiv \mathtt{liquidity}
 $$
 
-### Price
+## Price
 If we compute the derivatives and simplify the expression, we get that the pool price is:
 $$
 \boxed{p = \frac{w_x}{w_y}\frac{y}{x}}
 $$
 
-### Swap 
+## Swap 
 
-We require that the trading function remain invariant like so:
+We require that the trading function remain invariant when a swap is applied, that is:
 $$
 L(x,y) = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
 $$
-while also taking fees as a liquidity deposit. 
-#### Trade in $\Delta_X$ for $\Delta_Y$
+while also taking fees as a liquidity deposit (which will increase the liquidity $L$).
+
+### Trade in $\Delta_X$ for $\Delta_Y$
 Suppose that we want to trade in $\Delta_X$ for $\Delta_Y$. 
 Then we have that we are really inputting $\gamma\Delta_X$ while raising $L\mapsto L+\delta_L$.
 This gives us a new invariant, noting that we can create
@@ -76,7 +77,7 @@ $$
 \boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_{L_Y}}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y}
 $$
 
-#### Trade in $\Delta_Y$ for $\Delta_X$
+### Trade in $\Delta_Y$ for $\Delta_X$
 We can get the
 $$
 x = \frac{y}{p}\frac{w_x}{w_y}
@@ -96,7 +97,7 @@ $$
 $$
 
 
-### Liquidity Provision
+## Liquidity Provision
 It must be that adding liquidity does not change the price of the pool. 
 This makes it quite simple to add liquidity. 
 If a user wants to add liquidity, they can just add the tokens such that the ratio of the reserves does not change.
@@ -113,13 +114,7 @@ $$
 \Delta_x = \frac{x}{y}(y+\Delta_y)-x
 $$
 
-
-
----
-
 ## Arbitrage Math
-
-
 We can solve for each variable in terms of the other and the invariant $k$:
 $$
 x^{w_x}y^{w_y} = k
@@ -135,9 +130,7 @@ $$
 \implies \boxed{y = \left(\frac{L}{x^{w_x}}\right)^{1/w_y}}
 $$
 
-### Getting the arbitrage calculation
-
-#### For Lowering Price
+### Lowering Price
 Suppose that we need the price to move $p\mapsto p'$ with $p'<p$. 
 This means we tender $x$ in the swap so $x\mapsto x+\delta_x$. 
 Then we want $p'$ and $x\mapsto x+\delta_x$:
@@ -169,7 +162,7 @@ $$
 \implies \boxed{\Delta_x = \frac{1}{\gamma}\left(L \left( \frac{w_x}{pw_y}\right)^{w_y}-x\right)}
 $$
 
-#### For Raising Price
+### Raising Price
 Suppose that we need the price to move $p\mapsto p'$ with $p'>p$. 
 This means we tender $x$ in the swap so $y\mapsto y+\delta_x$. 
 Then we want $p'$ and $y\mapsto y+\delta_y$ with:
@@ -190,14 +183,15 @@ $$
 \implies \boxed{ \delta_y = k\left(\frac{w_y}{w_x}p'\right)^{w_x}-y }
 $$
 
-## Value Function on $L(S)$
-Relate to value on $V(L,S)$ and $V(x,y)$. 
-Then we can use this to tokenize. We have $L_X(x, S)$ and $L_Y(y, S)$.
-We know that:
+## Value Function via $L$ and $S$
+Given that we treat $Y$ as the numeraire, we know that the portfolio value of a pool when $X$ is at price $S$ is:
 $$
-V(x(S),y(S)) = x S + y
+V(x,y,S) = x S + y
 $$
-Now we also have the following
+We can find the relationship to portfolio value from $V(L,S)$. 
+This will be helpful when tokenizing pool LP positions. 
+
+Since we have $L_X(x, S)$ and $L_Y(y, S)$, we can get the following:
 $$
 x = \frac{L}{(\frac{w_y}{w_x}S)^{w_y}}\\
 y = \frac{\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}{L}
@@ -207,4 +201,4 @@ $$
 V(L,S) = \frac{LS}{\left(\frac{w_y}{w_x}S\right)^{w_y}} + \frac{L}{\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}\\
 \boxed{V(L,S)=LS^{w_x}\left(\left( \frac{w_x}{w_y}\right)^{w_y}+\left( \frac{w_y}{w_x}\right)^{w_x}\right)}
 $$
-Note that $V$ is linear in $L$ and so we can use this to tokenize.
+Note that $V$ is linear in $L$ and so we can use this to tokenize. 
