@@ -2,14 +2,13 @@ use super::*;
 
 #[tracing::instrument(ret, level = "trace")]
 pub fn compute_sigma_sqrt_tau(sigma: f64, tau: f64) -> f64 {
-    let sqrt_tau = tau.sqrt() * 10f64.powi(9);
+    let sqrt_tau = tau.sqrt();
     sigma * sqrt_tau
 }
 
 #[tracing::instrument(ret, level = "trace")]
 pub fn compute_half_sigma_power_2_tau(sigma: f64, tau: f64) -> f64 {
-    let inner_term = (sigma.powi(2) * tau) / 2.0;
-    inner_term
+    (sigma.powi(2) * tau) / 2.0
 }
 
 #[tracing::instrument(ret, level = "trace")]
@@ -126,6 +125,7 @@ pub fn compute_spot_price_rust(
         * ((normal.inverse_cdf(1.0 - r1) * sigma_sqrt_tau - half_sigma_power_2_tau).exp())
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(ret, level = "trace")]
 pub fn compute_output_y_given_x_rust(
     reserve_x_float: f64,
@@ -150,6 +150,7 @@ pub fn compute_output_y_given_x_rust(
     kl * cdf - reserve_y_float
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(ret, level = "trace")]
 pub fn compute_output_x_given_y_rust(
     reserve_x_float: f64,
