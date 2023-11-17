@@ -13,4 +13,4 @@ Overview of the process from start to end of building a transaction, simulation 
 - Return the result of this analysis for rendering on the UI
 - Enable UI components (i.e. confirm).
 - Execute the transaction on confirm.
-- On successful transaction reciept, render the receipts details in the UI.
+- On successful transaction receipt, render the receipts details in the UI.
