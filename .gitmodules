@@ -4,6 +4,7 @@
 [submodule "contracts/lib/solmate"]
 	path = contracts/lib/solmate
 	url = https://github.com/transmissions11/solmate
+	branch = v7
 [submodule "contracts/lib/prb-math"]
 	path = contracts/lib/prb-math
 	url = https://github.com/PaulRBerg/prb-math
