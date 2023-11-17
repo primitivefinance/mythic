@@ -50,7 +50,6 @@ function computeD1(
 ) pure returns (int256 d1) {
     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     int256 lnSDivK = computeLnSDivK(S, K);
-
     uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
 
     d1 = (lnSDivK + int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);

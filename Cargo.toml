@@ -8,13 +8,14 @@ name = "excalibur"
 path = "src/main.rs"
 
 [workspace]
-members = ["simulation", "analysis", "ui"]
+members = ["simulation", "cfmm_math", "analysis", "ui"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
+cfmm_math = { path = "./cfmm_math", version = "0.1.0" }
 ui = { path = "./ui", version = "0.1.0" }
 analysis = { path = "./analysis", version = "0.1.0" }
 
@@ -54,6 +55,7 @@ linked-hash-map = "0.5.6"
 
 [dependencies]
 simulation.workspace = true
+cfmm_math.workspace = true
 analysis.workspace = true
 ui.workspace = true
 tokio.workspace = true

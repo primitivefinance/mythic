@@ -36,7 +36,7 @@ process.GBM.drift.fixed = 0.1
 # The volatility for GBM
 process.GBM.volatility.fixed = 0.35
 
-# Weight settings
+# Rmm portfolio manager params 
 [agent.portfolio_manager.RmmPortfolioManager]
 sigma.fixed = 1.0
 tau.fixed = 100000.0
