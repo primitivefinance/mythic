@@ -6,8 +6,9 @@ use iced::{Command, Element, Subscription};
 use super::{
     app::Message,
     view::{self, execute::Addresses},
-    State,
+    State, *,
 };
+use crate::mvp::api::local::Local;
 
 #[derive(Default)]
 pub struct CraftingTransaction {
@@ -29,6 +30,7 @@ pub struct Execution {
     step: TransactionSteps,
     #[allow(dead_code)]
     review: Review,
+    local: Local<Ws>,
 }
 
 #[derive(Default)]
@@ -38,11 +40,12 @@ pub struct Review {
 }
 
 impl Execution {
-    pub fn new() -> Self {
+    pub fn new(local: Local<Ws>) -> Self {
         Self {
             transaction: CraftingTransaction::default(),
             step: TransactionSteps::default(),
             review: Review::default(),
+            local,
         }
     }
 

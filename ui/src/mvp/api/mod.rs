@@ -5,6 +5,7 @@ mod digest;
 
 pub mod forking;
 pub mod local;
+pub mod scroll;
 pub mod world;
 
 use ethers::prelude::*;
