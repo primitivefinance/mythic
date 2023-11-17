@@ -71,8 +71,6 @@ impl ExampleScreen {
         )
         .unwrap();
 
-        info!("Loaded config: {:?}", config);
-
         let firehose = firehose::Firehose::new(receiver);
 
         Self {

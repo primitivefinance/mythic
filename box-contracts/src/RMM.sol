@@ -6,7 +6,9 @@ import "./IStrategy.sol";
 import "./lib/RMMMath.sol";
 
 contract RMM is IStrategy {
-    event LogParameters(uint256 sigma, uint256 strikePrice, uint256 tau, uint256 blockTimestamp);
+    event LogParameters(
+        uint256 sigma, uint256 strikePrice, uint256 tau, uint256 blockTimestamp
+    );
 
     ERC20 public tokenX;
     ERC20 public tokenY;
@@ -46,6 +48,10 @@ contract RMM is IStrategy {
         uint256 price
     ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
         return initPool(true, amount, price);
+    }
+
+    function getPortfolioValue() public view returns (uint256) {
+        return reserveX * getSpotPrice() / 1e18 + reserveY;
     }
 
     function initPool(
@@ -263,7 +269,11 @@ contract RMM is IStrategy {
     event amountOutEvent(uint256 amountOut);
     event reserveXEvent(uint256 reserveX);
     event outputEvent(int256 output);
-    function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
+
+    function _swap(
+        bool swapDirection,
+        uint256 amountIn
+    ) internal returns (uint256 amountOut) {
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
@@ -284,7 +294,6 @@ contract RMM is IStrategy {
                     ) - 1
                 )
             );
-
 
             totalLiquidity += deltaL;
             reserveX += amountIn;
@@ -339,7 +348,7 @@ contract RMM is IStrategy {
         swapFee = newSwapFee;
     }
 
-    function getSpotPrice() external view returns (uint256) {
+    function getSpotPrice() public view returns (uint256) {
         return
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
     }
@@ -368,7 +377,7 @@ contract RMM is IStrategy {
         emit LogParameters(sigma, strikePrice, tau, block.timestamp);
     }
 
-    function getStrategyData() external view returns (bytes memory data) { 
+    function getStrategyData() external view returns (bytes memory data) {
         return abi.encode(sigma, strikePrice, tau);
     }
 }

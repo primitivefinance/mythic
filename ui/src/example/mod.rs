@@ -10,7 +10,6 @@ use tracing::info;
 
 use self::footer::Footer;
 use super::*;
-use crate::sdk::production::*;
 
 pub mod components;
 mod config_editor;
@@ -20,8 +19,12 @@ mod footer;
 mod header;
 mod run_sim_button;
 mod screen;
+mod sdk;
 mod sidebar;
+mod styles;
 mod watcher;
+
+use sdk::production::*;
 
 #[allow(clippy::large_enum_variant)]
 /// Application state of an example app that runs arbiter's environment in the
@@ -218,9 +221,9 @@ impl Application for ExampleApp {
                             screen::Event::Deploy => {
                                 info!("Deploying vault");
                                 return Command::perform(
-                                    crate::sdk::vault::Vault::deploy::<deployer::DeployerError>(
-                                        example.client.clone(),
-                                    ),
+                                    crate::example::sdk::vault::Vault::deploy::<
+                                        deployer::DeployerError,
+                                    >(example.client.clone()),
                                     |res| {
                                         Message::ExampleScreen(
                                             screen::ExampleScreenMessage::DeployerComponent(
@@ -245,10 +248,10 @@ impl Application for ExampleApp {
         let content: Element<_> = match self {
             ExampleApp::Loading => text("Loading...").into(),
             ExampleApp::Running {
-                client,
                 screen,
                 trace_receiver,
                 footer,
+                environment,
                 ..
             } => {
                 // Base container for the Running state
@@ -267,8 +270,9 @@ impl Application for ExampleApp {
                     }
                     Screen::Home => {
                         // Button to go to the example screen.
+                        let clx = RevmMiddleware::new(&environment, Some("client")).unwrap();
                         let example_screen =
-                            screen::ExampleScreen::new(client.clone(), trace_receiver.clone());
+                            screen::ExampleScreen::new(clx.clone(), trace_receiver.clone());
                         button("Go to Example")
                             .on_press(Message::ChangePage(Screen::Example(example_screen)))
                             .into()

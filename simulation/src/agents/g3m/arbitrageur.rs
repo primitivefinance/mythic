@@ -1,3 +1,5 @@
+use ethers::abi::Tokenizable;
+
 use super::*;
 use crate::{agents::Agent, strategy::ArbitrageStrategy};
 
@@ -49,8 +51,8 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
         token_admin
             .mint(
                 client.address(),
-                parse_ether(100_000).unwrap(),
-                parse_ether(100_000_000).unwrap(),
+                parse_ether(100).unwrap(),
+                parse_ether(1000).unwrap(),
             )
             .await?;
 
@@ -118,7 +120,13 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arbitrageur<S> {
+impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Agent
+    for Arbitrageur<S>
+{
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         debug!("Entered `step()` for arbitrageur");
@@ -198,8 +206,38 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
         debug!("Finished `step()` for `Arbitrageur`");
         Ok(())
     }
+
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
+    }
+
+    async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
+        let atomic = self.atomic_arbitrage.address();
+        let liquid = self.liquid_exchange.address();
+        let x_token = self.atomic_arbitrage.asset().call().await?;
+        let y_token = self.atomic_arbitrage.quote().call().await?;
+        let this = self.client.address();
+
+        let x_balance = ArbiterToken::new(x_token, self.client.clone())
+            .balance_of(this)
+            .call()
+            .await?;
+
+        let y_balance = ArbiterToken::new(y_token, self.client.clone())
+            .balance_of(this)
+            .call()
+            .await?;
+
+        let subbed = vec![
+            SubscribedData::new("x_balance".to_string(), x_balance.into_token()),
+            SubscribedData::new("y_balance".to_string(), y_balance.into_token()),
+        ];
+
+        Ok(subbed)
+    }
+
+    fn get_name(&self) -> String {
+        "arbitrageur".to_string()
     }
 }
 

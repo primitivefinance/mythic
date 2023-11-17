@@ -126,6 +126,10 @@ impl Agent for RmmPortfolioManagerType {
     fn client(&self) -> Arc<RevmMiddleware> {
         self.0.client()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self.0.as_any()
+    }
 }
 
 #[async_trait::async_trait]

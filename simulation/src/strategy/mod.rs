@@ -34,7 +34,7 @@ pub trait Strategy: Sized + Send + Sync + std::fmt::Debug {
 /// A sub-trait for liquidity providers to implement their specific logic for
 /// providing/setting up a pool.
 #[async_trait::async_trait]
-pub trait LiquidityStrategy: Strategy {
+pub trait LiquidityStrategy: Strategy + Sized {
     /// Provides the pool with an initial amount of reserves and liquidity, at a
     /// price.
     async fn initialize_pool(
@@ -42,6 +42,14 @@ pub trait LiquidityStrategy: Strategy {
         initial_x_wad: U256,
         initial_price_wad: U256,
     ) -> Result<Option<TransactionReceipt>>;
+
+    async fn get_reserve_x(&self) -> Result<U256>;
+
+    async fn get_reserve_y(&self) -> Result<U256>;
+
+    async fn get_invariant(&self) -> Result<U256>;
+
+    async fn get_portfolio_value(&self) -> Result<U256>;
 }
 
 /// A sub-trait for arbitrageurs to implement their logic for computing how many
