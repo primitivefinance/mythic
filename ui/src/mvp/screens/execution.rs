@@ -8,7 +8,10 @@ use super::{
     view::{self, execute::Addresses},
     State, *,
 };
-use crate::mvp::api::local::Local;
+use crate::mvp::api::{
+    local::Local,
+    scroll::{Scroll, UnsealedTransaction},
+};
 
 #[derive(Default)]
 pub struct CraftingTransaction {
@@ -26,10 +29,13 @@ pub enum TransactionSteps {
 }
 
 pub struct Execution {
-    transaction: CraftingTransaction,
+    unsealed: UnsealedTransaction,
+    #[allow(dead_code)]
+    sealed: Option<Scroll>,
     step: TransactionSteps,
     #[allow(dead_code)]
     review: Review,
+    #[allow(dead_code)]
     local: Local<Ws>,
 }
 
@@ -42,7 +48,8 @@ pub struct Review {
 impl Execution {
     pub fn new(local: Local<Ws>) -> Self {
         Self {
-            transaction: CraftingTransaction::default(),
+            unsealed: UnsealedTransaction::new(),
+            sealed: None,
             step: TransactionSteps::default(),
             review: Review::default(),
             local,
@@ -85,12 +92,13 @@ impl State for Execution {
                                 TransactionSteps::Confirmed => TransactionSteps::Simulated,
                             };
                         }
-                        view::Execution::ToAddressChanged(to) => {
-                            self.transaction.to = to;
+                        view::Execution::ToAddressChanged(_to) => {
+                            // self.unsealed.target = to;
                         }
                         view::Execution::AmountChanged(amount) => match amount {
-                            Some(amount) => {
-                                self.transaction.amount = amount;
+                            Some(_amount) => {
+                                // let amount: Token = amount.into_token();
+                                // self.unsealed.arg(amount);
                             }
                             None => {}
                         },
@@ -110,8 +118,8 @@ impl State for Execution {
             &view::Page::Execute,
             view::execute::execution_layout(
                 self.step.clone(),
-                self.transaction.amount.clone(),
-                self.transaction.to.clone(),
+                self.unsealed.arguments[0].clone().to_string(),
+                Addresses::Trusted,
             ),
         )
         .into()
