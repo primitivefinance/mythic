@@ -151,8 +151,6 @@ pub fn finite_firehose<'a>(logs: VecDeque<String>, label: String) -> Element<'a,
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_feed() {
         //  let mut feed = Feed::new(2);

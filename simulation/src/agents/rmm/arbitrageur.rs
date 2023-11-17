@@ -414,6 +414,7 @@ pub async fn compute_l_given_x_solidity(
     Ok(l)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn compute_output_x_given_y_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,
@@ -440,6 +441,7 @@ pub async fn compute_output_x_given_y_solidity(
     Ok(x)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn compute_output_y_given_x_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,

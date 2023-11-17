@@ -23,5 +23,6 @@ fn sweep_output() {
     simulations::batch(config).unwrap();
     let entries = fs::read_dir("src/tests/output/sweep").unwrap();
     let count = entries.count();
-    assert_eq!(count, 129); // 2^7 + 1 given our current config parameter sets (+1 for the errors.json)
+    assert_eq!(count, 129); // 2^7 + 1 given our current config parameter sets
+                            // (+1 for the errors.json)
 }
