@@ -178,4 +178,8 @@ impl Agent for Swapper {
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }

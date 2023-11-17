@@ -68,7 +68,7 @@ impl<S: LiquidityStrategy> RmmLiquidityProvider<S> {
 }
 
 #[async_trait::async_trait]
-impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent
+impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send + 'static> Agent
     for RmmLiquidityProvider<S>
 {
     async fn startup(&mut self) -> Result<()> {
@@ -90,5 +90,9 @@ impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send> Agent
 
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

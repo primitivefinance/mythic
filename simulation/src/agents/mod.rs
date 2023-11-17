@@ -25,7 +25,6 @@ pub mod g3m;
 pub mod price_changer;
 pub mod rmm;
 pub mod strategy_monitor;
-pub mod swapper;
 #[cfg(test)]
 pub mod tests;
 pub mod token_admin;
@@ -40,14 +39,6 @@ use linked_hash_map::LinkedHashMap;
 
 #[derive(Debug)]
 pub struct Agents(pub LinkedHashMap<String, Box<dyn Agent>>);
-
-impl std::fmt::Debug for Agents {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Agents")
-            .field("agents", &self.0.len())
-            .finish()
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct SubscribedData {
@@ -129,6 +120,10 @@ pub trait Agent: Sync + Send + Any + Debug {
 
 #[async_trait::async_trait]
 impl Agent for Agents {
+    fn client(&self) -> Arc<RevmMiddleware> {
+        unimplemented!()
+    }
+
     async fn step(&mut self) -> Result<()> {
         Ok(())
     }
@@ -137,7 +132,9 @@ impl Agent for Agents {
         Ok(())
     }
 
-    fn as_any(&self) -> &dyn Any;
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

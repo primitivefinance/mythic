@@ -65,15 +65,16 @@ impl LiquidityStrategy for G3mStrategy {
     }
 
     async fn get_reserve_x(&self) -> Result<U256> {
-        Ok(self.get_reserve_x().call().await?)
+        Ok(self.0.get_reserve_x().call().await?)
     }
 
     async fn get_reserve_y(&self) -> Result<U256> {
-        Ok(self.get_reserve_y().call().await?)
+        Ok(self.0.get_reserve_y().call().await?)
     }
 
     async fn get_invariant(&self) -> Result<U256> {
         Ok(self
+            .0
             .get_invariant()
             .call()
             .await?
@@ -83,7 +84,7 @@ impl LiquidityStrategy for G3mStrategy {
     }
 
     async fn get_portfolio_value(&self) -> Result<U256> {
-        Ok(self.get_portfolio_value().call().await?)
+        Ok(self.0.get_portfolio_value().call().await?)
     }
 }
 

@@ -3,7 +3,6 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use arbiter_core::math::GeometricBrownianMotion;
 use ethers::abi::Tokenizable;
 use itertools::iproduct;
 use rand::random;

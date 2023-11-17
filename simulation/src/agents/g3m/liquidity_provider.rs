@@ -190,6 +190,7 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for LiquidityProvider<S> {
     async fn step(&mut self) -> Result<()> {
         self.strategy.get_strategy_logs().await;
         Ok(())
+    }
 
     async fn get_state(&self) -> Result<U256> {
         let res = self.strategy.get_portfolio_value().await;

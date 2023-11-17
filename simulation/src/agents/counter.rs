@@ -59,6 +59,10 @@ impl Agent for CounterAgent {
         self
     }
 
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
+
     async fn step(&mut self) -> Result<()> {
         tracing::trace!("Incrementing counter");
         // very simple!

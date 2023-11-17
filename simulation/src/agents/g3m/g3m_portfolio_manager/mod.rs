@@ -77,12 +77,6 @@ impl From<G3mPortfolioManagerSpecialty<Multiple>> for Vec<G3mPortfolioManagerSpe
 #[derive(Debug)]
 pub struct G3mPortfolioManagerType(pub Box<dyn G3mPortfolioManager>);
 
-impl std::fmt::Debug for G3mPortfolioManagerType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("G3mPortfolioManagerType").finish()
-    }
-}
-
 impl G3mPortfolioManagerType {
     pub async fn new(
         environment: &Environment,

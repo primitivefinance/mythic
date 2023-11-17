@@ -45,6 +45,10 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for StrategyMonitorAgent<S> {
         self
     }
 
+    fn client(&self) -> Arc<RevmMiddleware> {
+        self.client.clone()
+    }
+
     fn get_name(&self) -> String {
         "strategy_monitor".to_string()
     }
