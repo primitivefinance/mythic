@@ -81,7 +81,7 @@ impl MomentumStrategist {
 }
 
 #[async_trait::async_trait]
-impl WeightChanger for MomentumStrategist {
+impl G3mPortfolioManager for MomentumStrategist {
     // dumb poc, this just checks if the portfolio rv is greater than the target rv
     // then changes weight by 1% over the course of a day depending on if rv is
     // greater or less than target

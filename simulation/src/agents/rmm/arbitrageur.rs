@@ -278,7 +278,8 @@ mod tests {
         agents::{
             price_changer::PriceChanger,
             rmm::{
-                liquidity_provider::RmmLiquidityProvider, portfolio_manager::PortfolioManagerType,
+                liquidity_provider::RmmLiquidityProvider,
+                rmm_portfolio_manager::RmmPortfolioManagerType,
             },
             token_admin::TokenAdmin,
         },
@@ -309,7 +310,7 @@ mod tests {
         let token_admin = TokenAdmin::new(environment, config, "token_admin").await?;
         let mut price_changer =
             PriceChanger::new(environment, config, "price_changer", &token_admin).await?;
-        let rmm_portfolio_manager = PortfolioManagerType::new(
+        let rmm_portfolio_manager = RmmPortfolioManagerType::new(
             environment,
             config,
             "portfolio_manager",

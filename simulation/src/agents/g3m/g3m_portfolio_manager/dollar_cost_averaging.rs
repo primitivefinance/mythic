@@ -15,7 +15,7 @@ pub struct DollarCostAveragingParameters {
 }
 
 #[async_trait::async_trait]
-impl WeightChanger for DollarCostAveragingStategist {
+impl G3mPortfolioManager for DollarCostAveragingStategist {
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
         todo!()
     }
