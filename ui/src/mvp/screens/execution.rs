@@ -9,6 +9,7 @@ use super::{
     State, *,
 };
 use crate::mvp::api::{
+    address_book::AddressBookManager,
     local::Local,
     scroll::{Scroll, UnsealedTransaction},
 };
@@ -38,6 +39,8 @@ pub struct Execution {
     review: Review,
     #[allow(dead_code)]
     local: Local<Ws>,
+    #[allow(dead_code)]
+    address_books: AddressBookManager,
 }
 
 #[derive(Default)]
@@ -47,13 +50,14 @@ pub struct Review {
 }
 
 impl Execution {
-    pub fn new(local: Local<Ws>) -> Self {
+    pub fn new(local: Local<Ws>, address_books: AddressBookManager) -> Self {
         Self {
             unsealed: UnsealedTransaction::new(),
             sealed: None,
             step: TransactionSteps::default(),
             review: Review::default(),
             local,
+            address_books,
         }
     }
 
@@ -111,6 +115,7 @@ impl State for Execution {
             }
             Message::Simulation(_) => Command::none(),
             Message::Data(_) => Command::none(),
+            Message::AddressBook(_) => Command::none(),
         }
     }
 

@@ -1,6 +1,7 @@
 //! Traits for implementing new application screens.
 use super::{app::Message, *};
 
+pub mod address_book;
 pub mod execution;
 pub mod terminal;
 

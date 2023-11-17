@@ -19,6 +19,7 @@ use super::{
     *,
 };
 
+pub mod address_book;
 pub mod agent;
 pub mod control;
 pub mod event;
@@ -51,6 +52,14 @@ pub enum Message {
     Data(Data),
     Page(Page),
     Execution(Execution),
+    AddressBook(AddressBookViewMessage),
+}
+
+#[derive(Debug, Clone)]
+pub enum AddressBookViewMessage {
+    Add,
+    AddressChanged(Option<String>),
+    LabelChanged(Option<String>),
 }
 
 #[derive(Debug, Clone)]
@@ -70,7 +79,7 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
             .push(page_menu(menu))
             .width(Length::FillPortion(1)),
         column![container(
-            column![content.into()]
+            column![screen_layout(content)]
                 .width(Length::Fill)
                 .height(Length::Fill)
         )
@@ -87,21 +96,38 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
     .into()
 }
 
+/// For rendering content inside a screen that implements [`State`].
+pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {
+    Container::new(Container::new(content).style(MenuContainerTheme::theme()))
+        .center_x()
+        .center_y()
+        .align_x(alignment::Horizontal::Center)
+        .align_y(alignment::Vertical::Center)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .padding(36)
+        .into()
+}
+
 #[derive(Debug, Clone)]
 pub enum Page {
     Terminal,
     Execute,
+    AddressBook,
 }
 
 pub fn page_menu<'a>(_menu: &Page) -> Container<'a, Message> {
     let terminal_button = button(text("terminal")).on_press(Message::Page(Page::Terminal));
     let transact_button = button(text("execute")).on_press(Message::Page(Page::Execute));
+    let address_book_button =
+        button(text("address book")).on_press(Message::Page(Page::AddressBook));
 
     Container::new(
         Column::new().push(
             Column::new()
                 .push(terminal_button)
                 .push(transact_button)
+                .push(address_book_button)
                 .height(Length::Fill)
                 .spacing(8),
         ),

@@ -17,35 +17,18 @@ pub fn execution_layout<'a>(
         TransactionSteps::Confirmed => confirmed(),
     };
 
-    Container::new(
-        Container::new(
-            Column::new()
-                .push(Row::new().push(content).height(Length::FillPortion(5)))
-                .push(
-                    Row::new()
-                        .push(
-                            button(text("previous"))
-                                .on_press(Message::Execution(Execution::Previous)),
-                        )
-                        .push(button(text("next")).on_press(Message::Execution(Execution::Next)))
-                        .align_items(alignment::Alignment::End)
-                        .height(Length::FillPortion(1))
-                        .spacing(8),
-                )
-                .spacing(16),
+    Column::new()
+        .push(Row::new().push(content).height(Length::FillPortion(5)))
+        .push(
+            Row::new()
+                .push(button(text("previous")).on_press(Message::Execution(Execution::Previous)))
+                .push(button(text("next")).on_press(Message::Execution(Execution::Next)))
+                .align_items(alignment::Alignment::End)
+                .height(Length::FillPortion(1))
+                .spacing(8),
         )
-        .width(Length::Fixed(800.0))
-        .height(Length::Fixed(800.0))
-        .style(MenuContainerTheme::theme()),
-    )
-    .center_x()
-    .center_y()
-    .align_x(alignment::Horizontal::Center)
-    .align_y(alignment::Vertical::Center)
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .padding(36)
-    .into()
+        .spacing(16)
+        .into()
 }
 
 /// Panel for starting a new transaction.
