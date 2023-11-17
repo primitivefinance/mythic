@@ -115,10 +115,6 @@ pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
                 let x_balance = wad_to_float(event.token_x_balance);
                 let y_balance = wad_to_float(event.token_y_balance);
                 let price = wad_to_float(price_change_event.price);
-                // println!(
-                //     "SWAPPER reserve_x: {}, reserve_y: {}, price: {}",
-                //     x_balance, y_balance, price
-                // );
                 x_balance * price + y_balance
             })
             .collect::<Vec<f64>>();

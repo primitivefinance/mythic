@@ -93,12 +93,9 @@ mod tests {
     #[tracing_test::traced_test]
     #[tokio::test(flavor = "multi_thread")]
     async fn new() {
-        let now = std::time::Instant::now();
-        let batch = BatchData::new("dca/sweep").await;
-        assert_eq!(batch.data.len(), 100);
+        let batch = BatchData::new("src/tests/output").await;
+        assert_eq!(batch.data.len(), 2);
         assert!(batch.errors.is_array());
-        let duration = now.elapsed();
-        println!("Duration: {:?}", duration);
     }
 
     #[ignore]
