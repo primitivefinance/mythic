@@ -86,7 +86,7 @@ function computeYGivenL(
         K, FixedPointMathLib.mulWadUp(L, uint256(cdf))
     );
 }
-
+// p = Ke^{\Phi^{-1}(1-R_1)}\sigma\sqrt{T - \frac{1}{2}\sigma^2 \tau}.
 function computeSpotPrice(
     uint256 x,
     uint256 L,
@@ -94,16 +94,20 @@ function computeSpotPrice(
     uint256 sigma,
     uint256 tau
 ) pure returns (uint256) {
-    uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
-        HALF,
-        FixedPointMathLib.mulWadDown(
-            uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
-        )
+    uint256 innerTerm = FixedPointMathLib.mulWadDown(
+        uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
     );
 
+    uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
+        HALF,
+        innerTerm
+    );
+
+    uint256 sqrtTau = FixedPointMathLib.sqrt(tau) * 10 ** 9;
+
     uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
-        uint256(sigma), FixedPointMathLib.sqrt(tau)
-    ) * 10 ** 9;
+        sigma, sqrtTau
+    );
 
     uint256 R1 = FixedPointMathLib.divWadDown(x, L);
 
@@ -111,25 +115,32 @@ function computeSpotPrice(
         K,
         uint256(
             FixedPointMathLib.expWad(
-                int256(
-                    FixedPointMathLib.mulWadDown(
-                        uint256(Gaussian.ppf(int256(ONE - R1))), sigmaSqrtTau
-                    ) - halfSigmaPower2Tau
-                )
+                Gaussian.ppf(int256(ONE - R1)) * int256(sigmaSqrtTau) / int256(ONE) - int256(halfSigmaPower2Tau)
             )
         )
     );
 }
 
+// The formula for computing the change in y (deltaY) is as follows:
+// deltaY = K(L + deltaL) * Phi(-sigma - Phi^-1((x + deltaX) / (L + deltaL))) - y 
+// where Phi is the cumulative distribution function of the standard normal distribution,
+// Phi^-1 is the inverse of the Phi function,
+// sigma is the volatility,
+// L is the liquidity,
+// deltaL is the change in liquidity,
+// K is the strike price,
+// x is the reserve x,
+// deltaX is the x amount in,
+// y is the reserve y,
+// deltaY is the y amount out.
 function computeOutputYGivenX(
-    uint256 x,
-    uint256 deltaX,
-    uint256 y,
-    uint256 deltaY,
-    uint256 L,
-    uint256 deltaL,
-    uint256 K,
-    uint256 sigma
+    uint256 x, //reserve x
+    uint256 y, // reserve y
+    uint256 deltaX, // x amount in
+    uint256 L, // liquidity
+    uint256 deltaL, // change in liquidity
+    uint256 K, // strike price
+    uint256 sigma // volatility
 ) pure returns (int256) {
     uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
 
@@ -140,8 +151,40 @@ function computeOutputYGivenX(
             )
     );
 
-    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y)
-        - int256(deltaY);
+    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y);
+}
+
+// The formula for computing the change in x (deltaX) is as follows:
+// deltaX = (L + deltaL) * Phi(-sigma - Phi^-1((y + deltaY) / (K * (L + deltaL)))) - x 
+// where Phi is the cumulative distribution function of the standard normal distribution,
+// Phi^-1 is the inverse of the Phi function,
+// sigma is the volatility,
+// L is the liquidity,
+// deltaL is the change in liquidity,
+// K is the strike price,
+// y is the reserve y,
+// deltaY is the y amount in,
+// x is the reserve x,
+// deltaX is the x amount in.
+function computeOutputXGivenY(
+    uint256 x, //reserve x
+    uint256 y, // reserve y
+    uint256 deltaY, // y amount in
+    uint256 L, // liquidity
+    uint256 deltaL, // change in liquidity
+    uint256 K, // strike price
+    uint256 sigma // volatility
+) pure returns (int256) {
+    uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
+
+    int256 cdf = Gaussian.cdf(
+        -int256(sigma)
+            - Gaussian.ppf(
+                int256(FixedPointMathLib.divWadDown(y + deltaY, KL))
+            )
+    );
+
+    return int256(FixedPointMathLib.mulWadDown(L + deltaL, uint256(cdf))) - int256(x);
 }
 
 function computeInvariant(

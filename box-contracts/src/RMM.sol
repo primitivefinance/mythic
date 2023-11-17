@@ -24,15 +24,15 @@ contract RMM is IStrategy {
     mapping(address => uint256) public balanceOf;
 
     constructor(
-        ERC20 tokenX_,
-        ERC20 tokenY_,
+        address tokenX_,
+        address tokenY_,
         uint256 sigma_,
         uint256 strikePrice_,
         uint256 tau_,
         uint256 swapFee_
     ) {
-        tokenX = tokenX_;
-        tokenY = tokenY_;
+        tokenX = ERC20(tokenX_);
+        tokenY = ERC20(tokenY_);
         sigma = sigma_;
         strikePrice = strikePrice_;
         tau = tau_;
@@ -41,11 +41,18 @@ contract RMM is IStrategy {
         swapFee = swapFee_;
     }
 
+    function instantiate(
+        uint256 amount,
+        uint256 price
+    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
+        return initPool(true, amount, price);
+    }
+
     function initPool(
         bool exactX,
         uint256 amount,
         uint256 price
-    ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
+    ) public returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
         require(totalLiquidity == 0, "Pool already initialized");
 
         if (exactX) {
@@ -251,44 +258,80 @@ contract RMM is IStrategy {
         return (liquidityDelta, amountX);
     }
 
-    function swap(uint256 amountX) external returns (uint256 amountY) {
-        uint256 fees = amountX * (ONE - swapFee) / ONE;
-        uint256 deltaX = amountX - fees;
-
+    event deltaLEvent(uint256 deltaL);
+    event deltaXEvent(uint256 deltaX);
+    event amountOutEvent(uint256 amountOut);
+    event reserveXEvent(uint256 reserveX);
+    event outputEvent(int256 output);
+    function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
-        uint256 deltaL = computeLGivenX(deltaX, price, strikePrice, sigma);
-        uint256 deltaY = computeYGivenL(deltaL, price, strikePrice, sigma);
+        if (swapDirection) {
+            uint256 fees = amountIn * (ONE - swapFee) / ONE;
+            uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma);
 
-        amountY = uint256(
-            ~(
-                computeOutputYGivenX(
-                    reserveX,
-                    amountX,
-                    reserveY,
-                    deltaY,
-                    totalLiquidity,
-                    deltaL,
-                    strikePrice,
-                    sigma
-                ) - 1
-            )
-        );
+            amountOut = uint256(
+                ~(
+                    computeOutputYGivenX(
+                        reserveX,
+                        reserveY,
+                        amountIn,
+                        totalLiquidity,
+                        deltaL,
+                        strikePrice,
+                        sigma
+                    ) - 1
+                )
+            );
 
-        reserveX += amountX;
-        reserveY -= amountY;
 
-        tokenX.transferFrom(msg.sender, address(this), amountX);
-        tokenY.transfer(msg.sender, amountY);
+            totalLiquidity += deltaL;
+            reserveX += amountIn;
+            reserveY -= amountOut;
+
+            tokenX.transferFrom(msg.sender, address(this), amountIn);
+            tokenY.transfer(msg.sender, amountOut);
+        } else {
+            uint256 fees = amountIn * (ONE - swapFee) / ONE;
+            uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma);
+
+            amountOut = uint256(
+                ~(
+                    computeOutputXGivenY(
+                        reserveX,
+                        reserveY,
+                        amountIn,
+                        totalLiquidity,
+                        deltaL,
+                        strikePrice,
+                        sigma
+                    ) - 1
+                )
+            );
+
+            totalLiquidity += deltaL;
+            reserveY += amountIn;
+            reserveX -= amountOut;
+
+            tokenY.transferFrom(msg.sender, address(this), amountIn);
+            tokenX.transfer(msg.sender, amountOut);
+        }
 
         emit Swap(
             msg.sender,
-            true,
-            amountX,
-            amountY,
+            swapDirection,
+            amountIn,
+            amountOut,
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau)
         );
+    }
+
+    function swapAmountIn(
+        bool swapDirection,
+        uint256 amountIn
+    ) external returns (uint256) {
+        return _swap(swapDirection, amountIn);
     }
 
     function setSwapFee(uint256 newSwapFee) external {
@@ -313,14 +356,19 @@ contract RMM is IStrategy {
         return reserveY;
     }
 
+    function getLiquidity() external view returns (uint256) {
+        return totalLiquidity;
+    }
+
     function getInvariant() external view returns (int256) {
         return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice);
     }
 
-    function getStrategyData() external view returns (bytes memory data) { }
-
-    function logData() external { 
-        emit LogReserves(reserveX, reserveY, block.timestamp);
+    function logData() external {
         emit LogParameters(sigma, strikePrice, tau, block.timestamp);
+    }
+
+    function getStrategyData() external view returns (bytes memory data) { 
+        return abi.encode(sigma, strikePrice, tau);
     }
 }

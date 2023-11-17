@@ -6,7 +6,9 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use arbiter_core::{
-    bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange},
+    bindings::{
+        arbiter_math::ArbiterMath, arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange,
+    },
     data_collection::EventLogger,
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::{errors::RevmMiddlewareError, RevmMiddleware},
@@ -26,6 +28,7 @@ use ethers::{
 use serde::{Deserialize, Serialize};
 use settings::SimulationConfig;
 use tracing::{debug, error, info, trace, warn};
+use RustQuant::stochastics::*;
 
 #[allow(unused)]
 pub mod agents;

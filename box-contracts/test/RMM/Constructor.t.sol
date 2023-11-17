@@ -12,8 +12,8 @@ contract RMMConstructor is RMMSetUp {
         uint256 tau
     ) public {
         RMM rmm = new RMM(
-            ERC20(tokenX),
-            ERC20(tokenY),
+            tokenX,
+            tokenY,
             sigma,
             strikePrice,
             tau,

@@ -13,7 +13,9 @@ pub struct Arbitrageur<S: ArbitrageStrategy> {
     /// The atomic arbitrage contract.
     pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
 
-    pub math: SD59x18Math<RevmMiddleware>,
+    pub g3m_math: SD59x18Math<RevmMiddleware>,
+
+    pub rmm_math: ArbiterMath<RevmMiddleware>,
 }
 
 impl<S: ArbitrageStrategy> Arbitrageur<S> {
@@ -61,14 +63,16 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
             .await?
             .await?;
 
-        let math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
+        let g3m_math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
+        let rmm_math = ArbiterMath::deploy(client.clone(), ())?.send().await?;
 
         Ok(Self {
             client,
             liquid_exchange,
             atomic_arbitrage,
             strategy,
-            math,
+            g3m_math,
+            rmm_math,
         })
     }
 
@@ -125,7 +129,10 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                     "Detected the need to increase price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let input = self.strategy.get_y_input(target_price, &self.math).await?;
+                let input = self
+                    .strategy
+                    .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
+                    .await?;
 
                 trace!(
                     "Increasing price by selling input amount of quote tokens: {:?}",
@@ -151,7 +158,10 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Arb
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let input = self.strategy.get_x_input(target_price, &self.math).await?;
+                let input = self
+                    .strategy
+                    .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
+                    .await?;
                 trace!("Got input: {:?}", input);
                 let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;

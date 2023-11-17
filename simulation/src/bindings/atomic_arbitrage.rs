@@ -175,7 +175,98 @@ pub mod atomic_arbitrage {
                     ],
                 ),
             ]),
-            events: ::std::collections::BTreeMap::new(),
+            events: ::core::convert::From::from([
+                (
+                    ::std::borrow::ToOwned::to_owned("TestEvent0"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Event {
+                            name: ::std::borrow::ToOwned::to_owned("TestEvent0"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("t1"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                            ],
+                            anonymous: false,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("TestEvent1"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Event {
+                            name: ::std::borrow::ToOwned::to_owned("TestEvent1"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("t1"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                            ],
+                            anonymous: false,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("TestEvent2"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Event {
+                            name: ::std::borrow::ToOwned::to_owned("TestEvent2"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("t1"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                            ],
+                            anonymous: false,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("TestEvent3"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Event {
+                            name: ::std::borrow::ToOwned::to_owned("TestEvent3"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("t1"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                            ],
+                            anonymous: false,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("TestEvent4"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Event {
+                            name: ::std::borrow::ToOwned::to_owned("TestEvent4"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("t1"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                            ],
+                            anonymous: false,
+                        },
+                    ],
+                ),
+            ]),
             errors: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("NotProfitable"),
@@ -368,6 +459,66 @@ pub mod atomic_arbitrage {
                 .method_hash([138, 47, 165, 74], input)
                 .expect("method not found (this should never happen)")
         }
+        ///Gets the contract's `TestEvent0` event
+        pub fn test_event_0_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            TestEvent0Filter,
+        > {
+            self.0.event()
+        }
+        ///Gets the contract's `TestEvent1` event
+        pub fn test_event_1_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            TestEvent1Filter,
+        > {
+            self.0.event()
+        }
+        ///Gets the contract's `TestEvent2` event
+        pub fn test_event_2_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            TestEvent2Filter,
+        > {
+            self.0.event()
+        }
+        ///Gets the contract's `TestEvent3` event
+        pub fn test_event_3_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            TestEvent3Filter,
+        > {
+            self.0.event()
+        }
+        ///Gets the contract's `TestEvent4` event
+        pub fn test_event_4_filter(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            TestEvent4Filter,
+        > {
+            self.0.event()
+        }
+        /// Returns an `Event` builder for all the events of this contract.
+        pub fn events(
+            &self,
+        ) -> ::ethers::contract::builders::Event<
+            ::std::sync::Arc<M>,
+            M,
+            AtomicArbitrageEvents,
+        > {
+            self.0.event_with_filter(::core::default::Default::default())
+        }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
     for AtomicArbitrage<M> {
@@ -392,6 +543,162 @@ pub mod atomic_arbitrage {
     pub struct NotProfitable {
         pub first_swap_output: ::ethers::core::types::U256,
         pub second_swap_output: ::ethers::core::types::U256,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethevent(name = "TestEvent0", abi = "TestEvent0(uint256)")]
+    pub struct TestEvent0Filter {
+        pub t_1: ::ethers::core::types::U256,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethevent(name = "TestEvent1", abi = "TestEvent1(uint256)")]
+    pub struct TestEvent1Filter {
+        pub t_1: ::ethers::core::types::U256,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethevent(name = "TestEvent2", abi = "TestEvent2(uint256)")]
+    pub struct TestEvent2Filter {
+        pub t_1: ::ethers::core::types::U256,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethevent(name = "TestEvent3", abi = "TestEvent3(uint256)")]
+    pub struct TestEvent3Filter {
+        pub t_1: ::ethers::core::types::U256,
+    }
+    #[derive(
+        Clone,
+        ::ethers::contract::EthEvent,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethevent(name = "TestEvent4", abi = "TestEvent4(uint256)")]
+    pub struct TestEvent4Filter {
+        pub t_1: ::ethers::core::types::U256,
+    }
+    ///Container type for all of the contract's events
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        serde::Serialize,
+        serde::Deserialize,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub enum AtomicArbitrageEvents {
+        TestEvent0Filter(TestEvent0Filter),
+        TestEvent1Filter(TestEvent1Filter),
+        TestEvent2Filter(TestEvent2Filter),
+        TestEvent3Filter(TestEvent3Filter),
+        TestEvent4Filter(TestEvent4Filter),
+    }
+    impl ::ethers::contract::EthLogDecode for AtomicArbitrageEvents {
+        fn decode_log(
+            log: &::ethers::core::abi::RawLog,
+        ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
+            if let Ok(decoded) = TestEvent0Filter::decode_log(log) {
+                return Ok(AtomicArbitrageEvents::TestEvent0Filter(decoded));
+            }
+            if let Ok(decoded) = TestEvent1Filter::decode_log(log) {
+                return Ok(AtomicArbitrageEvents::TestEvent1Filter(decoded));
+            }
+            if let Ok(decoded) = TestEvent2Filter::decode_log(log) {
+                return Ok(AtomicArbitrageEvents::TestEvent2Filter(decoded));
+            }
+            if let Ok(decoded) = TestEvent3Filter::decode_log(log) {
+                return Ok(AtomicArbitrageEvents::TestEvent3Filter(decoded));
+            }
+            if let Ok(decoded) = TestEvent4Filter::decode_log(log) {
+                return Ok(AtomicArbitrageEvents::TestEvent4Filter(decoded));
+            }
+            Err(::ethers::core::abi::Error::InvalidData)
+        }
+    }
+    impl ::core::fmt::Display for AtomicArbitrageEvents {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            match self {
+                Self::TestEvent0Filter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::TestEvent1Filter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::TestEvent2Filter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::TestEvent3Filter(element) => ::core::fmt::Display::fmt(element, f),
+                Self::TestEvent4Filter(element) => ::core::fmt::Display::fmt(element, f),
+            }
+        }
+    }
+    impl ::core::convert::From<TestEvent0Filter> for AtomicArbitrageEvents {
+        fn from(value: TestEvent0Filter) -> Self {
+            Self::TestEvent0Filter(value)
+        }
+    }
+    impl ::core::convert::From<TestEvent1Filter> for AtomicArbitrageEvents {
+        fn from(value: TestEvent1Filter) -> Self {
+            Self::TestEvent1Filter(value)
+        }
+    }
+    impl ::core::convert::From<TestEvent2Filter> for AtomicArbitrageEvents {
+        fn from(value: TestEvent2Filter) -> Self {
+            Self::TestEvent2Filter(value)
+        }
+    }
+    impl ::core::convert::From<TestEvent3Filter> for AtomicArbitrageEvents {
+        fn from(value: TestEvent3Filter) -> Self {
+            Self::TestEvent3Filter(value)
+        }
+    }
+    impl ::core::convert::From<TestEvent4Filter> for AtomicArbitrageEvents {
+        fn from(value: TestEvent4Filter) -> Self {
+            Self::TestEvent4Filter(value)
+        }
     }
     ///Container type for all input parameters for the `asset` function with signature `asset()` and selector `0x38d52e0f`
     #[derive(

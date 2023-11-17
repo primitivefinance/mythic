@@ -23,6 +23,12 @@ contract AtomicArbitrage {
     address public asset;
     address public quote;
 
+    event TestEvent0(uint256 t1);
+    event TestEvent1(uint256 t1);
+    event TestEvent2(uint256 t1);
+    event TestEvent3(uint256 t1);
+    event TestEvent4(uint256 t1);
+
     constructor(address exchangeAddress, address liquidExchangeAddress, address assetAddress, address quoteAddress) {
         exchange = exchangeAddress;
         liquidExchange = liquidExchangeAddress;
@@ -56,7 +62,6 @@ contract AtomicArbitrage {
         }
         // require(quote_balance > input, "Not profitable");
     }
-
     function raise_exchange_price(
         uint256 input
     ) external {

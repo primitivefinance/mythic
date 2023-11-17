@@ -12,7 +12,7 @@ contract RMMSwap is RMMSetUp {
         uint256 preReserveX = rmm.reserveX();
         uint256 preReserveY = rmm.reserveY();
 
-        uint256 amountY = rmm.swap(500 ether);
+        uint256 amountY = rmm.swapAmountIn(true, 500 ether);
 
         uint256 postReserveX = rmm.reserveX();
         uint256 postReserveY = rmm.reserveY();
@@ -29,7 +29,7 @@ contract RMMSwap is RMMSetUp {
         uint256 preBalanceX = tokenX.balanceOf(address(rmm));
         uint256 preBalanceY = tokenY.balanceOf(address(rmm));
 
-        uint256 amountY = rmm.swap(deltaX);
+        uint256 amountY = rmm.swapAmountIn(true, 500 ether);
 
         uint256 postBalanceX = tokenX.balanceOf(address(rmm));
         uint256 postBalanceY = tokenY.balanceOf(address(rmm));
@@ -46,7 +46,7 @@ contract RMMSwap is RMMSetUp {
         uint256 preBalanceX = tokenX.balanceOf(address(this));
         uint256 preBalanceY = tokenY.balanceOf(address(this));
 
-        uint256 amountY = rmm.swap(deltaX);
+        uint256 amountY = rmm.swapAmountIn(true, 500 ether);
 
         uint256 postBalanceX = tokenX.balanceOf(address(this));
         uint256 postBalanceY = tokenY.balanceOf(address(this));

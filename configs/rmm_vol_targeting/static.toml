@@ -1,5 +1,7 @@
-simulation = "DynamicWeights"
-output_directory = "analysis/volatility_targeting/vol_sweep"
+simulation = "RmmVolatilityTargeting"
+output_directory = "analysis/rmm/vol_targeting/static"
+max_parallel = 5
+
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 15
@@ -19,7 +21,7 @@ decimals = 18
 # The seed to use (optional)
 seed = 2
 # The number of steps in the process
-num_steps = 1000
+num_steps = 10 
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset
@@ -27,21 +29,18 @@ initial_price.fixed = 1.0
 # The start time of the process
 t_0.fixed = 0.0
 # The end time of the process
-t_n.fixed = 1.0
+t_n.fixed = 0.01
 ## Parameters for the type of process to use.
 # The drift for GBM
 process.GBM.drift.fixed = 0.1
 # The volatility for GBM
-process.GBM.volatility.start = 0.1
-process.GBM.volatility.end = 1.0
-process.GBM.volatility.steps = 10
+process.GBM.volatility.fixed = 0.35
 
 # Weight settings
-[agent.weight_changer.WeightChanger]
-# The weight for the `token_x` in the pool
-# `weight_y = 1 - weight_x`
-initial_weight_x.fixed = 0.5
-# The swap fee in BPs
+[agent.portfolio_manager.PortfolioManager]
+sigma.fixed = 1.0
+tau.fixed = 100000.0
+strike_price.fixed = 1.0
 fee.fixed = 30
 ## Volatility targeting specialty settings
 # The frequency which weights are updated
@@ -52,13 +51,9 @@ fee.fixed = 30
 specialty.VolatilityTargeting.update_frequency.fixed = 150
 # The target volatility
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
-# The maximum weight change
-specialty.VolatilityTargeting.max_weight_change.fixed = 0.05
-# The sensitivity to volatility
-specialty.VolatilityTargeting.sensitivity.fixed = 0.05
 
 # Liquidity provider settings
-[agent.lp.LiquidityProvider]
+[agent.lp.RmmLiquidityProvider]
 # The amount of `token_x` to provide in ether
 x_liquidity.fixed = 1
 # The initial price of the pair
