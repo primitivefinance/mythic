@@ -12,3 +12,4 @@ pub mod portfolio_tracker;
 pub mod rmm;
 pub mod rmm_math_like;
 pub mod sd5_9x_18_math;
+pub mod shared_types;

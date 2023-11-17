@@ -170,7 +170,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                 let tau = contract.tau().call().await?;
                 let delta_y = input;
                 let delta_l = rmm_math_like
-                    .compute_l_given_x(reserve_x, spot_price, strike_price, sigma)
+                    .compute_l_given_x(reserve_x, spot_price, strike_price, sigma, tau)
                     .call()
                     .await?;
 
@@ -183,6 +183,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
                     delta_l,
                     strike_price,
                     sigma,
+                    tau,
                 )
                 .await?;
 
@@ -198,7 +199,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send> Agent for Rmm
 
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
 
-                // todo: breaking here
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
@@ -363,9 +363,15 @@ mod tests {
         let reserve_x = parse_ether(1000.0).unwrap();
         let spot_price = parse_ether(1.0).unwrap();
         let (sigma, strike_price, tau) = get_strategy_args(&arber.rmm_strategy).await?;
-        let l =
-            compute_l_given_x_solidity(&rmm_math_like, reserve_x, spot_price, strike_price, sigma)
-                .await?;
+        let l = compute_l_given_x_solidity(
+            &rmm_math_like,
+            reserve_x,
+            spot_price,
+            strike_price,
+            sigma,
+            tau,
+        )
+        .await?;
 
         let l_rust = compute_l_given_x_rust(
             to_float(reserve_x),
@@ -400,6 +406,7 @@ mod tests {
             delta_l,
             strike_price,
             sigma,
+            tau,
         )
         .await?;
 
@@ -422,16 +429,17 @@ pub fn to_float(value: U256) -> f64 {
 }
 
 /// L_x(x, S) = x / (1 - cdf(ln(S/K) + sigma^2/2) / sigma)
-#[tracing::instrument(ret, skip(instance), level = "info")]
+#[tracing::instrument(ret, skip(instance), level = "trace")]
 pub async fn compute_l_given_x_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,
     spot_price: U256,
     strike_price: U256,
     sigma: U256,
+    tau: U256,
 ) -> Result<(U256)> {
     let l = instance
-        .compute_l_given_x(reserve_x, spot_price, strike_price, sigma)
+        .compute_l_given_x(reserve_x, spot_price, strike_price, sigma, tau)
         .call()
         .await?;
     Ok(l)
@@ -486,7 +494,7 @@ pub fn compute_l_given_x_rust(
 
 // I have no idea why this says i need to do this for clippy to pass but sure
 #[allow(clippy::too_many_arguments)]
-#[tracing::instrument(ret, skip(instance), level = "info")]
+#[tracing::instrument(ret, skip(instance), level = "trace")]
 pub async fn compute_output_x_given_y_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,
@@ -496,6 +504,7 @@ pub async fn compute_output_x_given_y_solidity(
     delta_l: U256,
     strike_price: U256,
     sigma: U256,
+    tau: U256,
 ) -> Result<(I256)> {
     let x = instance
         .compute_output_x_given_y(
@@ -506,6 +515,7 @@ pub async fn compute_output_x_given_y_solidity(
             delta_l,
             strike_price,
             sigma,
+            tau,
         )
         .await?;
     Ok(x)
@@ -513,7 +523,7 @@ pub async fn compute_output_x_given_y_solidity(
 
 /// delta_x =
 /// (L + d_l) * cdf(-sigma - ppf((y + d_y) / K(L + d_l))) - x - d_x)
-#[tracing::instrument(ret, level = "info")]
+#[tracing::instrument(ret, level = "trace")]
 pub fn compute_output_x_given_y_rust(
     reserve_x_float: f64,
     reserve_y_float: f64,

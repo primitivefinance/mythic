@@ -16,36 +16,40 @@ contract RMMMathLike {
         uint256 x,
         uint256 S,
         uint256 K,
-        uint256 sigma
+        uint256 sigma,
+        uint256 tau
     ) public view returns (uint256 L) {
-        return RMMMath.computeLGivenX(x, S, K, sigma);
+        return RMMMath.computeLGivenX(x, S, K, sigma, tau);
     }
 
     function computeLGivenY(
         uint256 y,
         uint256 S,
         uint256 K,
-        uint256 sigma
+        uint256 sigma,
+        uint256 tau
     ) public view returns (uint256 L) {
-        return RMMMath.computeLGivenY(y, S, K, sigma);
+        return RMMMath.computeLGivenY(y, S, K, sigma, tau);
     }
 
     function computeXGivenL(
         uint256 L,
         uint256 S,
         uint256 K,
-        uint256 sigma
+        uint256 sigma,
+        uint256 tau
     ) public view returns (uint256 x) {
-        return RMMMath.computeXGivenL(L, S, K, sigma);
+        return RMMMath.computeXGivenL(L, S, K, sigma, tau);
     }
 
     function computeYGivenL(
         uint256 L,
         uint256 S,
         uint256 K,
-        uint256 sigma
+        uint256 sigma,
+        uint256 tau
     ) public view returns (uint256 y) {
-        return RMMMath.computeYGivenL(L, S, K, sigma);
+        return RMMMath.computeYGivenL(L, S, K, sigma, tau);
     }
 
     function computeOutputYGivenX(
@@ -55,10 +59,11 @@ contract RMMMathLike {
         uint256 L,
         uint256 deltaL,
         uint256 K,
-        uint256 sigma
+        uint256 sigma,
+        uint256 tau
     ) public view returns (int256 outputY) {
         return RMMMath.computeOutputYGivenX(
-            x, y, deltaX, L, deltaL, K, sigma
+            x, y, deltaX, L, deltaL, K, sigma, tau
         );
     }
 
@@ -69,10 +74,11 @@ contract RMMMathLike {
         uint256 L,
         uint256 deltaL,
         uint256 K,
-        uint256 sigma
+        uint256 sigma,
+        uint256 tau
     ) public view returns (int256 outputX) {
         return RMMMath.computeOutputXGivenY(
-            x, y, deltaY, L, deltaL, K, sigma
+            x, y, deltaY, L, deltaL, K, sigma, tau
         );
     }
 

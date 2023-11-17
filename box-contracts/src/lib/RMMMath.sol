@@ -17,20 +17,67 @@ function fromWad(uint256 a) pure returns (uint256) {
     return a / ONE;
 }
 
+function computeSigmaSqrtTau(uint256 sigma, uint256 tau) pure returns (uint256 sigmaSqrtTau) {
+    uint256 sqrtTau = FixedPointMathLib.sqrt(tau) * 10 ** 9;
+    sigmaSqrtTau = FixedPointMathLib.mulWadDown(
+        sigma, sqrtTau
+    );
+}
+
+function computeHalfSigmaPower2Tau(uint256 sigma, uint256 tau) pure returns (uint256 halfSigmaPower2Tau) {
+    uint256 innerTerm = FixedPointMathLib.mulWadDown(
+        uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
+    );
+
+    halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
+        HALF,
+        innerTerm
+    );
+}
+
+function computeLnSDivK(
+    uint256 S,
+    uint256 K
+) pure returns (int256 lnSDivK) {
+    lnSDivK = FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
+}
+
+function computeD1(
+    uint256 S,
+    uint256 K,
+    uint256 sigma,
+    uint256 tau // time to expiry
+) pure returns (int256 d1) {
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
+    int256 lnSDivK = computeLnSDivK(S, K);
+
+    uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
+
+    d1 = (lnSDivK + int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);
+}
+
+function computeD2(
+    uint256 S,
+    uint256 K,
+    uint256 sigma,
+    uint256 tau // time to expiry
+) pure returns (int256 d2) {
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
+    int256 lnSDivK = computeLnSDivK(S, K);
+    uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
+
+    d2 = (lnSDivK - int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);
+}
+
 function computeLGivenX(
     uint256 x,
     uint256 S,
     uint256 K,
-    uint256 sigma
+    uint256 sigma,
+    uint256 tau // time to expiry
 ) pure returns (uint256 L) {
-    int256 lnSDivK =
-        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
-    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
-        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
-    );
-    int256 cdf =
-        Gaussian.cdf((lnSDivK + int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
-    int256 denominator = int256(1e18) - cdf;
+    int256 denominator = int256(ONE) - Gaussian.cdf(computeD1(S, K, sigma, tau));
+    
     L = FixedPointMathLib.divWadUp(x, uint256(denominator));
 }
 
@@ -38,33 +85,22 @@ function computeLGivenY(
     uint256 y,
     uint256 S,
     uint256 K,
-    uint256 sigma
+    uint256 sigma,
+    uint256 tau // time to expiry
 ) pure returns (uint256 L) {
-    int256 lnSDivK =
-        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
-    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
-        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
-    );
-    int256 cdf =
-        Gaussian.cdf((lnSDivK - int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
-    L = FixedPointMathLib.divWadUp(
-        y, FixedPointMathLib.mulWadUp(K, uint256(cdf))
-    );
+    uint256 denominator = FixedPointMathLib.mulWadUp(K, uint256(Gaussian.cdf(computeD2(S, K, sigma, tau))));
+
+    L = FixedPointMathLib.divWadUp(y, denominator);
 }
 
 function computeXGivenL(
     uint256 L,
     uint256 S,
     uint256 K,
-    uint256 sigma
+    uint256 sigma,
+    uint256 tau // time to expiry
 ) pure returns (uint256 x) {
-    int256 lnSDivK =
-        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
-    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
-        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
-    );
-    int256 cdf =
-        Gaussian.cdf((lnSDivK + int256(halfSigmaPowTwo)) * 1e18 / int256(sigma));
+    int256 cdf = Gaussian.cdf(computeD1(S, K, sigma, tau));
     x = FixedPointMathLib.mulWadUp(L, uint256(int256(ONE) - cdf));
 }
 
@@ -72,20 +108,15 @@ function computeYGivenL(
     uint256 L,
     uint256 S,
     uint256 K,
-    uint256 sigma
+    uint256 sigma,
+    uint256 tau // time to expiry
 ) pure returns (uint256 y) {
-    int256 lnSDivK =
-        FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
-    uint256 halfSigmaPowTwo = FixedPointMathLib.mulWadUp(
-        HALF, uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO)))
-    );
-    int256 minus = lnSDivK - int256(halfSigmaPowTwo);
-    int256 div = minus * 1e18 / int256(sigma);
-    int256 cdf = Gaussian.cdf(div);
+    int256 cdf = Gaussian.cdf(computeD2(S, K, sigma, tau));
     y = FixedPointMathLib.mulWadUp(
         K, FixedPointMathLib.mulWadUp(L, uint256(cdf))
     );
 }
+
 // p = Ke^{\Phi^{-1}(1-R_1)}\sigma\sqrt{T - \frac{1}{2}\sigma^2 \tau}.
 function computeSpotPrice(
     uint256 x,
@@ -93,25 +124,12 @@ function computeSpotPrice(
     uint256 K,
     uint256 sigma,
     uint256 tau
-) pure returns (uint256) {
-    uint256 innerTerm = FixedPointMathLib.mulWadDown(
-        uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
-    );
-
-    uint256 halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
-        HALF,
-        innerTerm
-    );
-
-    uint256 sqrtTau = FixedPointMathLib.sqrt(tau) * 10 ** 9;
-
-    uint256 sigmaSqrtTau = FixedPointMathLib.mulWadDown(
-        sigma, sqrtTau
-    );
-
+) pure returns (uint256 spotPrice) {
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
+    uint256 halfSigmaPower2Tau = computeHalfSigmaPower2Tau(sigma, tau);
     uint256 R1 = FixedPointMathLib.divWadDown(x, L);
 
-    return FixedPointMathLib.mulWadUp(
+    spotPrice = FixedPointMathLib.mulWadUp(
         K,
         uint256(
             FixedPointMathLib.expWad(
@@ -140,18 +158,20 @@ function computeOutputYGivenX(
     uint256 L, // liquidity
     uint256 deltaL, // change in liquidity
     uint256 K, // strike price
-    uint256 sigma // volatility
-) pure returns (int256) {
+    uint256 sigma, // volatility
+    uint256 tau // time to expiry
+) pure returns (int256 deltaY) {
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
 
     int256 cdf = Gaussian.cdf(
-        -int256(sigma)
+        -int256(sigmaSqrtTau)
             - Gaussian.ppf(
                 int256(FixedPointMathLib.divWadDown(x + deltaX, L + deltaL))
             )
     );
 
-    return int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y);
+    deltaY = int256(FixedPointMathLib.mulWadDown(KL, uint256(cdf))) - int256(y);
 }
 
 // The formula for computing the change in x (deltaX) is as follows:
@@ -173,18 +193,20 @@ function computeOutputXGivenY(
     uint256 L, // liquidity
     uint256 deltaL, // change in liquidity
     uint256 K, // strike price
-    uint256 sigma // volatility
-) pure returns (int256) {
+    uint256 sigma, // volatility
+    uint256 tau // time to expiry
+) pure returns (int256 deltaX) {
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     uint256 KL = FixedPointMathLib.mulWadDown(K, L + deltaL);
 
     int256 cdf = Gaussian.cdf(
-        -int256(sigma)
+        -int256(sigmaSqrtTau)
             - Gaussian.ppf(
                 int256(FixedPointMathLib.divWadDown(y + deltaY, KL))
             )
     );
 
-    return int256(FixedPointMathLib.mulWadDown(L + deltaL, uint256(cdf))) - int256(x);
+    deltaX = int256(FixedPointMathLib.mulWadDown(L + deltaL, uint256(cdf))) - int256(x);
 }
 
 function computeInvariant(
@@ -192,8 +214,8 @@ function computeInvariant(
     uint256 liquidity,
     uint256 reserveY,
     uint256 strikePrice
-) pure returns (int256) {
-    return Gaussian.ppf(int256(reserveX / liquidity))
+) pure returns (int256 invariant) {
+    invariant = Gaussian.ppf(int256(reserveX / liquidity))
         + Gaussian.ppf(
             int256(reserveY / FixedPointMathLib.mulWadDown(liquidity, strikePrice))
         );
