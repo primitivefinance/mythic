@@ -37,26 +37,63 @@ $$
 
 We require that the trading function remain invariant like so:
 $$
-k = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
+L(x,y) = (x+\Delta_x)^{w_x}(y+\Delta_y)^{w_y}
 $$
-Now let's get the $\delta_y$ from $\delta_x$:
+while also taking fees as a liquidity deposit. 
+#### Trade in $\Delta_X$ for $\Delta_Y$
+Suppose that we want to trade in $\Delta_X$ for $\Delta_Y$. 
+Then we have that we are really inputting $\gamma\Delta_X$ while raising $L\mapsto L+\delta_L$.
+This gives us a new invariant, noting that we can create
+Noting that 
 $$
-\begin{align*}
-k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y} \\
-\implies \qquad (y+\delta_y)^{w_y} = \frac{k}{(x+\delta_x)^{w_x}}\\
-\implies \qquad y+\delta_y = \left(\frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y}\\
-\implies \qquad \boxed{ \delta_y = \left(\frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y} - y }
-\end{align*}
+y= \frac{w_y}{w_x}p x
 $$
-On the other hand, if we want to get out $\delta_x$ from $\delta_y$:
 $$
-\begin{align*}
-k = (x+\delta_x)^{w_x}(y+\delta_y)^{w_y} \\
-\implies \qquad (x+\delta_x)^{w_x} = \frac{k}{(y+\delta_y)^{w_y}}\\
-\implies \qquad \boxed{ \delta_x = \left(\frac{k}{(y+\delta_y)^{w_y}}\right)^{1/w_x} - x }
-\end{align*}
+\boxed{L_X(x,S) = x\left(\frac{w_y}{w_x}S\right)^{w_y}}
+$$
+$$
+L_X(x+a\delta_x) = L_X(x) + aL_X(\delta_X)
+$$
+which also tells us:
+$$
+x = \frac{L}{\left(\frac{w_y}{w_x}S\right))^{w_y}}
+$$
+and note that $L_X(x,p)$ is linear in $x$.
+Then we have that:
+$$
+L_X(x+\delta_x) = L_X(x) + \delta_L \\= L_X(x) + \delta_X(\frac{w_y}{w_x}p)^{w_y}
+$$
+so 
+$$
+\boxed{\delta_{L_X} = \delta_X\left(\frac{w_y}{w_x}p\right)^{w_y}}
+$$
+Hence we have for a swap with fees that (note $\Delta$ are what users input and receive):
+$$
+L+\delta_L = (x+\gamma \Delta_X)^{w_x}(y+\Delta_y)^{w_y}
+$$
+Then:
+$$
+\boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_{L_Y}}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y}
 $$
 
+#### Trade in $\Delta_Y$ for $\Delta_X$
+We can get the
+$$
+x = \frac{y}{p}\frac{w_x}{w_y}
+$$
+We have the linear function:
+$$
+\boxed{L_Y(y,S) = y\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}
+$$
+so that:
+$$
+\boxed{\delta_{L_Y} = \delta_Y\left(\frac{w_x}{w_y}\frac{1}{p}\right)^{w_x}}
+$$
+
+Then
+$$
+\boxed{\Delta_X(\Delta_Y) = \left(\frac{L+\delta_{L_Y}}{(y+\gamma \Delta_Y)^{w_y}}\right)^{1/w_x}-x}
+$$
 
 
 ### Liquidity Provision
@@ -80,7 +117,7 @@ $$
 
 ---
 
-## G3M Arbitrage Math
+## Arbitrage Math
 
 
 We can solve for each variable in terms of the other and the invariant $k$:
@@ -90,12 +127,12 @@ $$
 
 First, $x$:
 $$
-\implies \boxed{x = \left(\frac{k}{y^{w_y}}\right)^{1/w_x} }
+\implies \boxed{x = \left(\frac{L}{y^{w_y}}\right)^{1/w_x} }
 $$
 
 The work is analogous for $y$:
 $$
-\implies \boxed{y = \left(\frac{k}{x^{w_x}}\right)^{1/w_y}}
+\implies \boxed{y = \left(\frac{L}{x^{w_x}}\right)^{1/w_y}}
 $$
 
 ### Getting the arbitrage calculation
@@ -105,19 +142,31 @@ Suppose that we need the price to move $p\mapsto p'$ with $p'<p$.
 This means we tender $x$ in the swap so $x\mapsto x+\delta_x$. 
 Then we want $p'$ and $x\mapsto x+\delta_x$:
 $$
-p' = \frac{w_x}{w_y}\frac{y+\delta_y}{x+\delta_x}
+p(x+\Delta_X,y+\Delta_Y) = \frac{w_x}{w_y}\frac{y+\Delta_Y}{x+\Delta_X}
 $$
-Now we can replace the $y+\delta_y$ with our equation above to get:
+Now we want to do this all for a given $p'$ and only with $X$.
+Note that
 $$
-p'=\frac{w_x}{w_y}\frac{\left( \frac{k}{(x+\delta_x)^{w_x}}\right)^{1/w_y}}{x+\delta_x}
+\Delta_Y(\Delta_X) = \left(\frac{L+\delta_L}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y
 $$
-Then solving for $\delta_x$ yields
+Then using this:
 $$
-\implies  \delta_x = \left(\frac{w_x}{w_y}\frac{k^{1/w_y}}{p'}\right)^{\frac{1}{1+w_x/w_y}}-x 
+x = \frac{L}{(\frac{w_y}{w_x}p)^{w_y}}
 $$
-Which we can simplified to:
+we can do
 $$
-\implies \boxed{ \delta_x = k\left(\frac{w_x}{w_y}\frac{1}{p'}\right)^{w_y}-x }
+p' = \frac{w_x}{w_y}\frac{\left(\frac{L+\delta_L}{(x+\gamma \Delta_X)^{w_x}}\right)^{1/w_y}}{x+\gamma\Delta_X}\\
+(x+\gamma\Delta_X)^{1+w_x/w_y}=\frac{w_x}{p'w_y}(L+(1-\gamma)\Delta_X\left(\frac{w_y}{w_x}p\right)^{w_y})^{w_x}\\
+= \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}(x+(1-\gamma)\Delta_X)^{w_x}\\
+\implies (x+\Delta_x)^{1+w_x/w_y-w_x} = \frac{1}{p'}\frac{w_x}{w_y}\left(\frac{w_y}{w_x}p\right)^{w_y}\\
+\boxed{\Delta_x = \frac{1}{\gamma}\left(\left(L\frac{w_x}{w_y}\frac{1}{p'x}\right)^{\frac{1}{1+w_x/w_y-w_x}}-x\right)}
+$$
+
+TRY AGAIN:
+$$
+\Delta_x = \frac{1}{\gamma}\left(L \left( \frac{w_x}{pw_y}\right)^{w_y}+(1-\gamma) \Delta_x  \right)\\
+\Delta_x + \frac{\gamma-1}{\gamma}\Delta_x = \frac{1}{\gamma}L \left( \frac{w_x}{pw_y}\right)^{w_y}\\
+\implies \boxed{\Delta_x = \frac{1}{\gamma}\left(L \left( \frac{w_x}{pw_y}\right)^{w_y}-x\right)}
 $$
 
 #### For Raising Price
@@ -141,15 +190,21 @@ $$
 \implies \boxed{ \delta_y = k\left(\frac{w_y}{w_x}p'\right)^{w_x}-y }
 $$
 
----
-# Works in Progress
-### WIP: Liquidity
-The way we can think about liquidity is how many tokens would be in the pool if their prices were equal, i.e., $p=1$. 
-If this is the case, then:
+## Value Function on $L(S)$
+Relate to value on $V(L,S)$ and $V(x,y)$. 
+Then we can use this to tokenize. We have $L_X(x, S)$ and $L_Y(y, S)$.
+We know that:
 $$
-x=\frac{w_x}{w_y}y
+V(x(S),y(S)) = x S + y
 $$
-Using the trading function:
+Now we also have the following
 $$
-x^{w_x}y^{w_y} = \left(\frac{w_x}{w_y}y\right)^{w_x} y^{w_y}= \left(\frac{w_x}{w_y}\right)^{w_x} y = k
+x = \frac{L}{(\frac{w_y}{w_x}S)^{w_y}}\\
+y = \frac{\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}{L}
 $$
+Therefore:
+$$
+V(L,S) = \frac{LS}{\left(\frac{w_y}{w_x}S\right)^{w_y}} + \frac{L}{\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}\\
+\boxed{V(L,S)=LS^{w_x}\left(\left( \frac{w_x}{w_y}\right)^{w_y}+\left( \frac{w_y}{w_x}\right)^{w_x}\right)}
+$$
+Note that $V$ is linear in $L$ and so we can use this to tokenize.

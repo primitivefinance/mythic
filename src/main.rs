@@ -47,6 +47,7 @@ enum Commands {
         #[clap(index = 1, default_value = "example")]
         app: String,
     },
+    DebugDCA,
 }
 
 fn main() -> Result<()> {
@@ -99,6 +100,13 @@ fn main() -> Result<()> {
             "analyzer" => interface::analyzer()?,
             _ => println!("Unknown app: {}, or no app provided", app),
         },
+        Some(Commands::DebugDCA) => {
+            let config_path = "configs/dca/debug.toml";
+            let config = simulations::import(config_path)?;
+            simulations::batch(config)?;
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            analysis::plot_dca_weights();
+        }
         None => Args::command().print_long_help()?,
     }
     Ok(())
