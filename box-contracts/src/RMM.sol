@@ -63,12 +63,12 @@ contract RMM is IStrategy {
 
         if (exactX) {
             amountX = amount;
-            liquidity = computeLGivenX(amountX, price, strikePrice, sigma);
-            amountY = computeYGivenL(liquidity, price, strikePrice, sigma);
+            liquidity = computeLGivenX(amountX, price, strikePrice, sigma, tau);
+            amountY = computeYGivenL(liquidity, price, strikePrice, sigma, tau);
         } else {
             amountY = amount;
-            liquidity = computeLGivenY(amountY, price, strikePrice, sigma);
-            amountX = computeXGivenL(liquidity, price, strikePrice, sigma);
+            liquidity = computeLGivenY(amountY, price, strikePrice, sigma, tau);
+            amountX = computeXGivenL(liquidity, price, strikePrice, sigma, tau);
         }
 
         totalLiquidity = liquidity;
@@ -84,8 +84,8 @@ contract RMM is IStrategy {
         uint256 amountX,
         uint256 price
     ) external returns (uint256, uint256) {
-        uint256 l = computeLGivenX(amountX, price, strikePrice, sigma);
-        uint256 amountY = computeYGivenL(l, price, strikePrice, sigma);
+        uint256 l = computeLGivenX(amountX, price, strikePrice, sigma, tau);
+        uint256 amountY = computeYGivenL(l, price, strikePrice, sigma, tau);
 
         totalLiquidity = l;
         reserveX = amountX;
@@ -101,8 +101,8 @@ contract RMM is IStrategy {
         uint256 amountY,
         uint256 price
     ) external returns (uint256, uint256) {
-        uint256 l = computeLGivenY(amountY, price, strikePrice, sigma);
-        uint256 amountX = computeXGivenL(l, price, strikePrice, sigma);
+        uint256 l = computeLGivenY(amountY, price, strikePrice, sigma, tau);
+        uint256 amountX = computeXGivenL(l, price, strikePrice, sigma, tau);
 
         totalLiquidity = l;
         reserveX = amountX;
@@ -127,9 +127,9 @@ contract RMM is IStrategy {
             amountX = amount;
 
             uint256 newLiquidity =
-                computeLGivenX(reserveX + amountX, price, strikePrice, sigma);
+                computeLGivenX(reserveX + amountX, price, strikePrice, sigma, tau);
             uint256 newReserveY =
-                computeYGivenL(newLiquidity, price, strikePrice, sigma);
+                computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
             amountY = newReserveY - reserveY;
             liquidity = newLiquidity - totalLiquidity;
@@ -137,9 +137,9 @@ contract RMM is IStrategy {
             amountY = amount;
 
             uint256 newLiquidity =
-                computeLGivenY(reserveY + amountY, price, strikePrice, sigma);
+                computeLGivenY(reserveY + amountY, price, strikePrice, sigma, tau);
             uint256 newReserveX =
-                computeXGivenL(newLiquidity, price, strikePrice, sigma);
+                computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
             amountX = newReserveX - reserveX;
             liquidity = newLiquidity - totalLiquidity;
@@ -164,9 +164,9 @@ contract RMM is IStrategy {
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
-            computeLGivenX(reserveX + amountX, price, strikePrice, sigma);
+            computeLGivenX(reserveX + amountX, price, strikePrice, sigma, tau);
         uint256 newReserveY =
-            computeYGivenL(newLiquidity, price, strikePrice, sigma);
+            computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
         uint256 amountY = newReserveY - reserveY;
 
@@ -191,9 +191,9 @@ contract RMM is IStrategy {
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
-            computeLGivenY(reserveY + amountY, price, strikePrice, sigma);
+            computeLGivenY(reserveY + amountY, price, strikePrice, sigma, tau);
         uint256 newReserveX =
-            computeXGivenL(newLiquidity, price, strikePrice, sigma);
+            computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
         uint256 amountX = newReserveX - reserveX;
 
@@ -218,9 +218,9 @@ contract RMM is IStrategy {
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
-            computeLGivenX(reserveX - amountX, price, strikePrice, sigma);
+            computeLGivenX(reserveX - amountX, price, strikePrice, sigma, tau);
         uint256 newReserveY =
-            computeYGivenL(newLiquidity, price, strikePrice, sigma);
+            computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
         uint256 amountY = reserveY - newReserveY;
 
@@ -245,9 +245,9 @@ contract RMM is IStrategy {
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         uint256 newLiquidity =
-            computeLGivenY(reserveX - amountY, price, strikePrice, sigma);
+            computeLGivenY(reserveX - amountY, price, strikePrice, sigma, tau);
         uint256 newReserveX =
-            computeXGivenL(newLiquidity, price, strikePrice, sigma);
+            computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
         uint256 amountX = reserveX - newReserveX;
 
@@ -264,22 +264,13 @@ contract RMM is IStrategy {
         return (liquidityDelta, amountX);
     }
 
-    event deltaLEvent(uint256 deltaL);
-    event deltaXEvent(uint256 deltaX);
-    event amountOutEvent(uint256 amountOut);
-    event reserveXEvent(uint256 reserveX);
-    event outputEvent(int256 output);
-
-    function _swap(
-        bool swapDirection,
-        uint256 amountIn
-    ) internal returns (uint256 amountOut) {
+    function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma);
+            uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma, tau);
 
             amountOut = uint256(
                 ~(
@@ -290,7 +281,8 @@ contract RMM is IStrategy {
                         totalLiquidity,
                         deltaL,
                         strikePrice,
-                        sigma
+                        sigma,
+                        tau
                     ) - 1
                 )
             );
@@ -303,7 +295,7 @@ contract RMM is IStrategy {
             tokenY.transfer(msg.sender, amountOut);
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma);
+            uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma, tau);
 
             amountOut = uint256(
                 ~(
@@ -314,7 +306,8 @@ contract RMM is IStrategy {
                         totalLiquidity,
                         deltaL,
                         strikePrice,
-                        sigma
+                        sigma,
+                        tau
                     ) - 1
                 )
             );

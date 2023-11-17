@@ -2,7 +2,6 @@ use std::{str::FromStr, sync::atomic};
 
 use arbiter_core::bindings::arbiter_math::ArbiterMath;
 use ethers::abi::AbiEncode;
-use statrs::distribution::{ContinuousCDF, Normal};
 
 use super::*;
 use crate::{
@@ -172,7 +171,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                 let tau = contract.tau().call().await?;
                 let delta_y = input;
                 let delta_l = rmm_math_like
-                    .compute_l_given_x(reserve_x, spot_price, strike_price, sigma)
+                    .compute_l_given_x(reserve_x, spot_price, strike_price, sigma, tau)
                     .call()
                     .await?;
 
@@ -185,6 +184,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     delta_l,
                     strike_price,
                     sigma,
+                    tau,
                 )
                 .await?;
 
@@ -196,11 +196,11 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     to_float(0.into()),
                     to_float(strike_price),
                     to_float(sigma),
+                    to_float(tau),
                 );
 
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
 
-                // todo: breaking here
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
@@ -278,6 +278,7 @@ enum Swap {
 mod tests {
     use statrs::distribution::Normal;
     use tracing_subscriber::prelude::*;
+    use RustQuant::assert_approx_equal;
 
     use super::*;
     use crate::{
@@ -298,9 +299,9 @@ mod tests {
         environment: &Environment,
     ) -> anyhow::Result<(RmmArbitrageur<RmmStrategy>, RMMMathLike<RevmMiddleware>), anyhow::Error>
     {
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .init();
+        // tracing_subscriber::fmt()
+        //     .with_max_level(tracing::Level::TRACE)
+        //     .init();
         let cwd = std::env::current_dir().unwrap();
         let path = std::path::Path::new(cwd.to_str().unwrap());
         let config_path = path
@@ -369,56 +370,25 @@ mod tests {
         let reserve_x = parse_ether(1000.0).unwrap();
         let spot_price = parse_ether(1.0).unwrap();
         let (sigma, strike_price, tau) = get_strategy_args(&arber.rmm_strategy).await?;
-        let l =
-            compute_l_given_x_solidity(&rmm_math_like, reserve_x, spot_price, strike_price, sigma)
-                .await?;
+        let l = compute_l_given_x_solidity(
+            &rmm_math_like,
+            reserve_x,
+            spot_price,
+            strike_price,
+            sigma,
+            tau,
+        )
+        .await?;
 
         let l_rust = compute_l_given_x_rust(
             to_float(reserve_x),
             to_float(spot_price),
             to_float(strike_price),
             to_float(sigma),
-        );
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_compute_output_x_given_y() -> anyhow::Result<(), anyhow::Error> {
-        let environment = EnvironmentBuilder::new().build();
-        let (arber, rmm_math_like) = setup(&environment).await?;
-
-        let reserve_x = parse_ether(1000.0).unwrap();
-        let spot_price = parse_ether(1.0).unwrap();
-        let (sigma, strike_price, tau) = get_strategy_args(&arber.rmm_strategy).await?;
-
-        let reserve_y = parse_ether(1000.0).unwrap();
-        let liquidity = parse_ether(1000.0).unwrap();
-        let delta_l = parse_ether(1000.0).unwrap();
-        let delta_y = parse_ether(1000.0).unwrap();
-        let delta_x = parse_ether(1000.0).unwrap();
-
-        let x = compute_output_x_given_y_solidity(
-            &rmm_math_like,
-            reserve_x,
-            reserve_y,
-            delta_y,
-            liquidity,
-            delta_l,
-            strike_price,
-            sigma,
-        )
-        .await?;
-
-        let x_rust = compute_output_x_given_y_rust(
-            to_float(reserve_x),
-            to_float(reserve_y),
-            to_float(delta_y),
-            to_float(liquidity),
-            to_float(delta_l),
-            to_float(strike_price),
-            to_float(sigma),
+            to_float(tau),
         );
 
+        assert_approx_equal!(l_rust, to_float(l), 0.001);
         Ok(())
     }
 }
@@ -428,71 +398,22 @@ pub fn to_float(value: U256) -> f64 {
 }
 
 /// L_x(x, S) = x / (1 - cdf(ln(S/K) + sigma^2/2) / sigma)
-#[tracing::instrument(ret, skip(instance), level = "info")]
+#[tracing::instrument(ret, skip(instance), level = "trace")]
 pub async fn compute_l_given_x_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,
     spot_price: U256,
     strike_price: U256,
     sigma: U256,
+    tau: U256,
 ) -> Result<(U256)> {
     let l = instance
-        .compute_l_given_x(reserve_x, spot_price, strike_price, sigma)
+        .compute_l_given_x(reserve_x, spot_price, strike_price, sigma, tau)
         .call()
         .await?;
     Ok(l)
 }
 
-#[tracing::instrument(ret, level = "trace")]
-pub fn get_s_k_ln(spot_price: f64, strike_price: f64) -> f64 {
-    (spot_price / strike_price).ln()
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn get_sigma_squared_over_two(sigma: f64) -> f64 {
-    sigma.powi(2) / 2.0
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn get_inner_term(spot_price_float: f64, strike_price_float: f64, sigma_float: f64) -> f64 {
-    let s_k_ln = get_s_k_ln(spot_price_float, strike_price_float);
-    let sigma_squared_over_two = get_sigma_squared_over_two(sigma_float);
-    (s_k_ln + sigma_squared_over_two) / sigma_float
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn get_cdf_inner_term(spot_price_float: f64, strike_price_float: f64, sigma_float: f64) -> f64 {
-    let inner_term = get_inner_term(spot_price_float, strike_price_float, sigma_float);
-    let normal = Normal::new(0.0, 1.0).unwrap();
-    normal.cdf(inner_term)
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn get_one_minus_cdf_inner_term(
-    spot_price_float: f64,
-    strike_price_float: f64,
-    sigma_float: f64,
-) -> f64 {
-    let inner_term = get_inner_term(spot_price_float, strike_price_float, sigma_float);
-    let normal = Normal::new(0.0, 1.0).unwrap();
-    1.0 - normal.cdf(inner_term)
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn compute_l_given_x_rust(
-    reserve_x_float: f64,
-    spot_price_float: f64,
-    strike_price_float: f64,
-    sigma_float: f64,
-) -> f64 {
-    let one_minus_cdf_inner_term =
-        get_one_minus_cdf_inner_term(spot_price_float, strike_price_float, sigma_float);
-    reserve_x_float / one_minus_cdf_inner_term
-}
-
-// I have no idea why this says i need to do this for clippy to pass but sure
-#[allow(clippy::too_many_arguments)]
-#[tracing::instrument(ret, skip(instance), level = "info")]
 pub async fn compute_output_x_given_y_solidity(
     instance: &RMMMathLike<RevmMiddleware>,
     reserve_x: U256,
@@ -502,6 +423,7 @@ pub async fn compute_output_x_given_y_solidity(
     delta_l: U256,
     strike_price: U256,
     sigma: U256,
+    tau: U256,
 ) -> Result<(I256)> {
     let x = instance
         .compute_output_x_given_y(
@@ -512,119 +434,34 @@ pub async fn compute_output_x_given_y_solidity(
             delta_l,
             strike_price,
             sigma,
+            tau,
         )
         .await?;
     Ok(x)
 }
 
-/// delta_x =
-/// (L + d_l) * cdf(-sigma - ppf((y + d_y) / K(L + d_l))) - x - d_x)
-#[tracing::instrument(ret, level = "info")]
-pub fn compute_output_x_given_y_rust(
-    reserve_x_float: f64,
-    reserve_y_float: f64,
-    delta_y_float: f64,
-    liquidity_float: f64,
-    delta_l_float: f64,
-    strike_price_float: f64,
-    sigma_float: f64,
-) -> f64 {
-    let cdf_term = cdf_negative_sigma_less_ppf_term(
-        sigma_float,
-        reserve_y_float,
-        delta_y_float,
-        liquidity_float,
-        delta_l_float,
-        strike_price_float,
-    );
-
-    let adjusted_l = liquidity_float + delta_l_float;
-    adjusted_l * cdf_term - reserve_x_float
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn y_plus_delta_y(reserve_y_float: f64, delta_y_float: f64) -> f64 {
-    reserve_y_float + delta_y_float
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn strike_price_mul_l_plus_delta_l(
-    strike_price_float: f64,
-    liquidity_float: f64,
-    delta_l_float: f64,
-) -> f64 {
-    strike_price_float * (liquidity_float + delta_l_float)
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn adjusted_y_div_adjusted_l(
-    reserve_y_float: f64,
-    delta_y_float: f64,
-    liquidity_float: f64,
-    delta_l_float: f64,
-    strike_price_float: f64,
-) -> f64 {
-    let adjusted_y = y_plus_delta_y(reserve_y_float, delta_y_float);
-    let adjusted_l =
-        strike_price_mul_l_plus_delta_l(strike_price_float, liquidity_float, delta_l_float);
-    adjusted_y / adjusted_l
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn ppf_adjusted_y_over_l(
-    reserve_y_float: f64,
-    delta_y_float: f64,
-    liquidity_float: f64,
-    delta_l_float: f64,
-    strike_price_float: f64,
-) -> f64 {
-    let normal = Normal::new(0.0, 1.0).unwrap();
-    let adjusted_y_over_l = adjusted_y_div_adjusted_l(
-        reserve_y_float,
-        delta_y_float,
-        liquidity_float,
-        delta_l_float,
-        strike_price_float,
-    );
-    normal.inverse_cdf(adjusted_y_over_l)
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn negative_sigma_less_ppf_term(
-    sigma_float: f64,
-    reserve_y_float: f64,
-    delta_y_float: f64,
-    liquidity_float: f64,
-    delta_l_float: f64,
-    strike_price_float: f64,
-) -> f64 {
-    let ppf_adjusted_y_over_l = ppf_adjusted_y_over_l(
-        reserve_y_float,
-        delta_y_float,
-        liquidity_float,
-        delta_l_float,
-        strike_price_float,
-    );
-    -sigma_float - ppf_adjusted_y_over_l
-}
-
-#[tracing::instrument(ret, level = "trace")]
-pub fn cdf_negative_sigma_less_ppf_term(
-    sigma_float: f64,
-    reserve_y_float: f64,
-    delta_y_float: f64,
-    liquidity_float: f64,
-    delta_l_float: f64,
-    strike_price_float: f64,
-) -> f64 {
-    let negative_sigma_less_ppf_term = negative_sigma_less_ppf_term(
-        sigma_float,
-        reserve_y_float,
-        delta_y_float,
-        liquidity_float,
-        delta_l_float,
-        strike_price_float,
-    );
-    let normal = Normal::new(0.0, 1.0).unwrap();
-    normal.cdf(negative_sigma_less_ppf_term)
+pub async fn compute_output_y_given_x_solidity(
+    instance: &RMMMathLike<RevmMiddleware>,
+    reserve_x: U256,
+    reserve_y: U256,
+    delta_x: U256,
+    liquidity: U256,
+    delta_l: U256,
+    strike_price: U256,
+    sigma: U256,
+    tau: U256,
+) -> Result<(I256)> {
+    let x = instance
+        .compute_output_x_given_y(
+            reserve_x,
+            reserve_y,
+            delta_x,
+            liquidity,
+            delta_l,
+            strike_price,
+            sigma,
+            tau,
+        )
+        .await?;
+    Ok(x)
 }

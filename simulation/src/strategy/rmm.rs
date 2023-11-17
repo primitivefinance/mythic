@@ -26,7 +26,7 @@ impl Strategy for RmmStrategy {
         self.0.address()
     }
 
-    #[tracing::instrument(skip(self), ret)]
+    #[tracing::instrument(skip(self), ret, level = "trace")]
     async fn decode_strategy_data(&self) -> Result<Self::StrategyData> {
         let data = self.0.get_strategy_data().call().await?;
         // decode the bytes data into the weight x and weight y U256 types:
@@ -149,7 +149,7 @@ impl ArbitrageStrategy for RmmStrategy {
         Ok(dx.into_raw())
     }
 
-    #[tracing::instrument(ret, skip(self, _g3m_math, rmm_math))]
+    #[tracing::instrument(ret, skip(self, _g3m_math, rmm_math), level = "trace")]
     async fn get_y_input(
         &self,
         target_price_wad: U256,
@@ -163,8 +163,10 @@ impl ArbitrageStrategy for RmmStrategy {
             I256::from_raw(tau),
         );
 
-        let (_reserve_x, reserve_y) = get_reserves(self).await?;
-        let (_reserve_x, reserve_y) = (I256::from_raw(_reserve_x), I256::from_raw(reserve_y));
+        let (reserve_x, reserve_y) = get_reserves(self).await?;
+        let (reserve_x, reserve_y) = (I256::from_raw(reserve_x), I256::from_raw(reserve_y));
+        debug!("reserve_x: {}", reserve_x);
+        debug!("reserve_y: {}", reserve_y);
 
         let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
         debug!("liquidity: {}", liquidity);
@@ -181,6 +183,7 @@ impl ArbitrageStrategy for RmmStrategy {
             rmm_math,
         )
         .await?;
+        debug!("dy: {}", dy);
         Ok(dy.into_raw())
     }
 
@@ -193,14 +196,14 @@ impl ArbitrageStrategy for RmmStrategy {
     }
 }
 
-#[tracing::instrument(skip(strategy), ret)]
+#[tracing::instrument(skip(strategy), ret, level = "trace")]
 pub async fn get_reserves(strategy: &RmmStrategy) -> Result<(U256, U256)> {
     let reserve_x = strategy.0.get_reserve_x().call().await?;
     let reserve_y = strategy.0.get_reserve_y().call().await?;
     Ok((reserve_x, reserve_y))
 }
 
-#[tracing::instrument(skip(strategy), ret)]
+#[tracing::instrument(skip(strategy), ret, level = "trace")]
 pub async fn get_strategy_args(strategy: &RmmStrategy) -> Result<(U256, U256, U256)> {
     let strategy_data = strategy.decode_strategy_data().await?;
     Ok((
@@ -212,7 +215,7 @@ pub async fn get_strategy_args(strategy: &RmmStrategy) -> Result<(U256, U256, U2
 
 /// \boxed{\Delta_y = y'-y = K\cdot L \cdot
 /// \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}
-#[tracing::instrument(skip(rmm_math), ret)]
+#[tracing::instrument(skip(rmm_math), ret, level = "trace")]
 pub async fn get_dy(
     target_price_wad: U256,
     sigma: I256,

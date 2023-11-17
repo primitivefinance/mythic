@@ -19,6 +19,7 @@ use bindings::{
     rmm::RMM,
     sd5_9x_18_math::SD59x18Math,
 };
+use cfmm_math::trading_functions::rmm::*;
 use config::{Config, ConfigError};
 use ethers::{
     abi::AbiDecode,
