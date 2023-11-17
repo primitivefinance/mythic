@@ -93,7 +93,7 @@ pub async fn handle_state_subscriptions(
         let formatted_world_id = &formatted_world_id[0..3];
 
         for agent in agents.0.iter_mut() {
-            let subscribed = agent.get_subscribed().await?;
+            let subscribed = agent.1.get_subscribed().await?;
 
             // Skip empty subscriptions to avoid populating the state data with empty
             // subscriptions.
@@ -101,15 +101,15 @@ pub async fn handle_state_subscriptions(
                 continue;
             }
 
-            if agent.get_name().to_lowercase().contains("monitor") {
+            if agent.0.to_lowercase().contains("monitor") {
                 state_data
                     .entry(world_id.clone())
                     .or_insert(HashMap::new())
                     .insert(
-                        agent.get_name(),
+                        agent.0.to_string(),
                         StateSubscription {
                             logs: subscribed,
-                            label: format!("{} {}", formatted_world_id, agent.get_name()),
+                            label: format!("{} {}", formatted_world_id, agent.0),
                             category: AppEventLayer::System,
                             id: world_id,
                         },
@@ -121,10 +121,10 @@ pub async fn handle_state_subscriptions(
                     .entry(world_id.clone())
                     .or_insert(HashMap::new())
                     .insert(
-                        agent.get_name(),
+                        agent.0.to_string(),
                         StateSubscription {
                             logs: subscribed,
-                            label: format!("{} {}", formatted_world_id, agent.get_name()),
+                            label: format!("{} {}", formatted_world_id, agent.0),
                             category: AppEventLayer::Agent,
                             id: world_id,
                         },
@@ -148,7 +148,7 @@ pub async fn handle_price_path(
 
         tracing::debug!("Getting subscribed data");
         for agent in agents.0.iter_mut() {
-            let price_changer = agent.as_any().downcast_ref::<PriceChanger>();
+            let price_changer = agent.1.as_any().downcast_ref::<PriceChanger>();
 
             match price_changer {
                 Some(price_changer) => {
@@ -401,11 +401,11 @@ impl Terminal {
                     let mut lp_address = Address::zero();
 
                     for agent in agents.0.iter_mut() {
-                        let name = agent.get_name();
+                        let name = agent.0;
 
                         if name.contains("liquidity_provider") {
                             tracing::trace!("world.{}.: Found LP agent", world_id.clone());
-                            lp_address = agent.get_client().unwrap().address();
+                            lp_address = agent.1.get_client().unwrap().address();
                         }
                     }
 

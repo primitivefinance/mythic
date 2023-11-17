@@ -3,27 +3,26 @@
 
 use std::{path::Path, sync::Arc};
 
-use analysis::i_strategy::IStrategy;
-use arbiter_core::{
-    environment::{builder::EnvironmentBuilder, Environment},
-    middleware::RevmMiddleware,
-};
+use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
 use ethers::prelude::rand::{self, Rng};
 use simulation::{
     agents::{
-        arbitrageur::Arbitrageur,
         block_admin::BlockAdmin,
-        liquidity_provider::LiquidityProvider,
+        g3m::{
+            arbitrageur::Arbitrageur,
+            g3m_portfolio_manager::{G3mPortfolioManager, G3mPortfolioManagerType},
+            liquidity_provider::LiquidityProvider,
+        },
         price_changer::PriceChanger,
         strategy_monitor::StrategyMonitorAgent,
         token_admin::TokenAdmin,
-        weight_changer::{WeightChanger, WeightChangerType},
         Agents,
     },
     settings::{
         parameters::{Multiple, Single},
         SimulationConfig,
     },
+    strategy::g3m::G3mStrategy,
 };
 use tokio::{
     runtime::Builder,
@@ -178,12 +177,12 @@ impl World {
 
         for agent in self.agents.lock().await.iter_mut() {
             let layer = "agent";
-            let id = agent.get_name();
+            let id = agent.0;
             let action = "startup";
             let agent_span =
                 tracing::debug_span!("agent", layer = %layer, id = %id, action = %action);
 
-            agent.startup().instrument(agent_span).await?;
+            agent.1.startup().instrument(agent_span).await?;
         }
 
         Ok(())
@@ -207,16 +206,16 @@ impl World {
         self.state.current_step += 1;
 
         for agent in self.agents.lock().await.iter_mut() {
-            agent.priority_step().await?;
+            agent.1.priority_step().await?;
         }
 
         for agent in self.agents.lock().await.iter_mut() {
             let layer = "agent";
-            let id = agent.get_name();
+            let id = agent.0;
             let action = "step";
             let agent_span =
                 tracing::debug_span!("agent", layer = %layer, id = %id, action = %action);
-            agent.step().instrument(agent_span).await?;
+            agent.1.step().instrument(agent_span).await?;
         }
 
         Ok(())
@@ -268,7 +267,7 @@ impl WorldBuilder {
         let price_changer =
             PriceChanger::new(environment, &config, "price_changer", &token_admin).await?;
 
-        let weight_changer = WeightChangerType::new(
+        let weight_changer = G3mPortfolioManagerType::new(
             environment,
             &config,
             "weight_changer",
@@ -276,7 +275,7 @@ impl WorldBuilder {
         )
         .await?;
 
-        let lp = LiquidityProvider::<IStrategy<RevmMiddleware>>::new(
+        let lp = LiquidityProvider::<G3mStrategy>::new(
             environment,
             &config,
             "lp",
@@ -285,7 +284,7 @@ impl WorldBuilder {
         )
         .await?;
 
-        let arbitrageur = Arbitrageur::<IStrategy<RevmMiddleware>>::new(
+        let arbitrageur = Arbitrageur::<G3mStrategy>::new(
             environment,
             &token_admin,
             price_changer.liquid_exchange.address(),
@@ -293,7 +292,7 @@ impl WorldBuilder {
         )
         .await?;
 
-        let strategy_monitor = StrategyMonitorAgent::<IStrategy<RevmMiddleware>>::new(
+        let strategy_monitor = StrategyMonitorAgent::<G3mStrategy>::new(
             environment,
             &config,
             "strategy_monitor",
@@ -755,7 +754,10 @@ mod tests {
             let agents_lock = world_lock.agents.lock().await;
             // Check the counter is the current step - 1, because we added the agent in the
             // middle.
-            let counter_agent = agents_lock.0[0]
+            let counter_agent = agents_lock
+                .0
+                .get("counter")
+                .unwrap()
                 .as_any()
                 .downcast_ref::<CounterAgent>()
                 .unwrap();

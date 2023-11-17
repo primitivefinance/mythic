@@ -222,7 +222,7 @@ impl AnalyzerApp {
     }
 }
 
-fn open_file_dialog() -> Option<PathBuf> {
+fn open_file_dialog() -> Option<std::path::PathBuf> {
     FileDialog::new()
         .set_location(".")
         .add_filter("JSON Files", &["json"])
