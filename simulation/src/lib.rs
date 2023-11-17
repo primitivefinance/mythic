@@ -31,7 +31,7 @@ use tracing::{debug, error, info, trace, warn};
 use RustQuant::stochastics::*;
 
 #[allow(unused)]
-mod agents;
+pub mod agents;
 #[allow(clippy::all)]
 #[rustfmt::skip]
 pub mod bindings;

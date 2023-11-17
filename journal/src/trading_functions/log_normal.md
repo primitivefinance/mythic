@@ -8,6 +8,7 @@ $$
 $$
 In the equation above, $x$ and $y$ are reserves, and $L$ is *a* measure of liquidity.
 Given the domain of $\Phi^{-1}$ we can see that $x\in[0,L]$ and $y\in[0,KL]$.
+
 As the pool's liquidity increases, the maximal amount of each reserve increases.
 
 ## Determining $L$
@@ -125,22 +126,15 @@ From this we get
 $$
 \delta_L=L_X(\delta_x, S)=\frac{\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
-and we also get 
+Using the trading function, we solve for $\Delta_y$:
 $$
-\delta_y=K\cdot L_X(\delta_x,S)\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right).
-$$
+\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
 
-Now we can compute the no-fee swap with $\widetilde{\Delta_x}$. 
-For consistency, we can let $\Delta_y=\delta_y + \widetilde{\Delta_y}$ and note that the user's output will be this $\widetilde{\Delta_y}$.
-Using the trading function, we solve for $\widetilde{\Delta_y}$:
-$$
-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\delta_y+\widetilde{\Delta_y}}{K(L+\delta_L)}\right)=-\sigma\\
-\frac{y+\delta_y+\widetilde{\Delta_y}}{K(L+\delta_L)} = \Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)\\
-y+\delta_y+\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)\\
-\boxed{\widetilde{\Delta_y} = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y-\delta_y}
+\boxed{\Delta_y(\Delta_x) = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y}
 $$
 
 ##### $\Delta_x$ given $\Delta_y$
+<!-- TODO UPDATE THIS MATH -->
 Suppose that the user wants to swap $y$ for $x$ and the price is $S$.
 They specifically tender $\Delta_y$ and the fee parameter is $\gamma$.
 Now $\delta_y=(1-\gamma)\Delta_y$ and $\widetilde{\Delta_y}=\gamma\Delta_y$.
@@ -148,43 +142,54 @@ From this we get
 $$
 \delta_L=L_Y(\delta_y, S)=\frac{\delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
 $$
-and we also get 
+Using the trading function, we solve for $\Delta_x$:
 $$
-\delta_y=L_Y(\delta_y,S)\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)
-$$
-
-Now we can compute the no-fee swap with $\widetilde{\Delta_y}$. 
-For consistency, we can let $\Delta_x=\delta_x + \widetilde{\Delta_x}$ and note that the user's output will be this $\widetilde{\Delta_x}$.
-Using the trading function, we solve for $\widetilde{\Delta_x}$:
-$$
-\Phi^{-1}\left(\frac{x+\delta_x + \widetilde{\Delta_x}}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
-\frac{x+\delta_x + \widetilde{\Delta_x}}{L+\delta_L} = \Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
-x+\delta_x + \widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)\\
-\boxed{\widetilde{\Delta_x} = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x-\delta_x}
+\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)=-\sigma\\
+\boxed{\Delta_x(\Delta_y) = (L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{y+\Delta_y}{K(L+\delta_L)}\right)\right)-x}
 $$
 
 ## Arbitrage Math
-
-NOTE THAT THIS MAY NOT BE QUITE CORRECT WHEN TAKING FEES INTO ACCOUNT.
 
 ### Raising the price
 When we need to raise the price, we need to tender in $Y$. 
 If the current price is $S$ and we want to raise it to $S'$, then we need to tender in $Y$ such that we go from $y$ to $y'$ and:
 $$
-y' = K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+y' = K\cdot (L+\delta_L) \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
 $$ 
+and we know $\delta_L$ in terms of $\Delta_y$:
+$$
+\frac{(1-\gamma) \Delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+$$
 therefore the amount of $Y$ to tender is:
 $$
-\boxed{\Delta_y = y'-y = K\cdot L_Y(y+\delta_y,S) \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}\\
-\Delta_y = \left(KL + \frac{(1-\gamma)\Delta_y}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}\right)\cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\\
-\Delta_y=\frac{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)\left(KL\Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\right)}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)+(\gamma-1) \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+\Delta_y = y'-y = K\cdot (L+\delta_L) \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y\\
+=  K\cdot L \cdot \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma} \right) + (1-\gamma)\Delta_y \cdot \frac{\Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right) }  -y\\
+\implies \boxed{\Delta_y = \frac{KL\Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right) - y}{1+(\gamma-1)\frac{\Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}{\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right) }}}
 $$
 
-x = (b (a c - d))/(b + c g - c)
 
 ### Lowering the price
 When we need to lower the price, we need to tender in $X$.
 If the current price is $S$ and we want to lower it to $S'$, then we need to tender in $X$ such that we go from $x$ to $x'$ and:
 $$
-\boxed{\Delta x = L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x}
+\Delta x = (L + \delta_L)\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) - x \\
+\implies \boxed{ \Delta_x = \frac{L\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)-x}{1+(\gamma-1)\frac{1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}}
 $$
+
+## Value Function on $L(S)$
+Relate to value on $V(L,S)$ and $V(x,y)$. 
+Then we can use this to tokenize. We have $L_X(x, S)$ and $L_Y(y, S)$.
+We know that:
+$$
+V(x(S),y(S)) = x S + y
+$$
+Now we also have the following
+$$
+x = LS\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)\\
+y = K\cdot L\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+$$
+Therefore:
+$$
+\boxed{V(L,S) = L\left( S\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) + K\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
+$$
+Note that $V$ is linear in $L$ and so we can use this to tokenize.

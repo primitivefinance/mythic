@@ -11,7 +11,7 @@ Quantities we can compute:
 - Liquidity
 
 ## Notation
-- The **_tokens_** are given by: $$X \equiv \mathtt{token\_x}$$ $$Y \equiv \mathtt{token\_y}$$
+- The **_tokens_** are given by: $$X \equiv \mathtt{token\_x}$$ $$Y \equiv \mathtt{token\_y} \equiv$$
 - The **_reserves_** are: $$ x \equiv \mathtt{reserve\_x} $$ $$ y \equiv \mathtt{reserve\_y} $$
 - The **_trading function_** is: $$ \varphi(x,y) \equiv \mathtt{trading\_function} $$
 - The **_fee parameter_** is: $$ \gamma \equiv \mathtt{fee} $$
