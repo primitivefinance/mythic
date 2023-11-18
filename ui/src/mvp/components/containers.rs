@@ -1,4 +1,4 @@
-use iced::widget::container::*;
+use iced::{widget::container::*, BorderRadius};
 
 use super::*;
 
@@ -146,5 +146,88 @@ impl StyleSheet for InfoContainer {
 impl InfoContainer {
     pub fn theme() -> iced::theme::Container {
         iced::theme::Container::Custom(Box::from(InfoContainer))
+    }
+}
+
+pub struct BorderedContainer {
+    pub border_radius: BorderRadius,
+}
+
+impl BorderedContainer {
+    pub fn new(border_radius: BorderRadius) -> Self {
+        Self { border_radius }
+    }
+}
+
+impl Default for BorderedContainer {
+    fn default() -> Self {
+        Self {
+            border_radius: 5.0.into(),
+        }
+    }
+}
+
+impl StyleSheet for BorderedContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            border_radius: self.border_radius,
+            border_width: 1.0,
+            border_color: STROKE_COLOR,
+            ..Default::default()
+        }
+    }
+}
+
+impl BorderedContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(BorderedContainer::default()))
+    }
+
+    pub fn theme_with_border_radius(border_radius: BorderRadius) -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(Self::new(border_radius)))
+    }
+}
+
+pub struct TableColumnContainer {
+    pub border_radius: BorderRadius,
+}
+
+impl TableColumnContainer {
+    pub fn new(border_radius: BorderRadius) -> Self {
+        Self { border_radius }
+    }
+}
+
+impl Default for TableColumnContainer {
+    fn default() -> Self {
+        Self {
+            border_radius: 5.0.into(),
+        }
+    }
+}
+
+impl StyleSheet for TableColumnContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: Some(iced::Background::Color(TABLE_COLUMN_BG_COLOR)),
+            border_radius: self.border_radius,
+            border_width: 1.0,
+            border_color: STROKE_COLOR,
+            ..Default::default()
+        }
+    }
+}
+
+impl TableColumnContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(TableColumnContainer::default()))
+    }
+
+    pub fn theme_with_border_radius(border_radius: BorderRadius) -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(Self::new(border_radius)))
     }
 }

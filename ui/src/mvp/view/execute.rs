@@ -1,7 +1,7 @@
 //! Views for executing transactions.
 
 use bytesize::ByteSize;
-use iced::widget::pick_list;
+use iced::{advanced::Widget, widget::pick_list, BorderRadius};
 
 use super::{components::input::create_input_component, text, Column, Element, Message, *};
 use crate::mvp::{
@@ -23,8 +23,15 @@ pub fn execution_layout<'a>(
         .collect();
 
     let content = match step {
-        TransactionSteps::Start => starting(input_amount, address_book, selected),
-        TransactionSteps::Simulated => simulated(review_diffs),
+        TransactionSteps::Start => {
+            starting(input_amount.clone(), address_book.clone(), selected.clone())
+        }
+        TransactionSteps::Simulated => simulated(
+            selected.clone(),
+            selected.clone(),
+            input_amount.clone(),
+            review_diffs,
+        ),
         TransactionSteps::Executed => executed(),
         TransactionSteps::Confirmed => confirmed(),
     };
@@ -79,12 +86,27 @@ pub fn starting<'a>(
         .into()
 }
 
-/// Panel for executed the transaction's state diffs.
-pub fn executed<'a>() -> Element<'a, Message> {
-    let title = data_item("Execute Transaction".to_string()).size(36);
+/// Extended panel for executed simulated diffs
+pub fn simulated<'a>(
+    selected_to: String,
+    selected_target: String,
+    input_amount: String,
+    review_diffs: Option<StorageDiffs>,
+) -> Element<'a, Message> {
+    let title = data_item("Review Transaction".to_string()).size(36);
+    let submit_card = submit_group();
 
-    let column_1: Vec<Element<'a, Message>> = vec![title.into()];
-    let column_2: Vec<Element<'a, Message>> = vec![button(text("Execute")).into()];
+    let summary_card = summary_group(
+        selected_to.clone(),
+        selected_target.clone(),
+        input_amount.clone(),
+    );
+
+    let simulated_card = review_group(review_diffs.clone());
+
+    let column_1: Vec<Element<'a, Message>> =
+        vec![title.into(), summary_card.into(), simulated_card.into()];
+    let column_2: Vec<Element<'a, Message>> = vec![submit_card.into()];
 
     Column::new()
         .push(components::dual_column(column_1, column_2))
@@ -94,49 +116,15 @@ pub fn executed<'a>() -> Element<'a, Message> {
         .into()
 }
 
-/// Extended panel for executed simulated diffs
-pub fn simulated<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Message> {
-    let title = data_item("Review Transaction".to_string()).size(36);
+/// Panel for executed the transaction's state diffs.
+pub fn executed<'a>() -> Element<'a, Message> {
+    let title = data_item("Execute Transaction".to_string()).size(36);
 
-    let mut column_1: Vec<Element<'a, Message>> = vec![title.into()];
+    let column_1: Vec<Element<'a, Message>> = vec![title.into()];
+    let column_2: Vec<Element<'a, Message>> = vec![button(text("Execute")).into()];
 
-    match review_diffs {
-        Some(diffs) => {
-            // let mut diff_list: Vec<Element<'a, Message>> = vec![
-            // label_item("Slot".to_string()).into(),
-            // label_item("Value".to_string()).into(),
-            // ];
-            // for (key, (before, after)) in diffs {
-            // let slot = U256::from_little_endian(key.as_le_bytes().as_ref());
-            //
-            // let before_value = match before {
-            // Some(value) => value.to_string(),
-            // None => "".to_string(),
-            // };
-            //
-            // let after_value = match after {
-            // Some(value) => value.to_string(),
-            // None => "".to_string(),
-            // };
-            //
-            // diff_list.push(
-            // Row::new()
-            // .push(text(slot.to_string()))
-            // .push(text(before_value))
-            // .push(text(after_value))
-            // .into(),
-            // );
-            // }
-            //
-            // column_1.push(Column::with_children(diff_list).into());
-            column_1.push(storage_diffs_table(diffs).into());
-        }
-        None => {
-            column_1.push(text("No diffs to display").into());
-        }
-    };
-
-    Column::with_children(column_1)
+    Column::new()
+        .push(components::dual_column(column_1, column_2))
         .spacing(16)
         .padding(32)
         .width(Length::Fill)
@@ -344,33 +332,174 @@ pub fn data_group<'a>(
     .into()
 }
 
-// Review group
-// pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a,
-// Message> { let title = h3("Simulation Results".to_string());
-//
-// let rows: Vec<Row<'a, Message>> = vec![];
-//
-// let inner_column = Column::new()
-// .push(title)
-// .push(info)
-// .align_items(alignment::Alignment::Start)
-// .spacing(Sizes::Sm as u16)
-// .padding(Sizes::Sm as u16)
-// .width(Length::Fill)
-// .height(Length::Fill);
-//
-// let label_text = Row::new()
-// .push(text_label("As of block".to_string()))
-// .push(text_label("1".to_string()));
-//
-// Card::new(
-// Column::new()
-// .push(title)
-// .push(inner_column)
-// .push(label_text)
-// .spacing(Sizes::Lg as u16)
-// .padding(Sizes::Lg as u16),
-// )
-// .max_height(ByteScale::Xl6.into())
-// .into()
-// }
+pub fn summary_group<'a>(
+    selected_to: String,
+    selected_target: String,
+    input_value: String,
+) -> Element<'a, Message> {
+    let title = h3("Summary".to_string());
+
+    let table = summary_table(vec![
+        ("From".to_string(), selected_to),
+        ("To".to_string(), selected_target),
+        ("Amount".to_string(), input_value),
+    ]);
+
+    let label_text = Row::new()
+        .push(text_label("As of block".to_string()))
+        .push(text_label("1".to_string()));
+
+    Card::new(
+        Column::new()
+            .push(title)
+            .push(table)
+            .push(label_text)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Lg as u16),
+    )
+    .max_width(ByteScale::Xl6 as u32 as f32)
+    .max_height(ByteScale::Xl6 as u32 as f32)
+    .into()
+}
+
+/// Review group
+pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Message> {
+    let title = h3("Simulation Results".to_string());
+
+    let mut values = vec![];
+
+    // For each storage diff, compute the difference and render a label and diff.
+    if let Some(review_diffs) = review_diffs {
+        for (slot, (before, after)) in review_diffs.iter() {
+            let diff = match (before.clone(), after.clone()) {
+                (Some(before), Some(after)) => after.checked_sub(before),
+                _ => None,
+            };
+
+            match diff {
+                Some(diff) => {
+                    values.push((slot.to_string(), diff.to_string()));
+                }
+                None => {}
+            }
+        }
+    }
+
+    let table = summary_table(values);
+
+    let label_text = Row::new()
+        .push(text_label("As of block".to_string()))
+        .push(text_label("1".to_string()));
+
+    Card::new(
+        Column::new()
+            .push(title)
+            .push(table)
+            .push(label_text)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Lg as u16),
+    )
+    .max_width(ByteScale::Xl6 as u32 as f32)
+    .max_height(ByteScale::Xl6 as u32 as f32)
+    .into()
+}
+
+/// Renders a column in a summary table's row.
+pub fn summary_column<'a>(value: String) -> Column<'a, Message> {
+    Column::new()
+        .push(h4(value))
+        .align_items(alignment::Alignment::Center)
+        .padding(Sizes::Md as u16)
+        .width(Length::FillPortion(2))
+}
+
+/// Renders a row in a summary table.
+/// If top row, render with top-left border radius.
+/// If bottom row, render with bottom-left border radius.
+/// Otherwise, render with no border radius.
+/// todo: border radius is affected by being an inner border, doesn't look the
+/// greatest unfortunately.
+pub fn summary_row<'a>(
+    columns: Vec<Column<'a, Message>>,
+    row_position: usize,
+    total_rows: usize,
+) -> Container<'a, Message> {
+    let col_radius: BorderRadius = match row_position {
+        0 => [5.0, 0.0, 0.0, 0.0].into(),
+        _ if row_position == total_rows - 1 => [0.0, 0.0, 0.0, 5.0].into(),
+        _ => [0.0, 0.0, 0.0, 0.0].into(),
+    };
+
+    let col_radius = match total_rows {
+        1 => [5.0, 0.0, 0.0, 5.0].into(),
+        _ => col_radius,
+    };
+
+    // Edit the first column by wrapping it with a InfoContainer
+    let mut columns = columns;
+    let first_column = columns.remove(0);
+    let first_column = Container::new(first_column)
+        .style(TableColumnContainer::theme_with_border_radius(col_radius))
+        .width(Length::Fill);
+    columns.insert(0, Column::new().push(first_column).width(Length::Fill));
+
+    // If top row, top left + right border radius.
+    // If bottom row, bottom left + right border radius.
+    // Otherwise, no border radius.
+    let row_radius: BorderRadius = match row_position {
+        0 => [5.0, 5.0, 0.0, 0.0].into(),
+        _ if row_position == total_rows - 1 => [0.0, 0.0, 5.0, 5.0].into(),
+        _ => [0.0, 0.0, 0.0, 0.0].into(),
+    };
+
+    // Override radius if only one row.
+    let row_radius = match total_rows {
+        1 => 5.0.into(),
+        _ => row_radius,
+    };
+
+    Container::new(
+        Row::with_children(
+            columns
+                .into_iter()
+                .map(|c| c.into())
+                .collect::<Vec<Element<'a, Message>>>(),
+        )
+        .align_items(alignment::Alignment::Center)
+        .width(Length::Fill),
+    )
+    .style(BorderedContainer::theme_with_border_radius(row_radius))
+    .into()
+}
+
+pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message> {
+    // If values has no values, just render centered text in the container "No
+    // changes."
+    if values.is_empty() {
+        return Container::new(
+            Row::new()
+                .push(
+                    Column::new()
+                        .push(text("No changes."))
+                        .align_items(alignment::Alignment::Center),
+                )
+                .align_items(alignment::Alignment::Center),
+        )
+        .center_x()
+        .center_y()
+        .style(BorderedContainer::theme());
+    }
+
+    let mut rows: Vec<Element<'a, Message>> = vec![];
+
+    let total_rows = values.len();
+    for (i, (label, value)) in values.into_iter().enumerate() {
+        let columns: Vec<Column<'a, Message>> = vec![summary_column(label), summary_column(value)];
+        let row = summary_row(columns, i, total_rows);
+        rows.push(row.into());
+    }
+
+    Container::new(Column::with_children(rows))
+        .style(BorderedContainer::theme())
+        .into()
+}

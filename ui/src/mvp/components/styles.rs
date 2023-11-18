@@ -82,6 +82,18 @@ pub const INFO_BG_CONTAINER: Color = Color::from_rgb(
     0x31 as f32 / 255.0,
 );
 
+pub const TABLE_COLUMN_BG_COLOR: Color = Color::from_rgb(
+    0x4E as f32 / 255.0,
+    0x4E as f32 / 255.0,
+    0x4E as f32 / 255.0,
+);
+
+pub const STROKE_COLOR: Color = Color::from_rgb(
+    0x6F as f32 / 255.0,
+    0x6F as f32 / 255.0,
+    0x6F as f32 / 255.0,
+);
+
 // pretty sure this breaks if they don't have daggersquare installed?
 pub const FONT_DAGGERSQUARE: Font = Font::with_name("DAGGERSQUARE");
 
