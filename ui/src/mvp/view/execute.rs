@@ -59,12 +59,6 @@ pub fn starting<'a>(
         Message::Execution(view::Execution::AmountChanged(value))
     });
 
-    let summary = Column::new()
-        .spacing(4)
-        .push(label_item("summary".to_string()).size(16))
-        .push(text("Transaction will succeed"))
-        .push("Transaction has warnings");
-
     let selection = address_book.clone();
 
     tracing::info!("Selection options: {:?}", selection);
@@ -85,7 +79,9 @@ pub fn starting<'a>(
             .into(),
     ];
 
-    let column_2: Vec<Element<'a, Message>> = vec![summary.into()];
+    let submit = submit_group();
+
+    let column_2: Vec<Element<'a, Message>> = vec![submit.into()];
 
     Column::new()
         .push(components::dual_column(column_1, column_2))
@@ -205,4 +201,37 @@ pub fn storage_diffs_table<'a>(review_diffs: StorageDiffs) -> Element<'a, Messag
         .spacing(8)
         .padding(8)
         .into()
+}
+
+/// Submit group
+pub fn submit_group<'a>() -> Element<'a, Message> {
+    let title = h3("Submit".to_string());
+    let info = text_label("Awaiting approval in review...".to_string());
+    let button = action_button("Submit".to_string())
+        .on_press(Message::Empty)
+        .padding(Sizes::Md as u16)
+        .width(Length::Fill);
+
+    let inner_column = Column::new()
+        .push(title)
+        .push(info)
+        .align_items(alignment::Alignment::Start)
+        .spacing(Sizes::Sm as u16)
+        .padding(Sizes::Sm as u16)
+        .width(Length::Fill)
+        .height(Length::Fill);
+
+    let h: f32 = ByteScale::Xl4.between(&ByteScale::Xl5);
+
+    Card::new(
+        Column::new()
+            .push(inner_column)
+            .push(button)
+            .align_items(alignment::Alignment::Center)
+            .padding(Sizes::Md as u16)
+            .spacing(Sizes::Md as u16),
+    )
+    .width(Length::Fixed(ByteScale::Xl5.into()))
+    .max_height(h)
+    .into()
 }

@@ -108,3 +108,23 @@ impl FirehoseTrace {
         iced::theme::Container::Custom(Box::from(FirehoseTrace))
     }
 }
+
+pub struct CardContainer;
+
+impl StyleSheet for CardContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: Some(iced::Background::Color(CARD_BG_COLOR)),
+            border_radius: 9.0.into(),
+            ..Default::default()
+        }
+    }
+}
+
+impl CardContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(CardContainer))
+    }
+}

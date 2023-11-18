@@ -5,9 +5,10 @@ pub mod logos;
 pub mod styles;
 
 use button::*;
-use iced::{Color, Element, Renderer};
+use iced::{widget::Container, Color, Element, Renderer};
 use styles::*;
 
+use self::containers::CardContainer;
 // These components should return View messages.
 use super::{view::Message, *};
 
@@ -70,6 +71,25 @@ pub fn action_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
         .border_radius(5.0.into())
         .background_color(Color::from_rgb8(11, 63, 197));
     button(content).style(action_button_style.as_custom())
+}
+
+/// Renders a nice red button.
+pub fn destructive_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
+    let content = text(label)
+        .size(16)
+        .horizontal_alignment(iced::alignment::Horizontal::Center)
+        .vertical_alignment(iced::alignment::Vertical::Center)
+        .style(Color::WHITE);
+    let destructive_button_style = CustomButtonStyle::new()
+        .border_radius(5.0.into())
+        .background_color(Color::from_rgb8(228, 75, 65))
+        .hovered()
+        .border_radius(5.0.into())
+        .background_color(Color::from_rgb8(189, 39, 29))
+        .pressed()
+        .border_radius(5.0.into())
+        .background_color(Color::from_rgb8(200, 39, 30));
+    button(content).style(destructive_button_style.as_custom())
 }
 
 /// Container that groups actions or settings with a label and a row of
@@ -172,4 +192,50 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
         .align_items(alignment::Alignment::Center)
         .push(first_column)
         .push(second_column)
+}
+
+pub fn h1<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Xl).into()
+}
+
+pub fn h2<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Lg).into()
+}
+
+pub fn h3<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Md).into()
+}
+
+pub fn h4<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Sm).into()
+}
+
+pub fn h5<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Xs).into()
+}
+
+pub fn paragraph<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Sm).into()
+}
+
+/// todo: remove label item
+pub fn text_label<'a>(value: String) -> Text<'a> {
+    text(value)
+        .size(FontSizes::Xs)
+        .style(Color::from_rgb(0.5, 0.5, 0.5))
+        .into()
+}
+
+pub fn with_font<'a>(value: Text<'a>) -> Text<'a> {
+    value.font(FONT_DAGGERSQUARE)
+}
+
+/// Card is just a container with a background color and some border radius.
+pub struct Card;
+
+impl Card {
+    pub fn new<'a, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message> {
+        let content = content.into();
+        Container::new(content).style(CardContainer::theme())
+    }
 }
