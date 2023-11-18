@@ -128,3 +128,23 @@ impl CardContainer {
         iced::theme::Container::Custom(Box::from(CardContainer))
     }
 }
+
+pub struct InfoContainer;
+
+impl StyleSheet for InfoContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: Some(iced::Background::Color(INFO_BG_CONTAINER)),
+            border_radius: 9.0.into(),
+            ..Default::default()
+        }
+    }
+}
+
+impl InfoContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(InfoContainer))
+    }
+}

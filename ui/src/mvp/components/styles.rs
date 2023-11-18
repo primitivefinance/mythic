@@ -75,6 +75,13 @@ pub const CARD_BG_COLOR: Color = Color::from_rgb(
     0x38 as f32 / 255.0,
 );
 
+/// todo: fix the color scheme, which was named poorly.
+pub const INFO_BG_CONTAINER: Color = Color::from_rgb(
+    0x31 as f32 / 255.0,
+    0x31 as f32 / 255.0,
+    0x31 as f32 / 255.0,
+);
+
 // pretty sure this breaks if they don't have daggersquare installed?
 pub const FONT_DAGGERSQUARE: Font = Font::with_name("DAGGERSQUARE");
 

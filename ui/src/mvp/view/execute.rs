@@ -55,33 +55,21 @@ pub fn starting<'a>(
     address_book: Vec<String>,
     selected: String,
 ) -> Element<'a, Message> {
-    let title = data_item("execution".to_string()).size(36);
-    let input = create_input_component(Some(input_amount.clone()), |value| {
-        Message::Execution(view::Execution::AmountChanged(value))
-    });
-
+    let title = data_item("Execution".to_string()).size(36);
     let selection = address_book.clone();
-
-    tracing::info!("Selection options: {:?}", selection);
-    tracing::info!("Selected: {:?}", selected);
-
     let message_card = message_group(address_book.clone(), selected.clone());
+    let data_card = data_group(
+        address_book.clone(),
+        selected.clone(),
+        Some(input_amount.clone()),
+        "0".to_string(),
+    );
 
-    let column_1: Vec<Element<'a, Message>> = vec![
-        title.into(),
-        label_item("to".to_string()).size(28).into(),
-        pick_list(selection, Some(selected.clone()), |value| {
-            Message::Execution(view::Execution::ToAddressChanged(value))
-        })
-        .into(),
-        label_item("action".to_string()).size(28).into(),
-        input.into(),
-        message_card.into(),
-    ];
+    let submit_card = submit_group();
 
-    let submit = submit_group();
-
-    let column_2: Vec<Element<'a, Message>> = vec![submit.into()];
+    let column_1: Vec<Element<'a, Message>> =
+        vec![title.into(), message_card.into(), data_card.into()];
+    let column_2: Vec<Element<'a, Message>> = vec![submit_card.into()];
 
     Column::new()
         .push(components::dual_column(column_1, column_2))
@@ -259,6 +247,7 @@ pub fn message_group<'a>(options: Vec<String>, selected: String) -> Element<'a, 
             .spacing(Sizes::Lg as u16)
             .padding(Sizes::Lg as u16),
     )
+    .max_width(ByteScale::Xl6 as u32 as f32)
     .max_height(ByteScale::Xl6 as u32 as f32)
     .into()
 }
@@ -281,6 +270,78 @@ pub fn select_group<'a>(
         .push(input_container)
         .spacing(Sizes::Md as u16)
         .into()
+}
+
+/// Column with a label and text input field.
+pub fn input_group<'a>(
+    title: String,
+    value: Option<String>,
+    placeholder: String,
+    on_change: impl Fn(Option<String>) -> Message + 'static,
+) -> Element<'a, Message> {
+    let title = h3(title.to_string());
+    // todo: change this so padding is modifiable.
+    let input = create_input_component(value, on_change);
+
+    Column::new()
+        .push(title)
+        .push(input)
+        .spacing(Sizes::Md as u16)
+        .into()
+}
+
+/// Renders a target contract selection field and an input field for the amount.
+pub fn data_group<'a>(
+    options: Vec<String>,
+    selected: String,
+    input_value: Option<String>,
+    input_placeholder: String,
+) -> Element<'a, Message> {
+    let contract_group = select_group("Contract".to_string(), options, selected, |value| {
+        Message::Execution(view::Execution::ToAddressChanged(value))
+    });
+
+    let amount_group = input_group(
+        "Amount".to_string(),
+        input_value,
+        input_placeholder,
+        |value| Message::Execution(view::Execution::AmountChanged(value)),
+    );
+
+    let info_container = Container::new(
+        Row::new()
+            .spacing(Sizes::Md as u16)
+            .align_items(alignment::Alignment::Center)
+            .push(
+                Column::new()
+                    .push(text_label("Contract".to_string()))
+                    .align_items(alignment::Alignment::Start)
+                    .width(Length::Fill),
+            )
+            .push(
+                Column::new()
+                    .push(text_label("0x42f0...ffff".to_string()))
+                    .align_items(alignment::Alignment::End)
+                    .width(Length::Fill),
+            )
+            .width(Length::Fill),
+    )
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .padding(Sizes::Md as u16)
+    .style(InfoContainer::theme());
+
+    Card::new(
+        Column::new()
+            .push(contract_group)
+            .push(amount_group)
+            .push(info_container)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Lg as u16),
+    )
+    .max_width(ByteScale::Xl6 as u32 as f32)
+    .max_height(ByteScale::Xl7 as u32 as f32)
+    .into()
 }
 
 // Review group
