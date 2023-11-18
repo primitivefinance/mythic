@@ -11,6 +11,7 @@ mod components;
 mod loader;
 mod screens;
 mod tracer;
+mod units;
 mod view;
 
 use std::sync::{Arc, Mutex};

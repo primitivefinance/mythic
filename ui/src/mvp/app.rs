@@ -4,7 +4,10 @@ use arbiter_core::environment::Environment;
 use tracing::Span;
 
 use super::{
-    api::address_book::{AddressBookCategory, AddressBookManager},
+    api::{
+        address_book::{AddressBookCategory, AddressBookManager},
+        scroll::Scroll,
+    },
     screens::{address_book::AddressBookScreen, terminal::Terminal, Screen},
     tracer::AppEventLog,
     view::Page,
@@ -30,6 +33,12 @@ pub enum Data {
     ProcessTracer,
 }
 
+#[derive(Debug)]
+pub enum Execution {
+    Simulated(anyhow::Result<Scroll, anyhow::Error>),
+    Executed(anyhow::Result<Scroll, anyhow::Error>),
+}
+
 /// Root message for the Application.
 #[derive(Debug)]
 pub enum Message {
@@ -38,6 +47,7 @@ pub enum Message {
     Simulation(Simulation),
     Data(Data),
     AddressBook(AddressBookMessage),
+    Execution(Execution),
 }
 
 #[derive(Debug)]
@@ -86,14 +96,17 @@ impl App {
             Message::AddressBook(msg) => {
                 let cmd = Command::none();
                 match msg {
+                    // todo: update these messages
                     AddressBookMessage::Add(name, address, category) => {
-                        self.address_books.add(name, address, category);
+                        self.address_books.add(address, name, category);
                     }
                     AddressBookMessage::Remove(name, category) => {
-                        self.address_books.remove(&name, category);
+                        let address = name.parse::<Address>().unwrap();
+                        self.address_books.remove(&address, category);
                     }
                     AddressBookMessage::Get(name, category) => {
-                        self.address_books.get(&name, category);
+                        let address = name.parse::<Address>().unwrap();
+                        self.address_books.get(&address, category);
                     }
                     AddressBookMessage::List(category) => {
                         self.address_books.list(category);

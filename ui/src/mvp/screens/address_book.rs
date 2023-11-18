@@ -46,14 +46,14 @@ impl State for AddressBookScreen {
                             }
 
                             match validated {
-                                Ok(address) => {
+                                Ok(validated) => {
                                     let label = self.new_label.clone().unwrap();
                                     let value = address;
 
                                     // Edit the address book.
                                     self.books.add(
+                                        validated.clone(),
                                         label.clone(),
-                                        value.clone(),
                                         AddressBookCategory::Untrusted,
                                     );
 
@@ -61,6 +61,11 @@ impl State for AddressBookScreen {
                                     self.feedback =
                                         Some("Successfully added to address book.".to_string());
 
+                                    tracing::info!(
+                                        "Added address to address book: {} ({})",
+                                        label,
+                                        value.to_string()
+                                    );
                                     // Clear the latest input and label
                                     self.new_address = None;
                                     self.new_label = None;
@@ -70,7 +75,7 @@ impl State for AddressBookScreen {
                                         move |_| {
                                             Message::AddressBook(AddressBookMessage::Add(
                                                 label,
-                                                value,
+                                                validated,
                                                 AddressBookCategory::Untrusted,
                                             ))
                                         },

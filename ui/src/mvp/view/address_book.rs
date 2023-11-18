@@ -48,7 +48,7 @@ pub fn list_untrusted_book<'a>(book: AddressBook) -> Element<'a, Message> {
 
     let mut sorted_addresses = book.addresses.iter().collect::<Vec<_>>();
     sorted_addresses.sort();
-    for (label, address) in sorted_addresses {
+    for (address, label) in sorted_addresses {
         let row = Row::new()
             .push(label_item(label.clone()))
             .push(text(address.to_string()))

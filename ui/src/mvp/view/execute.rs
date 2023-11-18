@@ -3,18 +3,31 @@
 use iced::widget::pick_list;
 
 use super::{components::input::create_input_component, text, Column, Element, Message, *};
-use crate::mvp::execution::TransactionSteps;
+use crate::mvp::{execution::TransactionSteps, units::address_to_string};
 
 pub fn execution_layout<'a>(
     step: TransactionSteps,
     input_amount: String,
-    to_address: Addresses,
+    target: Vec<(Address, String)>,
+    selected: String,
+    user_feedback: Option<String>,
 ) -> Element<'a, Message> {
+    let address_book: Vec<String> = target
+        .clone()
+        .into_iter()
+        .map(|(a, _): (Address, _)| address_to_string(&a))
+        .collect();
+
     let content = match step {
-        TransactionSteps::Start => starting(input_amount, to_address),
+        TransactionSteps::Start => starting(input_amount, address_book, selected),
         TransactionSteps::Review => reviewing(),
         TransactionSteps::Simulated => simulated(),
         TransactionSteps::Confirmed => confirmed(),
+    };
+
+    let user_feedback = match user_feedback {
+        Some(feedback) => text(feedback),
+        None => text(""),
     };
 
     Column::new()
@@ -23,6 +36,7 @@ pub fn execution_layout<'a>(
             Row::new()
                 .push(button(text("previous")).on_press(Message::Execution(Execution::Previous)))
                 .push(button(text("next")).on_press(Message::Execution(Execution::Next)))
+                .push(user_feedback)
                 .align_items(alignment::Alignment::End)
                 .height(Length::FillPortion(1))
                 .spacing(8),
@@ -32,7 +46,11 @@ pub fn execution_layout<'a>(
 }
 
 /// Panel for starting a new transaction.
-pub fn starting<'a>(input_amount: String, selected: Addresses) -> Element<'a, Message> {
+pub fn starting<'a>(
+    input_amount: String,
+    address_book: Vec<String>,
+    selected: String,
+) -> Element<'a, Message> {
     let title = data_item("execution".to_string()).size(36);
     let input = create_input_component(Some(input_amount.clone()), |value| {
         Message::Execution(view::Execution::AmountChanged(value))
@@ -44,10 +62,15 @@ pub fn starting<'a>(input_amount: String, selected: Addresses) -> Element<'a, Me
         .push(text("Transaction will succeed"))
         .push("Transaction has warnings");
 
+    let selection = address_book.clone();
+
+    tracing::info!("Selection options: {:?}", selection);
+    tracing::info!("Selected: {:?}", selected);
+
     let column_1: Vec<Element<'a, Message>> = vec![
         title.into(),
         label_item("to".to_string()).size(28).into(),
-        pick_list(&Addresses::ALL[..], Some(selected.clone()), |value| {
+        pick_list(selection, Some(selected.clone()), |value| {
             Message::Execution(view::Execution::ToAddressChanged(value))
         })
         .into(),

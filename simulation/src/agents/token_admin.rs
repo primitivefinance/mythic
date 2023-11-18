@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use ethers::abi::Tokenizable;
 
 use super::*;
