@@ -12,14 +12,25 @@
 //! 6. Compare the storage slots before and after the transaction.
 //! 7. Finally, execute the transaction.
 
-use std::{convert::TryFrom, fs::File, io::BufReader, path::PathBuf};
+use std::{
+    convert::{Infallible, TryFrom},
+    fs::File,
+    io::BufReader,
+    path::PathBuf,
+};
 
-use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::RevmMiddleware};
+use arbiter_core::{
+    environment::{builder::EnvironmentBuilder, cheatcodes},
+    middleware::RevmMiddleware,
+};
 use ethers::{
     abi::Token,
     types::{transaction::eip2718::TypedTransaction, Address},
 };
-use revm::db::{CacheDB, EmptyDB};
+use revm::{
+    db::{CacheDB, EmptyDB, EmptyDBTyped},
+    primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue},
+};
 use tokio::task::JoinHandle;
 
 use super::{
@@ -48,6 +59,66 @@ pub struct Scroll {
 }
 
 impl Scroll {
+    /// Tries getting an account's storage from a [`CacheDB`].
+    #[tracing::instrument(skip(self, db), ret)]
+    pub fn try_storage(
+        &self,
+        db: &CacheDB<EmptyDBTyped<Infallible>>,
+    ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
+        let address: revm::primitives::Address =
+            self.payload.target.clone().to_fixed_bytes().into();
+        let account = db.accounts.get(&address).unwrap();
+        Ok(account.storage.clone())
+    }
+
+    /// Tries getting the already-loaded storage of an account before its been
+    /// simulated/executed against. Must be loaded already via `load_before`.
+    #[tracing::instrument(skip(self), ret)]
+    pub fn try_storage_before(
+        &self,
+        account: Address,
+    ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
+        let storage = match &self.stages.before {
+            Some(storage) => {
+                let storage = self.try_storage(storage)?;
+                storage
+            }
+            None => {
+                tracing::error!("No before storage found in scroll");
+                return Err(anyhow::anyhow!(
+                    "Could not get before storage for account: {:?}",
+                    account
+                ));
+            }
+        };
+
+        Ok(storage)
+    }
+
+    /// Tries getting the already-loaded storage of an account after its been
+    /// simulated. Must be loaded already via `load_after`.
+    #[tracing::instrument(skip(self), ret)]
+    pub fn try_storage_after(
+        &self,
+        account: Address,
+    ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
+        let storage = match &self.stages.after {
+            Some(storage) => {
+                let storage = self.try_storage(storage)?;
+                storage
+            }
+            None => {
+                tracing::error!("No after storage found in scroll");
+                return Err(anyhow::anyhow!(
+                    "Could not get before storage for account: {:?}",
+                    account
+                ));
+            }
+        };
+
+        Ok(storage)
+    }
+
     /// Loads the target account's database information into a [`CacheDB`].
     #[tracing::instrument(skip(self, forker))]
     fn load(
@@ -105,60 +176,7 @@ impl Scroll {
         let client = RevmMiddleware::new(&environment, Some("simulate"))?;
         let payload: TypedTransaction = self.payload.clone().try_into()?;
 
-        // let client_cloned = client.clone();
-        // let tx_handle: JoinHandle<anyhow::Result<Option<TransactionReceipt>,
-        // anyhow::Error>> = tokio::spawn(async move {
         // Executes the transaction on the Arbiter client.
-        // tracing::debug!("Sending simulation payload: {:?}", payload_copy);
-        //
-        // let tx = client_cloned
-        // .send_transaction(payload_copy, None)
-        // .await?
-        // .await?;
-        //
-        // Ok(tx)
-        // });
-        //
-        // let tx = tx_handle.await??;
-
-        // Spawn a new thread to execute in the simulated environment
-        // without it getting dropped.
-        // let client_cloned = client.clone();
-        // let payload_copy: TypedTransaction = self.payload.clone().try_into()?;
-        // let handle = std::thread::spawn(move || {
-        // Use a tokio runtime to block_on while the tx is processing.
-        // let rt = tokio::runtime::Runtime::new()?;
-        //
-        // rt.block_on(async move {
-        // let tx = client_cloned
-        // .send_transaction(payload_copy, None)
-        // .await?
-        // .await?;
-        // Ok::<_, anyhow::Error>(tx)
-        // })
-        // });
-        // let sim_result = handle.join();
-        //
-        // match sim_result {
-        // Ok(sim_result) => {
-        // tracing::trace!("Sim result: {:?}", sim_result);
-        // match sim_result {
-        // Ok(sim_result) => {
-        // tracing::trace!("Sim result ok: {:?}", sim_result);
-        // }
-        // Err(e) => {
-        // tracing::trace!("Sim result error: {:?}", e);
-        // }
-        // }
-        // }
-        // Err(e) => {
-        // tracing::trace!("Sim result error: {:?}", e);
-        // }
-        // }
-        // let tx = sim_result.unwrap().unwrap();
-
-        // Executes the transaction on the Arbiter client.
-
         tracing::debug!("Sending simulation payload: {:?}", payload);
         let tx = client
             .clone()
@@ -180,6 +198,39 @@ impl Scroll {
             }
         }
 
+        // Uses the [`Cheatcodes::Access`] cheatcode to load the db of the target
+        // account.
+        let result = client
+            .clone()
+            .apply_cheatcode(cheatcodes::Cheatcodes::Access {
+                address: self.payload.target.clone(),
+            })
+            .await?;
+
+        let storage = match result {
+            cheatcodes::CheatcodesReturn::Access { storage, .. } => {
+                tracing::debug!("Accessed account: {:?}", storage);
+                storage
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Could not load db of target account after simulation."
+                ))
+            }
+        };
+
+        // Edit the db to reflect the changes made by the transaction.
+        // Try getting the after db, if its none, create a new db.
+        let mut db = match &self.stages.after {
+            Some(db) => db.clone(),
+            None => CacheDB::new(EmptyDB::default()),
+        };
+        db.replace_account_storage(self.payload.target.clone().as_fixed_bytes().into(), storage)?;
+
+        // Set the after stage as this replaced db.
+        self.stages.after = Some(db);
+
+        // Stop the Arbiter instance.
         environment.stop()?;
 
         Ok(())

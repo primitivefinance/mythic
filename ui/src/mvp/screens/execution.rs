@@ -65,10 +65,45 @@ pub fn get_artifact_path(name: &str) -> PathBuf {
         .join(format!("{}.json", contract_name))
 }
 
+pub type StorageDiffs = HashMap<StorageValue, (Option<StorageValue>, Option<StorageValue>)>;
+
 #[derive(Default)]
 pub struct Review {
     pub storage_before: StorageMap<StorageValue, StorageValue>,
     pub storage_after: StorageMap<StorageValue, StorageValue>,
+    pub differences: Option<StorageDiffs>,
+}
+
+impl Review {
+    /// Returns a diff of the before and after storage.
+    /// The key is the storage slot, and the value is a tuple of the before and
+    /// after values.
+    pub fn get_diff(&self) -> StorageDiffs {
+        let mut diff = HashMap::new();
+
+        for (key, value) in self.storage_before.iter() {
+            if let Some(after_value) = self.storage_after.get(key) {
+                if after_value != value {
+                    diff.insert(*key, (Some(*value), Some(*after_value)));
+                }
+            } else {
+                diff.insert(*key, (Some(*value), None));
+            }
+        }
+
+        for (key, value) in self.storage_after.iter() {
+            if !self.storage_before.contains_key(key) {
+                diff.insert(*key, (None, Some(*value)));
+            }
+        }
+
+        diff
+    }
+
+    /// Applies the diff to the storage.
+    pub fn apply_diff(&mut self) {
+        self.differences = Some(self.get_diff());
+    }
 }
 
 impl Execution {
@@ -140,6 +175,61 @@ impl Execution {
         Command::perform(handle_execute_scroll(scroll, forker), |res| {
             app::Message::Execution(app::Execution::Executed(res))
         })
+    }
+
+    #[tracing::instrument(skip(self, scroll), fields(storage_before = ?self.review.storage_before.clone(), storage_after = ?self.review.storage_after.clone()))]
+    fn handle_completed_simulation(&mut self, scroll: Scroll) -> Command<Message> {
+        tracing::info!("Simulated tx: {:?}", scroll);
+
+        self.user_feedback_message = Some("Transaction simulated!".to_string());
+        self.sealed = Some(scroll.clone());
+        self.handle_load_storages()
+    }
+
+    #[tracing::instrument(skip(self, scroll),  fields(storage_before = ?self.review.storage_before.clone(), storage_after = ?self.review.storage_after.clone()))]
+    fn handle_completed_execution(&mut self, scroll: Scroll) -> Command<Message> {
+        tracing::info!("Executed tx: {:?}", scroll);
+
+        self.user_feedback_message = Some("Transaction executed!".to_string());
+        self.sealed = Some(scroll.clone());
+        let _ = self.handle_load_storages();
+
+        return Command::perform(async { Ok::<(), ()>(()) }, |_| {
+            app::Message::Execution(app::Execution::Confirmed)
+        });
+    }
+
+    #[tracing::instrument(skip(self))]
+    fn handle_load_storages(&mut self) -> Command<Message> {
+        let scroll = self.sealed.clone().unwrap();
+        let account = scroll.payload.target.clone();
+
+        let before = scroll.try_storage_before(account);
+        match before {
+            Ok(storage) => {
+                tracing::debug!("Loading account storage into before: {:?}", storage.clone());
+
+                self.review.storage_before = storage;
+            }
+            Err(e) => {
+                tracing::warn!("No before storage found in scroll. {}", e);
+            }
+        };
+
+        let after = scroll.try_storage_after(account);
+        match after {
+            Ok(storage) => {
+                tracing::debug!("Loading account storage into after: {:?}", storage.clone());
+                self.review.storage_after = storage;
+            }
+            Err(e) => {
+                tracing::warn!("No before storage found in scroll. {}", e);
+            }
+        };
+
+        self.review.apply_diff();
+
+        Command::none()
     }
 }
 
@@ -254,32 +344,7 @@ impl State for Execution {
                 app::Execution::Simulated(msg) => {
                     match msg {
                         Ok(scroll) => {
-                            tracing::info!("Simulated tx: {:?}", scroll);
-                            self.sealed = Some(scroll.clone());
-
-                            let scroll_storage = scroll.stages.before.clone();
-
-                            let storage = match scroll_storage {
-                                Some(storage) => {
-                                    let address: revm::primitives::Address =
-                                        scroll.payload.target.clone().to_fixed_bytes().into();
-                                    let account = storage.accounts.get(&address).unwrap();
-
-                                    tracing::debug!(
-                                        "Loading account storage into before: {:?}",
-                                        account.storage
-                                    );
-                                    account.storage.clone()
-                                }
-                                None => {
-                                    tracing::error!("No storage found in scroll");
-                                    return Command::none();
-                                }
-                            };
-
-                            // todo: update this to not hold the revm storage type?
-                            self.review.storage_before = storage;
-                            self.user_feedback_message = Some("Transaction simulated!".to_string());
+                            return self.handle_completed_simulation(scroll);
                         }
                         Err(e) => {
                             tracing::error!("Error simulating tx: {:?}", e);
@@ -291,37 +356,21 @@ impl State for Execution {
                 app::Execution::Executed(msg) => {
                     match msg {
                         Ok(scroll) => {
-                            tracing::info!("Executed tx: {:?}", scroll);
-                            self.sealed = Some(scroll.clone());
-
-                            let scroll_storage = scroll.stages.after.clone();
-
-                            let storage = match scroll_storage {
-                                Some(storage) => {
-                                    let address: revm::primitives::Address =
-                                        scroll.payload.target.clone().to_fixed_bytes().into();
-                                    let account = storage.accounts.get(&address).unwrap();
-
-                                    tracing::debug!(
-                                        "Loading account storage into after: {:?}",
-                                        account.storage
-                                    );
-                                    account.storage.clone()
-                                }
-                                None => {
-                                    tracing::error!("No storage found in scroll");
-                                    return Command::none();
-                                }
-                            };
-
-                            // todo: update this to not hold the revm storage type?
-                            self.review.storage_after = storage;
-                            self.user_feedback_message = Some("Transaction executed!".to_string());
+                            return self.handle_completed_execution(scroll);
                         }
                         Err(e) => {
                             tracing::error!("Error executing tx: {:?}", e);
                         }
                     }
+
+                    Command::none()
+                }
+                app::Execution::Confirmed => {
+                    self.user_feedback_message =
+                        Some("Transaction executed and confirmed.".to_string());
+
+                    // Add the storage diffs to the [`Review`] struct so we can display them.
+                    self.review.apply_diff();
 
                     Command::none()
                 }
@@ -351,6 +400,8 @@ impl State for Execution {
             _ => "".to_string(),
         };
 
+        let review_diffs = self.review.differences.clone();
+
         view::app_layout(
             &view::Page::Execute,
             view::execute::execution_layout(
@@ -359,6 +410,7 @@ impl State for Execution {
                 sorted.clone(),
                 selected.clone(),
                 self.user_feedback_message.clone(),
+                review_diffs,
             ),
         )
         .into()

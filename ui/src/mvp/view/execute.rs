@@ -3,7 +3,9 @@
 use iced::widget::pick_list;
 
 use super::{components::input::create_input_component, text, Column, Element, Message, *};
-use crate::mvp::{execution::TransactionSteps, units::address_to_string};
+use crate::mvp::{
+    execution::TransactionSteps, screens::execution::StorageDiffs, units::address_to_string,
+};
 
 pub fn execution_layout<'a>(
     step: TransactionSteps,
@@ -11,6 +13,7 @@ pub fn execution_layout<'a>(
     target: Vec<(Address, String)>,
     selected: String,
     user_feedback: Option<String>,
+    review_diffs: Option<StorageDiffs>,
 ) -> Element<'a, Message> {
     let address_book: Vec<String> = target
         .clone()
@@ -21,7 +24,7 @@ pub fn execution_layout<'a>(
     let content = match step {
         TransactionSteps::Start => starting(input_amount, address_book, selected),
         TransactionSteps::Review => reviewing(),
-        TransactionSteps::Simulated => simulated(),
+        TransactionSteps::Simulated => simulated(review_diffs),
         TransactionSteps::Confirmed => confirmed(),
     };
 
@@ -108,10 +111,50 @@ pub fn reviewing<'a>() -> Element<'a, Message> {
 }
 
 /// Extended panel for reviewing simulated diffs
-pub fn simulated<'a>() -> Element<'a, Message> {
-    Column::new()
-        .push(text("Simulated"))
-        .push(text("Review the transaction's state diffs."))
+pub fn simulated<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Message> {
+    let title = data_item("Simulated".to_string()).size(36);
+
+    let mut column_1: Vec<Element<'a, Message>> = vec![title.into()];
+
+    match review_diffs {
+        Some(diffs) => {
+            let mut diff_list: Vec<Element<'a, Message>> = vec![
+                label_item("Slot".to_string()).into(),
+                label_item("Value".to_string()).into(),
+            ];
+            for (key, (before, after)) in diffs {
+                let slot = U256::from_little_endian(key.as_le_bytes().as_ref());
+
+                let before_value = match before {
+                    Some(value) => value.to_string(),
+                    None => "".to_string(),
+                };
+
+                let after_value = match after {
+                    Some(value) => value.to_string(),
+                    None => "".to_string(),
+                };
+
+                diff_list.push(
+                    Row::new()
+                        .push(text(slot.to_string()))
+                        .push(text(before_value))
+                        .push(text(after_value))
+                        .into(),
+                );
+            }
+
+            column_1.push(Column::with_children(diff_list).into());
+        }
+        None => {
+            column_1.push(text("No diffs to display").into());
+        }
+    };
+
+    Column::with_children(column_1)
+        .spacing(16)
+        .padding(32)
+        .width(Length::Fill)
         .into()
 }
 

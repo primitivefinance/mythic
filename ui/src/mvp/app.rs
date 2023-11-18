@@ -37,6 +37,8 @@ pub enum Data {
 pub enum Execution {
     Simulated(anyhow::Result<Scroll, anyhow::Error>),
     Executed(anyhow::Result<Scroll, anyhow::Error>),
+    // Triggered after Execution::Executed is completed.
+    Confirmed,
 }
 
 /// Root message for the Application.
