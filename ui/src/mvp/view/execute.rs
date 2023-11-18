@@ -1,5 +1,6 @@
 //! Views for executing transactions.
 
+use bytesize::ByteSize;
 use iced::widget::pick_list;
 
 use super::{components::input::create_input_component, text, Column, Element, Message, *};
@@ -64,6 +65,8 @@ pub fn starting<'a>(
     tracing::info!("Selection options: {:?}", selection);
     tracing::info!("Selected: {:?}", selected);
 
+    let message_card = message_group(address_book.clone(), selected.clone());
+
     let column_1: Vec<Element<'a, Message>> = vec![
         title.into(),
         label_item("to".to_string()).size(28).into(),
@@ -73,10 +76,7 @@ pub fn starting<'a>(
         .into(),
         label_item("action".to_string()).size(28).into(),
         input.into(),
-        Row::new()
-            .push(label_item("transaction cost".to_string()))
-            .push(text("$20.00"))
-            .into(),
+        message_card.into(),
     ];
 
     let submit = submit_group();
@@ -208,7 +208,7 @@ pub fn submit_group<'a>() -> Element<'a, Message> {
     let title = h3("Submit".to_string());
     let info = text_label("Awaiting approval in review...".to_string());
     let button = action_button("Submit".to_string())
-        .on_press(Message::Empty)
+        .on_press(Message::Execution(Execution::Next))
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
 
@@ -235,3 +235,81 @@ pub fn submit_group<'a>() -> Element<'a, Message> {
     .max_height(h)
     .into()
 }
+
+/// todo: Style the pick list more.
+pub fn message_group<'a>(options: Vec<String>, selected: String) -> Element<'a, Message> {
+    let from_input = select_group(
+        "From".to_string(),
+        options.clone(),
+        selected.clone(),
+        |value| Message::Execution(view::Execution::FromAddressChanged(value)),
+    );
+
+    let to_input = select_group(
+        "To".to_string(),
+        options.clone(),
+        selected.clone(),
+        |value| Message::Execution(view::Execution::ToAddressChanged(value)),
+    );
+
+    Card::new(
+        Column::new()
+            .push(from_input)
+            .push(to_input)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Lg as u16),
+    )
+    .max_height(ByteScale::Xl6 as u32 as f32)
+    .into()
+}
+
+/// Column with a label and pick list field.
+/// todo: add a message argument
+pub fn select_group<'a>(
+    title: String,
+    options: Vec<String>,
+    selected: String,
+    on_selected: impl Fn(String) -> Message + 'a,
+) -> Element<'a, Message> {
+    let title = h3(title.to_string());
+    let input = pick_list(options, Some(selected.clone()), on_selected).padding(Sizes::Md as u16);
+
+    let input_container = Container::new(input).style(MenuContainerTheme::theme());
+
+    Column::new()
+        .push(title)
+        .push(input_container)
+        .spacing(Sizes::Md as u16)
+        .into()
+}
+
+// Review group
+// pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a,
+// Message> { let title = h3("Simulation Results".to_string());
+//
+// let rows: Vec<Row<'a, Message>> = vec![];
+//
+// let inner_column = Column::new()
+// .push(title)
+// .push(info)
+// .align_items(alignment::Alignment::Start)
+// .spacing(Sizes::Sm as u16)
+// .padding(Sizes::Sm as u16)
+// .width(Length::Fill)
+// .height(Length::Fill);
+//
+// let label_text = Row::new()
+// .push(text_label("As of block".to_string()))
+// .push(text_label("1".to_string()));
+//
+// Card::new(
+// Column::new()
+// .push(title)
+// .push(inner_column)
+// .push(label_text)
+// .spacing(Sizes::Lg as u16)
+// .padding(Sizes::Lg as u16),
+// )
+// .max_height(ByteScale::Xl6.into())
+// .into()
+// }

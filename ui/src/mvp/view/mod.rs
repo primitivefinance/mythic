@@ -67,6 +67,7 @@ pub enum Execution {
     Previous,
     AmountChanged(Option<String>),
     ToAddressChanged(String),
+    FromAddressChanged(String),
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(

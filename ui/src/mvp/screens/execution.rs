@@ -323,6 +323,10 @@ impl State for Execution {
 
                             self.unsealed = self.unsealed.clone().target(value);
                         }
+                        view::Execution::FromAddressChanged(from) => {
+                            tracing::debug!("From address changed: {}", from);
+                            // todo: implement
+                        }
                         view::Execution::AmountChanged(amount) => match amount {
                             Some(amount) => {
                                 let amount: Token = amount.into_token();

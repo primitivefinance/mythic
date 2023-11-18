@@ -178,17 +178,17 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
     let first_column = Column::with_children(first_column.into_iter().map(|e| e.into()).collect())
         .height(Length::Fill)
         .width(Length::FillPortion(2))
-        .spacing(16);
+        .spacing(Sizes::Md as u16);
 
     let second_column =
         Column::with_children(second_column.into_iter().map(|e| e.into()).collect())
             .height(Length::Fill)
             .width(Length::FillPortion(2))
-            .spacing(16);
+            .spacing(Sizes::Md as u16);
 
     Row::new()
         .width(Length::Fill)
-        .spacing(8)
+        .spacing(Sizes::Md as u16)
         .align_items(alignment::Alignment::Center)
         .push(first_column)
         .push(second_column)
