@@ -7,7 +7,6 @@ use simulation::agents::SubscribedData;
 use self::{
     control::control_panel,
     event::{mock_event_groups, EventFeed},
-    execute::Addresses,
     feed::Feed,
     monitor::labeled_data_cards,
 };

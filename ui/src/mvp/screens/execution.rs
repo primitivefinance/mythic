@@ -13,7 +13,7 @@ use revm::primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue};
 
 use super::{
     app::Message,
-    view::{self, execute::Addresses},
+    view::{self},
     State, *,
 };
 use crate::mvp::{
@@ -30,8 +30,8 @@ use crate::mvp::{
 pub enum TransactionSteps {
     #[default]
     Start,
-    Review,
     Simulated,
+    Executed,
     Confirmed,
 }
 
@@ -148,7 +148,7 @@ impl Execution {
 
     /// Seals the unsealed transaction and begins the simulation process.
     #[tracing::instrument(skip(self))]
-    fn handle_review(&mut self) -> Command<Message> {
+    fn handle_simulate(&mut self) -> Command<Message> {
         if self.unsealed.method.is_none() {
             self.unsealed = self.unsealed.clone().method("increment");
         }
@@ -288,26 +288,26 @@ impl State for Execution {
                     view::Message::Execution(e) => match e {
                         view::Execution::Next => {
                             self.step = match self.step {
-                                TransactionSteps::Start => TransactionSteps::Review,
-                                TransactionSteps::Review => TransactionSteps::Simulated,
-                                TransactionSteps::Simulated => TransactionSteps::Confirmed,
+                                TransactionSteps::Start => TransactionSteps::Simulated,
+                                TransactionSteps::Simulated => TransactionSteps::Executed,
+                                TransactionSteps::Executed => TransactionSteps::Confirmed,
                                 TransactionSteps::Confirmed => TransactionSteps::Start,
                             };
 
-                            if self.step == TransactionSteps::Review {
-                                return self.handle_review();
+                            if self.step == TransactionSteps::Simulated {
+                                return self.handle_simulate();
                             }
 
-                            if self.step == TransactionSteps::Confirmed {
+                            if self.step == TransactionSteps::Executed {
                                 return self.handle_execute();
                             }
                         }
                         view::Execution::Previous => {
                             self.step = match self.step {
                                 TransactionSteps::Start => TransactionSteps::Confirmed,
-                                TransactionSteps::Review => TransactionSteps::Start,
-                                TransactionSteps::Simulated => TransactionSteps::Review,
-                                TransactionSteps::Confirmed => TransactionSteps::Simulated,
+                                TransactionSteps::Simulated => TransactionSteps::Start,
+                                TransactionSteps::Executed => TransactionSteps::Simulated,
+                                TransactionSteps::Confirmed => TransactionSteps::Executed,
                             };
                         }
                         view::Execution::ToAddressChanged(value) => {

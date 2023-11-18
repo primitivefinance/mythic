@@ -23,8 +23,8 @@ pub fn execution_layout<'a>(
 
     let content = match step {
         TransactionSteps::Start => starting(input_amount, address_book, selected),
-        TransactionSteps::Review => reviewing(),
         TransactionSteps::Simulated => simulated(review_diffs),
+        TransactionSteps::Executed => executed(),
         TransactionSteps::Confirmed => confirmed(),
     };
 
@@ -95,12 +95,12 @@ pub fn starting<'a>(
         .into()
 }
 
-/// Panel for reviewing the transaction's state diffs.
-pub fn reviewing<'a>() -> Element<'a, Message> {
-    let title = data_item("review".to_string()).size(36);
+/// Panel for executed the transaction's state diffs.
+pub fn executed<'a>() -> Element<'a, Message> {
+    let title = data_item("Execute Transaction".to_string()).size(36);
 
     let column_1: Vec<Element<'a, Message>> = vec![title.into()];
-    let column_2: Vec<Element<'a, Message>> = vec![button(text("Confirm")).into()];
+    let column_2: Vec<Element<'a, Message>> = vec![button(text("Execute")).into()];
 
     Column::new()
         .push(components::dual_column(column_1, column_2))
@@ -110,41 +110,42 @@ pub fn reviewing<'a>() -> Element<'a, Message> {
         .into()
 }
 
-/// Extended panel for reviewing simulated diffs
+/// Extended panel for executed simulated diffs
 pub fn simulated<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Message> {
-    let title = data_item("Simulated".to_string()).size(36);
+    let title = data_item("Review Transaction".to_string()).size(36);
 
     let mut column_1: Vec<Element<'a, Message>> = vec![title.into()];
 
     match review_diffs {
         Some(diffs) => {
-            let mut diff_list: Vec<Element<'a, Message>> = vec![
-                label_item("Slot".to_string()).into(),
-                label_item("Value".to_string()).into(),
-            ];
-            for (key, (before, after)) in diffs {
-                let slot = U256::from_little_endian(key.as_le_bytes().as_ref());
-
-                let before_value = match before {
-                    Some(value) => value.to_string(),
-                    None => "".to_string(),
-                };
-
-                let after_value = match after {
-                    Some(value) => value.to_string(),
-                    None => "".to_string(),
-                };
-
-                diff_list.push(
-                    Row::new()
-                        .push(text(slot.to_string()))
-                        .push(text(before_value))
-                        .push(text(after_value))
-                        .into(),
-                );
-            }
-
-            column_1.push(Column::with_children(diff_list).into());
+            // let mut diff_list: Vec<Element<'a, Message>> = vec![
+            // label_item("Slot".to_string()).into(),
+            // label_item("Value".to_string()).into(),
+            // ];
+            // for (key, (before, after)) in diffs {
+            // let slot = U256::from_little_endian(key.as_le_bytes().as_ref());
+            //
+            // let before_value = match before {
+            // Some(value) => value.to_string(),
+            // None => "".to_string(),
+            // };
+            //
+            // let after_value = match after {
+            // Some(value) => value.to_string(),
+            // None => "".to_string(),
+            // };
+            //
+            // diff_list.push(
+            // Row::new()
+            // .push(text(slot.to_string()))
+            // .push(text(before_value))
+            // .push(text(after_value))
+            // .into(),
+            // );
+            // }
+            //
+            // column_1.push(Column::with_children(diff_list).into());
+            column_1.push(storage_diffs_table(diffs).into());
         }
         None => {
             column_1.push(text("No diffs to display").into());
@@ -161,33 +162,47 @@ pub fn simulated<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Message>
 /// Panel for transaction confirmation.
 pub fn confirmed<'a>() -> Element<'a, Message> {
     Column::new()
-        .push(text("Confirmed"))
+        .push(text("Transaction Confirmed"))
         .push(text("Review the transaction's state diffs."))
         .into()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum Addresses {
-    #[default]
-    Zero,
-    Trusted,
-    Untrusted,
-}
+/// Storage diffs table
+pub fn storage_diffs_table<'a>(review_diffs: StorageDiffs) -> Element<'a, Message> {
+    let header = Row::new()
+        .spacing(8)
+        .padding(8)
+        .push(label_item("Slot".to_string()))
+        .push(label_item("Before".to_string()))
+        .push(label_item("After".to_string()));
 
-impl Addresses {
-    const ALL: [Addresses; 3] = [Addresses::Zero, Addresses::Trusted, Addresses::Untrusted];
-}
+    let rows: Vec<Element<'a, Message>> = review_diffs
+        .iter()
+        .map(|(slot, (before, after))| {
+            let before_value = match before {
+                Some(value) => value.to_string(),
+                None => "".to_string(),
+            };
 
-impl std::fmt::Display for Addresses {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Addresses::Zero => "zero".to_string(),
-                Addresses::Trusted => "trusted".to_string(),
-                Addresses::Untrusted => "untrusted".to_string(),
-            }
-        )
-    }
+            let after_value = match after {
+                Some(value) => value.to_string(),
+                None => "".to_string(),
+            };
+
+            Row::new()
+                .push(text(slot.to_string()))
+                .push(text(before_value))
+                .push(text(after_value))
+                .spacing(8)
+                .padding(8)
+                .into()
+        })
+        .collect::<Vec<_>>();
+
+    Column::new()
+        .push(header)
+        .push(Column::with_children(rows))
+        .spacing(8)
+        .padding(8)
+        .into()
 }

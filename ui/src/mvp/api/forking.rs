@@ -209,6 +209,8 @@ impl Forker {
             // Load account storage
             let artifacts = digest::digest_artifacts(contract_data.artifacts_path.as_str())?;
             let storage_layout = artifacts.storage_layout;
+
+            // todo: also get label from storage for human readability.
             digest::create_storage_layout(contract_data, storage_layout, &mut db, ethers_db)?;
         }
 
