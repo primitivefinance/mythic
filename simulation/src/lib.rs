@@ -36,6 +36,12 @@ pub mod agents;
 #[allow(clippy::all)]
 #[rustfmt::skip]
 pub mod bindings;
+#[allow(clippy::all)]
+#[rustfmt::skip]
+pub mod portfolio_bindings;
+#[allow(clippy::all)]
+#[rustfmt::skip]
+pub mod solstat_bindings;
 #[allow(unused)]
 mod math;
 #[allow(unused)]

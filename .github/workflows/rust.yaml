@@ -89,7 +89,7 @@ jobs:
         with:
           check_hidden: true
           check_filenames: true
-          skip: .git,Cargo.lock,target
+          skip: .git,Cargo.lock,target,position_renderer.rs,portfolio.rs
           ignore_words_list: crate,Crate,functio
 
 
