@@ -1,9 +1,7 @@
 # Geometric Mean
-
 This will be all the math involved with the Geometric Mean (G3M) trading function. 
 
 ## Conceptual Overview
-
 G3M (for two assets) consists of a pool of reserves and their associated weights.
 
 The G3M effectively gives the LP a portfolio that consists of a fixed ratio of the two assets based on the internal pricing mechanism.
@@ -11,7 +9,6 @@ For instance, if we pick the weight of the $X$-token $0.80$ and $0.20$ for the $
 This is a basic building block for a lot of portfolio designs.
 
 ## Core
-
 Mechanically, G3M of two variable parameters:
 - $w_x \equiv \mathtt{weight\_x}$
 - $w_y \equiv \mathtt{weight\_y}$ 
@@ -19,13 +16,14 @@ Mechanically, G3M of two variable parameters:
 
 Next, we define the trading function to be:
 $$
-\varphi(x,y) = x^{w_x} y^{w_y} = k
+\varphi(x,y) = x^{w_x} y^{w_y} = L
 $$
 where $L$ is the invariant of the pool. 
 We can put:
 $$
 L \equiv \mathtt{liquidity}
 $$
+Note that $L$ is in units of Token by virtue of the geometric mean.
 
 ## Price
 If we compute the derivatives and simplify the expression, we get that the pool price is:

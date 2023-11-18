@@ -1,30 +1,55 @@
-# Log Normal
-# Static (Log-)Normal Strategy
+<!-- ADD TAU IN -->
 
-The normal strategy represents a log-normal distribution around a price $K$ with a width given by $\sigma$.
+# Log Normal
+This will be all the math involved with the Log Normal (LN?) trading function.
+
+## Conceptual Overview
+The normal strategy provides the LP with a a log-normal shaped liquidity distribution centered around a price $K$ with a width given by $\sigma$.
+This strategy can be made time-dependent by an additional $\tau$ parameter that is the time til the pool will "expire".
+In this case, the LN trading function provides the LP with a payoff that is equivalent to a Black-Scholes covered call option with strike $K$, implied volatility $\sigma$, and time to expiration $\tau$. The parameters $K$ and $\sigma$ can also be made time dependent.
+
+## Core
+LN has three variable parameters:
+- $K \equiv \mathtt{strike}$
+- $\sigma \equiv \mathtt{volatility}$
+- $\tau \equiv \mathtt{time\_to\_expiration}$
+- These parameters must satisfy:
+$$
+K>0\\
+\sigma>0\\
+\tau>0
+$$
 The trading function for this strategy is given by
 $$
 \Phi^{-1}\left(\frac{x}{L}\right)+\Phi^{-1}\left(\frac{y}{KL}\right)=-\sigma.
 $$
-In the equation above, $x$ and $y$ are reserves, and $L$ is *a* measure of liquidity.
+In the equation above, $x$ and $y$ are reserves, and $L$ is the *liquidity*/*invariant*. 
+We can put:
+$$
+L \equiv \mathtt{liquidity}
+$$
+Note that $L$ has units of Token (this is what we want).
 Given the domain of $\Phi^{-1}$ we can see that $x\in[0,L]$ and $y\in[0,KL]$.
+As the pool's liquidity increases, the maximal amount of each reserve increases and both are scaled by the same factor (this is what we want).
 
-As the pool's liquidity increases, the maximal amount of each reserve increases.
+## Price
+If we compute the derivatives and simplify the expression, we get that the pool price is given by either:
+$$
+\boxed{P_X(x) = K \exp\left(\Phi^{-1}\left(1-\frac{x}{L}\right)\sigma-\frac{1}{2}\sigma^2\right)}\\
+\boxed{P_Y(y) = K \exp\left(\Phi^{-1}\left(\frac{y}{KL}\right)\sigma+\frac{1}{2}\sigma^2\right)}
+$$
 
 ## Determining $L$
-
 There are a few distinct times where we need to determine the value of $L$, but they all come down to liquidity being deposited into the pool and not from swaps.
 We want to disentangle swaps and liquidity provision/donation.
 That will make this all clearer and easier to tackle, in my mind.
 
 ### Pool Initialization
-
 When the pool is initialized, we need to determine the value of $L$.
 The user will provide a price $S$ and an amount of $x$ or an amount of $y$ that they wish to tender. 
 From there, we should be able to determine how much of both tokens must be allocated as well as the value of $L$.
 
 #### Specifying $x$
-
 Suppose that the user specifies the amount $x$ they wish to allocate and they also choose a price $S$.
 Without showing all the work, we can recall that $\frac{x}{L}$ is one of the option binaries:
 $$
@@ -45,7 +70,6 @@ $$
 Note that the above is not simplified and likely could be drastically simplified.
 
 #### Specifying $y$
-
 Suppose that the user specifies the amount $y$ they wish to allocate and they also choose a price $S$.
 The work here is basically a mirrored image of the above.
 $$
@@ -61,7 +85,6 @@ $$
 $$
 
 ### Adding Liquidity
-
 When a user adds liquidity, they will specify an amount of $x$ or an amount of $y$, and the pool's price $S$ and liquidity $L$ will already be known. 
 When adding liquidity, we assume that price will not change whatsoever and only the value of $L$ will change.
 
@@ -88,13 +111,11 @@ $$
 can be used to make the calculation easier.
 
 ### Removing Liquidity
-
 When a user removes liquidity, they will specify an amount of $x$ or an amount of $y$, and the pool's price $S$ and liquidity $L$ will already be known. 
 When removing liquidity, we assume that price will not change whatsoever and only the value of $L$ will change.
 We can just use the same formulation as above and note that $\delta_x$ and $\delta_y$ may be positive or negative.
 
 ### Swaps
-
 When a user swaps, it must be that the trading function remains invariant:
 $$
 \Phi^{-1}\left(\frac{x+\Delta_x}{L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{KL}\right)=-\sigma.
