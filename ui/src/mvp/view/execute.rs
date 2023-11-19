@@ -82,15 +82,10 @@ pub fn execution_layout<'a>(
     };
 
     let steps_card = steps_group(steps);
-    let submit_card = submit_group();
+    let submit_card = submit_group(step.clone(), user_feedback);
 
     let column_1: Vec<Element<'a, Message>> = content;
     let column_2: Vec<Element<'a, Message>> = vec![steps_card.into(), submit_card.into()];
-
-    let user_feedback = match user_feedback {
-        Some(feedback) => text(feedback),
-        None => text(""),
-    };
 
     Column::new()
         .push(
@@ -103,15 +98,6 @@ pub fn execution_layout<'a>(
                         .width(Length::Fill),
                 )
                 .height(Length::FillPortion(5)),
-        )
-        .push(
-            Row::new()
-                .push(button(text("previous")).on_press(Message::Execution(Execution::Previous)))
-                .push(button(text("next")).on_press(Message::Execution(Execution::Next)))
-                .push(user_feedback)
-                .align_items(alignment::Alignment::End)
-                .height(Length::FillPortion(1))
-                .spacing(8),
         )
         .spacing(16)
         .into()
@@ -216,10 +202,36 @@ pub fn storage_diffs_table<'a>(review_diffs: StorageDiffs) -> Element<'a, Messag
 }
 
 /// Submit group
-pub fn submit_group<'a>() -> Element<'a, Message> {
-    let title = h3("Submit".to_string());
-    let info = text_label("Awaiting approval in review...".to_string());
-    let button = action_button("Submit".to_string())
+pub fn submit_group<'a>(step: TransactionSteps, feedback: Option<String>) -> Element<'a, Message> {
+    let title = match step {
+        TransactionSteps::Start => "Build".to_string(),
+        TransactionSteps::Simulated => "Simulate".to_string(),
+        TransactionSteps::Executed => "Execute".to_string(),
+        TransactionSteps::Confirmed => "Confirm".to_string(),
+    };
+
+    let button_cta = match step {
+        TransactionSteps::Start => "Review".to_string(),
+        TransactionSteps::Simulated => "Execute".to_string(),
+        TransactionSteps::Executed => "Confirming...".to_string(),
+        TransactionSteps::Confirmed => "Exit".to_string(),
+    };
+
+    let extra_info = match step {
+        TransactionSteps::Start => ("Awaiting review...").to_string(),
+        TransactionSteps::Simulated => ("Awaiting execution...").to_string(),
+        TransactionSteps::Executed => ("Awaiting transaction...").to_string(),
+        TransactionSteps::Confirmed => ("Transaction confirmed.").to_string(),
+    };
+
+    let feedback = match feedback {
+        Some(msg) => h5(msg),
+        None => text(""),
+    };
+
+    let title = h2(title);
+    let info = text_label(extra_info);
+    let button = action_button(button_cta)
         .on_press(Message::Execution(Execution::Next))
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
@@ -227,13 +239,14 @@ pub fn submit_group<'a>() -> Element<'a, Message> {
     let inner_column = Column::new()
         .push(title)
         .push(info)
+        .push(feedback)
         .align_items(alignment::Alignment::Start)
         .spacing(Sizes::Sm as u16)
         .padding(Sizes::Sm as u16)
         .width(Length::Fill)
         .height(Length::Fill);
 
-    let h: f32 = ByteScale::Xl4.between(&ByteScale::Xl5);
+    let h: f32 = ByteScale::Xl4.between(&ByteScale::Xl6);
 
     Card::new(
         Column::new()

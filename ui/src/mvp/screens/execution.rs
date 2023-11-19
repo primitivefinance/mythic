@@ -316,10 +316,16 @@ impl State for Execution {
 
                         // todo: probably remove in favor of route...
                         view::Execution::Next => {
-                            self.step = self.step.next();
+                            // Get the next step
+                            let next_step = self.step.next();
 
-                            // Checkpoint step
-                            self.checkpoint_step = self.step.clone();
+                            // Checkpoint the step so we don't re-trigger the step actions.
+                            self.checkpoint_step = next_step.clone();
+
+                            // Route to the next step.
+                            return Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                                app::Message::Execution(app::Execution::Arrived(next_step))
+                            });
                         }
                         // todo: probably remove in favor of route...
                         view::Execution::Previous => {
