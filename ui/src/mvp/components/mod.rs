@@ -6,11 +6,15 @@ pub mod styles;
 
 use button::*;
 use iced::{widget::Container, Color, Element, Renderer};
+use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 use styles::*;
 
-use self::containers::CardContainer;
+use self::containers::{CardContainer, ScreenWindowContainer, WindowHeader};
 // These components should return View messages.
-use super::{view::Message, *};
+use super::{
+    view::{Message, Page},
+    *,
+};
 
 /// Renders a gray text label in lowercase.
 pub fn label_item<'a>(t: String) -> Text<'a> {
@@ -180,20 +184,16 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
     second_column: Vec<T>,
 ) -> Row<'a, Message> {
     let first_column = Column::with_children(first_column.into_iter().map(|e| e.into()).collect())
-        .height(Length::Fill)
         .width(Length::FillPortion(2))
         .spacing(Sizes::Md as u16);
 
     let second_column =
         Column::with_children(second_column.into_iter().map(|e| e.into()).collect())
-            .height(Length::Fill)
             .width(Length::FillPortion(2))
             .spacing(Sizes::Md as u16);
 
     Row::new()
-        .width(Length::Fill)
         .spacing(Sizes::Md as u16)
-        .align_items(alignment::Alignment::Center)
         .push(first_column)
         .push(second_column)
 }
@@ -242,4 +242,39 @@ impl Card {
         let content = content.into();
         Container::new(content).style(CardContainer::theme())
     }
+}
+
+/// note: the header needs to fill the container. but this pushes the content
+/// out to its max width.
+/// so we need to cap the window to a max width, which we should improve on in
+/// the future.
+pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
+    window: &'a Page,
+    content: T,
+) -> Container<'a, Message, Renderer> {
+    let name = window.name().clone();
+    Container::new(
+        Column::new()
+            .push(
+                Container::new(
+                    Row::new()
+                        .align_items(alignment::Alignment::Center)
+                        .push(Column::new().push(name).width(Length::FillPortion(2)))
+                        .push(
+                            Column::new()
+                                .push(text(icon_to_char(Icon::BookmarkFill)).font(ICON_FONT))
+                                .align_items(alignment::Alignment::End)
+                                .width(Length::FillPortion(2)),
+                        ),
+                )
+                .padding(Sizes::Md as u16)
+                .style(WindowHeader::theme()),
+            )
+            .push(Row::new().push(content))
+            .spacing(Sizes::Md as u16),
+    )
+    .max_height(ByteScale::Xl7 as u16)
+    .max_width(ByteScale::Xl7 as u16)
+    .style(ScreenWindowContainer::theme())
+    .into()
 }

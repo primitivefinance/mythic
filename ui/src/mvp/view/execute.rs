@@ -28,7 +28,7 @@ pub fn execution_layout<'a>(
     let steps = vec![
         (
             Icon::PencilSquare,
-            "Built".to_string(),
+            "Build".to_string(),
             if checkpoint_step >= TransactionSteps::Start {
                 Message::Execution(Execution::Route(TransactionSteps::Start))
             } else {
@@ -38,7 +38,7 @@ pub fn execution_layout<'a>(
         ),
         (
             Icon::Sim,
-            "Simulated".to_string(),
+            "Simulate".to_string(),
             if checkpoint_step >= TransactionSteps::Simulated {
                 Message::Execution(Execution::Route(TransactionSteps::Simulated))
             } else {
@@ -48,7 +48,7 @@ pub fn execution_layout<'a>(
         ),
         (
             Icon::CursorFill,
-            "Executed".to_string(),
+            "Execute".to_string(),
             if checkpoint_step >= TransactionSteps::Executed {
                 Message::Execution(Execution::Route(TransactionSteps::Executed))
             } else {
@@ -58,7 +58,7 @@ pub fn execution_layout<'a>(
         ),
         (
             Icon::CheckCircleFill,
-            "Confirmed".to_string(),
+            "Confirm".to_string(),
             if checkpoint_step >= TransactionSteps::Confirmed {
                 Message::Execution(Execution::Route(TransactionSteps::Confirmed))
             } else {
@@ -106,19 +106,13 @@ pub fn execution_layout<'a>(
     let column_1: Vec<Element<'a, Message>> = content;
     let column_2: Vec<Element<'a, Message>> = vec![steps_card.into(), submit_card.into()];
 
+    // Fills the max window container space right now, which is pretty good.
     Column::new()
-        .push(
-            Row::new()
-                .push(
-                    Column::new()
-                        .push(components::dual_column(column_1, column_2))
-                        .spacing(16)
-                        .padding(32)
-                        .width(Length::Fill),
-                )
-                .height(Length::FillPortion(5)),
-        )
-        .spacing(16)
+        .push(components::dual_column(column_1, column_2))
+        .spacing(Sizes::Xl as u16)
+        .padding(Sizes::Xl as u16)
+        .height(Length::Fill)
+        .width(Length::Fill)
         .into()
 }
 
@@ -128,7 +122,6 @@ pub fn starting<'a>(
     address_book: Vec<String>,
     selected: String,
 ) -> Vec<Element<'a, Message>> {
-    let title = data_item("Execution".to_string()).size(36);
     let selection = address_book.clone();
     let message_card = message_group(address_book.clone(), selected.clone());
     let data_card = data_group(
@@ -138,9 +131,7 @@ pub fn starting<'a>(
         "0".to_string(),
     );
 
-    let column_1: Vec<Element<'a, Message>> =
-        vec![title.into(), message_card.into(), data_card.into()];
-
+    let column_1: Vec<Element<'a, Message>> = vec![message_card.into(), data_card.into()];
     column_1
 }
 
@@ -151,7 +142,6 @@ pub fn simulated<'a>(
     input_amount: String,
     review_diffs: Option<StorageDiffs>,
 ) -> Vec<Element<'a, Message>> {
-    let title = data_item("Review Transaction".to_string()).size(36);
     let summary_card = summary_group(
         selected_to.clone(),
         selected_target.clone(),
@@ -159,16 +149,13 @@ pub fn simulated<'a>(
     );
     let simulated_card = review_group(review_diffs.clone());
 
-    let column_1: Vec<Element<'a, Message>> =
-        vec![title.into(), summary_card.into(), simulated_card.into()];
+    let column_1: Vec<Element<'a, Message>> = vec![summary_card.into(), simulated_card.into()];
     column_1
 }
 
 /// Panel for executed the transaction's state diffs.
 pub fn executed<'a>() -> Vec<Element<'a, Message>> {
-    let title = data_item("Execute Transaction".to_string()).size(36);
-
-    let column_1: Vec<Element<'a, Message>> = vec![title.into()];
+    let column_1: Vec<Element<'a, Message>> = vec![text("executed".to_string()).into()];
     column_1
 }
 
@@ -178,46 +165,6 @@ pub fn confirmed<'a>() -> Vec<Element<'a, Message>> {
         .push(text("Transaction Confirmed"))
         .push(text("Review the transaction's state diffs."))
         .into()]
-}
-
-/// Storage diffs table
-pub fn storage_diffs_table<'a>(review_diffs: StorageDiffs) -> Element<'a, Message> {
-    let header = Row::new()
-        .spacing(8)
-        .padding(8)
-        .push(label_item("Slot".to_string()))
-        .push(label_item("Before".to_string()))
-        .push(label_item("After".to_string()));
-
-    let rows: Vec<Element<'a, Message>> = review_diffs
-        .iter()
-        .map(|(slot, (before, after))| {
-            let before_value = match before {
-                Some(value) => value.to_string(),
-                None => "".to_string(),
-            };
-
-            let after_value = match after {
-                Some(value) => value.to_string(),
-                None => "".to_string(),
-            };
-
-            Row::new()
-                .push(text(slot.to_string()))
-                .push(text(before_value))
-                .push(text(after_value))
-                .spacing(8)
-                .padding(8)
-                .into()
-        })
-        .collect::<Vec<_>>();
-
-    Column::new()
-        .push(header)
-        .push(Column::with_children(rows))
-        .spacing(8)
-        .padding(8)
-        .into()
 }
 
 /// Submit group
@@ -324,6 +271,7 @@ pub fn select_group<'a>(
     Column::new()
         .push(title)
         .push(input_container)
+        .width(Length::Fill)
         .spacing(Sizes::Md as u16)
         .into()
 }
@@ -342,6 +290,7 @@ pub fn input_group<'a>(
     Column::new()
         .push(title)
         .push(input)
+        .width(Length::Shrink)
         .spacing(Sizes::Md as u16)
         .into()
 }
@@ -379,11 +328,8 @@ pub fn data_group<'a>(
                     .push(text_label("0x42f0...ffff".to_string()))
                     .align_items(alignment::Alignment::End)
                     .width(Length::Fill),
-            )
-            .width(Length::Fill),
+            ),
     )
-    .width(Length::Fill)
-    .height(Length::Fill)
     .padding(Sizes::Md as u16)
     .style(InfoContainer::theme());
 
@@ -631,7 +577,5 @@ pub fn steps_group<'a>(steps: Vec<(Icon, String, Message, bool)>) -> Column<'a, 
         rows.push(row.into());
     }
 
-    Column::with_children(rows)
-        .spacing(Sizes::Sm as u16)
-        .width(Length::Fill)
+    Column::with_children(rows).spacing(Sizes::Sm as u16)
 }

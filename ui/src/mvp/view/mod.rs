@@ -75,23 +75,22 @@ pub enum Execution {
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
-    menu: &Page,
+    window: &'a Page,
     content: T,
 ) -> Element<'a, Message> {
-    container(row![
-        Column::new()
-            .push(page_menu(menu))
-            .width(Length::FillPortion(1)),
-        column![container(
-            column![screen_layout(content)]
-                .width(Length::Fill)
-                .height(Length::Fill)
-        )
-        .center_x()
-        .width(Length::Fill)
-        .height(Length::Fill)]
-        .width(Length::FillPortion(8))
-    ])
+    Container::new(
+        Row::new()
+            .push(
+                Column::new()
+                    .push(page_menu(window))
+                    .width(Length::FillPortion(1)),
+            )
+            .push(
+                Column::new()
+                    .push(screen_layout(window, content))
+                    .width(Length::FillPortion(8)),
+            ),
+    )
     .style(BackgroundContainerTheme::theme())
     .width(Length::Fill)
     .height(Length::Fill)
@@ -101,15 +100,18 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
 }
 
 /// For rendering content inside a screen that implements [`State`].
-pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(content: T) -> Element<'a, Message> {
-    Container::new(Container::new(content).style(MenuContainerTheme::theme()))
+pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
+    window: &'a Page,
+    content: T,
+) -> Element<'a, Message> {
+    Container::new(screen_window(window, content))
         .center_x()
         .center_y()
         .align_x(alignment::Horizontal::Center)
         .align_y(alignment::Vertical::Center)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(36)
+        .width(Length::Shrink)
+        .height(Length::Shrink)
+        .padding(Sizes::Xl as u16)
         .into()
 }
 
@@ -118,6 +120,16 @@ pub enum Page {
     Terminal,
     Execute,
     AddressBook,
+}
+
+impl Page {
+    pub fn name(&self) -> Text {
+        match self {
+            Page::Terminal => data_item("Terminal".to_string()).size(36),
+            Page::Execute => data_item("Execute".to_string()).size(36),
+            Page::AddressBook => data_item("Address Book".to_string()).size(36),
+        }
+    }
 }
 
 pub fn page_menu<'a>(_menu: &Page) -> Container<'a, Message> {

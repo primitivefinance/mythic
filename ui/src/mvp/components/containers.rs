@@ -43,6 +43,27 @@ impl MenuContainerTheme {
     }
 }
 
+/// For rendering anything placed on the background container.
+pub struct ScreenWindowContainer;
+
+impl StyleSheet for ScreenWindowContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: Some(iced::Background::Color(PANEL)),
+            border_radius: 9.0.into(),
+            ..Default::default()
+        }
+    }
+}
+
+impl ScreenWindowContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(ScreenWindowContainer))
+    }
+}
+
 /// For anything placed on a menu container.
 pub struct MenuItemContainerTheme;
 
@@ -126,6 +147,26 @@ impl StyleSheet for CardContainer {
 impl CardContainer {
     pub fn theme() -> iced::theme::Container {
         iced::theme::Container::Custom(Box::from(CardContainer))
+    }
+}
+
+pub struct WindowHeader;
+
+impl StyleSheet for WindowHeader {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: Some(iced::Background::Color(BORDER_COLOR)),
+            border_radius: [9.0, 9.0, 0.0, 0.0].into(),
+            ..Default::default()
+        }
+    }
+}
+
+impl WindowHeader {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(WindowHeader))
     }
 }
 
