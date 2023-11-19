@@ -28,7 +28,7 @@ pub fn execution_layout<'a>(
     let steps = vec![
         (
             Icon::PencilSquare,
-            "Build".to_string(),
+            "Built".to_string(),
             if checkpoint_step >= TransactionSteps::Start {
                 Message::Execution(Execution::Route(TransactionSteps::Start))
             } else {
@@ -38,7 +38,7 @@ pub fn execution_layout<'a>(
         ),
         (
             Icon::Sim,
-            "Simulate".to_string(),
+            "Simulated".to_string(),
             if checkpoint_step >= TransactionSteps::Simulated {
                 Message::Execution(Execution::Route(TransactionSteps::Simulated))
             } else {
@@ -48,7 +48,7 @@ pub fn execution_layout<'a>(
         ),
         (
             Icon::CursorFill,
-            "Execute".to_string(),
+            "Executed".to_string(),
             if checkpoint_step >= TransactionSteps::Executed {
                 Message::Execution(Execution::Route(TransactionSteps::Executed))
             } else {
@@ -58,7 +58,7 @@ pub fn execution_layout<'a>(
         ),
         (
             Icon::CheckCircleFill,
-            "Confirm".to_string(),
+            "Confirmed".to_string(),
             if checkpoint_step >= TransactionSteps::Confirmed {
                 Message::Execution(Execution::Route(TransactionSteps::Confirmed))
             } else {
@@ -69,12 +69,20 @@ pub fn execution_layout<'a>(
     ];
 
     let action = match step {
-        TransactionSteps::Start if !input_amount.is_empty() && selected.len() > 0 => {
+        TransactionSteps::Start
+            if !input_amount.is_empty() && selected.len() > 0 && step == checkpoint_step =>
+        {
             Message::Execution(Execution::Next)
         }
-        TransactionSteps::Simulated if !pending => Message::Execution(Execution::Next),
-        TransactionSteps::Executed if !pending => Message::Execution(Execution::Next),
-        TransactionSteps::Confirmed if !pending => Message::Execution(Execution::Next),
+        TransactionSteps::Simulated if !pending && step == checkpoint_step => {
+            Message::Execution(Execution::Next)
+        }
+        TransactionSteps::Executed if !pending && step == checkpoint_step => {
+            Message::Execution(Execution::Next)
+        }
+        TransactionSteps::Confirmed if !pending && step == checkpoint_step => {
+            Message::Execution(Execution::Next)
+        }
         _ => Message::Empty,
     };
 
@@ -93,7 +101,7 @@ pub fn execution_layout<'a>(
     };
 
     let steps_card = steps_group(steps);
-    let submit_card = submit_group(action, step.clone(), user_feedback);
+    let submit_card = submit_group(action, step.clone(), user_feedback, checkpoint_step.clone());
 
     let column_1: Vec<Element<'a, Message>> = content;
     let column_2: Vec<Element<'a, Message>> = vec![steps_card.into(), submit_card.into()];
@@ -217,42 +225,33 @@ pub fn submit_group<'a>(
     action: Message,
     step: TransactionSteps,
     feedback: Option<String>,
+    checkpoint: TransactionSteps,
 ) -> Element<'a, Message> {
-    let title = match step {
-        TransactionSteps::Start => "Build".to_string(),
-        TransactionSteps::Simulated => "Simulate".to_string(),
-        TransactionSteps::Executed => "Execute".to_string(),
-        TransactionSteps::Confirmed => "Confirm".to_string(),
-    };
-
-    let button_cta = match step {
-        TransactionSteps::Start => "Review".to_string(),
-        TransactionSteps::Simulated => "Execute".to_string(),
-        TransactionSteps::Executed => "Confirming...".to_string(),
-        TransactionSteps::Confirmed => "Exit".to_string(),
-    };
-
-    let extra_info = match step {
-        TransactionSteps::Start => ("Awaiting review...").to_string(),
-        TransactionSteps::Simulated => ("Awaiting execution...").to_string(),
-        TransactionSteps::Executed => ("Awaiting transaction...").to_string(),
-        TransactionSteps::Confirmed => ("Transaction confirmed.").to_string(),
-    };
-
     let feedback = match feedback {
-        Some(msg) => h5(msg),
+        Some(msg) => h5(msg).style(SECONDARY_COLOR),
         None => text(""),
     };
 
-    let title = h2(title);
-    let info = text_label(extra_info);
-    let mut button = action_button(button_cta)
+    let title = h2("Instructions".to_string());
+    let mut info = text_label(step.get_instructions());
+    let mut button = action_button(step.get_cta())
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
 
     // Disable the button unless its ready.
     match action {
-        Message::Empty => {}
+        // todo: this assumes the action is empty if we are at the confirm step.
+        Message::Empty => {
+            // If we are hit the confirm step, then always render the button as "Exit"
+            // stage.
+            if checkpoint == TransactionSteps::Confirmed {
+                info = text_label(checkpoint.get_instructions());
+                button = action_button(checkpoint.get_cta())
+                    .on_press(Message::Execution(Execution::Restart))
+                    .padding(Sizes::Md as u16)
+                    .width(Length::Fill);
+            }
+        }
         _ => {
             button = button.on_press(action);
         }
@@ -265,10 +264,9 @@ pub fn submit_group<'a>(
         .align_items(alignment::Alignment::Start)
         .spacing(Sizes::Sm as u16)
         .padding(Sizes::Sm as u16)
-        .width(Length::Fill)
-        .height(Length::Fill);
+        .width(Length::Fill);
 
-    let h: f32 = ByteScale::Xl4.between(&ByteScale::Xl6);
+    let _h: f32 = ByteScale::Xl4.between(&ByteScale::Xl5);
 
     Card::new(
         Column::new()
@@ -279,7 +277,6 @@ pub fn submit_group<'a>(
             .spacing(Sizes::Md as u16),
     )
     .width(Length::Fixed(ByteScale::Xl5.into()))
-    .max_height(h)
     .into()
 }
 

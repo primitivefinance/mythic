@@ -69,7 +69,11 @@ pub fn action_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
         .background_color(Color::from_rgb8(88, 135, 255))
         .pressed()
         .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(11, 63, 197));
+        .background_color(Color::from_rgb8(11, 63, 197))
+        .disabled()
+        .border_radius(5.0.into())
+        .background_color(DISABLED_COLOR)
+        .text_color(DISABLED_TEXT_GRAY);
     button(content).style(action_button_style.as_custom())
 }
 

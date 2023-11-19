@@ -100,11 +100,23 @@ pub const PRIMARY_COLOR: Color = Color::from_rgb(
     0xE4 as f32 / 255.0,
 );
 
+pub const SECONDARY_COLOR: Color = Color::from_rgb(
+    0x5A as f32 / 255.0,
+    0x6B as f32 / 255.0,
+    0xFF as f32 / 255.0,
+);
+
 pub const DISABLED_COLOR: Color = Color::from_rgba(
     0x41 as f32 / 255.0,
     0x51 as f32 / 255.0,
     0xE4 as f32 / 255.0,
     0.25,
+);
+
+pub const DISABLED_TEXT_GRAY: Color = Color::from_rgb(
+    0x7575 as f32 / 255.0,
+    0x7575 as f32 / 255.0,
+    0x7575 as f32 / 255.0,
 );
 
 // pretty sure this breaks if they don't have daggersquare installed?

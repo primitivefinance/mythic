@@ -70,6 +70,8 @@ pub enum Execution {
     AmountChanged(Option<String>),
     ToAddressChanged(String),
     FromAddressChanged(String),
+    // For restarting the flow.
+    Restart,
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(

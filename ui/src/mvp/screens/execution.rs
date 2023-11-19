@@ -44,6 +44,24 @@ impl TransactionSteps {
             Self::Confirmed => Self::Start,
         }
     }
+
+    pub fn get_cta(&self) -> String {
+        match self {
+            TransactionSteps::Start => "Review".to_string(),
+            TransactionSteps::Simulated => "Execute".to_string(),
+            TransactionSteps::Executed => "Confirming...".to_string(),
+            TransactionSteps::Confirmed => "Exit".to_string(),
+        }
+    }
+
+    pub fn get_instructions(&self) -> String {
+        match self {
+            TransactionSteps::Start => "Construct a transaction and then review it.".to_string(),
+            TransactionSteps::Simulated => "Review simulated results then execute.".to_string(),
+            TransactionSteps::Executed => "Wait for transaction to confirm.".to_string(),
+            TransactionSteps::Confirmed => "Transaction confirmed. Exit to restart.".to_string(),
+        }
+    }
 }
 
 pub struct Execution {
@@ -195,6 +213,7 @@ impl Execution {
         let forker = self.forker.clone().unwrap();
 
         self.pending_tx = true;
+        self.user_feedback_message = Some("Simulation in progress...".to_string());
 
         Command::perform(handle_simulate_scroll(scroll, forker), |res| {
             app::Message::Execution(app::Execution::Simulated(res))
@@ -215,6 +234,7 @@ impl Execution {
         let forker = self.forker.clone().unwrap();
 
         self.pending_tx = true;
+        self.user_feedback_message = Some("Sending transaction...".to_string());
 
         Command::perform(handle_execute_scroll(scroll, forker), |res| {
             app::Message::Execution(app::Execution::Executed(res))
@@ -334,6 +354,9 @@ impl State for Execution {
             Message::View(msg) => {
                 match msg {
                     view::Message::Execution(e) => match e {
+                        view::Execution::Restart => {
+                            return self.handle_restart();
+                        }
                         // Handles routing to different steps during execution.
                         view::Execution::Route(route) => {
                             // Only route to the step if its been reached.
