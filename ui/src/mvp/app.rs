@@ -5,7 +5,7 @@ use tracing::Span;
 
 use super::{
     api::{
-        address_book::{AddressBookCategory, AddressBookManager},
+        contacts::{self, Contacts},
         scroll::Scroll,
     },
     screens::{
@@ -57,11 +57,11 @@ pub enum Message {
 
 #[derive(Debug)]
 pub enum AddressBookMessage {
-    Add(String, Address, AddressBookCategory),
-    Remove(String, AddressBookCategory),
-    Get(String, AddressBookCategory),
-    List(AddressBookCategory),
-    Clear(AddressBookCategory),
+    Add(String, Address, contacts::Category),
+    Remove(String, contacts::Category),
+    Get(String, contacts::Category),
+    List(contacts::Category),
+    Clear(contacts::Category),
 }
 
 /// Storage for the entire application.
@@ -74,7 +74,7 @@ pub struct App {
     local: Local<Ws>,
     screen: Screen,
     receiver: Arc<Mutex<Receiver<AppEventLog>>>,
-    address_books: AddressBookManager,
+    address_books: Contacts,
 }
 
 impl App {
@@ -90,7 +90,7 @@ impl App {
                 local,
                 screen,
                 receiver,
-                address_books: AddressBookManager::new(),
+                address_books: Contacts::new(),
             },
             Command::none(),
         )

@@ -1,8 +1,8 @@
 use super::{components::input::create_input_component, Message, *};
-use crate::mvp::api::address_book::{AddressBook, AddressBookManager};
+use crate::mvp::api::contacts::{self, ContactList, Contacts};
 
 pub fn layout<'a>(
-    books: AddressBookManager,
+    books: Contacts,
     last_address: String,
     last_label: String,
     feedback: Option<String>,
@@ -15,7 +15,10 @@ pub fn layout<'a>(
         content = content.push(text(feedback.unwrap()).size(12));
     }
 
-    content = content.push(list_untrusted_book(books.untrusted.clone()));
+    if let Some(list) = books.get_list(contacts::Category::Untrusted) {
+        content = content.push(list_untrusted_book(list.clone()));
+    }
+
     content.padding(32).spacing(16).into()
 }
 
@@ -41,13 +44,12 @@ pub fn add_address<'a>(label: String, address: String) -> Element<'a, Message> {
         .into()
 }
 
-pub fn list_untrusted_book<'a>(book: AddressBook) -> Element<'a, Message> {
+pub fn list_untrusted_book<'a>(book: ContactList) -> Element<'a, Message> {
     let mut content = Column::new()
         .push(text("Untrusted Addresses".to_string()).size(18))
         .spacing(16);
 
-    let mut sorted_addresses = book.addresses.iter().collect::<Vec<_>>();
-    sorted_addresses.sort();
+    let sorted_addresses = book.get_all();
     for (address, label) in sorted_addresses {
         let row = Row::new()
             .push(label_item(label.clone()))

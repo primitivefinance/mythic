@@ -3,7 +3,7 @@
 
 mod digest;
 
-pub mod address_book;
+pub mod contacts;
 pub mod forking;
 pub mod local;
 pub mod scroll;

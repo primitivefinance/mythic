@@ -18,7 +18,7 @@ use super::{
 };
 use crate::mvp::{
     api::{
-        address_book::{AddressBookCategory, AddressBookManager},
+        contacts::{self, Contacts},
         forking::Forker,
         local::Local,
         scroll::{Scroll, UnsealedTransaction},
@@ -75,7 +75,7 @@ pub struct Execution {
     #[allow(dead_code)]
     local: Local<Ws>,
     #[allow(dead_code)]
-    address_books: AddressBookManager,
+    address_books: Contacts,
     forker: Option<Arc<tokio::sync::Mutex<Forker>>>,
     user_feedback_message: Option<String>,
     // Highest level step that has been reached.
@@ -139,7 +139,7 @@ impl Review {
 }
 
 impl Execution {
-    pub fn new(local: Local<Ws>, address_books: AddressBookManager) -> Self {
+    pub fn new(local: Local<Ws>, address_books: Contacts) -> Self {
         // add a default address to untrusted address book
         let mut label = "default";
         let default_address = match local.counter_contract {
@@ -156,7 +156,7 @@ impl Execution {
         books.add(
             default_address,
             label.to_string(),
-            AddressBookCategory::Untrusted,
+            contacts::Category::Untrusted,
         );
 
         let forker = Arc::new(tokio::sync::Mutex::new(Forker::new(
@@ -400,7 +400,7 @@ impl State for Execution {
                             let value = value.parse::<Address>().unwrap();
                             let label = self
                                 .address_books
-                                .get(&value, AddressBookCategory::Untrusted)
+                                .get(&value, contacts::Category::Untrusted)
                                 .unwrap()
                                 .clone();
 
@@ -498,9 +498,12 @@ impl State for Execution {
     }
 
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        let sorted = self
+        let sorted: Vec<(Address, String)> = self
             .address_books
-            .list_sorted(AddressBookCategory::Untrusted);
+            .list(contacts::Category::Untrusted)
+            .into_iter()
+            .map(|(address, label)| (address.clone(), label.clone()))
+            .collect();
 
         let selected = address_to_string(&self.unsealed.target);
 
@@ -524,7 +527,7 @@ impl State for Execution {
             view::execute::execution_layout(
                 self.step.clone(),
                 input,
-                sorted.clone(),
+                sorted.clone().to_owned(),
                 selected.clone(),
                 self.user_feedback_message.clone(),
                 review_diffs,

@@ -1,10 +1,13 @@
 //! Screen for managing the address book.
 
 use super::{app::Message, *};
-use crate::mvp::{api::address_book::*, app::AddressBookMessage};
+use crate::mvp::{
+    api::contacts::{self, *},
+    app::AddressBookMessage,
+};
 
 pub struct AddressBookScreen {
-    pub books: AddressBookManager,
+    pub books: Contacts,
     pub new_address: Option<String>,
     pub new_label: Option<String>,
     // For rendering errors or other feedback in the form.
@@ -12,7 +15,7 @@ pub struct AddressBookScreen {
 }
 
 impl AddressBookScreen {
-    pub fn new(books: AddressBookManager) -> Self {
+    pub fn new(books: Contacts) -> Self {
         Self {
             books,
             new_address: None,
@@ -54,7 +57,7 @@ impl State for AddressBookScreen {
                                     self.books.add(
                                         validated.clone(),
                                         label.clone(),
-                                        AddressBookCategory::Untrusted,
+                                        contacts::Category::Untrusted,
                                     );
 
                                     // Provide some feedback.
@@ -76,7 +79,7 @@ impl State for AddressBookScreen {
                                             Message::AddressBook(AddressBookMessage::Add(
                                                 label,
                                                 validated,
-                                                AddressBookCategory::Untrusted,
+                                                contacts::Category::Untrusted,
                                             ))
                                         },
                                     );
