@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap, VecDeque};
 
 use ethers::utils::format_ether;
 use iced::widget::{checkbox, Column, Container, Row};
+use iced_aw::Icon;
 use simulation::agents::SubscribedData;
 
 use self::{
@@ -9,6 +10,7 @@ use self::{
     event::{mock_event_groups, EventFeed},
     feed::Feed,
     monitor::labeled_data_cards,
+    sidebar::window_directory,
 };
 use super::{
     components::{containers::*, *},
@@ -25,6 +27,7 @@ pub mod event;
 pub mod execute;
 pub mod feed;
 pub mod monitor;
+pub mod sidebar;
 
 /// Messages emitted from user interaction with the settings.
 #[derive(Debug, Clone)]
@@ -114,7 +117,7 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .into()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Page {
     Terminal,
     Execute,
@@ -122,33 +125,53 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn name(&self) -> Text {
+    pub fn name(&self) -> String {
         match self {
-            Page::Terminal => data_item("Terminal".to_string()).size(36),
-            Page::Execute => data_item("Execute".to_string()).size(36),
-            Page::AddressBook => data_item("Address Book".to_string()).size(36),
+            Page::Terminal => "Terminal".to_string(),
+            Page::Execute => "Execute".to_string(),
+            Page::AddressBook => "Address Book".to_string(),
         }
     }
 }
 
-pub fn page_menu<'a>(_menu: &Page) -> Container<'a, Message> {
-    let terminal_button = button(text("terminal")).on_press(Message::Page(Page::Terminal));
-    let transact_button = button(text("execute")).on_press(Message::Page(Page::Execute));
-    let address_book_button =
-        button(text("address book")).on_press(Message::Page(Page::AddressBook));
+pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
+    let name = "Excalibur".to_string();
+    let title = Row::new()
+        .push(with_font(h1(name)))
+        .padding(Sizes::Lg as u16);
+
+    let windows = vec![
+        (
+            Icon::TerminalFill,
+            "Terminal".to_string(),
+            Message::Page(Page::Terminal),
+            menu == &Page::Terminal,
+        ),
+        (
+            Icon::Wallet,
+            "Execute".to_string(),
+            Message::Page(Page::Execute),
+            menu == &Page::Execute,
+        ),
+        (
+            Icon::ShieldShaded,
+            "Address Book".to_string(),
+            Message::Page(Page::AddressBook),
+            menu == &Page::AddressBook,
+        ),
+    ];
+
+    let apps = window_directory(windows);
 
     Container::new(
-        Column::new().push(
-            Column::new()
-                .push(terminal_button)
-                .push(transact_button)
-                .push(address_book_button)
-                .height(Length::Fill)
-                .spacing(8),
-        ),
+        Column::new()
+            .push(title)
+            .push(apps)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Xs as u16),
     )
     .style(MenuContainerTheme::theme())
-    .padding(16)
+    .height(Length::Fill)
 }
 
 pub fn terminal_view_multiple_firehose<'a>(

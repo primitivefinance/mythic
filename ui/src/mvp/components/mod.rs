@@ -264,7 +264,11 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
                 Container::new(
                     Row::new()
                         .align_items(alignment::Alignment::Center)
-                        .push(Column::new().push(name).width(Length::FillPortion(2)))
+                        .push(
+                            Column::new()
+                                .push(with_font(h1(name)))
+                                .width(Length::FillPortion(2)),
+                        )
                         .push(
                             Column::new()
                                 .push(text(icon_to_char(Icon::BookmarkFill)).font(ICON_FONT))
