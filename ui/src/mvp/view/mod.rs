@@ -136,9 +136,11 @@ impl Page {
 
 pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
     let name = "Excalibur".to_string();
-    let title = Row::new()
+    let title = Column::new()
         .push(with_font(h1(name)))
-        .padding(Sizes::Lg as u16);
+        .padding(Sizes::Lg as u16)
+        .align_items(alignment::Alignment::Center)
+        .width(Length::Fill);
 
     let windows = vec![
         (

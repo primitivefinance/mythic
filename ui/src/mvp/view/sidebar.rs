@@ -13,6 +13,7 @@ pub fn window_directory<'a>(windows: Vec<(Icon, String, Message, bool)>) -> Elem
                         .push(text_label("Apps".to_string()))
                         .align_items(alignment::Alignment::Center),
                 )
+                .padding(Sizes::Sm as u16)
                 .spacing(Sizes::Md as u16)
                 .width(Length::Fill),
         )
