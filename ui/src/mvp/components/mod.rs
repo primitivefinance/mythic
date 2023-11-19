@@ -3,13 +3,18 @@ pub mod containers;
 pub mod input;
 pub mod logos;
 pub mod styles;
+pub mod tables;
 
 use button::*;
-use iced::{widget::Container, Color, Element, Renderer};
+use iced::{
+    widget::{pick_list, Container},
+    Color, Element, Renderer,
+};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
+use input::*;
 use styles::*;
 
-use self::containers::{CardContainer, ScreenWindowContainer, WindowHeader};
+use self::containers::{CardContainer, MenuContainerTheme, ScreenWindowContainer, WindowHeader};
 // These components should return View messages.
 use super::{
     view::{Message, Page},
@@ -277,4 +282,43 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
     .max_width(ByteScale::Xl7 as u16)
     .style(ScreenWindowContainer::theme())
     .into()
+}
+
+/// Column with a label and text input field.
+pub fn input_group<'a>(
+    title: String,
+    value: Option<String>,
+    placeholder: String,
+    on_change: impl Fn(Option<String>) -> Message + 'static,
+) -> Element<'a, Message> {
+    let title = h3(title.to_string());
+    // todo: change this so padding is modifiable.
+    let input = create_input_component(value, on_change);
+
+    Column::new()
+        .push(title)
+        .push(input)
+        .width(Length::Shrink)
+        .spacing(Sizes::Md as u16)
+        .into()
+}
+
+/// Column with a label and pick list field.
+pub fn select_group<'a>(
+    title: String,
+    options: Vec<String>,
+    selected: String,
+    on_selected: impl Fn(String) -> Message + 'a,
+) -> Element<'a, Message> {
+    let title = h3(title.to_string());
+    let input = pick_list(options, Some(selected.clone()), on_selected).padding(Sizes::Md as u16);
+
+    let input_container = Container::new(input).style(MenuContainerTheme::theme());
+
+    Column::new()
+        .push(title)
+        .push(input_container)
+        .width(Length::Fill)
+        .spacing(Sizes::Md as u16)
+        .into()
 }

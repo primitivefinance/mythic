@@ -1,12 +1,14 @@
 //! Views for executing transactions.
 
-use iced::{widget::pick_list, BorderRadius, Color};
+use iced::Color;
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
-use super::{components::input::create_input_component, text, Column, Element, Message, *};
+use super::{text, Column, Element, Message, *};
 use crate::mvp::{
-    components::button::CustomButtonStyle, execution::TransactionSteps,
-    screens::execution::StorageDiffs, units::address_to_string,
+    components::{button::route_button_style, tables::*},
+    execution::TransactionSteps,
+    screens::execution::StorageDiffs,
+    units::address_to_string,
 };
 
 pub fn execution_layout<'a>(
@@ -255,46 +257,6 @@ pub fn message_group<'a>(options: Vec<String>, selected: String) -> Element<'a, 
     .into()
 }
 
-/// Column with a label and pick list field.
-/// todo: add a message argument
-pub fn select_group<'a>(
-    title: String,
-    options: Vec<String>,
-    selected: String,
-    on_selected: impl Fn(String) -> Message + 'a,
-) -> Element<'a, Message> {
-    let title = h3(title.to_string());
-    let input = pick_list(options, Some(selected.clone()), on_selected).padding(Sizes::Md as u16);
-
-    let input_container = Container::new(input).style(MenuContainerTheme::theme());
-
-    Column::new()
-        .push(title)
-        .push(input_container)
-        .width(Length::Fill)
-        .spacing(Sizes::Md as u16)
-        .into()
-}
-
-/// Column with a label and text input field.
-pub fn input_group<'a>(
-    title: String,
-    value: Option<String>,
-    placeholder: String,
-    on_change: impl Fn(Option<String>) -> Message + 'static,
-) -> Element<'a, Message> {
-    let title = h3(title.to_string());
-    // todo: change this so padding is modifiable.
-    let input = create_input_component(value, on_change);
-
-    Column::new()
-        .push(title)
-        .push(input)
-        .width(Length::Shrink)
-        .spacing(Sizes::Md as u16)
-        .into()
-}
-
 /// Renders a target contract selection field and an input field for the amount.
 pub fn data_group<'a>(
     options: Vec<String>,
@@ -418,106 +380,6 @@ pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Messa
     .into()
 }
 
-/// Renders a column in a summary table's row.
-pub fn summary_column<'a>(value: String) -> Column<'a, Message> {
-    Column::new()
-        .push(h4(value))
-        .align_items(alignment::Alignment::Center)
-        .padding(Sizes::Md as u16)
-        .width(Length::FillPortion(2))
-}
-
-/// Renders a row in a summary table.
-/// If top row, render with top-left border radius.
-/// If bottom row, render with bottom-left border radius.
-/// Otherwise, render with no border radius.
-/// todo: border radius is affected by being an inner border, doesn't look the
-/// greatest unfortunately.
-pub fn summary_row<'a>(
-    columns: Vec<Column<'a, Message>>,
-    row_position: usize,
-    total_rows: usize,
-) -> Container<'a, Message> {
-    let col_radius: BorderRadius = match row_position {
-        0 => [5.0, 0.0, 0.0, 0.0].into(),
-        _ if row_position == total_rows - 1 => [0.0, 0.0, 0.0, 5.0].into(),
-        _ => [0.0, 0.0, 0.0, 0.0].into(),
-    };
-
-    let col_radius = match total_rows {
-        1 => [5.0, 0.0, 0.0, 5.0].into(),
-        _ => col_radius,
-    };
-
-    // Edit the first column by wrapping it with a InfoContainer
-    let mut columns = columns;
-    let first_column = columns.remove(0);
-    let first_column = Container::new(first_column)
-        .style(TableColumnContainer::theme_with_border_radius(col_radius))
-        .width(Length::Fill);
-    columns.insert(0, Column::new().push(first_column).width(Length::Fill));
-
-    // If top row, top left + right border radius.
-    // If bottom row, bottom left + right border radius.
-    // Otherwise, no border radius.
-    let row_radius: BorderRadius = match row_position {
-        0 => [5.0, 5.0, 0.0, 0.0].into(),
-        _ if row_position == total_rows - 1 => [0.0, 0.0, 5.0, 5.0].into(),
-        _ => [0.0, 0.0, 0.0, 0.0].into(),
-    };
-
-    // Override radius if only one row.
-    let row_radius = match total_rows {
-        1 => 5.0.into(),
-        _ => row_radius,
-    };
-
-    Container::new(
-        Row::with_children(
-            columns
-                .into_iter()
-                .map(|c| c.into())
-                .collect::<Vec<Element<'a, Message>>>(),
-        )
-        .align_items(alignment::Alignment::Center)
-        .width(Length::Fill),
-    )
-    .style(BorderedContainer::theme_with_border_radius(row_radius))
-    .into()
-}
-
-pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message> {
-    // If values has no values, just render centered text in the container "No
-    // changes."
-    if values.is_empty() {
-        return Container::new(
-            Row::new()
-                .push(
-                    Column::new()
-                        .push(text("No changes."))
-                        .align_items(alignment::Alignment::Center),
-                )
-                .align_items(alignment::Alignment::Center),
-        )
-        .center_x()
-        .center_y()
-        .style(BorderedContainer::theme());
-    }
-
-    let mut rows: Vec<Element<'a, Message>> = vec![];
-
-    let total_rows = values.len();
-    for (i, (label, value)) in values.into_iter().enumerate() {
-        let columns: Vec<Column<'a, Message>> = vec![summary_column(label), summary_column(value)];
-        let row = summary_row(columns, i, total_rows);
-        rows.push(row.into());
-    }
-
-    Container::new(Column::with_children(rows))
-        .style(BorderedContainer::theme())
-        .into()
-}
-
 /// Renders the steps in the execution process where the tuple is (Step Icon,
 /// Step Name, On press).
 pub fn steps_group<'a>(steps: Vec<(Icon, String, Message, bool)>) -> Column<'a, Message> {
@@ -546,24 +408,9 @@ pub fn steps_group<'a>(steps: Vec<(Icon, String, Message, bool)>) -> Column<'a, 
             false => Color::TRANSPARENT,
         };
 
-        let style = CustomButtonStyle::new()
-            .text_color(Color::WHITE)
-            .border_radius(3.0.into())
-            .background_color(bg_color)
-            .pressed()
-            .text_color(Color::WHITE)
-            .border_radius(3.0.into())
-            .background_color(TABLE_COLUMN_BG_COLOR)
-            .hovered()
-            .text_color(Color::WHITE)
-            .border_radius(3.0.into())
-            .background_color(CARD_BG_COLOR)
-            .disabled()
-            .text_color(DISABLED_COLOR)
-            .border_radius(3.0.into());
         let mut row = button(row)
             .padding(Sizes::Sm as u16)
-            .style(style.as_custom())
+            .style(route_button_style(bg_color).as_custom())
             .width(Length::Fill);
 
         // Disable the button if it has an empty message.

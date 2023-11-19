@@ -6,6 +6,8 @@ use iced::{
     Background, BorderRadius, Color,
 };
 
+use super::styles::*;
+
 #[derive(Debug, Clone, Copy)]
 pub struct CustomButtonStyle {
     pub active: Appearance,
@@ -206,4 +208,22 @@ impl StyleSheet for CustomButtonStyle {
     fn disabled(&self, _style: &Self::Style) -> Appearance {
         self.disabled
     }
+}
+
+pub fn route_button_style(bg: Color) -> CustomButtonStyle {
+    CustomButtonStyle::new()
+        .text_color(Color::WHITE)
+        .border_radius(3.0.into())
+        .background_color(bg)
+        .pressed()
+        .text_color(Color::WHITE)
+        .border_radius(3.0.into())
+        .background_color(TABLE_COLUMN_BG_COLOR)
+        .hovered()
+        .text_color(Color::WHITE)
+        .border_radius(3.0.into())
+        .background_color(CARD_BG_COLOR)
+        .disabled()
+        .text_color(DISABLED_COLOR)
+        .border_radius(3.0.into())
 }

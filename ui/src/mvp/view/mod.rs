@@ -11,7 +11,6 @@ use self::{
     monitor::labeled_data_cards,
 };
 use super::{
-    column,
     components::{containers::*, *},
     screens::execution::TransactionSteps,
     terminal::{StateSubscription, StateSubscriptionStore},

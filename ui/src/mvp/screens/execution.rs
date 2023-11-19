@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use arbiter_core::{environment::builder::EnvironmentBuilder, middleware::cast::recast_address};
+use arbiter_core::environment::builder::EnvironmentBuilder;
 use ethers::{
     abi::{Token, Tokenizable},
     types::{Address, U256},
