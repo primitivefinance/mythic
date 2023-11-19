@@ -6,21 +6,47 @@ use crate::mvp::{
     app::AddressBookMessage,
 };
 
+#[derive(Debug, Clone, Default)]
+pub struct Form {
+    pub address: Option<String>,
+    pub label: Option<String>,
+    pub category: Option<contacts::Category>,
+    pub class: Option<contacts::Class>,
+    pub feedback: Option<String>,
+}
+
+impl Form {
+    pub fn new() -> Self {
+        Self {
+            address: None,
+            label: None,
+            category: None,
+            class: None,
+            feedback: None,
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.address = None;
+        self.label = None;
+        self.category = None;
+        self.class = None;
+        self.feedback = None;
+    }
+}
+
 pub struct AddressBookScreen {
     pub books: Contacts,
-    pub new_address: Option<String>,
-    pub new_label: Option<String>,
-    // For rendering errors or other feedback in the form.
-    pub feedback: Option<String>,
+    pub form: Form,
+    pub current: contacts::Category,
 }
 
 impl AddressBookScreen {
     pub fn new(books: Contacts) -> Self {
         Self {
             books,
-            new_address: None,
-            new_label: None,
-            feedback: None,
+            form: Form::new(),
+            current: contacts::Category::Untrusted,
         }
     }
 }
@@ -31,26 +57,47 @@ impl State for AddressBookScreen {
             Message::AddressBook(_) => Command::none(),
             Message::View(msg) => match msg {
                 view::Message::AddressBook(msg) => match msg {
+                    view::AddressBookViewMessage::RouteTo(category) => {
+                        // todo: implement this to list new book
+                        self.current = category;
+                        Command::none()
+                    }
+                    view::AddressBookViewMessage::ResetForm => {
+                        self.form.clear();
+                        Command::none()
+                    }
+                    view::AddressBookViewMessage::Remove((category, key)) => {
+                        self.books.remove(&key, category);
+                        Command::none()
+                    }
+                    view::AddressBookViewMessage::CategoryChanged(category) => {
+                        self.form.category = Some(category);
+                        Command::none()
+                    }
+                    view::AddressBookViewMessage::ClassChanged(class) => {
+                        self.form.class = Some(class);
+                        Command::none()
+                    }
                     view::AddressBookViewMessage::AddressChanged(new_address) => {
-                        self.new_address = new_address;
+                        self.form.address = new_address;
                         Command::none()
                     }
                     view::AddressBookViewMessage::LabelChanged(new_label) => {
-                        self.new_label = new_label;
+                        self.form.label = new_label;
                         Command::none()
                     }
                     view::AddressBookViewMessage::Add => {
-                        if let Some(address) = self.new_address.clone() {
+                        if let Some(address) = self.form.address.clone() {
                             let validated = address.parse::<Address>();
 
-                            if self.new_label.is_none() {
-                                self.feedback = Some("Label is required.".to_string());
+                            if self.form.label.is_none() {
+                                self.form.feedback = Some("Label is required.".to_string());
                                 return Command::none();
                             }
 
                             match validated {
                                 Ok(validated) => {
-                                    let label = self.new_label.clone().unwrap();
+                                    let label = self.form.label.clone().unwrap();
                                     let contact = ContactValue {
                                         label: label.clone(),
                                         ..Default::default()
@@ -66,7 +113,7 @@ impl State for AddressBookScreen {
                                     );
 
                                     // Provide some feedback.
-                                    self.feedback =
+                                    self.form.feedback =
                                         Some("Successfully added to address book.".to_string());
 
                                     tracing::info!(
@@ -75,8 +122,8 @@ impl State for AddressBookScreen {
                                         value.to_string()
                                     );
                                     // Clear the latest input and label
-                                    self.new_address = None;
-                                    self.new_label = None;
+                                    self.form.address = None;
+                                    self.form.label = None;
 
                                     return Command::perform(
                                         async move { Ok::<(), ()>(()) },
@@ -90,7 +137,7 @@ impl State for AddressBookScreen {
                                     );
                                 }
                                 Err(e) => {
-                                    self.feedback = Some(e.to_string());
+                                    self.form.feedback = Some(e.to_string());
                                     return Command::none();
                                 }
                             }
@@ -107,12 +154,7 @@ impl State for AddressBookScreen {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
         view::app_layout(
             &view::Page::AddressBook,
-            view::address_book::layout(
-                self.books.clone(),
-                self.new_address.clone().unwrap_or_default(),
-                self.new_label.clone().unwrap_or_default(),
-                self.feedback.clone(),
-            ),
+            view::address_book::layout(self.form.clone(), self.books.clone(), self.current.clone()),
         )
         .into()
     }

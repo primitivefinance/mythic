@@ -1,4 +1,4 @@
-use std::{fmt, str::FromStr};
+use std::{borrow::Cow, fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +10,17 @@ pub enum Category {
     Untrusted,
     Blocked,
     Recent,
+}
+
+impl Category {
+    pub fn all() -> Vec<Category> {
+        vec![
+            Category::Trusted,
+            Category::Untrusted,
+            Category::Blocked,
+            Category::Recent,
+        ]
+    }
 }
 
 impl FromStr for Category {
@@ -41,6 +52,18 @@ impl fmt::Display for Category {
     }
 }
 
+impl From<Cow<'_, str>> for Category {
+    fn from(item: Cow<'_, str>) -> Self {
+        match item.as_ref() {
+            "Trusted" => Category::Trusted,
+            "Untrusted" => Category::Untrusted,
+            "Blocked" => Category::Blocked,
+            "Recent" => Category::Recent,
+            _ => Category::Untrusted,
+        }
+    }
+}
+
 /// A user defined type for an address, not enforced or validated.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Class {
@@ -48,6 +71,12 @@ pub enum Class {
     EOA,
     Contract,
     AccountAbstraction,
+}
+
+impl Class {
+    pub fn all() -> Vec<Class> {
+        vec![Class::EOA, Class::Contract, Class::AccountAbstraction]
+    }
 }
 
 impl FromStr for Class {
@@ -74,5 +103,16 @@ impl fmt::Display for Class {
                 Class::AccountAbstraction => "AccountAbstraction",
             }
         )
+    }
+}
+
+impl From<Cow<'_, str>> for Class {
+    fn from(item: Cow<'_, str>) -> Self {
+        match item.as_ref() {
+            "EOA" => Class::EOA,
+            "Contract" => Class::Contract,
+            "AccountAbstraction" => Class::AccountAbstraction,
+            _ => Class::EOA,
+        }
     }
 }

@@ -13,6 +13,7 @@ use self::{
     sidebar::window_directory,
 };
 use super::{
+    api::contacts,
     components::{containers::*, *},
     screens::execution::TransactionSteps,
     terminal::{StateSubscription, StateSubscriptionStore},
@@ -62,6 +63,11 @@ pub enum AddressBookViewMessage {
     Add,
     AddressChanged(Option<String>),
     LabelChanged(Option<String>),
+    CategoryChanged(contacts::Category),
+    ClassChanged(contacts::Class),
+    Remove((contacts::Category, contacts::ContactKey)),
+    ResetForm,
+    RouteTo(contacts::Category),
 }
 
 #[derive(Debug, Clone)]

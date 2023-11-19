@@ -296,7 +296,7 @@ pub fn input_group<'a>(
     value: Option<String>,
     placeholder: String,
     on_change: impl Fn(Option<String>) -> Message + 'static,
-) -> Element<'a, Message> {
+) -> Column<'a, Message> {
     let title = h3(title.to_string());
     // todo: change this so padding is modifiable.
     let input = create_input_component(value, on_change);
@@ -306,7 +306,6 @@ pub fn input_group<'a>(
         .push(input)
         .width(Length::Shrink)
         .spacing(Sizes::Md as u16)
-        .into()
 }
 
 /// Column with a label and pick list field.

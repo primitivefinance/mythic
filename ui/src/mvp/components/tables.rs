@@ -81,8 +81,9 @@ pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message
             Row::new()
                 .push(
                     Column::new()
-                        .push(text("No changes."))
-                        .align_items(alignment::Alignment::Center),
+                        .push(text("No items to show."))
+                        .align_items(alignment::Alignment::Center)
+                        .padding(Sizes::Md as u16),
                 )
                 .align_items(alignment::Alignment::Center),
         )
