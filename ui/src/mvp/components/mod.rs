@@ -190,12 +190,14 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
 ) -> Row<'a, Message> {
     let first_column = Column::with_children(first_column.into_iter().map(|e| e.into()).collect())
         .width(Length::FillPortion(2))
-        .spacing(Sizes::Md as u16);
+        .spacing(Sizes::Md as u16)
+        .align_items(alignment::Alignment::Start);
 
     let second_column =
         Column::with_children(second_column.into_iter().map(|e| e.into()).collect())
             .width(Length::FillPortion(2))
-            .spacing(Sizes::Md as u16);
+            .spacing(Sizes::Md as u16)
+            .align_items(alignment::Alignment::End);
 
     Row::new()
         .spacing(Sizes::Md as u16)

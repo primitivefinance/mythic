@@ -1,6 +1,6 @@
 //! Views for executing transactions.
 
-use iced::Color;
+use iced::{widget::progress_bar, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{text, Column, Element, Message, *};
@@ -96,10 +96,18 @@ pub fn execution_layout<'a>(
             selected.clone(),
             selected.clone(),
             input_amount.clone(),
-            review_diffs,
+            review_diffs.clone(),
         ),
-        TransactionSteps::Executed => executed(),
-        TransactionSteps::Confirmed => confirmed(),
+        TransactionSteps::Executed => {
+            executed(selected.clone(), selected.clone(), input_amount.clone())
+        }
+        TransactionSteps::Confirmed => confirmed(
+            selected.clone(),
+            selected.clone(),
+            input_amount.clone(),
+            review_diffs.clone(),
+            1,
+        ),
     };
 
     let steps_card = steps_group(steps);
@@ -156,17 +164,68 @@ pub fn simulated<'a>(
 }
 
 /// Panel for executed the transaction's state diffs.
-pub fn executed<'a>() -> Vec<Element<'a, Message>> {
-    let column_1: Vec<Element<'a, Message>> = vec![text("executed".to_string()).into()];
+pub fn executed<'a>(
+    selected_to: String,
+    selected_target: String,
+    input_amount: String,
+) -> Vec<Element<'a, Message>> {
+    let summary_card = summary_group(
+        selected_to.clone(),
+        selected_target.clone(),
+        input_amount.clone(),
+    );
+
+    let label = h3("Pending transaction...".to_string());
+    let progress = progress_bar(0.0..=100.0, 20.0);
+
+    let column_1: Vec<Element<'a, Message>> =
+        vec![summary_card.into(), label.into(), progress.into()];
+
     column_1
 }
 
 /// Panel for transaction confirmation.
-pub fn confirmed<'a>() -> Vec<Element<'a, Message>> {
-    vec![Column::new()
-        .push(text("Transaction Confirmed"))
-        .push(text("Review the transaction's state diffs."))
-        .into()]
+pub fn confirmed<'a>(
+    selected_to: String,
+    selected_target: String,
+    input_amount: String,
+    review_diffs: Option<StorageDiffs>,
+    block: u64,
+) -> Vec<Element<'a, Message>> {
+    let title = h3("Execution Results".to_string());
+    let table = state_deltas_table(review_diffs);
+    let label_text = Row::new()
+        .push(text_label("As of block".to_string()))
+        .push(text_label(block.to_string()));
+
+    let summary_card = summary_group(
+        selected_to.clone(),
+        selected_target.clone(),
+        input_amount.clone(),
+    );
+
+    let results_card = Card::new(
+        Column::new()
+            .push(title)
+            .push(table)
+            .push(label_text)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Lg as u16),
+    )
+    .max_width(ByteScale::Xl6 as u32 as f32)
+    .max_height(ByteScale::Xl6 as u32 as f32);
+
+    let label = h3("Transaction complete.".to_string());
+    let progress = progress_bar(0.0..=100.0, 100.0);
+
+    let column_1: Vec<Element<'a, Message>> = vec![
+        summary_card.into(),
+        results_card.into(),
+        label.into(),
+        progress.into(),
+    ];
+
+    column_1
 }
 
 /// Submit group
@@ -225,7 +284,6 @@ pub fn submit_group<'a>(
             .padding(Sizes::Md as u16)
             .spacing(Sizes::Md as u16),
     )
-    .width(Length::Fixed(ByteScale::Xl5.into()))
     .into()
 }
 
@@ -341,7 +399,25 @@ pub fn summary_group<'a>(
 /// Review group
 pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Message> {
     let title = h3("Simulation Results".to_string());
+    let table = state_deltas_table(review_diffs);
+    let label_text = Row::new()
+        .push(text_label("As of block".to_string()))
+        .push(text_label("1".to_string()));
 
+    Card::new(
+        Column::new()
+            .push(title)
+            .push(table)
+            .push(label_text)
+            .spacing(Sizes::Lg as u16)
+            .padding(Sizes::Lg as u16),
+    )
+    .max_width(ByteScale::Xl6 as u32 as f32)
+    .max_height(ByteScale::Xl6 as u32 as f32)
+    .into()
+}
+
+pub fn state_deltas_table<'a>(review_diffs: Option<StorageDiffs>) -> Container<'a, Message> {
     let mut values = vec![];
 
     // For each storage diff, compute the difference and render a label and diff.
@@ -362,22 +438,7 @@ pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Messa
     }
 
     let table = summary_table(values);
-
-    let label_text = Row::new()
-        .push(text_label("As of block".to_string()))
-        .push(text_label("1".to_string()));
-
-    Card::new(
-        Column::new()
-            .push(title)
-            .push(table)
-            .push(label_text)
-            .spacing(Sizes::Lg as u16)
-            .padding(Sizes::Lg as u16),
-    )
-    .max_width(ByteScale::Xl6 as u32 as f32)
-    .max_height(ByteScale::Xl6 as u32 as f32)
-    .into()
+    table
 }
 
 /// Renders the steps in the execution process where the tuple is (Step Icon,
