@@ -97,7 +97,7 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
             .push(
                 Column::new()
                     .push(screen_layout(window, content))
-                    .width(Length::FillPortion(8)),
+                    .width(Length::FillPortion(5)),
             ),
     )
     .style(BackgroundContainerTheme::theme())

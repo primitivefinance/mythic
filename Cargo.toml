@@ -53,7 +53,7 @@ RustQuant = { version = "0.0.38", features = ["seedable"] }
 statrs = "0.16.0"
 # Storage
 linked-hash-map = "0.5.6"
-
+directories-next = "2.0.0"
 
 [dependencies]
 simulation.workspace = true

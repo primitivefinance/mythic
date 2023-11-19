@@ -276,9 +276,9 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
                                 .push(text(icon_to_char(Icon::BookmarkFill)).font(ICON_FONT))
                                 .align_items(alignment::Alignment::End)
                                 .width(Length::FillPortion(2)),
-                        ),
+                        )
+                        .padding(Sizes::Lg as u16),
                 )
-                .padding(Sizes::Md as u16)
                 .style(WindowHeader::theme()),
             )
             .push(Row::new().push(content))

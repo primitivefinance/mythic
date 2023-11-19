@@ -15,7 +15,7 @@ pub use classification::*;
 use ethers::prelude::*;
 pub use list::*;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Contacts {
     pub books: HashMap<Category, ContactList>,
 }
