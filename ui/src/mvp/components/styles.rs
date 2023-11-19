@@ -94,6 +94,19 @@ pub const STROKE_COLOR: Color = Color::from_rgb(
     0x6F as f32 / 255.0,
 );
 
+pub const PRIMARY_COLOR: Color = Color::from_rgb(
+    0x41 as f32 / 255.0,
+    0x51 as f32 / 255.0,
+    0xE4 as f32 / 255.0,
+);
+
+pub const DISABLED_COLOR: Color = Color::from_rgba(
+    0x41 as f32 / 255.0,
+    0x51 as f32 / 255.0,
+    0xE4 as f32 / 255.0,
+    0.25,
+);
+
 // pretty sure this breaks if they don't have daggersquare installed?
 pub const FONT_DAGGERSQUARE: Font = Font::with_name("DAGGERSQUARE");
 

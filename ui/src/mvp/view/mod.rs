@@ -13,6 +13,7 @@ use self::{
 use super::{
     column,
     components::{containers::*, *},
+    screens::execution::TransactionSteps,
     terminal::{StateSubscription, StateSubscriptionStore},
     tracer::{AppEventLayer, AppEventLog},
     *,
@@ -65,6 +66,7 @@ pub enum AddressBookViewMessage {
 pub enum Execution {
     Next,
     Previous,
+    Route(TransactionSteps),
     AmountChanged(Option<String>),
     ToAddressChanged(String),
     FromAddressChanged(String),

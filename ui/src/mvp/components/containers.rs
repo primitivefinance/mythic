@@ -231,3 +231,22 @@ impl TableColumnContainer {
         iced::theme::Container::Custom(Box::from(Self::new(border_radius)))
     }
 }
+
+pub struct Indicator;
+
+impl iced::widget::container::StyleSheet for Indicator {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Background::Color(PRIMARY_COLOR)),
+            ..Default::default()
+        }
+    }
+}
+
+impl Indicator {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(Indicator))
+    }
+}

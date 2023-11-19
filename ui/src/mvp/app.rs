@@ -8,7 +8,9 @@ use super::{
         address_book::{AddressBookCategory, AddressBookManager},
         scroll::Scroll,
     },
-    screens::{address_book::AddressBookScreen, terminal::Terminal, Screen},
+    screens::{
+        address_book::AddressBookScreen, execution::TransactionSteps, terminal::Terminal, Screen,
+    },
     tracer::AppEventLog,
     view::Page,
     *,
@@ -35,6 +37,7 @@ pub enum Data {
 
 #[derive(Debug)]
 pub enum Execution {
+    Arrived(TransactionSteps),
     Simulated(anyhow::Result<Scroll, anyhow::Error>),
     Executed(anyhow::Result<Scroll, anyhow::Error>),
     // Triggered after Execution::Executed is completed.

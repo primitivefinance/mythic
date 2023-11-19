@@ -26,13 +26,24 @@ use crate::mvp::{
     units::address_to_string,
 };
 
-#[derive(Default, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TransactionSteps {
     #[default]
     Start,
     Simulated,
     Executed,
     Confirmed,
+}
+
+impl TransactionSteps {
+    pub fn next(&self) -> Self {
+        match self {
+            Self::Start => Self::Simulated,
+            Self::Simulated => Self::Executed,
+            Self::Executed => Self::Confirmed,
+            Self::Confirmed => Self::Start,
+        }
+    }
 }
 
 pub struct Execution {
@@ -49,6 +60,8 @@ pub struct Execution {
     address_books: AddressBookManager,
     forker: Option<Arc<tokio::sync::Mutex<Forker>>>,
     user_feedback_message: Option<String>,
+    // Highest level step that has been reached.
+    checkpoint_step: TransactionSteps,
 }
 
 pub fn get_artifact_path(name: &str) -> PathBuf {
@@ -143,6 +156,7 @@ impl Execution {
             address_books: books,
             forker: Some(forker),
             user_feedback_message: None,
+            checkpoint_step: TransactionSteps::default(),
         }
     }
 
@@ -286,22 +300,28 @@ impl State for Execution {
             Message::View(msg) => {
                 match msg {
                     view::Message::Execution(e) => match e {
-                        view::Execution::Next => {
-                            self.step = match self.step {
-                                TransactionSteps::Start => TransactionSteps::Simulated,
-                                TransactionSteps::Simulated => TransactionSteps::Executed,
-                                TransactionSteps::Executed => TransactionSteps::Confirmed,
-                                TransactionSteps::Confirmed => TransactionSteps::Start,
-                            };
-
-                            if self.step == TransactionSteps::Simulated {
-                                return self.handle_simulate();
+                        // Handles routing to different steps during execution.
+                        view::Execution::Route(route) => {
+                            // Only route to the step if its been reached.
+                            if route > self.checkpoint_step {
+                                return Command::none();
                             }
 
-                            if self.step == TransactionSteps::Executed {
-                                return self.handle_execute();
-                            }
+                            self.step = route.clone();
+
+                            return Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                                app::Message::Execution(app::Execution::Arrived(route))
+                            });
                         }
+
+                        // todo: probably remove in favor of route...
+                        view::Execution::Next => {
+                            self.step = self.step.next();
+
+                            // Checkpoint step
+                            self.checkpoint_step = self.step.clone();
+                        }
+                        // todo: probably remove in favor of route...
                         view::Execution::Previous => {
                             self.step = match self.step {
                                 TransactionSteps::Start => TransactionSteps::Confirmed,
@@ -345,6 +365,23 @@ impl State for Execution {
             Message::Data(_) => Command::none(),
             Message::AddressBook(_) => Command::none(),
             Message::Execution(msg) => match msg {
+                // todo: routing needs to be validated.
+                app::Execution::Arrived(step) => {
+                    match step {
+                        TransactionSteps::Simulated => {
+                            return self.handle_simulate();
+                        }
+                        TransactionSteps::Executed => {
+                            return self.handle_execute();
+                        }
+                        TransactionSteps::Confirmed => {
+                            // todo: implement
+                        }
+                        _ => {}
+                    }
+
+                    Command::none()
+                }
                 app::Execution::Simulated(msg) => {
                     match msg {
                         Ok(scroll) => {
@@ -415,6 +452,7 @@ impl State for Execution {
                 selected.clone(),
                 self.user_feedback_message.clone(),
                 review_diffs,
+                self.checkpoint_step.clone(),
             ),
         )
         .into()

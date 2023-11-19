@@ -1,11 +1,12 @@
 //! Views for executing transactions.
 
-use bytesize::ByteSize;
-use iced::{advanced::Widget, widget::pick_list, BorderRadius};
+use iced::{widget::pick_list, BorderRadius, Color};
+use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{components::input::create_input_component, text, Column, Element, Message, *};
 use crate::mvp::{
-    execution::TransactionSteps, screens::execution::StorageDiffs, units::address_to_string,
+    components::button::CustomButtonStyle, execution::TransactionSteps,
+    screens::execution::StorageDiffs, units::address_to_string,
 };
 
 pub fn execution_layout<'a>(
@@ -15,12 +16,56 @@ pub fn execution_layout<'a>(
     selected: String,
     user_feedback: Option<String>,
     review_diffs: Option<StorageDiffs>,
+    checkpoint_step: TransactionSteps,
 ) -> Element<'a, Message> {
     let address_book: Vec<String> = target
         .clone()
         .into_iter()
         .map(|(a, _): (Address, _)| address_to_string(&a))
         .collect();
+
+    let steps = vec![
+        (
+            Icon::PencilSquare,
+            "Build".to_string(),
+            if checkpoint_step >= TransactionSteps::Start {
+                Message::Execution(Execution::Route(TransactionSteps::Start))
+            } else {
+                Message::Empty
+            },
+            step == TransactionSteps::Start,
+        ),
+        (
+            Icon::Sim,
+            "Simulate".to_string(),
+            if checkpoint_step >= TransactionSteps::Simulated {
+                Message::Execution(Execution::Route(TransactionSteps::Simulated))
+            } else {
+                Message::Empty
+            },
+            step == TransactionSteps::Simulated,
+        ),
+        (
+            Icon::CursorFill,
+            "Execute".to_string(),
+            if checkpoint_step >= TransactionSteps::Executed {
+                Message::Execution(Execution::Route(TransactionSteps::Executed))
+            } else {
+                Message::Empty
+            },
+            step == TransactionSteps::Executed,
+        ),
+        (
+            Icon::CheckCircleFill,
+            "Confirm".to_string(),
+            if checkpoint_step >= TransactionSteps::Confirmed {
+                Message::Execution(Execution::Route(TransactionSteps::Confirmed))
+            } else {
+                Message::Empty
+            },
+            step == TransactionSteps::Confirmed,
+        ),
+    ];
 
     let content = match step {
         TransactionSteps::Start => {
@@ -36,13 +81,29 @@ pub fn execution_layout<'a>(
         TransactionSteps::Confirmed => confirmed(),
     };
 
+    let steps_card = steps_group(steps);
+    let submit_card = submit_group();
+
+    let column_1: Vec<Element<'a, Message>> = content;
+    let column_2: Vec<Element<'a, Message>> = vec![steps_card.into(), submit_card.into()];
+
     let user_feedback = match user_feedback {
         Some(feedback) => text(feedback),
         None => text(""),
     };
 
     Column::new()
-        .push(Row::new().push(content).height(Length::FillPortion(5)))
+        .push(
+            Row::new()
+                .push(
+                    Column::new()
+                        .push(components::dual_column(column_1, column_2))
+                        .spacing(16)
+                        .padding(32)
+                        .width(Length::Fill),
+                )
+                .height(Length::FillPortion(5)),
+        )
         .push(
             Row::new()
                 .push(button(text("previous")).on_press(Message::Execution(Execution::Previous)))
@@ -61,7 +122,7 @@ pub fn starting<'a>(
     input_amount: String,
     address_book: Vec<String>,
     selected: String,
-) -> Element<'a, Message> {
+) -> Vec<Element<'a, Message>> {
     let title = data_item("Execution".to_string()).size(36);
     let selection = address_book.clone();
     let message_card = message_group(address_book.clone(), selected.clone());
@@ -72,18 +133,10 @@ pub fn starting<'a>(
         "0".to_string(),
     );
 
-    let submit_card = submit_group();
-
     let column_1: Vec<Element<'a, Message>> =
         vec![title.into(), message_card.into(), data_card.into()];
-    let column_2: Vec<Element<'a, Message>> = vec![submit_card.into()];
 
-    Column::new()
-        .push(components::dual_column(column_1, column_2))
-        .spacing(16)
-        .padding(32)
-        .width(Length::Fill)
-        .into()
+    column_1
 }
 
 /// Extended panel for executed simulated diffs
@@ -92,51 +145,34 @@ pub fn simulated<'a>(
     selected_target: String,
     input_amount: String,
     review_diffs: Option<StorageDiffs>,
-) -> Element<'a, Message> {
+) -> Vec<Element<'a, Message>> {
     let title = data_item("Review Transaction".to_string()).size(36);
-    let submit_card = submit_group();
-
     let summary_card = summary_group(
         selected_to.clone(),
         selected_target.clone(),
         input_amount.clone(),
     );
-
     let simulated_card = review_group(review_diffs.clone());
 
     let column_1: Vec<Element<'a, Message>> =
         vec![title.into(), summary_card.into(), simulated_card.into()];
-    let column_2: Vec<Element<'a, Message>> = vec![submit_card.into()];
-
-    Column::new()
-        .push(components::dual_column(column_1, column_2))
-        .spacing(16)
-        .padding(32)
-        .width(Length::Fill)
-        .into()
+    column_1
 }
 
 /// Panel for executed the transaction's state diffs.
-pub fn executed<'a>() -> Element<'a, Message> {
+pub fn executed<'a>() -> Vec<Element<'a, Message>> {
     let title = data_item("Execute Transaction".to_string()).size(36);
 
     let column_1: Vec<Element<'a, Message>> = vec![title.into()];
-    let column_2: Vec<Element<'a, Message>> = vec![button(text("Execute")).into()];
-
-    Column::new()
-        .push(components::dual_column(column_1, column_2))
-        .spacing(16)
-        .padding(32)
-        .width(Length::Fill)
-        .into()
+    column_1
 }
 
 /// Panel for transaction confirmation.
-pub fn confirmed<'a>() -> Element<'a, Message> {
-    Column::new()
+pub fn confirmed<'a>() -> Vec<Element<'a, Message>> {
+    vec![Column::new()
         .push(text("Transaction Confirmed"))
         .push(text("Review the transaction's state diffs."))
-        .into()
+        .into()]
 }
 
 /// Storage diffs table
@@ -502,4 +538,68 @@ pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message
     Container::new(Column::with_children(rows))
         .style(BorderedContainer::theme())
         .into()
+}
+
+/// Renders the steps in the execution process where the tuple is (Step Icon,
+/// Step Name, On press).
+pub fn steps_group<'a>(steps: Vec<(Icon, String, Message, bool)>) -> Column<'a, Message> {
+    let title = h3("Steps".to_string());
+    let mut rows: Vec<Element<'a, Message>> = vec![Column::new().push(title).into()];
+
+    for (icon, item, on_press, current) in steps.into_iter() {
+        let mut row = Row::new()
+            .spacing(Sizes::Sm as u16)
+            .align_items(alignment::Alignment::Center);
+        if current {
+            row = row.push(
+                container(Column::new())
+                    .width(Length::Fixed(Sizes::Xs as u32 as f32))
+                    .height(Length::Fixed(Sizes::Xl as u32 as f32))
+                    .style(Indicator::theme()),
+            );
+        }
+
+        row = row
+            .push(text(icon_to_char(icon)).font(ICON_FONT))
+            .push(h3(item));
+
+        let bg_color = match current {
+            true => TABLE_COLUMN_BG_COLOR,
+            false => Color::TRANSPARENT,
+        };
+
+        let style = CustomButtonStyle::new()
+            .text_color(Color::WHITE)
+            .border_radius(3.0.into())
+            .background_color(bg_color)
+            .pressed()
+            .text_color(Color::WHITE)
+            .border_radius(3.0.into())
+            .background_color(TABLE_COLUMN_BG_COLOR)
+            .hovered()
+            .text_color(Color::WHITE)
+            .border_radius(3.0.into())
+            .background_color(CARD_BG_COLOR)
+            .disabled()
+            .text_color(DISABLED_COLOR)
+            .border_radius(3.0.into());
+        let mut row = button(row)
+            .padding(Sizes::Sm as u16)
+            .style(style.as_custom())
+            .width(Length::Fill);
+
+        // Disable the button if it has an empty message.
+        match on_press {
+            Message::Empty => {}
+            _ => {
+                row = row.on_press(on_press);
+            }
+        }
+
+        rows.push(row.into());
+    }
+
+    Column::with_children(rows)
+        .spacing(Sizes::Sm as u16)
+        .width(Length::Fill)
 }
