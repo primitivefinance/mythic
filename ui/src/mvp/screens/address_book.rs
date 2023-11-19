@@ -35,10 +35,17 @@ impl Form {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AddressBookDisplay {
+    List,
+    Add,
+}
+
 pub struct AddressBookScreen {
     pub books: Contacts,
     pub form: Form,
     pub current: contacts::Category,
+    pub display: AddressBookDisplay,
 }
 
 impl AddressBookScreen {
@@ -47,6 +54,7 @@ impl AddressBookScreen {
             books,
             form: Form::new(),
             current: contacts::Category::Untrusted,
+            display: AddressBookDisplay::List,
         }
     }
 }
@@ -57,8 +65,12 @@ impl State for AddressBookScreen {
             Message::AddressBook(_) => Command::none(),
             Message::View(msg) => match msg {
                 view::Message::AddressBook(msg) => match msg {
+                    view::AddressBookViewMessage::ChangeDisplay(display) => {
+                        self.display = display;
+                        Command::none()
+                    }
                     view::AddressBookViewMessage::RouteTo(category) => {
-                        // todo: implement this to list new book
+                        self.display = AddressBookDisplay::List;
                         self.current = category;
                         Command::none()
                     }
@@ -95,6 +107,16 @@ impl State for AddressBookScreen {
                                 return Command::none();
                             }
 
+                            if self.form.category.is_none() {
+                                self.form.feedback = Some("Category is required.".to_string());
+                                return Command::none();
+                            }
+
+                            if self.form.class.is_none() {
+                                self.form.feedback = Some("Class is required.".to_string());
+                                return Command::none();
+                            }
+
                             match validated {
                                 Ok(validated) => {
                                     let label = self.form.label.clone().unwrap();
@@ -102,6 +124,7 @@ impl State for AddressBookScreen {
                                         label: label.clone(),
                                         ..Default::default()
                                     };
+                                    let category = self.form.category.clone().unwrap();
 
                                     let value = address;
 
@@ -109,12 +132,14 @@ impl State for AddressBookScreen {
                                     self.books.add(
                                         validated.clone(),
                                         contact.clone(),
-                                        contacts::Category::Untrusted,
+                                        category.clone(),
                                     );
 
                                     // Provide some feedback.
-                                    self.form.feedback =
-                                        Some("Successfully added to address book.".to_string());
+                                    self.form.feedback = Some(format!(
+                                        "Successfully added to {} contacts.",
+                                        category.clone()
+                                    ));
 
                                     tracing::info!(
                                         "Added address to address book: {} ({})",
@@ -129,9 +154,7 @@ impl State for AddressBookScreen {
                                         async move { Ok::<(), ()>(()) },
                                         move |_| {
                                             Message::AddressBook(AddressBookMessage::Add(
-                                                label,
-                                                validated,
-                                                contacts::Category::Untrusted,
+                                                label, validated, category,
                                             ))
                                         },
                                     );
@@ -154,7 +177,12 @@ impl State for AddressBookScreen {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
         view::app_layout(
             &view::Page::AddressBook,
-            view::address_book::layout(self.form.clone(), self.books.clone(), self.current.clone()),
+            view::address_book::layout(
+                self.form.clone(),
+                self.books.clone(),
+                self.current.clone(),
+                self.display.clone(),
+            ),
         )
         .into()
     }

@@ -1,23 +1,29 @@
 use std::borrow::Cow;
 
 use iced::{
-    widget::{pick_list, PickList},
+    widget::{pick_list, PickList, Space},
     Color,
 };
 use iced_aw::{graphics::icons::icon_to_char, ICON_FONT};
 
-use super::{components::input::create_input_component, Message, *};
+use super::{Message, *};
 use crate::mvp::{
     api::contacts::{self, ContactList, Contacts},
     components::{button::route_button_style, tables::summary_table},
-    screens::address_book::Form,
+    screens::address_book::{AddressBookDisplay, Form},
 };
 
 pub fn layout<'a>(
     form: screens::address_book::Form,
     books: Contacts,
     current: contacts::Category,
+    display: AddressBookDisplay,
 ) -> Element<'a, Message> {
+    let on_list_display = match display {
+        AddressBookDisplay::List => true,
+        _ => false,
+    };
+
     let routes = vec![
         (
             Icon::PersonDash,
@@ -25,25 +31,33 @@ pub fn layout<'a>(
             Message::AddressBook(AddressBookViewMessage::RouteTo(
                 contacts::Category::Untrusted,
             )),
-            current == contacts::Category::Untrusted,
+            current == contacts::Category::Untrusted && on_list_display,
         ),
         (
             Icon::PersonPlus,
             "Trusted".to_string(),
             Message::AddressBook(AddressBookViewMessage::RouteTo(contacts::Category::Trusted)),
-            current == contacts::Category::Trusted,
+            current == contacts::Category::Trusted && on_list_display,
         ),
         (
             Icon::PersonX,
             "Blocked".to_string(),
             Message::AddressBook(AddressBookViewMessage::RouteTo(contacts::Category::Blocked)),
-            current == contacts::Category::Blocked,
+            current == contacts::Category::Blocked && on_list_display,
         ),
         (
             Icon::Clock,
             "Recent".to_string(),
             Message::AddressBook(AddressBookViewMessage::RouteTo(contacts::Category::Recent)),
-            current == contacts::Category::Recent,
+            current == contacts::Category::Recent && on_list_display,
+        ),
+        (
+            Icon::Plus,
+            "Add Contact".to_string(),
+            Message::AddressBook(AddressBookViewMessage::ChangeDisplay(
+                AddressBookDisplay::Add,
+            )),
+            display == AddressBookDisplay::Add,
         ),
     ];
 
@@ -52,13 +66,22 @@ pub fn layout<'a>(
         .width(Length::FillPortion(1))
         .padding(Sizes::Md as u16);
 
-    let action_group = Column::new()
-        .push(add_contact_card(form.clone()))
-        .push(list_contact_card(books.clone(), current.clone()))
+    let mut action_group = Column::new()
         .width(Length::FillPortion(4))
         .padding(Sizes::Md as u16)
         .spacing(Sizes::Md as u16)
         .align_items(alignment::Alignment::End);
+
+    match display {
+        AddressBookDisplay::List => {
+            let card = list_contact_card(books.clone(), current.clone());
+            action_group = action_group.push(card);
+        }
+        AddressBookDisplay::Add => {
+            let card = add_contact_card(form.clone());
+            action_group = action_group.push(card);
+        }
+    }
 
     Row::new()
         .push(contact_group)
@@ -84,7 +107,9 @@ pub fn list_contact_card<'a>(
         None => {}
     }
 
-    let table = summary_table(values);
+    let table = summary_table(values)
+        .width(Length::Fill)
+        .height(Length::Fill);
 
     let content = Column::new()
         .push(h2(format!("{} Contacts", category.to_string())))
@@ -93,14 +118,23 @@ pub fn list_contact_card<'a>(
         .spacing(Sizes::Md as u16);
 
     Card::new(content)
-        .max_width(ByteScale::Xl5 as u32 as f32)
+        .max_width(ByteScale::Xl6 as u32 as f32)
         .max_height(ByteScale::Xl6 as u32 as f32)
         .into()
 }
 
 pub fn contact_directory<'a>(routes: Vec<(Icon, String, Message, bool)>) -> Column<'a, Message> {
-    let title = h3("Contact Lists".to_string());
-    let mut rows: Vec<Element<'a, Message>> = vec![Column::new().push(title).into()];
+    let mut rows: Vec<Element<'a, Message>> = vec![Row::new()
+        .push(
+            Column::new()
+                .push(text_label("Contact Lists".to_string()))
+                .align_items(alignment::Alignment::Center),
+        )
+        .padding(Sizes::Sm as u16)
+        .spacing(Sizes::Sm as u16)
+        .align_items(alignment::Alignment::Center)
+        .width(Length::Fill)
+        .into()];
 
     for (icon, item, on_press, current) in routes.into_iter() {
         let mut row = Row::new()
@@ -142,23 +176,6 @@ pub fn contact_directory<'a>(routes: Vec<(Icon, String, Message, bool)>) -> Colu
     }
 
     Column::with_children(rows).spacing(Sizes::Sm as u16)
-}
-
-pub fn list_untrusted_book<'a>(book: ContactList) -> Element<'a, Message> {
-    let mut content = Column::new()
-        .push(text("Untrusted Addresses".to_string()).size(18))
-        .spacing(16);
-
-    let sorted_addresses = book.get_all();
-    for (address, contact) in sorted_addresses {
-        let row = Row::new()
-            .push(label_item(contact.label.clone()))
-            .push(text(address.to_string()))
-            .spacing(Sizes::Sm as u16);
-        content = content.push(row);
-    }
-
-    content.into()
 }
 
 pub fn add_contact_card<'a>(form: Form) -> Element<'a, Message> {
@@ -204,9 +221,13 @@ pub fn add_contact_card<'a>(form: Form) -> Element<'a, Message> {
         info_column = info_column.push(text(form.feedback.unwrap()).size(12));
     }
 
-    let submit = button(text("Add Contact"))
-        .on_press(Message::AddressBook(AddressBookViewMessage::Add))
-        .padding(Sizes::Md as u16);
+    let submit = button(
+        text("Add Contact")
+            .vertical_alignment(alignment::Vertical::Center)
+            .horizontal_alignment(alignment::Horizontal::Center),
+    )
+    .on_press(Message::AddressBook(AddressBookViewMessage::Add))
+    .padding(Sizes::Md as u16);
 
     let content = Column::new()
         .push(title)
@@ -234,7 +255,7 @@ pub fn add_contact_card<'a>(form: Form) -> Element<'a, Message> {
 
     Card::new(content)
         .max_width(ByteScale::Xl6 as u32 as f32)
-        .max_height(ByteScale::Xl7 as u32 as f32)
+        .max_height(ByteScale::Xl6 as u32 as f32)
         .into()
 }
 

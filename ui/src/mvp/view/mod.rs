@@ -15,7 +15,7 @@ use self::{
 use super::{
     api::contacts,
     components::{containers::*, *},
-    screens::execution::TransactionSteps,
+    screens::{address_book::AddressBookDisplay, execution::TransactionSteps},
     terminal::{StateSubscription, StateSubscriptionStore},
     tracer::{AppEventLayer, AppEventLog},
     *,
@@ -68,6 +68,7 @@ pub enum AddressBookViewMessage {
     Remove((contacts::Category, contacts::ContactKey)),
     ResetForm,
     RouteTo(contacts::Category),
+    ChangeDisplay(AddressBookDisplay),
 }
 
 #[derive(Debug, Clone)]
