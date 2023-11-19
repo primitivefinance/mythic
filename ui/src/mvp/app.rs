@@ -5,7 +5,7 @@ use tracing::Span;
 
 use super::{
     api::{
-        contacts::{self, Contacts},
+        contacts::{self, Class, ContactValue, Contacts},
         scroll::Scroll,
     },
     screens::{
@@ -96,31 +96,42 @@ impl App {
         )
     }
 
+    pub fn update_contacts(&mut self, message: AddressBookMessage) -> Command<Message> {
+        let cmd = Command::none();
+        match message {
+            // todo: update these messages
+            AddressBookMessage::Add(name, address, category) => {
+                self.address_books.add(
+                    address,
+                    ContactValue {
+                        label: name,
+                        ..Default::default()
+                    },
+                    category,
+                );
+            }
+            AddressBookMessage::Remove(name, category) => {
+                let address = name.parse::<Address>().unwrap();
+                self.address_books.remove(&address, category);
+            }
+            AddressBookMessage::Get(name, category) => {
+                let address = name.parse::<Address>().unwrap();
+                self.address_books.get(&address, category);
+            }
+            AddressBookMessage::List(category) => {
+                self.address_books.list(category);
+            }
+            AddressBookMessage::Clear(category) => {
+                self.address_books.clear(category);
+            }
+        }
+        cmd
+    }
+
     pub fn update(&mut self, message: Message) -> Command<Message> {
         let msg = app_span().in_scope(|| match message {
             Message::AddressBook(msg) => {
-                let cmd = Command::none();
-                match msg {
-                    // todo: update these messages
-                    AddressBookMessage::Add(name, address, category) => {
-                        self.address_books.add(address, name, category);
-                    }
-                    AddressBookMessage::Remove(name, category) => {
-                        let address = name.parse::<Address>().unwrap();
-                        self.address_books.remove(&address, category);
-                    }
-                    AddressBookMessage::Get(name, category) => {
-                        let address = name.parse::<Address>().unwrap();
-                        self.address_books.get(&address, category);
-                    }
-                    AddressBookMessage::List(category) => {
-                        self.address_books.list(category);
-                    }
-                    AddressBookMessage::Clear(category) => {
-                        self.address_books.clear(category);
-                    }
-                }
-                cmd
+                return self.update_contacts(msg);
             }
             Message::View(view::Message::Page(navigate_to)) => self.switch_page(&navigate_to),
             _ => self.screen.update(message),

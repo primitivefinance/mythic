@@ -2,14 +2,20 @@
 //! The key is the address, and the value is the label.
 //! The label is a user defined string that is used to identify the address.
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
 use super::*;
 
 pub type ContactKey = Address;
-pub type ContactValue = String;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct ContactValue {
+    pub label: String,
+    pub class: Class,
+    pub artifact: Option<PathBuf>,
+}
 
 /// A group list of contacts, sorted and stored by address key.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -24,8 +30,8 @@ impl ContactList {
         }
     }
 
-    pub fn add(&mut self, address: Address, label: ContactValue) -> Option<ContactValue> {
-        self.addresses.insert(address, label)
+    pub fn add(&mut self, address: Address, contact: ContactValue) -> Option<ContactValue> {
+        self.addresses.insert(address, contact)
     }
 
     pub fn get(&self, address: &Address) -> Option<&ContactValue> {
@@ -53,12 +59,16 @@ impl ContactList {
     }
 
     /// Try to add a String to the list.
-    pub fn try_add(&mut self, address: String, label: String) -> anyhow::Result<(), anyhow::Error> {
+    pub fn try_add(
+        &mut self,
+        address: String,
+        contact: ContactValue,
+    ) -> anyhow::Result<(), anyhow::Error> {
         let address = address
             .parse::<Address>()
             .map_err(|e| anyhow::anyhow!("Failed to parse address: {}", e.to_string()))?;
 
-        self.add(address, label);
+        self.add(address, contact);
         Ok(())
     }
 }

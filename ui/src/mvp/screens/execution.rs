@@ -18,7 +18,7 @@ use super::{
 };
 use crate::mvp::{
     api::{
-        contacts::{self, Contacts},
+        contacts::{self, ContactValue, Contacts},
         forking::Forker,
         local::Local,
         scroll::{Scroll, UnsealedTransaction},
@@ -155,7 +155,10 @@ impl Execution {
         let mut books = address_books.clone();
         books.add(
             default_address,
-            label.to_string(),
+            ContactValue {
+                label: label.to_string(),
+                ..Default::default()
+            },
             contacts::Category::Untrusted,
         );
 
@@ -398,13 +401,13 @@ impl State for Execution {
                         }
                         view::Execution::ToAddressChanged(value) => {
                             let value = value.parse::<Address>().unwrap();
-                            let label = self
+                            let contact = self
                                 .address_books
                                 .get(&value, contacts::Category::Untrusted)
                                 .unwrap()
                                 .clone();
 
-                            let path = get_artifact_path(&label);
+                            let path = get_artifact_path(&contact.label);
                             self.unsealed = self.unsealed.clone().artifact(path);
 
                             self.unsealed = self.unsealed.clone().target(value);
@@ -502,7 +505,7 @@ impl State for Execution {
             .address_books
             .list(contacts::Category::Untrusted)
             .into_iter()
-            .map(|(address, label)| (address.clone(), label.clone()))
+            .map(|(address, contact)| (address.clone(), contact.label.clone()))
             .collect();
 
         let selected = address_to_string(&self.unsealed.target);

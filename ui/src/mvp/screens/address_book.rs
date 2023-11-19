@@ -51,12 +51,17 @@ impl State for AddressBookScreen {
                             match validated {
                                 Ok(validated) => {
                                     let label = self.new_label.clone().unwrap();
+                                    let contact = ContactValue {
+                                        label: label.clone(),
+                                        ..Default::default()
+                                    };
+
                                     let value = address;
 
                                     // Edit the address book.
                                     self.books.add(
                                         validated.clone(),
-                                        label.clone(),
+                                        contact.clone(),
                                         contacts::Category::Untrusted,
                                     );
 

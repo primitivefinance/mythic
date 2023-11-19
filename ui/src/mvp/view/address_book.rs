@@ -50,9 +50,9 @@ pub fn list_untrusted_book<'a>(book: ContactList) -> Element<'a, Message> {
         .spacing(16);
 
     let sorted_addresses = book.get_all();
-    for (address, label) in sorted_addresses {
+    for (address, contact) in sorted_addresses {
         let row = Row::new()
-            .push(label_item(label.clone()))
+            .push(label_item(contact.label.clone()))
             .push(text(address.to_string()))
             .spacing(8);
         content = content.push(row);

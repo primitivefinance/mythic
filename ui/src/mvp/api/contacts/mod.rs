@@ -67,14 +67,14 @@ impl Contacts {
     pub fn try_add(
         &mut self,
         address: String,
-        label: String,
+        contact: ContactValue,
         category: Category,
     ) -> anyhow::Result<(), anyhow::Error> {
         let address = address
             .parse::<Address>()
             .map_err(|e| anyhow::anyhow!("Failed to parse address: {}", e.to_string()))?;
 
-        self.add(address, label, category);
+        self.add(address, contact, category);
         Ok(())
     }
 
@@ -82,9 +82,9 @@ impl Contacts {
         let mut file = std::fs::File::open(path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
-        let contacts: Vec<(Address, String)> = serde_json::from_str(&contents)?;
-        for (address, label) in contacts {
-            self.add(address, label, category.clone());
+        let contacts: Vec<(Address, ContactValue)> = serde_json::from_str(&contents)?;
+        for (address, contact) in contacts {
+            self.add(address, contact, category.clone());
         }
         Ok(())
     }
