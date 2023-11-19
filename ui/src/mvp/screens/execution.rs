@@ -62,6 +62,7 @@ pub struct Execution {
     user_feedback_message: Option<String>,
     // Highest level step that has been reached.
     checkpoint_step: TransactionSteps,
+    pending_tx: bool,
 }
 
 pub fn get_artifact_path(name: &str) -> PathBuf {
@@ -157,12 +158,33 @@ impl Execution {
             forker: Some(forker),
             user_feedback_message: None,
             checkpoint_step: TransactionSteps::default(),
+            pending_tx: false,
         }
+    }
+
+    /// Resets the form state back to the start.
+    #[tracing::instrument(skip(self))]
+    fn handle_restart(&mut self) -> Command<Message> {
+        self.unsealed = UnsealedTransaction::new();
+        self.sealed = None;
+        self.review = Review::default();
+        self.user_feedback_message = None;
+        self.pending_tx = false;
+        self.checkpoint_step = TransactionSteps::Start;
+
+        Command::perform(async { Ok::<(), ()>(()) }, |_| {
+            app::Message::Execution(app::Execution::Arrived(TransactionSteps::Start))
+        })
     }
 
     /// Seals the unsealed transaction and begins the simulation process.
     #[tracing::instrument(skip(self))]
     fn handle_simulate(&mut self) -> Command<Message> {
+        // Return early if our checkpoint is past this step.
+        if self.checkpoint_step > TransactionSteps::Simulated {
+            return Command::none();
+        }
+
         if self.unsealed.method.is_none() {
             self.unsealed = self.unsealed.clone().method("increment");
         }
@@ -172,6 +194,8 @@ impl Execution {
         let scroll = self.sealed.clone().unwrap();
         let forker = self.forker.clone().unwrap();
 
+        self.pending_tx = true;
+
         Command::perform(handle_simulate_scroll(scroll, forker), |res| {
             app::Message::Execution(app::Execution::Simulated(res))
         })
@@ -179,12 +203,18 @@ impl Execution {
 
     #[tracing::instrument(skip(self))]
     fn handle_execute(&mut self) -> Command<Message> {
+        if self.checkpoint_step > TransactionSteps::Executed {
+            return Command::none();
+        }
+
         if self.sealed.is_none() {
             return Command::none();
         }
 
         let scroll = self.sealed.clone().unwrap();
         let forker = self.forker.clone().unwrap();
+
+        self.pending_tx = true;
 
         Command::perform(handle_execute_scroll(scroll, forker), |res| {
             app::Message::Execution(app::Execution::Executed(res))
@@ -194,6 +224,8 @@ impl Execution {
     #[tracing::instrument(skip(self, scroll), fields(storage_before = ?self.review.storage_before.clone(), storage_after = ?self.review.storage_after.clone()))]
     fn handle_completed_simulation(&mut self, scroll: Scroll) -> Command<Message> {
         tracing::info!("Simulated tx: {:?}", scroll);
+        self.pending_tx = false;
+        self.checkpoint_step = TransactionSteps::Simulated;
 
         self.user_feedback_message = Some("Transaction simulated!".to_string());
         self.sealed = Some(scroll.clone());
@@ -203,6 +235,8 @@ impl Execution {
     #[tracing::instrument(skip(self, scroll),  fields(storage_before = ?self.review.storage_before.clone(), storage_after = ?self.review.storage_after.clone()))]
     fn handle_completed_execution(&mut self, scroll: Scroll) -> Command<Message> {
         tracing::info!("Executed tx: {:?}", scroll);
+        self.pending_tx = false;
+        self.checkpoint_step = TransactionSteps::Executed;
 
         self.user_feedback_message = Some("Transaction executed!".to_string());
         self.sealed = Some(scroll.clone());
@@ -307,8 +341,6 @@ impl State for Execution {
                                 return Command::none();
                             }
 
-                            self.step = route.clone();
-
                             return Command::perform(async { Ok::<(), ()>(()) }, |_| {
                                 app::Message::Execution(app::Execution::Arrived(route))
                             });
@@ -318,6 +350,11 @@ impl State for Execution {
                         view::Execution::Next => {
                             // Get the next step
                             let next_step = self.step.next();
+
+                            // If the next step is start, we need to reset our form state.
+                            if next_step == TransactionSteps::Start {
+                                return self.handle_restart();
+                            }
 
                             // Checkpoint the step so we don't re-trigger the step actions.
                             self.checkpoint_step = next_step.clone();
@@ -373,6 +410,8 @@ impl State for Execution {
             Message::Execution(msg) => match msg {
                 // todo: routing needs to be validated.
                 app::Execution::Arrived(step) => {
+                    self.step = step.clone();
+
                     match step {
                         TransactionSteps::Simulated => {
                             return self.handle_simulate();
@@ -419,7 +458,15 @@ impl State for Execution {
                     // Add the storage diffs to the [`Review`] struct so we can display them.
                     self.review.apply_diff();
 
-                    Command::none()
+                    // Set the checkpoint here.
+                    self.checkpoint_step = TransactionSteps::Confirmed;
+
+                    // Finally, route to the confirmed step.
+                    return Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                        app::Message::Execution(app::Execution::Arrived(
+                            TransactionSteps::Confirmed,
+                        ))
+                    });
                 }
                 _ => Command::none(),
             },
@@ -459,6 +506,7 @@ impl State for Execution {
                 self.user_feedback_message.clone(),
                 review_diffs,
                 self.checkpoint_step.clone(),
+                self.pending_tx.clone(),
             ),
         )
         .into()

@@ -17,6 +17,7 @@ pub fn execution_layout<'a>(
     user_feedback: Option<String>,
     review_diffs: Option<StorageDiffs>,
     checkpoint_step: TransactionSteps,
+    pending: bool,
 ) -> Element<'a, Message> {
     let address_book: Vec<String> = target
         .clone()
@@ -67,6 +68,16 @@ pub fn execution_layout<'a>(
         ),
     ];
 
+    let action = match step {
+        TransactionSteps::Start if !input_amount.is_empty() && selected.len() > 0 => {
+            Message::Execution(Execution::Next)
+        }
+        TransactionSteps::Simulated if !pending => Message::Execution(Execution::Next),
+        TransactionSteps::Executed if !pending => Message::Execution(Execution::Next),
+        TransactionSteps::Confirmed if !pending => Message::Execution(Execution::Next),
+        _ => Message::Empty,
+    };
+
     let content = match step {
         TransactionSteps::Start => {
             starting(input_amount.clone(), address_book.clone(), selected.clone())
@@ -82,7 +93,7 @@ pub fn execution_layout<'a>(
     };
 
     let steps_card = steps_group(steps);
-    let submit_card = submit_group(step.clone(), user_feedback);
+    let submit_card = submit_group(action, step.clone(), user_feedback);
 
     let column_1: Vec<Element<'a, Message>> = content;
     let column_2: Vec<Element<'a, Message>> = vec![steps_card.into(), submit_card.into()];
@@ -202,7 +213,11 @@ pub fn storage_diffs_table<'a>(review_diffs: StorageDiffs) -> Element<'a, Messag
 }
 
 /// Submit group
-pub fn submit_group<'a>(step: TransactionSteps, feedback: Option<String>) -> Element<'a, Message> {
+pub fn submit_group<'a>(
+    action: Message,
+    step: TransactionSteps,
+    feedback: Option<String>,
+) -> Element<'a, Message> {
     let title = match step {
         TransactionSteps::Start => "Build".to_string(),
         TransactionSteps::Simulated => "Simulate".to_string(),
@@ -231,10 +246,17 @@ pub fn submit_group<'a>(step: TransactionSteps, feedback: Option<String>) -> Ele
 
     let title = h2(title);
     let info = text_label(extra_info);
-    let button = action_button(button_cta)
-        .on_press(Message::Execution(Execution::Next))
+    let mut button = action_button(button_cta)
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
+
+    // Disable the button unless its ready.
+    match action {
+        Message::Empty => {}
+        _ => {
+            button = button.on_press(action);
+        }
+    }
 
     let inner_column = Column::new()
         .push(title)
