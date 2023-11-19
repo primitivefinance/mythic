@@ -205,8 +205,28 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
         .push(second_column)
 }
 
+pub fn title_large<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::TitleLg).into()
+}
+
+pub fn title_medium<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::TitleMd).into()
+}
+
+pub fn title_small<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::TitleSm).into()
+}
+
+pub fn body_text<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Md).into()
+}
+
+pub fn caption<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Xs).into()
+}
+
 pub fn h1<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xl).into()
+    text(value).size(FontSizes::TitleSm).into()
 }
 
 pub fn h2<'a>(value: String) -> Text<'a> {
@@ -229,11 +249,39 @@ pub fn paragraph<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Sm).into()
 }
 
+pub fn primary_label<'a>(value: String) -> Text<'a> {
+    text(value)
+        .size(FontSizes::Sm)
+        .style(PRIMARY_LABEL_COLOR)
+        .into()
+}
+
+pub fn secondary_label<'a>(value: String) -> Text<'a> {
+    text(value)
+        .size(FontSizes::Sm)
+        .style(SECONDARY_LABEL_COLOR)
+        .into()
+}
+
+pub fn tertiary_label<'a>(value: String) -> Text<'a> {
+    text(value)
+        .size(FontSizes::Sm)
+        .style(TERTIARY_LABEL_COLOR)
+        .into()
+}
+
+pub fn quaternary_label<'a>(value: String) -> Text<'a> {
+    text(value)
+        .size(FontSizes::Sm)
+        .style(QUATERNARY_LABEL_COLOR)
+        .into()
+}
+
 /// todo: remove label item
 pub fn text_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Xs)
-        .style(Color::from_rgb(0.5, 0.5, 0.5))
+        .style(SECONDARY_COLOR)
         .into()
 }
 
