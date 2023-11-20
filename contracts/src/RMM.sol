@@ -50,9 +50,21 @@ contract RMM is IStrategy {
     ) {
         tokenX = ERC20(tokenX_);
         tokenY = ERC20(tokenY_);
+
+        targetSigma = sigma_;
         lastSigma = sigma_;
+        sigmaUpdateEnd = block.timestamp;
+        lastSigmaSync = block.timestamp;
+
+        targetStrike = strikePrice_;
         lastStrike = strikePrice_;
+        strikeUpdateEnd = block.timestamp;
+        lastStrikeSync = block.timestamp;
+
+        targetTau = tau_;
         lastTau = tau_;
+        tauUpdateEnd = block.timestamp;
+        lastTauSync = block.timestamp;
 
         require(swapFee_ < ONE, "Swap fee too high");
         swapFee = swapFee_;
@@ -70,7 +82,7 @@ contract RMM is IStrategy {
     }
 
     function getParams() public view returns (uint256, uint256, uint256) {
-        return (sigma(), strikePrice(), tau());
+        return (strikePrice(), sigma(), tau());
     }
 
     function initPool(
@@ -408,7 +420,7 @@ contract RMM is IStrategy {
     }
 
     function setSigma(uint256 newTargetSigma, uint256 newSigmaUpdateEnd) external {
-        require(newSigmaUpdateEnd > block.timestamp, "Update end pasted");
+        require(newSigmaUpdateEnd > block.timestamp, "Update end passed");
 
         _syncSigma();
 
@@ -424,7 +436,7 @@ contract RMM is IStrategy {
     }
 
     function setStrikePrice(uint256 newTargetStrike, uint256 newStrikeUpdateEnd) external {
-        require(newStrikeUpdateEnd > block.timestamp, "Update end pasted");
+        require(newStrikeUpdateEnd > block.timestamp, "Update end passed");
 
         _syncStrike();
 
@@ -440,7 +452,7 @@ contract RMM is IStrategy {
     }
 
     function setTau(uint256 newTargetTau, uint256 newTauUpdateEnd) external {
-        require(newTauUpdateEnd > block.timestamp, "Update end pasted");
+        require(newTauUpdateEnd > block.timestamp, "Update end passed");
 
         _syncTau();
 
