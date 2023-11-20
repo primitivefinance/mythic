@@ -13,10 +13,6 @@ contract RMM is IStrategy {
     ERC20 public tokenX;
     ERC20 public tokenY;
 
-    uint256 public immutable sigma;
-    uint256 public immutable strikePrice;
-    uint256 public immutable tau;
-
     uint256 public swapFee;
 
     uint256 public reserveX;
@@ -24,6 +20,25 @@ contract RMM is IStrategy {
     uint256 public totalLiquidity;
 
     mapping(address => uint256) public balanceOf;
+
+    uint256 private lastSigma;
+    uint256 private targetSigma;
+    uint256 private lastSigmaSync;
+    uint256 private sigmaUpdatePerSecond;
+    uint256 private sigmaUpdateEnd;
+
+    uint256 private lastStrike;
+    uint256 private targetStrike;
+    uint256 private lastStrikeSync;
+    uint256 private strikeUpdatePerSecond;
+    uint256 private strikeUpdateEnd;
+
+    uint256 private lastTau;
+    uint256 private targetTau;
+    uint256 private lastTauSync;
+    uint256 private tauUpdatePerSecond;
+    uint256 private tauUpdateEnd;
+
 
     constructor(
         address tokenX_,
@@ -35,9 +50,9 @@ contract RMM is IStrategy {
     ) {
         tokenX = ERC20(tokenX_);
         tokenY = ERC20(tokenY_);
-        sigma = sigma_;
-        strikePrice = strikePrice_;
-        tau = tau_;
+        lastSigma = sigma_;
+        lastStrike = strikePrice_;
+        lastTau = tau_;
 
         require(swapFee_ < ONE, "Swap fee too high");
         swapFee = swapFee_;
@@ -54,6 +69,10 @@ contract RMM is IStrategy {
         return reserveX * getSpotPrice() / 1e18 + reserveY;
     }
 
+    function getParams() public view returns (uint256, uint256, uint256) {
+        return (sigma(), strikePrice(), tau());
+    }
+
     function initPool(
         bool exactX,
         uint256 amount,
@@ -61,14 +80,16 @@ contract RMM is IStrategy {
     ) public returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
         require(totalLiquidity == 0, "Pool already initialized");
 
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+
         if (exactX) {
             amountX = amount;
-            liquidity = computeLGivenX(amountX, price, strikePrice, sigma, tau);
-            amountY = computeYGivenL(liquidity, price, strikePrice, sigma, tau);
+            liquidity = computeLGivenX(amountX, price, _strike, _sigma, _tau);
+            amountY = computeYGivenL(liquidity, price, _strike, _sigma, _tau);
         } else {
             amountY = amount;
-            liquidity = computeLGivenY(amountY, price, strikePrice, sigma, tau);
-            amountX = computeXGivenL(liquidity, price, strikePrice, sigma, tau);
+            liquidity = computeLGivenY(amountY, price, _strike, _sigma, _tau);
+            amountX = computeXGivenL(liquidity, price, _strike, _sigma, _tau);
         }
 
         totalLiquidity = liquidity;
@@ -84,8 +105,9 @@ contract RMM is IStrategy {
         uint256 amountX,
         uint256 price
     ) external returns (uint256, uint256) {
-        uint256 l = computeLGivenX(amountX, price, strikePrice, sigma, tau);
-        uint256 amountY = computeYGivenL(l, price, strikePrice, sigma, tau);
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        uint256 l = computeLGivenX(amountX, price, _strike, _sigma, _tau);
+        uint256 amountY = computeYGivenL(l, price, _strike, _sigma, _tau);
 
         totalLiquidity = l;
         reserveX = amountX;
@@ -101,8 +123,9 @@ contract RMM is IStrategy {
         uint256 amountY,
         uint256 price
     ) external returns (uint256, uint256) {
-        uint256 l = computeLGivenY(amountY, price, strikePrice, sigma, tau);
-        uint256 amountX = computeXGivenL(l, price, strikePrice, sigma, tau);
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        uint256 l = computeLGivenY(amountY, price, _strike, _sigma, _tau);
+        uint256 amountX = computeXGivenL(l, price, _strike, _sigma, _tau);
 
         totalLiquidity = l;
         reserveX = amountX;
@@ -120,16 +143,18 @@ contract RMM is IStrategy {
     ) external returns (uint256 amountX, uint256 amountY, uint256 liquidity) {
         require(totalLiquidity > 0, "Pool not initialized");
 
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
 
         if (exactX) {
             amountX = amount;
 
             uint256 newLiquidity =
-                computeLGivenX(reserveX + amountX, price, strikePrice, sigma, tau);
+                computeLGivenX(reserveX + amountX, price, _strike, _sigma, _tau);
             uint256 newReserveY =
-                computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
+                computeYGivenL(newLiquidity, price, _strike, _sigma, _tau);
 
             amountY = newReserveY - reserveY;
             liquidity = newLiquidity - totalLiquidity;
@@ -137,9 +162,9 @@ contract RMM is IStrategy {
             amountY = amount;
 
             uint256 newLiquidity =
-                computeLGivenY(reserveY + amountY, price, strikePrice, sigma, tau);
+                computeLGivenY(reserveY + amountY, price, _strike, _sigma, _tau);
             uint256 newReserveX =
-                computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
+                computeXGivenL(newLiquidity, price, _strike, _sigma, _tau);
 
             amountX = newReserveX - reserveX;
             liquidity = newLiquidity - totalLiquidity;
@@ -160,11 +185,12 @@ contract RMM is IStrategy {
         external
         returns (uint256, uint256)
     {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
 
         uint256 newLiquidity =
-            computeLGivenX(reserveX + amountX, price, strikePrice, sigma, tau);
+            computeLGivenX(reserveX + amountX, price, _strike, _sigma, _tau);
         uint256 newReserveY =
             computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
@@ -187,13 +213,14 @@ contract RMM is IStrategy {
         external
         returns (uint256, uint256)
     {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
 
         uint256 newLiquidity =
-            computeLGivenY(reserveY + amountY, price, strikePrice, sigma, tau);
+            computeLGivenY(reserveY + amountY, price, _strike, _sigma, _tau);
         uint256 newReserveX =
-            computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
+            computeXGivenL(newLiquidity, price, _strike, _sigma, _tau);
 
         uint256 amountX = newReserveX - reserveX;
 
@@ -214,13 +241,14 @@ contract RMM is IStrategy {
         external
         returns (uint256, uint256)
     {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
 
         uint256 newLiquidity =
-            computeLGivenX(reserveX - amountX, price, strikePrice, sigma, tau);
+            computeLGivenX(reserveX - amountX, price, _strike, _sigma, _tau);
         uint256 newReserveY =
-            computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
+            computeYGivenL(newLiquidity, price, _strike, _sigma, _tau);
 
         uint256 amountY = reserveY - newReserveY;
 
@@ -241,13 +269,14 @@ contract RMM is IStrategy {
         external
         returns (uint256, uint256)
     {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
 
         uint256 newLiquidity =
-            computeLGivenY(reserveX - amountY, price, strikePrice, sigma, tau);
+            computeLGivenY(reserveX - amountY, price, _strike, _sigma, _tau);
         uint256 newReserveX =
-            computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
+            computeXGivenL(newLiquidity, price, _strike, _sigma, _tau);
 
         uint256 amountX = reserveX - newReserveX;
 
@@ -265,12 +294,13 @@ contract RMM is IStrategy {
     }
 
     function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma, tau);
+            uint256 deltaL = computeLGivenX(fees, price, _strike, _sigma, _tau);
 
             amountOut = uint256(
                 ~(
@@ -280,9 +310,9 @@ contract RMM is IStrategy {
                         amountIn,
                         totalLiquidity,
                         deltaL,
-                        strikePrice,
-                        sigma,
-                        tau
+                        _strike,
+                        _sigma,
+                        _tau
                     ) - 1
                 )
             );
@@ -295,7 +325,7 @@ contract RMM is IStrategy {
             tokenY.transfer(msg.sender, amountOut);
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma, tau);
+            uint256 deltaL = computeLGivenY(fees, price, _strike, _sigma, _tau);
 
             amountOut = uint256(
                 ~(
@@ -305,9 +335,9 @@ contract RMM is IStrategy {
                         amountIn,
                         totalLiquidity,
                         deltaL,
-                        strikePrice,
-                        sigma,
-                        tau
+                        _strike,
+                        _sigma,
+                        _tau
                     ) - 1
                 )
             );
@@ -325,8 +355,108 @@ contract RMM is IStrategy {
             swapDirection,
             amountIn,
             amountOut,
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau)
+            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau)
         );
+    }
+
+    function sigma() public view returns (uint256) {
+        if (block.timestamp >= sigmaUpdateEnd) {
+            return targetSigma;
+        }
+
+        return
+            lastSigma > sigma
+                ? lastSigma - (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond
+                : lastSigma + (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond;
+    }
+
+    function strikePrice() public view returns (uint256) {
+        if (block.timestamp >= strikeUpdateEnd) {
+            return targetStrike;
+        }
+
+        return 
+            lastStrike > strikePrice
+                ? lastStrike - (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond
+                : lastStrike + (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond;
+    }
+
+    function tau() public view returns (uint256) {
+        if (block.timestamp >= tauUpdateEnd) {
+            return targetTau;
+        }
+
+        return 
+            lastTau > tau
+                ? lastTau - (block.timestamp - lastTauSync) * tauUpdatePerSecond
+                : lastTau + (block.timestamp - lastTauSync) * tauUpdatePerSecond;
+    }
+
+    /**
+     * @dev Computes and stores the current weight of token X, as well as the
+     * timestamp of the last weight sync.
+     */
+    function _syncSigma() private {
+        lastSigma = sigma();
+        lastSigmaSync = block.timestamp;
+    }
+
+    function _syncStrike() private {
+        lastStrike = strikePrice();
+        lastStrikeSync = block.timestamp;
+    }
+
+    function _syncTau() private {
+        lastTau = tau();
+        lastTauSync = block.timestamp;
+    }
+
+    function setSigma(uint256 newTargetSigma, uint256 newSigmaUpdateEnd) external {
+        require(newSigmaUpdateEnd > block.timestamp, "Update end pasted");
+
+        _syncSigma();
+
+        uint256 sigmaDelta = lastSigma > newTargetSigma
+            ? lastSigma - newTargetSigma
+            : newTargetSigma - lastSigma;
+
+        sigmaUpdatePerSecond =
+            sigmaDelta / (newSigmaUpdateEnd - block.timestamp);
+        targetSigma = newTargetSigma;
+        sigmaUpdateEnd = newSigmaUpdateEnd;
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+    }
+
+    function setStrikePrice(uint256 newTargetStrike, uint256 newStrikeUpdateEnd) external {
+        require(newStrikeUpdateEnd > block.timestamp, "Update end pasted");
+
+        _syncStrike();
+
+        uint256 strikeDelta = lastStrike > newTargetStrike
+            ? lastStrike - newTargetStrike
+            : newTargetStrike - lastStrike;
+
+        strikeUpdatePerSecond =
+            strikeDelta / (newStrikeUpdateEnd - block.timestamp);
+        targetStrike = newTargetStrike;
+        strikeUpdateEnd = newStrikeUpdateEnd;
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+    }
+
+    function setTau(uint256 newTargetTau, uint256 newTauUpdateEnd) external {
+        require(newTauUpdateEnd > block.timestamp, "Update end pasted");
+
+        _syncTau();
+
+        uint256 tauDelta = lastTau > newTargetTau
+            ? lastTau - newTargetTau
+            : newTargetTau - lastTau;
+
+        tauUpdatePerSecond =
+            tauDelta / (newTauUpdateEnd - block.timestamp);
+        targetTau = newTargetTau;
+        tauUpdateEnd = newTauUpdateEnd;
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
     }
 
     function swapAmountIn(
@@ -343,7 +473,7 @@ contract RMM is IStrategy {
 
     function getSpotPrice() public view returns (uint256) {
         return
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
+            computeSpotPrice(reserveX, totalLiquidity, strikePrice(), sigma(), tau());
     }
 
     function getSwapFee() external view returns (uint256) {
@@ -367,10 +497,10 @@ contract RMM is IStrategy {
     }
 
     function logData() external {
-        emit LogParameters(sigma, strikePrice, tau, block.timestamp);
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
     }
 
     function getStrategyData() external view returns (bytes memory data) {
-        return abi.encode(sigma, strikePrice, tau);
+        return abi.encode(sigma(), strikePrice(), tau());
     }
 }
