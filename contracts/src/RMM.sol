@@ -192,7 +192,7 @@ contract RMM is IStrategy {
         uint256 newLiquidity =
             computeLGivenX(reserveX + amountX, price, _strike, _sigma, _tau);
         uint256 newReserveY =
-            computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
+            computeYGivenL(newLiquidity, price, _strike, _sigma, _tau);
 
         uint256 amountY = newReserveY - reserveY;
 
@@ -365,7 +365,7 @@ contract RMM is IStrategy {
         }
 
         return
-            lastSigma > sigma
+            lastSigma > targetSigma 
                 ? lastSigma - (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond
                 : lastSigma + (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond;
     }
@@ -376,7 +376,7 @@ contract RMM is IStrategy {
         }
 
         return 
-            lastStrike > strikePrice
+            lastStrike > targetStrike
                 ? lastStrike - (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond
                 : lastStrike + (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond;
     }
@@ -387,15 +387,11 @@ contract RMM is IStrategy {
         }
 
         return 
-            lastTau > tau
+            lastTau > targetTau 
                 ? lastTau - (block.timestamp - lastTauSync) * tauUpdatePerSecond
                 : lastTau + (block.timestamp - lastTauSync) * tauUpdatePerSecond;
     }
 
-    /**
-     * @dev Computes and stores the current weight of token X, as well as the
-     * timestamp of the last weight sync.
-     */
     function _syncSigma() private {
         lastSigma = sigma();
         lastSigmaSync = block.timestamp;
@@ -493,7 +489,7 @@ contract RMM is IStrategy {
     }
 
     function getInvariant() external view returns (int256) {
-        return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice);
+        return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice());
     }
 
     function logData() external {
