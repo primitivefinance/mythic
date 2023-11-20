@@ -67,7 +67,7 @@ pub fn layout<'a>(
         .padding(Sizes::Md as u16);
 
     let mut action_group = Column::new()
-        .width(Length::FillPortion(4))
+        .width(Length::FillPortion(2))
         .padding(Sizes::Md as u16)
         .spacing(Sizes::Md as u16)
         .align_items(alignment::Alignment::End);

@@ -192,12 +192,7 @@ impl Form {
         let action = self.on_submit();
 
         let steps_card = steps_group(steps);
-        let submit_card = submit_group(
-            action,
-            self.progress.current,
-            self.feedback.clone(),
-            self.progress.checkpoint,
-        );
+        let submit_card = submit_group(action, self.feedback.clone(), self.progress.checkpoint);
 
         let column_1: Vec<Element<'a, view::Message>> = content;
         let column_2: Vec<Element<'a, view::Message>> = vec![steps_card.into(), submit_card.into()];
@@ -207,7 +202,7 @@ impl Form {
 
     // Fetches the appropriate submit message, does not submit.
     pub fn on_submit(&self) -> view::Message {
-        match self.progress.current {
+        match self.progress.checkpoint {
             TransactionSteps::Start if self.fields.validate() && self.progress.validate() => {
                 view::Execution::Simulate.into()
             }

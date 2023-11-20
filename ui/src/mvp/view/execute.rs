@@ -144,7 +144,6 @@ pub fn confirmed<'a>(
 /// Submit group
 pub fn submit_group<'a>(
     action: Message,
-    step: TransactionSteps,
     feedback: Option<String>,
     checkpoint: TransactionSteps,
 ) -> Element<'a, Message> {
@@ -154,8 +153,8 @@ pub fn submit_group<'a>(
     };
 
     let title = h2("Instructions".to_string());
-    let mut info = secondary_label(step.get_instructions());
-    let mut button = action_button(step.get_cta())
+    let mut info = secondary_label(checkpoint.get_instructions());
+    let mut button = action_button(checkpoint.get_cta())
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
 
