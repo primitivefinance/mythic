@@ -14,6 +14,12 @@ impl EmptyScreen {
     }
 }
 
+impl From<EmptyScreen> for Screen {
+    fn from(screen: EmptyScreen) -> Self {
+        Screen::new(Box::new(screen))
+    }
+}
+
 impl State for EmptyScreen {
     fn load(&self) -> Command<Message> {
         Command::none()

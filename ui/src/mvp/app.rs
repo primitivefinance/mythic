@@ -5,14 +5,11 @@ use tracing::Span;
 
 use super::{
     api::{
-        contacts::{self, Class, ContactValue, Contacts},
+        contacts::{self, ContactValue},
         scroll::Scroll,
     },
     profile::Profile,
-    screens::{
-        address_book::AddressBookScreen, empty::EmptyScreen, execution::form::TransactionSteps,
-        terminal::Terminal, Screen,
-    },
+    screens::{address_book::AddressBookScreen, empty::EmptyScreen, terminal::Terminal, Screen},
     tracer::AppEventLog,
     view::Page,
     *,
@@ -40,7 +37,6 @@ pub enum Data {
 #[derive(Debug)]
 pub enum Execution {
     Form(execution::form::FormMessage),
-    Arrived(execution::form::TransactionSteps),
     Simulated(anyhow::Result<Scroll, anyhow::Error>),
     Executed(anyhow::Result<Scroll, anyhow::Error>),
     // Triggered after Execution::Executed is completed.
@@ -81,12 +77,11 @@ pub enum AddressBookMessage {
 }
 
 /// State for all chain related data.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Chains {
     pub arbiter: Arc<Mutex<Environment>>,
     pub local: Local<Ws>,
 }
-
 #[derive(Debug)]
 pub enum ChainMessage {}
 
@@ -101,6 +96,7 @@ pub enum StreamsMessage {
 }
 
 /// State for all temporarily cached state.
+#[derive(Default)]
 pub struct Cache {
     pub app_events: VecDeque<AppEventLog>,
 }
@@ -119,7 +115,7 @@ pub enum CacheMessage {
 }
 
 /// State for all permanent state that is loaded from disk or api.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Storage {
     pub profile: Profile,
 }
@@ -132,6 +128,14 @@ pub enum StorageMessage {
 /// State for specific windows that are open.
 pub struct Windows {
     pub screen: Screen,
+}
+
+impl Default for Windows {
+    fn default() -> Self {
+        Self {
+            screen: EmptyScreen::new(false).into(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -160,16 +164,13 @@ pub struct App {
 
 impl App {
     pub fn new(storage: Storage, chains: Chains, streams: Streams) -> (Self, Command<Message>) {
-        let windows = Windows {
-            screen: Screen::new(Box::new(Terminal::new(streams.app_event_receiver.clone()))),
-        };
         (
             Self {
-                cache: Cache::new(),
                 storage,
                 streams,
-                windows,
                 chains,
+                cache: Cache::new(),
+                windows: Windows::default(),
             },
             Command::none(),
         )
@@ -339,7 +340,7 @@ impl App {
             view::Page::Terminal => Screen::new(Box::new(Terminal::new(
                 self.streams.app_event_receiver.clone(),
             ))),
-            _ => Screen::new(Box::new(EmptyScreen::new(false))),
+            _ => EmptyScreen::new(false).into(),
         };
 
         let load_cmd = self.windows.screen.load();

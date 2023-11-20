@@ -156,7 +156,7 @@ impl Page {
             Page::Terminal => "Terminal".to_string(),
             Page::Execute => "Execute".to_string(),
             Page::AddressBook => "Address Book".to_string(),
-            Page::Exit => "Exit".to_string(),
+            Page::Exit => "App".to_string(),
         }
     }
 }
