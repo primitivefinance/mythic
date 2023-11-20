@@ -251,7 +251,7 @@ pub fn add_contact_card<'a>(form: Form) -> Element<'a, Message> {
                 .align_items(alignment::Alignment::Center),
         )
         .spacing(Sizes::Md as u16)
-        .padding(Sizes::Md as u16);
+        .padding(Sizes::Lg as u16);
 
     Card::new(content)
         .max_width(ByteScale::Xl6 as u32 as f32)
@@ -271,7 +271,16 @@ where
 {
     Column::new()
         .push(h3(title))
-        .push(pick_list(options, selected, on_selected))
+        .push(
+            components::select::custom_pick_list(
+                options,
+                selected,
+                on_selected,
+                Some("Select option"),
+            )
+            .padding(Sizes::Md as u16)
+            .width(Length::Fill),
+        )
         .width(Length::Shrink)
         .spacing(Sizes::Md as u16)
 }

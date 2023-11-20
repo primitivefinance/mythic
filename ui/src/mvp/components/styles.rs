@@ -104,6 +104,7 @@ pub const DISABLED_TEXT_GRAY: Color = QUATERNARY_LABEL_COLOR;
 // Main components
 pub const BACKGROUND: Color = GRAY_100;
 pub const SIDEBAR_BG_COLOR: Color = GRAY_200;
+pub const MENU_BG_COLOR: Color = GRAY_300;
 pub const CARD_BG_COLOR: Color = GRAY_400;
 pub const WINDOW_HEADER_COLOR: Color = GRAY_500;
 pub const INFO_BG_CONTAINER: Color = GRAY_500;

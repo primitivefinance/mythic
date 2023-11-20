@@ -3,6 +3,7 @@ pub mod containers;
 pub mod exit;
 pub mod input;
 pub mod logos;
+pub mod select;
 pub mod styles;
 pub mod tables;
 
@@ -15,7 +16,10 @@ use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 use input::*;
 use styles::*;
 
-use self::containers::{CardContainer, MenuContainerTheme, ScreenWindowContainer, WindowHeader};
+use self::{
+    containers::{CardContainer, MenuContainerTheme, ScreenWindowContainer, WindowHeader},
+    select::CustomSelect,
+};
 // These components should return View messages.
 use super::{
     view::{Message, Page},
@@ -369,14 +373,18 @@ pub fn select_group<'a>(
     on_selected: impl Fn(String) -> Message + 'a,
 ) -> Element<'a, Message> {
     let title = h3(title.to_string());
-    let input = pick_list(options, selected.clone(), on_selected).padding(Sizes::Md as u16);
+    let style = CustomSelect::new().active().as_custom();
+    let input = pick_list(options, selected.clone(), on_selected)
+        .style(style)
+        .padding(Sizes::Md as u16)
+        .width(Length::Fill);
 
-    let input_container = Container::new(input).style(MenuContainerTheme::theme());
+    // let input_container =
+    // Container::new(input).style(MenuContainerTheme::theme());
 
     Column::new()
         .push(title)
-        .push(input_container)
-        .width(Length::Fill)
+        .push(input)
         .spacing(Sizes::Md as u16)
         .into()
 }
