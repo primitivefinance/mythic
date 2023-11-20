@@ -18,7 +18,7 @@ use styles::*;
 
 use self::{
     containers::{CardContainer, MenuContainerTheme, ScreenWindowContainer, WindowHeader},
-    select::CustomSelect,
+    select::{custom_pick_list, CustomSelect},
 };
 // These components should return View messages.
 use super::{
@@ -373,9 +373,7 @@ pub fn select_group<'a>(
     on_selected: impl Fn(String) -> Message + 'a,
 ) -> Element<'a, Message> {
     let title = h3(title.to_string());
-    let style = CustomSelect::new().active().as_custom();
-    let input = pick_list(options, selected.clone(), on_selected)
-        .style(style)
+    let input = custom_pick_list(options, selected.clone(), on_selected, None)
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
 

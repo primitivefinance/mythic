@@ -2,7 +2,10 @@
 
 use std::{borrow::Cow, rc::Rc};
 
-use iced::widget::pick_list::{self, *};
+use iced::{
+    widget::pick_list::{self, *},
+    Background,
+};
 
 use super::*;
 
@@ -17,7 +20,12 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
 {
     pick_list(options, selected, on_selected)
-        .style(CustomSelect::new().as_custom())
+        .style(
+            CustomSelect::new()
+                .hovered()
+                .background(HIGHLIGHTED_CONTAINER_COLOR.into())
+                .as_custom(),
+        )
         .placeholder(placeholder.unwrap_or("Select an option"))
 }
 
@@ -41,7 +49,7 @@ impl CustomSelect {
             text_color: SECONDARY_COLOR,
             placeholder_color: TERTIARY_LABEL_COLOR,
             handle_color: Color::WHITE,
-            background: MENU_BG_COLOR.into(),
+            background: SELECT_BG_COLOR.into(),
             border_radius: 5.0.into(),
             border_width: 0.0,
             border_color: Default::default(),
@@ -60,6 +68,69 @@ impl CustomSelect {
 
     pub fn hovered(mut self) -> Self {
         self.current_state = SelectState::Hovered;
+        self
+    }
+
+    pub fn text_color(mut self, color: Color) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.text_color = color,
+            SelectState::Hovered => self.hovered.text_color = color,
+        }
+
+        self
+    }
+
+    pub fn placeholder_color(mut self, color: Color) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.placeholder_color = color,
+            SelectState::Hovered => self.hovered.placeholder_color = color,
+        }
+
+        self
+    }
+
+    pub fn handle_color(mut self, color: Color) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.handle_color = color,
+            SelectState::Hovered => self.hovered.handle_color = color,
+        }
+
+        self
+    }
+
+    pub fn background(mut self, background: Background) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.background = background,
+            SelectState::Hovered => self.hovered.background = background,
+        }
+
+        self
+    }
+
+    pub fn border_radius(mut self, radius: f32) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.border_radius = radius.into(),
+            SelectState::Hovered => self.hovered.border_radius = radius.into(),
+        }
+
+        self
+    }
+
+    pub fn border_width(mut self, width: f32) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.border_width = width,
+            SelectState::Hovered => self.hovered.border_width = width,
+        }
+
+        self
+    }
+
+    pub fn border_color(mut self, color: Color) -> Self {
+        match self.current_state {
+            SelectState::Active => self.active.border_color = color,
+            SelectState::Hovered => self.hovered.border_color = color,
+        }
+
         self
     }
 
@@ -90,9 +161,9 @@ impl CustomMenu {
             appearance: iced::widget::overlay::menu::Appearance {
                 text_color: Color::WHITE,
                 background: MENU_BG_COLOR.into(),
-                border_width: 0.0,
+                border_width: 1.0,
                 border_radius: 5.0.into(),
-                border_color: Default::default(),
+                border_color: Color::BLACK,
                 selected_text_color: Color::WHITE,
                 selected_background: PRIMARY_COLOR.into(),
             },
