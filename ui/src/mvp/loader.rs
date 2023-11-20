@@ -7,6 +7,7 @@ use iced::{
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 
 use super::{profile::Profile, *};
+use crate::mvp::api::contacts;
 
 type LoadResult = anyhow::Result<(app::Storage, app::Chains), anyhow::Error>;
 
@@ -55,11 +56,34 @@ pub async fn load_app() -> LoadResult {
         .with_counter_contract()
         .await;
 
-    let storage = app::Storage { profile };
+    let mut storage = app::Storage { profile };
+
+    // Add the counter contract to the storage.
+    let mut label = "default";
+    let default_address = match local.counter_contract {
+        Some(address) => {
+            label = "counter";
+            address
+        }
+        // Address from deploying counter contract in dev mode.
+        None => "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+            .parse::<Address>()
+            .unwrap(),
+    };
+
+    storage.profile.contacts.add(
+        default_address,
+        contacts::ContactValue {
+            label: label.to_string(),
+            class: contacts::Class::Contract,
+            ..Default::default()
+        },
+        contacts::Category::Untrusted,
+    );
 
     let chains = app::Chains {
         local,
-        arbiter: EnvironmentBuilder::new().build(),
+        arbiter: Arc::new(Mutex::new(EnvironmentBuilder::new().build())),
     };
 
     Ok((storage, chains))

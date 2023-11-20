@@ -71,4 +71,13 @@ impl ContactList {
         self.add(address, contact);
         Ok(())
     }
+
+    pub fn try_get(&self, address: &str) -> anyhow::Result<&ContactValue, anyhow::Error> {
+        let address = address
+            .parse::<Address>()
+            .map_err(|e| anyhow::anyhow!("Failed to parse address: {}", e.to_string()))?;
+
+        self.get(&address)
+            .ok_or_else(|| anyhow::anyhow!("No contact found for address: {}", address))
+    }
 }

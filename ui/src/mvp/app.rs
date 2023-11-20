@@ -10,7 +10,7 @@ use super::{
     },
     profile::Profile,
     screens::{
-        address_book::AddressBookScreen, empty::EmptyScreen, execution::TransactionSteps,
+        address_book::AddressBookScreen, empty::EmptyScreen, execution::form::TransactionSteps,
         terminal::Terminal, Screen,
     },
     tracer::AppEventLog,
@@ -39,11 +39,24 @@ pub enum Data {
 
 #[derive(Debug)]
 pub enum Execution {
-    Arrived(TransactionSteps),
+    Form(execution::form::FormMessage),
+    Arrived(execution::form::TransactionSteps),
     Simulated(anyhow::Result<Scroll, anyhow::Error>),
     Executed(anyhow::Result<Scroll, anyhow::Error>),
     // Triggered after Execution::Executed is completed.
     Confirmed,
+}
+
+impl From<Execution> for WindowsMessage {
+    fn from(msg: Execution) -> Self {
+        WindowsMessage::Execution(msg)
+    }
+}
+
+impl From<Execution> for Message {
+    fn from(msg: Execution) -> Self {
+        Message::WindowsMessage(msg.into()).into()
+    }
 }
 
 /// Root message for the Application.
@@ -68,9 +81,9 @@ pub enum AddressBookMessage {
 }
 
 /// State for all chain related data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chains {
-    pub arbiter: Environment,
+    pub arbiter: Arc<Mutex<Environment>>,
     pub local: Local<Ws>,
 }
 
@@ -126,6 +139,12 @@ pub enum WindowsMessage {
     Switch(Page),
     Execution(Execution),
     Simulation(Simulation),
+}
+
+impl From<WindowsMessage> for Message {
+    fn from(msg: WindowsMessage) -> Self {
+        Message::WindowsMessage(msg)
+    }
 }
 
 /// Storage for the entire application.
@@ -310,8 +329,8 @@ impl App {
 
         self.windows.screen = match navigate_to {
             view::Page::Execute => Screen::new(Box::new(execution::Execution::new(
-                self.chains.local.clone(),
-                self.storage.profile.contacts.clone(),
+                self.chains.clone(),
+                self.storage.clone(),
             ))),
             view::Page::AddressBook => Screen::new(Box::new(AddressBookScreen::new(
                 self.storage.profile.contacts.clone(),

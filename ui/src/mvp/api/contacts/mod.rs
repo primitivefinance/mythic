@@ -37,6 +37,10 @@ impl Contacts {
         }
     }
 
+    pub fn replace_list(&mut self, category: Category, list: ContactList) -> Option<ContactList> {
+        self.books.insert(category, list)
+    }
+
     pub fn get(&self, address: &Address, category: Category) -> Option<&ContactValue> {
         self.books.get(&category)?.get(address)
     }
@@ -45,10 +49,32 @@ impl Contacts {
         self.books.get(&category)
     }
 
+    // todo: add benches for this...
+    pub fn get_class_list(&self, class: Class) -> Option<ContactList> {
+        let all = self
+            .list_all()
+            .into_iter()
+            .filter(|value| value.1.class == class);
+
+        let mut list = ContactList::new();
+        for (address, contact) in all {
+            list.add(*address, contact.clone());
+        }
+
+        Some(list)
+    }
+
     pub fn remove(&mut self, address: &Address, category: Category) {
         if let Some(book) = self.books.get_mut(&category) {
             book.remove(address);
         }
+    }
+
+    pub fn list_all(&self) -> Vec<(&Address, &ContactValue)> {
+        self.books
+            .iter()
+            .flat_map(|(_, book)| book.get_all())
+            .collect()
     }
 
     pub fn list(&self, category: Category) -> Vec<(&Address, &ContactValue)> {

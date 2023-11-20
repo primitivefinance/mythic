@@ -15,7 +15,7 @@ use self::{
 use super::{
     api::contacts,
     components::{containers::*, exit::create_exit_component, *},
-    screens::{address_book::AddressBookDisplay, execution::TransactionSteps},
+    screens::{address_book::AddressBookDisplay, execution::form::TransactionSteps},
     terminal::{StateSubscription, StateSubscriptionStore},
     tracer::{AppEventLayer, AppEventLog},
     *,
@@ -61,6 +61,12 @@ pub enum Message {
     AddressBook(AddressBookViewMessage),
 }
 
+impl From<Message> for app::Message {
+    fn from(message: Message) -> Self {
+        app::Message::View(message.into())
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum AddressBookViewMessage {
     Add,
@@ -76,14 +82,23 @@ pub enum AddressBookViewMessage {
 
 #[derive(Debug, Clone)]
 pub enum Execution {
-    Next,
-    Previous,
-    Route(TransactionSteps),
-    AmountChanged(Option<String>),
-    ToAddressChanged(String),
-    FromAddressChanged(String),
-    // For restarting the flow.
-    Restart,
+    Form(execution::form::FormMessage),
+    Simulate,
+    Execute,
+    Results,
+    Reset,
+}
+
+impl From<Execution> for view::Message {
+    fn from(execution: Execution) -> Self {
+        view::Message::Execution(execution)
+    }
+}
+
+impl From<Execution> for app::Message {
+    fn from(execution: Execution) -> Self {
+        app::Message::View(execution.into())
+    }
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(

@@ -365,11 +365,11 @@ pub fn input_group<'a>(
 pub fn select_group<'a>(
     title: String,
     options: Vec<String>,
-    selected: String,
+    selected: Option<String>,
     on_selected: impl Fn(String) -> Message + 'a,
 ) -> Element<'a, Message> {
     let title = h3(title.to_string());
-    let input = pick_list(options, Some(selected.clone()), on_selected).padding(Sizes::Md as u16);
+    let input = pick_list(options, selected.clone(), on_selected).padding(Sizes::Md as u16);
 
     let input_container = Container::new(input).style(MenuContainerTheme::theme());
 

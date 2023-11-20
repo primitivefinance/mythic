@@ -5,120 +5,30 @@ use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{text, Column, Element, Message, *};
 use crate::mvp::{
+    api::contacts::ContactList,
     components::{button::route_button_style, tables::*},
-    execution::TransactionSteps,
-    screens::execution::StorageDiffs,
+    execution::form::TransactionSteps,
+    screens::execution::{form::FormMessage, processing::StorageDiffs},
     units::address_to_string,
 };
 
 pub fn execution_layout<'a>(
-    step: TransactionSteps,
-    input_amount: String,
-    target: Vec<(Address, String)>,
-    selected: String,
-    user_feedback: Option<String>,
-    review_diffs: Option<StorageDiffs>,
-    checkpoint_step: TransactionSteps,
-    pending: bool,
+    form: &execution::form::Form,
+    from_list: &ContactList,
+    to_list: &ContactList,
+    target_list: &ContactList,
+    sim_results: Option<StorageDiffs>,
+    execute_results: Option<StorageDiffs>,
 ) -> Element<'a, Message> {
-    let address_book: Vec<String> = target
-        .clone()
-        .into_iter()
-        .map(|(a, _): (Address, _)| address_to_string(&a))
-        .collect();
-
-    let steps = vec![
-        (
-            Icon::PencilSquare,
-            "Build".to_string(),
-            if checkpoint_step >= TransactionSteps::Start {
-                Message::Execution(Execution::Route(TransactionSteps::Start))
-            } else {
-                Message::Empty
-            },
-            step == TransactionSteps::Start,
-        ),
-        (
-            Icon::Sim,
-            "Simulate".to_string(),
-            if checkpoint_step >= TransactionSteps::Simulated {
-                Message::Execution(Execution::Route(TransactionSteps::Simulated))
-            } else {
-                Message::Empty
-            },
-            step == TransactionSteps::Simulated,
-        ),
-        (
-            Icon::CursorFill,
-            "Execute".to_string(),
-            if checkpoint_step >= TransactionSteps::Executed {
-                Message::Execution(Execution::Route(TransactionSteps::Executed))
-            } else {
-                Message::Empty
-            },
-            step == TransactionSteps::Executed,
-        ),
-        (
-            Icon::CheckCircleFill,
-            "Confirm".to_string(),
-            if checkpoint_step >= TransactionSteps::Confirmed {
-                Message::Execution(Execution::Route(TransactionSteps::Confirmed))
-            } else {
-                Message::Empty
-            },
-            step == TransactionSteps::Confirmed,
-        ),
-    ];
-
-    let action = match step {
-        TransactionSteps::Start
-            if !input_amount.is_empty() && selected.len() > 0 && step == checkpoint_step =>
-        {
-            Message::Execution(Execution::Next)
-        }
-        TransactionSteps::Simulated if !pending && step == checkpoint_step => {
-            Message::Execution(Execution::Next)
-        }
-        TransactionSteps::Executed if !pending && step == checkpoint_step => {
-            Message::Execution(Execution::Next)
-        }
-        TransactionSteps::Confirmed if !pending && step == checkpoint_step => {
-            Message::Execution(Execution::Next)
-        }
-        _ => Message::Empty,
-    };
-
-    let content = match step {
-        TransactionSteps::Start => {
-            starting(input_amount.clone(), address_book.clone(), selected.clone())
-        }
-        TransactionSteps::Simulated => simulated(
-            selected.clone(),
-            selected.clone(),
-            input_amount.clone(),
-            review_diffs.clone(),
-        ),
-        TransactionSteps::Executed => {
-            executed(selected.clone(), selected.clone(), input_amount.clone())
-        }
-        TransactionSteps::Confirmed => confirmed(
-            selected.clone(),
-            selected.clone(),
-            input_amount.clone(),
-            review_diffs.clone(),
-            1,
-        ),
-    };
-
-    let steps_card = steps_group(steps);
-    let submit_card = submit_group(action, step.clone(), user_feedback, checkpoint_step.clone());
-
-    let column_1: Vec<Element<'a, Message>> = content;
-    let column_2: Vec<Element<'a, Message>> = vec![steps_card.into(), submit_card.into()];
-
     // Fills the max window container space right now, which is pretty good.
     Column::new()
-        .push(components::dual_column(column_1, column_2))
+        .push(form.view(
+            from_list,
+            to_list,
+            target_list,
+            sim_results,
+            execute_results,
+        ))
         .spacing(Sizes::Xl as u16)
         .padding(Sizes::Xl as u16)
         .height(Length::Fill)
@@ -128,16 +38,19 @@ pub fn execution_layout<'a>(
 
 /// Panel for starting a new transaction.
 pub fn starting<'a>(
-    input_amount: String,
-    address_book: Vec<String>,
-    selected: String,
+    options_from: &ContactList,
+    from: Option<String>,
+    options_to: &ContactList,
+    to: Option<String>,
+    options_target: &ContactList,
+    target: Option<String>,
+    amount: Option<String>,
 ) -> Vec<Element<'a, Message>> {
-    let selection = address_book.clone();
-    let message_card = message_group(address_book.clone(), selected.clone());
+    let message_card = message_group(options_from, from.clone(), options_to, to.clone());
     let data_card = data_group(
-        address_book.clone(),
-        selected.clone(),
-        Some(input_amount.clone()),
+        options_target,
+        target.clone(),
+        amount.clone(),
         "0".to_string(),
     );
 
@@ -147,9 +60,9 @@ pub fn starting<'a>(
 
 /// Extended panel for executed simulated diffs
 pub fn simulated<'a>(
-    selected_to: String,
-    selected_target: String,
-    input_amount: String,
+    selected_to: Option<String>,
+    selected_target: Option<String>,
+    input_amount: Option<String>,
     review_diffs: Option<StorageDiffs>,
 ) -> Vec<Element<'a, Message>> {
     let summary_card = summary_group(
@@ -165,9 +78,9 @@ pub fn simulated<'a>(
 
 /// Panel for executed the transaction's state diffs.
 pub fn executed<'a>(
-    selected_to: String,
-    selected_target: String,
-    input_amount: String,
+    selected_to: Option<String>,
+    selected_target: Option<String>,
+    input_amount: Option<String>,
 ) -> Vec<Element<'a, Message>> {
     let summary_card = summary_group(
         selected_to.clone(),
@@ -186,9 +99,9 @@ pub fn executed<'a>(
 
 /// Panel for transaction confirmation.
 pub fn confirmed<'a>(
-    selected_to: String,
-    selected_target: String,
-    input_amount: String,
+    selected_to: Option<String>,
+    selected_target: Option<String>,
+    input_amount: Option<String>,
     review_diffs: Option<StorageDiffs>,
     block: u64,
 ) -> Vec<Element<'a, Message>> {
@@ -255,7 +168,7 @@ pub fn submit_group<'a>(
             if checkpoint == TransactionSteps::Confirmed {
                 info = secondary_label(checkpoint.get_instructions());
                 button = action_button(checkpoint.get_cta())
-                    .on_press(Message::Execution(Execution::Restart))
+                    .on_press(Execution::Reset.into())
                     .padding(Sizes::Md as u16)
                     .width(Length::Fill);
             }
@@ -268,7 +181,6 @@ pub fn submit_group<'a>(
     let inner_column = Column::new()
         .push(title)
         .push(info)
-        .push(feedback)
         .align_items(alignment::Alignment::Start)
         .spacing(Sizes::Sm as u16)
         .padding(Sizes::Sm as u16)
@@ -280,7 +192,12 @@ pub fn submit_group<'a>(
         Column::new()
             .push(inner_column)
             .push(button)
-            .align_items(alignment::Alignment::Center)
+            .push(
+                Column::new()
+                    .push(feedback)
+                    .spacing(Sizes::Sm as u16)
+                    .padding(Sizes::Sm as u16),
+            )
             .padding(Sizes::Md as u16)
             .spacing(Sizes::Md as u16),
     )
@@ -288,20 +205,63 @@ pub fn submit_group<'a>(
 }
 
 /// todo: Style the pick list more.
-pub fn message_group<'a>(options: Vec<String>, selected: String) -> Element<'a, Message> {
-    let from_input = select_group(
-        "From".to_string(),
-        options.clone(),
-        selected.clone(),
-        |value| Message::Execution(view::Execution::FromAddressChanged(value)),
-    );
+pub fn message_group<'a>(
+    options_from: &ContactList,
+    selected_from: Option<String>,
+    options_to: &ContactList,
+    selected_to: Option<String>,
+) -> Element<'a, Message> {
+    // Build a reverse map, so we can easily look up the address from the label.
+    let from_map: HashMap<String, Address> = options_from
+        .get_all()
+        .iter()
+        .map(|(key, contact)| (contact.label.clone(), key.clone().clone()))
+        .collect();
 
-    let to_input = select_group(
-        "To".to_string(),
-        options.clone(),
-        selected.clone(),
-        |value| Message::Execution(view::Execution::ToAddressChanged(value)),
-    );
+    // Get the labels, which are now the keys.
+    let from_labels: Vec<String> = from_map.keys().cloned().collect();
+
+    // Try to get the selected value as a label from the options.
+    let from = options_from.try_get(&selected_from.unwrap_or_default());
+    let from = match from {
+        Ok(from) => Some(from.label.clone()),
+        Err(_) => None,
+    };
+
+    let from_input = select_group("From".to_string(), from_labels, from, move |label| {
+        let value = from_map.get(&label);
+        let value = match value {
+            Some(value) => value.clone(),
+            None => Address::default(),
+        };
+        FormMessage::ChangeFrom(address_to_string(&value)).into()
+    });
+
+    // Build a reverse map, so we can easily look up the address from the label.
+    let to_map: HashMap<String, Address> = options_to
+        .get_all()
+        .iter()
+        .map(|(key, contact)| (contact.label.clone(), key.clone().clone()))
+        .collect();
+
+    // Get the labels, which are now the keys.
+    let to_labels: Vec<String> = to_map.keys().cloned().collect();
+
+    // Try to get the selected value as a label from the options.
+    let to = options_to.try_get(&selected_to.unwrap_or_default());
+    let to = match to {
+        Ok(to) => Some(to.label.clone()),
+        Err(_) => None,
+    };
+
+    let to_input = select_group("To".to_string(), to_labels, to, move |label| {
+        let value = to_map.get(&label);
+        let value = match value {
+            Some(value) => value.clone(),
+            None => Address::default(),
+        };
+        FormMessage::ChangeTo(address_to_string(&value)).into()
+    });
 
     Card::new(
         Column::new()
@@ -317,20 +277,47 @@ pub fn message_group<'a>(options: Vec<String>, selected: String) -> Element<'a, 
 
 /// Renders a target contract selection field and an input field for the amount.
 pub fn data_group<'a>(
-    options: Vec<String>,
-    selected: String,
+    options: &ContactList,
+    selected: Option<String>,
     input_value: Option<String>,
     input_placeholder: String,
 ) -> Element<'a, Message> {
-    let contract_group = select_group("Contract".to_string(), options, selected, |value| {
-        Message::Execution(view::Execution::ToAddressChanged(value))
-    });
+    // Build a reverse map, so we can easily look up the address from the label.
+    let contract_map: HashMap<String, Address> = options
+        .get_all()
+        .iter()
+        .map(|(key, contact)| (contact.label.clone(), key.clone().clone()))
+        .collect();
+
+    // Get the labels, which are now the keys.
+    let contract_labels: Vec<String> = contract_map.keys().cloned().collect();
+
+    // Try to get the selected value as a label from the options.
+    let contract = options.try_get(&selected.unwrap_or_default());
+    let contract = match contract {
+        Ok(contract) => Some(contract.label.clone()),
+        Err(_) => None,
+    };
+
+    let contract_group = select_group(
+        "Contract".to_string(),
+        contract_labels,
+        contract,
+        move |label| {
+            let value = contract_map.get(&label);
+            let value = match value {
+                Some(value) => value.clone(),
+                None => Address::default(),
+            };
+            FormMessage::ChangeTarget(address_to_string(&value)).into()
+        },
+    );
 
     let amount_group = input_group(
         "Amount".to_string(),
         input_value,
         input_placeholder,
-        |value| Message::Execution(view::Execution::AmountChanged(value)),
+        |value| FormMessage::ChangeAmount(value).into(),
     );
 
     let info_container = Container::new(
@@ -367,16 +354,16 @@ pub fn data_group<'a>(
 }
 
 pub fn summary_group<'a>(
-    selected_to: String,
-    selected_target: String,
-    input_value: String,
+    selected_to: Option<String>,
+    selected_target: Option<String>,
+    input_value: Option<String>,
 ) -> Element<'a, Message> {
     let title = h3("Summary".to_string());
 
     let table = summary_table(vec![
-        ("From".to_string(), selected_to),
-        ("To".to_string(), selected_target),
-        ("Amount".to_string(), input_value),
+        ("From".to_string(), selected_to.unwrap_or_default()),
+        ("To".to_string(), selected_target.unwrap_or_default()),
+        ("Amount".to_string(), input_value.unwrap_or_default()),
     ]);
 
     let label_text = Row::new()
