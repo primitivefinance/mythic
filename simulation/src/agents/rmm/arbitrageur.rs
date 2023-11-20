@@ -157,7 +157,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     .await?;
 
                 info!("got input: {:?}", input);
-                if input < 0.into() {
+                if input <= 0.into() {
                     return Ok(());
                 }
 

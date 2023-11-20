@@ -163,6 +163,10 @@ impl ArbitrageStrategy for RmmStrategy {
             I256::from_raw(tau),
         );
 
+        debug!("sigma here: {}", sigma);
+        debug!("strike here: {}", strike_price);
+        debug!("tau here: {}", tau);
+
         let (reserve_x, reserve_y) = get_reserves(self).await?;
         let (reserve_x, reserve_y) = (I256::from_raw(reserve_x), I256::from_raw(reserve_y));
         debug!("reserve_x: {}", reserve_x);
@@ -184,6 +188,9 @@ impl ArbitrageStrategy for RmmStrategy {
         )
         .await?;
         debug!("dy: {}", dy);
+        if dy <= 0.into() {
+            return Ok(0.into());
+        }
         Ok(dy.into_raw())
     }
 

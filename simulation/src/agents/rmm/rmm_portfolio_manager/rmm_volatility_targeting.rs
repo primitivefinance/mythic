@@ -92,18 +92,19 @@ impl RmmPortfolioManager for RmmVolatilityTargetingStrategist {
             return Ok(());
         }
         let portfolio_rv = self.portfolio_rv.last().unwrap().0;
-        debug!("portfolio_rv: {}", portfolio_rv);
+        info!("portfolio_rv: {}", portfolio_rv);
         let rv_difference = portfolio_rv - self.target_volatility;
         let current_strike = self.rmm.strike_price().call().await?;
         let current_strike_float = format_ether(current_strike).parse::<f64>().unwrap();
         // let strike_change = self.sensitivity * rv_difference;
-        debug!("current strike float: {}", current_strike_float);
+        info!("current strike float: {}", current_strike_float);
         let mut new_strike = current_strike_float;
         if portfolio_rv > self.target_volatility {
-            new_strike += 0.01;
+            new_strike -= 0.001;
         } else {
-            new_strike -= 0.01;
+            new_strike += 0.001;
         }
+        info!("new strike float: {}", new_strike);
         self.rmm
             .set_strike_price(
                 parse_ether(new_strike.to_string()).unwrap(),
