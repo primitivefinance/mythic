@@ -263,7 +263,9 @@ impl Terminal {
 
         // Triggers a step, which will start the run loop.
         Command::perform(async { spawn().instrument(terminal_span()).await }, |res| {
-            Message::Simulation(app::Simulation::Spawned(res))
+            app::Message::WindowsMessage(app::WindowsMessage::Simulation(app::Simulation::Spawned(
+                res,
+            )))
         })
     }
 
@@ -304,7 +306,9 @@ impl Terminal {
                         // value!
                         if finished_path {
                             tracing::trace!("Simulation world finished!");
-                            return Message::Simulation(app::Simulation::Completed);
+                            return app::Message::WindowsMessage(app::WindowsMessage::Simulation(
+                                app::Simulation::Completed,
+                            ));
                         }
 
                         return Message::View(view::Message::Data(view::Data::UpdateWatchedValue(
@@ -471,26 +475,7 @@ impl State for Terminal {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Data(msg) => match msg {
-                app::Data::ProcessTracer => {
-                    while let Ok(log) = self.receiver.lock().unwrap().try_recv() {
-                        // Define the maximum number of logs
-                        const MAX_LOGS: usize = 100;
-
-                        // Push the new log
-                        self.data_feed.push_back(log);
-
-                        // If the number of data_feed exceeds the maximum, remove the oldest one
-                        if self.data_feed.len() > MAX_LOGS {
-                            self.data_feed.pop_front();
-                        }
-                    }
-
-                    Command::none()
-                }
-            },
-
-            Message::Simulation(msg) => match msg {
+            Message::WindowsMessage(app::WindowsMessage::Simulation(msg)) => match msg {
                 app::Simulation::Spawned(world_manager) => {
                     match world_manager {
                         Ok(world_manager) => {
@@ -526,6 +511,11 @@ impl State for Terminal {
                     view::Data::LogTrace => {
                         trigger_debug_trace();
                         println!("Logs: {:?}", self.data_feed.clone());
+                        Command::none()
+                    }
+                    view::Data::AppEvent => {
+                        // Cannot  use trace here.
+                        // get the app logs from the main app
                         Command::none()
                     }
                     view::Data::UpdateWatchedValue(value) => {
@@ -567,7 +557,7 @@ impl State for Terminal {
 
     fn subscription(&self) -> Subscription<Message> {
         let process_tracer_subscription = time::every(Duration::from_millis(100))
-            .map(|_| Message::Data(app::Data::ProcessTracer))
+            .map(|_| Message::StreamsMessage(app::StreamsMessage::Data(app::Data::ProcessTracer)))
             .into();
         let mut subs = vec![process_tracer_subscription];
 

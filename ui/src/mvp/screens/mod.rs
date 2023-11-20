@@ -2,6 +2,7 @@
 use super::{app::Message, *};
 
 pub mod address_book;
+pub mod empty;
 pub mod execution;
 pub mod terminal;
 
@@ -20,6 +21,10 @@ where
     }
 
     fn load(&self) -> Command<Message> {
+        Command::none()
+    }
+
+    fn exit(&mut self) -> Command<Message> {
         Command::none()
     }
 }
@@ -46,5 +51,9 @@ impl Screen {
 
     pub fn load(&self) -> Command<Message> {
         self.0.load()
+    }
+
+    pub fn exit(&mut self) -> Command<Message> {
+        self.0.exit()
     }
 }

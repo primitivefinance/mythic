@@ -194,7 +194,9 @@ impl Execution {
         self.checkpoint_step = TransactionSteps::Start;
 
         Command::perform(async { Ok::<(), ()>(()) }, |_| {
-            app::Message::Execution(app::Execution::Arrived(TransactionSteps::Start))
+            app::Message::WindowsMessage(app::WindowsMessage::Execution(app::Execution::Arrived(
+                TransactionSteps::Start,
+            )))
         })
     }
 
@@ -219,7 +221,9 @@ impl Execution {
         self.user_feedback_message = Some("Simulation in progress...".to_string());
 
         Command::perform(handle_simulate_scroll(scroll, forker), |res| {
-            app::Message::Execution(app::Execution::Simulated(res))
+            app::Message::WindowsMessage(app::WindowsMessage::Execution(app::Execution::Simulated(
+                res,
+            )))
         })
     }
 
@@ -240,7 +244,9 @@ impl Execution {
         self.user_feedback_message = Some("Sending transaction...".to_string());
 
         Command::perform(handle_execute_scroll(scroll, forker), |res| {
-            app::Message::Execution(app::Execution::Executed(res))
+            app::Message::WindowsMessage(app::WindowsMessage::Execution(app::Execution::Executed(
+                res,
+            )))
         })
     }
 
@@ -266,7 +272,7 @@ impl Execution {
         let _ = self.handle_load_storages();
 
         return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-            app::Message::Execution(app::Execution::Confirmed)
+            app::Message::WindowsMessage(app::WindowsMessage::Execution(app::Execution::Confirmed))
         });
     }
 
@@ -368,7 +374,9 @@ impl State for Execution {
                             }
 
                             return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                                app::Message::Execution(app::Execution::Arrived(route))
+                                app::Message::WindowsMessage(app::WindowsMessage::Execution(
+                                    app::Execution::Arrived(route),
+                                ))
                             });
                         }
 
@@ -387,7 +395,9 @@ impl State for Execution {
 
                             // Route to the next step.
                             return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                                app::Message::Execution(app::Execution::Arrived(next_step))
+                                app::Message::WindowsMessage(app::WindowsMessage::Execution(
+                                    app::Execution::Arrived(next_step),
+                                ))
                             });
                         }
                         // todo: probably remove in favor of route...
@@ -430,10 +440,7 @@ impl State for Execution {
 
                 Command::none()
             }
-            Message::Simulation(_) => Command::none(),
-            Message::Data(_) => Command::none(),
-            Message::AddressBook(_) => Command::none(),
-            Message::Execution(msg) => match msg {
+            Message::WindowsMessage(app::WindowsMessage::Execution(msg)) => match msg {
                 // todo: routing needs to be validated.
                 app::Execution::Arrived(step) => {
                     self.step = step.clone();
@@ -489,8 +496,8 @@ impl State for Execution {
 
                     // Finally, route to the confirmed step.
                     return Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                        app::Message::Execution(app::Execution::Arrived(
-                            TransactionSteps::Confirmed,
+                        app::Message::WindowsMessage(app::WindowsMessage::Execution(
+                            app::Execution::Arrived(TransactionSteps::Confirmed),
                         ))
                     });
                 }

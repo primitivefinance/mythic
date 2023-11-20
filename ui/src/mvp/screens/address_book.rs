@@ -62,7 +62,6 @@ impl AddressBookScreen {
 impl State for AddressBookScreen {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::AddressBook(_) => Command::none(),
             Message::View(msg) => match msg {
                 view::Message::AddressBook(msg) => match msg {
                     view::AddressBookViewMessage::ChangeDisplay(display) => {
@@ -153,9 +152,13 @@ impl State for AddressBookScreen {
                                     return Command::perform(
                                         async move { Ok::<(), ()>(()) },
                                         move |_| {
-                                            Message::AddressBook(AddressBookMessage::Add(
-                                                label, validated, category,
-                                            ))
+                                            Message::StorageMessage(
+                                                app::StorageMessage::AddressBook(
+                                                    AddressBookMessage::Add(
+                                                        label, validated, category,
+                                                    ),
+                                                ),
+                                            )
                                         },
                                     );
                                 }

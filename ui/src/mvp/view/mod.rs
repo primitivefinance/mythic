@@ -14,7 +14,7 @@ use self::{
 };
 use super::{
     api::contacts,
-    components::{containers::*, *},
+    components::{containers::*, exit::create_exit_component, *},
     screens::{address_book::AddressBookDisplay, execution::TransactionSteps},
     terminal::{StateSubscription, StateSubscriptionStore},
     tracer::{AppEventLayer, AppEventLog},
@@ -44,12 +44,15 @@ pub enum Data {
     LogTrace,
     // todo: this needs a refactor
     UpdateWatchedValue(StateSubscriptionStore),
+    AppEvent,
 }
 
 /// Root message for the Terminal component.
 #[derive(Debug, Clone)]
 pub enum Message {
     Empty,
+    Exit,
+    ConfirmExit,
     Simulation(control::Operation),
     Settings(Settings),
     Data(Data),
@@ -129,6 +132,7 @@ pub enum Page {
     Terminal,
     Execute,
     AddressBook,
+    Exit,
 }
 
 impl Page {
@@ -137,6 +141,7 @@ impl Page {
             Page::Terminal => "Terminal".to_string(),
             Page::Execute => "Execute".to_string(),
             Page::AddressBook => "Address Book".to_string(),
+            Page::Exit => "Exit".to_string(),
         }
     }
 }
@@ -167,6 +172,12 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
             "Address Book".to_string(),
             Message::Page(Page::AddressBook),
             menu == &Page::AddressBook,
+        ),
+        (
+            Icon::XSquare,
+            "Exit".to_string(),
+            Message::Page(Page::Exit),
+            menu == &Page::Exit,
         ),
     ];
 
