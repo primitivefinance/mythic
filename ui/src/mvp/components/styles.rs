@@ -86,20 +86,14 @@ pub const CYAN_500: Color = Color::from_rgb(
     0xfd as f32 / 255.0,
 );
 
-pub const DISABLED_COLOR: Color = Color::from_rgba(
-    0x41 as f32 / 255.0,
-    0x51 as f32 / 255.0,
-    0xE4 as f32 / 255.0,
-    0.25,
-);
-
 pub const PRIMARY_COLOR: Color = BLUE_500;
 pub const SECONDARY_COLOR: Color = CYAN_500;
 pub const PRIMARY_LABEL_COLOR: Color = Color::WHITE;
 pub const SECONDARY_LABEL_COLOR: Color = GRAY_1000;
 pub const TERTIARY_LABEL_COLOR: Color = GRAY_800;
 pub const QUATERNARY_LABEL_COLOR: Color = GRAY_600;
-pub const DISABLED_TEXT_GRAY: Color = QUATERNARY_LABEL_COLOR;
+pub const DISABLED_TEXT_GRAY: Color = GRAY_900;
+pub const DISABLED_COLOR: Color = QUATERNARY_LABEL_COLOR;
 
 // Main components
 pub const BACKGROUND: Color = GRAY_100;

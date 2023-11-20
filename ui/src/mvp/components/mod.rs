@@ -70,15 +70,15 @@ pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Ren
 
 /// Renders a nice blue button.
 pub fn action_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
-    let content = text(label)
-        .size(16)
-        .horizontal_alignment(iced::alignment::Horizontal::Center)
-        .vertical_alignment(iced::alignment::Vertical::Center)
-        .style(Color::WHITE);
+    // todo: need to specify almost every style because the default button style
+    // doesn't work. we can just update the custom button style struct we made
+    // to use our own default style.
     let action_button_style = CustomButtonStyle::new()
+        .text_color(Color::WHITE)
         .border_radius(5.0.into())
         .background_color(Color::from_rgb8(35, 88, 226))
         .hovered()
+        .text_color(Color::WHITE)
         .border_radius(5.0.into())
         .background_color(Color::from_rgb8(88, 135, 255))
         .pressed()
@@ -88,7 +88,12 @@ pub fn action_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
         .border_radius(5.0.into())
         .background_color(DISABLED_COLOR)
         .text_color(DISABLED_TEXT_GRAY);
-    button(content).style(action_button_style.as_custom())
+    button(
+        text(label)
+            .horizontal_alignment(alignment::Horizontal::Center)
+            .width(Length::Fill),
+    )
+    .style(action_button_style.as_custom())
 }
 
 /// Renders a nice red button.

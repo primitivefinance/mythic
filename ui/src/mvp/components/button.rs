@@ -34,7 +34,7 @@ impl CustomButtonStyle {
             border_radius: Default::default(),
             border_width: 0.0,
             border_color: Default::default(),
-            text_color: Default::default(),
+            text_color: Color::WHITE,
         };
         Self {
             active: default,
