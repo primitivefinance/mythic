@@ -21,7 +21,7 @@ decimals = 18
 # The seed to use (optional)
 seed = 2
 # The number of steps in the process
-num_steps = 10 
+num_steps = 10000
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset
@@ -29,7 +29,7 @@ initial_price.fixed = 1.0
 # The start time of the process
 t_0.fixed = 0.0
 # The end time of the process
-t_n.fixed = 0.01
+t_n.fixed = 1.0
 ## Parameters for the type of process to use.
 # The drift for GBM
 process.GBM.drift.fixed = 0.1

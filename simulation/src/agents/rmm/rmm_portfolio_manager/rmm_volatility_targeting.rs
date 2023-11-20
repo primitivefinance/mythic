@@ -87,38 +87,30 @@ impl RmmVolatilityTargetingStrategist {
 
 #[async_trait::async_trait]
 impl RmmPortfolioManager for RmmVolatilityTargetingStrategist {
-    async fn execute_rebalance(&mut self) -> Result<()> {
-        // if self.portfolio_rv.len() < 2 {
-        //     return Ok(());
-        // }
-        // let portfolio_rv = self.portfolio_rv.last().unwrap().0;
-        // debug!("portfolio_rv: {}", portfolio_rv);
-        // let rv_difference = portfolio_rv - self.target_volatility;
-        // let current_weight_x = self.g3m.weight_x().call().await?;
-        // let current_weight_float =
-        // format_ether(current_weight_x).parse::<f64>().unwrap();
-        // let weight_change = self.sensitivity * rv_difference;
-        // debug!("current_weight_float: {}", current_weight_float);
-        // let mut weight_delta = weight_change;
-        // let mut new_weight = current_weight_float;
-        // if portfolio_rv < self.target_volatility {
-        //     weight_delta = weight_change.min(self.max_weight_change);
-        //     new_weight -= weight_delta;
-        //     new_weight = new_weight.min(0.98);
-        // } else {
-        //     weight_delta = (weight_change).min(self.max_weight_change);
-        //     new_weight -= weight_delta;
-        //     new_weight = new_weight.max(0.02);
-        // }
-        // debug!("new weight: {}", new_weight);
-        // debug!("weight delta: {}", weight_delta);
-        // self.g3m
-        //     .set_weight_x(
-        //         parse_ether(new_weight.to_string()).unwrap(),
-        //         U256::from(self.next_update_timestamp),
-        //     )
-        //     .send()
-        //     .await?;
+    async fn execute_smooth_rebalance(&mut self) -> Result<()> {
+        if self.portfolio_rv.len() < 2 {
+            return Ok(());
+        }
+        let portfolio_rv = self.portfolio_rv.last().unwrap().0;
+        debug!("portfolio_rv: {}", portfolio_rv);
+        let rv_difference = portfolio_rv - self.target_volatility;
+        let current_strike = self.rmm.strike_price().call().await?;
+        let current_strike_float = format_ether(current_strike).parse::<f64>().unwrap();
+        // let strike_change = self.sensitivity * rv_difference;
+        debug!("current strike float: {}", current_strike_float);
+        let mut new_strike = current_strike_float;
+        if portfolio_rv > self.target_volatility {
+            new_strike += 0.01;
+        } else {
+            new_strike -= 0.01;
+        }
+        self.rmm
+            .set_strike_price(
+                parse_ether(new_strike.to_string()).unwrap(),
+                U256::from(self.next_update_timestamp),
+            )
+            .send()
+            .await?;
         Ok(())
     }
     fn rmm(&self) -> &RMM<RevmMiddleware> {
@@ -129,30 +121,26 @@ impl RmmPortfolioManager for RmmVolatilityTargetingStrategist {
 #[async_trait::async_trait]
 impl Agent for RmmVolatilityTargetingStrategist {
     async fn step(&mut self) -> Result<()> {
-        // let timestamp = self.client.get_block_timestamp().await?.as_u64();
-        // let asset_price =
-        // format_ether(self.lex.price().call().await?).parse::<f64>()?;
-        // let reserve_x =
-        //     format_ether(self.g3m.reserve_x_without_precision().call().await?).
-        // parse::<f64>()?; let reserve_y =
-        //     format_ether(self.g3m.reserve_y_without_precision().call().await?).
-        // parse::<f64>()?; let portfolio_price = reserve_x * asset_price +
-        // reserve_y;
+        let timestamp = self.client.get_block_timestamp().await?.as_u64();
+        let asset_price = format_ether(self.lex.price().call().await?).parse::<f64>()?;
+        let reserve_x = format_ether(self.rmm.reserve_x().call().await?).parse::<f64>()?;
+        let reserve_y = format_ether(self.rmm.reserve_y().call().await?).parse::<f64>()?;
+        let portfolio_price = reserve_x * asset_price + reserve_y;
 
-        // if self.portfolio_prices.is_empty() {
-        //     info!("portfolio_price: {}", portfolio_price);
-        //     self.portfolio_prices.push((portfolio_price, 0));
-        //     self.asset_prices.push((asset_price, 0));
-        // }
+        if self.portfolio_prices.is_empty() {
+            info!("portfolio_price: {}", portfolio_price);
+            self.portfolio_prices.push((portfolio_price, 0));
+            self.asset_prices.push((asset_price, 0));
+        }
 
-        // if timestamp >= self.next_update_timestamp {
-        //     self.next_update_timestamp = timestamp + self.update_frequency;
-        //     debug!("portfolio_price: {}", portfolio_price);
-        //     self.asset_prices.push((asset_price, timestamp));
-        //     self.portfolio_prices.push((portfolio_price, timestamp));
-        //     self.calculate_rv()?;
-        //     self.execute_smooth_rebalance().await?;
-        // }
+        if timestamp >= self.next_update_timestamp {
+            self.next_update_timestamp = timestamp + self.update_frequency;
+            debug!("portfolio_price: {}", portfolio_price);
+            self.asset_prices.push((asset_price, timestamp));
+            self.portfolio_prices.push((portfolio_price, timestamp));
+            self.calculate_rv()?;
+            self.execute_smooth_rebalance().await?;
+        }
         Ok(())
     }
 

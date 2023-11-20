@@ -188,17 +188,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                 )
                 .await?;
 
-                let output_rust = compute_output_x_given_y_rust(
-                    to_float(reserve_x),
-                    to_float(reserve_y),
-                    to_float(delta_y),
-                    to_float(liquidity),
-                    to_float(0.into()),
-                    to_float(strike_price),
-                    to_float(sigma),
-                    to_float(tau),
-                );
-
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
 
                 let output = tx.send().await;

@@ -7,7 +7,7 @@ pub mod rmm_volatility_targeting;
 
 #[async_trait::async_trait]
 pub trait RmmPortfolioManager: Agent {
-    async fn execute_rebalance(&mut self) -> Result<()>;
+    async fn execute_smooth_rebalance(&mut self) -> Result<()>;
     fn rmm(&self) -> &RMM<RevmMiddleware>;
 }
 
@@ -134,8 +134,8 @@ impl Agent for RmmPortfolioManagerType {
 
 #[async_trait::async_trait]
 impl RmmPortfolioManager for RmmPortfolioManagerType {
-    async fn execute_rebalance(&mut self) -> Result<()> {
-        self.0.execute_rebalance().await
+    async fn execute_smooth_rebalance(&mut self) -> Result<()> {
+        self.0.execute_smooth_rebalance().await
     }
 
     fn rmm(&self) -> &RMM<RevmMiddleware> {
