@@ -57,6 +57,7 @@ directories-next = "2.0.0"
 criterion = "0.5.1"
 
 [dependencies]
+criterion.workspace = true
 simulation.workspace = true
 cfmm_math.workspace = true
 analysis.workspace = true
@@ -76,3 +77,8 @@ statrs.workspace = true
 mdbook = "0.4.35"
 cargo-make = "0.37.2"
 mdbook-katex = "0.5.8"
+
+[[bench]]
+name = "ui_benchmark"
+harness = false
+path = "benches/ui_benchmarks.rs"
