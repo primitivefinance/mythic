@@ -127,7 +127,7 @@ pub fn contact_directory<'a>(routes: Vec<(Icon, String, Message, bool)>) -> Colu
     let mut rows: Vec<Element<'a, Message>> = vec![Row::new()
         .push(
             Column::new()
-                .push(text_label("Contact Lists".to_string()))
+                .push(highlight_label("Contact Lists".to_string()))
                 .align_items(alignment::Alignment::Center),
         )
         .padding(Sizes::Sm as u16)
@@ -155,7 +155,7 @@ pub fn contact_directory<'a>(routes: Vec<(Icon, String, Message, bool)>) -> Colu
             .push(h3(item));
 
         let bg_color = match current {
-            true => TABLE_COLUMN_BG_COLOR,
+            true => SELECTED_CONTAINER_COLOR,
             false => Color::TRANSPARENT,
         };
 
@@ -209,7 +209,7 @@ pub fn add_contact_card<'a>(form: Form) -> Element<'a, Message> {
         |value| Message::AddressBook(AddressBookViewMessage::ClassChanged(value)),
     );
 
-    let instructions = text_label(
+    let instructions = highlight_label(
         "Enter the label and address for the new contact, and select the category.".to_string(),
     );
     let mut info_column = Column::new()

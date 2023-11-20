@@ -3,63 +3,63 @@
 use iced::{Color, Font};
 
 pub const GRAY_100: Color = Color::from_rgb(
-    0x11 as f32 / 255.0,
-    0x11 as f32 / 255.0,
-    0x11 as f32 / 255.0,
+    0x15 as f32 / 255.0,
+    0x15 as f32 / 255.0,
+    0x15 as f32 / 255.0,
 );
 
 pub const GRAY_200: Color = Color::from_rgb(
-    0x16 as f32 / 255.0,
-    0x16 as f32 / 255.0,
-    0x16 as f32 / 255.0,
+    0x19 as f32 / 255.0,
+    0x1A as f32 / 255.0,
+    0x1D as f32 / 255.0,
 );
 
 pub const GRAY_300: Color = Color::from_rgb(
     0x1c as f32 / 255.0,
-    0x1c as f32 / 255.0,
-    0x1c as f32 / 255.0,
+    0x1d as f32 / 255.0,
+    0x20 as f32 / 255.0,
 );
 
 pub const GRAY_400: Color = Color::from_rgb(
-    0x22 as f32 / 255.0,
-    0x22 as f32 / 255.0,
-    0x22 as f32 / 255.0,
+    0x25 as f32 / 255.0,
+    0x27 as f32 / 255.0,
+    0x2D as f32 / 255.0,
 );
 
 pub const GRAY_500: Color = Color::from_rgb(
-    0x27 as f32 / 255.0,
-    0x27 as f32 / 255.0,
-    0x27 as f32 / 255.0,
+    0x2A as f32 / 255.0,
+    0x2E as f32 / 255.0,
+    0x3A as f32 / 255.0,
 );
 
 pub const GRAY_600: Color = Color::from_rgb(
-    0x2d as f32 / 255.0,
-    0x2d as f32 / 255.0,
-    0x2d as f32 / 255.0,
+    0x3B as f32 / 255.0,
+    0x41 as f32 / 255.0,
+    0x51 as f32 / 255.0,
 );
 
 pub const GRAY_700: Color = Color::from_rgb(
-    0x32 as f32 / 255.0,
-    0x32 as f32 / 255.0,
-    0x32 as f32 / 255.0,
+    0x54 as f32 / 255.0,
+    0x5c as f32 / 255.0,
+    0x74 as f32 / 255.0,
 );
 
 pub const GRAY_800: Color = Color::from_rgb(
-    0x38 as f32 / 255.0,
-    0x38 as f32 / 255.0,
-    0x38 as f32 / 255.0,
+    0x6d as f32 / 255.0,
+    0x77 as f32 / 255.0,
+    0x96 as f32 / 255.0,
 );
 
 pub const GRAY_900: Color = Color::from_rgb(
-    0x4c as f32 / 255.0,
-    0x4c as f32 / 255.0,
-    0x4c as f32 / 255.0,
+    0x84 as f32 / 255.0,
+    0x90 as f32 / 255.0,
+    0xb5 as f32 / 255.0,
 );
 
 pub const GRAY_1000: Color = Color::from_rgb(
-    0x60 as f32 / 255.0,
-    0x60 as f32 / 255.0,
-    0x60 as f32 / 255.0,
+    0x9D as f32 / 255.0,
+    0xAb as f32 / 255.0,
+    0xD4 as f32 / 255.0,
 );
 
 pub const BLUE_400: Color = Color::from_rgb(
@@ -70,14 +70,14 @@ pub const BLUE_400: Color = Color::from_rgb(
 
 pub const BLUE_500: Color = Color::from_rgb(
     0x00 as f32 / 255.0,
-    0x77 as f32 / 255.0,
-    0xff as f32 / 255.0,
+    0x4E as f32 / 255.0,
+    0xCA as f32 / 255.0,
 );
 
 pub const BLUE_600: Color = Color::from_rgb(
-    0x1a as f32 / 255.0,
-    0x85 as f32 / 255.0,
-    0xff as f32 / 255.0,
+    0x00 as f32 / 255.0,
+    0x4E as f32 / 255.0,
+    0xCA as f32 / 255.0,
 );
 
 pub const CYAN_500: Color = Color::from_rgb(
@@ -100,14 +100,24 @@ pub const SECONDARY_LABEL_COLOR: Color = GRAY_1000;
 pub const TERTIARY_LABEL_COLOR: Color = GRAY_800;
 pub const QUATERNARY_LABEL_COLOR: Color = GRAY_600;
 pub const DISABLED_TEXT_GRAY: Color = QUATERNARY_LABEL_COLOR;
+
+// Main components
 pub const BACKGROUND: Color = GRAY_100;
-pub const PANEL: Color = GRAY_300;
-pub const MODAL: Color = GRAY_500;
+pub const SIDEBAR_BG_COLOR: Color = GRAY_200;
+pub const CARD_BG_COLOR: Color = GRAY_400;
+pub const WINDOW_HEADER_COLOR: Color = GRAY_500;
+pub const INFO_BG_CONTAINER: Color = GRAY_500;
+
+// Element bg colors
 pub const BORDER_COLOR: Color = GRAY_800;
-pub const CARD_BG_COLOR: Color = GRAY_800;
-pub const INFO_BG_CONTAINER: Color = GRAY_700;
 pub const TABLE_COLUMN_BG_COLOR: Color = GRAY_900;
 pub const STROKE_COLOR: Color = GRAY_1000;
+pub const SELECTED_CONTAINER_COLOR: Color = GRAY_500;
+pub const HIGHLIGHTED_CONTAINER_COLOR: Color = GRAY_600;
+
+// Unused
+pub const MODAL: Color = GRAY_400;
+pub const PANEL: Color = GRAY_300;
 
 // pretty sure this breaks if they don't have daggersquare installed?
 pub const FONT_DAGGERSQUARE: Font = Font::with_name("DAGGERSQUARE");

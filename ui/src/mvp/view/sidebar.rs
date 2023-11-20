@@ -10,19 +10,19 @@ pub fn window_directory<'a>(windows: Vec<(Icon, String, Message, bool)>) -> Elem
                 .push(Space::with_width(Length::Fixed(Sizes::Xs as u32 as f32)))
                 .push(
                     Column::new()
-                        .push(text_label("Apps".to_string()))
+                        .push(secondary_label("Apps".to_string()))
                         .align_items(alignment::Alignment::Center),
                 )
                 .padding(Sizes::Sm as u16)
                 .spacing(Sizes::Md as u16)
                 .width(Length::Fill),
         )
-        .spacing(Sizes::Sm as u16)
+        .spacing(Sizes::Xs as u16)
         .align_items(alignment::Alignment::Center);
 
     for (icon, name, msg, selected) in windows {
         let style = match selected {
-            true => route_button_style(TABLE_COLUMN_BG_COLOR),
+            true => route_button_style(SELECTED_CONTAINER_COLOR),
             false => route_button_style(Color::TRANSPARENT),
         };
 

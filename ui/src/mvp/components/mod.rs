@@ -279,11 +279,15 @@ pub fn quaternary_label<'a>(value: String) -> Text<'a> {
 }
 
 /// todo: remove label item
-pub fn text_label<'a>(value: String) -> Text<'a> {
+pub fn highlight_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Xs)
         .style(SECONDARY_COLOR)
         .into()
+}
+
+pub fn highlight_secondary_label<'a>(value: String) -> Text<'a> {
+    text(value).size(FontSizes::Xs).style(BLUE_400).into()
 }
 
 pub fn with_font<'a>(value: Text<'a>) -> Text<'a> {

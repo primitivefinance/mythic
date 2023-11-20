@@ -174,8 +174,8 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
             menu == &Page::AddressBook,
         ),
         (
-            Icon::XSquare,
-            "Exit".to_string(),
+            Icon::X,
+            "Quit".to_string(),
             Message::Page(Page::Exit),
             menu == &Page::Exit,
         ),
@@ -185,12 +185,23 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
 
     Container::new(
         Column::new()
-            .push(title)
-            .push(apps)
-            .spacing(Sizes::Lg as u16)
-            .padding(Sizes::Xs as u16),
+            .push(
+                Column::new().push(title).push(
+                    Container::new(Column::new())
+                        .width(Length::Fill)
+                        .height(Length::Fixed(1.0))
+                        .style(ContainerBlackBg::theme()),
+                ),
+            )
+            .push(
+                Column::new()
+                    .push(apps)
+                    .spacing(Sizes::Lg as u16)
+                    .padding(Sizes::Xs as u16),
+            )
+            .spacing(Sizes::Md as u16),
     )
-    .style(MenuContainerTheme::theme())
+    .style(SidebarContainer::theme())
     .height(Length::Fill)
 }
 

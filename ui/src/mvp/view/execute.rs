@@ -195,8 +195,8 @@ pub fn confirmed<'a>(
     let title = h3("Execution Results".to_string());
     let table = state_deltas_table(review_diffs);
     let label_text = Row::new()
-        .push(text_label("As of block".to_string()))
-        .push(text_label(block.to_string()));
+        .push(highlight_label("As of block".to_string()))
+        .push(highlight_label(block.to_string()));
 
     let summary_card = summary_group(
         selected_to.clone(),
@@ -236,12 +236,12 @@ pub fn submit_group<'a>(
     checkpoint: TransactionSteps,
 ) -> Element<'a, Message> {
     let feedback = match feedback {
-        Some(msg) => h5(msg).style(SECONDARY_COLOR),
+        Some(msg) => highlight_label(msg),
         None => text(""),
     };
 
     let title = h2("Instructions".to_string());
-    let mut info = text_label(step.get_instructions());
+    let mut info = secondary_label(step.get_instructions());
     let mut button = action_button(step.get_cta())
         .padding(Sizes::Md as u16)
         .width(Length::Fill);
@@ -253,7 +253,7 @@ pub fn submit_group<'a>(
             // If we are hit the confirm step, then always render the button as "Exit"
             // stage.
             if checkpoint == TransactionSteps::Confirmed {
-                info = text_label(checkpoint.get_instructions());
+                info = secondary_label(checkpoint.get_instructions());
                 button = action_button(checkpoint.get_cta())
                     .on_press(Message::Execution(Execution::Restart))
                     .padding(Sizes::Md as u16)
@@ -339,13 +339,13 @@ pub fn data_group<'a>(
             .align_items(alignment::Alignment::Center)
             .push(
                 Column::new()
-                    .push(text_label("Contract".to_string()))
+                    .push(highlight_label("Contract".to_string()))
                     .align_items(alignment::Alignment::Start)
                     .width(Length::Fill),
             )
             .push(
                 Column::new()
-                    .push(text_label("0x42f0...ffff".to_string()))
+                    .push(highlight_label("0x42f0...ffff".to_string()))
                     .align_items(alignment::Alignment::End)
                     .width(Length::Fill),
             ),
@@ -380,8 +380,8 @@ pub fn summary_group<'a>(
     ]);
 
     let label_text = Row::new()
-        .push(text_label("As of block".to_string()))
-        .push(text_label("1".to_string()));
+        .push(highlight_label("As of block".to_string()))
+        .push(highlight_label("1".to_string()));
 
     Card::new(
         Column::new()
@@ -401,8 +401,8 @@ pub fn review_group<'a>(review_diffs: Option<StorageDiffs>) -> Element<'a, Messa
     let title = h3("Simulation Results".to_string());
     let table = state_deltas_table(review_diffs);
     let label_text = Row::new()
-        .push(text_label("As of block".to_string()))
-        .push(text_label("1".to_string()));
+        .push(highlight_label("As of block".to_string()))
+        .push(highlight_label("1".to_string()));
 
     Card::new(
         Column::new()
@@ -465,7 +465,7 @@ pub fn steps_group<'a>(steps: Vec<(Icon, String, Message, bool)>) -> Column<'a, 
             .push(h3(item));
 
         let bg_color = match current {
-            true => TABLE_COLUMN_BG_COLOR,
+            true => SELECTED_CONTAINER_COLOR,
             false => Color::TRANSPARENT,
         };
 

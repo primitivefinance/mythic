@@ -44,6 +44,28 @@ impl MenuContainerTheme {
 }
 
 /// For rendering anything placed on the background container.
+pub struct SidebarContainer;
+
+impl StyleSheet for SidebarContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: Some(iced::Background::Color(SIDEBAR_BG_COLOR)),
+            border_width: 1.0.into(),
+            border_color: Color::BLACK,
+            ..Default::default()
+        }
+    }
+}
+
+impl SidebarContainer {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(SidebarContainer))
+    }
+}
+
+/// For rendering anything placed on the background container.
 pub struct ScreenWindowContainer;
 
 impl StyleSheet for ScreenWindowContainer {
@@ -53,6 +75,8 @@ impl StyleSheet for ScreenWindowContainer {
         Appearance {
             background: Some(iced::Background::Color(PANEL)),
             border_radius: 9.0.into(),
+            border_width: 1.0.into(),
+            border_color: Color::BLACK,
             ..Default::default()
         }
     }
@@ -157,8 +181,10 @@ impl StyleSheet for WindowHeader {
 
     fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
         Appearance {
-            background: Some(iced::Background::Color(BORDER_COLOR)),
+            background: Some(iced::Background::Color(WINDOW_HEADER_COLOR)),
             border_radius: [9.0, 9.0, 0.0, 0.0].into(),
+            border_width: 1.0.into(),
+            border_color: Color::BLACK,
             ..Default::default()
         }
     }
@@ -254,7 +280,7 @@ impl StyleSheet for TableColumnContainer {
 
     fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
         Appearance {
-            background: Some(iced::Background::Color(TABLE_COLUMN_BG_COLOR)),
+            background: Some(iced::Background::Color(HIGHLIGHTED_CONTAINER_COLOR)),
             border_radius: self.border_radius,
             border_width: 1.0,
             border_color: STROKE_COLOR,
@@ -289,5 +315,24 @@ impl iced::widget::container::StyleSheet for Indicator {
 impl Indicator {
     pub fn theme() -> iced::theme::Container {
         iced::theme::Container::Custom(Box::from(Indicator))
+    }
+}
+
+pub struct ContainerBlackBg;
+
+impl iced::widget::container::StyleSheet for ContainerBlackBg {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Background::Color(Color::BLACK)),
+            ..Default::default()
+        }
+    }
+}
+
+impl ContainerBlackBg {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(ContainerBlackBg))
     }
 }
