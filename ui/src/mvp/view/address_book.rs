@@ -1,14 +1,11 @@
 use std::borrow::Cow;
 
-use iced::{
-    widget::{pick_list, PickList, Space},
-    Color,
-};
+use iced::Color;
 use iced_aw::{graphics::icons::icon_to_char, ICON_FONT};
 
 use super::{Message, *};
 use crate::mvp::{
-    api::contacts::{self, ContactList, Contacts},
+    api::contacts::{self, Contacts},
     components::{button::route_button_style, tables::summary_table},
     screens::address_book::{AddressBookDisplay, Form},
 };

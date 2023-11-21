@@ -11,20 +11,17 @@ use iced::{
     widget::{pick_list, Container},
     Color, Element, Renderer,
 };
-use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
+use iced_aw::Icon;
 use input::*;
 use styles::*;
 
 use self::{
-    containers::{CardContainer, MenuContainerTheme, ScreenWindowContainer, WindowHeader},
-    select::{custom_pick_list, CustomSelect},
+    containers::{CardContainer, ScreenWindowContainer, WindowHeader},
+    select::custom_pick_list,
 };
 // These components should return View messages.
 use super::{
-    view::{
-        control::{control_button, custom_icon_button},
-        Message, Page,
-    },
+    view::{control::custom_icon_button, Message, Page},
     *,
 };
 
@@ -115,6 +112,7 @@ pub fn action_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
 }
 
 /// Renders a nice red button.
+#[allow(dead_code)]
 pub fn destructive_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
     let content = text(label)
         .size(16)
@@ -152,7 +150,7 @@ pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
 
 /// Containers that groups multiple labeled data pieces under a label
 pub fn labeled_data_container<'a>(
-    label: String,
+    _label: String,
     data: Vec<(String, String)>,
     max_elements: usize,
 ) -> Element<'a, Message> {
@@ -184,34 +182,6 @@ pub fn labeled_data_row<'a>(
     content.spacing(Sizes::Lg as u16).into()
 }
 
-/// A container that spaces the elements in a row out so they fill the space.
-pub fn space_between_row<'a, T: Into<Element<'a, Message, Renderer>>>(
-    elements: Vec<T>,
-) -> Element<'a, Message> {
-    let mut content = Row::new()
-        .spacing(8)
-        .width(Length::Shrink)
-        .align_items(alignment::Alignment::Center);
-
-    // The first element should be wrapped in a column that has align_items with
-    // Start The last element should have the same but with End alignment.
-    // All other elements should have center alignment.
-    let len = elements.len();
-    for (i, element) in elements.into_iter().enumerate() {
-        content = content.push(
-            Column::new()
-                .align_items(match i {
-                    0 => alignment::Alignment::Start,
-                    _ if i == len - 1 => alignment::Alignment::End,
-                    _ => alignment::Alignment::Center,
-                })
-                .push(element.into())
-                .width(Length::FillPortion(1)),
-        );
-    }
-    content.into()
-}
-
 /// Creates a row of two 50% width columns with the given elements.
 /// todo: replace proper spacing and padding sizes.
 pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
@@ -235,22 +205,27 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
         .push(second_column)
 }
 
+#[allow(dead_code)]
 pub fn title_large<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::TitleLg).into()
 }
 
+#[allow(dead_code)]
 pub fn title_medium<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::TitleMd).into()
 }
 
+#[allow(dead_code)]
 pub fn title_small<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::TitleSm).into()
 }
 
+#[allow(dead_code)]
 pub fn body_text<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Md).into()
 }
 
+#[allow(dead_code)]
 pub fn caption<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Xs).into()
 }
@@ -263,22 +238,27 @@ pub fn h2<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Lg).into()
 }
 
+#[allow(dead_code)]
 pub fn h3<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Md).into()
 }
 
+#[allow(dead_code)]
 pub fn h4<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Sm).into()
 }
 
+#[allow(dead_code)]
 pub fn h5<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Xs).into()
 }
 
+#[allow(dead_code)]
 pub fn paragraph<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Sm).into()
 }
 
+#[allow(dead_code)]
 pub fn primary_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Sm)
@@ -286,6 +266,7 @@ pub fn primary_label<'a>(value: String) -> Text<'a> {
         .into()
 }
 
+#[allow(dead_code)]
 pub fn secondary_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Sm)
@@ -293,6 +274,7 @@ pub fn secondary_label<'a>(value: String) -> Text<'a> {
         .into()
 }
 
+#[allow(dead_code)]
 pub fn tertiary_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Sm)
@@ -300,6 +282,7 @@ pub fn tertiary_label<'a>(value: String) -> Text<'a> {
         .into()
 }
 
+#[allow(dead_code)]
 pub fn quaternary_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Sm)
@@ -308,6 +291,7 @@ pub fn quaternary_label<'a>(value: String) -> Text<'a> {
 }
 
 /// todo: remove label item
+#[allow(dead_code)]
 pub fn highlight_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Xs)
@@ -315,6 +299,7 @@ pub fn highlight_label<'a>(value: String) -> Text<'a> {
         .into()
 }
 
+#[allow(dead_code)]
 pub fn highlight_secondary_label<'a>(value: String) -> Text<'a> {
     text(value).size(FontSizes::Xs).style(BLUE_400).into()
 }
@@ -379,7 +364,7 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
 pub fn input_group<'a>(
     title: String,
     value: Option<String>,
-    placeholder: String,
+    _placeholder: String,
     on_change: impl Fn(Option<String>) -> Message + 'static,
 ) -> Column<'a, Message> {
     let title = h3(title.to_string());

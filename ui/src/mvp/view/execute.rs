@@ -204,6 +204,7 @@ pub fn submit_group<'a>(
 }
 
 /// todo: Style the pick list more.
+#[allow(suspicious_double_ref_op)]
 pub fn message_group<'a>(
     options_from: &ContactList,
     selected_from: Option<String>,
@@ -275,6 +276,7 @@ pub fn message_group<'a>(
 }
 
 /// Renders a target contract selection field and an input field for the amount.
+#[allow(suspicious_double_ref_op)]
 pub fn data_group<'a>(
     options: &ContactList,
     selected: Option<String>,

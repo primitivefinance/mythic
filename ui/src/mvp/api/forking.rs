@@ -300,7 +300,7 @@ impl Forker {
         let loaded_db = handle.join();
 
         tracing::debug!("Success Storage: {:?}", loaded_db);
-        let loaded_db = match loaded_db {
+        let _loaded_db = match loaded_db {
             Ok(loaded_db) => *db = loaded_db,
             Err(e) => {
                 tracing::error!("Error: {:?}", e);

@@ -3,7 +3,7 @@
 use iced::Color;
 use iced_aw::graphics::icons::{self, icon_to_char, ICON_FONT};
 
-use super::{components::button::*, Settings, *};
+use super::{components::button::*, *};
 
 /// Messages emitted from user interaction with agents.
 #[derive(Debug, Clone)]

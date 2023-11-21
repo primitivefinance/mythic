@@ -245,8 +245,9 @@ impl App {
         cmd
     }
 
+    #[allow(unused_assignments)]
     fn cache_update(&mut self, message: CacheMessage) -> Command<Message> {
-        let cmd = Command::none();
+        let mut cmd = Command::none();
         match message {
             // Cannot use tracing here.
             CacheMessage::AppEvent(log) => {
@@ -262,7 +263,7 @@ impl App {
                 }
 
                 // todo: figure out how to best pipe updated app state to windows...
-                return Command::perform(async {}, |_| {
+                cmd = Command::perform(async {}, |_| {
                     Message::View(view::Message::Data(view::Data::AppEvent))
                 });
             }
@@ -303,34 +304,37 @@ impl App {
         cmd
     }
 
+    #[allow(unused_assignments)]
     fn storage_update(&mut self, message: StorageMessage) -> Command<Message> {
-        let cmd = Command::none();
+        let mut cmd = Command::none();
         match message {
             StorageMessage::AddressBook(msg) => {
-                return self.contacts_update(msg);
+                cmd = self.contacts_update(msg);
             }
         }
         cmd
     }
 
-    fn chains_update(&mut self, message: ChainMessage) -> Command<Message> {
+    fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
         let cmd = Command::none();
         // todo: implement
         cmd
     }
 
     // Forwards window messages to the screen.
+    #[allow(unused_assignments)]
     fn windows_update(&mut self, message: WindowsMessage) -> Command<Message> {
         let mut cmd = Command::none();
         match message {
             WindowsMessage::Switch(route) => {
-                return self.switch_window(&route);
+                cmd = self.switch_window(&route);
             }
             _ => cmd = self.windows.screen.update(Message::WindowsMessage(message)),
         }
         cmd
     }
 
+    #[allow(unreachable_patterns)]
     fn switch_window(&mut self, navigate_to: &Page) -> Command<Message> {
         let exit_cmd = self.windows.screen.exit();
 

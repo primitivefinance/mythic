@@ -1,32 +1,24 @@
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, HashMap};
 
 use ethers::utils::format_ether;
-use iced::widget::{checkbox, Column, Container, Row};
+use iced::widget::{Column, Container, Row};
 use iced_aw::Icon;
 use simulation::agents::SubscribedData;
 
-use self::{
-    control::control_panel,
-    event::{mock_event_groups, EventFeed},
-    feed::Feed,
-    monitor::labeled_data_cards,
-    sidebar::window_directory,
-};
+use self::{control::control_panel, monitor::labeled_data_cards, sidebar::window_directory};
 use super::{
     api::contacts,
     components::{containers::*, *},
     screens::address_book::AddressBookDisplay,
     terminal::{StateSubscription, StateSubscriptionStore},
-    tracer::{AppEventLayer, AppEventLog},
+    tracer::AppEventLayer,
     *,
 };
 
 pub mod address_book;
 pub mod agent;
 pub mod control;
-pub mod event;
 pub mod execute;
-pub mod feed;
 pub mod monitor;
 pub mod sidebar;
 
@@ -344,7 +336,7 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
 
     let mut monitored_groups = Column::new().spacing(Sizes::Md as u16);
 
-    for (world_id, world_data) in monitored_data.into_iter() {
+    for (_world_id, world_data) in monitored_data.into_iter() {
         let mut monitored_cards = Vec::new();
         for (_agent_name, agent) in world_data.into_iter() {
             monitored_cards.push(agent);

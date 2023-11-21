@@ -79,17 +79,6 @@ pub struct Progress {
 }
 
 impl Progress {
-    pub fn new() -> Self {
-        Self {
-            current: TransactionSteps::Start,
-            checkpoint: TransactionSteps::Start,
-            simulate_instant: None,
-            simulate_time: None,
-            execute_instant: None,
-            execute_time: None,
-        }
-    }
-
     /// Checks if we are currently at the checkpoint for deciding to progress or
     /// not.
     pub fn validate(&self) -> bool {
@@ -106,15 +95,6 @@ pub struct Fields {
 }
 
 impl Fields {
-    pub fn new() -> Self {
-        Self {
-            to: None,
-            from: None,
-            target: None,
-            amount: None,
-        }
-    }
-
     /// todo: leverage this validate more?
     pub fn validate(&self) -> bool {
         !self.to.is_none()
@@ -316,7 +296,6 @@ impl Form {
                 self.feedback = Some("Simulation in progress...".to_string());
 
                 // Get the current time
-                let now = Instant::now();
                 self.progress.simulate_instant = Some(Instant::now());
 
                 Command::none()

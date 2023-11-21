@@ -2,10 +2,7 @@
 
 use std::{borrow::Cow, rc::Rc};
 
-use iced::{
-    widget::pick_list::{self, *},
-    Background,
-};
+use iced::{widget::pick_list::*, Background};
 
 use super::*;
 
@@ -43,6 +40,7 @@ pub enum SelectState {
     Hovered,
 }
 
+#[allow(dead_code)]
 impl CustomSelect {
     pub fn new() -> Self {
         let default = Appearance {
@@ -61,16 +59,18 @@ impl CustomSelect {
         }
     }
 
+    #[allow(dead_code)]
     pub fn active(mut self) -> Self {
         self.current_state = SelectState::Active;
         self
     }
 
+    #[allow(dead_code)]
     pub fn hovered(mut self) -> Self {
         self.current_state = SelectState::Hovered;
         self
     }
-
+    #[allow(dead_code)]
     pub fn text_color(mut self, color: Color) -> Self {
         match self.current_state {
             SelectState::Active => self.active.text_color = color,
@@ -79,7 +79,7 @@ impl CustomSelect {
 
         self
     }
-
+    #[allow(dead_code)]
     pub fn placeholder_color(mut self, color: Color) -> Self {
         match self.current_state {
             SelectState::Active => self.active.placeholder_color = color,

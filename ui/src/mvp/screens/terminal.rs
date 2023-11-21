@@ -24,6 +24,7 @@ pub type StateSubscriptionStore = HashMap<u64, HashMap<String, StateSubscription
 
 pub struct Terminal {
     data_feed: VecDeque<AppEventLog>,
+    #[allow(dead_code)]
     receiver: Arc<Mutex<Receiver<tracer::AppEventLog>>>,
     world_manager: Arc<tokio::sync::Mutex<WorldManager>>,
     status: WorldManagerState,
@@ -457,10 +458,6 @@ pub struct StateSubscription {
 impl State for Terminal {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
         let state_data = self.state_data.clone();
-        let mut data = self.data_feed.clone();
-        if self.hide_firehoses {
-            data = VecDeque::new();
-        }
 
         view::app_layout(
             &view::Page::Terminal,

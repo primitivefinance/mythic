@@ -1,7 +1,7 @@
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
-    widget::{button, column, container, row, scrollable, text, Column, Row, Text},
+    widget::{button, container, scrollable, text, Column, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
@@ -118,6 +118,7 @@ impl Application for MVP {
         }
     }
 
+    #[allow(unreachable_patterns)]
     fn subscription(&self) -> Subscription<Message> {
         match &self.state {
             State::Loader(loader) => loader

@@ -23,7 +23,7 @@ impl State for EmptyScreen {
         Command::none()
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, _message: Message) -> Command<Message> {
         Command::none()
     }
 

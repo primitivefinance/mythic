@@ -1,8 +1,6 @@
 //! View components for Agents.
 
-use iced_aw::graphics::icons::{self};
-
-use super::{control::control_button, *};
+use super::*;
 
 pub fn agent_card<'a>(agent_data: Vec<(String, String)>, actions: bool) -> Element<'a, Message> {
     let mut content = Column::new().spacing(16);

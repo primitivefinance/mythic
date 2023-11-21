@@ -19,10 +19,7 @@ use std::{
     path::PathBuf,
 };
 
-use arbiter_core::{
-    environment::{builder::EnvironmentBuilder, cheatcodes},
-    middleware::RevmMiddleware,
-};
+use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
 use ethers::{
     abi::Token,
     types::{transaction::eip2718::TypedTransaction, Address},
@@ -31,7 +28,6 @@ use revm::{
     db::{CacheDB, EmptyDB, EmptyDBTyped},
     primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue},
 };
-use tokio::task::JoinHandle;
 
 use super::{
     forking::{Forker, IngestPayload},

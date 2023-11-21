@@ -3,21 +3,18 @@ pub mod processing;
 pub mod send;
 pub mod utils;
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::{self, collections::HashMap};
 
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use ethers::{
     abi::{Token, Tokenizable},
-    types::{Address, U256},
+    types::Address,
 };
 use iced::{Command, Element, Subscription};
 use revm::primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue};
 
 use self::{
-    form::{FormMessage, TransactionSteps},
+    form::FormMessage,
     processing::StorageDiffs,
     utils::{empty_async, get_artifact_path},
 };
@@ -28,13 +25,11 @@ use super::{
 };
 use crate::mvp::{
     api::{
-        contacts::{self, ContactList, ContactValue, Contacts},
+        contacts::{self, ContactList},
         forking::Forker,
-        local::Local,
-        scroll::{Scroll, UnsealedTransaction},
+        scroll::Scroll,
     },
     app::{Chains, Storage},
-    units::address_to_string,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -47,6 +42,7 @@ pub struct Cache {
 }
 
 pub struct Execution {
+    #[allow(dead_code)]
     chains: Chains,
     storage: Storage,
     form: form::Form,
