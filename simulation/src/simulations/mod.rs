@@ -1,4 +1,4 @@
-use std::{env, path::Path};
+use std::{collections::HashMap, env, path::Path};
 
 use arbiter_core::environment::builder::BlockSettings;
 use serde_json::error;
@@ -19,10 +19,96 @@ pub mod stable_portfolio;
 use settings::parameters::Parameterized;
 use tokio::runtime::Builder;
 
+pub struct World {
+    pub simulations: HashMap<String, Simulation>,
+}
+
+pub struct WorldBuilder {
+    simulations: Option<HashMap<String, Simulation>>,
+}
+
+impl Default for SimulationBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Default for WorldBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl WorldBuilder {
+    pub fn new() -> WorldBuilder {
+        WorldBuilder { simulations: None }
+    }
+
+    pub fn simulations(&mut self, simulations: HashMap<String, Simulation>) -> &mut WorldBuilder {
+        self.simulations = Some(simulations);
+        self
+    }
+
+    pub fn build(&mut self) -> Result<World, &'static str> {
+        if self.simulations.is_none() {
+            return Err("Simulations not set");
+        }
+        Ok(World {
+            simulations: self.simulations.take().unwrap(),
+        })
+    }
+}
+
 pub struct Simulation {
     pub agents: Agents,
     pub steps: usize,
     environment: Environment,
+}
+pub struct SimulationBuilder {
+    agents: Option<Agents>,
+    steps: Option<usize>,
+    environment: Option<Environment>,
+}
+
+impl SimulationBuilder {
+    pub fn new() -> SimulationBuilder {
+        SimulationBuilder {
+            agents: None,
+            steps: None,
+            environment: None,
+        }
+    }
+
+    pub fn agents(&mut self, agents: Agents) -> &mut SimulationBuilder {
+        self.agents = Some(agents);
+        self
+    }
+
+    pub fn steps(&mut self, steps: usize) -> &mut SimulationBuilder {
+        self.steps = Some(steps);
+        self
+    }
+
+    pub fn environment(&mut self, environment: Environment) -> &mut SimulationBuilder {
+        self.environment = Some(environment);
+        self
+    }
+
+    pub fn build(&mut self) -> Result<Simulation, &'static str> {
+        if self.agents.is_none() {
+            return Err("Agents not set");
+        }
+        if self.steps.is_none() {
+            return Err("Steps not set");
+        }
+        if self.environment.is_none() {
+            return Err("Environment not set");
+        }
+        Ok(Simulation {
+            agents: self.agents.take().unwrap(),
+            steps: self.steps.take().unwrap(),
+            environment: self.environment.take().unwrap(),
+        })
+    }
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -70,7 +156,7 @@ impl SimulationType {
     }
 }
 
-pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
+pub fn from_config(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
     let cwd = env::current_dir().unwrap();
     let path = Path::new(cwd.to_str().unwrap());
     let path = path.join(config_path);
@@ -169,4 +255,39 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simulation_builder() {
+        let mut builder = SimulationBuilder::new();
+        let agents = Agents::new(); // Replace with your actual initialization
+        let steps = 10;
+        let environment = Environment::new(); // Replace with your actual initialization
+
+        builder.agents(agents);
+        builder.steps(steps);
+        builder.environment(environment);
+
+        let simulation = builder.build().unwrap();
+
+        assert_eq!(simulation.agents, agents);
+        assert_eq!(simulation.steps, steps);
+        assert_eq!(simulation.environment, environment);
+    }
+
+    #[test]
+    fn test_world_builder() {
+        let mut builder = WorldBuilder::new();
+        let simulations = HashMap::new(); // Replace with your actual initialization
+
+        builder.simulations(simulations);
+
+        let world = builder.build().unwrap();
+
+        assert_eq!(world.simulations, simulations);
+    }
 }

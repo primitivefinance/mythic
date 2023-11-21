@@ -88,7 +88,7 @@ fn main() -> Result<()> {
         Some(Commands::Simulate { config_path }) => {
             println!("Reading from config path: {}", config_path);
             let start = Instant::now();
-            let config = simulations::import(config_path)?;
+            let config = simulations::from_config(config_path)?;
             simulations::batch(config)?;
             let duration = start.elapsed();
             println!("Total duration of simulations: {:?}", duration);

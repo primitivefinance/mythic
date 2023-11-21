@@ -359,7 +359,7 @@ impl Default for WorldBuilder {
             .join("configs")
             .join("static.toml");
 
-        let config = simulation::simulations::import(&config_path.to_str().unwrap()).unwrap();
+        let config = simulation::simulations::from_config(&config_path.to_str().unwrap()).unwrap();
         Self {
             arbiter: Some(EnvironmentBuilder::new().build()),
             agents: Some(Agents::new()),

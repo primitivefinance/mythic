@@ -291,7 +291,7 @@ mod tests {
             token_admin::TokenAdmin,
         },
         bindings::rmm_math_like::RMMMathLike,
-        simulations::import,
+        simulations::from_config,
         strategy::rmm::{get_strategy_args, RmmStrategy},
     };
 
@@ -310,7 +310,7 @@ mod tests {
             .join("configs")
             .join("rmm_vol_targeting")
             .join("static.toml");
-        let configuration = import(config_path.to_str().unwrap())?;
+        let configuration = from_config(config_path.to_str().unwrap())?;
         let direct_configs: Vec<SimulationConfig<Single>> = configuration.clone().into();
         let config = &direct_configs.clone()[0];
 

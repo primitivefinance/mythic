@@ -27,7 +27,7 @@ impl Default for RunSimButton {
             .join("test")
             .join("static.toml");
 
-        let config = simulations::import(&config_path.to_str().unwrap()).unwrap();
+        let config = simulations::from_config(&config_path.to_str().unwrap()).unwrap();
         Self { config }
     }
 }
@@ -43,7 +43,7 @@ impl RunSimButton {
     }
 
     pub fn new_from_path(config_path: PathBuf) -> Self {
-        let config = simulations::import(&config_path.to_str().unwrap()).unwrap();
+        let config = simulations::from_config(&config_path.to_str().unwrap()).unwrap();
         Self { config }
     }
 
@@ -52,7 +52,7 @@ impl RunSimButton {
     }
 
     pub fn run_with_path(&self, config_path: PathBuf) -> anyhow::Result<()> {
-        let config = simulations::import(&config_path.to_str().unwrap())?;
+        let config = simulations::from_config(&config_path.to_str().unwrap())?;
         self.run_with_config(config)
     }
 

@@ -6,7 +6,7 @@ mod swapper_integration;
 
 async fn startup_static() -> Simulation {
     let config_path = "src/tests/configs/dca/static.toml";
-    let config = simulations::import(config_path).unwrap();
+    let config = simulations::from_config(config_path).unwrap();
     let configs: Vec<SimulationConfig<Single>> = config.into();
     let config = configs[0].clone();
     let environment = EnvironmentBuilder::new()

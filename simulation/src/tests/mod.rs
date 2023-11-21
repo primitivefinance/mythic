@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn static_output() {
     let config_path = "src/tests/configs/static.toml";
-    let config = simulations::import(config_path).unwrap();
+    let config = simulations::from_config(config_path).unwrap();
     simulations::batch(config).unwrap();
     let path = Path::new(env::current_dir().unwrap().to_str().unwrap())
         .join("src/tests/output/static/0.json");
@@ -19,7 +19,7 @@ fn static_output() {
 #[test]
 fn sweep_output() {
     let config_path = "src/tests/configs/sweep.toml";
-    let config = simulations::import(config_path).unwrap();
+    let config = simulations::from_config(config_path).unwrap();
     simulations::batch(config).unwrap();
     let entries = fs::read_dir("src/tests/output/sweep").unwrap();
     let count = entries.count();

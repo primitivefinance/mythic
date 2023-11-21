@@ -58,7 +58,7 @@ pub enum Event {
 impl ExampleScreen {
     pub fn new(client: Arc<RevmMiddleware>, receiver: Arc<Mutex<Receiver<String>>>) -> Self {
         // todo: config management feature
-        let config = simulation::simulations::import(
+        let config = simulation::simulations::from_config(
             &std::env::current_dir()
                 .unwrap()
                 .join("simulation")
