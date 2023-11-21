@@ -20,7 +20,8 @@ ui = { path = "./ui", version = "0.1.0" }
 analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
-arbiter-core = { version = "0.8.0", features = ["contracts"] }
+arbiter-bindings = { version = "0.1.0" }
+arbiter-core = { git = "https://github.com/primitivefinance/arbiter" }
 ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
 
 ## Config and parsing
@@ -52,9 +53,11 @@ RustQuant = { version = "0.0.38", features = ["seedable"] }
 statrs = "0.16.0"
 # Storage
 linked-hash-map = "0.5.6"
-
+directories-next = "2.0.0"
+criterion = "0.5.1"
 
 [dependencies]
+criterion.workspace = true
 simulation.workspace = true
 cfmm_math.workspace = true
 analysis.workspace = true
@@ -74,3 +77,8 @@ statrs.workspace = true
 mdbook = "0.4.35"
 cargo-make = "0.37.2"
 mdbook-katex = "0.5.8"
+
+[[bench]]
+name = "ui_benchmark"
+harness = false
+path = "benches/ui_benchmarks.rs"

@@ -4,6 +4,7 @@ use ethers::{
     prelude::*,
     utils::{Anvil, AnvilInstance},
 };
+use simulation::bindings::counter::Counter;
 use tracing::info;
 
 const RPC_URL_WS: &str = "ws://localhost:8545";
@@ -13,6 +14,7 @@ const CHAIN_ID: u64 = 31337;
 pub struct Local<C> {
     pub client: Option<Arc<SignerMiddleware<Provider<C>, LocalWallet>>>,
     pub anvil: Option<Arc<AnvilInstance>>,
+    pub counter_contract: Option<Address>,
 }
 
 impl<C> std::fmt::Debug for Local<C> {
@@ -29,6 +31,7 @@ impl Default for Local<Ws> {
         Self {
             client: None,
             anvil: None,
+            counter_contract: None,
         }
     }
 }
@@ -51,6 +54,7 @@ impl Local<Ws> {
         Ok(Self {
             client: Some(client.clone()),
             anvil: None,
+            counter_contract: None,
         })
     }
 
@@ -79,6 +83,7 @@ impl Local<Ws> {
                     .expect("no keys in anvil")
                     .clone()
                     .into();
+                let wallet = wallet.with_chain_id(anvil.chain_id());
                 let url = anvil.endpoint();
                 let url = url.replace("http", "ws");
 
@@ -93,6 +98,25 @@ impl Local<Ws> {
 
         Self {
             client: Some(client),
+            ..self
+        }
+    }
+
+    pub async fn with_counter_contract(self) -> Self {
+        let client = self.client.unwrap();
+        let counter = Counter::deploy(client.clone(), ())
+            .unwrap()
+            .send()
+            .await
+            .unwrap();
+
+        let contract = counter.address();
+
+        tracing::info!("Deployed counter contract at 0x{:x}", contract);
+
+        Self {
+            client: Some(client),
+            counter_contract: Some(contract),
             ..self
         }
     }

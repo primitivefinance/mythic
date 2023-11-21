@@ -12,14 +12,22 @@
 //! 6. Compare the storage slots before and after the transaction.
 //! 7. Finally, execute the transaction.
 
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{
+    convert::{Infallible, TryFrom},
+    fs::File,
+    io::BufReader,
+    path::PathBuf,
+};
 
-use arbiter_core::middleware::RevmMiddleware;
+use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
 use ethers::{
     abi::Token,
     types::{transaction::eip2718::TypedTransaction, Address},
 };
-use revm::db::{CacheDB, EmptyDB};
+use revm::{
+    db::{CacheDB, EmptyDB, EmptyDBTyped},
+    primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue},
+};
 
 use super::{
     forking::{Forker, IngestPayload},
@@ -47,16 +55,80 @@ pub struct Scroll {
 }
 
 impl Scroll {
+    /// Tries getting an account's storage from a [`CacheDB`].
+    #[tracing::instrument(skip(self, db), ret)]
+    pub fn try_storage(
+        &self,
+        db: &CacheDB<EmptyDBTyped<Infallible>>,
+    ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
+        let address: revm::primitives::Address =
+            self.payload.target.clone().to_fixed_bytes().into();
+        let account = db.accounts.get(&address).unwrap();
+        Ok(account.storage.clone())
+    }
+
+    /// Tries getting the already-loaded storage of an account before its been
+    /// simulated/executed against. Must be loaded already via `load_before`.
+    #[tracing::instrument(skip(self), ret)]
+    pub fn try_storage_before(
+        &self,
+        account: Address,
+    ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
+        let storage = match &self.stages.before {
+            Some(storage) => {
+                let storage = self.try_storage(storage)?;
+                storage
+            }
+            None => {
+                tracing::error!("No before storage found in scroll");
+                return Err(anyhow::anyhow!(
+                    "Could not get before storage for account: {:?}",
+                    account
+                ));
+            }
+        };
+
+        Ok(storage)
+    }
+
+    /// Tries getting the already-loaded storage of an account after its been
+    /// simulated. Must be loaded already via `load_after`.
+    #[tracing::instrument(skip(self), ret)]
+    pub fn try_storage_after(
+        &self,
+        account: Address,
+    ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
+        let storage = match &self.stages.after {
+            Some(storage) => {
+                let storage = self.try_storage(storage)?;
+                storage
+            }
+            None => {
+                tracing::error!("No after storage found in scroll");
+                return Err(anyhow::anyhow!(
+                    "Could not get before storage for account: {:?}",
+                    account
+                ));
+            }
+        };
+
+        Ok(storage)
+    }
+
     /// Loads the target account's database information into a [`CacheDB`].
     #[tracing::instrument(skip(self, forker))]
-    fn load(&self, forker: &Forker) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
+    fn load(
+        &self,
+        forker: &Forker,
+        block: Option<u64>,
+    ) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
         let target = self.payload.target.clone();
         let artifacts_path = self.payload.artifact.clone().to_str().unwrap().to_string();
         let ingest_payload = IngestPayload {
             target,
             artifacts_path,
         };
-        let db = forker.load_cached_db(ingest_payload)?;
+        let db = forker.load_cached_db(ingest_payload, block)?;
 
         Ok(db)
     }
@@ -64,8 +136,8 @@ impl Scroll {
     /// Loads the target account's database information before the transaction
     /// is executed.
     #[tracing::instrument(skip(self, forker))]
-    fn load_before(&mut self, forker: &Forker) -> anyhow::Result<()> {
-        let db = self.load(forker)?;
+    fn load_before(&mut self, forker: &Forker, block: Option<u64>) -> anyhow::Result<()> {
+        let db = self.load(forker, block)?;
 
         self.stages.before = Some(db);
 
@@ -75,28 +147,39 @@ impl Scroll {
     /// Loads the target account's database information after the transaction is
     /// executed.
     #[tracing::instrument(skip(self, forker))]
-    fn load_after(&mut self, forker: &Forker) -> anyhow::Result<()> {
-        let db = self.load(forker)?;
+    pub fn load_after(&mut self, forker: &Forker, block: Option<u64>) -> anyhow::Result<()> {
+        let db = self.load(forker, block)?;
 
         self.stages.after = Some(db);
 
         Ok(())
     }
 
-    async fn simulate(&mut self, forker: &Forker) -> anyhow::Result<()> {
+    #[tracing::instrument(skip(self, forker))]
+    pub async fn simulate(&mut self, forker: &Forker, block: Option<u64>) -> anyhow::Result<()> {
         // load the before stage if it hasn't been loaded yet.
         if self.stages.before.is_none() {
-            self.load_before(forker)?;
+            self.load_before(forker, block)?;
         }
 
+        tracing::trace!(
+            "Loading storage into Arbiter: {:?}",
+            self.stages.before.clone().unwrap()
+        );
         // Loads the before stage into Arbiter and gets an Arbiter client.
         let db = self.stages.before.clone().unwrap();
         let environment = forker.load_env(db);
         let client = RevmMiddleware::new(&environment, Some("simulate"))?;
+        let payload: TypedTransaction = self.payload.clone().try_into()?;
 
         // Executes the transaction on the Arbiter client.
-        let payload: TypedTransaction = self.payload.clone().into();
-        let tx = client.send_transaction(payload, None).await?.await?;
+        tracing::debug!("Sending simulation payload: {:?}", payload);
+        let tx = client
+            .clone()
+            .send_transaction(payload, None)
+            .await?
+            .await?;
+
         tracing::debug!("Simulated transaction: {:?}", tx);
         match tx {
             Some(tx) => {
@@ -111,10 +194,50 @@ impl Scroll {
             }
         }
 
+        // Uses the [`Cheatcodes::Access`] cheatcode to load the db of the target
+        // account.
+        let result = client
+            .clone()
+            .apply_cheatcode(cheatcodes::Cheatcodes::Access {
+                address: self.payload.target.clone(),
+            })
+            .await?;
+
+        let storage = match result {
+            cheatcodes::CheatcodesReturn::Access { storage, .. } => {
+                tracing::debug!("Accessed account: {:?}", storage);
+                storage
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Could not load db of target account after simulation."
+                ))
+            }
+        };
+
+        // Edit the db to reflect the changes made by the transaction.
+        // Try getting the after db, if its none, create a new db.
+        let mut db = match &self.stages.after {
+            Some(db) => db.clone(),
+            None => CacheDB::new(EmptyDB::default()),
+        };
+        db.replace_account_storage(self.payload.target.clone().as_fixed_bytes().into(), storage)?;
+
+        // Set the after stage as this replaced db.
+        self.stages.after = Some(db);
+
+        // Stop the Arbiter instance.
+        environment.stop()?;
+
         Ok(())
     }
 
-    async fn execute(&mut self, forker: &Forker) -> anyhow::Result<()> {
+    #[tracing::instrument(skip(self, forker))]
+    pub async fn execute(
+        &mut self,
+        forker: &Forker,
+        block: Option<u64>,
+    ) -> anyhow::Result<TransactionReceipt, anyhow::Error> {
         // Return if the transaction has already been executed.
         if self.live_outcome.is_some() {
             return Err(anyhow::anyhow!("Transaction has already been executed."));
@@ -125,25 +248,34 @@ impl Scroll {
             return Err(anyhow::anyhow!("Transaction has not been simulated yet."));
         }
 
+        let block: Option<BlockId> = match block {
+            Some(block) => Some(BlockId::Number(block.into())),
+            None => None,
+        };
+
         // Executes the transaction on the live client.
-        let payload: TypedTransaction = self.payload.clone().into();
+        let payload: TypedTransaction = self.payload.clone().try_into()?;
         let client = forker.client.clone().unwrap();
-        let tx = client.send_transaction(payload, None).await?.await?;
+        let tx = client.send_transaction(payload, block).await?.await?;
         tracing::debug!("Executed transaction: {:?}", tx);
-        match tx {
+
+        let res = match tx {
             Some(tx) => {
                 tracing::debug!("Executed receipt: {:?}", tx.clone());
                 self.live_outcome = Some(Outcome {
                     tx_hash: tx.clone().transaction_hash,
                     receipt: tx.clone(),
                 });
+
+                Ok(tx.clone())
             }
             None => {
                 tracing::debug!("Executed transaction failed");
+                Err(anyhow::anyhow!("Executed transaction failed"))
             }
-        }
+        };
 
-        Ok(())
+        res
     }
 }
 
@@ -156,8 +288,11 @@ pub struct UnsealedTransaction {
     pub arguments: Vec<Token>,
 }
 
-impl From<UnsealedTransaction> for TypedTransaction {
-    fn from(payload: UnsealedTransaction) -> Self {
+impl TryFrom<UnsealedTransaction> for TypedTransaction {
+    type Error = anyhow::Error;
+
+    fn try_from(payload: UnsealedTransaction) -> anyhow::Result<Self, Self::Error> {
+        // todo: maybe use this?
         // let mut req = TransactionRequest::new()
         // .to(payload.target)
         // .value(payload.value.into());
@@ -187,11 +322,13 @@ impl From<UnsealedTransaction> for TypedTransaction {
             let data = instance.encode(method.as_str(), ()).unwrap();
 
             req.data = Some(data);
+        } else {
+            return Err(anyhow::anyhow!("No method specified in payload."));
         }
 
         let tx = TypedTransaction::Eip1559(req.into());
 
-        tx
+        Ok(tx)
     }
 }
 
@@ -306,10 +443,10 @@ mod tests {
         let forker = forker.with_block_number(block_number);
 
         // Simulate the transaction.
-        scroll.simulate(&forker).await?;
+        scroll.simulate(&forker, None).await?;
 
         // Execute the transaction.
-        scroll.execute(&forker).await?;
+        scroll.execute(&forker, None).await?;
 
         // Get the current block.
         let block_number = anvil_client.get_block_number().await?;
@@ -318,7 +455,7 @@ mod tests {
         let forker = forker.with_block_number(block_number.as_u64());
 
         // Load the after db.
-        scroll.load_after(&forker)?;
+        scroll.load_after(&forker, None)?;
 
         // Log both the before and after dbs and the outcomes!
         tracing::debug!("Before: {:?}", scroll.stages.before);

@@ -1,7 +1,7 @@
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
-    widget::{button, column, container, row, scrollable, text, Column, Row, Text},
+    widget::{button, container, scrollable, text, Column, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
@@ -9,8 +9,11 @@ pub mod api;
 mod app;
 mod components;
 mod loader;
+mod profile;
 mod screens;
+mod system;
 mod tracer;
+mod units;
 mod view;
 
 use std::sync::{Arc, Mutex};
@@ -69,16 +72,30 @@ impl Application for MVP {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match (&mut self.state, message) {
-            (_, Message::Quit) => window::close(),
+            (_, Message::Quit) => {
+                let state_cmd = match self.state {
+                    State::App(ref mut app) => app.exit().map(|msg| Message::Update(Box::new(msg))),
+                    _ => Command::none(),
+                };
+
+                Command::batch(vec![state_cmd, window::close()])
+            }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready(Ok((arbiter, local))) => {
+                loader::Message::Ready(Ok((storage, chains))) => {
                     // 4. Create our app and move to the app state.
-                    let (app, command) = App::new(arbiter, local, self.tracer.receiver.clone());
+                    let streams = app::Streams {
+                        app_event_receiver: self.tracer.receiver.clone(),
+                    };
+                    let (app, command) = App::new(storage, chains, streams);
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.
                     command.map(|msg| Message::Update(Box::new(msg)))
+                }
+                loader::Message::Ready(Err(error_message)) => {
+                    tracing::error!("Failed to load app: {}", error_message);
+                    Command::none()
                 }
                 // 2. Loader emits the Load message, update the loader state.
                 _ => l.update(*msg).map(|msg| Message::Load(Box::new(msg))),
@@ -101,8 +118,12 @@ impl Application for MVP {
         }
     }
 
+    #[allow(unreachable_patterns)]
     fn subscription(&self) -> Subscription<Message> {
         match &self.state {
+            State::Loader(loader) => loader
+                .subscription()
+                .map(|msg| Message::Load(Box::new(msg))),
             State::App(app) => app.subscription().map(|msg| Message::Update(Box::new(msg))),
             _ => Subscription::none(),
         }

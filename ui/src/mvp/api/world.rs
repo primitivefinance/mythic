@@ -3,7 +3,10 @@
 
 use std::{path::Path, sync::Arc};
 
-use arbiter_core::environment::{builder::EnvironmentBuilder, Environment};
+use arbiter_core::{
+    data_collection::EventLogger,
+    environment::{builder::EnvironmentBuilder, Environment},
+};
 use ethers::prelude::rand::{self, Rng};
 use simulation::{
     agents::{
@@ -12,6 +15,7 @@ use simulation::{
             arbitrageur::Arbitrageur,
             g3m_portfolio_manager::{G3mPortfolioManager, G3mPortfolioManagerType},
             liquidity_provider::LiquidityProvider,
+            swapper::Swapper,
         },
         price_changer::PriceChanger,
         strategy_monitor::StrategyMonitorAgent,
@@ -22,6 +26,7 @@ use simulation::{
         parameters::{Multiple, Single},
         SimulationConfig,
     },
+    simulations::errors::SimulationError,
     strategy::g3m::G3mStrategy,
 };
 use tokio::{
@@ -262,57 +267,100 @@ impl WorldBuilder {
         environment: &Environment,
         config: SimulationConfig<Single>,
     ) -> anyhow::Result<Agents, anyhow::Error> {
-        let block_admin = BlockAdmin::new(environment, &config, "block_admin").await?;
-        let token_admin = TokenAdmin::new(environment, &config, "token_admin").await?;
-        let price_changer =
-            PriceChanger::new(environment, &config, "price_changer", &token_admin).await?;
+        let mut agents = Agents::new();
+        let mut event_logger = EventLogger::builder()
+            .directory(config.output_directory.clone())
+            .file_name(config.output_file_name.clone().unwrap());
 
-        let weight_changer = G3mPortfolioManagerType::new(
-            environment,
+        let block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
+        agents.add(block_admin);
+
+        let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
+        agents.add(token_admin.clone());
+
+        let price_changer =
+            PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
+        agents.add(price_changer.clone());
+        event_logger = event_logger.add(price_changer.liquid_exchange.events(), "lex");
+
+        tracing::info!("Generic agents created.");
+
+        let portfolio_manager = G3mPortfolioManagerType::new(
+            &environment,
             &config,
-            "weight_changer",
+            "portfolio_manager",
             price_changer.liquid_exchange.address(),
         )
         .await?;
+        let strategy_address = portfolio_manager.g3m().address();
+        event_logger = event_logger.add(portfolio_manager.g3m().events(), "g3m");
+        agents.add(portfolio_manager);
+
+        tracing::info!("Portfolio manager created.");
 
         let lp = LiquidityProvider::<G3mStrategy>::new(
-            environment,
+            &environment,
             &config,
             "lp",
             &token_admin,
-            weight_changer.g3m().address(),
+            strategy_address,
         )
         .await?;
+        agents.add(lp);
+
+        tracing::info!("Liquidity provider created.");
 
         let arbitrageur = Arbitrageur::<G3mStrategy>::new(
-            environment,
+            &environment,
             &token_admin,
             price_changer.liquid_exchange.address(),
-            weight_changer.g3m().address(),
+            strategy_address,
         )
         .await?;
+        agents.add(arbitrageur);
+
+        tracing::info!("Arbitrageur created.");
+
+        match Swapper::new(
+            &environment,
+            &config,
+            "swapper",
+            &price_changer,
+            &token_admin,
+        )
+        .await
+        {
+            Ok(swapper) => {
+                agents.add(swapper.clone());
+                event_logger =
+                    event_logger.add(swapper.portfolio_tracker.events(), "portfolio_tracker");
+            }
+            Err(e) => {
+                tracing::warn!("Swapper not initialized: {}", e);
+            }
+        };
 
         let strategy_monitor = StrategyMonitorAgent::<G3mStrategy>::new(
-            environment,
+            &environment,
             &config,
             "strategy_monitor",
-            weight_changer.g3m().address(),
+            strategy_address,
             &token_admin,
         )
         .await?;
-
-        let mut agents = Agents::new();
-        agents.add(price_changer);
-        agents.add(arbitrageur);
-        agents.add(block_admin);
-        agents.add(weight_changer);
-        agents.add(lp);
-        agents.add(token_admin);
         agents.add(strategy_monitor);
 
+        event_logger
+            .metadata(config)
+            .map_err(|e| SimulationError::GenericError(e.to_string()))?
+            .run()
+            .map_err(|e| SimulationError::GenericError(e.to_string()))?;
+
+        tracing::info!("Agents setup.");
         Ok(agents)
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn build(self) -> anyhow::Result<World> {
         let arbiter = self
             .arbiter
@@ -327,9 +375,17 @@ impl WorldBuilder {
 
         let direct_configs: Vec<SimulationConfig<Single>> = config.clone().into();
 
+        let mut count = 0;
         for config in direct_configs {
+            if count > 0 {
+                break;
+            }
+            tracing::info!("Setting up agents for config");
             agents = Self::setup(&arbiter, config).await?;
+            count += 1;
         }
+
+        tracing::info!("World built.");
 
         Ok(World {
             arbiter,
@@ -341,6 +397,7 @@ impl WorldBuilder {
     }
 
     /// Wrap it with arc and mutex
+    #[tracing::instrument(skip(self))]
     pub async fn build_arc(self) -> anyhow::Result<Arc<Mutex<World>>> {
         let world = self.build().await?;
         Ok(Arc::new(Mutex::new(world)))
@@ -353,11 +410,7 @@ impl Default for WorldBuilder {
         let seed = rng.gen::<u64>(); // Generate a random seed
 
         // todo: this breaks tests because the test calls this from within ui/ crate...
-        let config_path = Path::new("simulation")
-            .join("src")
-            .join("tests")
-            .join("configs")
-            .join("static.toml");
+        let config_path = Path::new("configs").join("dca").join("static.toml");
 
         let config = simulation::simulations::import(&config_path.to_str().unwrap()).unwrap();
         Self {
@@ -396,6 +449,7 @@ async fn spawn_tasks(
     Ok(worlds)
 }
 
+#[tracing::instrument(skip(world, rx, semaphore, errors))]
 fn create_task(
     world: Arc<Mutex<World>>,
     rx: Arc<Mutex<broadcast::Receiver<usize>>>,
@@ -463,13 +517,15 @@ pub async fn spawn_worlds(
     let tx_clone = tx.clone();
 
     let mut worlds = vec![];
-    for _ in 0..num_worlds {
+    for i in 0..num_worlds {
+        tracing::info!("Spawning world: {}", i);
         let world = WorldBuilder::default().build_arc().await?;
         worlds.push(world);
     }
 
     let worlds_clone = worlds.clone();
 
+    tracing::info!("Worlds spawned, running tasks in separate thread.");
     let slice = std::thread::spawn(move || {
         let rt = Builder::new_multi_thread().build()?;
         let semaphore = Arc::new(Semaphore::new(num_worlds));
@@ -514,6 +570,8 @@ impl WorldManager {
         self.tx = Some(Arc::new(Mutex::new(tx)));
         self.worlds = worlds;
         self.slice = Some(Arc::new(Mutex::new(slice)));
+
+        tracing::info!("Worlds spawned, exiting spawn fn.");
         Ok(self)
     }
 

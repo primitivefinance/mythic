@@ -70,7 +70,8 @@ impl<Message> Component<Message, Renderer> for InputComponent<Message> {
                 .as_deref()
                 .unwrap_or(""),
         )
-        .on_input(StringInputComponentEvent::InputChanged);
+        .on_input(StringInputComponentEvent::InputChanged)
+        .padding(Sizes::Md as u16);
 
         input.into()
     }

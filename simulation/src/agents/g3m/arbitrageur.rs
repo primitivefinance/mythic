@@ -51,8 +51,8 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
         token_admin
             .mint(
                 client.address(),
-                parse_ether(100).unwrap(),
-                parse_ether(1000).unwrap(),
+                parse_ether(25).unwrap(),
+                parse_ether(25).unwrap(),
             )
             .await?;
 
@@ -229,15 +229,15 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
             .await?;
 
         let subbed = vec![
-            SubscribedData::new("x_balance".to_string(), x_balance.into_token()),
-            SubscribedData::new("y_balance".to_string(), y_balance.into_token()),
+            SubscribedData::new("Balance X".to_string(), x_balance.into_token()),
+            SubscribedData::new("Balance Y".to_string(), y_balance.into_token()),
         ];
 
         Ok(subbed)
     }
 
     fn get_name(&self) -> String {
-        "arbitrageur".to_string()
+        "Arbitrageur".to_string()
     }
 }
 

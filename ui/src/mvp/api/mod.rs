@@ -3,6 +3,7 @@
 
 mod digest;
 
+pub mod contacts;
 pub mod forking;
 pub mod local;
 pub mod scroll;

@@ -3,7 +3,7 @@
 use iced::Color;
 use iced_aw::graphics::icons::{self, icon_to_char, ICON_FONT};
 
-use super::{components::button::*, Settings, *};
+use super::{components::button::*, *};
 
 /// Messages emitted from user interaction with agents.
 #[derive(Debug, Clone)]
@@ -23,45 +23,26 @@ pub enum Operation {
     Agent(AgentOperations),
 }
 
-pub fn control_panel<'a>(
-    data: Vec<(String, String)>,
-    realtime: bool,
-    firehose_visible: bool,
-) -> Element<'a, Message> {
-    let mut content = Row::new().spacing(16).height(Length::Shrink);
-    content = content.push(labeled_controls(vec![
-        ("play".to_string(), control::play()),
-        ("pause".to_string(), control::pause()),
-        ("step".to_string(), control::step()),
-        ("stop".to_string(), control::stop()),
-    ]));
+pub fn control_panel<'a>(_realtime: bool) -> Element<'a, Message> {
+    let mut content = Row::new().spacing(Sizes::Xl as u16);
 
-    content = content.push(controls_container(
-        "settings".to_string(),
-        vec![
-            checkbox("realtime", realtime, |_| {
-                Message::Settings(Settings::ToggleRealtime)
-            }),
-            checkbox("firehose visible", !firehose_visible, |_| {
-                Message::Settings(Settings::ToggleFirehoseVisibility)
-            }),
-        ],
-    ));
-
-    content = content.push(controls_container(
-        "actions".to_string(),
-        vec![
-            action_button("Spawn".to_string().to_lowercase())
-                .on_press(Message::Simulation(control::Operation::Spawn)),
-            action_button("Spawn Agent".to_string().to_lowercase()).on_press(Message::Simulation(
-                control::Operation::Agent(control::AgentOperations::Add),
-            )),
-            action_button("Log debug trace".to_string().to_lowercase())
-                .on_press(Message::Data(Data::LogTrace)),
-        ],
-    ));
-
-    content = content.push(labeled_data_container("watched".to_string(), data, 3));
+    content = content.push(
+        Column::new()
+            .push(labeled_controls(vec![
+                (
+                    "Actions".to_string(),
+                    action_button("Spawn".to_string().to_lowercase())
+                        .padding([12, 10])
+                        .on_press(Message::Simulation(control::Operation::Spawn))
+                        .into(),
+                ),
+                ("Play".to_string(), control::play()),
+                ("Pause".to_string(), control::pause()),
+                ("Step".to_string(), control::step()),
+                ("Stop".to_string(), control::stop()),
+            ]))
+            .align_items(alignment::Alignment::End),
+    );
 
     content.into()
 }
@@ -74,7 +55,23 @@ pub fn control_button<'a>(icon: icons::Icon) -> iced::widget::Button<'a, Message
     let control_button_style = CustomButtonStyle::new()
         .background_color(Color::TRANSPARENT)
         .hovered()
-        .background_color(Color::from_rgba8(40, 40, 40, 0.5))
+        .background_color(PRIMARY_COLOR.into())
+        .border_radius(5.0.into());
+    button(content).style(control_button_style.as_custom())
+}
+
+pub fn custom_icon_button<'a>(
+    icon: icons::Icon,
+    font_size: u16,
+) -> iced::widget::Button<'a, Message> {
+    let content = text(icon_to_char(icon))
+        .font(ICON_FONT)
+        .size(font_size)
+        .style(Color::WHITE);
+    let control_button_style = CustomButtonStyle::new()
+        .background_color(Color::TRANSPARENT)
+        .hovered()
+        .background_color(PRIMARY_COLOR.into())
         .border_radius(5.0.into());
     button(content).style(control_button_style.as_custom())
 }

@@ -11,7 +11,7 @@ use revm::{
 };
 use revm_primitives::AccountInfo;
 
-use super::digest::{self, Artifacts};
+use super::digest::{self, Artifacts, StorageLayout};
 
 pub struct Forker {
     pub environment: Environment,
@@ -65,6 +65,13 @@ impl Forker {
             block_number,
             last_db,
         }
+    }
+
+    pub async fn load_block_number(&self) -> anyhow::Result<u64, anyhow::Error> {
+        let client = self.client.clone().unwrap();
+        let block_number = client.get_block_number().await?;
+
+        Ok(block_number.as_u64())
     }
 
     #[tracing::instrument(skip(self))]
@@ -159,7 +166,7 @@ impl Forker {
         let current_dir = std::env::current_dir().unwrap();
         let parent_dir = current_dir.parent().unwrap();
         let path = std::path::Path::new(parent_dir)
-            .join("box-contracts")
+            .join("contracts")
             .join("out")
             .join("Counter.sol")
             .join("counter.json")
@@ -202,6 +209,8 @@ impl Forker {
             // Load account storage
             let artifacts = digest::digest_artifacts(contract_data.artifacts_path.as_str())?;
             let storage_layout = artifacts.storage_layout;
+
+            // todo: also get label from storage for human readability.
             digest::create_storage_layout(contract_data, storage_layout, &mut db, ethers_db)?;
         }
 
@@ -212,9 +221,13 @@ impl Forker {
     fn fetch_account_info(
         &self,
         payload: IngestPayload,
+        block: Option<u64>,
     ) -> anyhow::Result<AccountInfo, anyhow::Error> {
         let provider = Arc::new(self.client.clone().unwrap().provider().clone());
-        let start_block = BlockId::Number(BlockNumber::Number(self.block_number.into()));
+        let start_block = match block {
+            Some(block) => BlockId::Number(BlockNumber::Number(block.into())),
+            None => BlockId::Number(BlockNumber::Number(self.block_number.into())),
+        };
 
         // Load account information from its own thread.
         // This is because ethers_db is not very compatible with tokio runtime.
@@ -253,6 +266,52 @@ impl Forker {
     }
 
     #[tracing::instrument(skip(self))]
+    fn fetch_storage(
+        &self,
+        payload: IngestPayload,
+        block: Option<u64>,
+        storage_layout: StorageLayout,
+        db: &mut CacheDB<EmptyDB>,
+    ) -> anyhow::Result<(), anyhow::Error> {
+        let provider = Arc::new(self.client.clone().unwrap().provider().clone());
+        let start_block = match block {
+            Some(block) => BlockId::Number(BlockNumber::Number(block.into())),
+            None => BlockId::Number(BlockNumber::Number(self.block_number.into())),
+        };
+
+        // Load storage info from its own thread.
+        // This is because ethers_db is not very compatible with tokio runtime.
+        let mut cloned_db = db.clone();
+        let handle = std::thread::spawn(move || {
+            let mut ethers_db = EthersDB::new(provider, Some(start_block)).unwrap();
+
+            tracing::info!("Fetching storage for {:?}", payload.target);
+            digest::create_storage_layout(
+                &payload.into(),
+                storage_layout,
+                &mut cloned_db,
+                &mut ethers_db,
+            )
+            .unwrap();
+
+            cloned_db
+        });
+
+        let loaded_db = handle.join();
+
+        tracing::debug!("Success Storage: {:?}", loaded_db);
+        let _loaded_db = match loaded_db {
+            Ok(loaded_db) => *db = loaded_db,
+            Err(e) => {
+                tracing::error!("Error: {:?}", e);
+                panic!("Error: {:?}", e);
+            }
+        };
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
     fn fetch_artifacts(&self, payload: IngestPayload) -> anyhow::Result<Artifacts, anyhow::Error> {
         let artifacts = digest::digest_artifacts(payload.artifacts_path.as_str())?;
 
@@ -263,22 +322,21 @@ impl Forker {
     pub fn load_cached_db(
         &self,
         payload: IngestPayload,
+        block: Option<u64>,
     ) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
         let mut db = CacheDB::new(EmptyDB::new());
 
-        let info = self.fetch_account_info(payload.clone())?;
+        let info = self.fetch_account_info(payload.clone(), block)?;
         db.insert_account_info(payload.target.to_fixed_bytes().into(), info);
 
         tracing::debug!("Fetching storage layout...");
 
         let artifacts = self.fetch_artifacts(payload.clone())?;
+
+        tracing::debug!("Artifacts fetched. Building layout.");
+
         let storage_layout = artifacts.storage_layout;
-        digest::create_storage_layout(
-            &payload.into(),
-            storage_layout,
-            &mut db,
-            &mut self.spawn_ethers_db()?,
-        )?;
+        self.fetch_storage(payload.clone(), block, storage_layout, &mut db)?;
 
         tracing::debug!("Storage layout fetched.");
 
@@ -293,8 +351,8 @@ impl Forker {
     /// Overrides `environment` with a database that was loaded from an
     /// [`IngestPayload`].
     #[tracing::instrument(skip(self))]
-    pub fn evolve(mut self, payload: IngestPayload) -> Self {
-        let db = self.load_cached_db(payload).unwrap();
+    pub fn evolve(mut self, payload: IngestPayload, block: Option<u64>) -> Self {
+        let db = self.load_cached_db(payload, block).unwrap();
 
         let _ = self.environment.stop();
 
@@ -310,7 +368,7 @@ pub fn get_counter_path() -> anyhow::Result<std::path::PathBuf, anyhow::Error> {
     let current_dir = std::env::current_dir().unwrap();
     let parent_dir = current_dir.parent().unwrap();
     let path = std::path::Path::new(parent_dir)
-        .join("box-contracts")
+        .join("contracts")
         .join("out")
         .join("Counter.sol")
         .join("counter.json");
@@ -376,7 +434,7 @@ mod tests {
         // Evolve the Forker with the payload.
         let battler = battler
             .with_block_number(block_number.as_u64())
-            .evolve(payload);
+            .evolve(payload, None);
 
         // Get the arbiter client to talk to the evolved Forker.
         let arbiter_client = RevmMiddleware::new(&battler.environment, Some("evolve"))?;
