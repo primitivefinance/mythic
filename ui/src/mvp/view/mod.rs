@@ -144,6 +144,7 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum Page {
+    Empty,
     Terminal,
     Execute,
     AddressBook,
@@ -153,10 +154,11 @@ pub enum Page {
 impl Page {
     pub fn name(&self) -> String {
         match self {
+            Page::Empty => "Select App".to_string(),
             Page::Terminal => "Terminal".to_string(),
             Page::Execute => "Execute".to_string(),
             Page::AddressBook => "Address Book".to_string(),
-            Page::Exit => "App".to_string(),
+            Page::Exit => "Quit".to_string(),
         }
     }
 }

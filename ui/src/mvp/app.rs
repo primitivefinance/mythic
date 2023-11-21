@@ -9,7 +9,10 @@ use super::{
         scroll::Scroll,
     },
     profile::Profile,
-    screens::{address_book::AddressBookScreen, empty::EmptyScreen, terminal::Terminal, Screen},
+    screens::{
+        address_book::AddressBookScreen, empty::EmptyScreen, exit::ExitScreen, terminal::Terminal,
+        Screen,
+    },
     tracer::AppEventLog,
     view::Page,
     *,
@@ -133,7 +136,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: EmptyScreen::new(false).into(),
+            screen: EmptyScreen::new().into(),
         }
     }
 }
@@ -336,11 +339,12 @@ impl App {
             view::Page::AddressBook => Screen::new(Box::new(AddressBookScreen::new(
                 self.storage.profile.contacts.clone(),
             ))),
-            view::Page::Exit => Screen::new(Box::new(EmptyScreen::new(true))),
+            view::Page::Empty => EmptyScreen::new().into(),
+            view::Page::Exit => ExitScreen::new(true).into(),
             view::Page::Terminal => Screen::new(Box::new(Terminal::new(
                 self.streams.app_event_receiver.clone(),
             ))),
-            _ => EmptyScreen::new(false).into(),
+            _ => EmptyScreen::new().into(),
         };
 
         let load_cmd = self.windows.screen.load();

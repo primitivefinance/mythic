@@ -1,6 +1,8 @@
 //! Cached state of user inputs and derived values for
 //! using the Execution app.
 
+use std::time::Instant;
+
 use iced_aw::Icon;
 
 use super::{processing::StorageDiffs, utils::empty_async, *};
@@ -68,6 +70,12 @@ pub struct Progress {
     pub current: TransactionSteps,
     // Highest step reached.
     pub checkpoint: TransactionSteps,
+    // Time it took to simulate the transaction.
+    pub simulate_instant: Option<Instant>,
+    pub simulate_time: Option<u64>,
+    // Time it took to execute the transaction.
+    pub execute_instant: Option<Instant>,
+    pub execute_time: Option<u64>,
 }
 
 impl Progress {
@@ -75,6 +83,10 @@ impl Progress {
         Self {
             current: TransactionSteps::Start,
             checkpoint: TransactionSteps::Start,
+            simulate_instant: None,
+            simulate_time: None,
+            execute_instant: None,
+            execute_time: None,
         }
     }
 
@@ -303,6 +315,10 @@ impl Form {
                 self.loading = Loading::Simulation;
                 self.feedback = Some("Simulation in progress...".to_string());
 
+                // Get the current time
+                let now = Instant::now();
+                self.progress.simulate_instant = Some(Instant::now());
+
                 Command::none()
             }
             FormMessage::Execute => {
@@ -312,6 +328,7 @@ impl Form {
 
                 self.loading = Loading::Execution;
                 self.feedback = Some("Sending transaction...".to_string());
+                self.progress.execute_instant = Some(Instant::now());
 
                 // Continue
                 Command::perform(empty_async(), move |_| {
@@ -320,7 +337,20 @@ impl Form {
             }
             FormMessage::CompleteSimulate => {
                 self.loading = Loading::Empty;
-                self.feedback = Some("Simulation complete!".to_string());
+                self.progress.simulate_time = Some(
+                    self.progress
+                        .simulate_instant
+                        .unwrap()
+                        .elapsed()
+                        .as_millis() as u64,
+                );
+
+                self.feedback = Some(format!(
+                    "Simulation complete in {} ms!",
+                    self.progress.simulate_time.unwrap()
+                ));
+
+                self.progress.simulate_instant = None;
 
                 // Continue
                 Command::perform(empty_async(), move |_| {
@@ -329,7 +359,13 @@ impl Form {
             }
             FormMessage::CompleteExecute => {
                 self.loading = Loading::Empty;
-                self.feedback = Some("Transaction sent!".to_string());
+                self.progress.execute_time =
+                    Some(self.progress.execute_instant.unwrap().elapsed().as_millis() as u64);
+                self.progress.execute_instant = None;
+                self.feedback = Some(format!(
+                    "Transaction confirmed in {} ms!",
+                    self.progress.execute_time.unwrap()
+                ));
 
                 // Continue
                 Command::perform(empty_async(), move |_| {
