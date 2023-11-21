@@ -33,6 +33,7 @@ pub struct Terminal {
     hide_firehoses: bool,
 }
 
+#[tracing::instrument]
 pub async fn spawn() -> anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error> {
     // Override the world manager with a new one that has spawned worlds.
     Ok(Arc::new(tokio::sync::Mutex::new(
@@ -176,7 +177,7 @@ impl Terminal {
             world_manager: Arc::new(tokio::sync::Mutex::new(WorldManager::default())),
             status: WorldManagerState::Stopped,
             state_data: HashMap::new(),
-            realtime: true,
+            realtime: false,
             hide_firehoses: false,
         }
     }
@@ -463,12 +464,7 @@ impl State for Terminal {
 
         view::app_layout(
             &view::Page::Terminal,
-            view::terminal_view_multiple_firehose(
-                data,
-                self.realtime,
-                state_data.clone(),
-                self.hide_firehoses,
-            ),
+            view::terminal_layout(self.realtime, state_data.clone()),
         )
         .into()
     }

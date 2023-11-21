@@ -23,45 +23,28 @@ pub enum Operation {
     Agent(AgentOperations),
 }
 
-pub fn control_panel<'a>(
-    data: Vec<(String, String)>,
-    realtime: bool,
-    firehose_visible: bool,
-) -> Element<'a, Message> {
-    let mut content = Row::new().spacing(16).height(Length::Shrink);
+pub fn control_panel<'a>(realtime: bool) -> Element<'a, Message> {
+    let mut content = Row::new().spacing(Sizes::Lg as u16);
+
+    content = content.push(controls_container(
+        "Actions".to_string(),
+        vec![action_button("Spawn".to_string().to_lowercase())
+            .on_press(Message::Simulation(control::Operation::Spawn))],
+    ));
+
     content = content.push(labeled_controls(vec![
-        ("play".to_string(), control::play()),
-        ("pause".to_string(), control::pause()),
-        ("step".to_string(), control::step()),
-        ("stop".to_string(), control::stop()),
+        ("Play".to_string(), control::play()),
+        ("Pause".to_string(), control::pause()),
+        ("Step".to_string(), control::step()),
+        ("Stop".to_string(), control::stop()),
     ]));
 
     content = content.push(controls_container(
-        "settings".to_string(),
-        vec![
-            checkbox("realtime", realtime, |_| {
-                Message::Settings(Settings::ToggleRealtime)
-            }),
-            checkbox("firehose visible", !firehose_visible, |_| {
-                Message::Settings(Settings::ToggleFirehoseVisibility)
-            }),
-        ],
+        "Settings".to_string(),
+        vec![checkbox("Realtime", realtime, |_| {
+            Message::Settings(Settings::ToggleRealtime)
+        })],
     ));
-
-    content = content.push(controls_container(
-        "actions".to_string(),
-        vec![
-            action_button("Spawn".to_string().to_lowercase())
-                .on_press(Message::Simulation(control::Operation::Spawn)),
-            action_button("Spawn Agent".to_string().to_lowercase()).on_press(Message::Simulation(
-                control::Operation::Agent(control::AgentOperations::Add),
-            )),
-            action_button("Log debug trace".to_string().to_lowercase())
-                .on_press(Message::Data(Data::LogTrace)),
-        ],
-    ));
-
-    content = content.push(labeled_data_container("watched".to_string(), data, 3));
 
     content.into()
 }
@@ -74,7 +57,7 @@ pub fn control_button<'a>(icon: icons::Icon) -> iced::widget::Button<'a, Message
     let control_button_style = CustomButtonStyle::new()
         .background_color(Color::TRANSPARENT)
         .hovered()
-        .background_color(Color::from_rgba8(40, 40, 40, 0.5))
+        .background_color(PRIMARY_COLOR.into())
         .border_radius(5.0.into());
     button(content).style(control_button_style.as_custom())
 }

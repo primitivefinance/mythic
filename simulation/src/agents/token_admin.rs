@@ -86,14 +86,14 @@ impl Agent for TokenAdmin {
         let total_y_supply = self.arby.total_supply().call().await?;
 
         let subbed = vec![
-            SubscribedData::new("x_supply".to_string(), total_x_supply.into_token()),
-            SubscribedData::new("y_supply".to_string(), total_y_supply.into_token()),
+            SubscribedData::new("Supply X".to_string(), total_x_supply.into_token()),
+            SubscribedData::new("Supply Y".to_string(), total_y_supply.into_token()),
         ];
 
         Ok(subbed)
     }
 
     fn get_name(&self) -> String {
-        "token_admin".to_string()
+        "Token Admin".to_string()
     }
 }

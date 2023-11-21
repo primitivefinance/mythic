@@ -111,48 +111,36 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for LiquidityProvider<S> {
     }
 
     fn get_name(&self) -> String {
-        "liquidity_provider".to_string()
+        "Liquidity Provider".to_string()
     }
 
     async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
         // get spot price, reserves, invariant, portfolio value.
 
-        let spot_price = self.strategy.get_spot_price().await?;
+        let _spot_price = self.strategy.get_spot_price().await?;
         let reserve_x = self.strategy.get_reserve_x().await?;
         let reserve_y = self.strategy.get_reserve_y().await?;
         let invariant = self.strategy.get_invariant().await?;
         let portfolio_value = self.strategy.get_portfolio_value().await?;
         let this = self.client.address();
-        let x_balance = self.token_admin.arbx.balance_of(this).call().await?;
-        let y_balance = self.token_admin.arby.balance_of(this).call().await?;
+        let _x_balance = self.token_admin.arbx.balance_of(this).call().await?;
+        let _y_balance = self.token_admin.arby.balance_of(this).call().await?;
 
         let subbed = vec![
             SubscribedData {
-                name: "spot_price".to_string(),
-                data: spot_price.into_token(),
-            },
-            SubscribedData {
-                name: "x_balance".to_string(),
-                data: x_balance.into_token(),
-            },
-            SubscribedData {
-                name: "y_balance".to_string(),
-                data: y_balance.into_token(),
-            },
-            SubscribedData {
-                name: "reserve_x".to_string(),
+                name: "Portfolio X".to_string(),
                 data: reserve_x.into_token(),
             },
             SubscribedData {
-                name: "reserve_y".to_string(),
+                name: "Portfolio Y".to_string(),
                 data: reserve_y.into_token(),
             },
             SubscribedData {
-                name: "invariant".to_string(),
+                name: "Invariant".to_string(),
                 data: invariant.into_token(),
             },
             SubscribedData {
-                name: "portfolio_value".to_string(),
+                name: "Portfolio Value".to_string(),
                 data: portfolio_value.into_token(),
             },
         ];

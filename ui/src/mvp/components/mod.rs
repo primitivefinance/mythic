@@ -1,6 +1,5 @@
 pub mod button;
 pub mod containers;
-pub mod exit;
 pub mod input;
 pub mod logos;
 pub mod select;
@@ -28,8 +27,7 @@ use super::{
 
 /// Renders a gray text label in lowercase.
 pub fn label_item<'a>(t: String) -> Text<'a> {
-    let content = t.to_lowercase();
-    text(content).size(16).style(Color::from_rgb(0.5, 0.5, 0.5))
+    secondary_label(t).size(TextSize::Md as u16)
 }
 
 /// Renders white text in the DAGGERSQUARE font.
@@ -42,7 +40,9 @@ pub fn labeled<'a, T: Into<Element<'a, Message>>>(
     label: String,
     element: T,
 ) -> Element<'a, Message> {
-    let mut content = Column::new().push(label_item(label)).push(element.into());
+    let mut content = Column::new()
+        .push(label_item(label))
+        .push(container(element).center_y());
     content = content.spacing(8);
     content.into()
 }
@@ -61,10 +61,25 @@ pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
 /// Renders a column with a label and a piece of data with the DAGGERSQUARE
 /// font.
 pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Renderer> {
+    // If data is a value above > 1000, replace the last three zeros with an
+    // uppercase "K". Same with > 1_000_000 "M", etc.
+    let data = match data.parse::<f64>() {
+        Ok(value) => {
+            if value > 1_000_000.0 {
+                format!("{:.2}M", value / 1_000_000.0)
+            } else if value > 1000.0 {
+                format!("{:.2}K", value / 1000.0)
+            } else {
+                data
+            }
+        }
+        Err(_) => data,
+    };
+
     let mut content = Column::new()
-        .push(label_item(label))
-        .push(data_item(data).size(20));
-    content = content.spacing(8);
+        .push(secondary_label(label).size(TextSize::Lg as u16))
+        .push(highlight_label(data).size(TitleSize::Md as u16));
+    content = content.spacing(Sizes::Sm as u16);
     content.into()
 }
 
@@ -122,7 +137,9 @@ pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
     actions: Vec<T>,
 ) -> Element<'a, Message> {
     let mut content = Column::new().push(label_item(label));
-    let mut row = Row::new().spacing(4);
+    let mut row = Row::new()
+        .spacing(4)
+        .align_items(iced::alignment::Alignment::Center);
     for action in actions {
         row = row.push(action.into());
     }
@@ -136,7 +153,7 @@ pub fn labeled_data_container<'a>(
     data: Vec<(String, String)>,
     max_elements: usize,
 ) -> Element<'a, Message> {
-    let mut content = Column::new().push(label_item(label));
+    let mut content = Column::new();
     content = content.push(labeled_data_row(data, max_elements));
     content.into()
 }
@@ -149,19 +166,19 @@ pub fn labeled_data_row<'a>(
     max_elements: usize,
 ) -> Element<'a, Message, Renderer> {
     let mut content = Column::new();
-    let mut row = Row::new().spacing(4);
+    let mut row = Row::new().spacing(Sizes::Lg as u16);
     let mut i = 0;
     for (label, data) in label_data {
         row = row.push(labeled_data(label, data));
         i += 1;
         if i == max_elements {
             content = content.push(row);
-            row = Row::new().spacing(4);
+            row = Row::new().spacing(Sizes::Lg as u16);
             i = 0;
         }
     }
     content = content.push(row);
-    content.spacing(8).into()
+    content.spacing(Sizes::Lg as u16).into()
 }
 
 /// A container that spaces the elements in a row out so they fill the space.

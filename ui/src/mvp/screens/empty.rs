@@ -48,7 +48,7 @@ impl State for EmptyScreen {
                     "Are you sure you want to exit?".to_string(),
                 ))
                 .push(
-                    button("Yes, exit now")
+                    button("Yes, save and exit.")
                         .padding([10, 20])
                         .on_press(view::Message::ConfirmExit),
                 )

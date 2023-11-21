@@ -8,10 +8,9 @@ pub fn labeled_data_card<'a>(label: String, data: String, _max_width: u16) -> El
     let mut content = Column::new()
         .push(labeled_data(label, data))
         .width(Length::Fixed(100.0));
-    content = content.spacing(8);
-    container(content)
-        .style(MenuContainerTheme::theme())
-        .padding(16)
+    content = content.spacing(Sizes::Sm as u16);
+    Card::new(container(content))
+        .padding(Sizes::Md as u16)
         .into()
 }
 
@@ -20,20 +19,19 @@ pub fn labeled_data_card<'a>(label: String, data: String, _max_width: u16) -> El
 /// will push a new row inside the column. There is a group label rendered above
 /// the rows.
 pub fn labeled_data_cards<'a>(
-    label: String,
     data: Vec<(String, String)>,
     max_elements: usize,
 ) -> Element<'a, Message> {
-    let mut content = Column::new().push(data_item(label).size(36));
+    let mut content = Column::new();
 
-    let mut row = Row::new().spacing(8);
+    let mut row = Row::new().spacing(Sizes::Sm as u16);
     let mut i = 0;
     for (label, data) in data {
         row = row.push(labeled_data_card(label, data, 200));
         i += 1;
         if i == max_elements {
             content = content.push(row);
-            row = Row::new().spacing(8);
+            row = Row::new().spacing(Sizes::Sm as u16);
             i = 0;
         }
     }

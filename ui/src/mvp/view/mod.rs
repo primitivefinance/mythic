@@ -14,8 +14,8 @@ use self::{
 };
 use super::{
     api::contacts,
-    components::{containers::*, exit::create_exit_component, *},
-    screens::{address_book::AddressBookDisplay, execution::form::TransactionSteps},
+    components::{containers::*, *},
+    screens::address_book::AddressBookDisplay,
     terminal::{StateSubscription, StateSubscriptionStore},
     tracer::{AppEventLayer, AppEventLog},
     *,
@@ -220,51 +220,26 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
     .height(Length::Fill)
 }
 
-pub fn terminal_view_multiple_firehose<'a>(
-    event_data: VecDeque<AppEventLog>,
+pub fn terminal_layout<'a>(
     realtime: bool,
     state_data: StateSubscriptionStore,
-    firehose_visible: bool,
 ) -> Element<'a, Message> {
     let cloned = state_data.clone();
-
-    let control_view = control_panel(vec![], realtime, firehose_visible);
-
-    let _event_view = EventFeed {
-        events: mock_event_groups(),
-    }
-    .view();
-
-    let mut feed = Feed::new(20);
-    feed.vec_to_bucketed_logs(event_data);
-
+    let control_view = control_panel(realtime);
     let state_view = state_render(cloned);
-
-    let mut feed_column = Column::new();
-    let mut feed_row = Column::new().spacing(8);
-    let mut feed_names: Vec<_> = feed.buckets.keys().cloned().collect();
-    feed_names.sort();
-    feed_names.reverse();
-    for feed_name in feed_names {
-        feed_row = feed_row.push(feed.view(feed_name.as_str()));
-    }
-    feed_column = feed_column.push(scrollable(feed_row));
-
     let content_row = Row::new()
-        .push(Column::new().push(state_view).width(Length::FillPortion(3)))
-        .push(feed_column)
+        .push(Column::new().push(state_view))
         .width(Length::Fill);
 
     Column::new()
         .push(
-            container(control_view)
-                .padding(8)
-                .style(MenuContainerTheme::theme())
+            Card::new(container(control_view))
+                .padding(Sizes::Md as u16)
                 .width(Length::Fill),
         )
         .push(content_row)
-        .spacing(16)
-        .padding(16)
+        .spacing(Sizes::Lg as u16)
+        .padding(Sizes::Xl as u16)
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
@@ -284,9 +259,6 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
 
     for (_i, (world_id, world_data)) in cloned.into_iter().enumerate() {
         // todo: handle rendering for multiple worlds, should probably be grouped.
-        // if i > 0 {
-        // continue;
-        // }
 
         let cloned_world: HashMap<String, StateSubscription> = world_data.clone();
 
@@ -335,7 +307,7 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
                 }
                 _ => {
                     for log in logs {
-                        let name = format!("{}: {}", label.clone(), log.name);
+                        let name = format!("{}", log.name);
                         let value = log.data.clone();
                         // todo: this can easily be 0...
                         let value_uint = value.into_uint().unwrap_or_default();
@@ -364,10 +336,10 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
             agent_cards.push(agent);
         }
 
-        agent_groups = agent_groups.push(agent_card_grid(agent_cards, 2));
+        agent_groups = agent_groups.push(agent_card_grid(agent_cards, 4));
     }
 
-    let mut monitored_groups = Column::new().spacing(16);
+    let mut monitored_groups = Column::new().spacing(Sizes::Md as u16);
 
     for (world_id, world_data) in monitored_data.into_iter() {
         let mut monitored_cards = Vec::new();
@@ -376,23 +348,18 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
         }
 
         let first_elemn = monitored_cards.clone()[0].clone();
-
-        monitored_groups = monitored_groups.push(labeled_data_cards(
-            format!("world {}", world_id),
-            first_elemn,
-            4,
-        ));
+        monitored_groups = monitored_groups.push(labeled_data_cards(first_elemn, 6));
     }
 
     let agent_groups_title = data_item("Agents".to_string()).size(36);
 
     scrollable(
         Column::new()
-            .push(agent_groups_title)
-            .push(agent_groups)
             .push(data_item("Protocol".to_string()).size(36))
             .push(monitored_groups)
-            .spacing(16)
+            .push(agent_groups_title)
+            .push(agent_groups)
+            .spacing(Sizes::Md as u16)
             .width(Length::Fill),
     )
     .into()
@@ -400,20 +367,20 @@ fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> 
 
 /// Renders a grid of agents cards, with a maximum amount of cards per row.
 fn agent_card_grid<'a>(data: Vec<Vec<(String, String)>>, max: usize) -> Element<'a, Message> {
-    let mut content = Column::new().spacing(16);
-    let mut row = Row::new().spacing(16);
+    let mut content = Column::new();
+    let mut row = Row::new().spacing(Sizes::Lg as u16);
     let mut i = 0;
     for card in data.into_iter() {
         row = row.push(agent::agent_card(card, false));
         i += 1;
         if i == max {
             content = content.push(row);
-            row = Row::new().spacing(16);
+            row = Row::new().spacing(Sizes::Lg as u16);
             i = 0;
         }
     }
     content = content.push(row);
-    content.spacing(8).into()
+    content.spacing(Sizes::Lg as u16).into()
 }
 
 #[allow(dead_code)]
@@ -432,7 +399,6 @@ fn mock_agent_card() -> Element<'static, Message> {
 #[allow(dead_code)]
 fn mock_monitor_group() -> Element<'static, Message> {
     labeled_data_cards(
-        "protocol".to_string(),
         vec![
             ("name".to_string(), "agent".to_string()),
             ("name".to_string(), "agent".to_string()),
