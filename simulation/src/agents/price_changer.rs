@@ -150,7 +150,7 @@ impl PriceChanger {
         let price = self.trajectory.paths[0][self.index];
         trace!("Updating price of liquid_exchange to: {}", price);
         self.liquid_exchange
-            .set_price(arbiter_core::math::float_to_wad(price))
+            .set_price(parse_ether(price)?)
             .send()
             .await?
             .await?;
