@@ -17,25 +17,50 @@ pub struct BlockAdmin {
 pub struct BlockAdminParameters {
     pub timestep_size: u64,
 }
+pub struct BlockAdminParametersBuilder {
+    timestep_size: Option<u64>,
+}
+
+impl Default for BlockAdminParametersBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+impl BlockAdminParametersBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn timestep_size(mut self, timestep_size: u64) -> Self {
+        self.timestep_size = Some(timestep_size);
+        self
+    }
+
+    pub fn build(self) -> Result<BlockAdminParameters, &'static str> {
+        if self.timestep_size.is_none() {
+            Err("Not all fields set")
+        } else {
+            Ok(BlockAdminParameters {
+                timestep_size: self.timestep_size.unwrap(),
+            })
+        }
+    }
+}
 
 impl BlockAdmin {
     pub async fn new(
         environment: &Environment,
-        config: &SimulationConfig<Single>,
+        block_admin_parameters: BlockAdminParameters,
         label: impl Into<String>,
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
-        if let Some(AgentParameters::BlockAdmin(parameters)) = config.agent_parameters.get(&label) {
-            Ok(Self {
-                client: client.clone(),
-                timestep_size: parameters.timestep_size,
-                block_number: client.get_block_number().await?.as_u64(),
-                block_timestamp: client.get_block_timestamp().await?.as_u64(),
-            })
-        } else {
-            Err(anyhow::anyhow!("No parameters found for block admin"))
-        }
+        Ok(Self {
+            client: client.clone(),
+            timestep_size: block_admin_parameters.timestep_size,
+            block_number: client.get_block_number().await?.as_u64(),
+            block_timestamp: client.get_block_timestamp().await?.as_u64(),
+        })
     }
 
     pub fn update_block(&mut self) -> Result<()> {

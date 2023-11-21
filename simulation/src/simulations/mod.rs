@@ -259,14 +259,42 @@ pub async fn looper(mut agents: Agents, steps: usize) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::collections::BTreeMap;
 
-    #[test]
-    fn test_simulation_builder() {
+    use super::*;
+    use crate::{
+        agents::{
+            block_admin::{BlockAdmin, BlockAdminParametersBuilder},
+            price_changer::PriceChanger,
+            token_admin::TokenAdmin,
+        },
+        settings::SimulationConfigBuilder,
+    };
+
+    const BLOCK_ADMIN_LABEL: &str = "block_admin";
+    const TOKEN_ADMIN_LABEL: &str = "token_admin";
+    const PRICE_CHANGER_LABEL: &str = "price_changer";
+
+    #[tokio::test]
+    async fn test_simulation_builder() {
         let mut builder = SimulationBuilder::new();
-        let agents = Agents::new(); // Replace with your actual initialization
+        let environment = EnvironmentBuilder::new()
+            .block_settings(BlockSettings::UserControlled)
+            .build(); // Replace with your actual initialization
+
+        let block_admin_params = BlockAdminParametersBuilder::new()
+            .timestep_size(1)
+            .build()
+            .unwrap();
+        let block_admin = BlockAdmin::new(&environment, block_admin_params, BLOCK_ADMIN_LABEL)
+            .await
+            .unwrap();
+        // let token_admin = TokenAdmin::new(&environment, &config,
+        // TOKEN_ADMIN_LABEL).await?; let price_changer =
+        // PriceChanger::new(&environment, &token_admin, &config).await?;
+        let mut agents = Agents::new();
+        agents.add(block_admin);
         let steps = 10;
-        let environment = Environment::new(); // Replace with your actual initialization
 
         builder.agents(agents);
         builder.steps(steps);
@@ -274,20 +302,29 @@ mod tests {
 
         let simulation = builder.build().unwrap();
 
-        assert_eq!(simulation.agents, agents);
         assert_eq!(simulation.steps, steps);
-        assert_eq!(simulation.environment, environment);
     }
 
     #[test]
     fn test_world_builder() {
         let mut builder = WorldBuilder::new();
-        let simulations = HashMap::new(); // Replace with your actual initialization
-
+        let mut simulations = HashMap::new(); // Replace with your actual initialization
+        let simulation = SimulationBuilder::new()
+            .agents(Agents::new())
+            .steps(10)
+            .environment(
+                EnvironmentBuilder::new()
+                    .block_settings(BlockSettings::UserControlled)
+                    .build(),
+            )
+            .build()
+            .unwrap();
+        let k = "test".to_string();
+        simulations.insert(k.clone(), simulation);
         builder.simulations(simulations);
 
         let world = builder.build().unwrap();
 
-        assert_eq!(world.simulations, simulations);
+        assert!(world.simulations.contains_key(&k));
     }
 }

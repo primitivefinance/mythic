@@ -9,7 +9,8 @@ pub use self::parameters::Parameterized;
 use super::*;
 use crate::{
     agents::{
-        g3m::swapper::SwapperParameters, price_changer::PriceChangerParameters, AgentParameters,
+        block_admin::BlockAdminParameters, g3m::swapper::SwapperParameters,
+        price_changer::PriceChangerParameters, AgentParameters,
     },
     simulations::SimulationType,
 };
@@ -76,6 +77,64 @@ where
             output_file_name: None,
             agent_parameters: BTreeMap::new(),
         }
+    }
+}
+
+#[derive(Default)]
+pub struct SimulationConfigBuilder {
+    simulation: Option<SimulationType>,
+    max_parallel: Option<usize>,
+    output_directory: Option<String>,
+    output_file_name: Option<String>,
+    agent_parameters: Option<BTreeMap<String, AgentParameters<Single>>>,
+}
+
+impl SimulationConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn simulation(&mut self, simulation: SimulationType) -> &mut SimulationConfigBuilder {
+        self.simulation = Some(simulation);
+        self
+    }
+
+    pub fn max_parallel(&mut self, max_parallel: usize) -> &mut SimulationConfigBuilder {
+        self.max_parallel = Some(max_parallel);
+        self
+    }
+
+    pub fn output_directory(&mut self, output_directory: String) -> &mut SimulationConfigBuilder {
+        self.output_directory = Some(output_directory);
+        self
+    }
+
+    pub fn output_file_name(&mut self, output_file_name: String) -> &mut SimulationConfigBuilder {
+        self.output_file_name = Some(output_file_name);
+        self
+    }
+
+    pub fn agent_parameters(
+        &mut self,
+        agent_parameters: BTreeMap<String, AgentParameters<Single>>,
+    ) -> &mut SimulationConfigBuilder {
+        self.agent_parameters = Some(agent_parameters);
+        self
+    }
+
+    pub fn build(&mut self) -> Result<SimulationConfig<Single>, &'static str> {
+        if self.simulation.is_none() {
+            return Err("Simulation not set");
+        }
+        // Similar checks for other fields...
+
+        Ok(SimulationConfig {
+            simulation: self.simulation.take().unwrap(),
+            max_parallel: self.max_parallel.take(),
+            output_directory: self.output_directory.take().unwrap(),
+            output_file_name: self.output_file_name.take(),
+            agent_parameters: self.agent_parameters.take().unwrap(),
+        })
     }
 }
 

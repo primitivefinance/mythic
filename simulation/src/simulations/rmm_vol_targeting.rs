@@ -10,7 +10,7 @@ use crate::{
             rmm_portfolio_manager::RmmPortfolioManagerType,
         },
         token_admin::TokenAdmin,
-        Agent, Agents,
+        Agent, AgentParameters, Agents,
     },
     bindings::i_strategy::IStrategy,
     settings::SimulationConfig,
@@ -23,7 +23,16 @@ pub async fn setup(
 ) -> Result<Simulation, SimulationError> {
     let mut agents = Agents::new();
 
-    let mut block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
+    let block_admin_params = match config.agent_parameters.get("block_admin") {
+        Some(AgentParameters::BlockAdmin(block_admin_parameters)) => *block_admin_parameters,
+        _ => {
+            return Err(SimulationError::GenericError(
+                "Block admin parameters not found".to_string(),
+            ))
+        }
+    };
+
+    let mut block_admin = BlockAdmin::new(&environment, block_admin_params, "block_admin").await?;
     agents.add(block_admin);
 
     let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
