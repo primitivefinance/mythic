@@ -23,28 +23,26 @@ pub enum Operation {
     Agent(AgentOperations),
 }
 
-pub fn control_panel<'a>(realtime: bool) -> Element<'a, Message> {
-    let mut content = Row::new().spacing(Sizes::Lg as u16);
+pub fn control_panel<'a>(_realtime: bool) -> Element<'a, Message> {
+    let mut content = Row::new().spacing(Sizes::Xl as u16);
 
-    content = content.push(controls_container(
-        "Actions".to_string(),
-        vec![action_button("Spawn".to_string().to_lowercase())
-            .on_press(Message::Simulation(control::Operation::Spawn))],
-    ));
-
-    content = content.push(labeled_controls(vec![
-        ("Play".to_string(), control::play()),
-        ("Pause".to_string(), control::pause()),
-        ("Step".to_string(), control::step()),
-        ("Stop".to_string(), control::stop()),
-    ]));
-
-    content = content.push(controls_container(
-        "Settings".to_string(),
-        vec![checkbox("Realtime", realtime, |_| {
-            Message::Settings(Settings::ToggleRealtime)
-        })],
-    ));
+    content = content.push(
+        Column::new()
+            .push(labeled_controls(vec![
+                (
+                    "Actions".to_string(),
+                    action_button("Spawn".to_string().to_lowercase())
+                        .padding([12, 10])
+                        .on_press(Message::Simulation(control::Operation::Spawn))
+                        .into(),
+                ),
+                ("Play".to_string(), control::play()),
+                ("Pause".to_string(), control::pause()),
+                ("Step".to_string(), control::step()),
+                ("Stop".to_string(), control::stop()),
+            ]))
+            .align_items(alignment::Alignment::End),
+    );
 
     content.into()
 }
@@ -53,6 +51,22 @@ pub fn control_button<'a>(icon: icons::Icon) -> iced::widget::Button<'a, Message
     let content = text(icon_to_char(icon))
         .font(ICON_FONT)
         .size(28)
+        .style(Color::WHITE);
+    let control_button_style = CustomButtonStyle::new()
+        .background_color(Color::TRANSPARENT)
+        .hovered()
+        .background_color(PRIMARY_COLOR.into())
+        .border_radius(5.0.into());
+    button(content).style(control_button_style.as_custom())
+}
+
+pub fn custom_icon_button<'a>(
+    icon: icons::Icon,
+    font_size: u16,
+) -> iced::widget::Button<'a, Message> {
+    let content = text(icon_to_char(icon))
+        .font(ICON_FONT)
+        .size(font_size)
         .style(Color::WHITE);
     let control_button_style = CustomButtonStyle::new()
         .background_color(Color::TRANSPARENT)

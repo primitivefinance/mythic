@@ -21,7 +21,10 @@ use self::{
 };
 // These components should return View messages.
 use super::{
-    view::{Message, Page},
+    view::{
+        control::{control_button, custom_icon_button},
+        Message, Page,
+    },
     *,
 };
 
@@ -55,7 +58,7 @@ pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
     for (label, control) in controls {
         content = content.push(labeled(label, control));
     }
-    content.spacing(4).into()
+    content.spacing(Sizes::Md as u16).into()
 }
 
 /// Renders a column with a label and a piece of data with the DAGGERSQUARE
@@ -352,7 +355,10 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
                         )
                         .push(
                             Column::new()
-                                .push(text(icon_to_char(Icon::BookmarkFill)).font(ICON_FONT))
+                                .push(
+                                    custom_icon_button(Icon::X, Sizes::Md as u16)
+                                        .on_press(view::Message::Page(view::Page::Empty)),
+                                )
                                 .align_items(alignment::Alignment::End)
                                 .width(Length::FillPortion(2)),
                         )
@@ -407,4 +413,24 @@ pub fn select_group<'a>(
         .push(input)
         .spacing(Sizes::Md as u16)
         .into()
+}
+
+pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
+    label: E,
+    value: String,
+) -> iced::widget::Button<'a, view::Message> {
+    let copy_button = button(label)
+        .style(
+            CustomButtonStyle::text(&iced::Theme::Dark)
+                .hovered()
+                .border_radius(5.0.into())
+                .background(Some(SEMI_TRANSPARENT_HIGHLIGHT_CONTAINER.into()))
+                .pressed()
+                .border_radius(5.0.into())
+                .background(Some(MENU_BG_COLOR.into()))
+                .as_custom(),
+        )
+        .padding(0)
+        .on_press(view::Message::CopyToClipboard(value));
+    copy_button
 }

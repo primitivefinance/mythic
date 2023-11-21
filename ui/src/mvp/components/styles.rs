@@ -111,6 +111,11 @@ pub const STROKE_COLOR: Color = GRAY_1000;
 pub const SELECTED_CONTAINER_COLOR: Color = GRAY_500;
 pub const HIGHLIGHTED_CONTAINER_COLOR: Color = GRAY_600;
 
+pub const SEMI_TRANSPARENT_HIGHLIGHT_CONTAINER: Color = Color {
+    a: 0.25,
+    ..HIGHLIGHTED_CONTAINER_COLOR
+};
+
 // Unused
 pub const MODAL: Color = GRAY_400;
 pub const PANEL: Color = GRAY_300;

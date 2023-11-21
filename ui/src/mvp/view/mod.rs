@@ -59,6 +59,7 @@ pub enum Message {
     Page(Page),
     Execution(Execution),
     AddressBook(AddressBookViewMessage),
+    CopyToClipboard(String),
 }
 
 impl From<Message> for app::Message {

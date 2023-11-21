@@ -189,6 +189,9 @@ impl App {
             Message::WindowsMessage(msg) => self.windows_update(msg),
             Message::View(view::Message::Page(page)) => self.switch_window(&page),
             Message::View(view::Message::Exit) => self.exit(),
+            Message::View(view::Message::CopyToClipboard(contents)) => {
+                iced::clipboard::write(contents)
+            }
             Message::Empty => Command::none(),
             _ => self.windows.screen.update(message),
         });

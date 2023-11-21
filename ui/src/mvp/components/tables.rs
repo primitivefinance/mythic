@@ -8,9 +8,24 @@ use super::{
 /// Renders a column in a summary table's row.
 pub fn summary_column<'a>(value: String) -> Column<'a, Message> {
     Column::new()
-        .push(h4(value))
+        .push(
+            Column::new()
+                .push(h4(value.clone()))
+                .padding(Sizes::Lg as u16),
+        )
         .align_items(alignment::Alignment::Center)
-        .padding(Sizes::Md as u16)
+        .width(Length::FillPortion(2))
+}
+
+pub fn copyable_summary_column<'a>(value: String) -> Column<'a, Message> {
+    Column::new()
+        .push(copyable_text(
+            Column::new()
+                .push(h4(value.clone()))
+                .padding(Sizes::Lg as u16),
+            value,
+        ))
+        .align_items(alignment::Alignment::Center)
         .width(Length::FillPortion(2))
 }
 
@@ -96,7 +111,8 @@ pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message
 
     let total_rows = values.len();
     for (i, (label, value)) in values.into_iter().enumerate() {
-        let columns: Vec<Column<'a, Message>> = vec![summary_column(label), summary_column(value)];
+        let columns: Vec<Column<'a, Message>> =
+            vec![summary_column(label), copyable_summary_column(value)];
         let row = summary_row(columns, i, total_rows);
         rows.push(row.into());
     }
