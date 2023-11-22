@@ -6,7 +6,7 @@ use anyhow::anyhow;
 use arbiter_core::environment::{builder::EnvironmentBuilder, fork::ContractMetadata, Environment};
 use ethers::{core::rand::thread_rng, prelude::*};
 use revm::{
-    db::{ethersdb::EthersDB, CacheDB, EmptyDB},
+    db::{ethersdb::EthersDB, CacheDB, DbAccount, EmptyDB},
     Database,
 };
 use revm_primitives::AccountInfo;
@@ -40,13 +40,15 @@ const CHAIN_ID: u64 = 31337;
 pub struct IngestPayload {
     pub target: Address,
     pub artifacts_path: String,
+    // For loading mappings into storage, where key = storage, value = mapping keys in a vector.
+    pub mappings: HashMap<String, Vec<String>>,
 }
 
 impl From<IngestPayload> for ContractMetadata {
     fn from(payload: IngestPayload) -> Self {
         Self {
             address: payload.target,
-            mappings: HashMap::new(),
+            mappings: payload.mappings,
             artifacts_path: payload.artifacts_path,
         }
     }
@@ -202,7 +204,11 @@ impl Forker {
                     "Failed to fetch account info with EthersDB.".to_string(),
                 ))?;
 
-            tracing::info!("Account info: {:?}", info);
+            tracing::info!(
+                "Account info: balance {:?} nonce {:?}",
+                info.clone().balance,
+                info.clone().nonce,
+            );
 
             db.insert_account_info(address.to_fixed_bytes().into(), info);
 
@@ -253,7 +259,6 @@ impl Forker {
 
         let info = handle.join();
 
-        tracing::debug!("Success Account info: {:?}", info);
         let info = match info {
             Ok(info) => info,
             Err(e) => {
@@ -265,7 +270,7 @@ impl Forker {
         Ok(info)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, db))]
     fn fetch_storage(
         &self,
         payload: IngestPayload,
@@ -299,7 +304,13 @@ impl Forker {
 
         let loaded_db = handle.join();
 
-        tracing::debug!("Success Storage: {:?}", loaded_db);
+        // Cache db has accounts which have storage, lets trace just those items.
+        let cloned_db = loaded_db.as_ref().unwrap().clone();
+        for account in cloned_db.accounts.iter() {
+            let account_db: DbAccount = account.1.clone().into();
+            tracing::info!("Account db storage: {:?}", account_db.storage);
+        }
+
         let _loaded_db = match loaded_db {
             Ok(loaded_db) => *db = loaded_db,
             Err(e) => {
@@ -429,6 +440,8 @@ mod tests {
         let payload = IngestPayload {
             target: counter_address,
             artifacts_path: get_counter_path().unwrap().to_str().unwrap().to_string(),
+            // todo: might need mappings for this test or make another test for it.
+            mappings: HashMap::new(),
         };
 
         // Evolve the Forker with the payload.

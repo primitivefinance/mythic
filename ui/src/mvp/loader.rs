@@ -54,6 +54,8 @@ pub async fn load_app() -> LoadResult {
         .with_dev_wallet()
         .await
         .with_counter_contract()
+        .await
+        .with_coin()
         .await;
 
     let mut storage = app::Storage { profile };
@@ -79,6 +81,33 @@ pub async fn load_app() -> LoadResult {
             ..Default::default()
         },
         contacts::Category::Untrusted,
+    );
+
+    let coin_address = match local.coin_contract {
+        Some(address) => address,
+        // Address from deploying coin contract in dev mode.
+        None => Address::zero(),
+    };
+
+    storage.profile.contacts.add(
+        coin_address,
+        contacts::ContactValue {
+            label: "Coin".to_string(),
+            class: contacts::Class::Contract,
+            ..Default::default()
+        },
+        contacts::Category::Recent,
+    );
+
+    let from = local.client.as_ref().unwrap().address();
+    storage.profile.contacts.add(
+        from,
+        contacts::ContactValue {
+            label: "You".to_string(),
+            class: contacts::Class::EOA,
+            ..Default::default()
+        },
+        contacts::Category::Trusted,
     );
 
     let chains = app::Chains {
