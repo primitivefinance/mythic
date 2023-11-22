@@ -131,7 +131,7 @@ impl Local<Ws> {
             "Deploying coin from address: 0x{:x}",
             client_address.clone()
         );
-        let coin = Coin::deploy(client.clone(), (ethers::utils::parse_ether("25").unwrap()))
+        let coin = Coin::deploy(client.clone(), ethers::utils::parse_ether("25").unwrap())
             .unwrap()
             .send()
             .await

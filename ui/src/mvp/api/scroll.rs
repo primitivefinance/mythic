@@ -22,7 +22,7 @@ use std::{
 
 use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
 use ethers::{
-    abi::{Token, Tokenize},
+    abi::Tokenize,
     types::{transaction::eip2718::TypedTransaction, Address},
     utils::parse_ether,
 };
@@ -349,7 +349,7 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
 
             // todo: fix arg encoding so we can handle zero arg methods
 
-            let tokenized = args.clone().into_tokens();
+            let _tokenized = args.clone().into_tokens();
 
             if method.contains("transfer") {
                 let call = TransferCall {

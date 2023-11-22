@@ -1,3 +1,4 @@
+#[allow(clippy::unused_imports)]
 pub mod form;
 pub mod processing;
 pub mod send;
