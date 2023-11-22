@@ -45,6 +45,15 @@ impl Contacts {
         self.books.get(&category)?.get(address)
     }
 
+    pub fn find(&self, address: &Address) -> Option<&ContactValue> {
+        for (_, book) in self.books.iter() {
+            if let Some(contact) = book.get(address) {
+                return Some(contact);
+            }
+        }
+        None
+    }
+
     pub fn get_list(&self, category: Category) -> Option<&ContactList> {
         self.books.get(&category)
     }

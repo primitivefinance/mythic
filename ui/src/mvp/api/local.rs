@@ -4,7 +4,7 @@ use ethers::{
     prelude::*,
     utils::{Anvil, AnvilInstance},
 };
-use simulation::bindings::counter::Counter;
+use simulation::bindings::{coin::Coin, counter::Counter};
 use tracing::info;
 
 const RPC_URL_WS: &str = "ws://localhost:8545";
@@ -15,6 +15,7 @@ pub struct Local<C> {
     pub client: Option<Arc<SignerMiddleware<Provider<C>, LocalWallet>>>,
     pub anvil: Option<Arc<AnvilInstance>>,
     pub counter_contract: Option<Address>,
+    pub coin_contract: Option<Address>,
 }
 
 impl<C> std::fmt::Debug for Local<C> {
@@ -32,6 +33,7 @@ impl Default for Local<Ws> {
             client: None,
             anvil: None,
             counter_contract: None,
+            coin_contract: None,
         }
     }
 }
@@ -55,6 +57,7 @@ impl Local<Ws> {
             client: Some(client.clone()),
             anvil: None,
             counter_contract: None,
+            coin_contract: None,
         })
     }
 
@@ -117,6 +120,38 @@ impl Local<Ws> {
         Self {
             client: Some(client),
             counter_contract: Some(contract),
+            ..self
+        }
+    }
+
+    pub async fn with_coin(self) -> Self {
+        let client = self.client.unwrap();
+        let client_address = client.address();
+        tracing::info!(
+            "Deploying coin from address: 0x{:x}",
+            client_address.clone()
+        );
+        let coin = Coin::deploy(client.clone(), ethers::utils::parse_ether("25").unwrap())
+            .unwrap()
+            .send()
+            .await
+            .unwrap();
+
+        tracing::info!(
+            "Client balance: {}",
+            coin.balance_of(client_address.clone())
+                .call()
+                .await
+                .unwrap(),
+        );
+
+        let coin = coin.address();
+
+        tracing::info!("Deployed counter coin at 0x{:x}", coin);
+
+        Self {
+            client: Some(client),
+            coin_contract: Some(coin),
             ..self
         }
     }

@@ -98,7 +98,7 @@ pub fn list_contact_card<'a>(
     match list {
         Some(list) => {
             for (address, contact) in list.get_all() {
-                values.push((contact.label.clone(), format!("{:x}", address)));
+                values.push((contact.label.clone(), format!("0x{:x}", address)));
             }
         }
         None => {}

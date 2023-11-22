@@ -412,13 +412,32 @@ pub fn state_deltas_table<'a>(review_diffs: Option<StorageDiffs>) -> Container<'
     if let Some(review_diffs) = review_diffs {
         for (slot, (before, after)) in review_diffs.iter() {
             let diff = match (before.clone(), after.clone()) {
-                (Some(before), Some(after)) => after.checked_sub(before),
+                (Some(before), Some(after)) => {
+                    // If after is greater than before, subtract to get the diff.
+                    if after > before {
+                        let diff = after.checked_sub(before);
+                        if diff.is_none() {
+                            tracing::error!("Could not compute diff for storage slot: {:?}", slot);
+                            continue;
+                        }
+
+                        Some(format!("+{}", diff.unwrap()))
+                    } else {
+                        let diff = before.checked_sub(after);
+                        if diff.is_none() {
+                            tracing::error!("Could not compute diff for storage slot: {:?}", slot);
+                            continue;
+                        }
+
+                        Some(format!("-{}", diff.unwrap()))
+                    }
+                }
                 _ => None,
             };
 
             match diff {
                 Some(diff) => {
-                    values.push((slot.to_string(), diff.to_string()));
+                    values.push((slot.to_string(), diff));
                 }
                 None => {}
             }

@@ -13,6 +13,7 @@
 //! 7. Finally, execute the transaction.
 
 use std::{
+    collections::HashMap,
     convert::{Infallible, TryFrom},
     fs::File,
     io::BufReader,
@@ -21,8 +22,9 @@ use std::{
 
 use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
 use ethers::{
-    abi::Token,
+    abi::Tokenize,
     types::{transaction::eip2718::TypedTransaction, Address},
+    utils::parse_ether,
 };
 use revm::{
     db::{CacheDB, EmptyDB, EmptyDBTyped},
@@ -33,6 +35,14 @@ use super::{
     forking::{Forker, IngestPayload},
     *,
 };
+use crate::mvp::units::address_to_string;
+
+// todo: proper abi management?
+abigen!(Coin, "ui/src/mvp/abi/Coin.sol/Coin.json",
+    methods {
+                 transfer(address,uint) as transfer_call;
+            },
+);
 
 #[derive(Default, Debug, Clone)]
 pub struct Stages {
@@ -52,6 +62,7 @@ pub struct Scroll {
     pub stages: Stages,
     pub simulated_outcome: Option<Outcome>,
     pub live_outcome: Option<Outcome>,
+    pub mappings: HashMap<String, Vec<String>>,
 }
 
 impl Scroll {
@@ -127,6 +138,7 @@ impl Scroll {
         let ingest_payload = IngestPayload {
             target,
             artifacts_path,
+            mappings: self.mappings.clone(),
         };
         let db = forker.load_cached_db(ingest_payload, block)?;
 
@@ -156,21 +168,30 @@ impl Scroll {
     }
 
     #[tracing::instrument(skip(self, forker))]
+    /// If we need to simulate a transaction, we also need to load any deeper
+    /// storage (i.e. in mappings) by specifying the keys to lookup and save
+    /// to storage in the mappings.
     pub async fn simulate(&mut self, forker: &Forker, block: Option<u64>) -> anyhow::Result<()> {
         // load the before stage if it hasn't been loaded yet.
         if self.stages.before.is_none() {
             self.load_before(forker, block)?;
         }
 
-        tracing::trace!(
-            "Loading storage into Arbiter: {:?}",
-            self.stages.before.clone().unwrap()
-        );
         // Loads the before stage into Arbiter and gets an Arbiter client.
         let db = self.stages.before.clone().unwrap();
         let environment = forker.load_env(db);
-        let client = RevmMiddleware::new(&environment, Some("simulate"))?;
+        let from_address = forker.client.clone().unwrap().address();
+        let client = RevmMiddleware::new_from_forked_eoa(&environment, from_address)?;
         let payload: TypedTransaction = self.payload.clone().try_into()?;
+
+        tracing::warn!(
+            "Balance of client with address 0x{:x} : {:?}",
+            from_address,
+            Coin::new(self.payload.target.clone(), client.clone())
+                .balance_of(from_address)
+                .call()
+                .await?
+        );
 
         // Executes the transaction on the Arbiter client.
         tracing::debug!("Sending simulation payload: {:?}", payload);
@@ -285,7 +306,10 @@ pub struct UnsealedTransaction {
     pub target: Address,
     pub value: Option<U256>,
     pub method: Option<String>,
-    pub arguments: Vec<Token>,
+    // Storing this as Vec<Token> would be better, but encode() takes T: Tokenize, which Vec<Token>
+    // does not implement.
+    pub arguments: Vec<String>,
+    pub from: Option<Address>,
 }
 
 impl TryFrom<UnsealedTransaction> for TypedTransaction {
@@ -298,7 +322,7 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
         // .value(payload.value.into());
 
         let mut req = Eip1559TransactionRequest {
-            from: None,
+            from: payload.from,
             to: Some(payload.target.into()),
             value: payload.value,
             gas: None,
@@ -317,11 +341,43 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
             let contract_abi: ContractAbi = serde_json::from_reader(reader).unwrap();
             let abi = contract_abi.abi;
             let instance: BaseContract = abi.into();
+            let args = payload.arguments.clone();
+            let args = match args.len() {
+                0 => vec![],
+                _ => args,
+            };
 
             // todo: fix arg encoding so we can handle zero arg methods
-            let data = instance.encode(method.as_str(), ()).unwrap();
 
-            req.data = Some(data);
+            let _tokenized = args.clone().into_tokens();
+
+            if method.contains("transfer") {
+                let call = TransferCall {
+                    to: args[0].clone().parse::<Address>().unwrap(),
+                    amount: parse_ether(args[1].clone()).unwrap(),
+                };
+
+                tracing::info!("Transfer call: {:?}", call);
+                let data = instance.encode(method.as_str(), call).unwrap();
+
+                req.data = Some(data);
+            } else {
+                let data = instance.encode(method.as_str(), ()).unwrap();
+
+                req.data = Some(data);
+            }
+
+            // todo: this is bad, fix!
+            // let tuple = if args.len() == 2 {
+            // Some((args[0].clone(), args[1].clone()))
+            // } else {
+            // None
+            // };
+            // let data = instance
+            // .encode(method.as_str(), tuple.unwrap_or(()))
+            // .unwrap();
+            //
+            // req.data = Some(data);
         } else {
             return Err(anyhow::anyhow!("No method specified in payload."));
         }
@@ -368,21 +424,52 @@ impl UnsealedTransaction {
     }
 
     /// Sets the arguments of the transaction.
-    pub fn arguments(mut self, arguments: Vec<Token>) -> Self {
+    pub fn arguments(mut self, arguments: Vec<String>) -> Self {
         self.arguments = arguments;
         self
     }
 
     /// Adds an argument to the transaction.
-    pub fn arg(mut self, arg: Token) -> Self {
+    pub fn arg(mut self, arg: String) -> Self {
         self.arguments.push(arg);
         self
     }
 
+    fn get_mappings(&self) -> HashMap<String, Vec<String>> {
+        let mut mappings = HashMap::new();
+
+        // Get the method.
+        let method = self.method.clone();
+        let method = match method {
+            Some(method) => method,
+            None => {
+                return mappings;
+            }
+        };
+
+        // todo: how can get what storage slots/keys will be altered?
+        if method.contains("transfer") {
+            // Return the first argument, which is the address of the recipient of the
+            // transfer. And the from address, which is the caller.
+
+            let mut keys = vec![];
+            keys.push(self.arguments[0].clone());
+            keys.push(address_to_string(&self.from.clone().unwrap()));
+
+            let mapping_label = "balanceOf".to_string();
+
+            mappings.insert(mapping_label, keys);
+        }
+
+        mappings
+    }
+
     /// Builds the transaction into a Scroll.
     pub fn seal(self) -> Scroll {
+        let mappings = self.get_mappings();
         Scroll {
             payload: self,
+            mappings,
             ..Default::default()
         }
     }

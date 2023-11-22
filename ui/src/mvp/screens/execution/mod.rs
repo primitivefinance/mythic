@@ -1,3 +1,4 @@
+#[allow(clippy::unused_imports)]
 pub mod form;
 pub mod processing;
 pub mod send;
@@ -7,8 +8,8 @@ use std::{self, collections::HashMap};
 
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use ethers::{
-    abi::{Token, Tokenizable},
-    types::Address,
+    abi::{Token, Tokenizable, Tokenize},
+    types::{Address, U256},
 };
 use iced::{Command, Element, Subscription};
 use revm::primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue};
@@ -58,6 +59,9 @@ impl Execution {
             0,
             None,
         );
+
+        let forker_address = chains.clone().local.client.unwrap().clone().address();
+        tracing::info!("Forker address: 0x{:x}", forker_address);
 
         // Cache these contact lists so we don't need to refetch them on view...
         // todo: add a way to refetch them.
@@ -112,24 +116,33 @@ impl Execution {
     #[tracing::instrument(skip(self))]
     fn handle_simulate(&mut self) -> Command<Message> {
         // todo: fix this
+        let from = self.form.fields.from.clone();
         let target = self.form.fields.target.clone().unwrap();
         let value = target.parse::<Address>().unwrap();
+
+        // todo: why is this happening here?
+        self.processing.unsealed.from = Some(from.unwrap().parse::<Address>().unwrap());
         self.processing.unsealed.target = value;
 
-        let contact = self
-            .storage
-            .profile
-            .contacts
-            .get(&value, contacts::Category::Untrusted)
-            .unwrap()
-            .clone();
-        let path = get_artifact_path(&contact.label);
+        let contact = self.storage.profile.contacts.find(&value);
+        let contact = match contact {
+            Some(contact) => contact,
+            None => {
+                tracing::error!("Could not find contact for address: {:?}", value);
+                return Command::none();
+            }
+        };
+        let path = get_artifact_path(&contact.label.to_lowercase());
         self.processing.unsealed.artifact = path;
 
         // todo: fix this too!
+        let to = self.form.fields.to.clone().unwrap();
         let amount = self.form.fields.amount.clone();
-        let amount: Token = amount.unwrap().into_token();
-        self.processing.unsealed.arguments = vec![amount];
+        let amount = amount.unwrap();
+
+        self.processing.unsealed.method = Some("transfer".to_string());
+        // todo: this order matters right now...
+        self.processing.unsealed.arguments = vec![to, amount];
 
         let cmd = self.processing.simulate();
 
@@ -167,6 +180,11 @@ impl Execution {
         }
 
         self.cache_slots();
+
+        tracing::info!(
+            "Simulated storage diffs: {:?}",
+            self.cache.simulated_results
+        );
 
         Command::perform(empty_async(), |_| {
             view::Execution::Form(FormMessage::CompleteSimulate).into()
