@@ -37,7 +37,8 @@ use super::{
 };
 use crate::mvp::units::address_to_string;
 
-abigen!(Coin, "contracts/out/Coin.sol/Coin.json",
+// todo: proper abi management?
+abigen!(Coin, "ui/src/mvp/abi/Coin.sol/Coin.json",
     methods {
                  transfer(address,uint) as transfer_call;
             },
