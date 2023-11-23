@@ -1,11 +1,11 @@
 use std::time::Instant;
 
 use anyhow::Result;
+use app;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
 use simulation::simulations;
 use tracing_subscriber::filter::EnvFilter;
-use ui as interface;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
 #[derive(Parser)]
@@ -44,7 +44,7 @@ enum Commands {
     },
     Analyze,
     Ui {
-        #[clap(index = 1, default_value = "example")]
+        #[clap(index = 1, default_value = "")]
         app: String,
     },
 }
@@ -95,10 +95,7 @@ fn main() -> Result<()> {
         }
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app }) => match app.as_str() {
-            "example" => interface::example()?,
-            "analyzer" => interface::analyzer::analyzer()?,
-            "mvp" => interface::mvp::run()?,
-            _ => println!("Unknown app: {}, or no app provided", app),
+            _ => app::run()?,
         },
         None => Args::command().print_long_help()?,
     }
