@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use directories_next::{self, ProjectDirs};
 
-pub const PROFILE_FILE_NAME: &str = "profile.json";
+pub const PROFILE_FILE_EXTENSION: &str = "json";
+pub const PROFILE_FILE_NAME: &str = "profile";
 pub const QUALIFIER: &str = "xyz.primitive";
 pub const ORGANIZATION: &str = "Primitive";
 pub const APPLICATION: &str = "Excalibur";

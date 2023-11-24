@@ -46,7 +46,7 @@ pub async fn load_app() -> LoadResult {
     tracing::debug!(
         "Loaded profile {:?} at path {:?}",
         profile.name,
-        profile.path_of()
+        profile.file_path()
     );
 
     // todo: get this working without running anvil in background

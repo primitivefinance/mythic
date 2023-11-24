@@ -70,7 +70,7 @@ where
         self
     }
 
-    pub fn build(&self) -> Row<'static, Message>
+    pub fn build(self) -> Row<'static, Message>
     where
         Message: 'static + Default,
     {

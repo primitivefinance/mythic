@@ -76,7 +76,7 @@ where
     }
 
     /// Handles spacing of all child elements.
-    pub fn build(&self) -> Column<'static, Message> {
+    pub fn build(self) -> Column<'static, Message> {
         let mut column = Column::new();
 
         // Specifies the spacing between cells in a row.

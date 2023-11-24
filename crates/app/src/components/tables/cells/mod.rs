@@ -48,7 +48,6 @@ where
 }
 
 /// Constructs a cell for a table.
-
 pub struct CellBuilder<Message>
 where
     Message: Default,
@@ -162,7 +161,7 @@ where
         self
     }
 
-    pub fn build<'a>(&self) -> impl Into<Container<'a, Message>>
+    pub fn build<'a>(self) -> impl Into<Container<'a, Message>>
     where
         Message: 'a + Default,
     {
@@ -173,13 +172,11 @@ where
 
         // If on_checkbox is Some, then we need to render a checkbox.
         if self.on_checkbox.is_some() {
-            let value = self.value.clone().unwrap_or_default();
             // how do we handle the case where checked is not ever set?
             let checkbox = Checkbox::new(
-                value,
+                self.value.unwrap_or_default(),
                 self.checked.unwrap_or_default(),
                 self.on_checkbox
-                    .as_ref()
                     .unwrap_or_else(|| Box::new(|_| Message::default())),
             );
 

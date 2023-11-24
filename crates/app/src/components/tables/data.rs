@@ -1,5 +1,6 @@
 //! Table data is stored separately from the table itself. This allows us to
 //! update the values instead of regenerate the entire structure of the table.
+//! todo: figure out how to do this...
 
 use super::*;
 
@@ -23,7 +24,6 @@ where
 {
     data: TableData2D,
     builder: TableBuilder<Message>,
-    last_table: Element<'static, Message>,
 }
 
 impl<Message> CustomTable<Message>
@@ -35,7 +35,6 @@ where
         Self {
             data: vec![],
             builder: TableBuilder::new(),
-            last_table: Container::new(Text::new("")).into(),
         }
     }
 
@@ -57,24 +56,5 @@ where
     /// Get the number of columns in the table.
     pub fn columns(&self) -> usize {
         self.data[0].len()
-    }
-
-    pub fn refresh(&mut self) {
-        self.last_table = self.build();
-    }
-
-    pub fn build(&self) -> Element<'static, Message>
-    where
-        Message: 'static + Default,
-    {
-        self.builder.build().into()
-    }
-
-    /// Render the table.
-    pub fn view<'a>(&'a self) -> Container<'a, Message>
-    where
-        Message: 'static + Default,
-    {
-        Container::new(self.last_table)
     }
 }
