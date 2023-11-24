@@ -1,143 +1,79 @@
-//! TableBuilder can be used to construct a table with different kinds of cells.
+//! todo: The performance of this table I am assuming is not very good,
+//! because it will be re-regenerated every time we call it.
+//! We should make a wrapper component that builds the table once and only
+//! updates the values.
+//! This will give us the desired structure of the table, without forcing
+//! renders to happen repeatedly. Maybe we can make a wrapper component that
+//! caches the table and only updates the values.
+//! Or the builder can natively expose a way to update all the values...
+//! To improve the performance of your table builder, you could consider using a
+//! design pattern such as the Flyweight pattern. This pattern is used to
+//! minimize memory usage or computational expenses by sharing as much as
+//! possible with similar objects.
+//!
+//! In your case, you could create a Table struct
+//! that holds the structure of the table (columns, rows, cells) and a separate
+//! TableData struct that holds the actual data for the table. The Table struct
+//! would only be built once, and the TableData could be updated as needed.
 
+pub mod builder;
 pub mod cells;
 pub mod columns;
+pub mod data;
 pub mod rows;
+
+use std::rc::Rc;
 
 use iced::BorderRadius;
 
-use self::{columns::ColumnBuilder, rows::RowBuilder};
+use self::{builder::TableBuilder, columns::ColumnBuilder, rows::RowBuilder};
 use super::{
     containers::{BorderedContainer, TableColumnContainer},
     *,
 };
 
-pub struct TableBuilder<Message>
-where
-    Message: 'static + Default,
-{
-    columns: Vec<ColumnBuilder<Message>>,
-    spacing_col: Option<Sizes>,
-    spacing_row: Option<Sizes>,
-    spacing_cell: Option<Sizes>,
-    padding_col: Option<Sizes>,
-    padding_row: Option<Sizes>,
-    padding_cell: Option<Sizes>,
-    padding_cell_internal: Option<Sizes>,
+#[derive(Debug, Clone, Default)]
+pub struct Asset {
+    pub ticker: String,
+    pub price: f64,
+    pub selected: bool,
 }
 
-impl<Message> TableBuilder<Message>
+pub fn asset_selection_table<'a, Message>(
+    assets: Vec<Asset>,
+    on_select: impl Fn(Option<String>) -> Message + 'static,
+) -> Container<'a, Message>
 where
     Message: 'static + Default,
 {
-    pub fn new() -> Self {
-        Self {
-            columns: vec![],
-            spacing_col: None,
-            spacing_row: None,
-            spacing_cell: None,
-            padding_col: None,
-            padding_row: None,
-            padding_cell: None,
-            padding_cell_internal: None,
-        }
-    }
+    let on_select = Rc::new(on_select);
+    let rows: Vec<RowBuilder<Message>> = assets
+        .into_iter()
+        .map(|asset| {
+            let ticker_cell = cells::CellBuilder::new().value(Some(asset.ticker.clone()));
 
-    pub fn spacing_col(mut self, spacing_col: Sizes) -> Self {
-        self.spacing_col = Some(spacing_col);
-        self
-    }
+            let price_cell = cells::CellBuilder::new().value(Some(asset.price.to_string()));
 
-    pub fn spacing_row(mut self, spacing_row: Sizes) -> Self {
-        self.spacing_row = Some(spacing_row);
-        self
-    }
+            let ticker = asset.ticker.clone();
+            let on_select = Rc::clone(&on_select);
+            let selected_cell = cells::CellBuilder::new()
+                .checked(Some(asset.selected))
+                .on_checkbox(move |_| on_select(Some(ticker.clone())));
 
-    pub fn spacing_cell(mut self, spacing_cell: Sizes) -> Self {
-        self.spacing_cell = Some(spacing_cell);
-        self
-    }
+            RowBuilder::new()
+                .cell(ticker_cell)
+                .cell(price_cell)
+                .cell(selected_cell)
+        })
+        .collect();
 
-    pub fn padding_col(mut self, padding_col: Sizes) -> Self {
-        self.padding_col = Some(padding_col);
-        self
-    }
+    let col = ColumnBuilder::new().rows(rows);
+    let table = TableBuilder::new()
+        .column(col)
+        .spacing_col(Sizes::Lg)
+        .spacing_row(Sizes::Md);
 
-    pub fn padding_row(mut self, padding_row: Sizes) -> Self {
-        self.padding_row = Some(padding_row);
-        self
-    }
-
-    pub fn padding_cell(mut self, padding_cell: Sizes) -> Self {
-        self.padding_cell = Some(padding_cell);
-        self
-    }
-
-    pub fn padding_cell_internal(mut self, padding_cell_internal: Sizes) -> Self {
-        self.padding_cell_internal = Some(padding_cell_internal);
-        self
-    }
-
-    pub fn column(mut self, column: ColumnBuilder<Message>) -> Self {
-        self.columns.push(column);
-        self
-    }
-
-    pub fn build(self) -> Row<'static, Message> {
-        let mut table = Row::new();
-
-        for column in self.columns {
-            // Specifies the spacing between rows in a column.
-            // And the spacing between cells in a row.
-            let column: Column<'static, Message> = column
-                .spacing(self.spacing_row.unwrap_or_default())
-                .spacing_cell(self.spacing_cell.unwrap_or_default())
-                .padding_row(self.padding_row.unwrap_or_default())
-                .padding_cell(self.padding_cell.unwrap_or_default())
-                .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
-                .into();
-            table = table.push(column);
-        }
-
-        // Specifies spacing of columns in a table.
-        table
-            .spacing(self.spacing_col.unwrap_or_default())
-            .padding(self.padding_col.unwrap_or_default())
-    }
-}
-
-impl<'a, Message> From<TableBuilder<Message>> for Row<'a, Message>
-where
-    Message: 'static + Default,
-{
-    fn from(table: TableBuilder<Message>) -> Self {
-        table.build()
-    }
-}
-
-impl<'a, Message> From<TableBuilder<Message>> for Container<'a, Message>
-where
-    Message: 'static + Default,
-{
-    fn from(table: TableBuilder<Message>) -> Self {
-        table_container(table)
-    }
-}
-
-pub fn table_container<'a, Message>(table: TableBuilder<Message>) -> Container<'a, Message>
-where
-    Message: 'static + Default,
-{
     Container::new(table.build())
-}
-
-impl<'a, Message> From<TableBuilder<Message>> for Element<'a, Message>
-where
-    Message: 'static + Default,
-{
-    fn from(table: TableBuilder<Message>) -> Self {
-        table.build().into()
-    }
 }
 
 /// Renders a column in a summary table's row.

@@ -29,6 +29,12 @@ where
         }
     }
 
+    pub fn update_cell(&mut self, row: usize, column: usize, value: Option<String>) {
+        if let Some(row) = self.rows.get_mut(row) {
+            row.update_cell(column, value);
+        }
+    }
+
     pub fn spacing(mut self, spacing: Sizes) -> Self {
         self.spacing = Some(spacing);
         self
@@ -64,8 +70,13 @@ where
         self
     }
 
+    pub fn rows(mut self, rows: Vec<RowBuilder<Message>>) -> Self {
+        self.rows = rows;
+        self
+    }
+
     /// Handles spacing of all child elements.
-    pub fn build(self) -> Column<'static, Message> {
+    pub fn build(&self) -> Column<'static, Message> {
         let mut column = Column::new();
 
         // Specifies the spacing between cells in a row.

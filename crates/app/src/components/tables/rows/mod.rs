@@ -16,7 +16,7 @@ where
 /// todo: support Padding customization
 pub struct RowBuilder<Message>
 where
-    Message: Default,
+    Message: Default + 'static,
 {
     cells: Vec<CellBuilder<Message>>,
     spacing: Option<Sizes>,
@@ -36,6 +36,12 @@ where
             padding: None,
             padding_cell: None,
             padding_cell_internal: None,
+        }
+    }
+
+    pub fn update_cell(&mut self, index: usize, value: Option<String>) {
+        if let Some(cell) = self.cells.get_mut(index) {
+            cell.update_value(value);
         }
     }
 
@@ -64,7 +70,7 @@ where
         self
     }
 
-    pub fn build(self) -> Row<'static, Message>
+    pub fn build(&self) -> Row<'static, Message>
     where
         Message: 'static + Default,
     {
