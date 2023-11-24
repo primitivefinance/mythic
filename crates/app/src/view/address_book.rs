@@ -273,7 +273,7 @@ where
                 options,
                 selected,
                 on_selected,
-                Some("Select option"),
+                Some("Select option".to_string()),
             )
             .padding(Sizes::Md as u16)
             .width(Length::Fill),

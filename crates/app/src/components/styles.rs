@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use iced::{Color, Font};
+use iced::{Color, Font, Padding, Pixels};
 
 pub const GRAY_100: Color = Color::from_rgb(
     0x15 as f32 / 255.0,
@@ -130,13 +130,41 @@ pub const FONT_BOLD: Font = Font {
 };
 
 /// Sizes for spacing, padding, etc.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Sizes {
+    #[default]
+    Zero = 0,
     Xs = 4,
     Sm = 8,
     Md = 16,
     Lg = 24,
     Xl = 32,
+}
+
+impl From<Sizes> for iced::Pixels {
+    fn from(item: Sizes) -> Self {
+        match item {
+            Sizes::Zero => 0.0.into(),
+            Sizes::Xs => 4.0.into(),
+            Sizes::Sm => 8.0.into(),
+            Sizes::Md => 16.0.into(),
+            Sizes::Lg => 24.0.into(),
+            Sizes::Xl => 32.0.into(),
+        }
+    }
+}
+
+impl From<Sizes> for Padding {
+    fn from(item: Sizes) -> Self {
+        match item {
+            Sizes::Zero => Padding::new(0.0),
+            Sizes::Xs => Padding::new(4.0),
+            Sizes::Sm => Padding::new(8.0),
+            Sizes::Md => Padding::new(16.0),
+            Sizes::Lg => Padding::new(24.0),
+            Sizes::Xl => Padding::new(32.0),
+        }
+    }
 }
 
 /// Sizes for fonts

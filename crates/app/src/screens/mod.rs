@@ -2,6 +2,7 @@
 use super::{app::Message, *};
 
 pub mod address_book;
+pub mod developer;
 pub mod empty;
 pub mod execution;
 pub mod exit;

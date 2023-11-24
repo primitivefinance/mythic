@@ -40,8 +40,9 @@ pub enum Data {
 }
 
 /// Root message for the Terminal component.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Message {
+    #[default]
     Empty,
     Exit,
     ConfirmExit,
@@ -53,6 +54,7 @@ pub enum Message {
     AddressBook(AddressBookViewMessage),
     CopyToClipboard(String),
     Experimental,
+    Developer(developer::Message),
 }
 
 impl From<Message> for app::Message {
@@ -144,6 +146,7 @@ pub enum Page {
     AddressBook,
     Exit,
     Experimental,
+    Developer,
 }
 
 impl Page {
@@ -159,6 +162,10 @@ impl Page {
     }
 }
 
+// todo: this needs to be broken down into more components
+// also developer page should be hidden, along with any other pages
+// we should be able to start the app in dev mode that does some things to help
+// development.
 pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
     let name = "Excalibur".to_string();
     let title = Column::new()
@@ -167,7 +174,9 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
         .align_items(alignment::Alignment::Center)
         .width(Length::Fill);
 
-    let windows = vec![
+    let is_dev_mode = std::env::var("DEV_MODE").is_ok();
+
+    let mut windows = vec![
         (
             Icon::TerminalFill,
             "Terminal".to_string(),
@@ -199,6 +208,15 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
             menu == &Page::Exit,
         ),
     ];
+
+    if is_dev_mode {
+        windows.push((
+            Icon::Thermometer,
+            "Developer".to_string(),
+            Message::Page(Page::Developer),
+            menu == &Page::Developer,
+        ));
+    }
 
     let apps = window_directory(windows);
 

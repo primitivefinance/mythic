@@ -10,7 +10,7 @@ pub fn custom_pick_list<'a, Message, T>(
     options: impl Into<Cow<'a, [T]>>,
     selected: Option<T>,
     on_selected: impl Fn(T) -> Message + 'a,
-    placeholder: Option<&'a str>,
+    placeholder: Option<String>,
 ) -> PickList<'a, T, Message>
 where
     T: ToString + Eq + 'static,
@@ -23,7 +23,7 @@ where
                 .background(HIGHLIGHTED_CONTAINER_COLOR.into())
                 .as_custom(),
         )
-        .placeholder(placeholder.unwrap_or("Select an option"))
+        .placeholder(placeholder.unwrap_or("Select an option".to_string()))
 }
 
 #[derive(Debug, Clone, Copy)]

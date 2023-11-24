@@ -50,14 +50,47 @@ pub async fn load_app() -> LoadResult {
     );
 
     // todo: get this working without running anvil in background
-    let local = Local::default()
-        .with_anvil()
-        .with_dev_wallet()
-        .await
-        .with_counter_contract()
-        .await
-        .with_coin()
-        .await;
+    let with_counter = std::env::var("WITH_COUNTER").is_ok();
+    let with_coin = std::env::var("WITH_COIN").is_ok();
+    let local = match with_counter {
+        true => match with_coin {
+            true => {
+                tracing::info!("Starting Anvil with Counter and Coin contracts");
+                Local::default()
+                    .with_anvil()
+                    .with_dev_wallet()
+                    .await
+                    .with_counter()
+                    .await
+                    .with_coin()
+                    .await
+            }
+            false => {
+                tracing::info!("Starting Anvil with Counter contract");
+                Local::default()
+                    .with_anvil()
+                    .with_dev_wallet()
+                    .await
+                    .with_counter()
+                    .await
+            }
+        },
+        false => match with_coin {
+            true => {
+                tracing::info!("Starting Anvil with Coin contract");
+                Local::default()
+                    .with_anvil()
+                    .with_dev_wallet()
+                    .await
+                    .with_coin()
+                    .await
+            }
+            false => {
+                tracing::info!("Starting Anvil with no contracts");
+                Local::default().with_anvil().with_dev_wallet().await
+            }
+        },
+    };
 
     let mut storage = app::Storage { profile };
 

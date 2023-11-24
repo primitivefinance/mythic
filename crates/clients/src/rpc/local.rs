@@ -105,7 +105,7 @@ impl Local<Ws> {
         }
     }
 
-    pub async fn with_counter_contract(self) -> Self {
+    pub async fn with_counter(self) -> Self {
         let client = self.client.unwrap();
         let counter = Counter::deploy(client.clone(), ())
             .unwrap()

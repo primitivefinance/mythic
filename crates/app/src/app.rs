@@ -9,8 +9,8 @@ use tracing::Span;
 
 use super::{
     screens::{
-        address_book::AddressBookScreen, empty::EmptyScreen, exit::ExitScreen,
-        experimental::ExperimentalScreen, terminal::Terminal, Screen,
+        address_book::AddressBookScreen, developer::DeveloperScreen, empty::EmptyScreen,
+        exit::ExitScreen, experimental::ExperimentalScreen, terminal::Terminal, Screen,
     },
     view::Page,
     *,
@@ -57,8 +57,9 @@ impl From<Execution> for Message {
 }
 
 /// Root message for the Application.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Message {
+    #[default]
     Empty,
     View(view::Message),
     ChainsMessage(ChainMessage),
@@ -350,6 +351,7 @@ impl App {
                 self.streams.app_event_receiver.clone(),
             ))),
             view::Page::Experimental => Screen::new(Box::new(ExperimentalScreen::new())),
+            view::Page::Developer => Screen::new(Box::new(DeveloperScreen::new())),
             _ => EmptyScreen::new().into(),
         };
 
