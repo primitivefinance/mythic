@@ -1,7 +1,7 @@
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
-    widget::{button, container, scrollable, text, Column, Row, Text},
+    widget::{button, container, scrollable, text, Column, Container, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 

@@ -7,6 +7,7 @@ use std::{fs::File, path::PathBuf};
 
 use anyhow::Result;
 use serde::{de::DeserializeOwned, Serialize};
+use tracing;
 
 pub trait Saveable: Serialize + DeserializeOwned + Sized {
     /// Creates a new instance of this type and writes it to disk with `name`.
@@ -111,6 +112,15 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
             None => Self::path(),
         };
 
+        // If the file doesn't exist, create a new instance.
+        if !path.exists() {
+            tracing::trace!("Creating new instance of {}.", Self::SUFFIX);
+            let instance = Self::create_new(None)?;
+            instance.save()?;
+            return Ok(instance);
+        }
+
+        tracing::trace!("Loading {} at path: {:?}", Self::SUFFIX, path);
         let file = File::open(path)?;
 
         let instance = serde_json::from_reader(file)?;

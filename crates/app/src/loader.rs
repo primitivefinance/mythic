@@ -7,6 +7,7 @@ use iced::{
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
+use profiles::coins::{CoinList, StaticCoin};
 
 use super::{profile::Profile, *};
 
@@ -91,6 +92,27 @@ pub async fn load_app() -> LoadResult {
             }
         },
     };
+
+    // Get the default coinlist, and if it's empty, populate it with the coin
+    // contract, if there's a coin contract.
+    // todo: move this logic to a better place that handles coin lists.
+    let chain_id = local.anvil.as_ref().unwrap().chain_id();
+    if let Some(address) = local.coin_contract {
+        let mut coinlist = CoinList::load(None)?;
+        if coinlist.tokens.is_empty() {
+            let coin: StaticCoin = StaticCoin {
+                name: "Coin".to_string(),
+                symbol: "COIN".to_string(),
+                address: format!("0x{:x}", address),
+                decimals: 18,
+                chain_id,
+                logo_uri: "".to_string(),
+                tags: vec![],
+            };
+            coinlist.tokens.push(coin);
+            coinlist.save()?;
+        }
+    }
 
     let mut storage = app::Storage { profile };
 

@@ -8,10 +8,19 @@ pub struct StaticCoin {
     pub name: String,
     pub decimals: u8,
     pub tags: Vec<String>,
-    pub chain_id: u16,
+    pub chain_id: u64,
     // todo: does this work for token list standard?
     pub address: String,
     pub logo_uri: String,
+}
+
+impl StaticCoin {
+    pub fn new(symbol: String) -> Self {
+        Self {
+            symbol,
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -39,22 +48,50 @@ pub struct CoinList {
     pub version: CoinListVersion,
 }
 
+impl CoinList {
+    pub fn add_token(&mut self, token: StaticCoin) {
+        self.tokens.push(token);
+    }
+
+    pub fn get_mapping_key(&self, token: &StaticCoin) -> String {
+        format!("{}_{}", token.chain_id, token.address)
+    }
+
+    pub fn build_token_map(&mut self) {
+        let mut token_map = HashMap::new();
+        for token in self.tokens.iter() {
+            let key = self.get_mapping_key(token);
+            token_map.insert(key, token.clone());
+        }
+        self.token_map = token_map;
+    }
+}
+
 const COIN_LIST_EXTENSION: &'static str = "json";
 const COIN_LIST_SUFFIX: &'static str = "coinlist";
 
 impl Saveable for CoinList {
     fn prefix(&self) -> Option<String> {
-        Some(self.name.clone())
+        println!("prefix: {:?} {}", self.name, self.name.clone().is_empty());
+        match !self.name.clone().is_empty() {
+            true => Some(self.name.clone()),
+            false => None,
+        }
     }
 
     fn create_new(name: Option<String>) -> Result<Self> {
-        let name = name.unwrap_or_else(|| "default".to_string());
-        let path =
-            Self::config_dir().join(format!("{}.{}.{}", name, Self::SUFFIX, Self::EXTENSION));
+        let path = match name.clone() {
+            Some(name) => Self::file_path_with_name(name),
+            None => Self::path(),
+        };
+
         let file = File::create(path)?;
 
         let mut coinlist = Self::default();
-        coinlist.name = name;
+        match name {
+            Some(name) => coinlist.name = name,
+            None => {}
+        }
 
         serde_json::to_writer_pretty(file, &coinlist)?;
         Ok(coinlist)

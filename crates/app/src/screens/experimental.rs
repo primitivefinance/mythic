@@ -29,9 +29,14 @@ impl From<ExperimentalScreen> for Screen {
     }
 }
 
+#[tracing::instrument(ret)]
+async fn loading() -> anyhow::Result<(), Arc<anyhow::Error>> {
+    Ok(())
+}
+
 impl State for ExperimentalScreen {
-    fn load(&self) -> Command<Message> {
-        Command::none()
+    fn load(&self) -> Command<app::Message> {
+        Command::perform(loading(), |_| Message::Empty.into())
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

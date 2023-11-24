@@ -94,8 +94,8 @@ where
         self.value = value;
     }
 
-    pub fn child(mut self, child: Element<'static, Message>) -> Self {
-        self.child = Some(child);
+    pub fn child(mut self, child: impl Into<Element<'static, Message>>) -> Self {
+        self.child = Some(child.into());
         self
     }
 
@@ -185,7 +185,7 @@ where
 
         let cell_content = match self.child {
             Some(child) => child,
-            None => label_item(value.clone().unwrap_or_default()).into(),
+            None => primary_label(value.clone().unwrap_or_default()).into(),
         };
 
         // If options is Some, then we need to render a select.

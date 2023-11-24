@@ -8,7 +8,7 @@ pub mod tables;
 
 use button::*;
 use iced::{
-    widget::{pick_list, Container},
+    widget::{pick_list, Button, Container},
     Color, Element, Renderer,
 };
 use iced_aw::Icon;
@@ -16,8 +16,9 @@ use input::*;
 use styles::*;
 
 use self::{
-    containers::{CardContainer, ScreenWindowContainer, WindowHeader},
+    containers::{CardContainer, ScreenWindowContainer, TableColumnContainer, WindowHeader},
     select::custom_pick_list,
+    tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
 use super::{
@@ -27,7 +28,7 @@ use super::{
 
 /// Renders a gray text label in lowercase.
 pub fn label_item<'a>(t: String) -> Text<'a> {
-    secondary_label(t).size(TextSize::Md as u16)
+    tertiary_label(t).size(TextSize::Md as u16)
 }
 
 /// Renders white text in the DAGGERSQUARE font.
@@ -84,7 +85,10 @@ pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Ren
 }
 
 /// Renders a nice blue button.
-pub fn action_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
+pub fn action_button<'a, Message>(label: String) -> iced::widget::Button<'a, Message>
+where
+    Message: 'static,
+{
     // todo: need to specify almost every style because the default button style
     // doesn't work. we can just update the custom button style struct we made
     // to use our own default style.
@@ -312,7 +316,10 @@ pub fn with_font<'a>(value: Text<'a>) -> Text<'a> {
 pub struct Card;
 
 impl Card {
-    pub fn new<'a, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message> {
+    pub fn new<'a, Message, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message>
+    where
+        Message: 'static,
+    {
         let content = content.into();
         Container::new(content).style(CardContainer::theme())
     }
@@ -418,4 +425,112 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
         .padding(0)
         .on_press(view::Message::CopyToClipboard(value));
     copy_button
+}
+
+/// Renders a label and text input inside a column.
+pub fn labeled_input<'a, Message>(
+    label: String,
+    value: Option<String>,
+    _placeholder: String,
+    on_change: impl Fn(Option<String>) -> Message + 'static,
+) -> Column<'a, Message>
+where
+    Message: 'static,
+{
+    let title = label_item(label.to_string());
+    // todo: use placeholder
+    let input = create_input_component(value, on_change);
+
+    Column::new().push(title).push(input).spacing(Sizes::Md)
+}
+
+/// For use in the instructions container.
+pub fn instruction_text<'a>(value: String) -> Text<'a> {
+    secondary_label(value).size(TextSize::Sm as u16)
+}
+
+/// Renders an instructions title, description, an action button and feedback
+/// in a card.
+/// note: Message must be `Clone` for the submit button to be converted to an
+/// Element.
+pub fn instructions<'a, Message, T: Into<Element<'a, Message>>>(
+    instructions: Vec<T>,
+    action: Option<String>,
+    feedback: Option<String>,
+    on_submit: Option<Message>,
+) -> Element<'a, Message>
+where
+    Message: 'static + Clone,
+{
+    let mut inner: Column<'a, Message> = Column::new()
+        .spacing(Sizes::Sm)
+        .padding(Sizes::Sm)
+        .width(Length::Fill)
+        .push(h2("Instructions".to_string()));
+
+    for instruction in instructions {
+        inner = inner.push(instruction.into());
+    }
+
+    let mut submit: Button<'a, Message> =
+        action_button(action.unwrap_or_else(|| "Submit".to_string()).to_string())
+            .padding(Sizes::Md)
+            .width(Length::Fill);
+
+    match on_submit {
+        Some(on_submit) => submit = submit.on_press(on_submit),
+        None => {}
+    }
+
+    let feedback = highlight_label(feedback.unwrap_or_else(|| "".to_string()).to_string())
+        .horizontal_alignment(alignment::Horizontal::Center)
+        .vertical_alignment(alignment::Vertical::Center);
+
+    Card::new(
+        Column::new()
+            .push(inner)
+            .push(submit)
+            .push(feedback)
+            .spacing(Sizes::Md)
+            .padding(Sizes::Md),
+    )
+    .into()
+}
+
+/// Renders a table with static data.
+/// Message needs to implement Default.
+pub fn static_table<'a, Message>(
+    title: String,
+    headers: Vec<String>,
+    data: Vec<Vec<String>>,
+) -> Column<'a, Message>
+where
+    Message: 'static + Default,
+{
+    Column::new()
+        .spacing(Sizes::Md)
+        .push(label_item(title))
+        .push(
+            Card::new(
+                TableBuilder::new()
+                    .column(
+                        ColumnBuilder::new().headers(headers).rows(
+                            data.into_iter()
+                                .map(|row| {
+                                    RowBuilder::new().cells(
+                                        row.into_iter()
+                                            .map(|cell| {
+                                                CellBuilder::new().child(primary_label(cell))
+                                            })
+                                            .collect(),
+                                    )
+                                })
+                                .collect(),
+                        ),
+                    )
+                    .padding_cell(Sizes::Xs)
+                    .build(),
+            )
+            .padding(Sizes::Sm),
+        )
 }

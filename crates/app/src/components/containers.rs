@@ -250,3 +250,44 @@ impl ContainerBlackBg {
         iced::theme::Container::Custom(Box::from(ContainerBlackBg))
     }
 }
+
+pub struct CustomContainer {
+    pub background: Option<iced::Background>,
+    pub border_radius: BorderRadius,
+    pub border_width: f32,
+    pub border_color: Color,
+}
+
+impl Default for CustomContainer {
+    fn default() -> Self {
+        Self {
+            background: None,
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+impl StyleSheet for CustomContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
+        Appearance {
+            background: self.background.clone(),
+            border_radius: self.border_radius,
+            border_width: self.border_width,
+            border_color: self.border_color,
+            ..Default::default()
+        }
+    }
+}
+
+impl CustomContainer {
+    pub fn theme(background: Option<iced::Background>) -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(CustomContainer {
+            background,
+            ..Default::default()
+        }))
+    }
+}

@@ -335,7 +335,9 @@ impl App {
 
     #[allow(unreachable_patterns)]
     fn switch_window(&mut self, navigate_to: &Page) -> Command<Message> {
+        let mut cmds = Vec::new();
         let exit_cmd = self.windows.screen.exit();
+        cmds.push(exit_cmd);
 
         self.windows.screen = match navigate_to {
             view::Page::Execute => Screen::new(Box::new(execution::Execution::new(
@@ -351,13 +353,14 @@ impl App {
                 self.streams.app_event_receiver.clone(),
             ))),
             view::Page::Experimental => Screen::new(Box::new(ExperimentalScreen::new())),
-            view::Page::Developer => Screen::new(Box::new(DeveloperScreen::new())),
+            view::Page::Developer => DeveloperScreen::new().into(),
             _ => EmptyScreen::new().into(),
         };
 
         let load_cmd = self.windows.screen.load();
+        cmds.push(load_cmd);
 
-        Command::batch(vec![exit_cmd, load_cmd])
+        Command::batch(cmds)
     }
 }
 

@@ -129,6 +129,13 @@ pub const FONT_BOLD: Font = Font {
     monospaced: false,
 };
 
+pub const FONT_SEMIBOLD: Font = Font {
+    family: iced::font::Family::Name("Arial"),
+    weight: iced::font::Weight::Semibold,
+    stretch: iced::font::Stretch::Normal,
+    monospaced: false,
+};
+
 /// Sizes for spacing, padding, etc.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Sizes {
@@ -186,6 +193,17 @@ pub enum TitleSize {
     Md = 24,
     Lg = 28,
     Xl = 34,
+}
+
+impl From<TitleSize> for iced::Pixels {
+    fn from(item: TitleSize) -> Self {
+        match item {
+            TitleSize::Sm => 20.0.into(),
+            TitleSize::Md => 24.0.into(),
+            TitleSize::Lg => 28.0.into(),
+            TitleSize::Xl => 34.0.into(),
+        }
+    }
 }
 
 pub enum TextSize {

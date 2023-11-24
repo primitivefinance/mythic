@@ -16,6 +16,8 @@ pub struct InputComponent<Message> {
     value: Option<String>,
     /// Callback for when the input changes.
     on_change: Box<dyn Fn(Option<String>) -> Message>,
+    /// Icon on the left side of the label.
+    icon: Option<Icon>,
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +33,13 @@ impl<Message> InputComponent<Message> {
         Self {
             value,
             on_change: Box::new(on_change),
+            icon: None,
         }
+    }
+
+    pub fn icon(mut self, icon: Icon) -> Self {
+        self.icon = Some(icon);
+        self
     }
 }
 

@@ -28,12 +28,62 @@ pub struct Position {
     pub targets: Option<Vec<Targetable>>,
 }
 
+impl Position {
+    pub fn new(asset: StaticCoin, cost: Option<f64>, balance: Option<f64>) -> Self {
+        Self {
+            asset,
+            cost,
+            balance,
+            targets: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Portfolio {
     pub name: String,
     pub ticker: String,
     pub positions: Vec<Position>,
     pub bench_mark: Option<f64>,
+}
+
+impl Portfolio {
+    pub fn new(name: String, ticker: String, positions: Vec<Position>) -> Self {
+        Self {
+            name,
+            ticker,
+            positions,
+            bench_mark: None,
+        }
+    }
+
+    pub fn add_position(&mut self, position: Position) {
+        self.positions.push(position);
+    }
+
+    pub fn remove_position(&mut self, index: usize) {
+        self.positions.remove(index);
+    }
+
+    pub fn update_position(&mut self, index: usize, position: Position) {
+        self.positions[index] = position;
+    }
+
+    pub fn update_position_asset(&mut self, index: usize, asset: StaticCoin) {
+        self.positions[index].asset = asset;
+    }
+
+    pub fn update_position_cost(&mut self, index: usize, cost: Option<f64>) {
+        self.positions[index].cost = cost;
+    }
+
+    pub fn update_position_balance(&mut self, index: usize, balance: Option<f64>) {
+        self.positions[index].balance = balance;
+    }
+
+    pub fn update_position_targets(&mut self, index: usize, targets: Option<Vec<Targetable>>) {
+        self.positions[index].targets = targets;
+    }
 }
 
 const PORTFOLIO_EXTENSION: &'static str = "json";

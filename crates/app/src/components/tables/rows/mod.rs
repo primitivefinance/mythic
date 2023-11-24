@@ -23,6 +23,7 @@ where
     padding: Option<Sizes>,
     padding_cell: Option<Sizes>,
     padding_cell_internal: Option<Sizes>,
+    containerize: Box<dyn Fn(Row<'static, Message>) -> Row<'static, Message>>,
 }
 
 impl<Message> RowBuilder<Message>
@@ -36,7 +37,14 @@ where
             padding: None,
             padding_cell: None,
             padding_cell_internal: None,
+            // Returns self.
+            containerize: Box::new(|e| e),
         }
+    }
+
+    pub fn style(mut self, style: impl Fn() -> iced::theme::Container + 'static) -> Self {
+        self.containerize = Box::new(move |e| Row::new().push(Container::new(e).style(style())));
+        self
     }
 
     pub fn update_cell(&mut self, index: usize, value: Option<String>) {
@@ -52,6 +60,11 @@ where
 
     pub fn cell(mut self, cell: CellBuilder<Message>) -> Self {
         self.cells.push(cell);
+        self
+    }
+
+    pub fn cells(mut self, cells: Vec<CellBuilder<Message>>) -> Self {
+        self.cells = cells;
         self
     }
 
@@ -84,9 +97,11 @@ where
             row = row.push(cell);
         }
 
-        row.align_items(alignment::Alignment::Center)
-            .spacing(self.spacing.unwrap_or_default())
-            .padding(self.padding.unwrap_or_default())
+        (self.containerize)(
+            row.align_items(alignment::Alignment::Center)
+                .spacing(self.spacing.unwrap_or_default())
+                .padding(self.padding.unwrap_or_default()),
+        )
     }
 }
 

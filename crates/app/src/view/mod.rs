@@ -55,6 +55,7 @@ pub enum Message {
     CopyToClipboard(String),
     Experimental,
     Developer(developer::Message),
+    CreatePortfolio(portfolio::create::Message),
 }
 
 impl From<Message> for app::Message {

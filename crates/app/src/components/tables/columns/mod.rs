@@ -1,10 +1,11 @@
-use super::{rows::RowBuilder, *};
+use super::{cells::CellBuilder, rows::RowBuilder, *};
 
 pub struct ColumnBuilder<Message>
 where
     Message: 'static + Default,
 {
     rows: Vec<RowBuilder<Message>>,
+    headers: Vec<String>,
     spacing: Option<Sizes>,
     spacing_cell: Option<Sizes>,
     padding: Option<Sizes>,
@@ -20,6 +21,7 @@ where
     pub fn new() -> Self {
         Self {
             rows: vec![],
+            headers: vec![],
             spacing: None,
             spacing_cell: None,
             padding: None,
@@ -27,6 +29,11 @@ where
             padding_cell: None,
             padding_cell_internal: None,
         }
+    }
+
+    pub fn headers(mut self, headers: Vec<String>) -> Self {
+        self.headers = headers;
+        self
     }
 
     pub fn update_cell(&mut self, row: usize, column: usize, value: Option<String>) {
@@ -78,6 +85,27 @@ where
     /// Handles spacing of all child elements.
     pub fn build(self) -> Column<'static, Message> {
         let mut column = Column::new();
+
+        // Add the headers first.
+        if !self.headers.is_empty() {
+            let row: Row<'static, Message> = RowBuilder::new()
+                .cells(
+                    self.headers
+                        .into_iter()
+                        .map(|header| {
+                            CellBuilder::new()
+                                .child(label_item(header))
+                                .internal_padding(self.padding_cell_internal)
+                                .external_padding(self.padding_cell)
+                                .into()
+                        })
+                        .collect(),
+                )
+                .spacing(self.spacing.unwrap_or_default())
+                .padding(self.padding_row.unwrap_or_default())
+                .into();
+            column = column.push(row);
+        }
 
         // Specifies the spacing between cells in a row.
         for row in self.rows {
