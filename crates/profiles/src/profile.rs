@@ -48,7 +48,7 @@ impl Saveable for Profile {
             formatted_path = format!("{}.{}", name, formatted_path);
         }
 
-        let profile_path = Self::config_dir().join(formatted_path);
+        let profile_path = Self::dir().join(formatted_path);
         println!("Creating profile: {:?}", profile_path);
         let file = File::create(profile_path)?;
 

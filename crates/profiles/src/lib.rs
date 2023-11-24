@@ -1,4 +1,5 @@
 pub mod coins;
+pub mod portfolios;
 pub mod profile;
 pub mod system;
 
@@ -49,6 +50,10 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
         dir
     }
 
+    fn dir() -> PathBuf {
+        Self::config_dir()
+    }
+
     /// Formats the file to have a consistent ending, so it can be validated
     /// when loading.
     fn file_name_ending() -> String {
@@ -58,7 +63,7 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
     /// Formatted path of these file _types_ in the config directory.
     fn path() -> PathBuf {
         let formatted = Self::file_name_ending();
-        Self::config_dir().join(formatted)
+        Self::dir().join(formatted)
     }
 
     /// Path of the file of this instance.
@@ -69,7 +74,7 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
             formatted = format!("{}.{}", prefix, formatted);
         }
 
-        let path = Self::config_dir().join(formatted);
+        let path = Self::dir().join(formatted);
 
         println!("Path: {:?}", path);
         path
@@ -80,7 +85,7 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
 
         formatted = format!("{}.{}", name, formatted);
 
-        let path = Self::config_dir().join(formatted);
+        let path = Self::dir().join(formatted);
 
         println!("Path: {:?}", path);
         path
