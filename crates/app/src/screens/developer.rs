@@ -92,17 +92,20 @@ impl State for DeveloperScreen {
     type ViewMessage = view::Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
-        Command::batch(vec![
+        let commands: Vec<Command<Message>> = vec![
             self.create_screen.load().map(|x| x.into()),
-            self.dash_screen.load(),
-        ])
+            self.dash_screen.load().map(|x| x.into()),
+        ];
+        Command::batch(commands).map(|x| x.into())
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             app::Message::View(view::Message::Developer(msg)) => match msg {
                 Message::Create(message) => {
-                    return self.create_screen.update(message).map(|x| x.into())
+                    let cmd: Command<Message> =
+                        self.create_screen.update(message).map(|x| x.into());
+                    return cmd.map(|x| x.into());
                 }
                 Message::OnChange(value) => {
                     self.cache = value;
@@ -124,7 +127,10 @@ impl State for DeveloperScreen {
                         .unwrap();
                     asset.1.selected = !asset.1.selected;
                 }
-                Message::Dash(message) => return self.dash_screen.update(message),
+                Message::Dash(message) => {
+                    let cmd: Command<Message> = self.dash_screen.update(message).map(|x| x.into());
+                    return cmd.map(|x| x.into());
+                }
                 _ => {}
             },
             _ => {}

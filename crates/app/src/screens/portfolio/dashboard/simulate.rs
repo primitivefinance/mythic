@@ -1,19 +1,39 @@
 use super::*;
 
 #[derive(Debug, Clone, Default)]
+pub enum Message {
+    #[default]
+    Empty,
+    Submit,
+}
+
+impl MessageWrapperView for Message {
+    type ParentMessage = view::Message;
+}
+
+impl MessageWrapper for Message {
+    type ParentMessage = dashboard::Message;
+}
+
+impl From<Message> for <Message as MessageWrapper>::ParentMessage {
+    fn from(message: Message) -> Self {
+        Self::Simulated(message)
+    }
+}
+
+impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
+    fn from(message: Message) -> Self {
+        Self::Developer(developer::Message::Dash(message.into()))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Form {}
 
 #[derive(Debug, Clone, Default)]
 pub struct Simulate {
     form: Form,
     metrics: Vec<String>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub enum Message {
-    #[default]
-    Empty,
-    Submit,
 }
 
 impl Simulate {
@@ -23,8 +43,13 @@ impl Simulate {
             metrics: vec!["metric 1".to_string(), "metric 2".to_string()],
         }
     }
+}
 
-    pub fn update(&mut self, message: Message) -> Command<app::Message> {
+impl State for Simulate {
+    type AppMessage = Message;
+    type ViewMessage = Message;
+
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Message::Empty => {}
             Message::Submit => {}
@@ -33,7 +58,7 @@ impl Simulate {
         Command::none()
     }
 
-    pub fn view<'a>(&self) -> Element<'a, Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let mut content = Column::new()
             .push(Text::new("Simulate").size(40))
             .push(Text::new("Table here").size(20));

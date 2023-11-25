@@ -19,15 +19,18 @@ impl From<EmptyScreen> for Screen {
 }
 
 impl State for EmptyScreen {
-    fn load(&self) -> Command<Message> {
+    type AppMessage = app::Message;
+    type ViewMessage = view::Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
         Command::none()
     }
 
-    fn update(&mut self, _message: Message) -> Command<Message> {
+    fn update(&mut self, _message: Self::AppMessage) -> Command<Self::AppMessage> {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         Container::new(Column::new().push(h2("Select an app to get started.".to_string())))
             .center_x()
             .center_y()

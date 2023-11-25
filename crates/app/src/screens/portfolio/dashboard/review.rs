@@ -3,14 +3,6 @@
 use super::*;
 
 #[derive(Debug, Clone, Default)]
-pub struct Form {
-    start_time: Option<String>,
-    end_time: Option<String>,
-    rebate: Option<String>,
-    strategy: Option<String>,
-}
-
-#[derive(Debug, Clone, Default)]
 pub enum FormMessage {
     #[default]
     Empty,
@@ -21,9 +13,34 @@ pub enum FormMessage {
     Submit,
 }
 
+impl MessageWrapperView for FormMessage {
+    type ParentMessage = view::Message;
+}
+
+impl MessageWrapper for FormMessage {
+    type ParentMessage = Message;
+}
+
+impl From<FormMessage> for <FormMessage as MessageWrapper>::ParentMessage {
+    fn from(message: FormMessage) -> Self {
+        Self::Form(message.into())
+    }
+}
+
+impl From<FormMessage> for <FormMessage as MessageWrapperView>::ParentMessage {
+    fn from(message: FormMessage) -> Self {
+        Self::Developer(developer::Message::Dash(dashboard::Message::Review(
+            message.into(),
+        )))
+    }
+}
+
 #[derive(Debug, Clone, Default)]
-pub struct ReviewAdjustment {
-    form: Form,
+pub struct Form {
+    start_time: Option<String>,
+    end_time: Option<String>,
+    rebate: Option<String>,
+    strategy: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -33,8 +50,36 @@ pub enum Message {
     Form(FormMessage),
 }
 
-impl ReviewAdjustment {
-    pub fn update(&mut self, message: Message) -> Command<app::Message> {
+impl MessageWrapperView for Message {
+    type ParentMessage = view::Message;
+}
+
+impl MessageWrapper for Message {
+    type ParentMessage = dashboard::Message;
+}
+
+impl From<Message> for <Message as MessageWrapper>::ParentMessage {
+    fn from(message: Message) -> Self {
+        Self::Review(message)
+    }
+}
+
+impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
+    fn from(message: Message) -> Self {
+        Self::Developer(developer::Message::Dash(message.into()))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ReviewAdjustment {
+    form: Form,
+}
+
+impl State for ReviewAdjustment {
+    type AppMessage = Message;
+    type ViewMessage = Message;
+
+    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Form(form_message) => match form_message {
                 FormMessage::Empty => {}
@@ -58,7 +103,7 @@ impl ReviewAdjustment {
         Command::none()
     }
 
-    pub fn view<'a>(&self) -> Element<'a, Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let content = DualColumn::new().column_2_alignment(alignment::Alignment::Start)
             .spacing(Sizes::Md)
             .column_1(vec![

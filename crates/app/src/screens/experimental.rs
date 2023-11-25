@@ -35,17 +35,20 @@ async fn loading() -> anyhow::Result<(), Arc<anyhow::Error>> {
 }
 
 impl State for ExperimentalScreen {
-    fn load(&self) -> Command<app::Message> {
-        Command::perform(loading(), |_| Message::Empty.into())
+    type AppMessage = app::Message;
+    type ViewMessage = view::Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
+        Command::perform(loading(), |_| Self::AppMessage::Empty.into())
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             _ => Command::none(),
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let chart = self.chart.view().map(move |_x| view::Message::Experimental);
         let content = Column::new()
             .padding(Sizes::Lg as u16)

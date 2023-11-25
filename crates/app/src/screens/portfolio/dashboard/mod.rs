@@ -1,5 +1,6 @@
 //! Renders a view of the portfolio's positions and strategies.
 
+pub mod form;
 pub mod review;
 pub mod simulate;
 
@@ -7,7 +8,7 @@ use std::collections::HashMap;
 
 use profiles::portfolios::{Portfolio, Targetable};
 
-use self::{review::ReviewAdjustment, simulate::Simulate};
+use self::{form::DeltaForm, review::ReviewAdjustment, simulate::Simulate};
 use super::*;
 use crate::components::{
     containers::CustomContainer,
@@ -33,36 +34,6 @@ async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<a
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Dashboard {
-    portfolio: Option<Portfolio>,
-    deltas: DeltaForm,
-    summary: Option<DeltaSummary>,
-    review: Option<ReviewAdjustment>,
-    ready: bool,
-    simulated: Option<Simulate>,
-}
-
-/// Form for editing individual position deltas.
-/// Maps the position's index in the portfolio's positions to the delta,
-/// for each respective position field.
-#[derive(Debug, Clone, Default)]
-pub struct DeltaForm {
-    pub price: HashMap<usize, String>,
-    pub balance: HashMap<usize, String>,
-    pub market_value: HashMap<usize, String>,
-    pub weight: HashMap<usize, String>,
-}
-
-impl DeltaForm {
-    pub fn clear(&mut self) {
-        self.price.clear();
-        self.balance.clear();
-        self.market_value.clear();
-        self.weight.clear();
-    }
-}
-
-#[derive(Debug, Clone, Default)]
 pub enum Message {
     #[default]
     Empty,
@@ -78,15 +49,60 @@ pub enum Message {
     Simulated(simulate::Message),
 }
 
+impl MessageWrapperView for Message {
+    type ParentMessage = view::Message;
+}
+
+impl MessageWrapper for Message {
+    type ParentMessage = developer::Message;
+}
+
+impl From<Message> for <Message as MessageWrapper>::ParentMessage {
+    fn from(message: Message) -> Self {
+        Self::Dash(message)
+    }
+}
+
+impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
+    fn from(message: Message) -> Self {
+        Self::Developer(developer::Message::Dash(message))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Dashboard {
+    portfolio: Option<Portfolio>,
+    deltas: DeltaForm,
+    summary: Option<DeltaSummary>,
+    ready: bool,
+    state: DashboardState,
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum DashboardState {
+    #[default]
+    Empty,
+    Review(ReviewAdjustment),
+    Simulate(Simulate),
+}
+
+impl DashboardState {
+    pub fn clear(&mut self) {
+        *self = DashboardState::Empty;
+    }
+}
+
 impl Dashboard {
+    pub type AppMessage = Message;
+    pub type ViewMessage = view::Message;
+
     pub fn new() -> Self {
         Self {
             portfolio: None,
             deltas: DeltaForm::default(),
             summary: None,
-            review: None,
             ready: false,
-            simulated: None,
+            state: DashboardState::default(),
         }
     }
 
@@ -94,14 +110,7 @@ impl Dashboard {
         self.portfolio.is_some()
     }
 
-    /// todo: how to handle different portfolio loads.
-    pub fn load(&self) -> Command<app::Message> {
-        Command::perform(load_portfolio(Some("Main".to_string())), |x| {
-            view::Message::Developer(developer::Message::Dash(Message::Load(x))).into()
-        })
-    }
-
-    pub fn position_table(&self) -> TableBuilder<Message> {
+    pub fn position_table(&self) -> TableBuilder<Self::AppMessage> {
         let positions = self.portfolio.clone().unwrap_or_default().positions;
 
         TableBuilder::new()
@@ -227,8 +236,19 @@ impl Dashboard {
                     ),
             )
     }
+}
 
-    pub fn update(&mut self, message: Message) -> Command<app::Message> {
+impl State for Dashboard {
+    type AppMessage = Message;
+    type ViewMessage = view::Message;
+
+    /// todo: how to handle different portfolio loads.
+    fn load(&self) -> Command<Self::AppMessage> {
+        let name = Some("Main".to_string());
+        Command::perform(load_portfolio(name), |x| Message::Load(x).into())
+    }
+
+    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Load(Ok(portfolio)) => {
                 self.portfolio = Some(portfolio);
@@ -270,7 +290,8 @@ impl Dashboard {
             }
             Message::Submit => {
                 tracing::trace!("Reviewing...");
-                self.review = Some(ReviewAdjustment::default());
+
+                self.state = DashboardState::Review(ReviewAdjustment::default());
             }
             Message::ReviewAdjustment => {
                 let mut deltas: Vec<PositionDelta> = vec![];
@@ -310,20 +331,43 @@ impl Dashboard {
             }
             Message::Review(review::Message::Form(review::FormMessage::Submit)) => {
                 tracing::trace!("Simulating...");
-                self.simulated = Some(Simulate::default());
-                return self
-                    .review
-                    .as_mut()
-                    .unwrap()
-                    .update(review::Message::Form(review::FormMessage::Submit));
+
+                let cmd = match &mut self.state {
+                    DashboardState::Review(review) => review
+                        .update(review::Message::Form(review::FormMessage::Submit))
+                        .map(|x| x.into()),
+                    _ => Command::none(),
+                };
+
+                self.state = DashboardState::Simulate(Simulate::default());
+
+                // return self
+                // .state
+                // .as_mut()
+                // .unwrap()
+                // .update(review::Message::Form(review::FormMessage::Submit))
+                // .map(|x| x.into());
+
+                return cmd;
             }
             Message::Review(message) => {
-                return self.review.as_mut().unwrap().update(message);
+                let cmd = match &mut self.state {
+                    DashboardState::Review(review) => review.update(message).map(|x| x.into()),
+                    _ => Command::none(),
+                };
+
+                // return self
+                // .review
+                // .as_mut()
+                // .unwrap()
+                // .update(message)
+                // .map(|x| x.into());
+
+                return cmd;
             }
             Message::Simulated(simulate::Message::Submit) => {
                 tracing::trace!("Executing adjustment...");
-                self.simulated = None;
-                self.review = None;
+                self.state.clear();
                 self.summary = None;
                 self.deltas.clear();
                 self.ready = false;
@@ -334,7 +378,7 @@ impl Dashboard {
         Command::none()
     }
 
-    pub fn view<'a>(&self) -> Element<'a, view::Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let table: Element<'a, Message> = self.position_table().into();
 
         let submit = match self.ready {
@@ -383,17 +427,18 @@ impl Dashboard {
             .push(table.map(|x| view::Message::Developer(developer::Message::Dash(x))))
             .push(sub_section);
 
-        if let Some(review) = self.review.clone() {
-            content =
-                Column::new().push(review.view().map(|x| {
+        match &self.state {
+            DashboardState::Review(review) => {
+                content = content.push(review.view().map(|x| {
                     view::Message::Developer(developer::Message::Dash(Message::Review(x)))
                 }));
-        }
-
-        if let Some(simulated) = self.simulated.clone() {
-            content = Column::new().push(simulated.view().map(|x| {
-                view::Message::Developer(developer::Message::Dash(Message::Simulated(x)))
-            }));
+            }
+            DashboardState::Simulate(simulate) => {
+                content = content.push(simulate.view().map(|x| {
+                    view::Message::Developer(developer::Message::Dash(Message::Simulated(x)))
+                }));
+            }
+            _ => {}
         }
 
         Container::new(content)

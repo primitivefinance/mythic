@@ -6,7 +6,7 @@
 //! A: The `ViewMessage` implements `Clone` and the `AppMessage` does
 //! not.
 
-use super::{app::Message, *};
+use super::*;
 
 pub mod address_book;
 pub mod developer;
@@ -150,7 +150,7 @@ where
 
 /// Alias for the type of screen.
 /// Windows are like tabs in a browser.
-type WindowScreen = dyn State<ViewMessage = view::Message, AppMessage = Message>;
+type WindowScreen = dyn State<ViewMessage = view::Message, AppMessage = app::Message>;
 
 /// Wraps anything that implements WindowScreen type of State trait into an
 /// easier to use struct.

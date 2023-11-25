@@ -21,19 +21,23 @@ impl From<ExitScreen> for Screen {
 }
 
 impl State for ExitScreen {
-    fn load(&self) -> Command<Message> {
+    type AppMessage = app::Message;
+    type ViewMessage = view::Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
         Command::none()
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    // todo: clean up the message piping in this...
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Message::View(view::Message::ConfirmExit) => {
+            Self::AppMessage::View(view::Message::ConfirmExit) => {
                 self.show_confirm = false;
                 Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                    Message::View(view::Message::Exit)
+                    Self::AppMessage::View(view::Message::Exit)
                 })
             }
-            Message::View(view::Message::Exit) => {
+            Self::AppMessage::View(view::Message::Exit) => {
                 self.show_confirm = true;
                 Command::none()
             }
@@ -41,7 +45,7 @@ impl State for ExitScreen {
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let content = match self.show_confirm {
             true => Column::new()
                 .push(secondary_label(
@@ -50,11 +54,11 @@ impl State for ExitScreen {
                 .push(
                     button("Yes, save and exit.")
                         .padding([10, 20])
-                        .on_press(view::Message::ConfirmExit),
+                        .on_press(Self::ViewMessage::ConfirmExit),
                 )
                 .spacing(10)
                 .align_items(alignment::Alignment::Center),
-            false => Column::new().push(button("Save and exit.").on_press(view::Message::Exit)),
+            false => Column::new().push(button("Save and exit.").on_press(Self::ViewMessage::Exit)),
         };
 
         Container::new(content)

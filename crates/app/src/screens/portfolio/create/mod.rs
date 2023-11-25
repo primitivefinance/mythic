@@ -40,17 +40,6 @@ impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
     }
 }
 
-// todo: what this?
-impl From<Message> for app::Message {
-    fn from(message: Message) -> Self {
-        // This is very important, if we just did `message.into()` it would cause
-        // a stack overflow if we used it as a message to return in a command in this
-        // component and if we used in a child component.
-        let view_msg: view::Message = message.into();
-        view_msg.into()
-    }
-}
-
 #[tracing::instrument(ret)]
 async fn load_coinlist() -> anyhow::Result<CoinList, Arc<anyhow::Error>> {
     let coinlist = CoinList::load(None);
@@ -84,7 +73,7 @@ impl State for CreatePortfolio {
     fn load(&self) -> Command<Self::AppMessage> {
         Command::perform(load_coinlist(), |x| {
             // todo: fix this to point to its own message for its own screen.
-            Message::Load(x).into()
+            Message::Load(x)
         })
     }
 
