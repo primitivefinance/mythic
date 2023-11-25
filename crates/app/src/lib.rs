@@ -1,3 +1,5 @@
+#![feature(associated_type_defaults)]
+
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
