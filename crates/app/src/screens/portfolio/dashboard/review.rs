@@ -117,9 +117,9 @@ impl ReviewAdjustment {
                 .push(
                     instructions(
                         vec![instruction_text(
-                            "Review the adjustment before submitting.".to_string(),
+                            "Simulate the adjustment before executing it.".to_string(),
                         )],
-                        Some("Review Adjustment".to_string()),
+                        Some("Simulate Adjustment".to_string()),
                         None,
                         Some(Message::Form(FormMessage::Submit)),
                     )

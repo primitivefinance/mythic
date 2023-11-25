@@ -1,12 +1,13 @@
 //! Renders a view of the portfolio's positions and strategies.
 
 pub mod review;
+pub mod simulate;
 
 use std::collections::HashMap;
 
 use profiles::portfolios::{Portfolio, Targetable};
 
-use self::review::ReviewAdjustment;
+use self::{review::ReviewAdjustment, simulate::Simulate};
 use super::*;
 use crate::components::{
     containers::CustomContainer,
@@ -38,6 +39,7 @@ pub struct Dashboard {
     summary: Option<DeltaSummary>,
     review: Option<ReviewAdjustment>,
     ready: bool,
+    simulated: Option<Simulate>,
 }
 
 /// Form for editing individual position deltas.
@@ -49,6 +51,15 @@ pub struct DeltaForm {
     pub balance: HashMap<usize, String>,
     pub market_value: HashMap<usize, String>,
     pub weight: HashMap<usize, String>,
+}
+
+impl DeltaForm {
+    pub fn clear(&mut self) {
+        self.price.clear();
+        self.balance.clear();
+        self.market_value.clear();
+        self.weight.clear();
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -64,6 +75,7 @@ pub enum Message {
     Delta(DeltaMessage),
     ReviewAdjustment,
     Review(review::Message),
+    Simulated(simulate::Message),
 }
 
 impl Dashboard {
@@ -74,6 +86,7 @@ impl Dashboard {
             summary: None,
             review: None,
             ready: false,
+            simulated: None,
         }
     }
 
@@ -204,25 +217,6 @@ impl Dashboard {
                                                         iced::Background::Color(GRAY_400),
                                                     ))
                                                 }),
-                                            // todo: fix this to be weights
-                                            // CellBuilder::new()
-                                            // .value(position.cost.map(|x| x.to_string())),
-                                            // CellBuilder::new()
-                                            // .value(
-                                            // self.deltas.market_value.get(&pos_index).cloned(),
-                                            // )
-                                            // .on_change(move |x| {
-                                            // tracing::trace!(
-                                            // "Market value changed: {}",
-                                            // x.clone().unwrap_or_default()
-                                            // );
-                                            // Message::ChangeMarketValue(pos_index, x)
-                                            // })
-                                            // .style(|| {
-                                            // CustomContainer::theme(Some(
-                                            // iced::Background::Color(GRAY_400),
-                                            // ))
-                                            // }),
                                         ]
                                         .into_iter()
                                         .chain(target_cells)
@@ -296,11 +290,14 @@ impl Dashboard {
 
                     let mut targets: Vec<Option<Targetable>> = vec![];
                     for (i, target) in position.targets.iter().enumerate() {
-                        targets.push(Some(Targetable::Weight(0.00).from_string(
-                            self.deltas.weight.get(&i).cloned().unwrap_or_default(),
-                        )));
+                        if let Some(delta) = self.deltas.weight.get(&i).cloned() {
+                            targets.push(Some(Targetable::Weight(0.00).from_string(delta)));
+                        }
                     }
-                    delta.targets = targets;
+
+                    if targets.len() > 0 {
+                        delta.targets = targets;
+                    }
 
                     deltas.push(delta);
                 }
@@ -310,6 +307,26 @@ impl Dashboard {
 
                 // Make it ready to review.
                 self.ready = true;
+            }
+            Message::Review(review::Message::Form(review::FormMessage::Submit)) => {
+                tracing::trace!("Simulating...");
+                self.simulated = Some(Simulate::default());
+                return self
+                    .review
+                    .as_mut()
+                    .unwrap()
+                    .update(review::Message::Form(review::FormMessage::Submit));
+            }
+            Message::Review(message) => {
+                return self.review.as_mut().unwrap().update(message);
+            }
+            Message::Simulated(simulate::Message::Submit) => {
+                tracing::trace!("Executing adjustment...");
+                self.simulated = None;
+                self.review = None;
+                self.summary = None;
+                self.deltas.clear();
+                self.ready = false;
             }
             _ => {}
         }
@@ -371,6 +388,12 @@ impl Dashboard {
                 Column::new().push(review.view().map(|x| {
                     view::Message::Developer(developer::Message::Dash(Message::Review(x)))
                 }));
+        }
+
+        if let Some(simulated) = self.simulated.clone() {
+            content = Column::new().push(simulated.view().map(|x| {
+                view::Message::Developer(developer::Message::Dash(Message::Simulated(x)))
+            }));
         }
 
         Container::new(content)
