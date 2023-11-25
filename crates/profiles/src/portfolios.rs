@@ -6,16 +6,55 @@ use super::{coins::StaticCoin, *};
 
 /// A data type for a target value, with a label.
 /// E.g. 10.00% weight, 20.00% volatility, etc.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum Targetable {
     Weight(f64),
     Volatility(f64),
     Return(f64),
 }
 
+impl Targetable {
+    pub fn from_string(self, string: String) -> Self {
+        match self {
+            Targetable::Weight(_) => {
+                let value = string.parse::<f64>().unwrap_or_default();
+                Targetable::Weight(value)
+            }
+            Targetable::Volatility(_) => {
+                let value = string.parse::<f64>().unwrap_or_default();
+                Targetable::Volatility(value)
+            }
+            Targetable::Return(_) => {
+                let value = string.parse::<f64>().unwrap_or_default();
+                Targetable::Return(value)
+            }
+        }
+    }
+}
+
+impl From<Targetable> for f64 {
+    fn from(targetable: Targetable) -> Self {
+        match targetable {
+            Targetable::Weight(x) => x,
+            Targetable::Volatility(x) => x,
+            Targetable::Return(x) => x,
+        }
+    }
+}
+
 impl Default for Targetable {
     fn default() -> Self {
         Targetable::Weight(1.0)
+    }
+}
+
+impl std::fmt::Display for Targetable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Targetable::Weight(x) => write!(f, "{}%", x * 100.0),
+            Targetable::Volatility(x) => write!(f, "{}%", x * 100.0),
+            Targetable::Return(x) => write!(f, "{}%", x * 100.0),
+        }
     }
 }
 
@@ -34,7 +73,7 @@ impl Position {
             asset,
             cost,
             balance,
-            targets: None,
+            targets: Some(vec![Targetable::default()]),
         }
     }
 }

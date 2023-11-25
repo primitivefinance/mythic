@@ -5,7 +5,10 @@ use std::collections::HashMap;
 use iced::widget::Container;
 
 use super::{
-    portfolio::create::{self, CreatePortfolio},
+    portfolio::{
+        create::{self, CreatePortfolio},
+        dashboard,
+    },
     *,
 };
 use crate::components::tables::{asset_selection_table, dev_table, Asset};
@@ -16,6 +19,7 @@ pub struct DeveloperScreen {
     pub checkboxed: bool,
     pub assets: HashMap<String, Asset>,
     pub create_screen: CreatePortfolio,
+    pub dash_screen: dashboard::Dashboard,
 }
 
 impl From<DeveloperScreen> for Screen {
@@ -45,6 +49,7 @@ impl DeveloperScreen {
         }
 
         let create_screen = CreatePortfolio::default();
+        let dash_screen = dashboard::Dashboard::default();
 
         Self {
             cache: None,
@@ -52,6 +57,7 @@ impl DeveloperScreen {
             checkboxed: false,
             assets: assets_map,
             create_screen,
+            dash_screen,
         }
     }
 }
@@ -66,6 +72,7 @@ pub enum Message {
     OnCheckbox(bool),
     OnSelectAsset(String),
     Create(create::Message),
+    Dash(dashboard::Message),
 }
 
 impl From<Message> for view::Message {
@@ -88,7 +95,7 @@ impl From<Message> for app::Message {
 
 impl State for DeveloperScreen {
     fn load(&self) -> Command<app::Message> {
-        self.create_screen.load()
+        Command::batch(vec![self.create_screen.load(), self.dash_screen.load()])
     }
 
     fn update(&mut self, message: app::Message) -> Command<app::Message> {
@@ -115,6 +122,7 @@ impl State for DeveloperScreen {
                         .unwrap();
                     asset.1.selected = !asset.1.selected;
                 }
+                Message::Dash(message) => return self.dash_screen.update(message),
                 _ => {}
             },
             _ => {}
@@ -124,7 +132,10 @@ impl State for DeveloperScreen {
     }
 
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        let column = self.create_screen.view();
+        let column = match self.dash_screen.loaded() {
+            false => self.create_screen.view(),
+            true => self.dash_screen.view(),
+        };
 
         Container::new(column)
             .center_x()

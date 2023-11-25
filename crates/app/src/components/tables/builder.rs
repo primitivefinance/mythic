@@ -94,7 +94,7 @@ where
         self
     }
 
-    pub fn build(self) -> Row<'static, Message> {
+    pub fn build<'a>(self) -> Row<'a, Message> {
         let mut table = Row::new();
 
         for column in self.columns {
