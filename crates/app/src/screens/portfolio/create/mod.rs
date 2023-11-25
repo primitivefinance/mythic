@@ -11,12 +11,6 @@ use crate::components::tables::{
 
 type ParentMessage = developer::Message;
 
-#[derive(Debug, Clone, Default)]
-pub struct CreatePortfolio {
-    form: form::Form,
-    coinlist: CoinList,
-}
-
 #[derive(Debug, Default, Clone)]
 pub enum Message {
     #[default]
@@ -26,22 +20,27 @@ pub enum Message {
     Submit,
 }
 
+impl MessageWrapperView for Message {
+    type ParentMessage = view::Message;
+}
+
 impl MessageWrapper for Message {
     type ParentMessage = ParentMessage;
 }
 
-impl From<Message> for ParentMessage {
+impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
-        ParentMessage::Create(message)
+        Self::Create(message)
     }
 }
 
-impl From<Message> for view::Message {
+impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
     fn from(message: Message) -> Self {
-        view::Message::CreatePortfolio(message)
+        Self::CreatePortfolio(message)
     }
 }
 
+// todo: what this?
 impl From<Message> for app::Message {
     fn from(message: Message) -> Self {
         // This is very important, if we just did `message.into()` it would cause
@@ -66,6 +65,12 @@ async fn load_coinlist() -> anyhow::Result<CoinList, Arc<anyhow::Error>> {
     Ok(coinlist)
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct CreatePortfolio {
+    form: form::Form,
+    coinlist: CoinList,
+}
+
 impl CreatePortfolio {
     pub fn ready(&self) -> bool {
         self.form.ready()
@@ -83,7 +88,7 @@ impl State for CreatePortfolio {
         })
     }
 
-    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         tracing::trace!("Message: {:?}", message);
         match message {
             Message::Load(Ok(coinlist)) => {
@@ -115,9 +120,7 @@ impl State for CreatePortfolio {
             h2("Create Portfolio".to_string())
                 .font(FONT_SEMIBOLD)
                 .into(),
-            self.form.view().map(|x| {
-                Self::ViewMessage::Developer(developer::Message::Create(Message::Form(x)))
-            }),
+            self.form.view().map(|x| x.into()),
         ];
 
         let action = match self.ready() {

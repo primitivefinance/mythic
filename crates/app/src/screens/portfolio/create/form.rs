@@ -12,13 +12,6 @@ use crate::components::containers::CustomContainer;
 type ParentMessage = create::Message;
 
 #[derive(Debug, Clone, Default)]
-pub struct Form {
-    pub name: Option<String>,
-    pub ticker: Option<String>,
-    pub assets: Vec<Asset>,
-}
-
-#[derive(Debug, Clone, Default)]
 pub enum Message {
     #[default]
     Empty,
@@ -28,6 +21,10 @@ pub enum Message {
     AssetPriceChanged(usize, Option<String>),
     AssetBalanceChanged(usize, Option<String>),
     Submit,
+}
+
+impl MessageWrapperView for Message {
+    type ParentMessage = view::Message;
 }
 
 impl MessageWrapper for Message {
@@ -44,10 +41,25 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     }
 }
 
+impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
+    // todo: now that we have the trait architecture for view messages, we just need
+    // to implement a parent view message instead of relying on the root view
+    // message.
+    fn from(message: Message) -> Self {
+        Self::Developer(developer::Message::Create(ParentMessage::Form(message)))
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Form {
+    pub name: Option<String>,
+    pub ticker: Option<String>,
+    pub assets: Vec<Asset>,
+}
+
 impl Form {
     // Message types!
     // todo: why are these not used?
-    pub type ParentMessage = ParentMessage;
     pub type AppMessage = Message;
     pub type ViewMessage = form::Message;
 

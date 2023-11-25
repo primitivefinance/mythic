@@ -1,4 +1,10 @@
+//! Most important traits of the application.
+//!
 //! Traits for implementing new application screens.
+//!
+//! Q: Why do we have a `ViewMessage` and an `AppMessage`?
+//! A: The `ViewMessage` implements `Clone` and the `AppMessage` does
+//! not.
 
 use super::{app::Message, *};
 
@@ -87,6 +93,12 @@ pub trait MessageWrapper: Sized {
     type ParentMessage: From<Self>;
 }
 
+/// Same as MessageWrapper but for the View messages, which must implement
+/// Clone.
+pub trait MessageWrapperView: Sized {
+    type ParentMessage: From<Self> + Clone;
+}
+
 /// Implement this trait to create new application states, from entire windows
 /// to individual screens inside windows. This trait is used recursively to
 /// build the entire application.
@@ -100,7 +112,7 @@ where
     /// Implements the [`MessageWrapper`] trait, to allow children [`State`]
     /// components to be wrapped in the parent's message type.
     /// todo: type defaults are unstable right now...
-    type ViewMessage: MessageWrapper = view::Message;
+    type ViewMessage: MessageWrapperView = view::Message;
 
     /// Messages returned to be executed by commands.
     /// Defaults to the global Application Message.

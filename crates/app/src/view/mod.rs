@@ -58,6 +58,10 @@ pub enum Message {
     CreatePortfolio(portfolio::create::Message),
 }
 
+impl MessageWrapperView for Message {
+    type ParentMessage = Message;
+}
+
 impl MessageWrapper for Message {
     type ParentMessage = app::Message;
 }
