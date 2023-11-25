@@ -457,11 +457,7 @@ impl State for Terminal {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
         let state_data = self.state_data.clone();
 
-        view::app_layout(
-            &view::Page::Terminal,
-            view::terminal_layout(self.realtime, state_data.clone()),
-        )
-        .into()
+        view::terminal_layout(self.realtime, state_data.clone()).into()
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

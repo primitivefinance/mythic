@@ -146,6 +146,11 @@ pub enum Sizes {
     Md = 16,
     Lg = 24,
     Xl = 32,
+    Xl2 = 56,
+    Xl3 = 64,
+    Xl4 = 72,
+    Xl5 = 96,
+    Xl6 = 128,
 }
 
 impl From<Sizes> for iced::Pixels {
@@ -157,6 +162,11 @@ impl From<Sizes> for iced::Pixels {
             Sizes::Md => 16.0.into(),
             Sizes::Lg => 24.0.into(),
             Sizes::Xl => 32.0.into(),
+            Sizes::Xl2 => 56.0.into(),
+            Sizes::Xl3 => 64.0.into(),
+            Sizes::Xl4 => 72.0.into(),
+            Sizes::Xl5 => 96.0.into(),
+            Sizes::Xl6 => 128.0.into(),
         }
     }
 }
@@ -170,6 +180,11 @@ impl From<Sizes> for Padding {
             Sizes::Md => Padding::new(16.0),
             Sizes::Lg => Padding::new(24.0),
             Sizes::Xl => Padding::new(32.0),
+            Sizes::Xl2 => Padding::new(56.0),
+            Sizes::Xl3 => Padding::new(64.0),
+            Sizes::Xl4 => Padding::new(72.0),
+            Sizes::Xl5 => Padding::new(96.0),
+            Sizes::Xl6 => Padding::new(128.0),
         }
     }
 }
@@ -270,6 +285,29 @@ pub enum ByteScale {
     Xl10 = 8192,
     Xl11 = 16384,
     Xl12 = 32768,
+}
+
+impl From<ByteScale> for iced::Pixels {
+    fn from(item: ByteScale) -> Self {
+        match item {
+            ByteScale::Xs => 1.0.into(),
+            ByteScale::Sm => 2.0.into(),
+            ByteScale::Md => 4.0.into(),
+            ByteScale::Lg => 8.0.into(),
+            ByteScale::Xl => 16.0.into(),
+            ByteScale::Xl2 => 32.0.into(),
+            ByteScale::Xl3 => 64.0.into(),
+            ByteScale::Xl4 => 128.0.into(),
+            ByteScale::Xl5 => 256.0.into(),
+            ByteScale::Xl6 => 512.0.into(),
+            ByteScale::Xl7 => 1024.0.into(),
+            ByteScale::Xl8 => 2048.0.into(),
+            ByteScale::Xl9 => 4096.0.into(),
+            ByteScale::Xl10 => 8192.0.into(),
+            ByteScale::Xl11 => 16384.0.into(),
+            ByteScale::Xl12 => 32768.0.into(),
+        }
+    }
 }
 
 impl ByteScale {

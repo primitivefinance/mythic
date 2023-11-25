@@ -101,12 +101,14 @@ pub enum StreamsMessage {
 #[derive(Default)]
 pub struct Cache {
     pub app_events: VecDeque<AppEventLog>,
+    pub current_page: Page,
 }
 
 impl Cache {
     pub fn new() -> Self {
         Self {
             app_events: VecDeque::new(),
+            current_page: Page::Empty,
         }
     }
 }
@@ -199,7 +201,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<Message> {
-        self.windows.screen.view().map(Message::View)
+        view::app_layout(&self.cache.current_page, self.windows.screen.view()).map(Message::View)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -335,6 +337,9 @@ impl App {
 
     #[allow(unreachable_patterns)]
     fn switch_window(&mut self, navigate_to: &Page) -> Command<Message> {
+        // Update the current page.
+        self.cache.current_page = navigate_to.clone();
+
         let mut cmds = Vec::new();
         let exit_cmd = self.windows.screen.exit();
         cmds.push(exit_cmd);

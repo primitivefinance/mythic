@@ -17,6 +17,7 @@ pub struct Form {
 
 #[derive(Debug, Clone, Default)]
 pub struct Asset {
+    pub coin: StaticCoin,
     pub ticker: String,
     pub price: Option<String>,
     pub balance: Option<String>,
@@ -24,10 +25,12 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub fn new(ticker: String, price: f64) -> Self {
+    pub fn new(coin: StaticCoin, price: Option<String>) -> Self {
+        let ticker = coin.symbol.clone();
         Self {
+            coin,
             ticker,
-            price: Some(price.to_string()),
+            price,
             balance: None,
             selected: false,
         }
@@ -47,6 +50,18 @@ pub enum Message {
 }
 
 impl Form {
+    pub fn ready(&self) -> bool {
+        self.name.is_some()
+            && self.ticker.is_some()
+            && self
+                .assets
+                .iter()
+                .filter(|x| x.selected)
+                .collect::<Vec<_>>()
+                .len()
+                > 0
+    }
+
     #[tracing::instrument(skip(self))]
     pub fn add_asset(&mut self, asset: Asset) {
         self.assets.push(asset);
@@ -55,7 +70,7 @@ impl Form {
     /// Formats the current form into a 2D table data vector.
     pub fn table_data(&self) -> Vec<Vec<String>> {
         let mut data = vec![];
-        for asset in self.assets.iter() {
+        for asset in self.assets.iter().filter(|x| x.selected) {
             data.push(vec![
                 asset.ticker.clone(),
                 asset.price.clone().unwrap_or_default(),
@@ -72,7 +87,7 @@ impl Form {
             .filter(|asset| asset.selected)
             .map(|asset| {
                 Position::new(
-                    StaticCoin::new(asset.ticker.clone()),
+                    asset.coin.clone(),
                     Some(
                         asset
                             .price
@@ -93,11 +108,35 @@ impl Form {
             })
             .collect();
         let portfolio = Portfolio::new(
-            self.name.clone().unwrap_or_default(),
-            self.ticker.clone().unwrap_or_default(),
+            self.name.clone().unwrap_or_default().to_lowercase(),
+            self.ticker.clone().unwrap_or_default().to_uppercase(),
             assets,
         );
-        tracing::debug!("Portfolio created on submit: {:?}", portfolio);
+
+        // Don't overwrite if the name exists.
+        if portfolio.file_path().exists() {
+            tracing::error!(
+                "Portfolio already exists: {:?}. Use a different name.",
+                portfolio
+            );
+            return Command::none();
+        }
+
+        // Save to file.
+        let res = portfolio.save();
+        match res {
+            Ok(_) => {
+                tracing::debug!(
+                    "Portfolio saved: {:?} to path {:?}",
+                    portfolio,
+                    portfolio.file_path()
+                );
+            }
+            Err(e) => {
+                tracing::error!("Failed to save portfolio: {:?}", e);
+            }
+        }
+
         Command::none()
     }
 
@@ -147,8 +186,9 @@ impl Form {
     /// - Spacing between the "stacked" rows is medium.
     pub fn table_builder(&self) -> TableBuilder<Message> {
         TableBuilder::new()
-            .padding_cell_internal(Sizes::Md)
+            .padding_cell_internal(Sizes::Xs)
             .padding_cell(Sizes::Sm)
+            .padding_row(Sizes::Md)
             .spacing_col(Sizes::Md)
     }
 

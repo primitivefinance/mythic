@@ -62,6 +62,10 @@ impl CreatePortfolio {
         })
     }
 
+    pub fn ready(&self) -> bool {
+        self.form.ready()
+    }
+
     pub fn update(&mut self, message: Message) -> Command<app::Message> {
         tracing::trace!("Message: {:?}", message);
         match message {
@@ -72,9 +76,9 @@ impl CreatePortfolio {
 
                 // todo: fetch balance + price?
                 // this adds the loaded coins into the form's list.
-                for token in self.coinlist.tokens.iter() {
+                for token in self.coinlist.tokens.iter().cloned() {
                     self.form
-                        .add_asset(form::Asset::new(token.name.clone(), 20.0));
+                        .add_asset(form::Asset::new(token, Some(format!("{}", 20.0))));
                 }
             }
             Message::Load(Err(e)) => {
@@ -98,13 +102,34 @@ impl CreatePortfolio {
                 .view()
                 .map(|x| view::Message::Developer(developer::Message::Create(Message::Form(x)))),
         ];
-        // todo: add to state
-        let ready = false;
-        let action = match ready {
+
+        let action = match self.ready() {
             true => Some(Message::Submit),
             false => None,
         };
+
+        let instruct: Element<'a, Message> = instructions(
+            vec![instruction_text(
+                "Create a new portfolio by filling out the form.".to_string(),
+            )],
+            Some("Create Portfolio".to_string()),
+            None,
+            action,
+        )
+        .max_width(ByteScale::Xl5)
+        .into();
+
         let column_2: Vec<Element<'a, view::Message>> = vec![
+            key_value_row(
+                "Name".to_string(),
+                self.form.name.clone().unwrap_or("n/a".to_string()),
+            )
+            .into(),
+            key_value_row(
+                "Ticker".to_string(),
+                self.form.ticker.clone().unwrap_or("n/a".to_string()),
+            )
+            .into(),
             static_table(
                 "Summary".to_string(),
                 vec![
@@ -115,17 +140,22 @@ impl CreatePortfolio {
                 self.form.table_data(),
             )
             .into(),
-            instructions(
-                vec![instruction_text(
-                    "Create a new portfolio by filling out the form.".to_string(),
-                )],
-                Some("Create Portfolio".to_string()),
-                None,
-                action,
-            )
-            .map(|x| view::Message::Developer(developer::Message::Create(x))),
+            instruct.map(|x| view::Message::Developer(developer::Message::Create(x))),
         ];
 
-        dual_column(column_1, column_2).into()
+        Container::new(
+            DualColumn::new()
+                .columns(column_1, column_2)
+                .spacing(Sizes::Lg)
+                .padding(Sizes::Lg.into())
+                .build()
+                .spacing(Sizes::Xl2),
+        )
+        .align_y(alignment::Vertical::Top)
+        .center_x()
+        .max_height(ByteScale::Xl7)
+        .max_width(ByteScale::Xl7.between(&ByteScale::Xl8))
+        .padding(Sizes::Xl)
+        .into()
     }
 }

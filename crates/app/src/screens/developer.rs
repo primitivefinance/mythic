@@ -108,7 +108,7 @@ impl State for DeveloperScreen {
                     self.checkboxed = value;
                 }
                 Message::OnSelectAsset(ticker) => {
-                    let mut asset = self
+                    let asset = self
                         .assets
                         .iter_mut()
                         .find(|asset| asset.1.ticker.contains(&ticker))
@@ -126,14 +126,11 @@ impl State for DeveloperScreen {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
         let column = self.create_screen.view();
 
-        view::app_layout(
-            &view::Page::Developer,
-            Container::new(column)
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(Length::Fill),
-        )
-        .into()
+        Container::new(column)
+            .center_x()
+            .center_y()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }

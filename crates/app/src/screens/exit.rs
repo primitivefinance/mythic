@@ -57,14 +57,11 @@ impl State for ExitScreen {
             false => Column::new().push(button("Save and exit.").on_press(view::Message::Exit)),
         };
 
-        view::app_layout(
-            &view::Page::Exit,
-            Container::new(content)
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(Length::Fill),
-        )
-        .into()
+        Container::new(content)
+            .center_x()
+            .center_y()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }

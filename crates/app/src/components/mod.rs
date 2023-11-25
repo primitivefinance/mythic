@@ -9,14 +9,16 @@ pub mod tables;
 use button::*;
 use iced::{
     widget::{pick_list, Button, Container},
-    Color, Element, Renderer,
+    Color, Element, Padding, Renderer,
 };
 use iced_aw::Icon;
 use input::*;
 use styles::*;
 
 use self::{
-    containers::{CardContainer, ScreenWindowContainer, TableColumnContainer, WindowHeader},
+    containers::{
+        CardContainer, CustomContainer, ScreenWindowContainer, TableColumnContainer, WindowHeader,
+    },
     select::custom_pick_list,
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
@@ -362,7 +364,6 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
             .spacing(Sizes::Md as u16),
     )
     .max_height(ByteScale::Xl7 as u16)
-    .max_width(ByteScale::Xl7 as u16)
     .style(ScreenWindowContainer::theme())
     .into()
 }
@@ -458,7 +459,7 @@ pub fn instructions<'a, Message, T: Into<Element<'a, Message>>>(
     action: Option<String>,
     feedback: Option<String>,
     on_submit: Option<Message>,
-) -> Element<'a, Message>
+) -> Container<'a, Message>
 where
     Message: 'static + Clone,
 {
@@ -494,7 +495,6 @@ where
             .spacing(Sizes::Md)
             .padding(Sizes::Md),
     )
-    .into()
 }
 
 /// Renders a table with static data.
@@ -511,26 +511,139 @@ where
         .spacing(Sizes::Md)
         .push(label_item(title))
         .push(
-            Card::new(
-                TableBuilder::new()
-                    .column(
-                        ColumnBuilder::new().headers(headers).rows(
-                            data.into_iter()
-                                .map(|row| {
-                                    RowBuilder::new().cells(
+            TableBuilder::new()
+                .column(
+                    ColumnBuilder::new().headers(headers).rows(
+                        data.into_iter()
+                            .map(|row| {
+                                RowBuilder::new()
+                                    .style(|| {
+                                        CustomContainer::theme(Some(iced::Background::Color(
+                                            GRAY_600,
+                                        )))
+                                    })
+                                    .cells(
                                         row.into_iter()
                                             .map(|cell| {
                                                 CellBuilder::new().child(primary_label(cell))
                                             })
                                             .collect(),
                                     )
-                                })
-                                .collect(),
-                        ),
-                    )
-                    .padding_cell(Sizes::Xs)
-                    .build(),
-            )
-            .padding(Sizes::Sm),
+                            })
+                            .collect(),
+                    ),
+                )
+                .padding_cell(Sizes::Xs)
+                .build(),
         )
+}
+
+pub struct DualColumn<'a, Message>
+where
+    Message: 'a,
+{
+    pub column_1: Vec<Element<'a, Message>>,
+    pub column_2: Vec<Element<'a, Message>>,
+    pub spacing: Option<Sizes>,
+    pub padding: Option<Padding>,
+}
+
+impl<'a, Message> DualColumn<'a, Message> {
+    pub fn new() -> Self {
+        Self {
+            column_1: vec![],
+            column_2: vec![],
+            spacing: None,
+            padding: None,
+        }
+    }
+
+    pub fn column_1(mut self, column_1: Vec<Element<'a, Message>>) -> Self {
+        self.column_1 = column_1;
+        self
+    }
+
+    pub fn column_2(mut self, column_2: Vec<Element<'a, Message>>) -> Self {
+        self.column_2 = column_2;
+        self
+    }
+
+    pub fn columns(
+        mut self,
+        column_1: Vec<Element<'a, Message>>,
+        column_2: Vec<Element<'a, Message>>,
+    ) -> Self {
+        self.column_1 = column_1;
+        self.column_2 = column_2;
+        self
+    }
+
+    pub fn spacing(mut self, spacing: Sizes) -> Self {
+        self.spacing = Some(spacing);
+        self
+    }
+
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.padding = Some(padding);
+        self
+    }
+
+    pub fn build(self) -> Row<'a, Message> {
+        let mut row = Row::new();
+
+        let mut first_column =
+            Column::with_children(self.column_1.into_iter().map(|e| e.into()).collect())
+                .width(Length::FillPortion(2))
+                .align_items(alignment::Alignment::Start);
+
+        let mut second_column =
+            Column::with_children(self.column_2.into_iter().map(|e| e.into()).collect())
+                .width(Length::FillPortion(2))
+                .align_items(alignment::Alignment::End);
+
+        if let Some(spacing) = self.spacing {
+            first_column = first_column.spacing(spacing);
+            second_column = second_column.spacing(spacing);
+        }
+
+        if let Some(padding) = self.padding {
+            first_column = first_column.padding(padding);
+            second_column = second_column.padding(padding);
+        }
+
+        row = row.push(first_column);
+        row = row.push(second_column);
+        row
+    }
+}
+
+impl<'a, Message> From<DualColumn<'a, Message>> for Row<'a, Message> {
+    fn from(dual_column: DualColumn<'a, Message>) -> Self {
+        dual_column.build()
+    }
+}
+
+pub fn key_value_row<'a, Message>(key: String, value: String) -> Row<'a, Message>
+where
+    Message: 'a,
+{
+    let key = label_item(key);
+    let value = primary_label(value);
+    let mut row = Row::new()
+        .push(
+            Column::new()
+                .width(Length::FillPortion(2))
+                .align_items(alignment::Alignment::Start)
+                .push(key),
+        )
+        .push(
+            Column::new()
+                .width(Length::FillPortion(2))
+                .align_items(alignment::Alignment::End)
+                .push(value),
+        );
+    row = row
+        .spacing(Sizes::Md as u16)
+        .align_items(alignment::Alignment::Center);
+    row
 }

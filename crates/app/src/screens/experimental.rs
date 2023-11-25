@@ -52,15 +52,12 @@ impl State for ExperimentalScreen {
             .push(h1("experimental".to_string()))
             .push(chart);
 
-        view::app_layout(
-            &view::Page::Experimental,
-            Container::new(content)
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(Length::Fill),
-        )
-        .into()
+        Container::new(content)
+            .center_x()
+            .center_y()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }
 

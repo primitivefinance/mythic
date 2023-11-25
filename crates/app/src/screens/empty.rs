@@ -28,14 +28,11 @@ impl State for EmptyScreen {
     }
 
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        view::app_layout(
-            &view::Page::Empty,
-            Container::new(Column::new().push(h2("Select an app to get started.".to_string())))
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(Length::Fill),
-        )
-        .into()
+        Container::new(Column::new().push(h2("Select an app to get started.".to_string())))
+            .center_x()
+            .center_y()
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }

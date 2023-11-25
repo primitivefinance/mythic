@@ -179,14 +179,11 @@ impl State for AddressBookScreen {
     }
 
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        view::app_layout(
-            &view::Page::AddressBook,
-            view::address_book::layout(
-                self.form.clone(),
-                self.books.clone(),
-                self.current.clone(),
-                self.display.clone(),
-            ),
+        view::address_book::layout(
+            self.form.clone(),
+            self.books.clone(),
+            self.current.clone(),
+            self.display.clone(),
         )
         .into()
     }

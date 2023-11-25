@@ -139,8 +139,9 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .into()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default)]
 pub enum Page {
+    #[default]
     Empty,
     Terminal,
     Execute,

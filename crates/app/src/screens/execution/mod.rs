@@ -262,16 +262,13 @@ impl State for Execution {
     fn view<'a>(&'a self) -> Element<'a, view::Message> {
         // todo: add refs to cache?
         // todo: add performance benches
-        view::app_layout(
-            &view::Page::Execute,
-            view::execute::execution_layout(
-                &self.form,
-                &self.cache.from_list,
-                &self.cache.to_list,
-                &self.cache.target_list,
-                self.cache.simulated_results.clone(),
-                self.cache.executed_results.clone(),
-            ),
+        view::execute::execution_layout(
+            &self.form,
+            &self.cache.from_list,
+            &self.cache.to_list,
+            &self.cache.target_list,
+            self.cache.simulated_results.clone(),
+            self.cache.executed_results.clone(),
         )
         .into()
     }
