@@ -58,6 +58,10 @@ pub enum Message {
     CreatePortfolio(portfolio::create::Message),
 }
 
+impl MessageWrapper for Message {
+    type ParentMessage = app::Message;
+}
+
 impl From<Message> for app::Message {
     fn from(message: Message) -> Self {
         app::Message::View(message.into())

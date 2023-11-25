@@ -69,6 +69,10 @@ pub enum Message {
     WindowsMessage(WindowsMessage),
 }
 
+impl MessageWrapper for Message {
+    type ParentMessage = Message;
+}
+
 #[derive(Debug)]
 pub enum AddressBookMessage {
     Add(String, Address, contacts::Category),

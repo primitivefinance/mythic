@@ -26,6 +26,10 @@ pub enum Message {
     Submit,
 }
 
+impl MessageWrapper for Message {
+    type ParentMessage = ParentMessage;
+}
+
 impl From<Message> for ParentMessage {
     fn from(message: Message) -> Self {
         ParentMessage::Create(message)

@@ -6,7 +6,7 @@ use profiles::{
 };
 
 use super::*;
-use crate::components::{containers::CustomContainer, input::create_input_component};
+use crate::components::containers::CustomContainer;
 
 /// Message type that passes forward the messages of this form.
 type ParentMessage = create::Message;
@@ -16,28 +16,6 @@ pub struct Form {
     pub name: Option<String>,
     pub ticker: Option<String>,
     pub assets: Vec<Asset>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Asset {
-    pub coin: StaticCoin,
-    pub ticker: String,
-    pub price: Option<String>,
-    pub balance: Option<String>,
-    pub selected: bool,
-}
-
-impl Asset {
-    pub fn new(coin: StaticCoin, price: Option<String>) -> Self {
-        let ticker = coin.symbol.clone();
-        Self {
-            coin,
-            ticker,
-            price,
-            balance: None,
-            selected: false,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -52,18 +30,26 @@ pub enum Message {
     Submit,
 }
 
+impl MessageWrapper for Message {
+    type ParentMessage = ParentMessage;
+}
+
 /// Implements From for the parent message type.
-impl From<Message> for ParentMessage {
+/// This is the same as `impl From<Message> for ParentMessage` but
+/// allows us to use the `ParentMessage` _type_ from the `MessageWrapper` trait,
+/// instead of defining it directly.
+impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
-        ParentMessage::Form(message)
+        Self::Form(message)
     }
 }
 
 impl Form {
-    /// Message types!
+    // Message types!
+    // todo: why are these not used?
+    pub type ParentMessage = ParentMessage;
     pub type AppMessage = Message;
     pub type ViewMessage = form::Message;
-    pub type ParentMessage = ParentMessage;
 
     pub fn ready(&self) -> bool {
         self.name.is_some()
@@ -193,7 +179,7 @@ impl State for Form {
     type ViewMessage = form::Message;
     type AppMessage = Message;
 
-    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Message::Empty => {}
             Message::NameChanged(name) => self.name = name,
@@ -271,5 +257,27 @@ impl State for Form {
                 ),
         )
         .into()
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Asset {
+    pub coin: StaticCoin,
+    pub ticker: String,
+    pub price: Option<String>,
+    pub balance: Option<String>,
+    pub selected: bool,
+}
+
+impl Asset {
+    pub fn new(coin: StaticCoin, price: Option<String>) -> Self {
+        let ticker = coin.symbol.clone();
+        Self {
+            coin,
+            ticker,
+            price,
+            balance: None,
+            selected: false,
+        }
     }
 }
