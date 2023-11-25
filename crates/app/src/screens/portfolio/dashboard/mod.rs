@@ -1,12 +1,15 @@
 //! Renders a view of the portfolio's positions and strategies.
 
-use std::{collections::HashMap, path::PathBuf};
+pub mod review;
+
+use std::collections::HashMap;
 
 use profiles::portfolios::{Portfolio, Targetable};
 
+use self::review::ReviewAdjustment;
 use super::*;
 use crate::components::{
-    containers::{CustomContainer, TableColumnContainer},
+    containers::CustomContainer,
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 
@@ -33,6 +36,8 @@ pub struct Dashboard {
     portfolio: Option<Portfolio>,
     deltas: DeltaForm,
     summary: Option<DeltaSummary>,
+    review: Option<ReviewAdjustment>,
+    ready: bool,
 }
 
 /// Form for editing individual position deltas.
@@ -58,6 +63,7 @@ pub enum Message {
     Submit,
     Delta(DeltaMessage),
     ReviewAdjustment,
+    Review(review::Message),
 }
 
 impl Dashboard {
@@ -66,6 +72,8 @@ impl Dashboard {
             portfolio: None,
             deltas: DeltaForm::default(),
             summary: None,
+            review: None,
+            ready: false,
         }
     }
 
@@ -267,7 +275,8 @@ impl Dashboard {
                 }
             }
             Message::Submit => {
-                tracing::trace!("Submitting...");
+                tracing::trace!("Reviewing...");
+                self.review = Some(ReviewAdjustment::default());
             }
             Message::ReviewAdjustment => {
                 let mut deltas: Vec<PositionDelta> = vec![];
@@ -298,6 +307,9 @@ impl Dashboard {
 
                 // Update summary.
                 self.summary = Some(DeltaSummary::default().deltas(deltas));
+
+                // Make it ready to review.
+                self.ready = true;
             }
             _ => {}
         }
@@ -305,14 +317,10 @@ impl Dashboard {
         Command::none()
     }
 
-    pub fn ready(&self) -> bool {
-        false
-    }
-
     pub fn view<'a>(&self) -> Element<'a, view::Message> {
         let table: Element<'a, Message> = self.position_table().into();
 
-        let submit = match self.ready() {
+        let submit = match self.ready {
             true => Some(Message::Submit),
             false => None,
         };
@@ -347,7 +355,7 @@ impl Dashboard {
             .on_press(Message::ReviewAdjustment)
             .into();
 
-        let content = Column::new()
+        let mut content = Column::new()
             .spacing(20)
             .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
             .push(
@@ -357,6 +365,13 @@ impl Dashboard {
             )
             .push(table.map(|x| view::Message::Developer(developer::Message::Dash(x))))
             .push(sub_section);
+
+        if let Some(review) = self.review.clone() {
+            content =
+                Column::new().push(review.view().map(|x| {
+                    view::Message::Developer(developer::Message::Dash(Message::Review(x)))
+                }));
+        }
 
         Container::new(content)
             .align_y(alignment::Vertical::Top)

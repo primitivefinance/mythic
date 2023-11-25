@@ -290,4 +290,14 @@ impl CustomContainer {
             ..Default::default()
         }))
     }
+    pub fn theme_with_border_radius(
+        background: Option<iced::Background>,
+        border_radius: Option<BorderRadius>,
+    ) -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(CustomContainer {
+            background,
+            border_radius: border_radius.unwrap_or(0.0.into()),
+            ..Default::default()
+        }))
+    }
 }

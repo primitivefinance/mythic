@@ -9,7 +9,7 @@ pub mod tables;
 use button::*;
 use iced::{
     widget::{pick_list, Button, Container},
-    Color, Element, Padding, Renderer,
+    BorderRadius, Color, Element, Padding, Renderer,
 };
 use iced_aw::Icon;
 use input::*;
@@ -315,15 +315,46 @@ pub fn with_font<'a>(value: Text<'a>) -> Text<'a> {
 }
 
 /// Card is just a container with a background color and some border radius.
-pub struct Card;
+pub struct Card {
+    background: Option<iced::Background>,
+}
 
 impl Card {
+    // todo: refactor this to use builder pattern.
     pub fn new<'a, Message, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message>
     where
         Message: 'static,
     {
         let content = content.into();
         Container::new(content).style(CardContainer::theme())
+    }
+
+    /// Returns a fresh instance of this Card.
+    pub fn template() -> Self {
+        Self {
+            background: Some(iced::Background::Color(BACKGROUND)),
+        }
+    }
+
+    /// Modifies the background.
+    pub fn background(mut self, background: Option<iced::Background>) -> Self {
+        self.background = background;
+        self
+    }
+
+    pub fn build<'a, Message, T: Into<Element<'a, Message>>>(
+        self,
+        content: T,
+        border_radius: BorderRadius,
+    ) -> Container<'a, Message>
+    where
+        Message: 'static,
+    {
+        let content = content.into();
+        Container::new(content).style(CustomContainer::theme_with_border_radius(
+            self.background,
+            Some(border_radius),
+        ))
     }
 }
 
@@ -450,6 +481,24 @@ pub fn instruction_text<'a>(value: String) -> Text<'a> {
     secondary_label(value).size(TextSize::Sm as u16)
 }
 
+pub fn instructions_inner<'a, Message, T: Into<Element<'a, Message>>>(
+    instructions: Vec<T>,
+) -> Column<'a, Message>
+where
+    Message: 'static + Clone,
+{
+    let mut inner: Column<'a, Message> = Column::new()
+        .spacing(Sizes::Sm)
+        .padding(Sizes::Sm)
+        .width(Length::Fill);
+
+    for instruction in instructions {
+        inner = inner.push(instruction);
+    }
+
+    inner
+}
+
 /// Renders an instructions title, description, an action button and feedback
 /// in a card.
 /// note: Message must be `Clone` for the submit button to be converted to an
@@ -546,6 +595,8 @@ where
     pub column_2: Vec<Element<'a, Message>>,
     pub spacing: Option<Sizes>,
     pub padding: Option<Padding>,
+    pub column_1_alignment: Option<alignment::Alignment>,
+    pub column_2_alignment: Option<alignment::Alignment>,
 }
 
 impl<'a, Message> DualColumn<'a, Message> {
@@ -555,7 +606,19 @@ impl<'a, Message> DualColumn<'a, Message> {
             column_2: vec![],
             spacing: None,
             padding: None,
+            column_1_alignment: None,
+            column_2_alignment: None,
         }
+    }
+
+    pub fn column_1_alignment(mut self, alignment: alignment::Alignment) -> Self {
+        self.column_1_alignment = Some(alignment);
+        self
+    }
+
+    pub fn column_2_alignment(mut self, alignment: alignment::Alignment) -> Self {
+        self.column_2_alignment = Some(alignment);
+        self
     }
 
     pub fn column_1(mut self, column_1: Vec<Element<'a, Message>>) -> Self {
@@ -594,12 +657,15 @@ impl<'a, Message> DualColumn<'a, Message> {
         let mut first_column =
             Column::with_children(self.column_1.into_iter().map(|e| e.into()).collect())
                 .width(Length::FillPortion(2))
-                .align_items(alignment::Alignment::Start);
+                .align_items(
+                    self.column_1_alignment
+                        .unwrap_or(alignment::Alignment::Start),
+                );
 
         let mut second_column =
             Column::with_children(self.column_2.into_iter().map(|e| e.into()).collect())
                 .width(Length::FillPortion(2))
-                .align_items(alignment::Alignment::End);
+                .align_items(self.column_2_alignment.unwrap_or(alignment::Alignment::End));
 
         if let Some(spacing) = self.spacing {
             first_column = first_column.spacing(spacing);
