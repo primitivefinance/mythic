@@ -1,4 +1,5 @@
 #![feature(associated_type_defaults)]
+#![feature(inherent_associated_types)]
 
 use ethers::prelude::*;
 use iced::{

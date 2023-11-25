@@ -27,9 +27,9 @@ where
 
     /// Messages returned to be executed by commands.
     /// Defaults to the global Application Message.
-    /// All of these messages get dropped to the top of the stack (the main
-    /// application), and piped back down to the screen that returned the
-    /// message.
+    /// All of these messages get metaphorically dropped to the top of the stack
+    /// (the main application), and piped back down to the screen that
+    /// returned the message.
     /// todo: type defaults are unstable right now...
     type AppMessage = app::Message;
 
@@ -59,7 +59,7 @@ where
 
 /// Alias for the type of screen.
 /// Windows are like tabs in a browser.
-type WindowScreen = dyn State<ViewMessage = view::Message, AppMessage = app::Message>;
+type WindowScreen = dyn State<ViewMessage = view::Message, AppMessage = Message>;
 
 /// Wraps anything that implements WindowScreen type of State trait into an
 /// easier to use struct.

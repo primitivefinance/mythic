@@ -8,6 +8,9 @@ use profiles::{
 use super::*;
 use crate::components::{containers::CustomContainer, input::create_input_component};
 
+/// Message type that passes forward the messages of this form.
+type ParentMessage = create::Message;
+
 #[derive(Debug, Clone, Default)]
 pub struct Form {
     pub name: Option<String>,
@@ -49,7 +52,19 @@ pub enum Message {
     Submit,
 }
 
+/// Implements From for the parent message type.
+impl From<Message> for ParentMessage {
+    fn from(message: Message) -> Self {
+        ParentMessage::Form(message)
+    }
+}
+
 impl Form {
+    /// Message types!
+    pub type AppMessage = Message;
+    pub type ViewMessage = form::Message;
+    pub type ParentMessage = ParentMessage;
+
     pub fn ready(&self) -> bool {
         self.name.is_some()
             && self.ticker.is_some()
@@ -80,7 +95,7 @@ impl Form {
         data
     }
 
-    pub fn submit(&mut self) -> Command<app::Message> {
+    pub fn submit(&mut self) -> Command<Self::AppMessage> {
         let assets = self
             .assets
             .iter()
@@ -140,7 +155,45 @@ impl Form {
         Command::none()
     }
 
-    pub fn update(&mut self, message: Message) -> Command<app::Message> {
+    pub fn headers(&self) -> Vec<String> {
+        vec![
+            "Ticker".to_string(),
+            "Price".to_string(),
+            "Balance".to_string(),
+            "Select".to_string(),
+        ]
+    }
+
+    pub fn cell_builder(&self) -> CellBuilder<Self::AppMessage> {
+        CellBuilder::new()
+    }
+
+    pub fn row_builder(&self) -> RowBuilder<Self::AppMessage> {
+        RowBuilder::new()
+    }
+
+    /// Builds the columns with this form's headers.
+    pub fn column_builder(&self) -> ColumnBuilder<Self::AppMessage> {
+        ColumnBuilder::new().headers(self.headers())
+    }
+
+    /// Styles the table builder with the following style:
+    /// - Cells are padded internally and externally.
+    /// - Spacing between the "stacked" rows is medium.
+    pub fn table_builder(&self) -> TableBuilder<Self::AppMessage> {
+        TableBuilder::new()
+            .padding_cell_internal(Sizes::Xs)
+            .padding_cell(Sizes::Sm)
+            .padding_row(Sizes::Md)
+            .spacing_col(Sizes::Md)
+    }
+}
+
+impl State for Form {
+    type ViewMessage = form::Message;
+    type AppMessage = Message;
+
+    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Empty => {}
             Message::NameChanged(name) => self.name = name,
@@ -153,73 +206,39 @@ impl Form {
                 self.assets[index].price = price
             }
             Message::AssetBalanceChanged(index, balance) => self.assets[index].balance = balance,
-            Message::Submit => return self.submit(),
+            Message::Submit => return self.submit().map(|x| x.into()),
         }
 
         Command::none()
     }
 
-    pub fn headers(&self) -> Vec<String> {
-        vec![
-            "Ticker".to_string(),
-            "Price".to_string(),
-            "Balance".to_string(),
-            "Select".to_string(),
-        ]
-    }
-
-    pub fn cell_builder(&self) -> CellBuilder<Message> {
-        CellBuilder::new()
-    }
-
-    pub fn row_builder(&self) -> RowBuilder<Message> {
-        RowBuilder::new()
-    }
-
-    /// Builds the columns with this form's headers.
-    pub fn column_builder(&self) -> ColumnBuilder<Message> {
-        ColumnBuilder::new().headers(self.headers())
-    }
-
-    /// Styles the table builder with the following style:
-    /// - Cells are padded internally and externally.
-    /// - Spacing between the "stacked" rows is medium.
-    pub fn table_builder(&self) -> TableBuilder<Message> {
-        TableBuilder::new()
-            .padding_cell_internal(Sizes::Xs)
-            .padding_cell(Sizes::Sm)
-            .padding_row(Sizes::Md)
-            .spacing_col(Sizes::Md)
-    }
-
-    pub fn view<'a>(&self) -> Element<'a, form::Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let assets = self.assets.clone();
-        let table = self.table_builder().column(
-            self.column_builder().rows(
-                assets
-                    .into_iter()
-                    .enumerate()
-                    .map(|(i, asset)| {
-                        RowBuilder::new()
-                            .style(|| {
-                                CustomContainer::theme(Some(iced::Background::Color(GRAY_500)))
-                            })
-                            .cell(CellBuilder::new().value(Some(asset.ticker)))
-                            .cell(CellBuilder::new().value(asset.price))
-                            .cell(
-                                CellBuilder::new()
-                                    .value(asset.balance)
-                                    .on_change(move |x| form::Message::AssetBalanceChanged(i, x)),
-                            )
-                            .cell(
-                                CellBuilder::new()
-                                    .checked(Some(asset.selected))
-                                    .on_checkbox(move |x| form::Message::AssetSelected(i)),
-                            )
-                    })
-                    .collect(),
-            ),
-        );
+        let table =
+            self.table_builder().column(
+                self.column_builder().rows(
+                    assets
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, asset)| {
+                            RowBuilder::new()
+                                .style(|| {
+                                    CustomContainer::theme(Some(iced::Background::Color(GRAY_500)))
+                                })
+                                .cell(CellBuilder::new().value(Some(asset.ticker)))
+                                .cell(CellBuilder::new().value(asset.price))
+                                .cell(CellBuilder::new().value(asset.balance).on_change(move |x| {
+                                    Self::ViewMessage::AssetBalanceChanged(i, x)
+                                }))
+                                .cell(
+                                    CellBuilder::new()
+                                        .checked(Some(asset.selected))
+                                        .on_checkbox(move |x| form::Message::AssetSelected(i)),
+                                )
+                        })
+                        .collect(),
+                ),
+            );
 
         let name_input = labeled_input(
             "Name".to_string(),

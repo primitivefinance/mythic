@@ -81,12 +81,6 @@ impl From<Message> for view::Message {
     }
 }
 
-impl From<create::Message> for Message {
-    fn from(msg: create::Message) -> Self {
-        Message::Create(msg)
-    }
-}
-
 impl From<Message> for app::Message {
     fn from(msg: Message) -> Self {
         app::Message::View(view::Message::Developer(msg))
@@ -94,14 +88,22 @@ impl From<Message> for app::Message {
 }
 
 impl State for DeveloperScreen {
-    fn load(&self) -> Command<app::Message> {
-        Command::batch(vec![self.create_screen.load(), self.dash_screen.load()])
+    type AppMessage = app::Message;
+    type ViewMessage = view::Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
+        Command::batch(vec![
+            self.create_screen.load().map(|x| x.into()),
+            self.dash_screen.load(),
+        ])
     }
 
-    fn update(&mut self, message: app::Message) -> Command<app::Message> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             app::Message::View(view::Message::Developer(msg)) => match msg {
-                Message::Create(message) => return self.create_screen.update(message),
+                Message::Create(message) => {
+                    return self.create_screen.update(message).map(|x| x.into())
+                }
                 Message::OnChange(value) => {
                     self.cache = value;
                 }
@@ -131,7 +133,7 @@ impl State for DeveloperScreen {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let column = match self.dash_screen.loaded() {
             false => self.create_screen.view(),
             true => self.dash_screen.view(),

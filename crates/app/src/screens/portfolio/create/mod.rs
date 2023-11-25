@@ -9,6 +9,8 @@ use crate::components::tables::{
     builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder,
 };
 
+type ParentMessage = developer::Message;
+
 #[derive(Debug, Clone, Default)]
 pub struct CreatePortfolio {
     form: form::Form,
@@ -22,6 +24,12 @@ pub enum Message {
     Form(form::Message),
     Load(anyhow::Result<CoinList, Arc<anyhow::Error>>),
     Submit,
+}
+
+impl From<Message> for ParentMessage {
+    fn from(message: Message) -> Self {
+        ParentMessage::Create(message)
+    }
 }
 
 impl From<Message> for view::Message {
@@ -55,18 +63,23 @@ async fn load_coinlist() -> anyhow::Result<CoinList, Arc<anyhow::Error>> {
 }
 
 impl CreatePortfolio {
-    pub fn load(&self) -> Command<app::Message> {
-        Command::perform(load_coinlist(), |x| {
-            // todo: fix this to point to its own message for its own screen.
-            view::Message::Developer(developer::Message::Create(Message::Load(x))).into()
-        })
-    }
-
     pub fn ready(&self) -> bool {
         self.form.ready()
     }
+}
 
-    pub fn update(&mut self, message: Message) -> Command<app::Message> {
+impl State for CreatePortfolio {
+    type ViewMessage = view::Message;
+    type AppMessage = Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
+        Command::perform(load_coinlist(), |x| {
+            // todo: fix this to point to its own message for its own screen.
+            Message::Load(x).into()
+        })
+    }
+
+    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         tracing::trace!("Message: {:?}", message);
         match message {
             Message::Load(Ok(coinlist)) => {
@@ -84,8 +97,8 @@ impl CreatePortfolio {
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load coinlist: {:?}", e);
             }
-            Message::Form(message) => return self.form.update(message),
-            Message::Submit => return self.form.submit(),
+            Message::Form(message) => return self.form.update(message).map(|x| x.into()),
+            Message::Submit => return self.form.submit().map(|x| x.into()),
             Message::Empty => {}
             _ => {}
         }
@@ -93,14 +106,14 @@ impl CreatePortfolio {
         Command::none()
     }
 
-    pub fn view<'a>(&'a self) -> Element<'a, view::Message> {
-        let column_1: Vec<Element<'a, view::Message>> = vec![
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+        let column_1: Vec<Element<'a, Self::ViewMessage>> = vec![
             h2("Create Portfolio".to_string())
                 .font(FONT_SEMIBOLD)
                 .into(),
-            self.form
-                .view()
-                .map(|x| view::Message::Developer(developer::Message::Create(Message::Form(x)))),
+            self.form.view().map(|x| {
+                Self::ViewMessage::Developer(developer::Message::Create(Message::Form(x)))
+            }),
         ];
 
         let action = match self.ready() {
@@ -119,7 +132,7 @@ impl CreatePortfolio {
         .max_width(ByteScale::Xl5)
         .into();
 
-        let column_2: Vec<Element<'a, view::Message>> = vec![
+        let column_2: Vec<Element<'a, Self::ViewMessage>> = vec![
             key_value_row(
                 "Name".to_string(),
                 self.form.name.clone().unwrap_or("n/a".to_string()),
@@ -140,7 +153,7 @@ impl CreatePortfolio {
                 self.form.table_data(),
             )
             .into(),
-            instruct.map(|x| view::Message::Developer(developer::Message::Create(x))),
+            instruct.map(|x| developer::Message::Create(x).into()),
         ];
 
         Container::new(
