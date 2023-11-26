@@ -1,38 +1,11 @@
+//! Renders a title, a list of route-able pages, and bookmarks.
+
 use iced::{widget::Space, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{components::button::*, *};
 
 const TITLE: &str = "Excalibur";
-
-// pub fn layout<'a>(options: &Route) -> Container<'a, view::Message> {
-// let title = Column::new()
-// .push(with_font(h1(TITLE.to_string())))
-// .padding(Sizes::Lg as u16)
-// .align_items(alignment::Alignment::Center)
-// .width(Length::Fill);
-//
-// Container::new(
-// Column::new()
-// .push(
-// Column::new().push(title).push(
-// Container::new(Column::new())
-// .width(Length::Fill)
-// .height(Length::Fixed(1.0))
-// .style(ContainerBlackBg::theme()),
-// ),
-// )
-// .push(
-// Column::new()
-// .push(options.view())
-// .spacing(Sizes::Lg as u16)
-// .padding(Sizes::Xs as u16),
-// )
-// .spacing(Sizes::Md as u16),
-// )
-// .style(SidebarContainer::theme())
-// .height(Length::Fill)
-// }
 
 /// Defines all the possible locations that can be directly routed to in the
 /// app. For example, routing to a page will display that page. Routing to a
@@ -85,6 +58,7 @@ impl Sidebar {
 impl Sidebar {
     pub type ViewMessage = view::Message;
 
+    /// Renders a section header with a label.
     pub fn section<'a>(&self, label: String) -> Row<'a, Self::ViewMessage> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
@@ -98,6 +72,7 @@ impl Sidebar {
             .width(Length::Fill)
     }
 
+    /// Renders the inner column below the sidebar's header section.
     pub fn layout<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let mut column = Column::new();
         column = column.push(self.section("Apps".to_string()));
@@ -115,19 +90,7 @@ impl Sidebar {
 impl screens::State for Sidebar {
     type AppMessage = Route;
 
-    // fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-    // let mut column = Column::new();
-    // column = column.push(self.section("Apps".to_string()));
-    // column = column.push(self.page.view().map(|x| x.into()));
-    // column = column.push(self.section("Bookmarks".to_string()));
-    // column = column.push(self.bookmarks.view().map(|x| x.into()));
-    //
-    // column
-    // .spacing(Sizes::Xs as u16)
-    // .align_items(alignment::Alignment::Center)
-    // .into()
-    // }
-
+    /// Renders the full sidebar.
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let title = Column::new()
             .push(with_font(h1(TITLE.to_string())))
@@ -159,71 +122,6 @@ impl screens::State for Sidebar {
     }
 }
 
-impl Route {
-    // pub type Message = view::Message;
-    //
-    // pub fn page(&self) -> Option<Page> {
-    // match self {
-    // Route::Page(page) => Some(page.clone()),
-    // _ => None,
-    // }
-    // }
-    //
-    // pub fn bookmark(&self) -> Option<Bookmarks> {
-    // match self {
-    // Route::Bookmark(bookmark) => Some(bookmark.clone()),
-    // _ => None,
-    // }
-    // }
-
-    // pub fn section<'a>(&self, label: String) -> Row<'a, Self::Message> {
-    // Row::new()
-    // .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
-    // .push(
-    // Column::new()
-    // .push(secondary_label(label))
-    // .align_items(alignment::Alignment::Center),
-    // )
-    // .padding(Sizes::Sm)
-    // .spacing(Sizes::Md)
-    // .width(Length::Fill)
-    // }
-    //
-    // pub fn view<'a>(&self) -> Element<'a, Self::Message> {
-    // let page = match self {
-    // Route::Page(page) => page,
-    // _ => &Page::Empty,
-    // };
-    //
-    // let mut column = Column::new();
-    // column = column.push(self.section("Apps".to_string()));
-    // column = column.push(page.view().map(|x| x.into()));
-    // column = column.push(self.section("Bookmarks".to_string()));
-    //
-    // match self {
-    // Route::Bookmark(bookmark) => {
-    // for b in &bookmark.bookmarks {
-    // let action: Element<'a, Self::Message> = button(text(b))
-    // .on_press(view::Message::Route(Route::Page(Page::Terminal)))
-    // .into();
-    // column = column.push(
-    // Create a button or some other UI element for each bookmark
-    // The button's on_press method should send a message that handles the
-    // bookmark selection
-    // action.map(|x| x.into()),
-    // );
-    // }
-    // }
-    // _ => {}
-    // }
-    //
-    // column
-    // .spacing(Sizes::Xs as u16)
-    // .align_items(alignment::Alignment::Center)
-    // .into()
-    // }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default)]
 pub enum Page {
     #[default]
@@ -238,6 +136,7 @@ pub enum Page {
 
 impl Page {
     pub type Message = Route;
+
     /// Icon, Name, Message, Selected
     pub type PageTab = (Icon, String, Self::Message, bool);
 
@@ -317,21 +216,7 @@ impl Page {
     }
 }
 
-// #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
-// pub enum Bookmark {
-// #[default]
-// Empty,
-// Portfolio(String),
-// }
-//
-// impl Bookmark {
-// pub type Message = Route;
-//
-// pub fn view<'a>(&self) -> Element<'a, Self::Message> {
-// Column::new().push(h1("Bookmarks!".to_string())).into()
-// }
-// }
-
+/// todo: implement bookmark editing and better route management.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
 pub struct Bookmarks {
     bookmarks: Vec<String>,
