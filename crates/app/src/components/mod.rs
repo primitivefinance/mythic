@@ -16,15 +16,13 @@ use input::*;
 use styles::*;
 
 use self::{
-    containers::{
-        CardContainer, CustomContainer, ScreenWindowContainer, TableColumnContainer, WindowHeader,
-    },
+    containers::{CardContainer, CustomContainer, ScreenWindowContainer, WindowHeader},
     select::custom_pick_list,
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
 use super::{
-    view::{control::custom_icon_button, Message, Page},
+    view::{control::custom_icon_button, sidebar::Page, Message},
     *,
 };
 
@@ -382,7 +380,7 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
                             Column::new()
                                 .push(
                                     custom_icon_button(Icon::X, Sizes::Md as u16)
-                                        .on_press(view::Message::Page(view::Page::Empty)),
+                                        .on_press(view::Message::Page(view::sidebar::Page::Empty)),
                                 )
                                 .align_items(alignment::Alignment::End)
                                 .width(Length::FillPortion(2)),

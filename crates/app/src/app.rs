@@ -12,7 +12,7 @@ use super::{
         address_book::AddressBookScreen, developer::DeveloperScreen, empty::EmptyScreen,
         exit::ExitScreen, experimental::ExperimentalScreen, terminal::Terminal, Screen,
     },
-    view::Page,
+    view::sidebar::Page,
     *,
 };
 
@@ -349,20 +349,20 @@ impl App {
         cmds.push(exit_cmd);
 
         self.windows.screen = match navigate_to {
-            view::Page::Execute => Screen::new(Box::new(execution::Execution::new(
+            view::sidebar::Page::Execute => Screen::new(Box::new(execution::Execution::new(
                 self.chains.clone(),
                 self.storage.clone(),
             ))),
-            view::Page::AddressBook => Screen::new(Box::new(AddressBookScreen::new(
+            view::sidebar::Page::AddressBook => Screen::new(Box::new(AddressBookScreen::new(
                 self.storage.profile.contacts.clone(),
             ))),
-            view::Page::Empty => EmptyScreen::new().into(),
-            view::Page::Exit => ExitScreen::new(true).into(),
-            view::Page::Terminal => Screen::new(Box::new(Terminal::new(
+            view::sidebar::Page::Empty => EmptyScreen::new().into(),
+            view::sidebar::Page::Exit => ExitScreen::new(true).into(),
+            view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new(
                 self.streams.app_event_receiver.clone(),
             ))),
-            view::Page::Experimental => Screen::new(Box::new(ExperimentalScreen::new())),
-            view::Page::Developer => DeveloperScreen::new().into(),
+            view::sidebar::Page::Experimental => Screen::new(Box::new(ExperimentalScreen::new())),
+            view::sidebar::Page::Developer => DeveloperScreen::new().into(),
             _ => EmptyScreen::new().into(),
         };
 

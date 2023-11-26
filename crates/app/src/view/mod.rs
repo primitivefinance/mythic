@@ -6,7 +6,7 @@ use iced::widget::{Column, Container, Row};
 use iced_aw::Icon;
 use simulation::agents::SubscribedData;
 
-use self::{control::control_panel, monitor::labeled_data_cards, sidebar::window_directory};
+use self::{control::control_panel, monitor::labeled_data_cards, sidebar::Page};
 use super::{
     components::{containers::*, *},
     screens::address_book::AddressBookDisplay,
@@ -114,7 +114,7 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
         Row::new()
             .push(
                 Column::new()
-                    .push(page_menu(window))
+                    .push(sidebar::layout(window))
                     .width(Length::FillPortion(1)),
             )
             .push(
@@ -145,111 +145,6 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .height(Length::Shrink)
         .padding(Sizes::Xl as u16)
         .into()
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default)]
-pub enum Page {
-    #[default]
-    Empty,
-    Terminal,
-    Execute,
-    AddressBook,
-    Exit,
-    Experimental,
-    Developer,
-}
-
-impl Page {
-    pub fn name(&self) -> String {
-        match self {
-            Page::Empty => "Select App".to_string(),
-            Page::Terminal => "Terminal".to_string(),
-            Page::Execute => "Execute".to_string(),
-            Page::AddressBook => "Address Book".to_string(),
-            Page::Exit => "Quit".to_string(),
-            _ => "Experimental".to_string(),
-        }
-    }
-}
-
-// todo: this needs to be broken down into more components
-// also developer page should be hidden, along with any other pages
-// we should be able to start the app in dev mode that does some things to help
-// development.
-pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
-    let name = "Excalibur".to_string();
-    let title = Column::new()
-        .push(with_font(h1(name)))
-        .padding(Sizes::Lg as u16)
-        .align_items(alignment::Alignment::Center)
-        .width(Length::Fill);
-
-    let is_dev_mode = std::env::var("DEV_MODE").is_ok();
-
-    let mut windows = vec![
-        (
-            Icon::TerminalFill,
-            "Terminal".to_string(),
-            Message::Page(Page::Terminal),
-            menu == &Page::Terminal,
-        ),
-        (
-            Icon::Wallet,
-            "Execute".to_string(),
-            Message::Page(Page::Execute),
-            menu == &Page::Execute,
-        ),
-        (
-            Icon::ShieldShaded,
-            "Address Book".to_string(),
-            Message::Page(Page::AddressBook),
-            menu == &Page::AddressBook,
-        ),
-        (
-            Icon::Gear,
-            "Experimental".to_string(),
-            Message::Page(Page::Experimental),
-            menu == &Page::Experimental,
-        ),
-        (
-            Icon::X,
-            "Quit".to_string(),
-            Message::Page(Page::Exit),
-            menu == &Page::Exit,
-        ),
-    ];
-
-    if is_dev_mode {
-        windows.push((
-            Icon::Thermometer,
-            "Developer".to_string(),
-            Message::Page(Page::Developer),
-            menu == &Page::Developer,
-        ));
-    }
-
-    let apps = window_directory(windows);
-
-    Container::new(
-        Column::new()
-            .push(
-                Column::new().push(title).push(
-                    Container::new(Column::new())
-                        .width(Length::Fill)
-                        .height(Length::Fixed(1.0))
-                        .style(ContainerBlackBg::theme()),
-                ),
-            )
-            .push(
-                Column::new()
-                    .push(apps)
-                    .spacing(Sizes::Lg as u16)
-                    .padding(Sizes::Xs as u16),
-            )
-            .spacing(Sizes::Md as u16),
-    )
-    .style(SidebarContainer::theme())
-    .height(Length::Fill)
 }
 
 pub fn terminal_layout<'a>(
