@@ -8,22 +8,16 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = super::Message;
 }
 
 impl MessageWrapper for Message {
-    type ParentMessage = dashboard::Message;
+    type ParentMessage = super::Message;
 }
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
-        Self::Simulated(message)
-    }
-}
-
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::Developer(developer::Message::Dash(message.into()))
+        Self::Simulate(message)
     }
 }
 

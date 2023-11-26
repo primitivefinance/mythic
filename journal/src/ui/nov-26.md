@@ -27,3 +27,13 @@ So to summarize the hierarchy:
     - Table
         - (Sibling component) Summary
             - (Child component) Form 
+
+
+# staging
+
+Getting kind of caught up in the complexity in the staging for the portfolio adjustment flow, so going to describe it here:
+1. Start with just a view of table.
+2. Edit field in table
+3. Review table edits (renders the summary table)
+4. Submit -> Review adjustment transaction
+5.  -> Renders its own view that has a button to trigger the next step.

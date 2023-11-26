@@ -14,7 +14,7 @@ pub enum FormMessage {
 }
 
 impl MessageWrapperView for FormMessage {
-    type ParentMessage = view::Message;
+    type ParentMessage = super::Message;
 }
 
 impl MessageWrapper for FormMessage {
@@ -23,15 +23,13 @@ impl MessageWrapper for FormMessage {
 
 impl From<FormMessage> for <FormMessage as MessageWrapper>::ParentMessage {
     fn from(message: FormMessage) -> Self {
-        Self::Form(message.into())
+        Self::Form(message)
     }
 }
 
 impl From<FormMessage> for <FormMessage as MessageWrapperView>::ParentMessage {
     fn from(message: FormMessage) -> Self {
-        Self::Developer(developer::Message::Dash(dashboard::Message::Review(
-            message.into(),
-        )))
+        Self::Review(Message::Form(message))
     }
 }
 
@@ -51,22 +49,16 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = super::Message;
 }
 
 impl MessageWrapper for Message {
-    type ParentMessage = dashboard::Message;
+    type ParentMessage = super::Message;
 }
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Review(message)
-    }
-}
-
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::Developer(developer::Message::Dash(message.into()))
     }
 }
 
@@ -77,11 +69,11 @@ pub struct ReviewAdjustment {
 
 impl State for ReviewAdjustment {
     type AppMessage = Message;
-    type ViewMessage = Message;
+    type ViewMessage = FormMessage;
 
-    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Message::Form(form_message) => match form_message {
+            Self::AppMessage::Form(form_message) => match form_message {
                 FormMessage::Empty => {}
                 FormMessage::StartTime(start_time) => {
                     self.form.start_time = start_time;
@@ -97,7 +89,7 @@ impl State for ReviewAdjustment {
                 }
                 FormMessage::Submit => {}
             },
-            Message::Empty => {}
+            Self::AppMessage::Empty => {}
         }
 
         Command::none()
@@ -112,21 +104,21 @@ impl State for ReviewAdjustment {
                     "Adjust start time".to_string(),
                     self.form.start_time.clone(),
                     "11/25".to_string(),
-                    |x| Message::Form(FormMessage::StartTime(x)),
+                    |x| FormMessage::StartTime(x),
                 )
                 .into(),
                 labeled_input(
                     "Adjust end time".to_string(),
                     self.form.end_time.clone(),
                     "12/25".to_string(),
-                    |x| Message::Form(FormMessage::EndTime(x)),
+                    |x| FormMessage::EndTime(x),
                 )
                 .into(),
                 labeled_input(
                     "Rebate".to_string(),
                     self.form.rebate.clone(),
                     "0.1".to_string(),
-                    |x| Message::Form(FormMessage::Rebate(x)),
+                    |x| FormMessage::Rebate(x),
                 )
                 .into(),
             ])
@@ -136,7 +128,7 @@ impl State for ReviewAdjustment {
                     "Strategy".to_string(),
                     self.form.strategy.clone(),
                     "0.1".to_string(),
-                    |x| Message::Form(FormMessage::Strategy(x)),
+                    |x| FormMessage::Strategy(x),
                 )
                 .into(),
                 Card::template()
@@ -166,7 +158,7 @@ impl State for ReviewAdjustment {
                         )],
                         Some("Simulate Adjustment".to_string()),
                         None,
-                        Some(Message::Form(FormMessage::Submit)),
+                        Some(FormMessage::Submit),
                     )
                     .width(Length::FillPortion(1)),
                 ),

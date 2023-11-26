@@ -58,6 +58,7 @@ pub enum Message {
     Developer(developer::Message),
     CreatePortfolio(portfolio::create::Message),
     Route(sidebar::Route),
+    Dashboard(portfolio::dashboard::Message),
 }
 
 impl MessageWrapperView for Message {

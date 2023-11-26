@@ -1,7 +1,7 @@
 //! Portfolio table which renders all positions and a form for editing deltas to
 //! adjust the portfolio's positions.
 
-use profiles::portfolios::Position;
+use profiles::portfolios::{Portfolio, Position, Targetable};
 
 use self::summary::DeltaSummary;
 use super::*;
@@ -65,6 +65,12 @@ impl PortfolioTable {
             positions: Vec::new(),
             summary: None,
         }
+    }
+
+    /// If adjustments have been prepared and the summary table is being
+    /// rendered.
+    pub fn prepared(&self) -> bool {
+        self.summary.is_some()
     }
 
     /// Closure for handling the form events.

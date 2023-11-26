@@ -1,14 +1,14 @@
 //! Renders a view of the portfolio's positions and strategies.
 
-pub mod review;
-pub mod simulate;
+pub mod stages;
 pub mod table;
 
 use std::collections::HashMap;
 
-use profiles::portfolios::{Portfolio, Targetable};
+use profiles::portfolios::Portfolio;
+use stages::Stages;
 
-use self::{review::ReviewAdjustment, simulate::Simulate, table::PortfolioTable};
+use self::table::PortfolioTable;
 use super::*;
 use crate::components::{
     containers::CustomContainer,
@@ -43,14 +43,12 @@ pub enum Message {
     Empty,
     /// Triggered after `load_portfolio` completes.
     Load(anyhow::Result<Portfolio, Arc<anyhow::Error>>),
+    /// Triggered when a user wants to review the proposed adjustments.
+    Prepare,
     /// Triggered action from the main button on the dashboard.
     Submit,
     /// Triggered when the user clicks the review adjustments button.
-    ReviewAdjustment,
-    /// Triggered after the first submit to transition review adjustments.
-    Review(review::Message),
-    /// Triggered after the user submits adjustments for simulation.
-    Simulated(simulate::Message),
+    Stage(stages::Message),
     /// Triggered when the underlying portfolio table form is edited.
     PortfolioTable(table::Message),
 }
@@ -77,58 +75,26 @@ impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
 
 #[derive(Debug, Clone, Default)]
 pub struct Dashboard {
+    /// Underlying data structure.
     portfolio: Option<Portfolio>,
+    /// Table to render the underlying data.
     table: PortfolioTable,
-    ready: bool,
-    state: DashboardState,
+    /// Stages of the dashboard for interacting with the underlying data.
+    stage: Stages,
+    /// Original name of the loaded portfolio.
     loaded_from: Option<String>,
-}
-
-impl From<DashboardWrapper> for Screen {
-    fn from(dashboard: DashboardWrapper) -> Self {
-        Screen::new(Box::new(dashboard))
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub enum DashboardState {
-    #[default]
-    Empty,
-    /// State of reviewing the portfolio's edited fields.
-    Propose,
-    /// State of reviewing the portfolio adjustment transaction.
-    Review(ReviewAdjustment),
-    /// State of simulating the portfolio adjustment transaction.
-    Simulate(Simulate),
-    /// State of executing the portfolio adjustment transaction.
-    Execute,
-}
-
-impl DashboardState {
-    pub fn clear(&mut self) {
-        *self = DashboardState::Empty;
-    }
-
-    pub fn ready(&self) -> bool {
-        match self {
-            DashboardState::Propose => true,
-            _ => false,
-        }
-    }
 }
 
 impl Dashboard {
     pub type AppMessage = Message;
     pub type ViewMessage = view::Message;
 
+    /// Try loading the portfolio from the name.
     pub fn new(name: Option<String>) -> Self {
-        // Try loading the portfolio from the name.
-
         Self {
             portfolio: None,
             table: PortfolioTable::new(),
-            ready: false,
-            state: DashboardState::default(),
+            stage: Stages::new(),
             loaded_from: name,
         }
     }
@@ -168,43 +134,18 @@ impl State for Dashboard {
                 let cmd = self.table.update(message).map(|x| x.into());
                 return cmd;
             }
+            Message::Stage(stage) => {
+                return self.stage.update(stage).map(|x| x.into());
+            }
+            // Renders the summary of adjustments table.
+            Message::Prepare => {
+                return self.table.update(table::Message::Ready).map(|x| x.into());
+            }
+            // Triggers the staging process...
             Message::Submit => {
                 tracing::trace!("Reviewing...");
 
-                self.state = DashboardState::Review(ReviewAdjustment::default());
-            }
-            Message::ReviewAdjustment => {
-                // Make it ready to review.
-                self.ready = true;
-                return self.table.update(table::Message::Ready).map(|x| x.into());
-            }
-            Message::Review(review::Message::Form(review::FormMessage::Submit)) => {
-                tracing::trace!("Simulating...");
-
-                let cmd = match &mut self.state {
-                    DashboardState::Review(review) => review
-                        .update(review::Message::Form(review::FormMessage::Submit))
-                        .map(|x| x.into()),
-                    _ => Command::none(),
-                };
-
-                self.state = DashboardState::Simulate(Simulate::default());
-
-                return cmd;
-            }
-            Message::Review(message) => {
-                let cmd = match &mut self.state {
-                    DashboardState::Review(review) => review.update(message).map(|x| x.into()),
-                    _ => Command::none(),
-                };
-
-                return cmd;
-            }
-            Message::Simulated(simulate::Message::Submit) => {
-                tracing::trace!("Executing adjustment...");
-                self.state.clear();
-                self.ready = false;
-                return self.table.update(table::Message::Clear).map(|x| x.into());
+                return self.stage.update(stages::Message::Step).map(|x| x.into());
             }
             _ => {}
         }
@@ -213,9 +154,10 @@ impl State for Dashboard {
     }
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-        let table: Element<'a, Message> = self.table.view().map(|x| x.into());
+        let table: Element<'a, Self::AppMessage> = self.table.view().map(|x| x.into());
 
-        let submit = match self.ready {
+        // Triggers the staging process
+        let submit = match self.table.prepared() {
             true => Some(Message::Submit),
             false => None,
         };
@@ -242,12 +184,13 @@ impl State for Dashboard {
         sub_section = sub_section.push(
             Column::new()
                 .align_items(alignment::Alignment::End)
-                .push(instruct.map(|x| view::Message::Developer(developer::Message::Dash(x))))
+                .push(instruct.map(|x| x.into()))
                 .width(Length::FillPortion(1)),
         );
 
+        // Triggers the table summary.
         let summarize: Element<'a, Message> = action_button("Review Adjustments".to_string())
-            .on_press(Message::ReviewAdjustment)
+            .on_press(Message::Prepare)
             .into();
 
         let mut content = Column::new()
@@ -256,24 +199,16 @@ impl State for Dashboard {
             .push(
                 Row::new()
                     .push(label_item("Positions".to_string()).size(TitleSize::Sm))
-                    .push(summarize.map(|x| view::Message::Developer(developer::Message::Dash(x)))),
+                    .push(summarize.map(|x| x.into())),
             )
-            .push(table.map(|x| view::Message::Developer(developer::Message::Dash(x))))
+            .push(table.map(|x| x.into()))
             .push(sub_section);
 
-        match &self.state {
-            DashboardState::Review(review) => {
-                content = content.push(review.view().map(|x| {
-                    view::Message::Developer(developer::Message::Dash(Message::Review(x)))
-                }));
-            }
-            DashboardState::Simulate(simulate) => {
-                content = content.push(simulate.view().map(|x| {
-                    view::Message::Developer(developer::Message::Dash(Message::Simulated(x)))
-                }));
-            }
-            _ => {}
-        }
+        content = content.push(
+            self.stage
+                .view()
+                .map(|x| view::Message::Developer(developer::Message::Dash(Message::Stage(x)))),
+        );
 
         Container::new(content)
             .align_y(alignment::Vertical::Top)
@@ -288,6 +223,12 @@ impl State for Dashboard {
 /// Wrapper around the dashboard so it can be used directly from the root app.
 pub struct DashboardWrapper {
     pub dashboard: Dashboard,
+}
+
+impl From<DashboardWrapper> for Screen {
+    fn from(dashboard: DashboardWrapper) -> Self {
+        Screen::new(Box::new(dashboard))
+    }
 }
 
 impl DashboardWrapper {
