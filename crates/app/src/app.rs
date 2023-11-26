@@ -15,6 +15,7 @@ use super::{
     view::sidebar::Page,
     *,
 };
+use crate::view::sidebar::Sidebar;
 
 pub fn app_span() -> Span {
     tracing::info_span!("App")
@@ -168,6 +169,7 @@ pub struct App {
     pub streams: Streams,
     pub windows: Windows,
     pub chains: Chains,
+    pub sidebar: Sidebar,
 }
 
 impl App {
@@ -179,6 +181,7 @@ impl App {
                 chains,
                 cache: Cache::new(),
                 windows: Windows::default(),
+                sidebar: Sidebar::new(),
             },
             Command::none(),
         )
@@ -192,7 +195,9 @@ impl App {
             Message::StreamsMessage(msg) => self.streams_update(msg),
             Message::ChainsMessage(msg) => self.chains_update(msg),
             Message::WindowsMessage(msg) => self.windows_update(msg),
-            Message::View(view::Message::Page(page)) => self.switch_window(&page),
+            Message::View(view::Message::Route(view::sidebar::Route::Page(page))) => {
+                self.switch_window(&page)
+            }
             Message::View(view::Message::Exit) => self.exit(),
             Message::View(view::Message::CopyToClipboard(contents)) => {
                 iced::clipboard::write(contents)
@@ -205,7 +210,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<Message> {
-        view::app_layout(&self.cache.current_page, self.windows.screen.view()).map(Message::View)
+        view::app_layout(&self.sidebar, self.windows.screen.view()).map(Message::View)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {

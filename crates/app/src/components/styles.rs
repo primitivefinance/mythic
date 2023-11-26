@@ -153,6 +153,24 @@ pub enum Sizes {
     Xl6 = 128,
 }
 
+impl From<Sizes> for f32 {
+    fn from(item: Sizes) -> Self {
+        match item {
+            Sizes::Zero => 0.0,
+            Sizes::Xs => 4.0,
+            Sizes::Sm => 8.0,
+            Sizes::Md => 16.0,
+            Sizes::Lg => 24.0,
+            Sizes::Xl => 32.0,
+            Sizes::Xl2 => 56.0,
+            Sizes::Xl3 => 64.0,
+            Sizes::Xl4 => 72.0,
+            Sizes::Xl5 => 96.0,
+            Sizes::Xl6 => 128.0,
+        }
+    }
+}
+
 impl From<Sizes> for iced::Pixels {
     fn from(item: Sizes) -> Self {
         match item {

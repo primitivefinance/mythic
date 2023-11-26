@@ -14,6 +14,7 @@ use super::{
     tracer::AppEventLayer,
     *,
 };
+use crate::screens::State;
 
 pub mod address_book;
 pub mod agent;
@@ -56,6 +57,7 @@ pub enum Message {
     Experimental,
     Developer(developer::Message),
     CreatePortfolio(portfolio::create::Message),
+    Route(sidebar::Route),
 }
 
 impl MessageWrapperView for Message {
@@ -107,19 +109,19 @@ impl From<Execution> for app::Message {
 }
 
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
-    window: &'a Page,
+    menu: &'a sidebar::Sidebar,
     content: T,
 ) -> Element<'a, Message> {
     Container::new(
         Row::new()
             .push(
                 Column::new()
-                    .push(sidebar::layout(window))
+                    .push(menu.view())
                     .width(Length::FillPortion(1)),
             )
             .push(
                 Column::new()
-                    .push(screen_layout(window, content))
+                    .push(screen_layout(&menu.page, content))
                     .width(Length::FillPortion(5)),
             ),
     )
