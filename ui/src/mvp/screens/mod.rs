@@ -5,6 +5,7 @@ pub mod address_book;
 pub mod empty;
 pub mod execution;
 pub mod exit;
+pub mod search;
 pub mod terminal;
 
 /// Implement this trait to make a new screen for the app.

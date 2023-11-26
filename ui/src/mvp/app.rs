@@ -10,8 +10,8 @@ use super::{
     },
     profile::Profile,
     screens::{
-        address_book::AddressBookScreen, empty::EmptyScreen, exit::ExitScreen, terminal::Terminal,
-        Screen,
+        address_book::AddressBookScreen, empty::EmptyScreen, exit::ExitScreen,
+        search::SearchBarScreen, terminal::Terminal, Screen,
     },
     tracer::AppEventLog,
     view::Page,
@@ -351,6 +351,7 @@ impl App {
             view::Page::Terminal => Screen::new(Box::new(Terminal::new(
                 self.streams.app_event_receiver.clone(),
             ))),
+            view::Page::Explore => Screen::new(Box::new(SearchBarScreen::new())),
             _ => EmptyScreen::new().into(),
         };
 

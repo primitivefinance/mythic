@@ -20,6 +20,7 @@ pub mod agent;
 pub mod control;
 pub mod execute;
 pub mod monitor;
+pub mod search;
 pub mod sidebar;
 
 /// Messages emitted from user interaction with the settings.
@@ -52,6 +53,7 @@ pub enum Message {
     Execution(Execution),
     AddressBook(AddressBookViewMessage),
     CopyToClipboard(String),
+    SearchInputChanged(String),
 }
 
 impl From<Message> for app::Message {
@@ -142,6 +144,7 @@ pub enum Page {
     Execute,
     AddressBook,
     Exit,
+    Explore,
 }
 
 impl Page {
@@ -152,6 +155,7 @@ impl Page {
             Page::Execute => "Execute".to_string(),
             Page::AddressBook => "Address Book".to_string(),
             Page::Exit => "Quit".to_string(),
+            Page::Explore => "Explore".to_string(),
         }
     }
 }
@@ -183,6 +187,13 @@ pub fn page_menu<'a>(menu: &Page) -> Container<'a, Message> {
             Message::Page(Page::AddressBook),
             menu == &Page::AddressBook,
         ),
+        (
+            Icon::Search,
+            "Explore".to_string(),
+            Message::Page(Page::Explore),
+            menu == &Page::Explore,
+        ),
+        // User feedback: Maybe we can put this on the bottom of the app collumn?
         (
             Icon::X,
             "Quit".to_string(),
