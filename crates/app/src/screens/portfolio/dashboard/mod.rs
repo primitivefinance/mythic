@@ -76,6 +76,56 @@ pub struct Dashboard {
     summary: Option<DeltaSummary>,
     ready: bool,
     state: DashboardState,
+    loaded_from: Option<String>,
+}
+
+impl From<DashboardWrapper> for Screen {
+    fn from(dashboard: DashboardWrapper) -> Self {
+        Screen::new(Box::new(dashboard))
+    }
+}
+
+/// Wrapper around the dashboard so it can be used directly from the root app.
+pub struct DashboardWrapper {
+    pub dashboard: Dashboard,
+}
+
+impl DashboardWrapper {
+    pub fn new(name: Option<String>) -> Self {
+        Self {
+            dashboard: Dashboard::new(name),
+        }
+    }
+}
+
+impl State for DashboardWrapper {
+    type AppMessage = app::Message;
+    type ViewMessage = view::Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
+        let cmd: Command<developer::Message> = self.dashboard.load().map(|x| x.into());
+        return cmd.map(|x| x.into());
+    }
+
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+        match message {
+            app::Message::View(view::Message::Developer(msg)) => match msg {
+                developer::Message::Dash(message) => {
+                    let cmd: Command<developer::Message> =
+                        self.dashboard.update(message).map(|x| x.into());
+                    return cmd.map(|x| x.into());
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+
+        Command::none()
+    }
+
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+        self.dashboard.view().map(|x| x.into())
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -96,13 +146,16 @@ impl Dashboard {
     pub type AppMessage = Message;
     pub type ViewMessage = view::Message;
 
-    pub fn new() -> Self {
+    pub fn new(name: Option<String>) -> Self {
+        // Try loading the portfolio from the name.
+
         Self {
             portfolio: None,
             deltas: DeltaForm::default(),
             summary: None,
             ready: false,
             state: DashboardState::default(),
+            loaded_from: name,
         }
     }
 
@@ -244,7 +297,11 @@ impl State for Dashboard {
 
     /// todo: how to handle different portfolio loads.
     fn load(&self) -> Command<Self::AppMessage> {
-        let name = Some("Main".to_string());
+        let name = match self.loaded_from.clone() {
+            Some(name) => Some(name),
+            None => Some("Main".to_string()),
+        };
+
         Command::perform(load_portfolio(name), |x| Message::Load(x).into())
     }
 

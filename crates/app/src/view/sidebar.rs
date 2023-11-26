@@ -15,7 +15,16 @@ pub enum Route {
     #[default]
     Empty,
     Page(Page),
-    Bookmark(Bookmarks),
+    Bookmarks(Bookmarks),
+    Open(Location),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
+pub enum Location {
+    #[default]
+    Empty,
+    /// Routes to the portfolio dashboard with the given portfolio name.
+    Portfolio(String),
 }
 
 impl MessageWrapper for Route {
@@ -89,6 +98,20 @@ impl Sidebar {
 
 impl screens::State for Sidebar {
     type AppMessage = Route;
+
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+        match message {
+            Route::Page(page) => {
+                self.page = page;
+                Command::none()
+            }
+            Route::Bookmarks(bookmark) => {
+                self.bookmarks = bookmark;
+                Command::none()
+            }
+            _ => Command::none(),
+        }
+    }
 
     /// Renders the full sidebar.
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
@@ -219,13 +242,31 @@ impl Page {
 /// todo: implement bookmark editing and better route management.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
 pub struct Bookmarks {
+    current: String,
     bookmarks: Vec<String>,
 }
 
 impl Bookmarks {
+    pub type AppMessage = Route;
+
+    // todo: this is hacky, but it works for now.
+    pub const PORTFOLIO_URL: &'static str = "portfolio";
+    pub const PORTFOLIO_EXTENSION: &'static str = ".portfolio.json";
+
     pub fn new() -> Self {
+        let bookmarks = vec!["Main.portfolio.json".to_string()];
         Self {
-            bookmarks: vec!["Portfolio".to_string()],
+            current: bookmarks[0].clone(),
+            bookmarks,
+        }
+    }
+
+    pub fn bookmark_route(url: &String) -> Self::AppMessage {
+        match url {
+            x if x.contains(Self::PORTFOLIO_URL) => Route::Open(Location::Portfolio(
+                x.replace(Self::PORTFOLIO_EXTENSION, ""),
+            )),
+            _ => Route::Empty,
         }
     }
 
@@ -236,15 +277,15 @@ impl Bookmarks {
                 .map(|x| {
                     button(
                         Row::new()
-                            .push(Space::with_width(Length::Fixed(Sizes::Xs as u32 as f32)))
+                            .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
                             .push(text(icon_to_char(Icon::TerminalFill)).font(ICON_FONT))
                             .push(text(x))
-                            .spacing(Sizes::Md as u16),
+                            .spacing(Sizes::Md),
                     )
                     .width(Length::Fill)
-                    .on_press(Route::Page(Page::Developer))
+                    .on_press(Self::bookmark_route(x))
                     .style(route_button_style(Color::TRANSPARENT).as_custom())
-                    .padding(Sizes::Sm as u16)
+                    .padding(Sizes::Sm)
                     .into()
                 })
                 .collect::<Vec<Element<'a, Route>>>(),

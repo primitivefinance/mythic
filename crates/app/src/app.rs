@@ -15,7 +15,10 @@ use super::{
     view::sidebar::Page,
     *,
 };
-use crate::view::sidebar::Sidebar;
+use crate::{
+    screens::portfolio::dashboard::{Dashboard, DashboardWrapper},
+    view::sidebar::Sidebar,
+};
 
 pub fn app_span() -> Span {
     tracing::info_span!("App")
@@ -149,7 +152,7 @@ impl Default for Windows {
 
 #[derive(Debug)]
 pub enum WindowsMessage {
-    Switch(Page),
+    Switch(view::sidebar::Route),
     Execution(Execution),
     Simulation(Simulation),
 }
@@ -195,9 +198,7 @@ impl App {
             Message::StreamsMessage(msg) => self.streams_update(msg),
             Message::ChainsMessage(msg) => self.chains_update(msg),
             Message::WindowsMessage(msg) => self.windows_update(msg),
-            Message::View(view::Message::Route(view::sidebar::Route::Page(page))) => {
-                self.switch_window(&page)
-            }
+            Message::View(view::Message::Route(route)) => self.switch_window(&route),
             Message::View(view::Message::Exit) => self.exit(),
             Message::View(view::Message::CopyToClipboard(contents)) => {
                 iced::clipboard::write(contents)
@@ -345,29 +346,41 @@ impl App {
     }
 
     #[allow(unreachable_patterns)]
-    fn switch_window(&mut self, navigate_to: &Page) -> Command<Message> {
-        // Update the current page.
-        self.cache.current_page = navigate_to.clone();
-
+    fn switch_window(&mut self, navigate_to: &view::sidebar::Route) -> Command<Message> {
         let mut cmds = Vec::new();
+
         let exit_cmd = self.windows.screen.exit();
         cmds.push(exit_cmd);
 
         self.windows.screen = match navigate_to {
-            view::sidebar::Page::Execute => Screen::new(Box::new(execution::Execution::new(
-                self.chains.clone(),
-                self.storage.clone(),
-            ))),
-            view::sidebar::Page::AddressBook => Screen::new(Box::new(AddressBookScreen::new(
-                self.storage.profile.contacts.clone(),
-            ))),
-            view::sidebar::Page::Empty => EmptyScreen::new().into(),
-            view::sidebar::Page::Exit => ExitScreen::new(true).into(),
-            view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new(
-                self.streams.app_event_receiver.clone(),
-            ))),
-            view::sidebar::Page::Experimental => Screen::new(Box::new(ExperimentalScreen::new())),
-            view::sidebar::Page::Developer => DeveloperScreen::new().into(),
+            view::sidebar::Route::Page(page) => {
+                // Update the current page.
+                self.cache.current_page = page.clone();
+
+                match page {
+                    view::sidebar::Page::Execute => Screen::new(Box::new(
+                        execution::Execution::new(self.chains.clone(), self.storage.clone()),
+                    )),
+                    view::sidebar::Page::AddressBook => Screen::new(Box::new(
+                        AddressBookScreen::new(self.storage.profile.contacts.clone()),
+                    )),
+                    view::sidebar::Page::Empty => EmptyScreen::new().into(),
+                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
+                    view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new(
+                        self.streams.app_event_receiver.clone(),
+                    ))),
+                    view::sidebar::Page::Experimental => {
+                        Screen::new(Box::new(ExperimentalScreen::new()))
+                    }
+                    view::sidebar::Page::Developer => DeveloperScreen::new().into(),
+                }
+            }
+            view::sidebar::Route::Open(location) => match location {
+                view::sidebar::Location::Portfolio(name) => {
+                    DashboardWrapper::new(Some(name.clone())).into()
+                }
+                view::sidebar::Location::Empty => EmptyScreen::new().into(),
+            },
             _ => EmptyScreen::new().into(),
         };
 
