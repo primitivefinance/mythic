@@ -265,3 +265,29 @@ pub fn dev_table<'a>(
         .style(BorderedContainer::theme())
         .into()
 }
+
+/// Renders a simple dual column table with a label and value.
+pub fn key_value_table<'a, Message>(
+    headers: Vec<String>,
+    data: Vec<(String, String)>,
+) -> TableBuilder<Message>
+where
+    Message: 'a + Default,
+{
+    TableBuilder::new().padding_cell(Sizes::Md).column(
+        ColumnBuilder::new().headers(headers).rows(
+            data.iter()
+                .map(|(label, value)| {
+                    RowBuilder::new()
+                        .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_500))))
+                        .cells(vec![
+                            CellBuilder::new().value(Some(label.clone())),
+                            CellBuilder::new().value(Some(value.clone())).style(|| {
+                                CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))
+                            }),
+                        ])
+                })
+                .collect(),
+        ),
+    )
+}

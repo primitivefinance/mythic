@@ -14,6 +14,14 @@ pub enum Targetable {
 }
 
 impl Targetable {
+    pub fn fresh(self) -> Self {
+        match self {
+            Targetable::Weight(_) => Targetable::Weight(1.0),
+            Targetable::Volatility(_) => Targetable::Volatility(0.0),
+            Targetable::Return(_) => Targetable::Return(0.0),
+        }
+    }
+
     pub fn from_string(self, string: String) -> Self {
         match self {
             Targetable::Weight(_) => {

@@ -1,20 +1,24 @@
 //! Renders a view of the portfolio's positions and strategies.
 
-pub mod form;
 pub mod review;
 pub mod simulate;
+pub mod table;
 
 use std::collections::HashMap;
 
 use profiles::portfolios::{Portfolio, Targetable};
 
-use self::{form::DeltaForm, review::ReviewAdjustment, simulate::Simulate};
+use self::{review::ReviewAdjustment, simulate::Simulate, table::PortfolioTable};
 use super::*;
 use crate::components::{
     containers::CustomContainer,
-    tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
+    tables::{
+        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+        rows::RowBuilder,
+    },
 };
 
+/// Executed on `load` for the Dashboard screen.
 #[tracing::instrument(skip(name), ret)]
 async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
     let path = match name {
@@ -37,16 +41,18 @@ async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<a
 pub enum Message {
     #[default]
     Empty,
+    /// Triggered after `load_portfolio` completes.
     Load(anyhow::Result<Portfolio, Arc<anyhow::Error>>),
-    ChangePrice(usize, Option<String>),
-    ChangeBalance(usize, Option<String>),
-    ChangeMarketValue(usize, Option<String>),
-    ChangeWeight(usize, Option<String>),
+    /// Triggered action from the main button on the dashboard.
     Submit,
-    Delta(DeltaMessage),
+    /// Triggered when the user clicks the review adjustments button.
     ReviewAdjustment,
+    /// Triggered after the first submit to transition review adjustments.
     Review(review::Message),
+    /// Triggered after the user submits adjustments for simulation.
     Simulated(simulate::Message),
+    /// Triggered when the underlying portfolio table form is edited.
+    PortfolioTable(table::Message),
 }
 
 impl MessageWrapperView for Message {
@@ -72,8 +78,7 @@ impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
 #[derive(Debug, Clone, Default)]
 pub struct Dashboard {
     portfolio: Option<Portfolio>,
-    deltas: DeltaForm,
-    summary: Option<DeltaSummary>,
+    table: PortfolioTable,
     ready: bool,
     state: DashboardState,
     loaded_from: Option<String>,
@@ -85,60 +90,30 @@ impl From<DashboardWrapper> for Screen {
     }
 }
 
-/// Wrapper around the dashboard so it can be used directly from the root app.
-pub struct DashboardWrapper {
-    pub dashboard: Dashboard,
-}
-
-impl DashboardWrapper {
-    pub fn new(name: Option<String>) -> Self {
-        Self {
-            dashboard: Dashboard::new(name),
-        }
-    }
-}
-
-impl State for DashboardWrapper {
-    type AppMessage = app::Message;
-    type ViewMessage = view::Message;
-
-    fn load(&self) -> Command<Self::AppMessage> {
-        let cmd: Command<developer::Message> = self.dashboard.load().map(|x| x.into());
-        return cmd.map(|x| x.into());
-    }
-
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
-        match message {
-            app::Message::View(view::Message::Developer(msg)) => match msg {
-                developer::Message::Dash(message) => {
-                    let cmd: Command<developer::Message> =
-                        self.dashboard.update(message).map(|x| x.into());
-                    return cmd.map(|x| x.into());
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-
-        Command::none()
-    }
-
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-        self.dashboard.view().map(|x| x.into())
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub enum DashboardState {
     #[default]
     Empty,
+    /// State of reviewing the portfolio's edited fields.
+    Propose,
+    /// State of reviewing the portfolio adjustment transaction.
     Review(ReviewAdjustment),
+    /// State of simulating the portfolio adjustment transaction.
     Simulate(Simulate),
+    /// State of executing the portfolio adjustment transaction.
+    Execute,
 }
 
 impl DashboardState {
     pub fn clear(&mut self) {
         *self = DashboardState::Empty;
+    }
+
+    pub fn ready(&self) -> bool {
+        match self {
+            DashboardState::Propose => true,
+            _ => false,
+        }
     }
 }
 
@@ -151,8 +126,7 @@ impl Dashboard {
 
         Self {
             portfolio: None,
-            deltas: DeltaForm::default(),
-            summary: None,
+            table: PortfolioTable::new(),
             ready: false,
             state: DashboardState::default(),
             loaded_from: name,
@@ -161,133 +135,6 @@ impl Dashboard {
 
     pub fn loaded(&self) -> bool {
         self.portfolio.is_some()
-    }
-
-    pub fn position_table(&self) -> TableBuilder<Self::AppMessage> {
-        let positions = self.portfolio.clone().unwrap_or_default().positions;
-
-        TableBuilder::new()
-            .padding_cell(Sizes::Md)
-            .padding_cell_internal(Sizes::Xs)
-            .column(
-                ColumnBuilder::new()
-                    .headers(vec![
-                        "Ticker".to_string(),
-                        "Price".to_string(),
-                        "Delta".to_string(),
-                        "Balance".to_string(),
-                        "Delta".to_string(),
-                        "Market Value".to_string(),
-                        "Delta".to_string(),
-                        "Weight".to_string(),
-                        "Delta".to_string(),
-                    ])
-                    .rows(
-                        positions
-                            .iter()
-                            .enumerate()
-                            .map(|(pos_index, position)| {
-                                let target_cells = position
-                                    .clone()
-                                    .targets
-                                    .unwrap_or_default()
-                                    .into_iter()
-                                    .filter(|target| matches!(target, Targetable::Weight(_)))
-                                    .flat_map(|target| {
-                                        vec![
-                                            CellBuilder::new()
-                                                .value(Some(target.clone().to_string())),
-                                            CellBuilder::new()
-                                                .value(self.deltas.weight.get(&pos_index).cloned())
-                                                .on_change(move |x| {
-                                                    tracing::trace!(
-                                                        "Weight changed: {}",
-                                                        x.clone().unwrap_or_default()
-                                                    );
-                                                    Message::ChangeWeight(pos_index, x)
-                                                })
-                                                .style(|| {
-                                                    CustomContainer::theme(Some(
-                                                        iced::Background::Color(GRAY_400),
-                                                    ))
-                                                }),
-                                        ]
-                                        .into_iter()
-                                    })
-                                    .collect::<Vec<CellBuilder<dashboard::Message>>>();
-
-                                RowBuilder::new()
-                                    .style(|| {
-                                        CustomContainer::theme(Some(iced::Background::Color(
-                                            GRAY_500,
-                                        )))
-                                    })
-                                    .cells(
-                                        vec![
-                                            CellBuilder::new()
-                                                .value(Some(position.asset.symbol.clone())),
-                                            CellBuilder::new()
-                                                .value(position.cost.map(|x| x.to_string())),
-                                            CellBuilder::new()
-                                                .value(self.deltas.price.get(&pos_index).cloned())
-                                                .on_change(move |x| {
-                                                    tracing::trace!(
-                                                        "Price changed: {}",
-                                                        x.clone().unwrap_or_default()
-                                                    );
-                                                    Message::ChangePrice(pos_index, x)
-                                                })
-                                                .style(|| {
-                                                    CustomContainer::theme(Some(
-                                                        iced::Background::Color(GRAY_400),
-                                                    ))
-                                                }),
-                                            CellBuilder::new()
-                                                .value(position.balance.map(|x| x.to_string())),
-                                            CellBuilder::new()
-                                                .value(self.deltas.balance.get(&pos_index).cloned())
-                                                .on_change(move |x| {
-                                                    tracing::trace!(
-                                                        "Balance changed: {}",
-                                                        x.clone().unwrap_or_default()
-                                                    );
-                                                    Message::ChangeBalance(pos_index, x)
-                                                })
-                                                .style(|| {
-                                                    CustomContainer::theme(Some(
-                                                        iced::Background::Color(GRAY_400),
-                                                    ))
-                                                }),
-                                            CellBuilder::new()
-                                                .value(position.cost.map(|x| x.to_string())),
-                                            CellBuilder::new()
-                                                .value(
-                                                    self.deltas
-                                                        .market_value
-                                                        .get(&pos_index)
-                                                        .cloned(),
-                                                )
-                                                .on_change(move |x| {
-                                                    tracing::trace!(
-                                                        "Market value changed: {}",
-                                                        x.clone().unwrap_or_default()
-                                                    );
-                                                    Message::ChangeMarketValue(pos_index, x)
-                                                })
-                                                .style(|| {
-                                                    CustomContainer::theme(Some(
-                                                        iced::Background::Color(GRAY_400),
-                                                    ))
-                                                }),
-                                        ]
-                                        .into_iter()
-                                        .chain(target_cells)
-                                        .collect(),
-                                    )
-                            })
-                            .collect(),
-                    ),
-            )
     }
 }
 
@@ -308,42 +155,18 @@ impl State for Dashboard {
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Load(Ok(portfolio)) => {
-                self.portfolio = Some(portfolio);
+                self.portfolio = Some(portfolio.clone());
+                return self
+                    .table
+                    .update(table::Message::Portfolio(portfolio.clone()))
+                    .map(|x| x.into());
             }
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load portfolio: {:?}", e);
             }
-            Message::ChangePrice(index, value) => {
-                // If value is None, clear the delta in the hashmap, if it exists.
-                // Else, insert it to the hashmap.
-                if value.is_none() {
-                    self.deltas.price.remove(&index);
-                } else {
-                    self.deltas.price.insert(index, value.unwrap_or_default());
-                }
-            }
-            Message::ChangeBalance(index, value) => {
-                if value.is_none() {
-                    self.deltas.balance.remove(&index);
-                } else {
-                    self.deltas.balance.insert(index, value.unwrap_or_default());
-                }
-            }
-            Message::ChangeMarketValue(index, value) => {
-                if value.is_none() {
-                    self.deltas.market_value.remove(&index);
-                } else {
-                    self.deltas
-                        .market_value
-                        .insert(index, value.unwrap_or_default());
-                }
-            }
-            Message::ChangeWeight(index, value) => {
-                if value.is_none() {
-                    self.deltas.weight.remove(&index);
-                } else {
-                    self.deltas.weight.insert(index, value.unwrap_or_default());
-                }
+            Message::PortfolioTable(message) => {
+                let cmd = self.table.update(message).map(|x| x.into());
+                return cmd;
             }
             Message::Submit => {
                 tracing::trace!("Reviewing...");
@@ -351,40 +174,9 @@ impl State for Dashboard {
                 self.state = DashboardState::Review(ReviewAdjustment::default());
             }
             Message::ReviewAdjustment => {
-                let mut deltas: Vec<PositionDelta> = vec![];
-
-                // Iterate through the delta hashmaps and fill up this deltas
-                // vector.
-                for (index, position) in self
-                    .portfolio
-                    .clone()
-                    .unwrap_or_default()
-                    .positions
-                    .iter()
-                    .enumerate()
-                {
-                    let mut delta = PositionDelta::default();
-                    delta.balance = self.deltas.balance.get(&index).cloned();
-
-                    let mut targets: Vec<Option<Targetable>> = vec![];
-                    for (i, target) in position.targets.iter().enumerate() {
-                        if let Some(delta) = self.deltas.weight.get(&i).cloned() {
-                            targets.push(Some(Targetable::Weight(0.00).from_string(delta)));
-                        }
-                    }
-
-                    if targets.len() > 0 {
-                        delta.targets = targets;
-                    }
-
-                    deltas.push(delta);
-                }
-
-                // Update summary.
-                self.summary = Some(DeltaSummary::default().deltas(deltas));
-
                 // Make it ready to review.
                 self.ready = true;
+                return self.table.update(table::Message::Ready).map(|x| x.into());
             }
             Message::Review(review::Message::Form(review::FormMessage::Submit)) => {
                 tracing::trace!("Simulating...");
@@ -398,13 +190,6 @@ impl State for Dashboard {
 
                 self.state = DashboardState::Simulate(Simulate::default());
 
-                // return self
-                // .state
-                // .as_mut()
-                // .unwrap()
-                // .update(review::Message::Form(review::FormMessage::Submit))
-                // .map(|x| x.into());
-
                 return cmd;
             }
             Message::Review(message) => {
@@ -413,21 +198,13 @@ impl State for Dashboard {
                     _ => Command::none(),
                 };
 
-                // return self
-                // .review
-                // .as_mut()
-                // .unwrap()
-                // .update(message)
-                // .map(|x| x.into());
-
                 return cmd;
             }
             Message::Simulated(simulate::Message::Submit) => {
                 tracing::trace!("Executing adjustment...");
                 self.state.clear();
-                self.summary = None;
-                self.deltas.clear();
                 self.ready = false;
+                return self.table.update(table::Message::Clear).map(|x| x.into());
             }
             _ => {}
         }
@@ -436,7 +213,7 @@ impl State for Dashboard {
     }
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-        let table: Element<'a, Message> = self.position_table().into();
+        let table: Element<'a, Message> = self.table.view().map(|x| x.into());
 
         let submit = match self.ready {
             true => Some(Message::Submit),
@@ -458,9 +235,9 @@ impl State for Dashboard {
 
         let mut sub_section = Row::new().spacing(Sizes::Lg);
 
-        if self.summary.is_some() {
-            sub_section = sub_section.push(self.summary.clone().unwrap().view());
-        }
+        sub_section = sub_section.push(self.table.summary_table().map(|x| {
+            view::Message::Developer(developer::Message::Dash(Message::PortfolioTable(x)))
+        }));
 
         sub_section = sub_section.push(
             Column::new()
@@ -508,132 +285,45 @@ impl State for Dashboard {
     }
 }
 
-/// Individual deltas of a given position.
-#[derive(Debug, Clone, Default)]
-pub struct PositionDelta {
-    pub balance: Option<String>,
-    pub targets: Vec<Option<Targetable>>,
+/// Wrapper around the dashboard so it can be used directly from the root app.
+pub struct DashboardWrapper {
+    pub dashboard: Dashboard,
 }
 
-/// Renders a summary of the adjustments made to the portfolio, given the
-/// current deltas.
-#[derive(Debug, Clone, Default)]
-pub struct DeltaSummary {
-    pub deltas: Vec<PositionDelta>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub enum DeltaMessage {
-    #[default]
-    Empty,
-    ChangeBalance(usize, Option<String>),
-    ChangeTarget(usize, usize, Option<Targetable>),
-}
-
-impl From<DeltaMessage> for Message {
-    fn from(msg: DeltaMessage) -> Self {
-        Message::Delta(msg)
-    }
-}
-
-impl DeltaSummary {
-    pub fn new() -> Self {
+impl DashboardWrapper {
+    pub fn new(name: Option<String>) -> Self {
         Self {
-            deltas: vec![PositionDelta::default()],
+            dashboard: Dashboard::new(name),
         }
     }
+}
 
-    pub fn deltas(self, deltas: Vec<PositionDelta>) -> Self {
-        Self { deltas }
+impl State for DashboardWrapper {
+    type AppMessage = app::Message;
+    type ViewMessage = view::Message;
+
+    fn load(&self) -> Command<Self::AppMessage> {
+        let cmd: Command<developer::Message> = self.dashboard.load().map(|x| x.into());
+        return cmd.map(|x| x.into());
     }
 
-    pub fn table(&self, index: usize) -> TableBuilder<DeltaMessage> {
-        let position = self
-            .deltas
-            .get(index)
-            .unwrap_or(&PositionDelta::default())
-            .clone();
-
-        let mut data: Vec<(String, String)> = Vec::new();
-        if let Some(balance) = position.balance.clone() {
-            data.push(("Balance".to_string(), balance));
-        }
-
-        for (i, target) in position.targets.iter().enumerate() {
-            if let Some(target) = target.clone() {
-                data.push((format!("{:?}", target), target.to_string()));
-            }
-        }
-
-        TableBuilder::new().padding_cell(Sizes::Md).column(
-            ColumnBuilder::new()
-                .headers(vec!["Field".to_string(), "Delta".to_string()])
-                .rows(
-                    data.iter()
-                        .map(|(label, value)| {
-                            RowBuilder::new()
-                                .style(|| {
-                                    CustomContainer::theme(Some(iced::Background::Color(GRAY_500)))
-                                })
-                                .cells(vec![
-                                    CellBuilder::new().value(Some(label.clone())),
-                                    CellBuilder::new().value(Some(value.clone())).style(|| {
-                                        CustomContainer::theme(Some(iced::Background::Color(
-                                            GRAY_400,
-                                        )))
-                                    }),
-                                ])
-                        })
-                        .collect(),
-                ),
-        )
-    }
-
-    pub fn update(&mut self, message: DeltaMessage) -> Command<app::Message> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            DeltaMessage::ChangeBalance(index, value) => {
-                tracing::trace!(
-                    "Balance {} changed: {}",
-                    index,
-                    value.clone().unwrap_or_default()
-                );
-                self.deltas[index].balance = value;
-            }
-            DeltaMessage::ChangeTarget(pos_index, target_index, value) => {
-                tracing::trace!(
-                    "Target {} {} changed: {}",
-                    pos_index,
-                    target_index,
-                    value.clone().unwrap_or_default()
-                );
-                self.deltas[pos_index].targets[target_index] = value;
-            }
+            app::Message::View(view::Message::Developer(msg)) => match msg {
+                developer::Message::Dash(message) => {
+                    let cmd: Command<developer::Message> =
+                        self.dashboard.update(message).map(|x| x.into());
+                    return cmd.map(|x| x.into());
+                }
+                _ => {}
+            },
             _ => {}
         }
 
         Command::none()
     }
 
-    pub fn view<'a>(&self) -> Element<'a, view::Message> {
-        let mut rows: Vec<Element<'a, view::Message>> = vec![];
-
-        for (i, pos) in self.deltas.iter().enumerate() {
-            let table: Element<'a, DeltaMessage> = self.table(i).build().into();
-            rows.push(
-                Column::new()
-                    .spacing(Sizes::Sm)
-                    .push(key_value_row("Name".to_string(), format!("Position {}", i)))
-                    .push(table.map(|x| {
-                        view::Message::Developer(developer::Message::Dash(Message::Delta(x)))
-                    }))
-                    .into(),
-            );
-        }
-
-        Column::new()
-            .push(label_item("Adjustments Overview".to_string()))
-            .push(Row::with_children(rows).spacing(Sizes::Lg))
-            .width(Length::FillPortion(3))
-            .into()
+    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+        self.dashboard.view().map(|x| x.into())
     }
 }
