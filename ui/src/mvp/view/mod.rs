@@ -54,6 +54,7 @@ pub enum Message {
     AddressBook(AddressBookViewMessage),
     CopyToClipboard(String),
     SearchInputChanged(String),
+    OnPressing,
 }
 
 impl From<Message> for app::Message {

@@ -48,6 +48,7 @@ impl State for SearchBarScreen {
                 view::Message::Execution(_) => todo!(),
                 view::Message::AddressBook(_) => todo!(),
                 view::Message::CopyToClipboard(_) => todo!(),
+                view::Message::OnPressing => todo!(),
             },
             _ => Command::none(),
         }
@@ -57,5 +58,4 @@ impl State for SearchBarScreen {
         view::app_layout(&view::Page::Explore, view::search::simple_view()).into()
     }
 
-    // Implement other methods...
 }
