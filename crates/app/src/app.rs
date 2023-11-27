@@ -15,7 +15,10 @@ use super::{
     view::sidebar::Page,
     *,
 };
-use crate::{screens::portfolio::dashboard::DashboardWrapper, view::sidebar::Sidebar};
+use crate::{
+    screens::{portfolio::dashboard::DashboardWrapper, State},
+    view::sidebar::Sidebar,
+};
 
 pub fn app_span() -> Span {
     tracing::info_span!("App")
@@ -107,14 +110,12 @@ pub enum StreamsMessage {
 #[derive(Default)]
 pub struct Cache {
     pub app_events: VecDeque<AppEventLog>,
-    pub current_page: Page,
 }
 
 impl Cache {
     pub fn new() -> Self {
         Self {
             app_events: VecDeque::new(),
-            current_page: Page::Empty,
         }
     }
 }
@@ -357,8 +358,12 @@ impl App {
 
         self.windows.screen = match navigate_to {
             view::sidebar::Route::Page(page) => {
-                // Update the current page.
-                self.cache.current_page = *page;
+                // Updates the current page in the sidebar.
+                cmds.push(
+                    self.sidebar
+                        .update(view::sidebar::Route::Page(*page))
+                        .map(|x| x.into()),
+                );
 
                 match page {
                     view::sidebar::Page::Execute => Screen::new(Box::new(

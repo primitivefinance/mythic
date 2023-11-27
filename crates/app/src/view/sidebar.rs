@@ -211,6 +211,7 @@ impl Page {
 
     pub fn view<'a>(&self) -> Element<'a, Self::Message> {
         let mut column = Column::new();
+        tracing::info!("active page: {:?}", *self);
         for (icon, name, msg, selected) in Self::tabs(self) {
             let style = match selected {
                 true => route_button_style(SELECTED_CONTAINER_COLOR),

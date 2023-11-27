@@ -354,33 +354,11 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
     let name = window.name().clone();
     Container::new(
         Column::new()
-            .push(
-                Container::new(
-                    Row::new()
-                        .align_items(alignment::Alignment::Center)
-                        .push(
-                            Column::new()
-                                .push(with_font(h1(name)))
-                                .width(Length::FillPortion(2)),
-                        )
-                        .push(
-                            Column::new()
-                                .push(
-                                    custom_icon_button(Icon::X, Sizes::Md as u16)
-                                        .on_press(view::Message::Page(view::sidebar::Page::Empty)),
-                                )
-                                .align_items(alignment::Alignment::End)
-                                .width(Length::FillPortion(2)),
-                        )
-                        .padding(Sizes::Lg as u16),
-                )
-                .style(WindowHeader::theme()),
-            )
+            .push(h2(name))
             .push(Row::new().push(content))
             .spacing(Sizes::Md as u16),
     )
     .max_height(ByteScale::Xl7 as u16)
-    .style(ScreenWindowContainer::theme())
 }
 
 /// Column with a label and text input field.

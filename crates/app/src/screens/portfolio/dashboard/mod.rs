@@ -235,7 +235,6 @@ impl State for Dashboard {
             .center_x()
             .max_height(ByteScale::Xl7)
             .max_width(ByteScale::Xl7.between(&ByteScale::Xl8))
-            .padding(Sizes::Xl)
             .into()
     }
 }
