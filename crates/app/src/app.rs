@@ -332,7 +332,6 @@ impl App {
     }
 
     fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
-        // todo: implement
         Command::none()
     }
 

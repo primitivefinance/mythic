@@ -90,7 +90,7 @@ impl Contacts {
         self.books
             .get(&category)
             .map(|book| book.get_all())
-            .unwrap_or_else(Vec::new)
+            .unwrap_or_default()
     }
 
     pub fn clear(&mut self, category: Category) {
