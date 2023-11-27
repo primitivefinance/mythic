@@ -286,10 +286,15 @@ impl EmptyPortfolioManager {
         self
     }
 
-    pub fn fee(&mut self, fee: U256) -> &mut Self {
-        let formatted = wad_to_float(fee).unwrap();
+    /// Right now this assumes fee is in f32, in basis points.
+    /// Assuming we start with a fee in wad, we need to multiply it by 10000 for
+    /// now.
+    pub fn fee(&mut self, wad: U256) -> &mut Self {
+        let bps = U256::from(10000);
+        let fee_bps_wad = wad.checked_mul(bps).unwrap();
+        let fee_bps_float = wad_to_float(fee_bps_wad).unwrap();
         self.inner.fee = Multiple(LinspaceParameters {
-            fixed: Some(formatted),
+            fixed: Some(fee_bps_float),
             ..Default::default()
         });
         self
@@ -363,17 +368,17 @@ impl EmptyPriceChanger {
         self
     }
 
-    pub fn t_0(&mut self, t_0: u64) -> &mut Self {
+    pub fn t_0(&mut self, t_0: f64) -> &mut Self {
         self.inner.t_0 = Multiple(LinspaceParameters {
-            fixed: Some(t_0 as f64),
+            fixed: Some(t_0),
             ..Default::default()
         });
         self
     }
 
-    pub fn t_n(&mut self, t_n: u64) -> &mut Self {
+    pub fn t_n(&mut self, t_n: f64) -> &mut Self {
         self.inner.t_n = Multiple(LinspaceParameters {
-            fixed: Some(t_n as f64),
+            fixed: Some(t_n),
             ..Default::default()
         });
         self
@@ -395,28 +400,42 @@ impl EmptyPriceChanger {
     }
 
     pub fn drift(&mut self, drift: f64) -> &mut Self {
-        self.inner.process = PriceProcess::Gbm(GBMParameters {
-            drift: Multiple(LinspaceParameters {
+        if let PriceProcess::Gbm(ref mut gbm) = self.inner.process {
+            gbm.drift = Multiple(LinspaceParameters {
                 fixed: Some(drift),
                 ..Default::default()
-            }),
-            volatility: Multiple(LinspaceParameters {
-                ..Default::default()
-            }),
-        });
+            });
+        } else {
+            self.inner.process = PriceProcess::Gbm(GBMParameters {
+                drift: Multiple(LinspaceParameters {
+                    fixed: Some(drift),
+                    ..Default::default()
+                }),
+                volatility: Multiple(LinspaceParameters {
+                    ..Default::default()
+                }),
+            });
+        }
         self
     }
 
     pub fn volatility(&mut self, volatility: f64) -> &mut Self {
-        self.inner.process = PriceProcess::Gbm(GBMParameters {
-            drift: Multiple(LinspaceParameters {
-                ..Default::default()
-            }),
-            volatility: Multiple(LinspaceParameters {
+        if let PriceProcess::Gbm(ref mut gbm) = self.inner.process {
+            gbm.volatility = Multiple(LinspaceParameters {
                 fixed: Some(volatility),
                 ..Default::default()
-            }),
-        });
+            });
+        } else {
+            self.inner.process = PriceProcess::Gbm(GBMParameters {
+                drift: Multiple(LinspaceParameters {
+                    ..Default::default()
+                }),
+                volatility: Multiple(LinspaceParameters {
+                    fixed: Some(volatility),
+                    ..Default::default()
+                }),
+            });
+        }
         self
     }
 

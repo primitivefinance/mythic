@@ -179,7 +179,7 @@ type SubscriptionViewWrapper = BTreeMap<u64, BTreeMap<String, Vec<(String, Strin
 
 // todo: lot of logic to handle in here, maybe we parse it further up in the
 // app?
-fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> {
+pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Message> {
     let mut agent_data: SubscriptionViewWrapper = BTreeMap::new();
     let mut monitored_data: SubscriptionViewWrapper = BTreeMap::new();
 

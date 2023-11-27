@@ -171,17 +171,37 @@ impl State for Dashboard {
             None => Some("Main".to_string()),
         };
 
-        Command::perform(load_portfolio(name), |x| Message::Load(x).into())
+        let mut commands = vec![];
+        commands.push(Command::perform(load_portfolio(name), |x| {
+            Message::Load(x).into()
+        }));
+
+        // todo: does this even work for the children components?
+        commands.push(self.stage.load().map(|x| x.into()));
+
+        Command::batch(commands)
     }
 
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Load(Ok(portfolio)) => {
                 self.portfolio = Some(portfolio.clone());
-                return self
-                    .table
-                    .update(table::Message::Portfolio(portfolio.clone()))
-                    .map(|x| x.into());
+
+                let mut commands: Vec<Command<Self::AppMessage>> = vec![];
+
+                commands.push(
+                    self.stage
+                        .update(stages::Message::LoadPortfolio(portfolio.clone()))
+                        .map(|x| x.into()),
+                );
+
+                commands.push(
+                    self.table
+                        .update(table::Message::Portfolio(portfolio.clone()))
+                        .map(|x| x.into()),
+                );
+
+                return Command::batch(commands);
             }
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load portfolio: {:?}", e);

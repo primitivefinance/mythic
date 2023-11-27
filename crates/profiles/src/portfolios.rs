@@ -1,6 +1,7 @@
 //! Main serialized data structure for Portfolios.
 
 use serde::{Deserialize, Serialize};
+use simulation::agents::token_admin::TokenData;
 
 use super::{coins::StaticCoin, *};
 
@@ -82,6 +83,17 @@ impl Position {
             cost,
             balance,
             targets: Some(vec![Targetable::default()]),
+        }
+    }
+}
+
+/// TokenData is used in simulations for the token admin agent.
+impl From<Position> for TokenData {
+    fn from(position: Position) -> Self {
+        Self {
+            name: position.asset.name,
+            symbol: position.asset.symbol,
+            decimals: position.asset.decimals,
         }
     }
 }

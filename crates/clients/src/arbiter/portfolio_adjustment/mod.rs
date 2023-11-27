@@ -31,12 +31,15 @@ use tokio::{
 use self::config::ConfigBuilder;
 use super::world::{self, spawn_tasks, World, WorldManager};
 
+pub type SpawnedManager = anyhow::Result<Arc<Mutex<WorldManager>>, Arc<anyhow::Error>>;
+pub type InstanceManager = Arc<Mutex<WorldManager>>;
+
 #[tracing::instrument]
-pub async fn spawn(
-    builders: Vec<MiniWorldBuilder>,
-) -> anyhow::Result<Arc<Mutex<WorldManager>>, anyhow::Error> {
+pub async fn spawn(builders: Vec<MiniWorldBuilder>) -> SpawnedManager {
     // Override the world manager with a new one that has spawned worlds.
-    Ok(Arc::new(Mutex::new(manager(builders).await?)))
+    Ok(Arc::new(Mutex::new(
+        manager(builders).await.map_err(|e| Arc::new(e))?,
+    )))
 }
 
 /// Need to get the world manager into the UI, with arc and mutex.
@@ -62,9 +65,9 @@ pub async fn manager(
 /// Constructs a World instance from a config builder and environment builder.
 #[derive(Debug, Clone)]
 pub struct MiniWorldBuilder {
-    config_builder: ConfigBuilder,
-    environment_builder: EnvironmentBuilder,
-    seed: u64, // Add a field for the seed
+    pub config_builder: ConfigBuilder,
+    pub environment_builder: EnvironmentBuilder,
+    pub seed: u64, // Add a field for the seed
 }
 
 impl Default for MiniWorldBuilder {
