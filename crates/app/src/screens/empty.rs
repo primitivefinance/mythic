@@ -30,7 +30,7 @@ impl State for EmptyScreen {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         Container::new(Column::new().push(h2("Select an app to get started.".to_string())))
             .center_x()
             .center_y()

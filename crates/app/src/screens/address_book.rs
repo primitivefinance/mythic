@@ -129,11 +129,7 @@ impl State for AddressBookScreen {
                                     let value = address;
 
                                     // Edit the address book.
-                                    self.books.add(
-                                        validated.clone(),
-                                        contact.clone(),
-                                        category.clone(),
-                                    );
+                                    self.books.add(validated, contact.clone(), category.clone());
 
                                     // Provide some feedback.
                                     self.form.feedback = Some(format!(
@@ -178,14 +174,13 @@ impl State for AddressBookScreen {
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view(&self) -> Element<'_, view::Message> {
         view::address_book::layout(
             self.form.clone(),
             self.books.clone(),
             self.current.clone(),
             self.display.clone(),
         )
-        .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

@@ -1,7 +1,6 @@
 //! Implement an experimental screen.
 
 use iced::{
-    widget,
     widget::{Column, Container},
     Command, Element, Length,
 };
@@ -39,16 +38,14 @@ impl State for ExperimentalScreen {
     type ViewMessage = view::Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
-        Command::perform(loading(), |_| Self::AppMessage::Empty.into())
+        Command::perform(loading(), |_| Self::AppMessage::Empty)
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
-        match message {
-            _ => Command::none(),
-        }
+    fn update(&mut self, _message: Self::AppMessage) -> Command<Self::AppMessage> {
+        Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let chart = self.chart.view().map(move |_x| view::Message::Experimental);
         let content = Column::new()
             .padding(Sizes::Lg as u16)

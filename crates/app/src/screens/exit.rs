@@ -45,7 +45,7 @@ impl State for ExitScreen {
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let content = match self.show_confirm {
             true => Column::new()
                 .push(secondary_label(

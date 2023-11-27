@@ -1,18 +1,14 @@
-#[allow(clippy::unused_imports)]
 pub mod form;
 pub mod processing;
 pub mod send;
 pub mod utils;
 
-use std::{self, collections::HashMap};
+use std::{self};
 
 use api::contacts::{self, ContactList};
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use clients::{forking::forking::Forker, scroll::Scroll};
-use ethers::{
-    abi::{Token, Tokenizable, Tokenize},
-    types::{Address, U256},
-};
+use ethers::types::Address;
 use iced::{Command, Element, Subscription};
 
 use self::{
@@ -72,8 +68,8 @@ impl Execution {
 
         // Unwraps should be safe...
         let cache = Cache {
-            to_list: untrusted.clone().unwrap().clone(),
-            from_list: trusted.clone().unwrap().clone(),
+            to_list: untrusted.unwrap().clone(),
+            from_list: trusted.unwrap().clone(),
             target_list: contracts.unwrap().clone(),
             ..Default::default()
         };
@@ -188,7 +184,7 @@ impl Execution {
     fn handle_completed_execution(&mut self, scroll: Scroll) -> Command<Message> {
         tracing::info!("Executed tx: {:?}", scroll);
 
-        let _ = self.processing.complete_execution(scroll.clone());
+        self.processing.complete_execution(scroll.clone());
         let loaded = self.processing.try_load_executed();
         if loaded.is_err() {
             tracing::error!("Error loading executed tx: {:?}", loaded);
@@ -259,7 +255,7 @@ impl State for Execution {
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view(&self) -> Element<'_, view::Message> {
         // todo: add refs to cache?
         // todo: add performance benches
         view::execute::execution_layout(
@@ -270,7 +266,6 @@ impl State for Execution {
             self.cache.simulated_results.clone(),
             self.cache.executed_results.clone(),
         )
-        .into()
     }
 
     fn subscription(&self) -> Subscription<Message> {

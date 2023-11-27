@@ -21,10 +21,7 @@ use crate::components::{
 /// Executed on `load` for the Dashboard screen.
 #[tracing::instrument(skip(name), ret)]
 async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
-    let path = match name {
-        Some(name) => Some(Portfolio::file_path_with_name(name)),
-        None => None,
-    };
+    let path = name.map(Portfolio::file_path_with_name);
     let portfolio = Portfolio::load(path);
     let portfolio = match portfolio {
         Ok(portfolio) => portfolio,
@@ -103,7 +100,7 @@ impl Dashboard {
         self.portfolio.is_some()
     }
 
-    pub fn render_header<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+    pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Md)
             .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
@@ -118,11 +115,11 @@ impl Dashboard {
             .into()
     }
 
-    pub fn render_table<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+    pub fn render_table(&self) -> Element<'_, Self::AppMessage> {
         self.table.view().map(|x| x.into())
     }
 
-    pub fn render_stages<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+    pub fn render_stages(&self) -> Element<'_, Self::AppMessage> {
         match self.stage.current {
             DashboardState::Empty => {
                 // Triggers the `Step` message on the stages component.
@@ -131,7 +128,7 @@ impl Dashboard {
                     false => None,
                 };
 
-                let instruct: Element<'a, Self::AppMessage> = instructions(
+                let instruct: Element<'_, Self::AppMessage> = instructions(
                     vec![
                         instruction_text("Edit the deltas for each position.".to_string()),
                         instruction_text(
@@ -172,9 +169,7 @@ impl State for Dashboard {
         };
 
         let mut commands = vec![];
-        commands.push(Command::perform(load_portfolio(name), |x| {
-            Message::Load(x).into()
-        }));
+        commands.push(Command::perform(load_portfolio(name), Message::Load));
 
         // todo: does this even work for the children components?
         commands.push(self.stage.load().map(|x| x.into()));
@@ -229,7 +224,7 @@ impl State for Dashboard {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let mut content = Column::new().spacing(Sizes::Lg);
         content = content.push(self.render_header().map(|x| x.into()));
         content = content.push(self.render_table().map(|x| x.into()));
@@ -270,7 +265,7 @@ impl State for DashboardWrapper {
 
     fn load(&self) -> Command<Self::AppMessage> {
         let cmd: Command<developer::Message> = self.dashboard.load().map(|x| x.into());
-        return cmd.map(|x| x.into());
+        cmd.map(|x| x.into())
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
@@ -289,7 +284,7 @@ impl State for DashboardWrapper {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-        self.dashboard.view().map(|x| x.into())
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
+        self.dashboard.view()
     }
 }

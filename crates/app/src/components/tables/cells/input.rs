@@ -186,6 +186,6 @@ where
     Event: 'a + Default,
 {
     fn from(v: CustomInput<Event>) -> Self {
-        component(v).into()
+        component(v)
     }
 }

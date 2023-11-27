@@ -15,10 +15,7 @@ use super::{
     view::sidebar::Page,
     *,
 };
-use crate::{
-    screens::portfolio::dashboard::{Dashboard, DashboardWrapper},
-    view::sidebar::Sidebar,
-};
+use crate::{screens::portfolio::dashboard::DashboardWrapper, view::sidebar::Sidebar};
 
 pub fn app_span() -> Span {
     tracing::info_span!("App")

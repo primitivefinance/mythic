@@ -125,7 +125,7 @@ where
     type AppMessage: MessageWrapper = app::Message;
 
     /// Renders the screen which can produce [`ViewMessage`]s.
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage>;
+    fn view(&self) -> Element<'_, Self::ViewMessage>;
 
     /// Updates the screen with an [`AppMessage`] and returns a [`Command`]
     fn update(&mut self, _message: Self::AppMessage) -> Command<Self::AppMessage> {
@@ -161,7 +161,7 @@ impl Screen {
         Self(state)
     }
 
-    pub fn view<'a>(&'a self) -> Element<'a, <WindowScreen as State>::ViewMessage> {
+    pub fn view(&self) -> Element<'_, <WindowScreen as State>::ViewMessage> {
         self.0.view()
     }
 

@@ -122,7 +122,7 @@ impl Processing {
     /// sealed scroll.
     pub fn try_load(&self) -> anyhow::Result<(Slots, Slots), anyhow::Error> {
         let scroll: Scroll = self.sealed.clone().unwrap();
-        let account = scroll.payload.target.clone();
+        let account = scroll.payload.target;
 
         let before: Slots = scroll.try_storage_before(account)?;
         let after: Slots = scroll.try_storage_after(account)?;

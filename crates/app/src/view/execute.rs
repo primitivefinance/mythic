@@ -54,7 +54,7 @@ pub fn starting<'a>(
         "0".to_string(),
     );
 
-    let column_1: Vec<Element<'a, Message>> = vec![message_card.into(), data_card.into()];
+    let column_1: Vec<Element<'a, Message>> = vec![message_card, data_card];
     column_1
 }
 
@@ -72,7 +72,7 @@ pub fn simulated<'a>(
     );
     let simulated_card = review_group(review_diffs.clone());
 
-    let column_1: Vec<Element<'a, Message>> = vec![summary_card.into(), simulated_card.into()];
+    let column_1: Vec<Element<'a, Message>> = vec![summary_card, simulated_card];
     column_1
 }
 
@@ -91,8 +91,7 @@ pub fn executed<'a>(
     let label = h3("Pending transaction...".to_string());
     let progress = progress_bar(0.0..=100.0, 20.0);
 
-    let column_1: Vec<Element<'a, Message>> =
-        vec![summary_card.into(), label.into(), progress.into()];
+    let column_1: Vec<Element<'a, Message>> = vec![summary_card, label.into(), progress.into()];
 
     column_1
 }
@@ -132,7 +131,7 @@ pub fn confirmed<'a>(
     let progress = progress_bar(0.0..=100.0, 100.0);
 
     let column_1: Vec<Element<'a, Message>> = vec![
-        summary_card.into(),
+        summary_card,
         results_card.into(),
         label.into(),
         progress.into(),
@@ -215,7 +214,7 @@ pub fn message_group<'a>(
     let from_map: HashMap<String, Address> = options_from
         .get_all()
         .iter()
-        .map(|(key, contact)| (contact.label.clone(), key.clone().clone()))
+        .map(|(key, contact)| (contact.label.clone(), *key.clone()))
         .collect();
 
     // Get the labels, which are now the keys.
@@ -231,7 +230,7 @@ pub fn message_group<'a>(
     let from_input = select_group("From".to_string(), from_labels, from, move |label| {
         let value = from_map.get(&label);
         let value = match value {
-            Some(value) => value.clone(),
+            Some(value) => *value,
             None => Address::default(),
         };
         FormMessage::ChangeFrom(address_to_string(&value)).into()
@@ -241,7 +240,7 @@ pub fn message_group<'a>(
     let to_map: HashMap<String, Address> = options_to
         .get_all()
         .iter()
-        .map(|(key, contact)| (contact.label.clone(), key.clone().clone()))
+        .map(|(key, contact)| (contact.label.clone(), *key.clone()))
         .collect();
 
     // Get the labels, which are now the keys.
@@ -257,7 +256,7 @@ pub fn message_group<'a>(
     let to_input = select_group("To".to_string(), to_labels, to, move |label| {
         let value = to_map.get(&label);
         let value = match value {
-            Some(value) => value.clone(),
+            Some(value) => *value,
             None => Address::default(),
         };
         FormMessage::ChangeTo(address_to_string(&value)).into()
@@ -287,7 +286,7 @@ pub fn data_group<'a>(
     let contract_map: HashMap<String, Address> = options
         .get_all()
         .iter()
-        .map(|(key, contact)| (contact.label.clone(), key.clone().clone()))
+        .map(|(key, contact)| (contact.label.clone(), *key.clone()))
         .collect();
 
     // Get the labels, which are now the keys.
@@ -307,7 +306,7 @@ pub fn data_group<'a>(
         move |label| {
             let value = contract_map.get(&label);
             let value = match value {
-                Some(value) => value.clone(),
+                Some(value) => *value,
                 None => Address::default(),
             };
             FormMessage::ChangeTarget(address_to_string(&value)).into()
@@ -411,7 +410,7 @@ pub fn state_deltas_table<'a>(review_diffs: Option<StorageDiffs>) -> Container<'
     // For each storage diff, compute the difference and render a label and diff.
     if let Some(review_diffs) = review_diffs {
         for (slot, (before, after)) in review_diffs.iter() {
-            let diff = match (before.clone(), after.clone()) {
+            let diff = match (*before, *after) {
                 (Some(before), Some(after)) => {
                     // If after is greater than before, subtract to get the diff.
                     if after > before {
@@ -435,11 +434,8 @@ pub fn state_deltas_table<'a>(review_diffs: Option<StorageDiffs>) -> Container<'
                 _ => None,
             };
 
-            match diff {
-                Some(diff) => {
-                    values.push((slot.to_string(), diff));
-                }
-                None => {}
+            if let Some(diff) = diff {
+                values.push((slot.to_string(), diff));
             }
         }
     }

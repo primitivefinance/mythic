@@ -66,13 +66,12 @@ impl Form {
     pub fn ready(&self) -> bool {
         self.name.is_some()
             && self.ticker.is_some()
-            && self
+            && !self
                 .assets
                 .iter()
                 .filter(|x| x.selected)
                 .collect::<Vec<_>>()
-                .len()
-                > 0
+                .is_empty()
     }
 
     #[tracing::instrument(skip(self))]
@@ -210,7 +209,7 @@ impl State for Form {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let assets = self.assets.clone();
         let table =
             self.table_builder().column(
@@ -242,14 +241,14 @@ impl State for Form {
             "Name".to_string(),
             self.name.clone(),
             "Portfolio name".to_string(),
-            |x| form::Message::NameChanged(x),
+            form::Message::NameChanged,
         );
 
         let ticker_input = labeled_input(
             "Ticker".to_string(),
             self.ticker.clone(),
             "Portfolio ticker".to_string(),
-            |x| form::Message::TickerChanged(x),
+            form::Message::TickerChanged,
         );
 
         Container::new(

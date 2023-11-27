@@ -211,79 +211,70 @@ pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
 
 #[allow(dead_code)]
 pub fn title_large<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleLg).into()
+    text(value).size(FontSizes::TitleLg)
 }
 
 #[allow(dead_code)]
 pub fn title_medium<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleMd).into()
+    text(value).size(FontSizes::TitleMd)
 }
 
 #[allow(dead_code)]
 pub fn title_small<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleSm).into()
+    text(value).size(FontSizes::TitleSm)
 }
 
 #[allow(dead_code)]
 pub fn body_text<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Md).into()
+    text(value).size(FontSizes::Md)
 }
 
 #[allow(dead_code)]
 pub fn caption<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs).into()
+    text(value).size(FontSizes::Xs)
 }
 
 pub fn h1<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleSm).into()
+    text(value).size(FontSizes::TitleSm)
 }
 
 pub fn h2<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Lg).into()
+    text(value).size(FontSizes::Lg)
 }
 
 #[allow(dead_code)]
 pub fn h3<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Md).into()
+    text(value).size(FontSizes::Md)
 }
 
 #[allow(dead_code)]
 pub fn h4<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm).into()
+    text(value).size(FontSizes::Sm)
 }
 
 #[allow(dead_code)]
 pub fn h5<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs).into()
+    text(value).size(FontSizes::Xs)
 }
 
 #[allow(dead_code)]
 pub fn paragraph<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm).into()
+    text(value).size(FontSizes::Sm)
 }
 
 #[allow(dead_code)]
 pub fn primary_label<'a>(value: String) -> Text<'a> {
-    text(value)
-        .size(FontSizes::Sm)
-        .style(PRIMARY_LABEL_COLOR)
-        .into()
+    text(value).size(FontSizes::Sm).style(PRIMARY_LABEL_COLOR)
 }
 
 #[allow(dead_code)]
 pub fn secondary_label<'a>(value: String) -> Text<'a> {
-    text(value)
-        .size(FontSizes::Sm)
-        .style(SECONDARY_LABEL_COLOR)
-        .into()
+    text(value).size(FontSizes::Sm).style(SECONDARY_LABEL_COLOR)
 }
 
 #[allow(dead_code)]
 pub fn tertiary_label<'a>(value: String) -> Text<'a> {
-    text(value)
-        .size(FontSizes::Sm)
-        .style(TERTIARY_LABEL_COLOR)
-        .into()
+    text(value).size(FontSizes::Sm).style(TERTIARY_LABEL_COLOR)
 }
 
 #[allow(dead_code)]
@@ -291,24 +282,20 @@ pub fn quaternary_label<'a>(value: String) -> Text<'a> {
     text(value)
         .size(FontSizes::Sm)
         .style(QUATERNARY_LABEL_COLOR)
-        .into()
 }
 
 /// todo: remove label item
 #[allow(dead_code)]
 pub fn highlight_label<'a>(value: String) -> Text<'a> {
-    text(value)
-        .size(FontSizes::Xs)
-        .style(SECONDARY_COLOR)
-        .into()
+    text(value).size(FontSizes::Xs).style(SECONDARY_COLOR)
 }
 
 #[allow(dead_code)]
 pub fn highlight_secondary_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs).style(BLUE_400).into()
+    text(value).size(FontSizes::Xs).style(BLUE_400)
 }
 
-pub fn with_font<'a>(value: Text<'a>) -> Text<'a> {
+pub fn with_font(value: Text) -> Text {
     value.font(FONT_DAGGERSQUARE)
 }
 
@@ -394,7 +381,6 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
     )
     .max_height(ByteScale::Xl7 as u16)
     .style(ScreenWindowContainer::theme())
-    .into()
 }
 
 /// Column with a label and text input field.
@@ -525,12 +511,11 @@ where
             .padding(Sizes::Md)
             .width(Length::Fill);
 
-    match on_submit {
-        Some(on_submit) => submit = submit.on_press(on_submit),
-        None => {}
+    if let Some(on_submit) = on_submit {
+        submit = submit.on_press(on_submit)
     }
 
-    let feedback = highlight_label(feedback.unwrap_or_else(|| "".to_string()).to_string())
+    let feedback = highlight_label(feedback.unwrap_or_default().to_string())
         .horizontal_alignment(alignment::Horizontal::Center)
         .vertical_alignment(alignment::Vertical::Center);
 

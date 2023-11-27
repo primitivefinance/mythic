@@ -71,7 +71,7 @@ impl MessageWrapper for Message {
 
 impl From<Message> for app::Message {
     fn from(message: Message) -> Self {
-        app::Message::View(message.into())
+        app::Message::View(message)
     }
 }
 
@@ -187,7 +187,7 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
 
     let cloned: StateSubscriptionStore = state_data.clone();
 
-    for (_i, (world_id, world_data)) in cloned.into_iter().enumerate() {
+    for (world_id, world_data) in cloned.into_iter() {
         // todo: handle rendering for multiple worlds, should probably be grouped.
 
         let cloned_world: HashMap<String, StateSubscription> = world_data.clone();
@@ -214,7 +214,7 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
                         .entry(world_id)
                         .or_insert(empty_map.clone())
                         .entry(agent_name.clone())
-                        .or_insert(vec![])
+                        .or_default()
                         .push(("name".to_string(), label.clone()));
                     for log in logs {
                         let name = log.name.clone();
@@ -231,13 +231,13 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
                             .entry(world_id)
                             .or_insert(empty_map.clone())
                             .entry(agent_name.clone())
-                            .or_insert(vec![])
+                            .or_default()
                             .push((name, truncated));
                     }
                 }
                 _ => {
                     for log in logs {
-                        let name = format!("{}", log.name);
+                        let name = log.name.to_string();
                         let value = log.data.clone();
                         // todo: this can easily be 0...
                         let value_uint = value.into_uint().unwrap_or_default();
@@ -250,7 +250,7 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
                             .entry(world_id)
                             .or_insert(empty_map.clone())
                             .entry(agent_name.clone())
-                            .or_insert(vec![])
+                            .or_default()
                             .push((name, truncated));
                     }
                 }

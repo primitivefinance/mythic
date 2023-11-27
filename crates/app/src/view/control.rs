@@ -55,7 +55,7 @@ pub fn control_button<'a>(icon: icons::Icon) -> iced::widget::Button<'a, Message
     let control_button_style = CustomButtonStyle::new()
         .background_color(Color::TRANSPARENT)
         .hovered()
-        .background_color(PRIMARY_COLOR.into())
+        .background_color(PRIMARY_COLOR)
         .border_radius(5.0.into());
     button(content).style(control_button_style.as_custom())
 }
@@ -71,7 +71,7 @@ pub fn custom_icon_button<'a>(
     let control_button_style = CustomButtonStyle::new()
         .background_color(Color::TRANSPARENT)
         .hovered()
-        .background_color(PRIMARY_COLOR.into())
+        .background_color(PRIMARY_COLOR)
         .border_radius(5.0.into());
     button(content).style(control_button_style.as_custom())
 }

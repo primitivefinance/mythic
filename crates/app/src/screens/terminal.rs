@@ -97,38 +97,32 @@ pub async fn handle_state_subscriptions(
 
             // Skip empty subscriptions to avoid populating the state data with empty
             // subscriptions.
-            if subscribed.len() == 0 {
+            if subscribed.is_empty() {
                 continue;
             }
 
             if agent.0.to_lowercase().contains("monitor") {
-                state_data
-                    .entry(world_id.clone())
-                    .or_insert(HashMap::new())
-                    .insert(
-                        agent.0.to_string(),
-                        StateSubscription {
-                            logs: subscribed,
-                            label: format!("{} {}", formatted_world_id, agent.0),
-                            category: AppEventLayer::System,
-                            id: world_id,
-                        },
-                    );
+                state_data.entry(world_id).or_insert(HashMap::new()).insert(
+                    agent.0.to_string(),
+                    StateSubscription {
+                        logs: subscribed,
+                        label: format!("{} {}", formatted_world_id, agent.0),
+                        category: AppEventLayer::System,
+                        id: world_id,
+                    },
+                );
             } else {
                 // Add the subscribed data as a state subscription inside the hashm ap with keys
                 // world id -> agent name
-                state_data
-                    .entry(world_id.clone())
-                    .or_insert(HashMap::new())
-                    .insert(
-                        agent.0.to_string(),
-                        StateSubscription {
-                            logs: subscribed,
-                            label: format!("{} {}", formatted_world_id, agent.0),
-                            category: AppEventLayer::Agent,
-                            id: world_id,
-                        },
-                    );
+                state_data.entry(world_id).or_insert(HashMap::new()).insert(
+                    agent.0.to_string(),
+                    StateSubscription {
+                        logs: subscribed,
+                        label: format!("{} {}", formatted_world_id, agent.0),
+                        category: AppEventLayer::Agent,
+                        id: world_id,
+                    },
+                );
             }
         }
     }
@@ -150,17 +144,14 @@ pub async fn handle_price_path(
         for agent in agents.0.iter_mut() {
             let price_changer = agent.1.as_any().downcast_ref::<PriceChanger>();
 
-            match price_changer {
-                Some(price_changer) => {
-                    let price_path = price_changer.trajectory.paths[0].clone();
-                    let current_index = price_changer.index;
-                    let last_index = price_path.len();
-                    if current_index == last_index {
-                        tracing::debug!("Price path is empty, stopping simulation");
-                        return Ok(true);
-                    }
+            if let Some(price_changer) = price_changer {
+                let price_path = price_changer.trajectory.paths[0].clone();
+                let current_index = price_changer.index;
+                let last_index = price_path.len();
+                if current_index == last_index {
+                    tracing::debug!("Price path is empty, stopping simulation");
+                    return Ok(true);
                 }
-                _ => {}
             }
         }
     }
@@ -188,7 +179,7 @@ impl Terminal {
         for log in self.data_feed.iter() {
             if let Some(metadata) = log.data.get(&AppEventLayer::System) {
                 // Take the last element from the data vector and push it to system_logs
-                if let Some(_) = metadata.data.last() {
+                if metadata.data.last().is_some() {
                     new_data_feed.push_back(log.clone());
                 }
             }
@@ -418,7 +409,7 @@ impl Terminal {
                         &world.arbiter,
                         &direct_configs[0],
                         "counter".to_string(),
-                        lp_address.clone(),
+                        lp_address,
                     )
                     .await
                     .unwrap();
@@ -454,10 +445,10 @@ pub struct StateSubscription {
 }
 
 impl State for Terminal {
-    fn view<'a>(&'a self) -> Element<'a, view::Message> {
+    fn view(&self) -> Element<'_, view::Message> {
         let state_data = self.state_data.clone();
 
-        view::terminal_layout(self.realtime, state_data.clone()).into()
+        view::terminal_layout(self.realtime, state_data.clone())
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -544,8 +535,7 @@ impl State for Terminal {
 
     fn subscription(&self) -> Subscription<Message> {
         let process_tracer_subscription = time::every(Duration::from_millis(100))
-            .map(|_| Message::StreamsMessage(app::StreamsMessage::Data(app::Data::ProcessTracer)))
-            .into();
+            .map(|_| Message::StreamsMessage(app::StreamsMessage::Data(app::Data::ProcessTracer)));
         let mut subs = vec![process_tracer_subscription];
 
         if self.status != WorldManagerState::Running || !self.realtime {
@@ -554,8 +544,7 @@ impl State for Terminal {
 
         // Runs on a 1s timer.
         let step_sim_subscription = time::every(Duration::from_millis(1000))
-            .map(|_| Message::View(view::Message::Simulation(view::control::Operation::Step)))
-            .into();
+            .map(|_| Message::View(view::Message::Simulation(view::control::Operation::Step)));
 
         subs.push(step_sim_subscription);
         Subscription::batch(subs)

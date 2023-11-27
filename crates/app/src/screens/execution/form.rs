@@ -101,10 +101,7 @@ pub struct Fields {
 impl Fields {
     /// todo: leverage this validate more?
     pub fn validate(&self) -> bool {
-        !self.to.is_none()
-            && !self.from.is_none()
-            && !self.target.is_none()
-            && !self.amount.is_none()
+        self.to.is_some() && self.from.is_some() && self.target.is_some() && self.amount.is_some()
     }
 }
 
@@ -154,7 +151,7 @@ impl Form {
         sim_results: Option<StorageDiffs>,
         exec_results: Option<StorageDiffs>,
     ) -> Element<'a, view::Message> {
-        let content = match self.progress.current.clone() {
+        let content = match self.progress.current {
             TransactionSteps::Start => view::execute::starting(
                 from_contacts,
                 self.fields.from.clone(),
@@ -191,7 +188,7 @@ impl Form {
         let submit_card = submit_group(action, self.feedback.clone(), self.progress.checkpoint);
 
         let column_1: Vec<Element<'a, view::Message>> = content;
-        let column_2: Vec<Element<'a, view::Message>> = vec![steps_card.into(), submit_card.into()];
+        let column_2: Vec<Element<'a, view::Message>> = vec![steps_card.into(), submit_card];
 
         components::dual_column(column_1, column_2).into()
     }
@@ -284,9 +281,9 @@ impl Form {
                     self.progress.checkpoint = next_step;
                 }
 
-                return Command::perform(empty_async(), move |_| {
+                Command::perform(empty_async(), move |_| {
                     view::Execution::Form(FormMessage::RouteToStep(next_step)).into()
-                });
+                })
             }
             FormMessage::Simulate => {
                 // Return early if our checkpoint is past this step.

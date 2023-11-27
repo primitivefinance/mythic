@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use iced::{Color, Font, Padding, Pixels};
+use iced::{Color, Font, Padding};
 
 pub const GRAY_100: Color = Color::from_rgb(
     0x15 as f32 / 255.0,
@@ -58,7 +58,7 @@ pub const GRAY_900: Color = Color::from_rgb(
 
 pub const GRAY_1000: Color = Color::from_rgb(
     0x9D as f32 / 255.0,
-    0xAb as f32 / 255.0,
+    0xAB as f32 / 255.0,
     0xD4 as f32 / 255.0,
 );
 

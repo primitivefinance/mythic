@@ -16,7 +16,7 @@ pub async fn handle_simulate_scroll(
     tracing::debug!("Loaded block number: {}", block);
 
     // Simulate the tx.
-    let _ = scroll.simulate(&locked, Some(block)).await?;
+    scroll.simulate(&locked, Some(block)).await?;
 
     tracing::debug!(
         "Simulated tx, before storage: {:?}",

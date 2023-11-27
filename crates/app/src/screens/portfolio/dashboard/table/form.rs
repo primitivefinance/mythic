@@ -83,7 +83,7 @@ impl State for DeltaForm {
     /// todo: right now this form just holds the state + update functionality,
     /// but does not render the table.
     /// todo: make sure this empty column doesn't mess any layouts up.
-    fn view<'a>(&'a self) -> Element<Self::AppMessage> {
+    fn view(&self) -> Element<Self::AppMessage> {
         Column::new().into()
     }
 }

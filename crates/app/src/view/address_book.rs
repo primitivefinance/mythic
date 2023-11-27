@@ -16,10 +16,7 @@ pub fn layout<'a>(
     current: contacts::Category,
     display: AddressBookDisplay,
 ) -> Element<'a, Message> {
-    let on_list_display = match display {
-        AddressBookDisplay::List => true,
-        _ => false,
-    };
+    let on_list_display = matches!(display, AddressBookDisplay::List);
 
     let routes = vec![
         (
@@ -95,13 +92,10 @@ pub fn list_contact_card<'a>(
     let mut values: Vec<(String, String)> = vec![];
 
     let list = books.get_list(category.clone());
-    match list {
-        Some(list) => {
-            for (address, contact) in list.get_all() {
-                values.push((contact.label.clone(), format!("0x{:x}", address)));
-            }
+    if let Some(list) = list {
+        for (address, contact) in list.get_all() {
+            values.push((contact.label.clone(), format!("0x{:x}", address)));
         }
-        None => {}
     }
 
     let table = summary_table(values)
@@ -109,7 +103,7 @@ pub fn list_contact_card<'a>(
         .height(Length::Fill);
 
     let content = Column::new()
-        .push(h2(format!("{} Contacts", category.to_string())))
+        .push(h2(format!("{} Contacts", category)))
         .push(table)
         .padding(Sizes::Md as u16)
         .spacing(Sizes::Md as u16);

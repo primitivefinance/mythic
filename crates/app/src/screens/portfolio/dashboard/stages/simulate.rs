@@ -1,6 +1,5 @@
 use clients::arbiter::portfolio_adjustment::{InstanceManager, SpawnedManager};
 use logging::tracer::AppEventLayer;
-use simulation::agents::{price_changer::PriceChanger, SubscribedData};
 
 use super::*;
 use crate::{
@@ -60,7 +59,7 @@ impl Simulate {
         }
     }
 
-    pub fn render_simulation_outcome<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    pub fn render_simulation_outcome(&self) -> Element<'_, Self::ViewMessage> {
         let mut content = Column::new().push(Text::new("Simulation Results").size(40));
         content = content.push(state_render(self.store.clone()).map(|_| Message::Empty));
         content.into()
@@ -144,42 +143,36 @@ pub async fn handle_state_subscriptions(
         let formatted_world_id = world_id.clone().to_string();
 
         for agent in agents.0.iter_mut() {
-            let subscribed = agent.1.get_subscribed().await.map_err(|e| Arc::new(e))?;
+            let subscribed = agent.1.get_subscribed().await.map_err(Arc::new)?;
 
             // Skip empty subscriptions to avoid populating the state data with empty
             // subscriptions.
-            if subscribed.len() == 0 {
+            if subscribed.is_empty() {
                 continue;
             }
 
             if agent.0.to_lowercase().contains("monitor") {
-                state_data
-                    .entry(world_id.clone())
-                    .or_insert(HashMap::new())
-                    .insert(
-                        agent.0.to_string(),
-                        StateSubscription {
-                            logs: subscribed,
-                            label: format!("{} {}", formatted_world_id, agent.0),
-                            category: AppEventLayer::System,
-                            id: world_id,
-                        },
-                    );
+                state_data.entry(world_id).or_insert(HashMap::new()).insert(
+                    agent.0.to_string(),
+                    StateSubscription {
+                        logs: subscribed,
+                        label: format!("{} {}", formatted_world_id, agent.0),
+                        category: AppEventLayer::System,
+                        id: world_id,
+                    },
+                );
             } else {
                 // Add the subscribed data as a state subscription inside the hashm ap with keys
                 // world id -> agent name
-                state_data
-                    .entry(world_id.clone())
-                    .or_insert(HashMap::new())
-                    .insert(
-                        agent.0.to_string(),
-                        StateSubscription {
-                            logs: subscribed,
-                            label: format!("{} {}", formatted_world_id, agent.0),
-                            category: AppEventLayer::Agent,
-                            id: world_id,
-                        },
-                    );
+                state_data.entry(world_id).or_insert(HashMap::new()).insert(
+                    agent.0.to_string(),
+                    StateSubscription {
+                        logs: subscribed,
+                        label: format!("{} {}", formatted_world_id, agent.0),
+                        category: AppEventLayer::Agent,
+                        id: world_id,
+                    },
+                );
             }
         }
     }
@@ -234,7 +227,7 @@ impl State for Simulate {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let mut content = Column::new();
 
         content = content.push(button("Simulate!").on_press(Message::Simulate));

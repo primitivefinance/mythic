@@ -1,7 +1,6 @@
 use std::time::Instant;
 
 use anyhow::Result;
-use app;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
 use simulation::simulations;
@@ -94,9 +93,7 @@ fn main() -> Result<()> {
             println!("Total duration of simulations: {:?}", duration);
         }
         Some(Commands::Analyze) => todo!(),
-        Some(Commands::Ui { app }) => match app.as_str() {
-            _ => app::run()?,
-        },
+        Some(Commands::Ui { app: _ }) => app::run()?,
         None => Args::command().print_long_help()?,
     }
     Ok(())

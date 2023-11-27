@@ -82,7 +82,7 @@ impl Sidebar {
     }
 
     /// Renders the inner column below the sidebar's header section.
-    pub fn layout<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    pub fn layout(&self) -> Element<'_, Self::ViewMessage> {
         let mut column = Column::new();
         column = column.push(self.section("Apps".to_string()));
         column = column.push(self.page.view().map(|x| x.into()));
@@ -114,7 +114,7 @@ impl screens::State for Sidebar {
     }
 
     /// Renders the full sidebar.
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let title = Column::new()
             .push(with_font(h1(TITLE.to_string())))
             .padding(Sizes::Lg as u16)

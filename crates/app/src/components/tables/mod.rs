@@ -156,7 +156,6 @@ pub fn summary_row<'a>(
         .width(Length::Fill),
     )
     .style(BorderedContainer::theme_with_border_radius(row_radius))
-    .into()
 }
 
 pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message> {
@@ -188,9 +187,7 @@ pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message
         rows.push(row.into());
     }
 
-    Container::new(Column::with_children(rows))
-        .style(BorderedContainer::theme())
-        .into()
+    Container::new(Column::with_children(rows)).style(BorderedContainer::theme())
 }
 
 /// Renders a very basic table with one row.
@@ -263,7 +260,6 @@ pub fn dev_table<'a>(
     Container::new(table)
         .max_height(500.0)
         .style(BorderedContainer::theme())
-        .into()
 }
 
 /// Renders a simple dual column table with a label and value.

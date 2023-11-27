@@ -7,7 +7,6 @@ pub mod simulate;
 
 use clients::arbiter::portfolio_adjustment::MiniWorldBuilder;
 use ethers::utils::parse_ether;
-use profiles::portfolios::Position;
 use simulation::agents::token_admin::TokenData;
 
 use super::*;
@@ -95,89 +94,86 @@ impl Stages {
     }
 
     pub fn construct(&mut self) {
-        match self.portfolio {
-            Some(ref portfolio) => {
-                // Start editing the config builder, using the current state of the
-                // review form and the portfolio.
-                let mut builder = MiniWorldBuilder::default();
+        if let Some(ref portfolio) = self.portfolio {
+            // Start editing the config builder, using the current state of the
+            // review form and the portfolio.
+            let mut builder = MiniWorldBuilder::default();
 
-                // Compute the amount of steps given the time step size of 15 and the time range
-                // provided by the user.
-                // todo: this is temp value, but do above
-                let steps: usize = 1000;
-                // Initial amount to deposit.
-                let deposit = parse_ether(0.01).unwrap();
-                // initial price.
-                let price = parse_ether(1.0).unwrap();
-                // Time between blocks, in seconds.
-                let timestep_size: u64 = 15;
+            // Compute the amount of steps given the time step size of 15 and the time range
+            // provided by the user.
+            // todo: this is temp value, but do above
+            let steps: usize = 1000;
+            // Initial amount to deposit.
+            let deposit = parse_ether(0.01).unwrap();
+            // initial price.
+            let price = parse_ether(1.0).unwrap();
+            // Time between blocks, in seconds.
+            let timestep_size: u64 = 15;
 
-                // First add the coins. Make sure they are in the portfolio.
-                let coin_x: TokenData = portfolio
-                    .positions
-                    .iter()
-                    .find(|x| x.asset.symbol == "X")
-                    .expect("no X coin found")
-                    .clone()
-                    .into();
-                let coin_y: TokenData = portfolio
-                    .positions
-                    .iter()
-                    .find(|x| x.asset.symbol == "Y")
-                    .expect("no Y coin found")
-                    .clone()
-                    .into();
-                builder.config_builder.coins(coin_x, coin_y);
+            // First add the coins. Make sure they are in the portfolio.
+            let coin_x: TokenData = portfolio
+                .positions
+                .iter()
+                .find(|x| x.asset.symbol == "X")
+                .expect("no X coin found")
+                .clone()
+                .into();
+            let coin_y: TokenData = portfolio
+                .positions
+                .iter()
+                .find(|x| x.asset.symbol == "Y")
+                .expect("no Y coin found")
+                .clone()
+                .into();
+            builder.config_builder.coins(coin_x, coin_y);
 
-                // Edit the lp agent.
-                builder.config_builder.deposit_x(deposit);
-                builder.config_builder.initial_price(price);
+            // Edit the lp agent.
+            builder.config_builder.deposit_x(deposit);
+            builder.config_builder.initial_price(price);
 
-                // Edit the seconds between blocks.
-                builder.config_builder.timestep_size(timestep_size);
+            // Edit the seconds between blocks.
+            builder.config_builder.timestep_size(timestep_size);
 
-                // Edit the price and amount of steps.
-                // todo: matching the dca/static.toml config right now, change later
-                builder.config_builder.price_changer.seed(1);
-                builder.config_builder.price_changer.num_steps(steps);
-                builder.config_builder.price_changer.num_paths(10);
-                builder.config_builder.price_changer.initial_price(price);
-                builder.config_builder.price_changer.t_0(0.0);
-                builder.config_builder.price_changer.t_n(0.1);
-                builder.config_builder.price_changer.drift(0.1);
-                builder.config_builder.price_changer.volatility(0.35);
+            // Edit the price and amount of steps.
+            // todo: matching the dca/static.toml config right now, change later
+            builder.config_builder.price_changer.seed(1);
+            builder.config_builder.price_changer.num_steps(steps);
+            builder.config_builder.price_changer.num_paths(10);
+            builder.config_builder.price_changer.initial_price(price);
+            builder.config_builder.price_changer.t_0(0.0);
+            builder.config_builder.price_changer.t_n(0.1);
+            builder.config_builder.price_changer.drift(0.1);
+            builder.config_builder.price_changer.volatility(0.35);
 
-                // Edit the portfolio manager.
-                let fee_wad = parse_ether(0.003).unwrap();
-                let start_weight_wad = parse_ether(0.01).unwrap();
-                let end_weight_wad = parse_ether(0.99).unwrap();
-                builder.config_builder.portfolio_manager.fee(fee_wad);
-                builder
-                    .config_builder
-                    .portfolio_manager
-                    .start_weight_x(start_weight_wad);
-                builder
-                    .config_builder
-                    .portfolio_manager
-                    .end_weight_x(end_weight_wad);
-                builder
-                    .config_builder
-                    .portfolio_manager
-                    .end_timestamp(14985);
+            // Edit the portfolio manager.
+            let fee_wad = parse_ether(0.003).unwrap();
+            let start_weight_wad = parse_ether(0.01).unwrap();
+            let end_weight_wad = parse_ether(0.99).unwrap();
+            builder.config_builder.portfolio_manager.fee(fee_wad);
+            builder
+                .config_builder
+                .portfolio_manager
+                .start_weight_x(start_weight_wad);
+            builder
+                .config_builder
+                .portfolio_manager
+                .end_weight_x(end_weight_wad);
+            builder
+                .config_builder
+                .portfolio_manager
+                .end_timestamp(14985);
 
-                // Edit the swapper.
-                let balance = parse_ether(1.0).unwrap();
-                builder.config_builder.swapper.num_swaps(12);
-                builder.config_builder.swapper.start_timestamp(15);
-                builder.config_builder.swapper.end_timestamp(15000);
-                builder.config_builder.swapper.initial_balance(balance);
-                builder.config_builder.swapper.swap_direction(false);
+            // Edit the swapper.
+            let balance = parse_ether(1.0).unwrap();
+            builder.config_builder.swapper.num_swaps(12);
+            builder.config_builder.swapper.start_timestamp(15);
+            builder.config_builder.swapper.end_timestamp(15000);
+            builder.config_builder.swapper.initial_balance(balance);
+            builder.config_builder.swapper.swap_direction(false);
 
-                // Finally, after making all the modifications to the config builder,
-                // we can add it to the builders.
-                self.simulations.push(builder);
-            }
-            None => {}
+            // Finally, after making all the modifications to the config builder,
+            // we can add it to the builders.
+            self.simulations.push(builder);
         }
     }
 
@@ -199,7 +195,7 @@ impl Stages {
 
                 return Command::perform(
                     portfolio_adjustment::spawn(self.simulations.clone()),
-                    |x| simulate::Message::Ready(x),
+                    simulate::Message::Ready,
                 )
                 .map(|x| x.into());
             }
@@ -304,7 +300,7 @@ impl State for Stages {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         // Storing different stages in this enum allows us to easily switch between them
         // using view() and the MessageWrapper trait.
         match &self.current {

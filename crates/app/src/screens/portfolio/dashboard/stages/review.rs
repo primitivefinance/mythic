@@ -104,7 +104,7 @@ impl State for ReviewAdjustment {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let content = DualColumn::new().column_2_alignment(alignment::Alignment::Start)
             .spacing(Sizes::Md)
             .column_1(vec![
@@ -113,21 +113,21 @@ impl State for ReviewAdjustment {
                     "Adjust start time".to_string(),
                     self.form.start_time.clone(),
                     "11/25".to_string(),
-                    |x| FormMessage::StartTime(x),
+                     FormMessage::StartTime,
                 )
                 .into(),
                 labeled_input(
                     "Adjust end time".to_string(),
                     self.form.end_time.clone(),
                     "12/25".to_string(),
-                    |x| FormMessage::EndTime(x),
+                    FormMessage::EndTime,
                 )
                 .into(),
                 labeled_input(
                     "Rebate".to_string(),
                     self.form.rebate.clone(),
                     "0.1".to_string(),
-                    |x| FormMessage::Rebate(x),
+                    FormMessage::Rebate,
                 )
                 .into(),
             ])
@@ -137,7 +137,7 @@ impl State for ReviewAdjustment {
                     "Strategy".to_string(),
                     self.form.strategy.clone(),
                     "0.1".to_string(),
-                    |x| FormMessage::Strategy(x),
+                    FormMessage::Strategy,
                 )
                 .into(),
                 Card::template()

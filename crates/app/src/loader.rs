@@ -239,7 +239,7 @@ impl Loader {
             container(
                 column![
                     highlight_label(self.feedback.clone()),
-                    progress_bar(0.0..=1.0, self.progress.clone())
+                    progress_bar(0.0..=1.0, self.progress)
                 ]
                 .spacing(Sizes::Lg as u16),
             )

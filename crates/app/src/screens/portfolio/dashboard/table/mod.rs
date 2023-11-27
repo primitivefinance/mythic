@@ -85,21 +85,19 @@ impl PortfolioTable {
             .enumerate()
             .map(|(pos_index, position)| {
                 let balance = self.form.balance.get(&pos_index).cloned();
-                let targets = position
-                    .clone()
-                    .targets
-                    .unwrap_or_default()
-                    .into_iter()
-                    .filter(|target| matches!(target, Targetable::Weight(_)))
-                    .map(|target| {
-                        self.form
-                            .weight
-                            .get(&pos_index)
-                            .cloned()
-                            .map(|x| Some(Targetable::from_string(Targetable::Weight(0.0), x)))
-                            .flatten()
-                    })
-                    .collect::<Vec<Option<Targetable>>>();
+                let targets =
+                    position
+                        .clone()
+                        .targets
+                        .unwrap_or_default()
+                        .into_iter()
+                        .filter(|target| matches!(target, Targetable::Weight(_)))
+                        .map(|target| {
+                            self.form.weight.get(&pos_index).cloned().and_then(|x| {
+                                Some(Targetable::from_string(Targetable::Weight(0.0), x))
+                            })
+                        })
+                        .collect::<Vec<Option<Targetable>>>();
 
                 PositionDelta { balance, targets }
             })
@@ -107,7 +105,7 @@ impl PortfolioTable {
     }
 
     /// todo: investigate if this empty element will cause any problems...
-    pub fn summary_table<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+    pub fn summary_table(&self) -> Element<'_, Self::AppMessage> {
         match self.summary.as_ref() {
             Some(summary) => summary.view().map(|x| x.into()),
             None => iced::widget::Space::new(0.0, 0.0).into(),
@@ -119,13 +117,13 @@ impl PortfolioTable {
     /// - pos_index is the index of the position in the portfolio's positions.
     /// - target is the target value to be displayed in the first cell.
     /// Why this I make this closure stuff so complicated?
-    pub fn target_cell<'a>(
-        &'a self,
+    pub fn target_cell(
+        &self,
         pos_index: usize,
         target: Targetable,
     ) -> Vec<CellBuilder<Self::AppMessage>> {
         // todo: support more targets
-        let (value, message) = match target {
+        let (value, on_change_msg) = match target {
             Targetable::Weight(x) => (
                 self.form.weight.get(&pos_index).cloned(),
                 Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
@@ -141,7 +139,7 @@ impl PortfolioTable {
             CellBuilder::new().value(Some(target.clone().to_string())),
             CellBuilder::new()
                 .value(value)
-                .on_change(move |delta| (message)(delta))
+                .on_change(on_change_msg)
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
         ]
     }
@@ -261,7 +259,7 @@ impl State for PortfolioTable {
     }
 
     /// Renders the constructed table.
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         self.position_table().build().into()
     }
 }

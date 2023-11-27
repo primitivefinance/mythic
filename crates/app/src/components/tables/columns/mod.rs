@@ -97,7 +97,6 @@ where
                                 .child(label_item(header))
                                 .internal_padding(self.padding_cell_internal)
                                 .external_padding(self.padding_cell)
-                                .into()
                         })
                         .collect(),
                 )

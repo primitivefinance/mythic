@@ -90,6 +90,6 @@ where
     Event: 'a,
 {
     fn from(config_input: InputComponent<Event>) -> Self {
-        component(config_input).into()
+        component(config_input)
     }
 }

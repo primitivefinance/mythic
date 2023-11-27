@@ -11,7 +11,7 @@ use super::{
     },
     *,
 };
-use crate::components::tables::{asset_selection_table, dev_table, Asset};
+use crate::components::tables::Asset;
 
 pub struct DeveloperScreen {
     pub cache: Option<String>,
@@ -139,7 +139,7 @@ impl State for DeveloperScreen {
         Command::none()
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Self::ViewMessage> {
         let column = match self.dash_screen.loaded() {
             false => self.create_screen.view(),
             true => self.dash_screen.view(),
