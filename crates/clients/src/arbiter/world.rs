@@ -423,7 +423,7 @@ impl Default for WorldBuilder {
 }
 
 #[tracing::instrument(skip(worlds, tx, semaphore, errors), fields(worlds = worlds.len()))]
-async fn spawn_tasks(
+pub async fn spawn_tasks(
     worlds: Vec<Arc<Mutex<World>>>,
     tx: broadcast::Sender<usize>,
     semaphore: Arc<Semaphore>,

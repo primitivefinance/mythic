@@ -210,53 +210,10 @@ impl State for Dashboard {
     }
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-        // Triggers the table summary.
-
         let mut content = Column::new().spacing(Sizes::Lg);
         content = content.push(self.render_header().map(|x| x.into()));
         content = content.push(self.render_table().map(|x| x.into()));
         content = content.push(self.render_stages().map(|x| x.into()));
-
-        // let table: Element<'a, Self::AppMessage> = self.table.view().map(|x|
-        // x.into()); content = content.push(table.map(|x| x.into()));
-        //
-        // Triggers the staging process
-        // let submit = match self.table.prepared() {
-        // true => Some(Message::Submit),
-        // false => None,
-        // };
-        //
-        // let instruct: Element<'a, Message> = instructions(
-        // vec![
-        // instruction_text("Edit the deltas for each position.".to_string()),
-        // instruction_text(
-        // "Deltas are used to calculate the portfolio's metrics.".to_string(),
-        // ),
-        // ],
-        // Some("Edit Deltas".to_string()),
-        // None,
-        // submit,
-        // )
-        // .into();
-        //
-        // let mut sub_section = Row::new().spacing(Sizes::Lg);
-        // sub_section = sub_section.push(self.table.summary_table().map(|x| {
-        // view::Message::Developer(developer::Message::Dash(Message::PortfolioTable(x)))
-        // }));
-        // sub_section = sub_section.push(
-        // Column::new()
-        // .align_items(alignment::Alignment::End)
-        // .push(instruct.map(|x| x.into()))
-        // .width(Length::FillPortion(1)),
-        // );
-        //
-        // content = content.push(sub_section);
-        //
-        // content = content.push(
-        // self.stage
-        // .view()
-        // .map(|x| view::Message::Developer(developer::Message::Dash(Message::Stage(x)))),
-        // );
 
         Container::new(content)
             .align_y(alignment::Vertical::Top)

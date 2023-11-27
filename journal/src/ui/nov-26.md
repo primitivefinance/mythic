@@ -37,3 +37,26 @@ Getting kind of caught up in the complexity in the staging for the portfolio adj
 3. Review table edits (renders the summary table)
 4. Submit -> Review adjustment transaction
 5.  -> Renders its own view that has a button to trigger the next step.
+
+
+# next phase
+
+Finished the scaffolding for the portfolio management flow. This codebase is just massive... Finished this at 4:15pm Nov 26, started on Nov 23. Now I need to "make it alive" by having it do real simulation/transactions!
+
+
+First thing is lets write out the process of what happens:
+- I have a portfolio of some coins. This portfolio is just the sum of the coins effectively, its not allocated to an LP or anything.
+- I change the target weights for my tokens, say 60/40.
+- After reviewing these weight changes, I go forward to prepare the adjustment.
+    - I select a start and end time for my adjustment to occur.
+    - I select the fee on my pool
+    - I select the strategy (i.e. dca)
+- Then I simulate this.
+    - The simulation will execute the strategy over the timeline I specified in arbiter
+    - It renders the outcome of this simulation in the simulation screen
+- After i review the simulated results, i execute
+    - Execute will deposit the coins in the strategy
+    - I am redirected to my portfolio with a new "strategy" implemented at the top.
+    - My portfolio tracks the balances in the strategy instead of actual token balances.
+
+We can hook up the sim stuff before connecting it to the real form, so lets do that.
