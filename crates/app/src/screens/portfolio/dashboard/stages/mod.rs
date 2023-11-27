@@ -63,10 +63,31 @@ pub struct Stages {
 }
 
 impl Stages {
+    pub type AppMessage = Message;
+
     pub fn new() -> Self {
         Self {
             current: DashboardState::Empty,
         }
+    }
+
+    pub fn step(&mut self) -> Command<Self::AppMessage> {
+        match &self.current {
+            DashboardState::Empty => {
+                self.current = DashboardState::Review(review::ReviewAdjustment::default());
+            }
+            DashboardState::Review(state) => {
+                self.current = DashboardState::Simulate(simulate::Simulate::default());
+            }
+            DashboardState::Simulate(state) => {
+                self.current = DashboardState::Execute;
+            }
+            DashboardState::Execute => {
+                self.current = DashboardState::Empty;
+            }
+        }
+
+        Command::none()
     }
 }
 
@@ -76,20 +97,7 @@ impl State for Stages {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Message::Step => match &self.current {
-                DashboardState::Empty => {
-                    self.current = DashboardState::Review(review::ReviewAdjustment::default());
-                }
-                DashboardState::Review(state) => {
-                    self.current = DashboardState::Simulate(simulate::Simulate::default());
-                }
-                DashboardState::Simulate(state) => {
-                    self.current = DashboardState::Execute;
-                }
-                DashboardState::Execute => {
-                    self.current = DashboardState::Empty;
-                }
-            },
+            Message::Step => return self.step(),
             Message::Route(state) => {
                 self.current = state;
             }
@@ -103,18 +111,54 @@ impl State for Stages {
             // are propagated through this `self.current` state.
             // This avoids us having to make individual state in the Stages struct for each possible
             // stage...
-            Message::Review(message) => match &mut self.current {
-                DashboardState::Review(state) => {
-                    return state.update(message).map(|x| x.into());
+            Message::Review(message) => {
+                // Catch the submit form message and route to the next stage.
+                // todo: this is a bit hacky... maybe we change how we do this?
+                // The outcome of this is that we step + update if its a Submit message on the
+                // review's child form component.
+                // If its not a submit message, we just do the regular update.
+                // todo: write tests!
+                let should_step = match &self.current {
+                    DashboardState::Review(_) => {
+                        matches!(message, review::Message::Form(review::FormMessage::Submit))
+                    }
+                    _ => false,
+                };
+
+                let mut commands = vec![];
+
+                // todo: figure out proper order of operations here...
+                // batch executes simultaneously, so whats the effect here?
+                if let DashboardState::Review(state) = &mut self.current {
+                    commands.push(state.update(message.clone()).map(|x| x.into()));
                 }
-                _ => {}
-            },
-            Message::Simulate(message) => match &mut self.current {
-                DashboardState::Simulate(state) => {
-                    return state.update(message).map(|x| x.into());
+
+                if should_step {
+                    commands.push(self.step());
                 }
-                _ => {}
-            },
+
+                return Command::batch(commands);
+            }
+            Message::Simulate(message) => {
+                let should_step = match &self.current {
+                    DashboardState::Simulate(_) => {
+                        matches!(message, simulate::Message::Submit)
+                    }
+                    _ => false,
+                };
+
+                let mut commands = vec![];
+
+                if let DashboardState::Simulate(state) = &mut self.current {
+                    commands.push(state.update(message.clone()).map(|x| x.into()));
+                }
+
+                if should_step {
+                    commands.push(self.step());
+                }
+
+                return Command::batch(commands);
+            }
             _ => {}
         }
 

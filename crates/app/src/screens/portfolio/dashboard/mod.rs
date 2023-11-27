@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use profiles::portfolios::Portfolio;
 use stages::Stages;
 
-use self::table::PortfolioTable;
+use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
 use crate::components::{
     containers::CustomContainer,
@@ -102,6 +102,62 @@ impl Dashboard {
     pub fn loaded(&self) -> bool {
         self.portfolio.is_some()
     }
+
+    pub fn render_header<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Md)
+            .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
+            .push(
+                Row::new()
+                    .spacing(Sizes::Md)
+                    .push(label_item("Positions".to_string()).size(TitleSize::Sm))
+                    .push(
+                        action_button("Review Adjustments".to_string()).on_press(Message::Prepare),
+                    ),
+            )
+            .into()
+    }
+
+    pub fn render_table<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+        self.table.view().map(|x| x.into())
+    }
+
+    pub fn render_stages<'a>(&'a self) -> Element<'a, Self::AppMessage> {
+        match self.stage.current {
+            DashboardState::Empty => {
+                // Triggers the `Step` message on the stages component.
+                let submit = match self.table.prepared() {
+                    true => Some(Self::AppMessage::Submit),
+                    false => None,
+                };
+
+                let instruct: Element<'a, Self::AppMessage> = instructions(
+                    vec![
+                        instruction_text("Edit the deltas for each position.".to_string()),
+                        instruction_text(
+                            "Deltas are used to calculate the portfolio's metrics.".to_string(),
+                        ),
+                    ],
+                    Some("Edit Deltas".to_string()),
+                    None,
+                    submit,
+                )
+                .into();
+
+                Row::new()
+                    .spacing(Sizes::Lg)
+                    .push(self.table.summary_table().map(|x| x.into()))
+                    .push(
+                        Column::new()
+                            .align_items(alignment::Alignment::End)
+                            .push(instruct)
+                            .width(Length::FillPortion(1)),
+                    )
+                    .into()
+            }
+            _ => self.stage.view().map(|x| x.into()),
+        }
+    }
 }
 
 impl State for Dashboard {
@@ -154,61 +210,53 @@ impl State for Dashboard {
     }
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
-        let table: Element<'a, Self::AppMessage> = self.table.view().map(|x| x.into());
-
-        // Triggers the staging process
-        let submit = match self.table.prepared() {
-            true => Some(Message::Submit),
-            false => None,
-        };
-
-        let instruct: Element<'a, Message> = instructions(
-            vec![
-                instruction_text("Edit the deltas for each position.".to_string()),
-                instruction_text(
-                    "Deltas are used to calculate the portfolio's metrics.".to_string(),
-                ),
-            ],
-            Some("Edit Deltas".to_string()),
-            None,
-            submit,
-        )
-        .into();
-
-        let mut sub_section = Row::new().spacing(Sizes::Lg);
-
-        sub_section = sub_section.push(self.table.summary_table().map(|x| {
-            view::Message::Developer(developer::Message::Dash(Message::PortfolioTable(x)))
-        }));
-
-        sub_section = sub_section.push(
-            Column::new()
-                .align_items(alignment::Alignment::End)
-                .push(instruct.map(|x| x.into()))
-                .width(Length::FillPortion(1)),
-        );
-
         // Triggers the table summary.
-        let summarize: Element<'a, Message> = action_button("Review Adjustments".to_string())
-            .on_press(Message::Prepare)
-            .into();
 
-        let mut content = Column::new()
-            .spacing(20)
-            .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
-            .push(
-                Row::new()
-                    .push(label_item("Positions".to_string()).size(TitleSize::Sm))
-                    .push(summarize.map(|x| x.into())),
-            )
-            .push(table.map(|x| x.into()))
-            .push(sub_section);
+        let mut content = Column::new().spacing(Sizes::Lg);
+        content = content.push(self.render_header().map(|x| x.into()));
+        content = content.push(self.render_table().map(|x| x.into()));
+        content = content.push(self.render_stages().map(|x| x.into()));
 
-        content = content.push(
-            self.stage
-                .view()
-                .map(|x| view::Message::Developer(developer::Message::Dash(Message::Stage(x)))),
-        );
+        // let table: Element<'a, Self::AppMessage> = self.table.view().map(|x|
+        // x.into()); content = content.push(table.map(|x| x.into()));
+        //
+        // Triggers the staging process
+        // let submit = match self.table.prepared() {
+        // true => Some(Message::Submit),
+        // false => None,
+        // };
+        //
+        // let instruct: Element<'a, Message> = instructions(
+        // vec![
+        // instruction_text("Edit the deltas for each position.".to_string()),
+        // instruction_text(
+        // "Deltas are used to calculate the portfolio's metrics.".to_string(),
+        // ),
+        // ],
+        // Some("Edit Deltas".to_string()),
+        // None,
+        // submit,
+        // )
+        // .into();
+        //
+        // let mut sub_section = Row::new().spacing(Sizes::Lg);
+        // sub_section = sub_section.push(self.table.summary_table().map(|x| {
+        // view::Message::Developer(developer::Message::Dash(Message::PortfolioTable(x)))
+        // }));
+        // sub_section = sub_section.push(
+        // Column::new()
+        // .align_items(alignment::Alignment::End)
+        // .push(instruct.map(|x| x.into()))
+        // .width(Length::FillPortion(1)),
+        // );
+        //
+        // content = content.push(sub_section);
+        //
+        // content = content.push(
+        // self.stage
+        // .view()
+        // .map(|x| view::Message::Developer(developer::Message::Dash(Message::Stage(x)))),
+        // );
 
         Container::new(content)
             .align_y(alignment::Vertical::Top)

@@ -87,6 +87,15 @@ impl State for ReviewAdjustment {
                 FormMessage::Strategy(strategy) => {
                     self.form.strategy = strategy;
                 }
+                // Problem: We are triggering submit in a child component of this review component.
+                // However, we need to trigger some changes in the parent component of this review
+                // component. One solution is to catch this event being sent to the
+                // child in the propagation process. But that does not feel like the
+                // best solution, what's a better one?
+                // GPT: callbacks.
+                // I think this is worse because
+                // we already have all the messaging infrastructure in place to
+                // react to it.
                 FormMessage::Submit => {}
             },
             Self::AppMessage::Empty => {}
