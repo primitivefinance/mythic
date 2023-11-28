@@ -28,7 +28,7 @@ pub fn agent_card<'a>(agent_data: Vec<(String, String)>, actions: bool) -> Eleme
             _ => c.to_string(),
         })
         .collect::<String>()
-        .replace("_", " ");
+        .replace('_', " ");
 
     content = content
         .push(agent_header(agent_name.clone()))

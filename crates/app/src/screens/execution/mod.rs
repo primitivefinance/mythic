@@ -206,8 +206,8 @@ impl State for Execution {
         match message {
             Message::Empty => Command::none(),
             Message::View(msg) => {
-                match msg {
-                    view::Message::Execution(e) => match e {
+                if let view::Message::Execution(e) = msg {
+                    match e {
                         view::Execution::Form(form_message) => {
                             return self.form.update(form_message)
                         }
@@ -215,10 +215,8 @@ impl State for Execution {
                         view::Execution::Execute => return self.handle_execute(),
                         view::Execution::Results => {}
                         view::Execution::Reset => return self.handle_restart(),
-                    },
-                    _ => {}
+                    }
                 }
-
                 Command::none()
             }
             Message::WindowsMessage(app::WindowsMessage::Execution(msg)) => match msg {

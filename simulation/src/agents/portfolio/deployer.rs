@@ -1,5 +1,5 @@
 use anyhow::Ok;
-use arbiter_core::bindings::weth::WETH;
+use arbiter_bindings::bindings::weth::WETH;
 
 use super::*;
 use crate::portfolio_bindings::portfolio::Portfolio;

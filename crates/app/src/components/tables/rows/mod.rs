@@ -26,6 +26,15 @@ where
     containerize: Box<dyn Fn(Row<'static, Message>) -> Row<'static, Message>>,
 }
 
+impl<Message> Default for RowBuilder<Message>
+where
+    Message: Default,
+ {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Message> RowBuilder<Message>
 where
     Message: Default,

@@ -582,6 +582,12 @@ where
     pub column_2_alignment: Option<alignment::Alignment>,
 }
 
+impl<'a, Message> Default for DualColumn<'a, Message> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a, Message> DualColumn<'a, Message> {
     pub fn new() -> Self {
         Self {
@@ -638,7 +644,7 @@ impl<'a, Message> DualColumn<'a, Message> {
         let mut row = Row::new();
 
         let mut first_column =
-            Column::with_children(self.column_1.into_iter().map(|e| e.into()).collect())
+            Column::with_children(self.column_1.into_iter().collect())
                 .width(Length::FillPortion(2))
                 .align_items(
                     self.column_1_alignment
@@ -646,7 +652,7 @@ impl<'a, Message> DualColumn<'a, Message> {
                 );
 
         let mut second_column =
-            Column::with_children(self.column_2.into_iter().map(|e| e.into()).collect())
+            Column::with_children(self.column_2.into_iter().collect())
                 .width(Length::FillPortion(2))
                 .align_items(self.column_2_alignment.unwrap_or(alignment::Alignment::End));
 

@@ -182,7 +182,7 @@ impl Stages {
             DashboardState::Empty => {
                 self.current = DashboardState::Review(review::ReviewAdjustment::default());
             }
-            DashboardState::Review(state) => {
+            DashboardState::Review(_state) => {
                 // Construct the MiniWorldBuilder from the review form data and portfolio.
                 self.construct();
                 // Prepare the simulate screen with the MiniWorldBuilder.
@@ -199,7 +199,7 @@ impl Stages {
                 )
                 .map(|x| x.into());
             }
-            DashboardState::Simulate(state) => {
+            DashboardState::Simulate(_state) => {
                 self.current = DashboardState::Execute;
             }
             DashboardState::Execute => {
@@ -218,8 +218,8 @@ impl State for Stages {
     fn load(&self) -> Command<Self::AppMessage> {
         match &self.current {
             DashboardState::Empty => {}
-            DashboardState::Review(state) => {}
-            DashboardState::Simulate(state) => {}
+            DashboardState::Review(_state) => {}
+            DashboardState::Simulate(_state) => {}
             DashboardState::Execute => {}
             _ => {}
         }
@@ -263,7 +263,7 @@ impl State for Stages {
                 let mut commands = vec![];
 
                 // todo: figure out proper order of operations here...
-                // batch executes simultaneously, so whats the effect here?
+                // batch executes simultaneously, so what's the effect here?
                 if let DashboardState::Review(state) = &mut self.current {
                     commands.push(state.update(message.clone()).map(|x| x.into()));
                 }

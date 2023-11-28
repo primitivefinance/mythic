@@ -68,6 +68,15 @@ where
     containerize: Box<dyn Fn(Element<'static, Message>) -> Container<'static, Message>>,
 }
 
+impl<Message> Default for CellBuilder<Message>
+where
+    Message: 'static + Default,
+ {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Message> CellBuilder<Message>
 where
     Message: 'static + Default,
@@ -165,10 +174,7 @@ where
     where
         Message: 'a + Default,
     {
-        let value = match self.value.as_ref() {
-            Some(val) => Some(val.clone()),
-            None => None,
-        };
+        let value = self.value.as_ref().cloned();
 
         // If on_checkbox is Some, then we need to render a checkbox.
         if self.on_checkbox.is_some() {

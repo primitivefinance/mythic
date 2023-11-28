@@ -68,6 +68,12 @@ pub struct TraceConfigBuilder<S: Subscriber + for<'a> LookupSpan<'a>> {
     _marker: std::marker::PhantomData<S>,
 }
 
+impl<S: Subscriber + for<'a> LookupSpan<'a>> Default for TraceConfigBuilder<S> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
     pub fn new() -> Self {
         Self {
@@ -132,6 +138,11 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
 /// literally, just a layer that has a vector of logs.
 pub struct LayerWithLogs {
     logs: Arc<Mutex<Vec<String>>>,
+}
+impl Default for LayerWithLogs {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LayerWithLogs {
@@ -217,6 +228,12 @@ pub struct AppEventMetadata {
 pub struct AppEventLog {
     pub data: HashMap<AppEventLayer, AppEventMetadata>,
     pub last_message: Option<AppEventMetadata>,
+}
+
+impl Default for AppEventLog {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Can use for mocking event logs.

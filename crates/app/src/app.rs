@@ -53,7 +53,7 @@ impl From<Execution> for WindowsMessage {
 
 impl From<Execution> for Message {
     fn from(msg: Execution) -> Self {
-        Message::WindowsMessage(msg.into()).into()
+        Message::WindowsMessage(msg.into())
     }
 }
 
@@ -189,7 +189,9 @@ impl App {
 
     // All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
-        let msg = app_span().in_scope(|| match message {
+        
+
+        app_span().in_scope(|| match message {
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
             Message::StreamsMessage(msg) => self.streams_update(msg),
@@ -202,9 +204,7 @@ impl App {
             }
             Message::Empty => Command::none(),
             _ => self.windows.screen.update(message),
-        });
-
-        msg
+        })
     }
 
     pub fn view(&self) -> Element<Message> {
@@ -324,9 +324,9 @@ impl App {
     }
 
     fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
-        let cmd = Command::none();
+        
         // todo: implement
-        cmd
+        Command::none()
     }
 
     // Forwards window messages to the screen.
@@ -352,7 +352,7 @@ impl App {
         self.windows.screen = match navigate_to {
             view::sidebar::Route::Page(page) => {
                 // Update the current page.
-                self.cache.current_page = page.clone();
+                self.cache.current_page = *page;
 
                 match page {
                     view::sidebar::Page::Execute => Screen::new(Box::new(

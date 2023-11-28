@@ -11,7 +11,7 @@ Here's the rough flow:
 Then when one of the table's form fields (e.g. balance delta) gets edited:
 - Triggers a `DeltaForm::` message. When messages get triggered in these children components, they are basically moved to the top of the parent/children stack and propagated down. For example, it's possible to capture the event in a parent component. But in this case we just capture it and send it directly to the component that it was triggered in (the table).
 - Table gets the `DeltaForm` message, and propagates the changes to the `DeltaForm`, which the table holds its own state of.
-- The form is a child of Table because the form is in the table, and the form does not have its own view message. Making the form a child of table made sense because they are integrated with eachother.
+- The form is a child of Table because the form is in the table, and the form does not have its own view message. Making the form a child of table made sense because they are integrated with each other.
 
 Now when it comes to the summary of the form's changes, it's not as straightforward. The table should only manage the table and its cells. This is reflected in it's view message only returning the position table built and nothing more.
 
@@ -45,7 +45,7 @@ Finished the scaffolding for the portfolio management flow. This codebase is jus
 
 
 First thing is lets write out the process of what happens:
-- I have a portfolio of some coins. This portfolio is just the sum of the coins effectively, its not allocated to an LP or anything.
+- I have a portfolio of some coins. This portfolio is just the sum of the value of the coins effectively, its not allocated to an LP or anything.
 - I change the target weights for my tokens, say 60/40.
 - After reviewing these weight changes, I go forward to prepare the adjustment.
     - I select a start and end time for my adjustment to occur.

@@ -31,7 +31,7 @@ impl StyleSheet for SidebarContainer {
     fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
         Appearance {
             background: Some(iced::Background::Color(SIDEBAR_BG_COLOR)),
-            border_width: 1.0.into(),
+            border_width: 1.0,
             border_color: Color::BLACK,
             ..Default::default()
         }
@@ -54,7 +54,7 @@ impl StyleSheet for ScreenWindowContainer {
         Appearance {
             background: Some(iced::Background::Color(PANEL)),
             border_radius: 9.0.into(),
-            border_width: 1.0.into(),
+            border_width: 1.0,
             border_color: Color::BLACK,
             ..Default::default()
         }
@@ -96,7 +96,7 @@ impl StyleSheet for WindowHeader {
         Appearance {
             background: Some(iced::Background::Color(WINDOW_HEADER_COLOR)),
             border_radius: [9.0, 9.0, 0.0, 0.0].into(),
-            border_width: 1.0.into(),
+            border_width: 1.0,
             border_color: Color::BLACK,
             ..Default::default()
         }
@@ -274,7 +274,7 @@ impl StyleSheet for CustomContainer {
 
     fn appearance(&self, _: &<Self as StyleSheet>::Style) -> Appearance {
         Appearance {
-            background: self.background.clone(),
+            background: self.background,
             border_radius: self.border_radius,
             border_width: self.border_width,
             border_color: self.border_color,

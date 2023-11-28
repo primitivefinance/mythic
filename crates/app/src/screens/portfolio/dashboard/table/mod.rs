@@ -92,10 +92,8 @@ impl PortfolioTable {
                         .unwrap_or_default()
                         .into_iter()
                         .filter(|target| matches!(target, Targetable::Weight(_)))
-                        .map(|target| {
-                            self.form.weight.get(&pos_index).cloned().and_then(|x| {
-                                Some(Targetable::from_string(Targetable::Weight(0.0), x))
-                            })
+                        .map(|_target| {
+                            self.form.weight.get(&pos_index).cloned().map(|x| Targetable::from_string(Targetable::Weight(0.0), x))
                         })
                         .collect::<Vec<Option<Targetable>>>();
 
@@ -124,14 +122,14 @@ impl PortfolioTable {
     ) -> Vec<CellBuilder<Self::AppMessage>> {
         // todo: support more targets
         let (value, on_change_msg) = match target {
-            Targetable::Weight(x) => (
+            Targetable::Weight(_x) => (
                 self.form.weight.get(&pos_index).cloned(),
                 Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
                     as Self::FormEvent,
             ),
             _ => (
                 None,
-                Box::new(|x| form::DeltaFormMessage::Empty.into()) as Self::FormEvent,
+                Box::new(|_x| form::DeltaFormMessage::Empty.into()) as Self::FormEvent,
             ),
         };
 

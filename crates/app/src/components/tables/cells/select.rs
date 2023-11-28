@@ -14,6 +14,6 @@ pub fn cell_select<'a, Message>(
 where
     Message: 'static + Default,
 {
-    let mut select = custom_pick_list(options, selected, on_selected, placeholder);
+    let select = custom_pick_list(options, selected, on_selected, placeholder);
     select
 }

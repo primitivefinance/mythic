@@ -68,7 +68,7 @@ impl DeltaSummary {
             data.push(("Balance".to_string(), balance));
         }
 
-        for (i, target) in position.targets.iter().enumerate() {
+        for target in position.targets.iter() {
             if let Some(target) = target.clone() {
                 data.push((format!("{:?}", target), target.to_string()));
             }
@@ -101,7 +101,7 @@ impl State for DeltaSummary {
 
         let mut rows: Vec<Element<'a, Self::ViewMessage>> = vec![];
 
-        for (i, pos) in self.deltas.iter().enumerate() {
+        for (i, _pos) in self.deltas.iter().enumerate() {
             rows.push(
                 Column::new()
                     .spacing(Sizes::Sm)
