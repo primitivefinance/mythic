@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, fs::File, io::BufReader};
 
 use anyhow::Result;
-use arbiter_core::bindings::liquid_exchange;
+use arbiter_bindings::bindings::liquid_exchange;
 use ethers::types::U256;
 use reader::SimulationData;
 use serde_json::{from_reader, Value};

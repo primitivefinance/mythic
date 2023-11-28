@@ -98,8 +98,8 @@ impl PriceChanger {
             token_admin
                 .mint(
                     liquid_exchange.address(),
-                    parse_ether(100_000_000_000_u64).unwrap(),
-                    parse_ether(100_000_000_000_u64).unwrap(),
+                    parse_ether(1_000_000_u64).unwrap(),
+                    parse_ether(1_000_000_u64).unwrap(),
                 )
                 .await?;
 
@@ -150,7 +150,7 @@ impl PriceChanger {
         let price = self.trajectory.paths[0][self.index];
         trace!("Updating price of liquid_exchange to: {}", price);
         self.liquid_exchange
-            .set_price(arbiter_core::math::float_to_wad(price))
+            .set_price(parse_ether(price)?)
             .send()
             .await?
             .await?;
@@ -176,12 +176,15 @@ impl Agent for PriceChanger {
     }
 
     fn get_name(&self) -> String {
-        "price_changer".to_string()
+        "Price Changer".to_string()
     }
 
     async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
         let price = self.liquid_exchange.price().call().await?;
-        let subbed = vec![SubscribedData::new("price".to_string(), price.into_token())];
+        let subbed = vec![SubscribedData::new(
+            "Spot Price".to_string(),
+            price.into_token(),
+        )];
         Ok(subbed)
     }
 }

@@ -5,10 +5,10 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use arbiter_bindings::bindings::{
+    arbiter_math::ArbiterMath, arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange,
+};
 use arbiter_core::{
-    bindings::{
-        arbiter_math::ArbiterMath, arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange,
-    },
     data_collection::EventLogger,
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::{errors::RevmMiddlewareError, RevmMiddleware},
