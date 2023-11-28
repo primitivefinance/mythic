@@ -1,7 +1,7 @@
 //! Portfolio table which renders all positions and a form for editing deltas to
 //! adjust the portfolio's positions.
 
-use profiles::portfolios::{Portfolio, Position, Targetable};
+use profiles::portfolios::{Portfolio, Position};
 
 use self::summary::DeltaSummary;
 use super::*;
@@ -52,8 +52,20 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 /// todo: support price and market value deltas...
 #[derive(Debug, Clone, Default)]
 pub struct PositionDelta {
+    pub id: usize,
     pub balance: Option<String>,
-    pub targets: Vec<Option<Targetable>>,
+    pub weight: Option<String>,
+    pub price: Option<String>,
+}
+
+impl PositionDelta {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.balance.is_none() && self.weight.is_none() && self.price.is_none()
+    }
 }
 
 impl PortfolioTable {
@@ -83,24 +95,16 @@ impl PortfolioTable {
         self.positions
             .iter()
             .enumerate()
-            .map(|(pos_index, position)| {
+            .map(|(pos_index, _)| {
                 let balance = self.form.balance.get(&pos_index).cloned();
-                let targets = position
-                    .clone()
-                    .targets
-                    .unwrap_or_default()
-                    .into_iter()
-                    .filter(|target| matches!(target, Targetable::Weight(_)))
-                    .map(|_target| {
-                        self.form
-                            .weight
-                            .get(&pos_index)
-                            .cloned()
-                            .map(|x| Targetable::from_string(Targetable::Weight(0.0), x))
-                    })
-                    .collect::<Vec<Option<Targetable>>>();
-
-                PositionDelta { balance, targets }
+                let weight = self.form.weight.get(&pos_index).cloned();
+                let price = self.form.price.get(&pos_index).cloned();
+                PositionDelta {
+                    id: pos_index,
+                    balance,
+                    weight,
+                    price,
+                }
             })
             .collect()
     }
@@ -118,23 +122,13 @@ impl PortfolioTable {
     /// - pos_index is the index of the position in the portfolio's positions.
     /// - target is the target value to be displayed in the first cell.
     /// Why this I make this closure stuff so complicated?
-    pub fn target_cell(
-        &self,
-        pos_index: usize,
-        target: Targetable,
-    ) -> Vec<CellBuilder<Self::AppMessage>> {
+    pub fn target_cell(&self, pos_index: usize, target: f64) -> Vec<CellBuilder<Self::AppMessage>> {
         // todo: support more targets
-        let (value, on_change_msg) = match target {
-            Targetable::Weight(_x) => (
-                self.form.weight.get(&pos_index).cloned(),
-                Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
-                    as Self::FormEvent,
-            ),
-            _ => (
-                None,
-                Box::new(|_x| form::DeltaFormMessage::Empty.into()) as Self::FormEvent,
-            ),
-        };
+        let (value, on_change_msg) = (
+            self.form.weight.get(&pos_index).cloned(),
+            Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
+                as Self::FormEvent,
+        );
 
         vec![
             CellBuilder::new().value(Some(target.clone().to_string())),
@@ -151,14 +145,7 @@ impl PortfolioTable {
         position: &'a Position,
         pos_index: usize,
     ) -> Vec<CellBuilder<Self::AppMessage>> {
-        position
-            .clone()
-            .targets
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|target| matches!(target, Targetable::Weight(_)))
-            .flat_map(|target| self.target_cell(pos_index, target).into_iter())
-            .collect::<Vec<CellBuilder<Self::AppMessage>>>()
+        self.target_cell(pos_index, position.weight.unwrap_or_default())
     }
 
     /// Gets the builders for each cell in the table.

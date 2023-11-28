@@ -2,6 +2,7 @@
 //! viewing it to executing adjustments.
 
 pub mod execute;
+pub mod prepare;
 pub mod review;
 pub mod simulate;
 
@@ -9,7 +10,7 @@ use clients::arbiter::portfolio_adjustment::MiniWorldBuilder;
 use ethers::utils::parse_ether;
 use simulation::agents::token_admin::TokenData;
 
-use super::*;
+use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
 /// Weird? It works.
@@ -17,6 +18,8 @@ use super::*;
 pub enum DashboardState {
     #[default]
     Empty,
+    /// State of reviewing and finalizing the adjustments to make.
+    Prepare(prepare::Prepare),
     /// State of reviewing the portfolio adjustment transaction.
     Review(review::ReviewAdjustment),
     /// State of simulating the portfolio adjustment transaction.
@@ -28,6 +31,16 @@ pub enum DashboardState {
 impl DashboardState {
     pub fn clear(&mut self) {
         *self = DashboardState::Empty;
+    }
+
+    pub fn guide(&self) -> Container<'static, Message> {
+        match self {
+            DashboardState::Empty => Container::new(Column::new()),
+            DashboardState::Prepare(state) => state.guide(Some(Message::Step)),
+            DashboardState::Review(state) => state.guide(Some(Message::Step)),
+            DashboardState::Simulate(state) => state.guide(Some(Message::Step)),
+            DashboardState::Execute => Container::new(Column::new()),
+        }
     }
 }
 
@@ -41,6 +54,11 @@ pub enum Message {
     Route(DashboardState),
     /// Resets the staging to the first step.
     Reset,
+    /// Message for Empty -> Prepare stage.
+    /// Needs the position index and adjustments, and the estimated price.
+    Start(Vec<PositionDelta>),
+    /// Prepares the adjustments for simulation.
+    Prepare(prepare::Message),
     /// Updates the review stage.
     Review(review::Message),
     /// Updates the simulate stage.
@@ -180,6 +198,10 @@ impl Stages {
     pub fn step(&mut self) -> Command<Self::AppMessage> {
         match &self.current {
             DashboardState::Empty => {
+                // todo: figure out what happens here? Should call start before
+                // stepping from empty.
+            }
+            DashboardState::Prepare(state) => {
                 self.current = DashboardState::Review(review::ReviewAdjustment::default());
             }
             DashboardState::Review(_state) => {
@@ -238,6 +260,10 @@ impl State for Stages {
             }
             Message::Reset => {
                 self.current = DashboardState::Empty;
+            }
+            Message::Start(deltas) => {
+                let prepare = prepare::Prepare::new(self.portfolio.clone().unwrap(), deltas);
+                self.current = DashboardState::Prepare(prepare);
             }
             // Below is where the complexity is...
             // The `current` state stores the specific screen that the user is on.
@@ -303,11 +329,22 @@ impl State for Stages {
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         // Storing different stages in this enum allows us to easily switch between them
         // using view() and the MessageWrapper trait.
-        match &self.current {
+        let content = match &self.current {
             DashboardState::Empty => Column::new().into(),
+            DashboardState::Prepare(state) => state.view().map(|x| x.into()),
             DashboardState::Review(state) => state.view().map(|x| x.into()),
             DashboardState::Simulate(state) => state.view().map(|x| x.into()),
             DashboardState::Execute => Column::new().into(),
-        }
+        };
+
+        Container::new(
+            Row::new()
+                .spacing(Sizes::Lg)
+                .push(Column::new().push(content).width(Length::FillPortion(3)))
+                .push(self.current.guide().width(Length::FillPortion(1))),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
     }
 }

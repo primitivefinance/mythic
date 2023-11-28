@@ -10,12 +10,15 @@ use stages::Stages;
 
 use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
-use crate::components::{
-    containers::CustomContainer,
-    tables::{
-        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-        rows::RowBuilder,
+use crate::{
+    components::{
+        containers::CustomContainer,
+        tables::{
+            builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+            rows::RowBuilder,
+        },
     },
+    screens::portfolio::dashboard::stages::prepare::adjust_weights_algorithm,
 };
 
 /// Executed on `load` for the Dashboard screen.
@@ -43,7 +46,7 @@ pub enum Message {
     /// Triggered when a user wants to review the proposed adjustments.
     Prepare,
     /// Triggered action from the main button on the dashboard.
-    Submit,
+    BeginAdjustment,
     /// Triggered when the user clicks the review adjustments button.
     Stage(stages::Message),
     /// Triggered when the underlying portfolio table form is edited.
@@ -103,15 +106,7 @@ impl Dashboard {
     pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Md)
-            .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
-            .push(
-                Row::new()
-                    .spacing(Sizes::Md)
-                    .push(label_item("Positions".to_string()).size(TitleSize::Sm))
-                    .push(
-                        action_button("Review Adjustments".to_string()).on_press(Message::Prepare),
-                    ),
-            )
+            .push(h1("Portfolio Dashboard".to_string()).size(TitleSize::Xl))
             .into()
     }
 
@@ -122,28 +117,32 @@ impl Dashboard {
     pub fn render_stages(&self) -> Element<'_, Self::AppMessage> {
         match self.stage.current {
             DashboardState::Empty => {
-                // Triggers the `Step` message on the stages component.
-                let submit = match self.table.prepared() {
-                    true => Some(Self::AppMessage::Submit),
-                    false => None,
-                };
-
                 let instruct: Element<'_, Self::AppMessage> = instructions(
-                    vec![
-                        instruction_text("Edit the deltas for each position.".to_string()),
-                        instruction_text(
-                            "Deltas are used to calculate the portfolio's metrics.".to_string(),
-                        ),
-                    ],
-                    Some("Edit Deltas".to_string()),
+                    vec![instruction_text(
+                        "Change the position deltas in the table to start the portfolio adjustment process.".to_string(),
+                    )],
+                    Some("Continue".to_string()),
                     None,
-                    submit,
+                    None,
                 )
                 .into();
 
                 Row::new()
                     .spacing(Sizes::Lg)
-                    .push(self.table.summary_table().map(|x| x.into()))
+                    .push(
+                        Column::new()
+                            .align_items(alignment::Alignment::Start)
+                            .push(
+                                Card::new(h3(
+                                    "Make adjustments to view the estimated results".to_string()
+                                ))
+                                .center_x()
+                                .center_y()
+                                .padding(Sizes::Lg)
+                                .width(Length::Fill),
+                            )
+                            .width(Length::FillPortion(3)),
+                    )
                     .push(
                         Column::new()
                             .align_items(alignment::Alignment::End)
@@ -202,8 +201,19 @@ impl State for Dashboard {
                 tracing::error!("Failed to load portfolio: {:?}", e);
             }
             Message::PortfolioTable(message) => {
-                let cmd = self.table.update(message).map(|x| x.into());
-                return cmd;
+                let mut commands = vec![];
+
+                // If the table changes one of its weight fields, "catch" it to fresh the
+                // preview.
+                if let table::Message::DeltaForm(table::form::DeltaFormMessage::Weight(_, _)) =
+                    message
+                {
+                    commands.push(Command::perform(async {}, |_| Message::BeginAdjustment));
+                }
+
+                commands.push(self.table.update(message.clone()).map(|x| x.into()));
+
+                return Command::batch(commands);
             }
             Message::Stage(stage) => {
                 return self.stage.update(stage).map(|x| x.into());
@@ -213,10 +223,71 @@ impl State for Dashboard {
                 return self.table.update(table::Message::Ready).map(|x| x.into());
             }
             // Triggers the staging process...
-            Message::Submit => {
-                tracing::trace!("Reviewing...");
+            // todo: move this weight adjustment computation outside so its easier to find / debug.
+            // todo: this can be triggered by directly emitting Stage(Step) message.
+            Message::BeginAdjustment => {
+                // placeholder, but should try to fetch the current prices and update this.
+                let mut proposed_deltas = self.table.get_form_deltas();
+                // If all position deltas are empty, then reset the staging.
+                if proposed_deltas.iter().all(|x| x.is_empty()) {
+                    tracing::info!("Resetting stages...");
+                    return self.stage.update(stages::Message::Reset).map(|x| x.into());
+                }
 
-                return self.stage.update(stages::Message::Step).map(|x| x.into());
+                // Get the weights of the portfolio
+                let mut weights: Vec<f64> = self
+                    .portfolio
+                    .clone()
+                    .unwrap_or_default()
+                    .positions
+                    .iter()
+                    .map(|position| position.weight.unwrap_or_default())
+                    .collect();
+
+                // Apply the adjustments to the weights
+                let changes: Vec<(usize, f64)> = proposed_deltas
+                    .iter()
+                    .map(|delta| {
+                        let pos_index = delta.id;
+                        let weight = delta
+                            .weight
+                            .clone()
+                            .unwrap_or_default()
+                            .parse::<f64>()
+                            .unwrap_or_default();
+                        (pos_index, weight)
+                    })
+                    .collect();
+
+                adjust_weights_algorithm(&mut weights, changes);
+
+                // Return the new vector of deltas
+                proposed_deltas = weights
+                    .iter()
+                    .enumerate()
+                    .map(|(pos_index, &weight)| {
+                        let mut delta = proposed_deltas[pos_index].clone();
+                        delta.weight = Some(weight.to_string());
+                        delta
+                    })
+                    .collect();
+
+                for delta in &mut proposed_deltas {
+                    if let Some(position) = self
+                        .portfolio
+                        .clone()
+                        .unwrap_or_default()
+                        .positions
+                        .get(delta.id)
+                    {
+                        delta.price = position.cost.map(|cost| cost.to_string());
+                    }
+                }
+
+                return self
+                    .stage
+                    .update(stages::Message::Start(proposed_deltas))
+                    .map(|x| x.into());
             }
             _ => {}
         }

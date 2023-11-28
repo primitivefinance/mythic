@@ -68,10 +68,8 @@ impl DeltaSummary {
             data.push(("Balance".to_string(), balance));
         }
 
-        for target in position.targets.iter() {
-            if let Some(target) = target.clone() {
-                data.push((format!("{:?}", target), target.to_string()));
-            }
+        if let Some(target) = position.weight.clone() {
+            data.push((format!("{:?}", target), target.to_string()));
         }
 
         key_value_table(Self::headers(), data)

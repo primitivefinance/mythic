@@ -67,6 +67,24 @@ pub struct ReviewAdjustment {
     form: Form,
 }
 
+impl ReviewAdjustment {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Returns an instructions element to guide the user.
+    pub fn guide(&self, on_submit: Option<super::Message>) -> Container<'static, super::Message> {
+        instructions(
+            vec![instruction_text(
+                "Select the adjustment parameters and strategy to use.".to_string(),
+            )],
+            Some("Simulate Adjustment".to_string()),
+            None,
+            on_submit,
+        )
+    }
+}
+
 impl State for ReviewAdjustment {
     type AppMessage = Message;
     type ViewMessage = FormMessage;
@@ -151,31 +169,6 @@ impl State for ReviewAdjustment {
                     .into(),
             ]);
 
-        Container::new(
-            Row::new()
-                .spacing(Sizes::Lg)
-                .push(
-                    content
-                        .build()
-                        .spacing(Sizes::Lg)
-                        .width(Length::FillPortion(2)),
-                )
-                .push(
-                    instructions(
-                        vec![instruction_text(
-                            "Simulate the adjustment before executing it.".to_string(),
-                        )],
-                        Some("Simulate Adjustment".to_string()),
-                        None,
-                        Some(FormMessage::Submit),
-                    )
-                    .width(Length::FillPortion(1)),
-                ),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
-        .into()
+        content.build().spacing(Sizes::Lg).into()
     }
 }

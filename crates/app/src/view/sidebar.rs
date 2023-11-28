@@ -170,6 +170,7 @@ impl Page {
             Page::Execute => "Execute".to_string(),
             Page::AddressBook => "Address Book".to_string(),
             Page::Exit => "Quit".to_string(),
+            Page::Developer => "Developer".to_string(),
             _ => "Experimental".to_string(),
         }
     }
@@ -211,7 +212,6 @@ impl Page {
 
     pub fn view<'a>(&self) -> Element<'a, Self::Message> {
         let mut column = Column::new();
-        tracing::info!("active page: {:?}", *self);
         for (icon, name, msg, selected) in Self::tabs(self) {
             let style = match selected {
                 true => route_button_style(SELECTED_CONTAINER_COLOR),

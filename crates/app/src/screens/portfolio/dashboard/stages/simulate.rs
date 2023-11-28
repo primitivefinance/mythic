@@ -64,6 +64,18 @@ impl Simulate {
         content = content.push(state_render(self.store.clone()).map(|_| Message::Empty));
         content.into()
     }
+
+    /// Returns an instructions element to guide the user.
+    pub fn guide(&self, on_submit: Option<super::Message>) -> Container<'static, super::Message> {
+        instructions(
+            vec![instruction_text(
+                "Review the simulated results and make any desired modifications before continuing to execution.".to_string(),
+            )],
+            Some("Execute Adjustment".to_string()),
+            None,
+            on_submit,
+        )
+    }
 }
 
 #[tracing::instrument(skip(m), level = "debug")]
