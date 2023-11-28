@@ -2,8 +2,9 @@
 //! and connections to live networks.
 
 pub mod arbiter;
+pub mod client;
 pub mod forking;
-pub mod rpc;
+pub mod ledger;
 pub mod scroll;
 
 use ethers::prelude::*;

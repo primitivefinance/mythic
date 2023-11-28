@@ -2,7 +2,7 @@ use std::{collections::VecDeque, sync::mpsc::Receiver};
 
 use api::contacts::{self, ContactValue};
 use arbiter_core::environment::Environment;
-use clients::{arbiter::world::WorldManager, rpc::local::Local, scroll::Scroll};
+use clients::{arbiter::world::WorldManager, client::Local, ledger::LedgerClient, scroll::Scroll};
 use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
@@ -84,10 +84,11 @@ pub enum AddressBookMessage {
 }
 
 /// State for all chain related data.
-#[derive(Clone, Debug)]
+/// Idea: maybe make chains over generic over signers?
+#[derive(Debug, Clone)]
 pub struct Chains {
     pub arbiter: Arc<Mutex<Environment>>,
-    pub local: Local<Ws>,
+    pub local_wallet: Local<Provider<Ws>, LocalWallet>,
 }
 #[derive(Debug)]
 pub enum ChainMessage {}
@@ -170,10 +171,18 @@ pub struct App {
     pub windows: Windows,
     pub chains: Chains,
     pub sidebar: Sidebar,
+    // this is a handle that has a lock on the ledger device
+    // we have to talk to it async
+    pub ledger: LedgerClient,
 }
 
 impl App {
-    pub fn new(storage: Storage, chains: Chains, streams: Streams) -> (Self, Command<Message>) {
+    pub fn new(
+        storage: Storage,
+        chains: Chains,
+        streams: Streams,
+        ledger: LedgerClient,
+    ) -> (Self, Command<Message>) {
         (
             Self {
                 storage,
@@ -182,6 +191,7 @@ impl App {
                 cache: Cache::new(),
                 windows: Windows::default(),
                 sidebar: Sidebar::new(),
+                ledger,
             },
             Command::none(),
         )

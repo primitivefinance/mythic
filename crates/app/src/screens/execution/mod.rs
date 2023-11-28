@@ -40,16 +40,17 @@ pub struct Execution {
     cache: Cache,
 }
 
+// maybe replace clones with refs?
 impl Execution {
     pub fn new(chains: Chains, storage: Storage) -> Self {
         let forker = Forker::new(
             EnvironmentBuilder::new().build(),
-            chains.local.client.clone(),
+            chains.local_wallet.client.clone(),
             0,
             None,
         );
 
-        let forker_address = chains.clone().local.client.unwrap().clone().address();
+        let forker_address = chains.clone().local_wallet.client.unwrap().address();
         tracing::info!("Forker address: 0x{:x}", forker_address);
 
         // Cache these contact lists so we don't need to refetch them on view...
@@ -75,7 +76,7 @@ impl Execution {
         };
 
         Self {
-            chains,
+            chains: chains.clone(),
             storage,
             form: form::Form::new(),
             processing: processing::Processing::new(forker),
@@ -201,7 +202,7 @@ impl Execution {
     }
 }
 
-impl State for Execution {
+impl<'a> State for Execution {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Empty => Command::none(),

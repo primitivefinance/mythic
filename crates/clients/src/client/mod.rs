@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use ethers::{
+    core::k256::ecdsa::SigningKey,
+    middleware::SignerMiddleware,
     prelude::*,
     utils::{Anvil, AnvilInstance},
 };
@@ -11,14 +13,17 @@ const RPC_URL_WS: &str = "ws://localhost:8545";
 const CHAIN_ID: u64 = 31337;
 
 #[derive(Clone)]
-pub struct Local<C> {
-    pub client: Option<Arc<SignerMiddleware<Provider<C>, LocalWallet>>>,
+pub struct Local<Ws, S>
+where
+    S: Send,
+{
+    pub client: Option<Arc<SignerMiddleware<Ws, S>>>,
     pub anvil: Option<Arc<AnvilInstance>>,
     pub counter_contract: Option<Address>,
     pub coin_contract: Option<Address>,
 }
 
-impl<C> std::fmt::Debug for Local<C> {
+impl<Ws, S: Send> std::fmt::Debug for Local<Ws, S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Local")
             .field("client", &self.client.is_some())
@@ -27,7 +32,7 @@ impl<C> std::fmt::Debug for Local<C> {
     }
 }
 
-impl Default for Local<Ws> {
+impl<Ws, S: Send> Default for Local<Ws, S> {
     fn default() -> Self {
         Self {
             client: None,
@@ -38,7 +43,7 @@ impl Default for Local<Ws> {
     }
 }
 
-impl Local<Ws> {
+impl Local<Provider<Ws>, Wallet<SigningKey>> {
     pub async fn new() -> anyhow::Result<Self> {
         // connect to the network
         let provider = Provider::<Ws>::connect(RPC_URL_WS).await?;
@@ -82,7 +87,7 @@ impl Local<Ws> {
             Some(ref anvil) => {
                 let wallet: LocalWallet = anvil
                     .keys()
-                    .get(0)
+                    .first()
                     .expect("no keys in anvil")
                     .clone()
                     .into();
@@ -139,10 +144,7 @@ impl Local<Ws> {
 
         tracing::info!(
             "Client balance: {}",
-            coin.balance_of(client_address.clone())
-                .call()
-                .await
-                .unwrap(),
+            coin.balance_of(client_address).call().await.unwrap(),
         );
 
         let coin = coin.address();
@@ -163,13 +165,16 @@ mod tests {
 
     #[tokio::test]
     async fn test_local_anvil() {
-        let local = Local::<Ws>::default().with_anvil();
+        let local = Local::<Provider<Ws>, Wallet<SigningKey>>::default().with_anvil();
         assert!(local.anvil.is_some());
     }
 
     #[tokio::test]
     async fn test_with_dev_wallet() {
-        let local = Local::<Ws>::default().with_anvil().with_dev_wallet().await;
+        let local = Local::<Provider<Ws>, Wallet<SigningKey>>::default()
+            .with_anvil()
+            .with_dev_wallet()
+            .await;
         assert!(local.client.is_some());
     }
 }

@@ -82,12 +82,12 @@ impl Application for MVP {
             }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready(Ok((storage, chains))) => {
+                loader::Message::Ready(Ok((storage, chains, ledger))) => {
                     // 4. Create our app and move to the app state.
                     let streams = app::Streams {
                         app_event_receiver: self.tracer.receiver.clone(),
                     };
-                    let (app, command) = App::new(storage, chains, streams);
+                    let (app, command) = App::new(storage, chains, streams, ledger);
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.
