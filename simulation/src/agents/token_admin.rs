@@ -14,8 +14,8 @@ pub struct TokenAdmin {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TokenAdminParameters {
-    arbx: TokenData,
-    arby: TokenData,
+    pub arbx: TokenData,
+    pub arby: TokenData,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
