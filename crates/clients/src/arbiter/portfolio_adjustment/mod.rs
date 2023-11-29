@@ -17,7 +17,7 @@ use simulation::{
         },
         price_changer::PriceChanger,
         token_admin::TokenAdmin,
-        Agents,
+        AgentParameters, Agents,
     },
     settings::{parameters::Single, SimulationConfig},
     simulations::errors::SimulationError,
@@ -27,15 +27,17 @@ use tokio::{
     runtime::Builder,
     sync::{broadcast, Mutex, Semaphore},
 };
+use tracing_futures::Instrument;
 
 use self::config::ConfigBuilder;
-use super::world::{self, spawn_tasks, World, WorldManager};
+use super::world::{self, World, WorldManager};
 
-pub type SpawnedManager = anyhow::Result<Arc<Mutex<WorldManager>>, Arc<anyhow::Error>>;
+pub type SimulatedWorld = anyhow::Result<Arc<Mutex<World>>, Arc<anyhow::Error>>;
+
 pub type InstanceManager = Arc<Mutex<WorldManager>>;
 
 #[tracing::instrument]
-pub async fn spawn(builders: Vec<MiniWorldBuilder>) -> SpawnedManager {
+pub async fn spawn(builders: Vec<MiniWorldBuilder>) -> SimulatedWorld {
     // Override the world manager with a new one that has spawned worlds.
     Ok(Arc::new(Mutex::new(
         manager(builders).await.map_err(|e| Arc::new(e))?,
@@ -49,17 +51,14 @@ pub async fn spawn(builders: Vec<MiniWorldBuilder>) -> SpawnedManager {
 /// To use this manager, make your world builders and pass them into it.
 /// Making a world builder lets you customize the configuration beforehand.
 #[tracing::instrument]
-pub async fn manager(
-    builders: Vec<MiniWorldBuilder>,
-) -> anyhow::Result<WorldManager, anyhow::Error> {
-    let (tx, worlds, slice) = spawn_worlds(builders).await?;
+pub async fn manager(builders: Vec<MiniWorldBuilder>) -> anyhow::Result<World, anyhow::Error> {
+    // just get the first builder
+    let builder = builders[0].clone();
+    let slice = spawn_world(builder).await?;
 
     tracing::info!("Worlds spawned, exiting spawn fn.");
-    Ok(WorldManager::new(
-        worlds,
-        Some(Arc::new(Mutex::new(tx))),
-        Some(Arc::new(Mutex::new(slice))),
-    ))
+    let world = slice.join().unwrap().unwrap();
+    Ok(world)
 }
 
 /// Constructs a World instance from a config builder and environment builder.
@@ -270,6 +269,7 @@ impl MiniWorldBuilder {
             state: world::State::new(),
             config,
             seed,
+            current_step: 0,
         })
     }
 
@@ -279,41 +279,90 @@ impl MiniWorldBuilder {
     }
 }
 
-#[tracing::instrument(skip(builders))]
-pub async fn spawn_worlds(
-    builders: Vec<MiniWorldBuilder>,
-) -> anyhow::Result<
-    (
-        broadcast::Sender<usize>,
-        Vec<Arc<Mutex<World>>>,
-        std::thread::JoinHandle<Result<Vec<Arc<Mutex<World>>>, anyhow::Error>>,
-    ),
-    anyhow::Error,
-> {
-    // Create a broadcast channel instead of a standard channel
-    let (tx, _) = broadcast::channel::<usize>(100);
-
-    let tx_clone = tx.clone();
-
-    let mut worlds = vec![];
-
-    for (i, builder) in builders.into_iter().enumerate() {
-        tracing::info!("Spawning world: {}", i);
-        let world = builder.build_arc().await?;
-        worlds.push(world);
-    }
-
-    let worlds_clone = worlds.clone();
+#[tracing::instrument(skip(builder))]
+pub async fn spawn_world(
+    builder: MiniWorldBuilder,
+) -> anyhow::Result<std::thread::JoinHandle<Result<World, anyhow::Error>>, anyhow::Error> {
+    let world = builder.build().await.unwrap();
 
     tracing::info!("Worlds spawned, running tasks in separate thread.");
     let slice = std::thread::spawn(move || {
         let rt = Builder::new_multi_thread().build()?;
-        let semaphore = Arc::new(Semaphore::new(worlds_clone.len()));
+        let semaphore = Arc::new(Semaphore::new(1));
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<anyhow::Error>));
 
-        let res = rt.block_on(spawn_tasks(worlds_clone, tx, semaphore, errors));
+        let res = rt.block_on(spawn_tasks(world, semaphore, errors));
         res
     });
 
-    Ok((tx_clone, worlds, slice))
+    Ok(slice)
+}
+
+#[tracing::instrument(skip(world, semaphore, errors))]
+pub async fn spawn_tasks(
+    world: World,
+    semaphore: Arc<Semaphore>,
+    errors: Arc<tokio::sync::Mutex<Vec<anyhow::Error>>>,
+) -> anyhow::Result<World, anyhow::Error> {
+    let current_span = tracing::Span::current();
+    let new_span = current_span.clone();
+    let handle = create_task(world, semaphore.clone(), errors.clone()).instrument(new_span);
+    let result = handle.await.unwrap();
+    result
+}
+
+#[tracing::instrument(skip(world, semaphore, errors))]
+fn create_task(
+    world: World,
+    semaphore: Arc<Semaphore>,
+    errors: Arc<tokio::sync::Mutex<Vec<anyhow::Error>>>,
+) -> tokio::task::JoinHandle<anyhow::Result<World, anyhow::Error>> {
+    let errors_clone = errors.clone();
+    let semaphore_clone = semaphore.clone();
+    let handle = tokio::spawn(async move {
+        tracing::debug!("Running environment; Full config: {:#?}", world.config);
+
+        // Should add a check that the agents have already been started up.
+        // Running simulation.
+        let mut world = world;
+        world.run().await.unwrap();
+        world.startup().await.unwrap();
+
+        let permit = semaphore_clone.acquire().await.unwrap();
+
+        let price_changer = world
+            .config
+            .agent_parameters
+            .iter()
+            .find(|p| matches!(p.1, AgentParameters::PriceChanger(_)))
+            .unwrap();
+
+        let price_changer = match price_changer {
+            (_, AgentParameters::PriceChanger(p)) => p,
+            _ => unreachable!(),
+        };
+
+        let num_steps = price_changer.num_steps;
+
+        for _ in 0..num_steps {
+            let result: anyhow::Result<(), anyhow::Error> = world.update().await;
+            match result {
+                Err(e) => {
+                    tracing::error!("Got step error: {:?}", e);
+                    let mut errors_clone_lock = errors_clone.lock().await;
+                    errors_clone_lock.push(e);
+                    // Drop the permit when the simulation is done.
+                    drop(permit);
+                    break;
+                }
+                Ok(_) => {
+                    // Continue running the simulation.
+                }
+            }
+        }
+
+        Ok(world)
+    });
+
+    handle
 }

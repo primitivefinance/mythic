@@ -19,6 +19,9 @@ pub struct PreparePayload {
     pub altered: Vec<usize>,
 }
 
+pub const MAX_WEIGHT: f64 = 0.99;
+pub const MIN_WEIGHT: f64 = 0.01;
+
 impl PreparePayload {
     pub fn new(original: Portfolio) -> Self {
         Self {
@@ -37,6 +40,13 @@ impl PreparePayload {
         let mut position = self.adjusted.positions[pos_index].clone();
         let weight = position.weight.unwrap_or_default();
         position.weight = Some(weight + delta);
+
+        // Round the weight down, and also make sure it's not above the max weight.
+        position.weight = Some(f64::min(MAX_WEIGHT, position.weight.unwrap_or_default()));
+
+        // Also make sure its not below the min weight.
+        position.weight = Some(f64::max(MIN_WEIGHT, position.weight.unwrap_or_default()));
+
         self.adjusted.positions[pos_index] = position;
     }
 
@@ -205,6 +215,10 @@ pub fn adjust_weights_algorithm(items: &mut Vec<f64>, changes: Vec<(usize, f64)>
 
         // Round the weight to the nearest 2 decimal places
         *weight = (*weight * 100.0).round() / 100.0;
+
+        // Make sure weight is not above MAX_WEIGHT or below MIN_WEIGHT
+        *weight = f64::min(MAX_WEIGHT, *weight);
+        *weight = f64::max(MIN_WEIGHT, *weight);
     }
 
     items.clone()

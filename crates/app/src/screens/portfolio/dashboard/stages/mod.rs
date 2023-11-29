@@ -306,6 +306,7 @@ impl Stages {
                 // ready to simulate. This should be caught by the simulate
                 // screen and the result should be stored in the screen.
 
+                tracing::info!("Running sim... please wait a few seconds.");
                 return Command::perform(
                     portfolio_adjustment::spawn(self.simulations.clone()),
                     simulate::Message::Ready,

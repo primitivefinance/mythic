@@ -37,6 +37,10 @@ impl Agent for DollarCostAveragingStategist {
 
     async fn startup(&mut self) -> Result<()> {
         debug!("Entered startup for `DollarCostAveragingStategist`");
+        debug!(
+            "Setting weight to {} at timestamp {}",
+            self.end_weight, self.end_timestamp
+        );
         self.g3m()
             .set_weight_x(
                 parse_ether(self.end_weight)?,

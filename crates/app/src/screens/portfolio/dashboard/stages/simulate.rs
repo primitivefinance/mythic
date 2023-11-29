@@ -1,4 +1,7 @@
-use clients::arbiter::portfolio_adjustment::{InstanceManager, SpawnedManager};
+use clients::arbiter::{
+    portfolio_adjustment::{InstanceManager, SimulatedWorld},
+    world::World,
+};
 use logging::tracer::AppEventLayer;
 
 use super::*;
@@ -13,7 +16,7 @@ pub enum Message {
     Empty,
     Submit,
     /// Prepares the simulation.
-    Ready(SpawnedManager),
+    Ready(SimulatedWorld),
     /// Starts the simulation run.
     Simulate,
     /// Simulation run complete.
@@ -44,7 +47,7 @@ pub struct Simulate {
     builders: Vec<MiniWorldBuilder>,
     form: Form,
     metrics: Vec<String>,
-    manager: InstanceManager,
+    world: Option<Arc<tokio::sync::Mutex<World>>>,
     store: StateSubscriptionStore,
 }
 
@@ -101,7 +104,7 @@ pub async fn run_simulation(m: InstanceManager) -> anyhow::Result<(), anyhow::Er
         match msg {
             Ok(_) => {
                 tracing::info!("Sent message to manager!");
-                tokio::time::sleep(tokio::time::Duration::from_millis(5)).await;
+                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
             }
             Err(error) => {
                 tracing::error!("Error sending message to manager: {:?}", error);
@@ -109,7 +112,7 @@ pub async fn run_simulation(m: InstanceManager) -> anyhow::Result<(), anyhow::Er
                 // If we need to try again, wait a bit and try again.
                 if retries < max_retries {
                     retries += 1;
-                    tokio::time::sleep(tokio::time::Duration::from_millis(5 * (retries as u64)))
+                    tokio::time::sleep(tokio::time::Duration::from_millis(1000 * (retries as u64)))
                         .await;
                     continue 'outer;
                 }
@@ -141,51 +144,48 @@ pub async fn sim_startup(m: InstanceManager) -> anyhow::Result<(), anyhow::Error
 
 #[tracing::instrument(level = "trace", skip(m), fields(layer = %"system", action = %"step"))]
 pub async fn handle_state_subscriptions(
-    m: InstanceManager,
+    m: Arc<tokio::sync::Mutex<World>>,
 ) -> anyhow::Result<StateSubscriptionStore, Arc<anyhow::Error>> {
-    let locked = m.lock().await;
     let mut state_data = HashMap::new();
 
-    for world in locked.worlds.iter() {
-        let world = world.lock().await;
-        let world_id = world.seed;
-        let mut agents = world.agents.lock().await;
+    let world = m.lock().await;
+    let world_id = world.seed;
+    let mut agents = world.agents.lock().await;
 
-        // truncate the world id to just leave the first three characters
-        let formatted_world_id = world_id.clone().to_string();
+    // truncate the world id to just leave the first three characters
+    let formatted_world_id = world_id.clone().to_string();
 
-        for agent in agents.0.iter_mut() {
-            let subscribed = agent.1.get_subscribed().await.map_err(Arc::new)?;
+    for agent in agents.0.iter_mut() {
+        let subscribed = agent.1.get_subscribed().await.map_err(Arc::new)?;
 
-            // Skip empty subscriptions to avoid populating the state data with empty
-            // subscriptions.
-            if subscribed.is_empty() {
-                continue;
-            }
+        // Skip empty subscriptions to avoid populating the state data with empty
+        // subscriptions.
+        if subscribed.is_empty() {
+            continue;
+        }
 
-            if agent.0.to_lowercase().contains("monitor") {
-                state_data.entry(world_id).or_insert(HashMap::new()).insert(
-                    agent.0.to_string(),
-                    StateSubscription {
-                        logs: subscribed,
-                        label: format!("{} {}", formatted_world_id, agent.0),
-                        category: AppEventLayer::System,
-                        id: world_id,
-                    },
-                );
-            } else {
-                // Add the subscribed data as a state subscription inside the hashm ap with keys
-                // world id -> agent name
-                state_data.entry(world_id).or_insert(HashMap::new()).insert(
-                    agent.0.to_string(),
-                    StateSubscription {
-                        logs: subscribed,
-                        label: format!("{} {}", formatted_world_id, agent.0),
-                        category: AppEventLayer::Agent,
-                        id: world_id,
-                    },
-                );
-            }
+        if agent.0.to_lowercase().contains("monitor") {
+            state_data.entry(world_id).or_insert(HashMap::new()).insert(
+                agent.0.to_string(),
+                StateSubscription {
+                    logs: subscribed,
+                    label: format!("{} {}", formatted_world_id, agent.0),
+                    category: AppEventLayer::System,
+                    id: world_id,
+                },
+            );
+        } else {
+            // Add the subscribed data as a state subscription inside the hashm ap with keys
+            // world id -> agent name
+            state_data.entry(world_id).or_insert(HashMap::new()).insert(
+                agent.0.to_string(),
+                StateSubscription {
+                    logs: subscribed,
+                    label: format!("{} {}", formatted_world_id, agent.0),
+                    category: AppEventLayer::Agent,
+                    id: world_id,
+                },
+            );
         }
     }
 
@@ -198,29 +198,30 @@ impl State for Simulate {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Message::Ready(manager) => match manager {
-                Ok(manager) => {
-                    tracing::info!("Manager spawned!");
-                    self.manager = manager;
-                    let m = self.manager.clone();
-                    return Command::perform(sim_startup(m), |_| Message::Empty);
+            Message::Ready(world) => match world {
+                Ok(world) => {
+                    tracing::info!("Simulation finished!");
+                    self.world = Some(world);
+                    let m = self.world.clone().unwrap();
+                    return Command::perform(handle_state_subscriptions(m), Message::Outcome);
+                    // return Command::perform(async {}, |_| Message::Empty);
                 }
                 Err(error) => {
                     tracing::error!("Error spawning manager: {:?}", error);
                 }
             },
             Message::Simulate => {
-                return Command::perform(run_simulation(self.manager.clone()), |_| {
-                    Message::Complete
-                });
+                return Command::perform(async {}, |_| Message::Complete);
             }
             Message::Empty => {}
             Message::Submit => {}
             Message::Complete => {
                 // When the simulation completes, we want to get the ending
                 // reserves.
-                let m = self.manager.clone();
-                return Command::perform(handle_state_subscriptions(m), Message::Outcome);
+                if let Some(world) = self.world.clone() {
+                    let m = world.clone();
+                    return Command::perform(handle_state_subscriptions(m), Message::Outcome);
+                }
             }
             // Load the state data into the store so it can be rendered.
             Message::Outcome(state_data) => match state_data {
