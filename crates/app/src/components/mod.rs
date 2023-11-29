@@ -6,6 +6,8 @@ pub mod select;
 pub mod styles;
 pub mod tables;
 
+use std::borrow::Cow;
+
 use button::*;
 use iced::{
     widget::{pick_list, Button, Container},
@@ -380,12 +382,15 @@ pub fn input_group<'a>(
 }
 
 /// Column with a label and pick list field.
-pub fn select_group<'a>(
+pub fn select_group<'a, Message>(
     title: String,
     options: Vec<String>,
     selected: Option<String>,
     on_selected: impl Fn(String) -> Message + 'a,
-) -> Element<'a, Message> {
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     let title = h3(title.to_string());
     let input = custom_pick_list(options, selected.clone(), on_selected, None)
         .padding(Sizes::Md as u16)
@@ -436,6 +441,31 @@ where
     let input = create_input_component(value, on_change);
 
     Column::new().push(title).push(input).spacing(Sizes::Md)
+}
+
+/// Column with a label and pick list field.
+pub fn labeled_select<'a, Message, T>(
+    title: String,
+    options: impl Into<Cow<'a, [T]>>,
+    selected: Option<T>,
+    on_selected: impl Fn(T) -> Message + 'a,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+    T: ToString + Eq + 'static + Clone,
+    [T]: ToOwned<Owned = Vec<T>>,
+{
+    let title = h3(title.to_string());
+
+    Column::new()
+        .push(title)
+        .push(
+            custom_pick_list(options, selected, on_selected, None)
+                .padding(Sizes::Md as u16)
+                .width(Length::Fill),
+        )
+        .spacing(Sizes::Md as u16)
+        .into()
 }
 
 /// For use in the instructions container.
