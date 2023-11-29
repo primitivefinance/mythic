@@ -20,11 +20,11 @@ In each child component, a Parent Message is defined for developers to easily un
 
 # sidebar
 
-I worked on the sidebar. It started out very basic: an enum that is referenced from the application state. Then the enum variants just need to define their own "button links" with their icons + message to send, and thats it. Pass the reference enum to the app_layout and you have a sidebar!
+I worked on the sidebar. It started out very basic: an enum that is referenced from the application state. Then the enum variants just need to define their own "button links" with their icons + message to send, and that's it. Pass the reference enum to the app_layout and you have a sidebar!
 
 I made it more complicated. I made an actual Sidebar struct that implements our `State` trait, so it has its own view. It then has its own state of the original enum `Page`, as `page`, which has its own view function that is called, which is now just the original logic that was in before the sidebar. 
 
-I also added a `bookmarks` field to the Sidebar sta te. This way, we can update the bookmarks in the application state, and then pass the reference of the `Sidebar` to the `app_layout`, which calls `view()` as usual.
+I also added a `bookmarks` field to the Sidebar state. This way, we can update the bookmarks in the application state, and then pass the reference of the `Sidebar` to the `app_layout`, which calls `view()` as usual.
 
 This lets us keep some state in the sidebar, which I think make sense. However, I don't know if making this component more complex could have some negative side effects down the road, because its a stateful thingy instead of a ref to an enum variant.
 

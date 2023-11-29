@@ -14,6 +14,15 @@ where
     padding_cell_internal: Option<Sizes>,
 }
 
+impl<Message> Default for ColumnBuilder<Message>
+where
+    Message: 'static + Default,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<Message> ColumnBuilder<Message>
 where
     Message: 'static + Default,

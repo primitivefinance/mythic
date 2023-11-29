@@ -203,7 +203,7 @@ impl State for Form {
                 self.assets[index].price = price
             }
             Message::AssetBalanceChanged(index, balance) => self.assets[index].balance = balance,
-            Message::Submit => return self.submit().map(|x| x.into()),
+            Message::Submit => return self.submit().map(|x| x),
         }
 
         Command::none()
@@ -230,7 +230,7 @@ impl State for Form {
                                 .cell(
                                     CellBuilder::new()
                                         .checked(Some(asset.selected))
-                                        .on_checkbox(move |x| form::Message::AssetSelected(i)),
+                                        .on_checkbox(move |_x| form::Message::AssetSelected(i)),
                                 )
                         })
                         .collect(),

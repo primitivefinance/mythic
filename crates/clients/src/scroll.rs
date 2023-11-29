@@ -31,15 +31,9 @@ use ethers::{
     types::{transaction::eip2718::TypedTransaction, Address},
     utils::parse_ether,
 };
+use simulation::bindings::coin::{Coin, TransferCall};
 
 use super::{forking::forking::*, *};
-
-// todo: proper abi management?
-abigen!(Coin, "crates/abi/Coin.sol/coin.json",
-    methods {
-                 transfer(address,uint) as transfer_call;
-            },
-);
 
 #[derive(Default, Debug, Clone)]
 pub struct Stages {
