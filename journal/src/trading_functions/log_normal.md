@@ -42,15 +42,9 @@ $$
 ## Determining $L$
 There are a few distinct times where we need to determine the value of $L$, but they all come down to liquidity being deposited into the pool and not from swaps.
 We want to disentangle swaps and liquidity provision/donation.
-That will make this all clearer and easier to tackle, in my mind.
+Note that for [G3M](./geometric_mean.md), we don't have this same need as the $L$ is determined by the trading function explicitly.
 
-### Pool Initialization
-When the pool is initialized, we need to determine the value of $L$.
-The user will provide a price $S$ and an amount of $x$ or an amount of $y$ that they wish to tender. 
-From there, we should be able to determine how much of both tokens must be allocated as well as the value of $L$.
-
-#### Specifying $x$
-Suppose that the user specifies the amount $x$ they wish to allocate and they also choose a price $S$.
+### $L$ from $x$
 Without showing all the work, we can recall that $\frac{x}{L}$ is one of the option binaries:
 $$
 \frac{x}{L} = 1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)
@@ -59,6 +53,25 @@ Since we know $x$ and we know $S$, we can solve for $L$ to find:
 $$
 \boxed{L_X(x,S) = \frac{x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
 $$
+
+### $L$ from $y$
+The work here is basically a mirrored image of the above.
+$$
+\frac{y}{KL} = \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
+$$
+From here we get $L$:
+$$
+\boxed{L_Y(y,S) = \frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
+$$
+
+
+## Pool Initialization
+When the pool is initialized, we need to determine the value of $L$.
+The user will provide a price $S$ and an amount of $x$ or an amount of $y$ that they wish to tender. 
+From there, we should be able to determine how much of both tokens must be allocated as well as the value of $L$.
+
+### Specifying $x$
+Suppose that the user specifies the amount $x$ they wish to allocate and they also choose a price $S$.
 Further, we need to know how much $y$ to allocate, which we can also use the other binary:
 $$
 \frac{y}{KL} = \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
@@ -69,26 +82,19 @@ $$
 $$
 Note that the above is not simplified and likely could be drastically simplified.
 
-#### Specifying $y$
+
+### Specifying $y$
 Suppose that the user specifies the amount $y$ they wish to allocate and they also choose a price $S$.
-The work here is basically a mirrored image of the above.
-$$
-\frac{y}{KL} = \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)
-$$
-From here we get $L$:
-$$
-\boxed{L_Y(y,S) = \frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
-$$
 Now we need to get $x$:
 $$
 \boxed{x(y,S) = L_Y(y,S)\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
 $$
 
-### Adding Liquidity
+## Adding/Removing Liquidity
 When a user adds liquidity, they will specify an amount of $x$ or an amount of $y$, and the pool's price $S$ and liquidity $L$ will already be known. 
 When adding liquidity, we assume that price will not change whatsoever and only the value of $L$ will change.
 
-#### Specifying $x$
+### Specifying $x$
 Given some amount of $\delta_x$ the user wants to add, we can just use the equation for $L(x,S)$ above to get:
 $$
 \boxed{L_X(x+\delta_x,S) = \frac{x+\delta_x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}}
@@ -99,7 +105,7 @@ L_X(x+\delta_x,S) = L_X(x,S)+\underbrace{L_X(\delta_x,S)}_{\delta_L}
 $$
 can be used to make the calculation easier.
 
-#### Specifying $y$
+### Specifying $y$
 Given some amount of $\delta_y$ the user wants to add, we can just use the equation for $L(y,S)$ above to get:
 $$
 \boxed{L_Y(y+\delta_y,S) = \frac{y+\delta_y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}}
@@ -115,7 +121,7 @@ When a user removes liquidity, they will specify an amount of $x$ or an amount o
 When removing liquidity, we assume that price will not change whatsoever and only the value of $L$ will change.
 We can just use the same formulation as above and note that $\delta_x$ and $\delta_y$ may be positive or negative.
 
-### Swaps
+## Swaps
 When a user swaps, it must be that the trading function remains invariant:
 $$
 \Phi^{-1}\left(\frac{x+\Delta_x}{L}\right)+\Phi^{-1}\left(\frac{y+\Delta_y}{KL}\right)=-\sigma.
@@ -123,7 +129,7 @@ $$
 Note again I'm allowing for $\Delta_x$ and $\Delta_y$ to be positive or negative.
 In absence of fees, the liquidity $L$ is invariant, so it is a matter of finding the $\Delta_x(\Delta_y)$ or $\Delta_y(\Delta_x)$ that satisfies the above equation (which we definitely know).
 
-#### With Fees
+### With Fees
 Assume now that there is a fee parameter $\gamma$ such that the fee invested into the pool is $1-\gamma$. 
 Assume further that the fee is always taken out of the input token for the swap.
 Think of the swap as a two step process:
@@ -139,7 +145,7 @@ Note at this point, the reserves are then $x+\delta_x$ and $y+\delta_y$ and the 
 So we must use these in the swap calculation.
 Then we can use all of the rules we defined here.
 
-##### $\Delta_y$ given $\Delta_x$
+#### $\Delta_y$ given $\Delta_x$
 Suppose that the user wants to swap $x$ for $y$ and the price is $S$.
 They specifically tender $\Delta_x$ and the fee parameter is $\gamma$.
 Now $\delta_x=(1-\gamma)\Delta_x$ and $\widetilde{\Delta_x}=\gamma\Delta_x$.
@@ -154,7 +160,7 @@ $$
 \boxed{\Delta_y(\Delta_x) = K(L+\delta_L)\cdot\Phi\left(-\sigma-\Phi^{-1}\left(\frac{x+\Delta_x}{L+\delta_L}\right)\right)-y}
 $$
 
-##### $\Delta_x$ given $\Delta_y$
+#### $\Delta_x$ given $\Delta_y$
 <!-- TODO UPDATE THIS MATH -->
 Suppose that the user wants to swap $y$ for $x$ and the price is $S$.
 They specifically tender $\Delta_y$ and the fee parameter is $\gamma$.
@@ -214,3 +220,42 @@ $$
 \boxed{V(L,S) = L\left( S\cdot\left(1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)\right) + K\cdot \Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)\right)}
 $$
 Note that $V$ is linear in $L$ and so we can use this to tokenize.
+
+### Time Dependence
+Note that $L$ effectively changes as parameters of the trading function change.
+To be specific, let's write $L$ as $L(K, \sigma, \tau)$ assuming that $x$, $y$, and $S$ are fixed. 
+So we just take one of the above equations:
+$$
+L_X(x,S;K,\sigma, \tau) = \frac{x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
+$$
+As any of the parameters change, we can use their values in the addition of liquidity or swaps to determine the new value of $L$ prior to allowing those transactions to take place.
+
+Similarly, the price is also time dependent for all the parameters so we can put:
+$$
+P_X(x,L;K,\sigma, \tau) = K \exp\left(\Phi^{-1}\left(1-\frac{x}{L}\right)\sigma\sqrt{\tau}-\frac{1}{2}\sigma^2\tau\right)
+$$
+Now:
+$$
+L_Y=\frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
+$$
+gives:
+$$
+P(x,y;K,\sigma, \tau) = K \exp\left(\Phi^{-1}\left(1-K\Phi(d_2)\frac{x}{y}\right)\sigma\sqrt{\tau}-\frac{1}{2}\sigma^2\tau\right)
+$$
+
+$$
+-\frac{\Phi(\ln \frac{P}{K}) +\frac{1}{2}\sigma^2 \tau+\sigma\sqrt{\tau}}{K\Phi(d_1)} = \frac{x}{y}
+$$
+
+#### Calculus
+We can compute partial derivatives of this with respect to varying parameters $K$, $\sigma$, and $\tau$.
+$$
+\frac{\partial L_X}{\partial \tau} = \frac{x(\sigma^2 \tau - 2 \ln(s/k))\exp\left( 
+\frac{-(\sigma^2 \tau) + 2 \ln(s/k))^2}{8\sigma^2 \tau}\right)}{\sqrt{2\pi}\sigma \tau^{3/2} \operatorname{erfc}\left( \frac{\sigma^2\tau + 2 \ln (s/k)}{2\sqrt{2}\sigma \sqrt{\tau}}\right)}
+$$
+$$
+\frac{\partial L_X}{\partial \sigma} = \frac{\sqrt{\frac{2}{\pi }} x e^{-\frac{\left(2 \log \left(\frac{S}{k}\right)+\tau  v^2\right)^2}{8 \tau  v^2}} \left(\tau  v^2-2 \log \left(\frac{S}{k}\right)\right)}{\sqrt{\tau } v^2 \text{erfc}\left(\frac{2 \log \left(\frac{S}{k}\right)+\tau  v^2}{2 \sqrt{2} \sqrt{\tau } v}\right)^2}
+$$
+$$
+\frac{\partial L_X}{\partial K} = \frac{2 \sqrt{\frac{2}{\pi }} x e^{-\frac{\left(2 \log \left(\frac{S}{\kappa }\right)+\tau  v^2\right)^2}{8 \tau  v^2}}}{\kappa  \sqrt{\tau } v \text{erfc}\left(\frac{2 \log \left(\frac{S}{\kappa }\right)+\tau  v^2}{2 \sqrt{2} \sqrt{\tau } v}\right)^2}
+$$

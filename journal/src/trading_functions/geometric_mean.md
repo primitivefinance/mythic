@@ -12,7 +12,11 @@ This is a basic building block for a lot of portfolio designs.
 Mechanically, G3M of two variable parameters:
 - $w_x \equiv \mathtt{weight\_x}$
 - $w_y \equiv \mathtt{weight\_y}$ 
-- These parameters must satisfy $w_x+w_y=1$.
+- These parameters must satisfy 
+$$
+w_x, w_y \geq 0 \\
+w_x+w_y=1 
+$$
 
 Next, we define the trading function to be:
 $$
@@ -28,8 +32,9 @@ Note that $L$ is in units of Token by virtue of the geometric mean.
 ## Price
 If we compute the derivatives and simplify the expression, we get that the pool price is:
 $$
-\boxed{p = \frac{w_x}{w_y}\frac{y}{x}}
+\boxed{P = \frac{w_x}{w_y}\frac{y}{x}}
 $$
+We can determine a price in terms of just $x$ or just $y$ if need be.
 
 ## Swap 
 
