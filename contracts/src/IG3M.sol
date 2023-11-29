@@ -29,7 +29,9 @@ interface IG3M {
         UD60x18 newWeightXUpdatePerSecond
     );
 
-    event LogSyncingWeight(UD60x18 weightX, UD60x18 weightY, uint256 blockTimestamp);
+    event LogSyncingWeight(
+        UD60x18 weightX, UD60x18 weightY, uint256 blockTimestamp
+    );
 
     event LogWeights(uint256 blockTimestamp, UD60x18 weightX);
 

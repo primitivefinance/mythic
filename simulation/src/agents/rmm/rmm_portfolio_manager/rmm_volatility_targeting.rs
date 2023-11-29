@@ -100,9 +100,9 @@ impl RmmPortfolioManager for RmmVolatilityTargetingStrategist {
         info!("current strike float: {}", current_strike_float);
         let mut new_strike = current_strike_float;
         if portfolio_rv > self.target_volatility {
-            new_strike -= 0.001;
+            new_strike -= 0.0015;
         } else {
-            new_strike += 0.001;
+            new_strike += 0.0015;
         }
         info!("new strike float: {}", new_strike);
         self.rmm

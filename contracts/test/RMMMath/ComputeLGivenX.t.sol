@@ -10,7 +10,8 @@ contract ComputeLGivenX is Test {
         uint256 S = 2000 ether;
         uint256 K = 1800 ether;
         uint256 sigma = 0.05 ether;
+        uint256 tau = 1 ether;
 
-        console.log(computeLGivenX(x, S, K, sigma));
+        console.log(computeLGivenX(x, S, K, sigma, tau));
     }
 }

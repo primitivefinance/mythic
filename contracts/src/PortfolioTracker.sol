@@ -5,8 +5,11 @@ interface TokenLike {
 }
 
 contract PortfolioTracker {
-    event LogPortfolio(uint256 tokenXBalance, uint256 tokenYBalance, uint256 blockTimestamp);
+    event LogPortfolio(
+        uint256 tokenXBalance, uint256 tokenYBalance, uint256 blockTimestamp
+    );
     event GhostEvent(bool ghosted);
+
     function logPortfolio(address tokenX, address tokenY) external {
         uint256 tokenXBalance = TokenLike(tokenX).balanceOf(msg.sender);
         uint256 tokenYBalance = TokenLike(tokenY).balanceOf(msg.sender);

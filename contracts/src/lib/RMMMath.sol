@@ -1,13 +1,32 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "solstat/Gaussian.sol";
+import "./Gaussian.sol";
+import "solmate/utils/FixedPointMathLib.sol";
+import "./BisectionLib.sol";
 
 uint256 constant ONE = 1e18;
 
 uint256 constant HALF = 0.5e18;
 
 uint256 constant TWO = 2e18;
+
+uint256 constant BISECTION_EPSILON = 1;
+
+uint256 constant BISECTION_MAX_ITER = 256;
+
+using FixedPointMathLib for uint256;
+using FixedPointMathLib for uint128;
+using FixedPointMathLib for int256;
+
+struct NormalCurve {
+    uint256 x;
+    uint256 y;
+    uint256 L;
+    uint256 K;
+    uint256 sigma;
+    uint256 tau;
+}
 
 function toWad(uint256 a) pure returns (uint256) {
     return a * ONE;
@@ -17,28 +36,26 @@ function fromWad(uint256 a) pure returns (uint256) {
     return a / ONE;
 }
 
-function computeSigmaSqrtTau(uint256 sigma, uint256 tau) pure returns (uint256 sigmaSqrtTau) {
+function computeSigmaSqrtTau(
+    uint256 sigma,
+    uint256 tau
+) pure returns (uint256 sigmaSqrtTau) {
     uint256 sqrtTau = FixedPointMathLib.sqrt(tau) * 10 ** 9;
-    sigmaSqrtTau = FixedPointMathLib.mulWadDown(
-        sigma, sqrtTau
-    );
+    sigmaSqrtTau = FixedPointMathLib.mulWadDown(sigma, sqrtTau);
 }
 
-function computeHalfSigmaPower2Tau(uint256 sigma, uint256 tau) pure returns (uint256 halfSigmaPower2Tau) {
+function computeHalfSigmaPower2Tau(
+    uint256 sigma,
+    uint256 tau
+) pure returns (uint256 halfSigmaPower2Tau) {
     uint256 innerTerm = FixedPointMathLib.mulWadDown(
         uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
     );
 
-    halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(
-        HALF,
-        innerTerm
-    );
+    halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(HALF, innerTerm);
 }
 
-function computeLnSDivK(
-    uint256 S,
-    uint256 K
-) pure returns (int256 lnSDivK) {
+function computeLnSDivK(uint256 S, uint256 K) pure returns (int256 lnSDivK) {
     lnSDivK = FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
 }
 
@@ -76,7 +93,7 @@ function computeLGivenX(
     uint256 tau // time to expiry
 ) pure returns (uint256 L) {
     int256 denominator = int256(ONE) - Gaussian.cdf(computeD1(S, K, sigma, tau));
-    
+
     L = FixedPointMathLib.divWadUp(x, uint256(denominator));
 }
 
@@ -87,7 +104,9 @@ function computeLGivenY(
     uint256 sigma,
     uint256 tau // time to expiry
 ) pure returns (uint256 L) {
-    uint256 denominator = FixedPointMathLib.mulWadUp(K, uint256(Gaussian.cdf(computeD2(S, K, sigma, tau))));
+    uint256 denominator = FixedPointMathLib.mulWadUp(
+        K, uint256(Gaussian.cdf(computeD2(S, K, sigma, tau)))
+    );
 
     L = FixedPointMathLib.divWadUp(y, denominator);
 }
@@ -132,14 +151,15 @@ function computeSpotPrice(
         K,
         uint256(
             FixedPointMathLib.expWad(
-                Gaussian.ppf(int256(ONE - R1)) * int256(sigmaSqrtTau) / int256(ONE) - int256(halfSigmaPower2Tau)
+                Gaussian.ppf(int256(ONE - R1)) * int256(sigmaSqrtTau)
+                    / int256(ONE) - int256(halfSigmaPower2Tau)
             )
         )
     );
 }
 
 // The formula for computing the change in y (deltaY) is as follows:
-// deltaY = K(L + deltaL) * Phi(-sigma - Phi^-1((x + deltaX) / (L + deltaL))) - y 
+// deltaY = K(L + deltaL) * Phi(-sigma - Phi^-1((x + deltaX) / (L + deltaL))) - y
 // where Phi is the cumulative distribution function of the standard normal distribution,
 // Phi^-1 is the inverse of the Phi function,
 // sigma is the volatility,
@@ -174,7 +194,7 @@ function computeOutputYGivenX(
 }
 
 // The formula for computing the change in x (deltaX) is as follows:
-// deltaX = (L + deltaL) * Phi(-sigma - Phi^-1((y + deltaY) / (K * (L + deltaL)))) - x 
+// deltaX = (L + deltaL) * Phi(-sigma - Phi^-1((y + deltaY) / (K * (L + deltaL)))) - x
 // where Phi is the cumulative distribution function of the standard normal distribution,
 // Phi^-1 is the inverse of the Phi function,
 // sigma is the volatility,
@@ -200,12 +220,11 @@ function computeOutputXGivenY(
 
     int256 cdf = Gaussian.cdf(
         -int256(sigmaSqrtTau)
-            - Gaussian.ppf(
-                int256(FixedPointMathLib.divWadDown(y + deltaY, KL))
-            )
+            - Gaussian.ppf(int256(FixedPointMathLib.divWadDown(y + deltaY, KL)))
     );
 
-    deltaX = int256(FixedPointMathLib.mulWadDown(L + deltaL, uint256(cdf))) - int256(x);
+    deltaX = int256(FixedPointMathLib.mulWadDown(L + deltaL, uint256(cdf)))
+        - int256(x);
 }
 
 function computeInvariant(
@@ -218,4 +237,117 @@ function computeInvariant(
         + Gaussian.ppf(
             int256(reserveY / FixedPointMathLib.mulWadDown(liquidity, strikePrice))
         );
+}
+
+function computeSwapConstant(
+    bytes memory args,
+    uint256 value
+) pure returns (int256 swapConstant) {
+    NormalCurve memory curve = abi.decode(args, (NormalCurve));
+    swapConstant = Gaussian.ppf_unsafe(int256(FixedPointMathLib.divWadDown(curve.x, value)))
+        + Gaussian.ppf_unsafe(
+            int256(
+                FixedPointMathLib.divWadDown(curve.y, FixedPointMathLib.mulWadDown(value, curve.K))
+            )
+        ) + int256(computeSigmaSqrtTau(curve.sigma, curve.tau));
+}
+
+//compute new L using bisection
+// send the L along with the swap
+// assert that the compute swap constant function returns 0 with the new parameters and new L
+function computeNewLiquidity(
+    uint256 x,
+    uint256 y,
+    uint256 L,
+    uint256 K,
+    uint256 sigma,
+    uint256 tau
+) pure returns (uint256 newLiquidity) {
+
+    uint256 lower;
+    uint256 upper;
+
+    NormalCurve memory normalCurve = transform(
+        x,
+        y,
+        L,
+        K,
+        sigma,
+        tau
+    );
+
+    int256 initialConstant = computeSwapConstant(
+        abi.encode(normalCurve),
+        normalCurve.L 
+    );
+
+    if (initialConstant == 0) {
+        return L;
+    } else if (initialConstant < 0) {
+        upper = L;
+        lower = L.mulDivDown(99, 100);
+    } else {
+        lower = L;
+        upper = L.mulDivUp(101, 100);
+    }
+
+    newLiquidity = bisection(
+        abi.encode(normalCurve),
+        lower,
+        upper,
+        BISECTION_EPSILON,
+        BISECTION_MAX_ITER,
+        computeSwapConstant
+    );
+}
+
+function transform(
+    uint256 x,
+    uint256 y,
+    uint256 L,
+    uint256 K,
+    uint256 sigma,
+    uint256 tau
+) pure returns (NormalCurve memory normalCurve) {
+    normalCurve.x = x;
+    normalCurve.y = y;
+    normalCurve.L = L;
+    normalCurve.K = K;
+    normalCurve.sigma = sigma;
+    normalCurve.tau = tau;
+}
+
+function testSwapConstant(
+    uint256 x,
+    uint256 y,
+    uint256 L,
+    uint256 K,
+    uint256 sigma,
+    uint256 tau
+) pure returns (uint256, uint256) {
+    uint256 upper;
+    uint256 lower;
+    NormalCurve memory normalCurve = transform(
+        x,
+        y,
+        L,
+        K,
+        sigma,
+        tau
+    );
+
+    int256 initialConstant = computeSwapConstant(
+        abi.encode(normalCurve),
+        normalCurve.L 
+    );
+
+    if (initialConstant < 0) {
+        lower = L;
+        upper = L.mulDivUp(10001, 10000);
+    } else {
+        upper = L;
+        lower = L.mulDivDown(50, 100);
+    }
+    return (lower, upper);
+
 }

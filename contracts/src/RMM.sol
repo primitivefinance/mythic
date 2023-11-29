@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "solmate/tokens/ERC20.sol";
 import "./IStrategy.sol";
 import "./lib/RMMMath.sol";
+import "./lib/BisectionLib.sol";
 
 contract RMM is IStrategy {
     event LogParameters(
@@ -28,7 +29,7 @@ contract RMM is IStrategy {
     uint256 private sigmaUpdateEnd;
 
     uint256 private lastStrike;
-    uint256 private targetStrike;
+    uint256 public targetStrike;
     uint256 private lastStrikeSync;
     uint256 private strikeUpdatePerSecond;
     uint256 private strikeUpdateEnd;
@@ -38,7 +39,6 @@ contract RMM is IStrategy {
     uint256 private lastTauSync;
     uint256 private tauUpdatePerSecond;
     uint256 private tauUpdateEnd;
-
 
     constructor(
         address tokenX_,
@@ -305,7 +305,10 @@ contract RMM is IStrategy {
         return (liquidityDelta, amountX);
     }
 
-    function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
+    function _swap(
+        bool swapDirection,
+        uint256 amountIn
+    ) internal returns (uint256 amountOut) {
         (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
@@ -376,10 +379,9 @@ contract RMM is IStrategy {
             return targetSigma;
         }
 
-        return
-            lastSigma > targetSigma 
-                ? lastSigma - (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond
-                : lastSigma + (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond;
+        return lastSigma > targetSigma
+            ? lastSigma - (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond
+            : lastSigma + (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond;
     }
 
     function strikePrice() public view returns (uint256) {
@@ -387,10 +389,11 @@ contract RMM is IStrategy {
             return targetStrike;
         }
 
-        return 
-            lastStrike > targetStrike
-                ? lastStrike - (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond
-                : lastStrike + (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond;
+        return lastStrike > targetStrike
+            ? lastStrike
+                - (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond
+            : lastStrike
+                + (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond;
     }
 
     function tau() public view returns (uint256) {
@@ -398,10 +401,9 @@ contract RMM is IStrategy {
             return targetTau;
         }
 
-        return 
-            lastTau > targetTau 
-                ? lastTau - (block.timestamp - lastTauSync) * tauUpdatePerSecond
-                : lastTau + (block.timestamp - lastTauSync) * tauUpdatePerSecond;
+        return lastTau > targetTau
+            ? lastTau - (block.timestamp - lastTauSync) * tauUpdatePerSecond
+            : lastTau + (block.timestamp - lastTauSync) * tauUpdatePerSecond;
     }
 
     function _syncSigma() private {
@@ -419,7 +421,10 @@ contract RMM is IStrategy {
         lastTauSync = block.timestamp;
     }
 
-    function setSigma(uint256 newTargetSigma, uint256 newSigmaUpdateEnd) external {
+    function setSigma(
+        uint256 newTargetSigma,
+        uint256 newSigmaUpdateEnd
+    ) external {
         require(newSigmaUpdateEnd > block.timestamp, "Update end passed");
 
         _syncSigma();
@@ -435,7 +440,10 @@ contract RMM is IStrategy {
         emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
     }
 
-    function setStrikePrice(uint256 newTargetStrike, uint256 newStrikeUpdateEnd) external {
+    function setStrikePrice(
+        uint256 newTargetStrike,
+        uint256 newStrikeUpdateEnd
+    ) external {
         require(newStrikeUpdateEnd > block.timestamp, "Update end passed");
 
         _syncStrike();
@@ -460,8 +468,7 @@ contract RMM is IStrategy {
             ? lastTau - newTargetTau
             : newTargetTau - lastTau;
 
-        tauUpdatePerSecond =
-            tauDelta / (newTauUpdateEnd - block.timestamp);
+        tauUpdatePerSecond = tauDelta / (newTauUpdateEnd - block.timestamp);
         targetTau = newTargetTau;
         tauUpdateEnd = newTauUpdateEnd;
         emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
@@ -480,8 +487,9 @@ contract RMM is IStrategy {
     }
 
     function getSpotPrice() public view returns (uint256) {
-        return
-            computeSpotPrice(reserveX, totalLiquidity, strikePrice(), sigma(), tau());
+        return computeSpotPrice(
+            reserveX, totalLiquidity, strikePrice(), sigma(), tau()
+        );
     }
 
     function getSwapFee() external view returns (uint256) {
@@ -501,7 +509,8 @@ contract RMM is IStrategy {
     }
 
     function getInvariant() external view returns (int256) {
-        return computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice());
+        return
+            computeInvariant(reserveX, totalLiquidity, reserveY, strikePrice());
     }
 
     function logData() external {
@@ -510,5 +519,40 @@ contract RMM is IStrategy {
 
     function getStrategyData() external view returns (bytes memory data) {
         return abi.encode(sigma(), strikePrice(), tau());
+    }
+
+    function getNewLFromParameters() external view returns (uint256) {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        return
+            computeNewLiquidity(
+                reserveX,
+                reserveY,
+                totalLiquidity,
+                _strike,
+                _sigma,
+                _tau
+            );
+    }
+
+    function getSwapUpperLower() external view returns (uint256, uint256) {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        return testSwapConstant(reserveX, reserveY, totalLiquidity, _strike, _sigma, _tau);
+    }
+
+    function checkSwapConstant(uint256 newLiquidity) external view returns (int256) {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        return computeSwapConstant(
+            abi.encode(
+                transform(
+                    reserveX,
+                    reserveY,
+                    totalLiquidity,
+                    _strike,
+                    _sigma,
+                    _tau
+                )
+            ),
+            newLiquidity
+        );
     }
 }

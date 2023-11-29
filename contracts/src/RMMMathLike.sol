@@ -62,9 +62,8 @@ contract RMMMathLike {
         uint256 sigma,
         uint256 tau
     ) public view returns (int256 outputY) {
-        return RMMMath.computeOutputYGivenX(
-            x, y, deltaX, L, deltaL, K, sigma, tau
-        );
+        return
+            RMMMath.computeOutputYGivenX(x, y, deltaX, L, deltaL, K, sigma, tau);
     }
 
     function computeOutputXGivenY(
@@ -77,9 +76,8 @@ contract RMMMathLike {
         uint256 sigma,
         uint256 tau
     ) public view returns (int256 outputX) {
-        return RMMMath.computeOutputXGivenY(
-            x, y, deltaY, L, deltaL, K, sigma, tau
-        );
+        return
+            RMMMath.computeOutputXGivenY(x, y, deltaY, L, deltaL, K, sigma, tau);
     }
 
     function computeSpotPrice(

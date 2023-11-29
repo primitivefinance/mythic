@@ -2,8 +2,13 @@
 pragma solidity ^0.8.13;
 
 import "./SetUp.t.sol";
+import "../../src/lib/RMMMath.sol";
+
 
 contract RMMSwap is RMMSetUp {
+    using stdStorage for StdStorage;
+    using FixedPointMathLib for uint256;
+    using FixedPointMathLib for uint128;
     function test_rmm_swap_UpdatesReserves() public {
         uint256 deltaX = 500 ether;
 
@@ -53,5 +58,24 @@ contract RMMSwap is RMMSetUp {
 
         assertEq(preBalanceX - deltaX, postBalanceX);
         assertEq(preBalanceY + amountY, postBalanceY);
+    }
+
+    function test_rmm_new_liquidity() public {
+        rmm.initExactX(5_000 ether, initialPrice);
+        uint256 strike = rmm.strikePrice();
+        stdstore.target(address(rmm)).sig(rmm.targetStrike.selector).checked_write(1780 ether);
+        uint256 liquidity = rmm.totalLiquidity();
+        uint256 x = rmm.reserveX();
+        console2.log(liquidity);
+        (uint256 lower, uint256 upper) = rmm.getSwapUpperLower();
+
+        console2.log("lower", lower);
+        console2.log("upper", upper);
+        uint256 newLiquidity = rmm.getNewLFromParameters();
+
+        console2.log(newLiquidity);
+
+        int256 newSwapConstant = rmm.checkSwapConstant(newLiquidity);
+        console2.log("newSwapConstant", newSwapConstant);
     }
 }

@@ -82,7 +82,7 @@ impl RmmPortfolioManagerType {
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
                 parse_ether(4)?,
-                parse_ether(1.0)?,
+                parse_ether(0.5)?,
                 parse_ether(1.0)?,
                 parse_ether(0.997)?,
             );
