@@ -122,26 +122,16 @@ impl ArbitrageStrategy for RmmStrategy {
         let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
         debug!("liquidity: {}", liquidity);
         let i_wad = I256::from_raw(WAD);
-        // \boxed{\Delta x =
-        // L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\
-        // right)\right) - x}
-        let dx = liquidity
-            * (i_wad
-                - rmm_math
-                    .cdf(
-                        rmm_math
-                            .log(I256::from_raw(target_price_wad) * i_wad / strike_price)
-                            .call()
-                            .await?
-                            * i_wad
-                            / sigma
-                            + sigma / 2,
-                    )
-                    .call()
-                    .await?)
-            / i_wad
-            - reserve_x;
-
+        let dx = get_dx(
+            target_price_wad,
+            sigma,
+            strike_price,
+            reserve_x,
+            liquidity,
+            i_wad,
+            rmm_math,
+        )
+        .await?;
         debug!("dx: {}", dx);
         if dx < 0.into() {
             return Ok(0.into());
@@ -232,7 +222,7 @@ pub async fn get_dy(
     i_wad: I256,
     rmm_math: &ArbiterMath<RevmMiddleware>,
 ) -> Result<I256> {
-    let dy = liquidity
+    let dy = (strike_price * liquidity) / i_wad
         * rmm_math
             .cdf(
                 rmm_math
@@ -249,4 +239,35 @@ pub async fn get_dy(
         - reserve_y;
 
     Ok(dy)
+}
+
+// \boxed{\Delta x =
+// L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\
+// right)\right) - x}
+pub async fn get_dx(
+    target_price_wad: U256,
+    sigma: I256,
+    strike_price: I256,
+    reserve_x: I256,
+    liquidity: I256,
+    i_wad: I256,
+    rmm_math: &ArbiterMath<RevmMiddleware>,
+) -> Result<I256> {
+    let dx = liquidity
+        * (i_wad
+            - rmm_math
+                .cdf(
+                    rmm_math
+                        .log(I256::from_raw(target_price_wad) * i_wad / strike_price)
+                        .call()
+                        .await?
+                        * i_wad
+                        / sigma
+                        + sigma / 2,
+                )
+                .call()
+                .await?)
+        / i_wad
+        - reserve_x;
+    Ok(dx)
 }

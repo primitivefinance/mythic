@@ -109,7 +109,7 @@ pub fn compute_y_given_l_rust(
 }
 
 #[tracing::instrument(ret, level = "trace")]
-pub fn compute_spot_price_rust(
+pub fn compute_spot_price_from_x(
     reserve_x_float: f64,
     liquidity_float: f64,
     strike_price_float: f64,
@@ -123,6 +123,22 @@ pub fn compute_spot_price_rust(
 
     strike_price_float
         * ((normal.inverse_cdf(1.0 - r1) * sigma_sqrt_tau - half_sigma_power_2_tau).exp())
+}
+
+#[tracing::instrument(ret, level = "trace")]
+pub fn compute_spot_price_from_y(
+    reserve_y_float: f64,
+    liquidity_float: f64,
+    strike_price_float: f64,
+    sigma_float: f64,
+    tau_float: f64,
+) -> f64 {
+    let normal = Normal::new(0.0, 1.0).unwrap();
+    let sigma_sqrt_tau = compute_sigma_sqrt_tau(sigma_float, tau_float);
+    let half_sigma_power_2_tau = compute_half_sigma_power_2_tau(sigma_float, tau_float);
+    let r1 = reserve_y_float / (strike_price_float * liquidity_float);
+
+    strike_price_float * ((normal.inverse_cdf(r1) * sigma_sqrt_tau + half_sigma_power_2_tau).exp())
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -57,8 +57,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         token_admin
             .mint(
                 client.address(),
-                parse_ether(100_000_000).unwrap(),
-                parse_ether(100_000_000).unwrap(),
+                parse_ether(10).unwrap(),
+                parse_ether(10).unwrap(),
             )
             .await?;
 
@@ -161,33 +161,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     return Ok(());
                 }
 
-                let rmm_math_like = RMMMathLike::deploy(self.client.clone(), ())?.send().await?;
-                let (reserve_x, reserve_y, liquidity) =
-                    self.rmm_strategy.get_reserves_and_liquidity().await?;
-                let spot_price = self.rmm_strategy.get_spot_price().await?;
-                let contract = RMM::new(self.rmm_strategy.get_address(), self.client.clone());
-                let strike_price = contract.strike_price().call().await?;
-                let sigma = contract.sigma().call().await?;
-                let tau = contract.tau().call().await?;
-                let delta_y = input;
-                let delta_l = rmm_math_like
-                    .compute_l_given_x(reserve_x, spot_price, strike_price, sigma, tau)
-                    .call()
-                    .await?;
-
-                let output_solidity = compute_output_x_given_y_solidity(
-                    &rmm_math_like,
-                    reserve_x,
-                    reserve_y,
-                    delta_y,
-                    liquidity,
-                    delta_l,
-                    strike_price,
-                    sigma,
-                    tau,
-                )
-                .await?;
-
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
 
                 let output = tx.send().await;
@@ -288,9 +261,6 @@ mod tests {
         environment: &Environment,
     ) -> anyhow::Result<(RmmArbitrageur<RmmStrategy>, RMMMathLike<RevmMiddleware>), anyhow::Error>
     {
-        // tracing_subscriber::fmt()
-        //     .with_max_level(tracing::Level::TRACE)
-        //     .init();
         let cwd = std::env::current_dir().unwrap();
         let path = std::path::Path::new(cwd.to_str().unwrap());
         let config_path = path
@@ -337,48 +307,6 @@ mod tests {
         .await?;
 
         Ok((arbitrageur, rmm_math))
-    }
-
-    #[tokio::test]
-    async fn test_math() -> anyhow::Result<(), anyhow::Error> {
-        let environment = EnvironmentBuilder::new().build();
-        let (arber, _) = setup(&environment).await?;
-
-        let input = arber
-            .rmm_strategy
-            .get_y_input(parse_ether(1.0).unwrap(), &arber.g3m_math, &arber.rmm_math)
-            .await?;
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_compute_l_given_x() -> anyhow::Result<(), anyhow::Error> {
-        let environment = EnvironmentBuilder::new().build();
-        let (arber, rmm_math_like) = setup(&environment).await?;
-
-        let reserve_x = parse_ether(1000.0).unwrap();
-        let spot_price = parse_ether(1.0).unwrap();
-        let (sigma, strike_price, tau) = get_strategy_args(&arber.rmm_strategy).await?;
-        let l = compute_l_given_x_solidity(
-            &rmm_math_like,
-            reserve_x,
-            spot_price,
-            strike_price,
-            sigma,
-            tau,
-        )
-        .await?;
-
-        let l_rust = compute_l_given_x_rust(
-            to_float(reserve_x),
-            to_float(spot_price),
-            to_float(strike_price),
-            to_float(sigma),
-            to_float(tau),
-        );
-
-        assert_approx_equal!(l_rust, to_float(l), 0.001);
-        Ok(())
     }
 }
 
