@@ -189,8 +189,6 @@ impl App {
 
     // All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
-        
-
         app_span().in_scope(|| match message {
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
@@ -324,7 +322,6 @@ impl App {
     }
 
     fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
-        
         // todo: implement
         Command::none()
     }

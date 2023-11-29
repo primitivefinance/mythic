@@ -29,7 +29,7 @@ where
 impl<Message> Default for RowBuilder<Message>
 where
     Message: Default,
- {
+{
     fn default() -> Self {
         Self::new()
     }

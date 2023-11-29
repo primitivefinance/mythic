@@ -85,17 +85,20 @@ impl PortfolioTable {
             .enumerate()
             .map(|(pos_index, position)| {
                 let balance = self.form.balance.get(&pos_index).cloned();
-                let targets =
-                    position
-                        .clone()
-                        .targets
-                        .unwrap_or_default()
-                        .into_iter()
-                        .filter(|target| matches!(target, Targetable::Weight(_)))
-                        .map(|_target| {
-                            self.form.weight.get(&pos_index).cloned().map(|x| Targetable::from_string(Targetable::Weight(0.0), x))
-                        })
-                        .collect::<Vec<Option<Targetable>>>();
+                let targets = position
+                    .clone()
+                    .targets
+                    .unwrap_or_default()
+                    .into_iter()
+                    .filter(|target| matches!(target, Targetable::Weight(_)))
+                    .map(|_target| {
+                        self.form
+                            .weight
+                            .get(&pos_index)
+                            .cloned()
+                            .map(|x| Targetable::from_string(Targetable::Weight(0.0), x))
+                    })
+                    .collect::<Vec<Option<Targetable>>>();
 
                 PositionDelta { balance, targets }
             })

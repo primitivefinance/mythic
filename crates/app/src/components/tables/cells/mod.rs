@@ -71,7 +71,7 @@ where
 impl<Message> Default for CellBuilder<Message>
 where
     Message: 'static + Default,
- {
+{
     fn default() -> Self {
         Self::new()
     }

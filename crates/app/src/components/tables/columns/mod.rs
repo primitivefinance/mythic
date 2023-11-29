@@ -17,7 +17,7 @@ where
 impl<Message> Default for ColumnBuilder<Message>
 where
     Message: 'static + Default,
- {
+{
     fn default() -> Self {
         Self::new()
     }
