@@ -43,16 +43,16 @@ pub async fn setup(
     agents.add(price_changer.clone());
     event_logger = event_logger.add(price_changer.liquid_exchange.events(), "lex");
 
-    let weight_changer = G3mPortfolioManagerType::new(
+    let portfolio_manager = G3mPortfolioManagerType::new(
         &environment,
         &config,
-        "weight_changer",
+        "portfolio_manager",
         price_changer.liquid_exchange.address(),
     )
     .await?;
-    let strategy_address = weight_changer.g3m().address();
-    event_logger = event_logger.add(weight_changer.g3m().events(), "g3m");
-    agents.add(weight_changer);
+    let strategy_address = portfolio_manager.g3m().address();
+    event_logger = event_logger.add(portfolio_manager.g3m().events(), "g3m");
+    agents.add(portfolio_manager);
 
     let mut lp = LiquidityProvider::<G3mStrategy>::new(
         &environment,

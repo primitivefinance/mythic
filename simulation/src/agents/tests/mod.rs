@@ -2,6 +2,7 @@ use arbiter_core::environment::builder::BlockSettings;
 
 use super::*;
 use crate::simulations::{dynamic_weights, Simulation};
+mod portfolio;
 mod swapper_integration;
 
 async fn startup_static() -> Simulation {

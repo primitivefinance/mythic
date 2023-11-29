@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arbiter_core::bindings::arbiter_token::ArbiterToken;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use ethers::providers::Middleware;
 
 use super::*;

@@ -50,7 +50,7 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for StrategyMonitorAgent<S> {
     }
 
     fn get_name(&self) -> String {
-        "strategy_monitor".to_string()
+        "Strategy Monitor".to_string()
     }
 
     async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
@@ -75,31 +75,23 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for StrategyMonitorAgent<S> {
 
         let subbed = vec![
             SubscribedData {
-                name: "spot_price".to_string(),
-                data: spot_price.into_token(),
-            },
-            SubscribedData {
-                name: "x_balance".to_string(),
-                data: x_balance.into_token(),
-            },
-            SubscribedData {
-                name: "y_balance".to_string(),
-                data: y_balance.into_token(),
-            },
-            SubscribedData {
-                name: "reserve_x".to_string(),
+                name: "Reserves X".to_string(),
                 data: reserve_x.into_token(),
             },
             SubscribedData {
-                name: "reserve_y".to_string(),
+                name: "Reserves Y".to_string(),
                 data: reserve_y.into_token(),
             },
             SubscribedData {
-                name: "invariant".to_string(),
+                name: "Spot Price".to_string(),
+                data: spot_price.into_token(),
+            },
+            SubscribedData {
+                name: "Invariant".to_string(),
                 data: invariant.into_token(),
             },
             SubscribedData {
-                name: "portfolio_value".to_string(),
+                name: "Portfolio Value".to_string(),
                 data: portfolio_value.into_token(),
             },
         ];
