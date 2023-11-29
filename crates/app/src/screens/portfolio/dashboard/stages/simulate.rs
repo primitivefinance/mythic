@@ -1,13 +1,17 @@
+use std::collections::BTreeMap;
+
 use clients::arbiter::{
     portfolio_adjustment::{InstanceManager, SimulatedWorld},
     world::World,
 };
+use ethers::{abi::Token, utils::format_ether};
 use logging::tracer::AppEventLayer;
+use simulation::agents::SubscribedData;
 
 use super::*;
 use crate::{
     screens::terminal::{StateSubscription, StateSubscriptionStore},
-    view::state_render,
+    view::{agent_card_grid, monitor::labeled_data_cards},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -63,8 +67,11 @@ impl Simulate {
     }
 
     pub fn render_simulation_outcome(&self) -> Element<'_, Self::ViewMessage> {
-        let mut content = Column::new().push(Text::new("Simulation Results").size(40));
-        content = content.push(state_render(self.store.clone()).map(|_| Message::Empty));
+        let mut content = Column::new()
+            .spacing(Sizes::Xl)
+            .push(h1("Simulation Results".to_string()));
+        let results = render_simulation_results(self.store.clone());
+        content = content.push(results);
         content.into()
     }
 
@@ -204,7 +211,6 @@ impl State for Simulate {
                     self.world = Some(world);
                     let m = self.world.clone().unwrap();
                     return Command::perform(handle_state_subscriptions(m), Message::Outcome);
-                    // return Command::perform(async {}, |_| Message::Empty);
                 }
                 Err(error) => {
                     tracing::error!("Error spawning manager: {:?}", error);
@@ -241,59 +247,135 @@ impl State for Simulate {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let mut content = Column::new();
-
-        content = content.push(button("Simulate!").on_press(Message::Simulate));
-
-        // content = content.push(
-        // Column::new()
-        // .spacing(Sizes::Md)
-        // .push(
-        // Row::with_children(
-        // self.metrics
-        // .iter()
-        // .map(|x| Card::new(label_item(x.to_string())).into())
-        // .collect::<Vec<Element<'a, Message>>>(),
-        // )
-        // .spacing(Sizes::Md),
-        // )
-        // .push(
-        // Row::new()
-        // .push(
-        // Column::new()
-        // .width(Length::FillPortion(3))
-        // .push(label_item("Simulation Results".to_string()))
-        // .push(
-        // Row::with_children(
-        // vec![
-        // Card::new(label_item("results 1".to_string())).into(),
-        // Card::new(label_item("results 2".to_string())).into(),
-        // ]
-        // .into_iter()
-        // .collect::<Vec<Element<'a, Message>>>(),
-        // )
-        // .spacing(Sizes::Md),
-        // ),
-        // )
-        // .push(
-        // instructions(
-        // vec![label_item("Execute the Adjustment".to_string())],
-        // None,
-        // None,
-        // Some(Message::Submit),
-        // )
-        // .width(Length::FillPortion(1)),
-        // ),
-        // ),
-        // );
-
-        content = content.push(self.render_simulation_outcome());
-
-        Container::new(content)
+        Container::new(self.render_simulation_outcome())
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
-            .center_y()
             .into()
     }
+}
+
+type SubscriptionViewWrapper = BTreeMap<u64, BTreeMap<String, Vec<(String, String)>>>;
+
+pub fn render_simulation_results<'a, Message>(
+    state_data: StateSubscriptionStore,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    let empty_map = BTreeMap::new();
+    let mut agent_data: SubscriptionViewWrapper = BTreeMap::new();
+    let mut monitored_data: SubscriptionViewWrapper = BTreeMap::new();
+
+    let cloned: StateSubscriptionStore = state_data.clone();
+    for (world_id, world_data) in cloned.into_iter() {
+        // todo: handle rendering for multiple worlds, should probably be grouped.
+
+        let cloned_world: HashMap<String, StateSubscription> = world_data.clone();
+
+        // Exit early if world data is empty
+        if cloned_world.is_empty() {
+            continue;
+        }
+
+        for (agent_name, agent) in cloned_world.into_iter() {
+            let label = agent.label.clone();
+            let category: AppEventLayer = agent.category.clone();
+            let logs: Vec<SubscribedData> = agent.logs.clone();
+
+            // Insert the agent label if it has non empty state subscriptions
+            if agent.logs.is_empty() {
+                continue;
+            }
+
+            for log in logs {
+                let name = log.name.clone();
+                let value = log.data.clone();
+                let (signed, value_uint) = parse_token_int(value);
+                let formatted = format_int_wad(signed, value_uint);
+
+                match category {
+                    AppEventLayer::Agent => {
+                        // Each agent should have one tuple element of (name, label)
+                        agent_data
+                            .entry(world_id)
+                            .or_insert(empty_map.clone())
+                            .entry(agent_name.clone())
+                            .or_default()
+                            .push(("name".to_string(), label.clone()));
+
+                        agent_data
+                            .entry(world_id)
+                            .or_insert(empty_map.clone())
+                            .entry(agent_name.clone())
+                            .or_default()
+                            .push((name, formatted));
+                    }
+                    _ => {
+                        monitored_data
+                            .entry(world_id)
+                            .or_insert(empty_map.clone())
+                            .entry(agent_name.clone())
+                            .or_default()
+                            .push((name, formatted));
+                    }
+                }
+            }
+        }
+    }
+
+    let mut agent_groups = Column::new().spacing(16);
+
+    for (_world_id, world_data) in agent_data.into_iter() {
+        let mut agent_cards = Vec::new();
+        for (_agent_name, agent) in world_data.into_iter() {
+            agent_cards.push(agent);
+        }
+
+        agent_groups = agent_groups.push(agent_card_grid(agent_cards, 4));
+    }
+
+    let mut monitored_groups = Column::new().spacing(Sizes::Md as u16);
+
+    for (_world_id, world_data) in monitored_data.into_iter() {
+        let mut monitored_cards = Vec::new();
+        for (_agent_name, agent) in world_data.into_iter() {
+            monitored_cards.push(agent);
+        }
+
+        let first_elemn = monitored_cards.clone()[0].clone();
+        monitored_groups = monitored_groups.push(labeled_data_cards(first_elemn, 6));
+    }
+
+    Column::new()
+        .push(monitored_groups)
+        .push(agent_groups)
+        .spacing(Sizes::Lg as u16)
+        .width(Length::Fill)
+        .into()
+}
+
+pub fn parse_token_int(value: Token) -> (bool, U256) {
+    let mut signed = false;
+    let value_int = value.clone().into_int();
+    let value_uint = match value_int {
+        Some(value) => {
+            let raw = I256::from_raw(value);
+            signed = raw.sign() == Sign::Negative;
+            I256::from_raw(value)
+                .checked_abs()
+                .map(|x| x.twos_complement())
+                .unwrap_or_default()
+        }
+        None => value.into_uint().unwrap_or_default(),
+    };
+
+    (signed, value_uint)
+}
+
+pub fn format_int_wad(signed: bool, value: U256) -> String {
+    let formatted = format_ether(value).parse::<f64>().unwrap_or_default();
+    let sign = if signed { "-" } else { "" };
+    // truncated
+    format!("{}{:.2}", sign, formatted)
 }

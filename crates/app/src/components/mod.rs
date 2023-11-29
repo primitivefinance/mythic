@@ -63,7 +63,10 @@ pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
 
 /// Renders a column with a label and a piece of data with the DAGGERSQUARE
 /// font.
-pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Renderer> {
+pub fn labeled_data<'a, Message>(label: String, data: String) -> Element<'a, Message, Renderer>
+where
+    Message: 'a,
+{
     // If data is a value above > 1000, replace the last three zeros with an
     // uppercase "K". Same with > 1_000_000 "M", etc.
     let data = match data.parse::<f64>() {
@@ -155,11 +158,14 @@ pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
 }
 
 /// Containers that groups multiple labeled data pieces under a label
-pub fn labeled_data_container<'a>(
+pub fn labeled_data_container<'a, Message>(
     _label: String,
     data: Vec<(String, String)>,
     max_elements: usize,
-) -> Element<'a, Message> {
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     let mut content = Column::new();
     content = content.push(labeled_data_row(data, max_elements));
     content.into()
@@ -168,10 +174,13 @@ pub fn labeled_data_container<'a>(
 /// Renders a row of labeled data elements using labeled_data. Specify the
 /// maximum amount of elements in the row, if the total amount of elements
 /// exceeds the value, it will push a new row to the column.
-pub fn labeled_data_row<'a>(
+pub fn labeled_data_row<'a, Message>(
     label_data: Vec<(String, String)>,
     max_elements: usize,
-) -> Element<'a, Message, Renderer> {
+) -> Element<'a, Message, Renderer>
+where
+    Message: 'a,
+{
     let mut content = Column::new();
     let mut row = Row::new().spacing(Sizes::Lg as u16);
     let mut i = 0;
@@ -310,7 +319,7 @@ impl Card {
     // todo: refactor this to use builder pattern.
     pub fn new<'a, Message, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message>
     where
-        Message: 'static,
+        Message: 'a,
     {
         let content = content.into();
         Container::new(content).style(CardContainer::theme())

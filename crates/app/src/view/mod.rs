@@ -220,12 +220,24 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
                         let name = log.name.clone();
                         let value = log.data.clone();
 
-                        // todo: this can easily be 0...
-                        let value_uint = value.into_uint().unwrap_or_default();
+                        let mut signed = false;
+                        let value_int = value.clone().into_int();
+                        let value_uint = match value_int {
+                            Some(value) => {
+                                signed = true;
+                                I256::from_raw(value)
+                                    .checked_abs()
+                                    .map(|x| x.twos_complement())
+                                    .unwrap_or_default()
+                            }
+                            None => value.into_uint().unwrap_or_default(),
+                        };
+
                         // todo: this is hardcoded parsing... it could become wrong easily.
                         let formatted = format_ether(value_uint).parse::<f64>().unwrap_or_default();
+                        let sign = if signed { "-" } else { "" };
                         // truncated
-                        let truncated = format!("{:.2}", formatted);
+                        let truncated = format!("{}{:.2}", sign, formatted);
 
                         agent_data
                             .entry(world_id)
@@ -239,12 +251,23 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
                     for log in logs {
                         let name = log.name.to_string();
                         let value = log.data.clone();
-                        // todo: this can easily be 0...
-                        let value_uint = value.into_uint().unwrap_or_default();
+                        let mut signed = false;
+                        let value_int = value.clone().into_int();
+                        let value_uint = match value_int {
+                            Some(value) => {
+                                signed = true;
+                                I256::from_raw(value)
+                                    .checked_abs()
+                                    .map(|x| x.twos_complement())
+                                    .unwrap_or_default()
+                            }
+                            None => value.into_uint().unwrap_or_default(),
+                        };
                         // todo: this is hardcoded parsing... it could become wrong easily.
                         let formatted = format_ether(value_uint).parse::<f64>().unwrap_or_default();
+                        let sign = if signed { "-" } else { "" };
                         // truncated
-                        let truncated = format!("{:.2}", formatted);
+                        let truncated = format!("{}{:.2}", sign, formatted);
 
                         monitored_data
                             .entry(world_id)
@@ -296,7 +319,13 @@ pub fn state_render<'a>(state_data: StateSubscriptionStore) -> Element<'a, Messa
 }
 
 /// Renders a grid of agents cards, with a maximum amount of cards per row.
-fn agent_card_grid<'a>(data: Vec<Vec<(String, String)>>, max: usize) -> Element<'a, Message> {
+pub fn agent_card_grid<'a, Message>(
+    data: Vec<Vec<(String, String)>>,
+    max: usize,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     let mut content = Column::new();
     let mut row = Row::new().spacing(Sizes::Lg as u16);
     let mut i = 0;

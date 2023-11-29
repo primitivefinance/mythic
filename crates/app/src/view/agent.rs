@@ -2,7 +2,13 @@
 
 use super::*;
 
-pub fn agent_card<'a>(agent_data: Vec<(String, String)>, actions: bool) -> Element<'a, Message> {
+pub fn agent_card<'a, Message>(
+    agent_data: Vec<(String, String)>,
+    actions: bool,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     let mut content = Column::new().spacing(16);
 
     // Try finding the agent name, else use a default value
@@ -34,10 +40,6 @@ pub fn agent_card<'a>(agent_data: Vec<(String, String)>, actions: bool) -> Eleme
         .push(agent_header(agent_name.clone()))
         .push(agent_content(filtered_data.clone()));
 
-    if actions {
-        content = content.push(agent_actions());
-    }
-
     Card::new(
         container(content)
             .padding(Sizes::Md as u16)
@@ -48,12 +50,18 @@ pub fn agent_card<'a>(agent_data: Vec<(String, String)>, actions: bool) -> Eleme
 
 /// Renders the agent icon, name, and a settings gear icon button in a max width
 /// column.
-pub fn agent_header<'a>(agent_name: String) -> Element<'a, Message> {
+pub fn agent_header<'a, Message>(agent_name: String) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     Column::new().push(h2(agent_name)).into()
 }
 
 /// Renders the agent's labeled data items.
-pub fn agent_content<'a>(agent_data: Vec<(String, String)>) -> Element<'a, Message> {
+pub fn agent_content<'a, Message>(agent_data: Vec<(String, String)>) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     labeled_data_container("Data".to_string(), agent_data, 2)
 }
 

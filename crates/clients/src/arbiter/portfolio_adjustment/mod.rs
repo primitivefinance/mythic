@@ -16,6 +16,7 @@ use simulation::{
             swapper::Swapper,
         },
         price_changer::PriceChanger,
+        strategy_monitor::StrategyMonitorAgent,
         token_admin::TokenAdmin,
         AgentParameters, Agents,
     },
@@ -151,6 +152,16 @@ impl AgentBuilder {
                 tracing::warn!("Swapper not initialized: {}", e);
             }
         };
+
+        let strategy_monitor = StrategyMonitorAgent::<G3mStrategy>::new(
+            &environment,
+            &config,
+            "strategy_monitor",
+            strategy_address,
+            &token_admin,
+        )
+        .await?;
+        agents.add(strategy_monitor);
 
         event_logger
             .metadata(config)
