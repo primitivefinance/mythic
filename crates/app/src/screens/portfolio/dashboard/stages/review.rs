@@ -64,9 +64,19 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     }
 }
 
+/// Final package that is transmitted to the simulation stage.
+#[derive(Debug, Clone, Default)]
+pub struct ReviewPackage {
+    pub start_time_seconds: f64,
+    pub duration_seconds: f64,
+    pub fee_percentage: f64,
+    pub strategy: Strategies,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct ReviewAdjustment {
     form: Form,
+    pub package: Option<ReviewPackage>,
 }
 
 impl ReviewAdjustment {
@@ -75,14 +85,14 @@ impl ReviewAdjustment {
     }
 
     /// Returns an instructions element to guide the user.
-    pub fn guide(&self, on_submit: Option<super::Message>) -> Container<'static, super::Message> {
+    pub fn guide(&self) -> Container<'static, super::Message> {
         instructions(
             vec![instruction_text(
                 "Select the adjustment parameters and strategy to use.".to_string(),
             )],
             Some("Simulate Adjustment".to_string()),
             None,
-            on_submit,
+            Some(Message::Form(FormMessage::Submit).into()),
         )
     }
 }
@@ -145,13 +155,12 @@ impl State for ReviewAdjustment {
                         .map(|x| x.to_value())
                         .unwrap_or_default();
 
-                    tracing::info!(
-                        "start_time_seconds: {}, duration_seconds: {}, fee_percentage: {}, strategy: {}",
+                    self.package = Some(ReviewPackage {
                         start_time_seconds,
                         duration_seconds,
                         fee_percentage,
-                        strategy
-                    );
+                        strategy,
+                    });
                 }
             },
             Self::AppMessage::Empty => {}
@@ -230,6 +239,7 @@ pub trait EnumList<T> {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum Times {
+    Now,
     OneHour,
     FourHour,
     EightHour,
@@ -254,6 +264,7 @@ impl Times {
 impl Display for Times {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Times::Now => write!(f, "Now"),
             Times::OneHour => write!(f, "1 hour"),
             Times::FourHour => write!(f, "4 hours"),
             Times::EightHour => write!(f, "8 hours"),
@@ -274,6 +285,7 @@ impl Display for Times {
 impl EnumList<f64> for Times {
     fn to_options() -> Vec<Times> {
         vec![
+            Times::Now,
             Times::OneHour,
             Times::FourHour,
             Times::EightHour,
@@ -292,6 +304,7 @@ impl EnumList<f64> for Times {
 
     fn to_list() -> Vec<String> {
         vec![
+            Times::Now.to_string(),
             Times::OneHour.to_string(),
             Times::FourHour.to_string(),
             Times::EightHour.to_string(),
@@ -310,6 +323,7 @@ impl EnumList<f64> for Times {
 
     fn to_value(&self) -> f64 {
         match self {
+            Times::Now => 0.0,
             Times::OneHour => chrono::Duration::hours(1).num_seconds() as f64,
             Times::FourHour => chrono::Duration::hours(4).num_seconds() as f64,
             Times::EightHour => chrono::Duration::hours(8).num_seconds() as f64,

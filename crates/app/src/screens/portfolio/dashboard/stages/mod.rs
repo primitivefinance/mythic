@@ -10,6 +10,7 @@ use clients::arbiter::portfolio_adjustment::MiniWorldBuilder;
 use ethers::utils::parse_ether;
 use simulation::agents::token_admin::TokenData;
 
+use self::{prepare::PreparePayload, review::ReviewPackage};
 use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
@@ -37,7 +38,7 @@ impl DashboardState {
         match self {
             DashboardState::Empty => Container::new(Column::new()),
             DashboardState::Prepare(state) => state.guide(Some(Message::Step)),
-            DashboardState::Review(state) => state.guide(Some(Message::Step)),
+            DashboardState::Review(state) => state.guide(),
             DashboardState::Simulate(state) => state.guide(Some(Message::Step)),
             DashboardState::Execute => Container::new(Column::new()),
         }
@@ -98,6 +99,8 @@ pub struct Stages {
     pub portfolio: Option<Portfolio>,
     pub current: DashboardState,
     pub simulations: Vec<MiniWorldBuilder>,
+    pub weight_changes: Option<PreparePayload>,
+    pub strategy_parameters: Option<ReviewPackage>,
 }
 
 impl Stages {
@@ -108,6 +111,8 @@ impl Stages {
             portfolio: None,
             current: DashboardState::Empty,
             simulations: vec![],
+            weight_changes: None,
+            strategy_parameters: None,
         }
     }
 
@@ -196,7 +201,7 @@ impl Stages {
     }
 
     pub fn step(&mut self) -> Command<Self::AppMessage> {
-        match &self.current {
+        match self.current.clone() {
             DashboardState::Empty => {
                 // todo: figure out what happens here? Should call start before
                 // stepping from empty.
@@ -204,9 +209,95 @@ impl Stages {
             DashboardState::Prepare(state) => {
                 self.current = DashboardState::Review(review::ReviewAdjustment::default());
             }
-            DashboardState::Review(_state) => {
+            DashboardState::Review(state) => {
+                // Review's package should be filled out, so we can edit the MiniWorldBuilder.
+                let package = match &state.package {
+                    Some(package) => package,
+                    // Exit early, review was not submitted, somehow step got called?
+                    None => {
+                        tracing::error!("Step called before submitting review form. Bug!");
+                        return Command::none();
+                    }
+                };
+
+                // Store the package for later use.
+                self.strategy_parameters = Some(package.clone());
+
+                tracing::info!("package: {:?}", package);
+
                 // Construct the MiniWorldBuilder from the review form data and portfolio.
                 self.construct();
+
+                // Edit the MiniWorldBuilder with the package data and form info.
+                // todo: use the chosen strategy in the config...
+                let builder = self.simulations.last_mut().unwrap();
+                builder
+                    .config_builder
+                    .portfolio_manager
+                    .fee(parse_ether(package.fee_percentage).unwrap());
+
+                // todo: implement the start time in the portfolio manager too?
+                builder
+                    .config_builder
+                    .swapper
+                    .start_timestamp(package.start_time_seconds.round() as u64);
+
+                builder.config_builder.portfolio_manager.end_timestamp(
+                    (package.start_time_seconds + package.duration_seconds).round() as u64,
+                );
+
+                let adjustments = match &self.weight_changes {
+                    Some(adjustments) => adjustments,
+                    None => {
+                        tracing::error!("Step called before weight changes were computed. Bug!");
+                        return Command::none();
+                    }
+                };
+
+                let original_x_balance = adjustments
+                    .original
+                    .positions
+                    .iter()
+                    .filter(|x| x.asset.symbol == "X")
+                    .filter(|x| x.balance.is_some())
+                    .map(|x| x.balance.unwrap())
+                    .next()
+                    .unwrap();
+
+                let start_weight_x = adjustments
+                    .original
+                    .positions
+                    .iter()
+                    .filter(|x| x.asset.symbol == "X")
+                    .filter(|x| x.weight.is_some())
+                    .map(|x| x.weight.unwrap())
+                    .next()
+                    .unwrap();
+
+                let end_weight_x = adjustments
+                    .adjusted
+                    .positions
+                    .iter()
+                    .filter(|x| x.asset.symbol == "X")
+                    .filter(|x| x.weight.is_some())
+                    .map(|x| x.weight.unwrap())
+                    .last()
+                    .unwrap();
+
+                builder
+                    .config_builder
+                    .portfolio_manager
+                    .start_weight_x(parse_ether(start_weight_x).unwrap());
+
+                builder
+                    .config_builder
+                    .portfolio_manager
+                    .end_weight_x(parse_ether(end_weight_x).unwrap());
+
+                builder
+                    .config_builder
+                    .deposit_x(parse_ether(original_x_balance).unwrap());
+
                 // Prepare the simulate screen with the MiniWorldBuilder.
                 let screen = simulate::Simulate::new(self.simulations.clone());
                 self.current = DashboardState::Simulate(screen);
@@ -263,6 +354,7 @@ impl State for Stages {
             }
             Message::Start(deltas) => {
                 let prepare = prepare::Prepare::new(self.portfolio.clone().unwrap(), deltas);
+                self.weight_changes = Some(prepare.payload.clone());
                 self.current = DashboardState::Prepare(prepare);
             }
             // Below is where the complexity is...
