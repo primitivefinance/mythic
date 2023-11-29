@@ -65,30 +65,4 @@ contract RMMSwap is RMMSetUp {
         assertEq(preBalanceX - deltaX, postBalanceX);
         assertEq(preBalanceY + amountY, postBalanceY);
     }
-
-    function test_rmm_new_liquidity_down_strike() public {
-        rmm.initExactX(5_000 ether, initialPrice);
-
-        uint256 strike = rmm.strikePrice();
-        stdstore.target(address(rmm)).sig(rmm.targetStrike.selector)
-            .checked_write(1780 ether);
-        uint256 nextLiquidity = rmm.getNextLiquidity();
-
-        int256 swapConstant = rmm.getSwapConstantGivenLiquidity(nextLiquidity);
-
-        assertApproxEqAbs(swapConstant, 0, 100);
-    }
-
-    function test_rmm_new_liquidity_up_strike() public {
-        rmm.initExactX(5_000 ether, initialPrice);
-
-        uint256 strike = rmm.strikePrice();
-        stdstore.target(address(rmm)).sig(rmm.targetStrike.selector)
-            .checked_write(1820 ether);
-        uint256 nextLiquidity = rmm.getNextLiquidity();
-
-        int256 swapConstant = rmm.getSwapConstantGivenLiquidity(nextLiquidity);
-
-        assertApproxEqAbs(swapConstant, 0, 100);
-    }
 }

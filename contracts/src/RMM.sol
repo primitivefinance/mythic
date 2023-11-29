@@ -23,7 +23,7 @@ contract RMM is IStrategy {
     mapping(address => uint256) public balanceOf;
 
     uint256 private lastSigma;
-    uint256 private targetSigma;
+    uint256 public targetSigma;
     uint256 private lastSigmaSync;
     uint256 private sigmaUpdatePerSecond;
     uint256 private sigmaUpdateEnd;
