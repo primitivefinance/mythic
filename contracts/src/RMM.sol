@@ -307,11 +307,18 @@ contract RMM is IStrategy {
 
     function _swap(
         bool swapDirection,
+        uint256 nextLiquidity,
         uint256 amountIn
     ) internal returns (uint256 amountOut) {
         (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        int256 swapConstant = checkSwapConstant(reserveX, reserveY, totalLiquidity, _strike, _sigma, _tau, nextLiquidity);
+        require(
+            -100 < swapConstant && swapConstant < 100,
+            "Swap constant out of range"
+        );
+
         uint256 price =
-            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau);
+            computeSpotPrice(reserveX, nextLiquidity, _strike, _sigma, _tau);
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
@@ -323,7 +330,7 @@ contract RMM is IStrategy {
                         reserveX,
                         reserveY,
                         amountIn,
-                        totalLiquidity,
+                        nextLiquidity,
                         deltaL,
                         _strike,
                         _sigma,
@@ -332,7 +339,7 @@ contract RMM is IStrategy {
                 )
             );
 
-            totalLiquidity += deltaL;
+            totalLiquidity = nextLiquidity + deltaL;
             reserveX += amountIn;
             reserveY -= amountOut;
 
@@ -348,7 +355,7 @@ contract RMM is IStrategy {
                         reserveX,
                         reserveY,
                         amountIn,
-                        totalLiquidity,
+                        nextLiquidity,
                         deltaL,
                         _strike,
                         _sigma,
@@ -357,7 +364,7 @@ contract RMM is IStrategy {
                 )
             );
 
-            totalLiquidity += deltaL;
+            totalLiquidity = nextLiquidity + deltaL;
             reserveY += amountIn;
             reserveX -= amountOut;
 
@@ -476,9 +483,10 @@ contract RMM is IStrategy {
 
     function swapAmountIn(
         bool swapDirection,
+        uint256 nextLiquidity,
         uint256 amountIn
     ) external returns (uint256) {
-        return _swap(swapDirection, amountIn);
+        return _swap(swapDirection, nextLiquidity, amountIn);
     }
 
     function setSwapFee(uint256 newSwapFee) external {
@@ -521,38 +529,17 @@ contract RMM is IStrategy {
         return abi.encode(sigma(), strikePrice(), tau());
     }
 
-    function getNewLFromParameters() external view returns (uint256) {
+    function getSwapConstantGivenLiquidity(
+        uint256 newLiquidity
+    ) external view returns (int256) {
         (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
-        return
-            computeNewLiquidity(
-                reserveX,
-                reserveY,
-                totalLiquidity,
-                _strike,
-                _sigma,
-                _tau
-            );
+        return checkSwapConstant(reserveX, reserveY, totalLiquidity, _strike, _sigma, _tau, newLiquidity);
     }
 
-    function getSwapUpperLower() external view returns (uint256, uint256) {
+    function getNextLiquidity() external view returns (uint256) {
         (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
-        return testSwapConstant(reserveX, reserveY, totalLiquidity, _strike, _sigma, _tau);
-    }
-
-    function checkSwapConstant(uint256 newLiquidity) external view returns (int256) {
-        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
-        return computeSwapConstant(
-            abi.encode(
-                transform(
-                    reserveX,
-                    reserveY,
-                    totalLiquidity,
-                    _strike,
-                    _sigma,
-                    _tau
-                )
-            ),
-            newLiquidity
+        return computeNextLiquidity(
+            reserveX, reserveY, totalLiquidity, _strike, _sigma, _tau
         );
     }
 }

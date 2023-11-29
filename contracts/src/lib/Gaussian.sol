@@ -23,7 +23,7 @@ import "./Units.sol";
  * @custom:source Inspired by https://github.com/errcw/gaussian.
  */
 library Gaussian {
-    using {abs, diviWad} for int256;
+    using { abs, diviWad } for int256;
     using FixedPointMathLib for int256;
     using FixedPointMathLib for uint256;
 
@@ -101,14 +101,44 @@ library Gaussian {
             // Avoids stack too deep.
             int256 _t = t;
 
-            step =
-                (ERFC_F + muliWad(_t, (ERFC_G + muliWad(_t, (ERFC_H + muliWad(_t, (ERFC_I + muliWad(_t, ERFC_J))))))));
+            step = (
+                ERFC_F
+                    + muliWad(
+                        _t,
+                        (
+                            ERFC_G
+                                + muliWad(
+                                    _t,
+                                    (
+                                        ERFC_H
+                                            + muliWad(_t, (ERFC_I + muliWad(_t, ERFC_J)))
+                                    )
+                                )
+                        )
+                    )
+            );
         }
 
         {
             int256 _t = t;
             step = muliWad(
-                _t, (ERFC_B + muliWad(_t, (ERFC_C + muliWad(_t, (ERFC_D + muliWad(_t, (ERFC_E + muliWad(_t, step))))))))
+                _t,
+                (
+                    ERFC_B
+                        + muliWad(
+                            _t,
+                            (
+                                ERFC_C
+                                    + muliWad(
+                                        _t,
+                                        (
+                                            ERFC_D
+                                                + muliWad(_t, (ERFC_E + muliWad(_t, step)))
+                                        )
+                                    )
+                            )
+                        )
+                )
             );
 
             k = (int256(-1) * muliWad(int256(z), int256(z)) - ERFC_A) + step;
@@ -150,7 +180,8 @@ library Gaussian {
         int256 r;
         {
             int256 numerator = (IERFC_B + muliWad(t, IERFC_C));
-            int256 denominator = (ONE + muliWad(t, (IERFC_D + muliWad(t, IERFC_E))));
+            int256 denominator =
+                (ONE + muliWad(t, (IERFC_D + muliWad(t, IERFC_E))));
             r = muliWad(IERFC_A, diviWad(numerator, denominator) - t);
         }
 

@@ -244,10 +244,14 @@ function computeSwapConstant(
     uint256 value
 ) pure returns (int256 swapConstant) {
     NormalCurve memory curve = abi.decode(args, (NormalCurve));
-    swapConstant = Gaussian.ppf_unsafe(int256(FixedPointMathLib.divWadDown(curve.x, value)))
+    swapConstant = Gaussian.ppf_unsafe(
+        int256(FixedPointMathLib.divWadDown(curve.x, value))
+    )
         + Gaussian.ppf_unsafe(
             int256(
-                FixedPointMathLib.divWadDown(curve.y, FixedPointMathLib.mulWadDown(value, curve.K))
+                FixedPointMathLib.divWadDown(
+                    curve.y, FixedPointMathLib.mulWadDown(value, curve.K)
+                )
             )
         ) + int256(computeSigmaSqrtTau(curve.sigma, curve.tau));
 }
@@ -255,7 +259,7 @@ function computeSwapConstant(
 //compute new L using bisection
 // send the L along with the swap
 // assert that the compute swap constant function returns 0 with the new parameters and new L
-function computeNewLiquidity(
+function computeNextLiquidity(
     uint256 x,
     uint256 y,
     uint256 L,
@@ -263,32 +267,22 @@ function computeNewLiquidity(
     uint256 sigma,
     uint256 tau
 ) pure returns (uint256 newLiquidity) {
-
     uint256 lower;
     uint256 upper;
 
-    NormalCurve memory normalCurve = transform(
-        x,
-        y,
-        L,
-        K,
-        sigma,
-        tau
-    );
+    NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
 
-    int256 initialConstant = computeSwapConstant(
-        abi.encode(normalCurve),
-        normalCurve.L 
-    );
+    int256 initialConstant =
+        computeSwapConstant(abi.encode(normalCurve), normalCurve.L);
 
     if (initialConstant == 0) {
         return L;
     } else if (initialConstant < 0) {
         upper = L;
-        lower = L.mulDivDown(99, 100);
+        lower = L.mulDivDown(98, 100);
     } else {
         lower = L;
-        upper = L.mulDivUp(101, 100);
+        upper = L.mulDivUp(102, 100);
     }
 
     newLiquidity = bisection(
@@ -317,37 +311,15 @@ function transform(
     normalCurve.tau = tau;
 }
 
-function testSwapConstant(
+function checkSwapConstant(
     uint256 x,
     uint256 y,
     uint256 L,
     uint256 K,
     uint256 sigma,
-    uint256 tau
-) pure returns (uint256, uint256) {
-    uint256 upper;
-    uint256 lower;
-    NormalCurve memory normalCurve = transform(
-        x,
-        y,
-        L,
-        K,
-        sigma,
-        tau
-    );
-
-    int256 initialConstant = computeSwapConstant(
-        abi.encode(normalCurve),
-        normalCurve.L 
-    );
-
-    if (initialConstant < 0) {
-        lower = L;
-        upper = L.mulDivUp(10001, 10000);
-    } else {
-        upper = L;
-        lower = L.mulDivDown(50, 100);
-    }
-    return (lower, upper);
-
+    uint256 tau,
+    uint256 newLiquidity
+) pure returns (int256) {
+    NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
+    return computeSwapConstant(abi.encode(normalCurve), newLiquidity);
 }

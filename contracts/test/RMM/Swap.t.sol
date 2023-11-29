@@ -4,11 +4,11 @@ pragma solidity ^0.8.13;
 import "./SetUp.t.sol";
 import "../../src/lib/RMMMath.sol";
 
-
 contract RMMSwap is RMMSetUp {
     using stdStorage for StdStorage;
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for uint128;
+
     function test_rmm_swap_UpdatesReserves() public {
         uint256 deltaX = 500 ether;
 
@@ -17,7 +17,9 @@ contract RMMSwap is RMMSetUp {
         uint256 preReserveX = rmm.reserveX();
         uint256 preReserveY = rmm.reserveY();
 
-        uint256 amountY = rmm.swapAmountIn(true, 500 ether);
+        uint256 nextLiquidity = rmm.totalLiquidity();
+
+        uint256 amountY = rmm.swapAmountIn(true, nextLiquidity, 500 ether);
 
         uint256 postReserveX = rmm.reserveX();
         uint256 postReserveY = rmm.reserveY();
@@ -34,7 +36,9 @@ contract RMMSwap is RMMSetUp {
         uint256 preBalanceX = tokenX.balanceOf(address(rmm));
         uint256 preBalanceY = tokenY.balanceOf(address(rmm));
 
-        uint256 amountY = rmm.swapAmountIn(true, 500 ether);
+        uint256 nextLiquidity = rmm.totalLiquidity();
+
+        uint256 amountY = rmm.swapAmountIn(true, nextLiquidity, 500 ether);
 
         uint256 postBalanceX = tokenX.balanceOf(address(rmm));
         uint256 postBalanceY = tokenY.balanceOf(address(rmm));
@@ -51,7 +55,9 @@ contract RMMSwap is RMMSetUp {
         uint256 preBalanceX = tokenX.balanceOf(address(this));
         uint256 preBalanceY = tokenY.balanceOf(address(this));
 
-        uint256 amountY = rmm.swapAmountIn(true, 500 ether);
+        uint256 nextLiquidity = rmm.totalLiquidity();
+
+        uint256 amountY = rmm.swapAmountIn(true, nextLiquidity, 500 ether);
 
         uint256 postBalanceX = tokenX.balanceOf(address(this));
         uint256 postBalanceY = tokenY.balanceOf(address(this));
@@ -60,22 +66,29 @@ contract RMMSwap is RMMSetUp {
         assertEq(preBalanceY + amountY, postBalanceY);
     }
 
-    function test_rmm_new_liquidity() public {
+    function test_rmm_new_liquidity_down_strike() public {
         rmm.initExactX(5_000 ether, initialPrice);
+
         uint256 strike = rmm.strikePrice();
-        stdstore.target(address(rmm)).sig(rmm.targetStrike.selector).checked_write(1780 ether);
-        uint256 liquidity = rmm.totalLiquidity();
-        uint256 x = rmm.reserveX();
-        console2.log(liquidity);
-        (uint256 lower, uint256 upper) = rmm.getSwapUpperLower();
+        stdstore.target(address(rmm)).sig(rmm.targetStrike.selector)
+            .checked_write(1780 ether);
+        uint256 nextLiquidity = rmm.getNextLiquidity();
 
-        console2.log("lower", lower);
-        console2.log("upper", upper);
-        uint256 newLiquidity = rmm.getNewLFromParameters();
+        int256 swapConstant = rmm.getSwapConstantGivenLiquidity(nextLiquidity);
 
-        console2.log(newLiquidity);
+        assertApproxEqAbs(swapConstant, 0, 100);
+    }
 
-        int256 newSwapConstant = rmm.checkSwapConstant(newLiquidity);
-        console2.log("newSwapConstant", newSwapConstant);
+    function test_rmm_new_liquidity_up_strike() public {
+        rmm.initExactX(5_000 ether, initialPrice);
+
+        uint256 strike = rmm.strikePrice();
+        stdstore.target(address(rmm)).sig(rmm.targetStrike.selector)
+            .checked_write(1820 ether);
+        uint256 nextLiquidity = rmm.getNextLiquidity();
+
+        int256 swapConstant = rmm.getSwapConstantGivenLiquidity(nextLiquidity);
+
+        assertApproxEqAbs(swapConstant, 0, 100);
     }
 }

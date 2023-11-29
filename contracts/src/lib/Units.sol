@@ -17,11 +17,7 @@ function abs(int256 input) pure returns (uint256 output) {
 }
 
 /// @dev From solmate@v7, changes last `div` to `sdiv`.
-function muli(
-    int256 x,
-    int256 y,
-    int256 denominator
-) pure returns (int256 z) {
+function muli(int256 x, int256 y, int256 denominator) pure returns (int256 z) {
     assembly {
         // Store x * y in z for now.
         z := mul(x, y)
@@ -29,9 +25,7 @@ function muli(
         // Equivalent to require(denominator != 0 && (x == 0 || (x * y) / x == y))
         if iszero(
             and(iszero(iszero(denominator)), or(iszero(x), eq(sdiv(z, x), y)))
-        ) {
-            revert(0, 0)
-        }
+        ) { revert(0, 0) }
 
         // Divide z by the denominator.
         z := sdiv(z, denominator)
