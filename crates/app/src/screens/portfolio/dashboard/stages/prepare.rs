@@ -51,6 +51,16 @@ impl PreparePayload {
         self.adjusted.positions[pos_index] = position;
     }
 
+    pub fn adjust_balance(&mut self, pos_index: usize, balance: f64) {
+        if !self.altered.contains(&pos_index) {
+            self.altered.push(pos_index);
+        }
+
+        let mut position = self.adjusted.positions[pos_index].clone();
+        position.balance = Some(balance);
+        self.adjusted.positions[pos_index] = position;
+    }
+
     pub fn get_adjustments(&self) -> Vec<Adjustment> {
         let mut adjustments = Vec::new();
 
@@ -216,9 +226,16 @@ impl Prepare {
                 .unwrap_or_default()
                 .parse::<f64>()
                 .unwrap_or_default();
+            let balance = delta
+                .balance
+                .unwrap_or_default()
+                .parse::<f64>()
+                .unwrap_or_default();
 
             payload.adjust_weight(pos_index, weight);
             payload.adjust_cost(pos_index, cost);
+            // todo: adjust weight should handle this probably.
+            payload.adjust_balance(pos_index, balance);
         }
 
         Self { payload }

@@ -8,7 +8,10 @@ use std::collections::HashMap;
 use profiles::portfolios::Portfolio;
 use stages::Stages;
 
-use self::{stages::DashboardState, table::PortfolioTable};
+use self::{
+    stages::DashboardState,
+    table::{PortfolioTable, PositionDelta},
+};
 use super::*;
 use crate::{
     components::{
@@ -222,6 +225,8 @@ impl State for Dashboard {
             Message::Prepare => {
                 return self.table.update(table::Message::Ready).map(|x| x.into());
             }
+
+            // TRIGGERED WHEN USER ENTERS A DELTA IN THE TABLE, VERY IMPORTANT EVENT!
             // Triggers the staging process...
             // todo: move this weight adjustment computation outside so its easier to find / debug.
             // todo: this can be triggered by directly emitting Stage(Step) message.
@@ -284,10 +289,80 @@ impl State for Dashboard {
                     }
                 }
 
-                return self
-                    .stage
-                    .update(stages::Message::Start(proposed_deltas))
-                    .map(|x| x.into());
+                // We also need to compute the changes in the balances of the portfolio!
+                // Then we need to compute the change in market value based in the price, and
+                // apply the adjustments to the table delta fields.
+                let adjusted_balances = compute_balance_adjustments_algorithm(
+                    &self.portfolio.clone().unwrap_or_default(),
+                    &proposed_deltas,
+                );
+
+                proposed_deltas = proposed_deltas
+                    .iter()
+                    .enumerate()
+                    .map(|(pos_index, position)| {
+                        let mut position = position.clone();
+                        position.balance = adjusted_balances[pos_index].balance.clone();
+                        position
+                    })
+                    .collect();
+
+                let adjusted_market_values = adjusted_balances
+                    .iter()
+                    .map(|balance| {
+                        let price = balance
+                            .price
+                            .clone()
+                            .unwrap_or_default()
+                            .parse::<f64>()
+                            .unwrap_or_default();
+                        let balance = balance
+                            .balance
+                            .clone()
+                            .unwrap_or_default()
+                            .parse::<f64>()
+                            .unwrap_or_default();
+                        price * balance
+                    })
+                    .collect::<Vec<f64>>();
+
+                // For each position delta, we need to send a message to update the table form.
+                let mut commands = proposed_deltas
+                    .iter()
+                    .enumerate()
+                    .map(|(pos_index, position)| {
+                        let balance = position.balance.clone();
+                        let market_value = adjusted_market_values[pos_index].to_string();
+
+                        let balance_command = self
+                            .table
+                            .update(table::Message::DeltaForm(
+                                table::form::DeltaFormMessage::Balance(pos_index, balance),
+                            ))
+                            .map(|x| x.into());
+
+                        let market_value_command = self
+                            .table
+                            .update(table::Message::DeltaForm(
+                                table::form::DeltaFormMessage::MarketValue(
+                                    pos_index,
+                                    Some(market_value.clone()),
+                                ),
+                            ))
+                            .map(|x| x.into());
+
+                        vec![balance_command, market_value_command]
+                    })
+                    .flatten()
+                    .collect::<Vec<Command<Self::AppMessage>>>();
+
+                commands.push(
+                    self.stage
+                        .update(stages::Message::Start(proposed_deltas))
+                        .map(|x| x.into()),
+                );
+
+                return Command::batch(commands);
             }
             _ => {}
         }
@@ -357,4 +432,59 @@ impl State for DashboardWrapper {
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         self.dashboard.view()
     }
+}
+
+/// i hate this please clean it up
+#[tracing::instrument(skip(portfolio), ret)]
+pub fn compute_balance_adjustments_algorithm(
+    portfolio: &Portfolio,
+    proposed_deltas: &Vec<PositionDelta>,
+) -> Vec<PositionDelta> {
+    let total_portfolio_value = portfolio.compute_total_portfolio_value();
+    tracing::info!("Total portfolio value: {}", total_portfolio_value);
+
+    let mut adjusted_balances: Vec<PositionDelta> = vec![];
+
+    let prices: Vec<f64> = portfolio
+        .positions
+        .iter()
+        .map(|position| position.cost.unwrap_or_default())
+        .collect::<Vec<f64>>();
+
+    // For each position delta, apply the weight adjustment to the balances of the
+    // coins
+    for (index, proposed_delta) in proposed_deltas.iter().enumerate() {
+        let mut adjusted_balance = PositionDelta::default();
+        adjusted_balance.id = index;
+        if let Some(weight_str) = &proposed_delta.weight {
+            if let Ok(weight) = weight_str.parse::<f64>() {
+                tracing::info!("Weight: {}", weight);
+                adjusted_balance.balance = Some(
+                    (weight * total_portfolio_value / prices[index])
+                        .round()
+                        .to_string(),
+                );
+
+                tracing::info!(
+                    "Adjusted balance: {}",
+                    adjusted_balance.balance.clone().unwrap_or_default()
+                );
+            }
+        }
+
+        if let Some(price_str) = &proposed_delta.price {
+            if let Ok(price) = price_str.parse::<f64>() {
+                adjusted_balance.price = Some(price.to_string());
+            }
+        } else {
+            // Else set to the current price.
+            // This is mostly to make it easier to compute the market value.
+            adjusted_balance.price = Some(prices[index].to_string());
+        }
+
+        adjusted_balances.push(adjusted_balance);
+    }
+
+    // Return the balances of coins with the new weights
+    adjusted_balances
 }

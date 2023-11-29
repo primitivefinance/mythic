@@ -96,20 +96,22 @@ impl PortfolioTable {
             .iter()
             .enumerate()
             .map(|(pos_index, _)| {
-                let balance = self.form.balance.get(&pos_index).cloned();
+                // todo: support more fields to be changed!
+                // let balance = self.form.balance.get(&pos_index).cloned();
+                // let price = self.form.price.get(&pos_index).cloned();
                 let weight = self.form.weight.get(&pos_index).cloned();
-                let price = self.form.price.get(&pos_index).cloned();
                 PositionDelta {
                     id: pos_index,
-                    balance,
+                    balance: None,
                     weight,
-                    price,
+                    price: None,
                 }
             })
             .collect()
     }
 
     /// todo: investigate if this empty element will cause any problems...
+    #[allow(dead_code)]
     pub fn summary_table(&self) -> Element<'_, Self::AppMessage> {
         match self.summary.as_ref() {
             Some(summary) => summary.view().map(|x| x.into()),
@@ -154,22 +156,83 @@ impl PortfolioTable {
         position: &'a Position,
         pos_index: usize,
     ) -> Vec<CellBuilder<Self::AppMessage>> {
+        let price_current = position.cost.unwrap_or_default();
+        let balance_current = position.balance.unwrap_or_default();
+        let market_value_current = price_current * balance_current;
+
+        let price_adjusted = self
+            .form
+            .price
+            .get(&pos_index)
+            .map(|x| x.parse::<f64>().unwrap_or_default())
+            .unwrap_or_default();
+
+        let balance_adjusted = self
+            .form
+            .balance
+            .get(&pos_index)
+            .map(|x| x.parse::<f64>().unwrap_or_default())
+            .unwrap_or_default();
+
+        let market_value_adjusted = self
+            .form
+            .market_value
+            .get(&pos_index)
+            .map(|x| x.parse::<f64>().unwrap_or_default())
+            .unwrap_or_default();
+
+        let balance_delta = balance_adjusted - balance_current;
+        let market_value_delta = market_value_adjusted - market_value_current;
+
+        let price_label = if price_adjusted == 0.0 {
+            "-".to_string()
+        } else {
+            format!(
+                "({:.2}) {:.2}",
+                price_adjusted - price_current,
+                price_adjusted
+            )
+        };
+
+        let balance_label = if balance_adjusted == 0.0 {
+            "-".to_string()
+        } else {
+            format!("({:.2}) {:.2}", balance_delta, balance_adjusted)
+        };
+
+        let market_value_label = if market_value_adjusted == 0.0 {
+            "-".to_string()
+        } else {
+            format!("({:.2}) {:.2}", market_value_delta, market_value_adjusted)
+        };
+
+        let float_epsilon = 0.0001;
+
+        let balance_color = match balance_delta {
+            x if x > float_epsilon => GREEN_400,
+            x if x < -float_epsilon => RED_400,
+            _ => GRAY_400,
+        };
+
+        let market_value_color = match market_value_delta {
+            x if x > float_epsilon => GREEN_400,
+            x if x < -float_epsilon => RED_400,
+            _ => GRAY_400,
+        };
+
         vec![
             CellBuilder::new().value(Some(position.asset.symbol.clone())),
             CellBuilder::new().value(position.cost.map(|x| x.to_string())),
             CellBuilder::new()
-                .value(self.form.price.get(&pos_index).cloned())
-                .on_change(move |x| form::DeltaFormMessage::Price(pos_index, x).into())
+                .child(label_item(price_label))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
             CellBuilder::new().value(position.balance.map(|x| x.to_string())),
             CellBuilder::new()
-                .value(self.form.balance.get(&pos_index).cloned())
-                .on_change(move |x| form::DeltaFormMessage::Balance(pos_index, x).into())
+                .child(label_item(balance_label).style(balance_color))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
             CellBuilder::new().value(position.cost.map(|x| x.to_string())),
             CellBuilder::new()
-                .value(self.form.market_value.get(&pos_index).cloned())
-                .on_change(move |x| form::DeltaFormMessage::MarketValue(pos_index, x).into())
+                .child(label_item(market_value_label).style(market_value_color))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
         ]
     }

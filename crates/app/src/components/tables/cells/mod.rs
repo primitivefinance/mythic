@@ -189,9 +189,13 @@ where
             return (self.containerize)(checkbox.into());
         }
 
+        let internal_padding: Padding = self.internal_padding.unwrap_or_default().into();
         let cell_content = match self.child {
-            Some(child) => child,
-            None => primary_label(value.clone().unwrap_or_default()).into(),
+            Some(child) => Column::new().push(child).padding(internal_padding).into(),
+            None => Column::new()
+                .push(primary_label(value.clone().unwrap_or_default()))
+                .padding(internal_padding)
+                .into(),
         };
 
         // If options is Some, then we need to render a select.

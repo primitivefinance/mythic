@@ -1,5 +1,7 @@
 //! Main serialized data structure for Portfolios.
 
+use std::ops::Mul;
+
 use serde::{Deserialize, Serialize};
 use simulation::agents::token_admin::TokenData;
 
@@ -60,6 +62,20 @@ impl Portfolio {
             positions,
             bench_mark: None,
         }
+    }
+
+    /// Sum of all the products of the position's balance and price.
+    #[tracing::instrument(skip(self), ret)]
+    pub fn compute_total_portfolio_value(&self) -> f64 {
+        self.positions
+            .iter()
+            .map(|position| {
+                position
+                    .balance
+                    .unwrap_or(0.0)
+                    .mul(position.cost.unwrap_or(0.0))
+            })
+            .sum()
     }
 
     pub fn add_position(&mut self, position: Position) {
