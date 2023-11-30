@@ -64,13 +64,13 @@ pub trait ArbitrageStrategy: Strategy {
         target_price_wad: U256,
         g3m_math: &SD59x18Math<RevmMiddleware>,
         rmm_math: &ArbiterMath<RevmMiddleware>,
-    ) -> Result<U256>;
+    ) -> Result<(U256, U256)>;
     async fn get_y_input(
         &self,
         target_price_wad: U256,
         g3m_math: &SD59x18Math<RevmMiddleware>,
         rmm_math: &ArbiterMath<RevmMiddleware>,
-    ) -> Result<U256>;
+    ) -> Result<(U256, U256)>;
 
     async fn get_reserves_and_liquidity(&self) -> Result<(U256, U256, U256)>;
 }

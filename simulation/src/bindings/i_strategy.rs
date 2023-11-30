@@ -58,6 +58,28 @@ pub mod i_strategy {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("getNextLiquidity"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("getNextLiquidity"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("getPortfolioValue"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -462,6 +484,14 @@ pub mod i_strategy {
                 .method_hash([9, 16, 165, 16], ())
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `getNextLiquidity` (0xf3a8efe3) function
+        pub fn get_next_liquidity(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            self.0
+                .method_hash([243, 168, 239, 227], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `getPortfolioValue` (0xbb0498de) function
         pub fn get_portfolio_value(
             &self,
@@ -770,6 +800,21 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "getLiquidity", abi = "getLiquidity()")]
     pub struct GetLiquidityCall;
+    ///Container type for all input parameters for the `getNextLiquidity` function with signature `getNextLiquidity()` and selector `0xf3a8efe3`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "getNextLiquidity", abi = "getNextLiquidity()")]
+    pub struct GetNextLiquidityCall;
     ///Container type for all input parameters for the `getPortfolioValue` function with signature `getPortfolioValue()` and selector `0xbb0498de`
     #[derive(
         Clone,
@@ -907,6 +952,7 @@ pub mod i_strategy {
     pub enum IStrategyCalls {
         GetInvariant(GetInvariantCall),
         GetLiquidity(GetLiquidityCall),
+        GetNextLiquidity(GetNextLiquidityCall),
         GetPortfolioValue(GetPortfolioValueCall),
         GetReserveX(GetReserveXCall),
         GetReserveY(GetReserveYCall),
@@ -930,6 +976,11 @@ pub mod i_strategy {
                 data,
             ) {
                 return Ok(Self::GetLiquidity(decoded));
+            }
+            if let Ok(decoded) = <GetNextLiquidityCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::GetNextLiquidity(decoded));
             }
             if let Ok(decoded) = <GetPortfolioValueCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -983,6 +1034,9 @@ pub mod i_strategy {
                 Self::GetLiquidity(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
+                Self::GetNextLiquidity(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::GetPortfolioValue(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1013,6 +1067,7 @@ pub mod i_strategy {
             match self {
                 Self::GetInvariant(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetLiquidity(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetNextLiquidity(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetPortfolioValue(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetReserveX(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetReserveY(element) => ::core::fmt::Display::fmt(element, f),
@@ -1032,6 +1087,11 @@ pub mod i_strategy {
     impl ::core::convert::From<GetLiquidityCall> for IStrategyCalls {
         fn from(value: GetLiquidityCall) -> Self {
             Self::GetLiquidity(value)
+        }
+    }
+    impl ::core::convert::From<GetNextLiquidityCall> for IStrategyCalls {
+        fn from(value: GetNextLiquidityCall) -> Self {
+            Self::GetNextLiquidity(value)
         }
     }
     impl ::core::convert::From<GetPortfolioValueCall> for IStrategyCalls {
@@ -1102,6 +1162,20 @@ pub mod i_strategy {
         Hash
     )]
     pub struct GetLiquidityReturn(pub ::ethers::core::types::U256);
+    ///Container type for all return fields from the `getNextLiquidity` function with signature `getNextLiquidity()` and selector `0xf3a8efe3`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct GetNextLiquidityReturn(pub ::ethers::core::types::U256);
     ///Container type for all return fields from the `getPortfolioValue` function with signature `getPortfolioValue()` and selector `0xbb0498de`
     #[derive(
         Clone,

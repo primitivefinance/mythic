@@ -509,4 +509,6 @@ contract G3M is IG3M, IStrategy {
         );
         counter += random % 100;
     }
+
+    function getNextLiquidity() external view override returns (uint256) {}
 }

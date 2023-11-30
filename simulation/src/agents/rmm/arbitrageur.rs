@@ -1,6 +1,7 @@
 use std::{str::FromStr, sync::atomic};
 
 use arbiter_core::bindings::arbiter_math::ArbiterMath;
+use bindings::rmm_atomic_arbitrage::RMMAtomicArbitrage;
 use ethers::abi::AbiEncode;
 
 use super::*;
@@ -21,7 +22,7 @@ pub struct RmmArbitrageur<S: ArbitrageStrategy> {
     /// The rmm strategy used by the exchange.
     pub rmm_strategy: S,
     /// The atomic arbitrage contract.
-    pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
+    pub atomic_arbitrage: RMMAtomicArbitrage<RevmMiddleware>,
     pub g3m_math: SD59x18Math<RevmMiddleware>,
     pub rmm_math: ArbiterMath<RevmMiddleware>,
 }
@@ -39,7 +40,7 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
         let rmm_strategy = S::new(rmm_address, client.clone());
-        let atomic_arbitrage = AtomicArbitrage::deploy(
+        let atomic_arbitrage = RMMAtomicArbitrage::deploy(
             client.clone(),
             (
                 rmm_address,
@@ -80,7 +81,6 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
             .call()
             .await?;
 
-        println!("arbx_allowance: {:?}", arbx_allowance);
         println!("arby_allowance: {:?}", arby_allowance);
 
         let g3m_math = SD59x18Math::deploy(client.clone(), ())?.send().await?;
@@ -111,6 +111,11 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
 
         let upper_arb_bound = WAD * price / (WAD - gamma_wad);
         let lower_arb_bound = price * (WAD - gamma_wad) / WAD;
+        info!(
+            "upper_arb_bound: {:?}, lower_arb_bound: {:?}",
+            format_units(upper_arb_bound, "ether")?,
+            format_units(lower_arb_bound, "ether")?
+        );
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.
@@ -142,7 +147,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
         let arby = ArbiterToken::new(arby, self.client.clone());
         let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
         let arby_balance = arby.balance_of(self.client.address()).call().await?;
-        debug!("arbx_balance: {:?}", arbx_balance);
         debug!("arby_balance: {:?}", arby_balance);
 
         match self.detect_arbitrage(&self.rmm_strategy).await? {
@@ -151,7 +155,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to raise price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let input = self
+                let (input, next_liquidity) = self
                     .rmm_strategy
                     .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
@@ -161,12 +165,13 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     return Ok(());
                 }
 
-                let tx = self.atomic_arbitrage.raise_exchange_price(input);
+                let tx = self
+                    .atomic_arbitrage
+                    .raise_exchange_price(input, next_liquidity);
 
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                debug!("arbx_balance after: {:?}", arbx_balance);
                 debug!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
@@ -186,7 +191,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let input = self
+                let (input, next_liquidity) = self
                     .rmm_strategy
                     .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
@@ -194,11 +199,12 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                 if input <= 0.into() {
                     return Ok(());
                 }
-                let tx = self.atomic_arbitrage.lower_exchange_price(input);
+                let tx = self
+                    .atomic_arbitrage
+                    .lower_exchange_price(input, next_liquidity);
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                trace!("arbx_balance after: {:?}", arbx_balance);
                 trace!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
@@ -208,7 +214,12 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            let decoded_output =
+                                bindings::rmm_atomic_arbitrage::NotProfitable::decode(&output)?;
+                            info!(
+                                "Execution revert: {:?} Gas Used: {:?}",
+                                decoded_output, gas_used
+                            );
                         }
                     }
                 }

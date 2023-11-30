@@ -137,7 +137,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to increase price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let input = self
+                let (input, _next_liquidity) = self
                     .strategy
                     .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
@@ -166,7 +166,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let input = self
+                let (input, _next_liquidity) = self
                     .strategy
                     .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;

@@ -97,7 +97,7 @@ impl ArbitrageStrategy for G3mStrategy {
         target_price_wad: U256,
         math: &SD59x18Math<RevmMiddleware>,
         _rmm_math: &ArbiterMath<RevmMiddleware>,
-    ) -> Result<U256> {
+    ) -> Result<(U256, U256)> {
         let strategy_data = self.decode_strategy_data().await?;
         let weight_x = I256::from_raw(strategy_data.weight_x);
         trace!("weight_x: {}", weight_x);
@@ -120,7 +120,7 @@ impl ArbitrageStrategy for G3mStrategy {
         let delta_x = invariant * math.pow(inside, weight_y).call().await? / iwad - reserve_x;
         trace!("delta_x: {}", delta_x);
 
-        Ok(delta_x.into_raw())
+        Ok((delta_x.into_raw(), 0.into()))
     }
 
     async fn get_y_input(
@@ -128,7 +128,7 @@ impl ArbitrageStrategy for G3mStrategy {
         target_price_wad: U256,
         math: &SD59x18Math<RevmMiddleware>,
         _rmm_math: &ArbiterMath<RevmMiddleware>,
-    ) -> Result<U256> {
+    ) -> Result<(U256, U256)> {
         let strategy_data = self.decode_strategy_data().await?;
         let weight_x = I256::from_raw(strategy_data.weight_x);
         trace!("weight_x: {}", weight_x);
@@ -151,7 +151,7 @@ impl ArbitrageStrategy for G3mStrategy {
         let delta_y = invariant * math.pow(inside, weight_x).call().await? / iwad - reserve_y;
         trace!("delta_y: {}", delta_y);
 
-        Ok(delta_y.into_raw())
+        Ok((delta_y.into_raw(), 0.into()))
     }
 
     #[tracing::instrument(ret, skip(self))]

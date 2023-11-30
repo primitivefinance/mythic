@@ -10,6 +10,7 @@ pub mod i_strategy;
 pub mod ig3m;
 pub mod portfolio_tracker;
 pub mod rmm;
+pub mod rmm_atomic_arbitrage;
 pub mod rmm_math_like;
 pub mod sd5_9x_18_math;
 pub mod shared_types;
