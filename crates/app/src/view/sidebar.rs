@@ -10,7 +10,7 @@ const TITLE: &str = "Excalibur";
 /// Defines all the possible locations that can be directly routed to in the
 /// app. For example, routing to a page will display that page. Routing to a
 /// bookmark will route to a specific application state.
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Route {
     #[default]
     Empty,
@@ -19,7 +19,7 @@ pub enum Route {
     Open(Location),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Location {
     #[default]
     Empty,
@@ -51,6 +51,7 @@ impl From<Route> for <Route as MessageWrapperView>::ParentMessage {
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
 pub struct Sidebar {
+    pub state: Route,
     pub page: Page,
     pub bookmarks: Bookmarks,
 }
@@ -58,6 +59,7 @@ pub struct Sidebar {
 impl Sidebar {
     pub fn new() -> Self {
         Self {
+            state: Route::Empty,
             page: Page::Empty,
             bookmarks: Bookmarks::new(),
         }
@@ -100,6 +102,8 @@ impl screens::State for Sidebar {
     type AppMessage = Route;
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+        self.state = message.clone();
+
         match message {
             Route::Page(page) => {
                 self.page = page;
@@ -145,7 +149,7 @@ impl screens::State for Sidebar {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Page {
     #[default]
     Empty,
@@ -241,7 +245,7 @@ impl Page {
 }
 
 /// todo: implement bookmark editing and better route management.
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub struct Bookmarks {
     current: String,
     bookmarks: Vec<String>,

@@ -96,6 +96,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
     }
 
     // note: Filters on the layers only get applied to their own layer!
+    // todo: improve this to make it clear/easier to manager filters
     pub fn build(self) -> Box<dyn Layer<S> + Send + Sync + 'static> {
         let fmt_layer: Box<dyn Layer<S> + Send + Sync + 'static> = match self.target {
             Some(LogTarget::File(path)) => {
@@ -129,7 +130,13 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
                     && !metadata.target().starts_with("cosmic_text")
                     && !metadata.target().starts_with("tokio_tungstenite")
                     && !metadata.target().starts_with("tungstenite")
-                    && metadata.level() <= &tracing::Level::INFO
+                    && metadata.level() <= &tracing::Level::TRACE
+                    // todo: remove these if you need to see sim traces...
+                    && !metadata.target().starts_with("arbiter_core")
+                    && !metadata.target().starts_with("simulation")
+                    && !metadata.target().starts_with("clients")
+                    && !metadata.name().contains("create_task")
+                    && !metadata.name().contains("step")
             }))
             .boxed()
     }

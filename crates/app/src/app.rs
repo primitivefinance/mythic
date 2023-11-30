@@ -366,14 +366,14 @@ impl App {
                 );
 
                 match page {
+                    view::sidebar::Page::Empty => EmptyScreen::new().into(),
+                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                     view::sidebar::Page::Execute => Screen::new(Box::new(
                         execution::Execution::new(self.chains.clone(), self.storage.clone()),
                     )),
                     view::sidebar::Page::AddressBook => Screen::new(Box::new(
                         AddressBookScreen::new(self.storage.profile.contacts.clone()),
                     )),
-                    view::sidebar::Page::Empty => EmptyScreen::new().into(),
-                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                     view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new(
                         self.streams.app_event_receiver.clone(),
                     ))),
