@@ -244,7 +244,7 @@ function computeRootNextLiquidity(
     uint256 value
 ) pure returns (int256) {
     NormalCurve memory curve = abi.decode(args, (NormalCurve));
-    Gaussian.ppf_unsafe(
+    return Gaussian.ppf_unsafe(
         int256(FixedPointMathLib.divWadDown(curve.x, value))
     )
         + Gaussian.ppf_unsafe(
@@ -261,7 +261,7 @@ function computeRootNextReserveX(
     uint256 value
 ) pure returns (int256) {
     NormalCurve memory curve = abi.decode(args, (NormalCurve));
-    Gaussian.ppf_unsafe(
+    return Gaussian.ppf_unsafe(
         int256(FixedPointMathLib.divWadDown(value, curve.L))
     )
         + Gaussian.ppf_unsafe(
@@ -276,9 +276,9 @@ function computeRootNextReserveX(
 function computeRootNextReserveY(
     bytes memory args,
     uint256 value
-) pure returns (int256 nextReserveY) {
+) pure returns (int256) {
     NormalCurve memory curve = abi.decode(args, (NormalCurve));
-    Gaussian.ppf_unsafe(
+    return Gaussian.ppf_unsafe(
         int256(FixedPointMathLib.divWadDown(curve.x, curve.L))
     )
         + Gaussian.ppf_unsafe(
@@ -334,42 +334,26 @@ function computeNextLiquidity(
 // compute new L using bisection
 // send the L along with the swap
 // assert that the compute swap constant function returns 0 with the new parameters and new L
-function computeNextReserve(
-    uint256 x,
-    uint256 y,
+function computeNextReserveX(
+    uint256 x, // reserveX 
+    uint256 y, // reserveY + amountIn
     uint256 L, // nextLiquidity + deltaL
     uint256 K,
     uint256 sigma,
-    uint256 tau,
-    bool swapDirection
+    uint256 tau
 ) pure returns (uint256 nextReserve) {
     uint256 lower;
     uint256 upper;
 
     NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
 
-    if (swapDirection) {
-        int256 initialConstant = computeRootNextReserveY(abi.encode(normalCurve), normalCurve.y);
-        if (initialConstant == 0) {
-            return normalCurve.y;
-        } else if (initialConstant < 0) {
-            upper = normalCurve.y;
-            lower = normalCurve.y.mulDivDown(98, 100);
-        } else {
-            lower = normalCurve.y;
-            upper = normalCurve.y.mulDivUp(102, 100);
-        }
+    int256 initialConstant = computeRootNextReserveX(abi.encode(normalCurve), normalCurve.x);
+    if (initialConstant == 0) {
+        return normalCurve.x;
     } else {
-        int256 initialConstant = computeRootNextReserveX(abi.encode(normalCurve), normalCurve.x);
-        if (initialConstant == 0) {
-            return normalCurve.x;
-        } else if (initialConstant < 0) {
-            upper = normalCurve.x;
-            lower = normalCurve.x.mulDivDown(98, 100);
-        } else {
-            lower = normalCurve.x;
-            upper = normalCurve.x.mulDivUp(102, 100);
-        }
+        // since we are computing amount out, the upper bound can reasonably be the initial reserve
+        lower = normalCurve.x.mulDivDown(50, 100);
+        upper = normalCurve.x;
     }
 
     nextReserve = bisection(
@@ -378,7 +362,39 @@ function computeNextReserve(
         upper,
         BISECTION_EPSILON,
         BISECTION_MAX_ITER,
-        swapDirection ? computeRootNextReserveY : computeRootNextReserveX
+        computeRootNextReserveX
+    );
+}
+
+function computeNextReserveY(
+    uint256 x, // reserve x + amountIn
+    uint256 y, // reserveY
+    uint256 L, // nextLiquidity + deltaL
+    uint256 K,
+    uint256 sigma,
+    uint256 tau
+) pure returns (uint256 nextReserve) {
+    uint256 lower;
+    uint256 upper;
+
+    NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
+
+    int256 initialConstant = computeRootNextReserveY(abi.encode(normalCurve), normalCurve.y);
+    if (initialConstant == 0) {
+        return normalCurve.y;
+    } else {
+        // since we are computing amount out, the upper bound can reasonably be the initial reserve
+        lower = normalCurve.y.mulDivDown(50, 100);
+        upper = normalCurve.y;
+    }
+
+    nextReserve = bisection(
+        abi.encode(normalCurve),
+        lower,
+        upper,
+        BISECTION_EPSILON,
+        BISECTION_MAX_ITER,
+        computeRootNextReserveY
     );
 }
 

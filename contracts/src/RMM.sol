@@ -7,6 +7,12 @@ import "./lib/RMMMath.sol";
 import "./lib/BisectionLib.sol";
 
 contract RMM is IStrategy {
+    struct PoolParams {
+        uint256 strike;
+        uint256 sigma;
+        uint256 tau;
+    }
+
     event LogParameters(
         uint256 sigma, uint256 strikePrice, uint256 tau, uint256 blockTimestamp
     );
@@ -304,6 +310,7 @@ contract RMM is IStrategy {
 
         return (liquidityDelta, amountX);
     }
+
     // when swapping compute the new L, then we want to get the correct amount out
     // we go back and bisect with the same fn except this time the free variable is the output token reserves
     // swapping in Y -> find the correct X
@@ -315,26 +322,27 @@ contract RMM is IStrategy {
         uint256 amountIn,
         uint256 amountOut
     ) internal returns (uint256) {
-        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        PoolParams memory params;
+        (params.strike, params.sigma, params.tau) = getParams();
 
         // validate nextLiquidity
-        int256 swapConstant = checkSwapConstantNextLiquidity(reserveX, reserveY, totalLiquidity, _strike, _sigma, _tau, nextLiquidity);
+        int256 swapConstant = checkSwapConstantNextLiquidity(reserveX, reserveY, totalLiquidity, params.strike, params.sigma, params.tau, nextLiquidity);
         require(
-            -100 < swapConstant && swapConstant < 100,
+            -25 < swapConstant && swapConstant < 25,
             "Swap constant out of range"
         );
 
         uint256 price =
-            computeSpotPrice(reserveX, nextLiquidity, _strike, _sigma, _tau);
+            computeSpotPrice(reserveX, nextLiquidity, params.strike, params.sigma, params.tau);
 
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenX(fees, price, _strike, _sigma, _tau);
+            uint256 deltaL = computeLGivenX(fees, price, params.strike, params.sigma, params.tau);
 
-            int256 amountOutConstant = checkSwapConstantNextReserveY(reserveX + amountIn, reserveY, nextLiquidity + deltaL, _strike, _sigma, _tau, reserveY - amountOut);
+            int256 amountOutConstant = checkSwapConstantNextReserveY(reserveX + amountIn, reserveY, nextLiquidity + deltaL, params.strike, params.sigma, params.tau, reserveY - amountOut);
             require(
-                -100 < amountOutConstant && amountOutConstant < 100,
+                -25 < amountOutConstant && amountOutConstant < 25,
                 "Swap constant out of range"
             );
 
@@ -346,11 +354,11 @@ contract RMM is IStrategy {
             tokenY.transfer(msg.sender, amountOut);
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenY(fees, price, _strike, _sigma, _tau);
+            uint256 deltaL = computeLGivenY(fees, price, params.strike, params.sigma, params.tau);
 
-            int256 amountOutConstant = checkSwapConstantNextReserveX(reserveX, reserveY + amountIn, nextLiquidity + deltaL, _strike, _sigma, _tau, reserveX - amountOut);
+            int256 amountOutConstant = checkSwapConstantNextReserveX(reserveX, reserveY + amountIn, nextLiquidity + deltaL, params.strike, params.sigma, params.tau, reserveX - amountOut);
             require(
-                -100 < amountOutConstant && amountOutConstant < 100,
+                -25 < amountOutConstant && amountOutConstant < 25,
                 "amount out constant out of range"
             );
 
@@ -362,13 +370,16 @@ contract RMM is IStrategy {
             tokenX.transfer(msg.sender, amountOut);
         }
 
+
         emit Swap(
             msg.sender,
             swapDirection,
             amountIn,
             amountOut,
-            computeSpotPrice(reserveX, totalLiquidity, _strike, _sigma, _tau)
+            computeSpotPrice(reserveX, totalLiquidity, params.strike, params.sigma, params.tau)
         );
+
+        return amountOut;
     }
 
     function getSwapConstantGivenLiquidity(
@@ -385,23 +396,42 @@ contract RMM is IStrategy {
         );
     }
 
-    function getAmountOut(bool swapDirection, uint256 nextLiquidity, uint256 amountIn) external view returns (uint256) {
-        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+    function getDeltaL(
+        bool swapDirection,
+        uint256 nextLiquidity,
+        uint256 amountIn
+    ) external view returns (uint256) {
+        PoolParams memory params;
+        (params.strike, params.sigma, params.tau) = getParams();
         uint256 price =
-            computeSpotPrice(reserveX, nextLiquidity, _strike, _sigma, _tau);
+            computeSpotPrice(reserveX, nextLiquidity, params.strike, params.sigma, params.tau);
         uint256 fees = amountIn * (ONE - swapFee) / ONE;
 
         if (swapDirection) {
-            uint256 deltaL = computeLGivenX(fees, price, _strike, _sigma, _tau);
-            uint256 nextReserve = computeNextReserve(
-                reserveX + amountIn, reserveY, nextLiquidity + deltaL, _strike, _sigma, _tau, swapDirection
+            return computeLGivenX(fees, price, params.strike, params.sigma, params.tau);
+        } else {
+            return computeLGivenY(fees, price, params.strike, params.sigma, params.tau);
+        }
+    }
+
+    function getAmountOut(bool swapDirection, uint256 nextLiquidity, uint256 amountIn) external view returns (uint256) {
+        PoolParams memory params;
+        (params.strike, params.sigma, params.tau) = getParams();
+        uint256 price =
+            computeSpotPrice(reserveX, nextLiquidity, params.strike, params.sigma, params.tau);
+        uint256 fees = amountIn * (ONE - swapFee) / ONE;
+
+        if (swapDirection) {
+            uint256 deltaL = computeLGivenX(fees, price, params.strike, params.sigma, params.tau);
+            uint256 nextReserve = computeNextReserveY(
+                reserveX + amountIn, reserveY, nextLiquidity + deltaL, params.strike, params.sigma, params.tau
             );
             return reserveY - nextReserve;
             
         } else {
-            uint256 deltaL = computeLGivenY(fees, price, _strike, _sigma, _tau);
-            uint256 nextReserve = computeNextReserve(
-                reserveX, reserveY + amountIn, nextLiquidity + deltaL, _strike, _sigma, _tau, swapDirection
+            uint256 deltaL = computeLGivenY(fees, price, params.strike, params.sigma, params.tau);
+            uint256 nextReserve = computeNextReserveX(
+                reserveX, reserveY + amountIn, nextLiquidity + deltaL, params.strike, params.sigma, params.tau 
             );
             return reserveX - nextReserve;
         }
