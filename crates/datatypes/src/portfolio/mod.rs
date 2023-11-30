@@ -10,7 +10,7 @@ use std::ops::Mul;
 use position::{Position, Positions};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct Portfolio {
     pub name: String,
     pub ticker: String,
@@ -26,19 +26,42 @@ impl Portfolio {
             positions,
         }
     }
+}
 
-    /// Sum of all the products of the position's balance and price.
-    #[tracing::instrument(skip(self), ret)]
-    pub fn compute_total_portfolio_value(&self) -> f64 {
-        self.positions
+#[macro_export]
+macro_rules! portfolio_weights {
+    ($portfolio:expr) => {
+        $portfolio
+            .positions
             .0
             .iter()
-            .map(|position| {
-                position
-                    .balance
-                    .unwrap_or(0.0)
-                    .mul(position.cost.unwrap_or(0.0))
-            })
-            .sum()
+            .map(|position| position.weight.unwrap_or(Weight::default()).value)
+            .collect::<Vec<f64>>()
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::portfolio::{coin::Coin, position::Position, weight::Weight};
+
+    #[test]
+    pub fn test_portfolio_weights_macro() {
+        let position = Position::new(
+            Coin::new("test".to_string(), "test".to_string(), 18),
+            Some(0.5),
+            Some(0.5),
+            Some(Weight::new(0.5).unwrap()),
+            Some(0.5),
+        );
+        let portfolio = Portfolio::new(
+            "test".to_string(),
+            "test".to_string(),
+            vec![position.clone(), position.clone()],
+        );
+
+        let weight = portfolio.positions.0[0].clone().weight.unwrap_or_default();
+        println!("{weight:?}");
+        assert_eq!(portfolio_weights!(portfolio), vec![0.5, 0.5]);
     }
 }

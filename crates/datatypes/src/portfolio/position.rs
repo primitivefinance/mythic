@@ -1,10 +1,11 @@
 use std::{
     fmt,
     hash::{Hash, Hasher},
-    ops::{Add, AddAssign, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, Sub, SubAssign},
 };
 
 use anyhow::Result;
+use chrono;
 /// ! A position is an individual portion of a portfolio.
 use serde::{Deserialize, Serialize};
 use simulation::agents::token_admin::TokenData;
@@ -155,6 +156,27 @@ pub struct Position {
     pub weight: Option<Weight>,
     /// Target volatility for the position, no the actual volatility.
     pub volatility: Option<f64>,
+    /// Information about the position.
+    pub information: Option<Information>,
+}
+
+/// Carries information that can be used for synchronization, debugging, and
+/// logging.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd)]
+pub struct Information {
+    /// The last time the prices were synchronized for a given position.
+    pub last_sync: Option<chrono::DateTime<chrono::Utc>>,
+    /// Configuration for considering the position's price stale.
+    pub time_to_stale: u64,
+}
+
+impl Default for Information {
+    fn default() -> Self {
+        Self {
+            last_sync: None,
+            time_to_stale: 300 as u64,
+        }
+    }
 }
 
 impl Hash for Position {
@@ -177,7 +199,34 @@ impl Position {
             balance,
             weight,
             volatility,
+            information: Some(Information::default()),
         }
+    }
+
+    pub fn is_stale(&self) -> bool {
+        if let Some(information) = &self.information {
+            if let Some(last_sync) = information.last_sync {
+                let tts = chrono::Duration::seconds(information.time_to_stale as i64);
+                return last_sync + tts < chrono::Utc::now();
+            }
+        }
+        false
+    }
+
+    pub fn sync_price(&mut self, price: f64) {
+        self.cost = Some(price);
+        if let Some(ref mut information) = self.information {
+            information.last_sync = Some(chrono::Utc::now());
+        } else {
+            self.information = Some(Information {
+                last_sync: Some(chrono::Utc::now()),
+                ..Default::default()
+            });
+        }
+    }
+
+    pub fn market_value(&self) -> f64 {
+        self.cost.unwrap_or_default() * self.balance.unwrap_or_default()
     }
 }
 
@@ -209,20 +258,8 @@ impl Positions {
         Self(positions)
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    pub fn as_nwd(&self) -> NWD {
-        let weights = self
-            .0
-            .iter()
-            .map(|position| position.weight.unwrap_or_default())
-            .collect::<Vec<_>>();
-        NWD(weights)
-    }
-
-    /// Adjusts an individual weight in the positions.
+    /// Given a desired weight change, adjusts the weights and balances of the
+    /// positions in the normalized weight distribution.
     pub fn adjust(&mut self, id: uuid::Uuid, delta: f64) -> Result<(), PositionError> {
         // Find the position being changed.
         let position = self
@@ -236,16 +273,65 @@ impl Positions {
         let mut weight = position.weight.unwrap_or_default().clone();
         weight.set_value(delta)?;
 
+        // Get the aum before the adjustment to compute the balance adjustments later.
+        let aum = self.aum();
+
         // Add the weight to the NWD.
         let nwd = self.as_nwd().clone() + weight;
 
-        // Adjust the positions to the new weights.
+        // Adjust the positions to the new weights and balances.
         let positions = &mut self.0;
         for (i, position) in positions.iter_mut().enumerate() {
-            position.weight = Some(nwd.0[i]);
+            let weight = nwd.0[i];
+            position.weight = Some(weight);
+            position.balance = Some(Self::compute_balance(
+                position.cost.unwrap_or_default(),
+                aum,
+                weight.value,
+            ));
         }
 
         Ok(())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn as_nwd(&self) -> NWD {
+        let weights = self
+            .0
+            .iter()
+            .map(|position| position.weight.unwrap_or_default())
+            .collect::<Vec<_>>();
+        NWD(weights)
+    }
+
+    /// Synchronizes the costs of the positions with the given prices.
+    pub fn sync_prices(&mut self, prices: Vec<f64>) {
+        for (i, position) in self.0.iter_mut().enumerate() {
+            position.sync_price(prices[i]);
+        }
+    }
+
+    /// Assets under management in value terms.
+    /// Sum of all the products of the position's balance and price.
+    #[tracing::instrument(skip(self), ret)]
+    pub fn aum(&self) -> f64 {
+        self.0
+            .iter()
+            .map(|position| {
+                position
+                    .balance
+                    .unwrap_or_default()
+                    .mul(position.cost.unwrap_or_default())
+            })
+            .sum()
+    }
+
+    /// Computes the balance of a position given the weight, price, and AUM.
+    pub fn compute_balance(price: f64, aum: f64, weight: f64) -> f64 {
+        weight * aum / price
     }
 }
 
@@ -428,6 +514,73 @@ mod tests {
                     Some(0.5),
                 ),
             ])
+        );
+    }
+
+    #[test]
+    pub fn test_adjust_position() {
+        let eth_price = 1.0;
+        let btc_price = 1.0;
+
+        let mut positions = Positions::new(vec![
+            Position::new(
+                Coin::new("Ethereum".to_string(), "ETH".to_string(), 8),
+                Some(eth_price),
+                Some(0.5),
+                Some(Weight::new(0.5).unwrap()),
+                None,
+            ),
+            Position::new(
+                Coin::new("Bitcoin".to_string(), "BTC".to_string(), 8),
+                Some(btc_price),
+                Some(0.5),
+                Some(Weight::new(0.5).unwrap()),
+                None,
+            ),
+        ]);
+
+        let aum = positions.aum();
+        let eth_market_value = positions.0[0].market_value();
+        let btc_market_value = positions.0[1].market_value();
+
+        let eth_weight_delta = 0.25;
+        let btc_weight_delta = -eth_weight_delta;
+
+        positions
+            .adjust(
+                positions.0[0].weight.unwrap_or_default().id,
+                eth_weight_delta,
+            )
+            .unwrap();
+
+        assert_eq!(
+            positions,
+            Positions(vec![
+                Position::new(
+                    Coin::new("Ethereum".to_string(), "ETH".to_string(), 8),
+                    Some(eth_price),
+                    Some(0.5 + eth_weight_delta),
+                    Some(Weight::new(0.5 + eth_weight_delta).unwrap()),
+                    None,
+                ),
+                Position::new(
+                    Coin::new("Bitcoin".to_string(), "BTC".to_string(), 8),
+                    Some(btc_price),
+                    Some(0.5 + btc_weight_delta),
+                    Some(Weight::new(0.5 + btc_weight_delta).unwrap()),
+                    None,
+                ),
+            ])
+        );
+
+        assert_eq!(positions.aum(), aum);
+        assert_eq!(
+            positions.0[0].market_value(),
+            eth_market_value + eth_weight_delta * eth_price
+        );
+        assert_eq!(
+            positions.0[1].market_value(),
+            btc_market_value + btc_weight_delta * btc_price
         );
     }
 }

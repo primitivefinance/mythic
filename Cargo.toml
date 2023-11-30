@@ -29,6 +29,7 @@ ethers-core = "2.0.4"
 ## Config and parsing
 serde = "1.0.188"
 serde_json = "1.0.107"
+serde_with = { version = "3.4.0", features = ["chrono_0_4"] }
 config = "0.13.3"
 
 ## Async
@@ -57,6 +58,9 @@ statrs = "0.16.0"
 linked-hash-map = "0.5.6"
 directories-next = "2.0.0"
 criterion = "0.5.1"
+
+# time
+chrono = { version = "0.4.31", features = ["serde"] }
 
 [dependencies]
 # main excalibur application
