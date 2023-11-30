@@ -2,6 +2,12 @@
 pragma solidity ^0.8.13;
 
 import { UD60x18, ud, UNIT, convert } from "@prb/math/UD60x18.sol";
+import {
+    SD59x18,
+    UNIT as SDUNIT,
+    convert as SDConvert,
+    sd
+} from "@prb/math/SD59x18.sol";
 
 /**
  * @dev Amount of liquidity burnt when a pool is initialized for the
@@ -222,4 +228,10 @@ function computeInGivenOut(
 ) pure returns (uint256 aI) {
     UD60x18 f = bO / (bO - convert(aO));
     aI = convert(bI * (f.pow(wO / wI) - UNIT));
+}
+
+function SIF(UD60x18 x) pure returns (UD60x18) {
+    SD59x18 boop = (SDUNIT / (SDUNIT - sd(int256(UD60x18.unwrap(x)))) - SDUNIT)
+        .pow(SDUNIT / SDConvert(2));
+    return UNIT / (UNIT + UD60x18.wrap(uint256(SD59x18.unwrap(boop))));
 }
