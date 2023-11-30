@@ -33,6 +33,17 @@ impl Default for Coin {
     }
 }
 
+impl Coin {
+    pub fn new(symbol: String, name: String, decimals: u8) -> Self {
+        Self {
+            symbol,
+            name,
+            decimals,
+            ..Default::default()
+        }
+    }
+}
+
 impl std::ops::Add for Coin {
     type Output = super::coin_list::CoinList;
 

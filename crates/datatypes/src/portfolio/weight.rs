@@ -54,6 +54,18 @@ impl Weight {
         }
     }
 
+    pub fn set_value(&mut self, weight: f64) -> Result<(), WeightError> {
+        let clamped_weight = weight.clamp(MIN_WEIGHT.value, MAX_WEIGHT.value);
+
+        // If these values are not the same it means the weight is out of bounds.
+        if (clamped_weight - weight).abs() > f64::EPSILON {
+            Err(WeightError::InvalidWeight(weight))
+        } else {
+            self.value = weight;
+            Ok(())
+        }
+    }
+
     pub fn adjust(&mut self, adjustment: f64) {
         self.value = (self.value + adjustment).clamp(MIN_WEIGHT.value, MAX_WEIGHT.value);
     }
@@ -293,11 +305,21 @@ impl fmt::Display for Weight {
 }
 
 /// Errors that can occur when handling weights.
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize, PartialOrd)]
 pub enum WeightError {
     WeightNotFound(Uuid),
     InvalidWeight(f64),
     InvalidSum(f64),
+}
+
+impl Hash for WeightError {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            WeightError::WeightNotFound(id) => id.hash(state),
+            WeightError::InvalidWeight(weight) => weight.to_bits().hash(state),
+            WeightError::InvalidSum(sum) => sum.to_bits().hash(state),
+        }
+    }
 }
 
 impl fmt::Display for WeightError {
