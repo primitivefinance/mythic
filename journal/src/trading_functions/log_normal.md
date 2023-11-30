@@ -223,39 +223,26 @@ Note that $V$ is linear in $L$ and so we can use this to tokenize.
 
 ### Time Dependence
 Note that $L$ effectively changes as parameters of the trading function change.
-To be specific, let's write $L$ as $L(K, \sigma, \tau)$ assuming that $x$, $y$, and $S$ are fixed. 
-So we just take one of the above equations:
+To see this, note that the trading function must always satisfy:
 $$
-L_X(x,S;K,\sigma, \tau) = \frac{x}{1-\Phi\left(\frac{\ln\frac{S}{K}+\frac{1}{2}\sigma^2}{\sigma}\right)}
+\Phi^{-1}\left(\frac{x}{L}\right)+\Phi^{-1}\left(\frac{y}{KL}\right) + \sigma \sqrt{\tau} = 0.
 $$
-As any of the parameters change, we can use their values in the addition of liquidity or swaps to determine the new value of $L$ prior to allowing those transactions to take place.
+For new parameters, $K'$, $\sigma'$ and $\tau'$, we must find an $L'$ so that the trading function is satisfied:
+$$
+\Phi^{-1}\left(\frac{x}{L'}\right)+\Phi^{-1}\left(\frac{y}{K'L'}\right) + \sigma' \sqrt{\tau'} = 0.
+$$
+We can find this new $L'$ using a root finding algorithm. 
 
-Similarly, the price is also time dependent for all the parameters so we can put:
+#### Root Finding
+We will use a bisection algorithm to determine the new $L'$.
+Suppose that $(K, \sigma, \tau, L)$ are the current parameters and we have $(K', \sigma', \tau')$ as the new parameters.
+Then we can compute:
 $$
-P_X(x,L;K,\sigma, \tau) = K \exp\left(\Phi^{-1}\left(1-\frac{x}{L}\right)\sigma\sqrt{\tau}-\frac{1}{2}\sigma^2\tau\right)
+f(L) = \Phi^{-1}\left(\frac{x}{L}\right)+\Phi^{-1}\left(\frac{y}{K'L}\right) + \sigma' \sqrt{\tau'}.
 $$
-Now:
-$$
-L_Y=\frac{y}{K\cdot\Phi\left(\frac{\ln\frac{S}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)}
-$$
-gives:
-$$
-P(x,y;K,\sigma, \tau) = K \exp\left(\Phi^{-1}\left(1-K\Phi(d_2)\frac{x}{y}\right)\sigma\sqrt{\tau}-\frac{1}{2}\sigma^2\tau\right)
-$$
-
-$$
--\frac{\Phi(\ln \frac{P}{K}) +\frac{1}{2}\sigma^2 \tau+\sigma\sqrt{\tau}}{K\Phi(d_1)} = \frac{x}{y}
-$$
-
-#### Calculus
-We can compute partial derivatives of this with respect to varying parameters $K$, $\sigma$, and $\tau$.
-$$
-\frac{\partial L_X}{\partial \tau} = \frac{x(\sigma^2 \tau - 2 \ln(s/k))\exp\left( 
-\frac{-(\sigma^2 \tau) + 2 \ln(s/k))^2}{8\sigma^2 \tau}\right)}{\sqrt{2\pi}\sigma \tau^{3/2} \operatorname{erfc}\left( \frac{\sigma^2\tau + 2 \ln (s/k)}{2\sqrt{2}\sigma \sqrt{\tau}}\right)}
-$$
-$$
-\frac{\partial L_X}{\partial \sigma} = \frac{\sqrt{\frac{2}{\pi }} x e^{-\frac{\left(2 \log \left(\frac{S}{k}\right)+\tau  v^2\right)^2}{8 \tau  v^2}} \left(\tau  v^2-2 \log \left(\frac{S}{k}\right)\right)}{\sqrt{\tau } v^2 \text{erfc}\left(\frac{2 \log \left(\frac{S}{k}\right)+\tau  v^2}{2 \sqrt{2} \sqrt{\tau } v}\right)^2}
-$$
-$$
-\frac{\partial L_X}{\partial K} = \frac{2 \sqrt{\frac{2}{\pi }} x e^{-\frac{\left(2 \log \left(\frac{S}{\kappa }\right)+\tau  v^2\right)^2}{8 \tau  v^2}}}{\kappa  \sqrt{\tau } v \text{erfc}\left(\frac{2 \log \left(\frac{S}{\kappa }\right)+\tau  v^2}{2 \sqrt{2} \sqrt{\tau } v}\right)^2}
-$$
+- If $f(L)<0$, then:
+    - Upper bound: $L$
+    - Lower bound: $\max \{x, y/K\}$.
+- If $f(L)>0$, then:
+    - Upper bound: $L \cdot 1.5$.
+    - Lower bound: $L$

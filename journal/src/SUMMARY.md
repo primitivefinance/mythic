@@ -2,6 +2,7 @@
 
 - [Usage](./usage.md)
 - [Trading Functions](./trading_functions/index.md)
+    - [Dynamic Function Market Makers](./trading_functions/dynamic_function_market_makers.md)
     - [Geometric Mean](./trading_functions/geometric_mean.md)
     - [Log Normal](./trading_functions/log_normal.md)
     - [Linear](./trading_functions/linear.md)
