@@ -271,13 +271,19 @@ impl Positions {
 
         // Clone the weight and replace it's value with the delta.
         let mut weight = position.weight.unwrap_or_default().clone();
-        weight.set_value(delta)?;
+        // Create an identical weight (id-wise) with the delta we want to apply in
+        // absolute terms.
+        weight.set_value(delta.abs())?;
+        let is_negative = delta < 0.0;
 
         // Get the aum before the adjustment to compute the balance adjustments later.
         let aum = self.aum();
 
         // Add the weight to the NWD.
-        let nwd = self.as_nwd().clone() + weight;
+        let nwd = match is_negative {
+            false => self.as_nwd().clone() + weight,
+            true => self.as_nwd().clone() - weight,
+        };
 
         // Adjust the positions to the new weights and balances.
         let positions = &mut self.0;
@@ -296,6 +302,13 @@ impl Positions {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn weights(&self) -> Vec<f64> {
+        self.0
+            .iter()
+            .map(|position| position.weight.unwrap_or_default().value)
+            .collect::<Vec<_>>()
     }
 
     pub fn as_nwd(&self) -> NWD {
@@ -397,6 +410,21 @@ impl SubAssign<Position> for Positions {
         for (i, position) in self.0.iter_mut().enumerate() {
             position.weight = Some(nwd.0[i]);
         }
+    }
+}
+
+impl AddAssign<Positions> for Positions {
+    fn add_assign(&mut self, rhs: Positions) {
+        // First, get the current NWD and add the new weight to it.
+        let nwd = self.as_nwd().clone() + rhs.as_nwd().clone();
+
+        // Adjust the positions to the new weights.
+        for (i, position) in self.0.iter_mut().enumerate() {
+            position.weight = Some(nwd.0[i]);
+        }
+
+        // Add the positions to the list.
+        self.0.extend(rhs.0);
     }
 }
 

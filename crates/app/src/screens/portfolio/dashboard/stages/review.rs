@@ -66,7 +66,7 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 
 /// Final package that is transmitted to the simulation stage.
 #[derive(Debug, Clone, Default)]
-pub struct ReviewPackage {
+pub struct StrategyParameters {
     pub start_time_seconds: f64,
     pub duration_seconds: f64,
     pub fee_percentage: f64,
@@ -74,12 +74,14 @@ pub struct ReviewPackage {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct ReviewAdjustment {
+pub struct Review {
+    /// Raw form that is updated with user input.
     form: Form,
-    pub package: Option<ReviewPackage>,
+    /// Sealed form data that can be accessed by the staging area.
+    pub sealed: Option<StrategyParameters>,
 }
 
-impl ReviewAdjustment {
+impl Review {
     pub fn new() -> Self {
         Self::default()
     }
@@ -97,7 +99,7 @@ impl ReviewAdjustment {
     }
 }
 
-impl State for ReviewAdjustment {
+impl State for Review {
     type AppMessage = Message;
     type ViewMessage = FormMessage;
 
@@ -155,7 +157,7 @@ impl State for ReviewAdjustment {
                         .map(|x| x.to_value())
                         .unwrap_or_default();
 
-                    self.package = Some(ReviewPackage {
+                    self.sealed = Some(StrategyParameters {
                         start_time_seconds,
                         duration_seconds,
                         fee_percentage,

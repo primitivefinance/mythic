@@ -5,37 +5,81 @@ pub mod table;
 
 use std::collections::HashMap;
 
-use profiles::portfolios::Portfolio;
-use stages::Stages;
-
-use self::{
-    stages::DashboardState,
-    table::{PortfolioTable, PositionDelta},
+use datatypes::{
+    portfolio::{coin::Coin, position::Position, weight::Weight, Portfolio},
+    weight,
 };
+use stages::Stages;
+use uuid::Uuid;
+
+use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
-use crate::{
-    components::{
-        containers::CustomContainer,
-        tables::{
-            builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-            rows::RowBuilder,
-        },
+use crate::components::{
+    containers::CustomContainer,
+    tables::{
+        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+        rows::RowBuilder,
     },
-    screens::portfolio::dashboard::stages::prepare::adjust_weights_algorithm,
 };
 
 /// Executed on `load` for the Dashboard screen.
 #[tracing::instrument(skip(name), ret)]
 async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
-    let path = name.map(Portfolio::file_path_with_name);
+    let path = name.clone().map(Portfolio::file_path_with_name);
     let portfolio = Portfolio::load(path);
-    let portfolio = match portfolio {
+    let mut portfolio = match portfolio {
         Ok(portfolio) => portfolio,
         Err(e) => {
             tracing::error!("Failed to load portfolio: {:?}", e);
-            return Err(Arc::new(e));
+            // return Err(Arc::new(e));
+
+            tracing::info!("Creating a new default portfolio.");
+            Portfolio::create_new(name.clone())?
         }
     };
+
+    // if dev mode, load up the basic two coin portfolio.
+    if std::env::var("DEV_MODE").is_ok() {
+        let coin_x: Coin = serde_json::from_str(super::dev::COIN_X)
+            .map_err(|e| Arc::new(anyhow::Error::from(e)))?;
+        let coin_y: Coin = serde_json::from_str(super::dev::COIN_Y)
+            .map_err(|e| Arc::new(anyhow::Error::from(e)))?;
+
+        let position_x_weight = Weight {
+            id: Uuid::new_v4(),
+            value: super::dev::INITIAL_X_WEIGHT.value,
+        };
+
+        let position_x = Position::new(
+            coin_x,
+            Some(super::dev::INITIAL_X_PRICE),
+            Some(super::dev::INITIAL_X_BALANCE),
+            Some(position_x_weight),
+            None,
+        );
+
+        let position_y_weight = Weight {
+            id: Uuid::new_v4(),
+            value: 1.0,
+        };
+
+        let position_y = Position::new(
+            coin_y,
+            Some(super::dev::INITIAL_Y_PRICE),
+            Some(super::dev::INITIAL_Y_BALANCE),
+            Some(position_y_weight),
+            None,
+        );
+
+        // Add the positions to the portfolio.
+        // note: ran into a problem of adding positions sequentially, as they would be
+        // added then the validate() would get called, and if that weight is not 1 then
+        // it won't sum to 1.
+        // Will need to work on this.
+        // Workaround is to set the first weight to 1.0, then add the second position.
+        portfolio += position_y;
+        portfolio += position_x;
+    }
 
     Ok(portfolio)
 }
@@ -46,14 +90,10 @@ pub enum Message {
     Empty,
     /// Triggered after `load_portfolio` completes.
     Load(anyhow::Result<Portfolio, Arc<anyhow::Error>>),
-    /// Triggered when a user wants to review the proposed adjustments.
-    Prepare,
-    /// Triggered action from the main button on the dashboard.
-    BeginAdjustment,
-    /// Triggered when the user clicks the review adjustments button.
-    Stage(stages::Message),
-    /// Triggered when the underlying portfolio table form is edited.
-    PortfolioTable(table::Message),
+    /// Triggered on any form changes or button clicks within the staging area.
+    UpdateStaging(stages::Message),
+    /// Triggered when the user inputs a delta in the table.
+    UpdateTable(table::Message),
 }
 
 impl MessageWrapperView for Message {
@@ -106,6 +146,43 @@ impl Dashboard {
         self.portfolio.is_some()
     }
 
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub fn adjusted_portfolio_from_table(&self) -> Option<Portfolio> {
+        let mut portfolio = self.portfolio.clone()?;
+        let mut positions = portfolio.positions.0.clone();
+
+        // Loop over each position and see if there is an existing __weight__ delta.
+        let mut adjusted = false;
+        for (i, position) in positions.iter_mut().enumerate() {
+            let delta = self.table.form.weight.get(&i).cloned();
+
+            // Skip if delta == "-"
+            if delta.is_none() || delta.clone().unwrap() == "-" {
+                continue;
+            }
+
+            let delta = delta.unwrap().parse::<f64>();
+            let delta = match delta {
+                Ok(delta) => delta,
+                Err(e) => {
+                    tracing::error!("Failed to parse delta: {:?}", e);
+                    continue;
+                }
+            };
+
+            //  Adjust the portfolio with using the weight delta.
+            let weight = position.weight.unwrap_or_default().clone();
+            portfolio.adjust(weight.id, delta).unwrap();
+            adjusted = true;
+        }
+
+        if !adjusted {
+            return None;
+        }
+
+        Some(portfolio)
+    }
+
     pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Md)
@@ -117,7 +194,7 @@ impl Dashboard {
         self.table.view().map(|x| x.into())
     }
 
-    pub fn render_stages(&self) -> Element<'_, Self::AppMessage> {
+    pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
         match self.stage.current {
             DashboardState::Empty => {
                 let instruct: Element<'_, Self::AppMessage> = instructions(
@@ -167,13 +244,16 @@ impl State for Dashboard {
     fn load(&self) -> Command<Self::AppMessage> {
         let name = match self.loaded_from.clone() {
             Some(name) => Some(name),
-            None => Some("Main".to_string()),
+            None => None,
         };
 
         let mut commands = vec![];
+
+        // Loads the initial portfolio from file.
         commands.push(Command::perform(load_portfolio(name), Message::Load));
 
         // todo: does this even work for the children components?
+        // Loads the staging area, which enters the first stage.
         commands.push(self.stage.load().map(|x| x.into()));
 
         Command::batch(commands)
@@ -186,15 +266,17 @@ impl State for Dashboard {
 
                 let mut commands: Vec<Command<Self::AppMessage>> = vec![];
 
+                // Store the portfolio in the staging area to reference it.
                 commands.push(
                     self.stage
-                        .update(stages::Message::LoadPortfolio(portfolio.clone()))
+                        .update(stages::Message::Load(portfolio.clone()))
                         .map(|x| x.into()),
                 );
 
+                // Store the portfolio in the table to reference it.
                 commands.push(
                     self.table
-                        .update(table::Message::Portfolio(portfolio.clone()))
+                        .update(table::Message::Load(portfolio.clone()))
                         .map(|x| x.into()),
                 );
 
@@ -203,166 +285,75 @@ impl State for Dashboard {
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load portfolio: {:?}", e);
             }
-            Message::PortfolioTable(message) => {
-                let mut commands = vec![];
-
-                // If the table changes one of its weight fields, "catch" it to fresh the
-                // preview.
-                if let table::Message::DeltaForm(table::form::DeltaFormMessage::Weight(_, _)) =
+            // todo: this might be a little slow, since it gets the adjusted portfolio.
+            Message::UpdateTable(message) => {
+                // Catch the WeightUpdated message and try to update the staging area with the
+                // adjusted portfolio.
+                if let table::Message::DeltaForm(table::form::DeltaFormMessage::WeightUpdated) =
                     message
                 {
-                    commands.push(Command::perform(async {}, |_| Message::BeginAdjustment));
-                }
+                    tracing::debug!("Weight updated, updating staging area.");
 
-                commands.push(self.table.update(message.clone()).map(|x| x.into()));
-
-                return Command::batch(commands);
-            }
-            Message::Stage(stage) => {
-                return self.stage.update(stage).map(|x| x.into());
-            }
-            // Renders the summary of adjustments table.
-            Message::Prepare => {
-                return self.table.update(table::Message::Ready).map(|x| x.into());
-            }
-
-            // TRIGGERED WHEN USER ENTERS A DELTA IN THE TABLE, VERY IMPORTANT EVENT!
-            // Triggers the staging process...
-            // todo: move this weight adjustment computation outside so its easier to find / debug.
-            // todo: this can be triggered by directly emitting Stage(Step) message.
-            Message::BeginAdjustment => {
-                // placeholder, but should try to fetch the current prices and update this.
-                let mut proposed_deltas = self.table.get_form_deltas();
-                // If all position deltas are empty, then reset the staging.
-                if proposed_deltas.iter().all(|x| x.is_empty()) {
-                    tracing::info!("Resetting stages...");
-                    return self.stage.update(stages::Message::Reset).map(|x| x.into());
-                }
-
-                // Get the weights of the portfolio
-                let mut weights: Vec<f64> = self
-                    .portfolio
-                    .clone()
-                    .unwrap_or_default()
-                    .positions
-                    .iter()
-                    .map(|position| position.weight.unwrap_or_default())
-                    .collect();
-
-                // Apply the adjustments to the weights
-                let changes: Vec<(usize, f64)> = proposed_deltas
-                    .iter()
-                    .map(|delta| {
-                        let pos_index = delta.id;
-                        let weight = delta
-                            .weight
-                            .clone()
-                            .unwrap_or_default()
-                            .parse::<f64>()
-                            .unwrap_or_default();
-                        (pos_index, weight)
-                    })
-                    .collect();
-
-                adjust_weights_algorithm(&mut weights, changes);
-
-                // Return the new vector of deltas
-                proposed_deltas = weights
-                    .iter()
-                    .enumerate()
-                    .map(|(pos_index, &weight)| {
-                        let mut delta = proposed_deltas[pos_index].clone();
-                        delta.weight = Some(weight.to_string());
-                        delta
-                    })
-                    .collect();
-
-                for delta in &mut proposed_deltas {
-                    if let Some(position) = self
-                        .portfolio
-                        .clone()
-                        .unwrap_or_default()
-                        .positions
-                        .get(delta.id)
-                    {
-                        delta.price = position.cost.map(|cost| cost.to_string());
+                    let adjusted = self.adjusted_portfolio_from_table();
+                    if adjusted.is_none() {
+                        tracing::debug!("Weight updated but adjusted portfolio is None.");
                     }
+
+                    let mut commands = vec![];
+
+                    // todo: clean up this logic?
+                    if adjusted.is_some() {
+                        commands = adjusted
+                            .clone()
+                            .unwrap()
+                            .positions
+                            .0
+                            .iter()
+                            .enumerate()
+                            .map(|(pos_index, position)| {
+                                let balance =
+                                    position.balance.clone().unwrap_or_default().to_string();
+                                let market_value = position.market_value().clone().to_string();
+
+                                let balance_command = self
+                                    .table
+                                    .update(table::Message::DeltaForm(
+                                        table::form::DeltaFormMessage::Balance(
+                                            pos_index,
+                                            Some(balance),
+                                        ),
+                                    ))
+                                    .map(|x| x.into());
+
+                                let market_value_command = self
+                                    .table
+                                    .update(table::Message::DeltaForm(
+                                        table::form::DeltaFormMessage::MarketValue(
+                                            pos_index,
+                                            Some(market_value.clone()),
+                                        ),
+                                    ))
+                                    .map(|x| x.into());
+
+                                vec![balance_command, market_value_command]
+                            })
+                            .flatten()
+                            .collect::<Vec<Command<Self::AppMessage>>>();
+                    }
+
+                    commands.push(
+                        self.stage
+                            .update(stages::Message::SetAdjusted(adjusted))
+                            .map(|x| x.into()),
+                    );
+
+                    return Command::batch(commands);
                 }
 
-                // We also need to compute the changes in the balances of the portfolio!
-                // Then we need to compute the change in market value based in the price, and
-                // apply the adjustments to the table delta fields.
-                let adjusted_balances = compute_balance_adjustments_algorithm(
-                    &self.portfolio.clone().unwrap_or_default(),
-                    &proposed_deltas,
-                );
-
-                proposed_deltas = proposed_deltas
-                    .iter()
-                    .enumerate()
-                    .map(|(pos_index, position)| {
-                        let mut position = position.clone();
-                        position.balance = adjusted_balances[pos_index].balance.clone();
-                        position
-                    })
-                    .collect();
-
-                let adjusted_market_values = adjusted_balances
-                    .iter()
-                    .map(|balance| {
-                        let price = balance
-                            .price
-                            .clone()
-                            .unwrap_or_default()
-                            .parse::<f64>()
-                            .unwrap_or_default();
-                        let balance = balance
-                            .balance
-                            .clone()
-                            .unwrap_or_default()
-                            .parse::<f64>()
-                            .unwrap_or_default();
-                        price * balance
-                    })
-                    .collect::<Vec<f64>>();
-
-                // For each position delta, we need to send a message to update the table form.
-                let mut commands = proposed_deltas
-                    .iter()
-                    .enumerate()
-                    .map(|(pos_index, position)| {
-                        let balance = position.balance.clone();
-                        let market_value = adjusted_market_values[pos_index].to_string();
-
-                        let balance_command = self
-                            .table
-                            .update(table::Message::DeltaForm(
-                                table::form::DeltaFormMessage::Balance(pos_index, balance),
-                            ))
-                            .map(|x| x.into());
-
-                        let market_value_command = self
-                            .table
-                            .update(table::Message::DeltaForm(
-                                table::form::DeltaFormMessage::MarketValue(
-                                    pos_index,
-                                    Some(market_value.clone()),
-                                ),
-                            ))
-                            .map(|x| x.into());
-
-                        vec![balance_command, market_value_command]
-                    })
-                    .flatten()
-                    .collect::<Vec<Command<Self::AppMessage>>>();
-
-                commands.push(
-                    self.stage
-                        .update(stages::Message::Start(proposed_deltas))
-                        .map(|x| x.into()),
-                );
-
-                return Command::batch(commands);
+                return self.table.update(message.clone()).map(|x| x.into());
+            }
+            Message::UpdateStaging(stage) => {
+                return self.stage.update(stage).map(|x| x.into());
             }
             _ => {}
         }
@@ -374,7 +365,7 @@ impl State for Dashboard {
         let mut content = Column::new().spacing(Sizes::Lg);
         content = content.push(self.render_header().map(|x| x.into()));
         content = content.push(self.render_table().map(|x| x.into()));
-        content = content.push(self.render_stages().map(|x| x.into()));
+        content = content.push(self.render_staging_area().map(|x| x.into()));
 
         Container::new(content)
             .align_y(alignment::Vertical::Top)
@@ -432,59 +423,4 @@ impl State for DashboardWrapper {
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         self.dashboard.view()
     }
-}
-
-/// i hate this please clean it up
-#[tracing::instrument(skip(portfolio), ret)]
-pub fn compute_balance_adjustments_algorithm(
-    portfolio: &Portfolio,
-    proposed_deltas: &Vec<PositionDelta>,
-) -> Vec<PositionDelta> {
-    let total_portfolio_value = portfolio.compute_total_portfolio_value();
-    tracing::info!("Total portfolio value: {}", total_portfolio_value);
-
-    let mut adjusted_balances: Vec<PositionDelta> = vec![];
-
-    let prices: Vec<f64> = portfolio
-        .positions
-        .iter()
-        .map(|position| position.cost.unwrap_or_default())
-        .collect::<Vec<f64>>();
-
-    // For each position delta, apply the weight adjustment to the balances of the
-    // coins
-    for (index, proposed_delta) in proposed_deltas.iter().enumerate() {
-        let mut adjusted_balance = PositionDelta::default();
-        adjusted_balance.id = index;
-        if let Some(weight_str) = &proposed_delta.weight {
-            if let Ok(weight) = weight_str.parse::<f64>() {
-                tracing::info!("Weight: {}", weight);
-                adjusted_balance.balance = Some(
-                    (weight * total_portfolio_value / prices[index])
-                        .round()
-                        .to_string(),
-                );
-
-                tracing::info!(
-                    "Adjusted balance: {}",
-                    adjusted_balance.balance.clone().unwrap_or_default()
-                );
-            }
-        }
-
-        if let Some(price_str) = &proposed_delta.price {
-            if let Ok(price) = price_str.parse::<f64>() {
-                adjusted_balance.price = Some(price.to_string());
-            }
-        } else {
-            // Else set to the current price.
-            // This is mostly to make it easier to compute the market value.
-            adjusted_balance.price = Some(prices[index].to_string());
-        }
-
-        adjusted_balances.push(adjusted_balance);
-    }
-
-    // Return the balances of coins with the new weights
-    adjusted_balances
 }

@@ -7,6 +7,7 @@ use clients::arbiter::{
 use ethers::{abi::Token, utils::format_ether};
 use logging::tracer::AppEventLayer;
 use simulation::agents::SubscribedData;
+use uuid::Uuid;
 
 use super::*;
 use crate::{
@@ -18,15 +19,16 @@ use crate::{
 pub enum Message {
     #[default]
     Empty,
-    Submit,
-    /// Prepares the simulation.
-    Ready(SimulatedWorld),
-    /// Starts the simulation run.
+    /// Trigger preparation of simulation.
+    Arm,
+    /// Simulation is ready to be executed.
+    Armed(MiniWorldBuilder),
+    /// Simulation was called to be run.
     Simulate,
-    /// Simulation run complete.
-    Complete,
+    /// Simulation has completed.
+    Complete(SimulatedWorld),
     /// Fetched the final state of the simulation.
-    Outcome(anyhow::Result<StateSubscriptionStore, Arc<anyhow::Error>>),
+    FetchResults(anyhow::Result<(Uuid, StateSubscriptionStore), Arc<anyhow::Error>>),
 }
 
 impl MessageWrapperView for Message {
@@ -46,13 +48,27 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 #[derive(Debug, Clone, Default)]
 pub struct Form {}
 
+/// Single instance of a world with its last block of subscription data.
+#[derive(Debug, Clone, Default)]
+pub struct WorldOutcome {
+    pub world: Option<Arc<tokio::sync::Mutex<World>>>,
+    pub state_data: StateSubscriptionStore,
+}
+
+/// A cache of the worlds that have been simulated, mapped by their world key.
+#[derive(Debug, Clone, Default)]
+pub struct WorldCache(pub BTreeMap<Uuid, WorldOutcome>);
+
 #[derive(Debug, Clone, Default)]
 pub struct Simulate {
-    builders: Vec<MiniWorldBuilder>,
+    /// Simulation settings form.
     form: Form,
-    metrics: Vec<String>,
-    world: Option<Arc<tokio::sync::Mutex<World>>>,
-    store: StateSubscriptionStore,
+    /// Constructs the simulation instances and exposes configuration options.
+    builders: Vec<MiniWorldBuilder>,
+    /// The worlds that have been simulated.
+    cache: WorldCache,
+    /// Whether the simulation has been armed.
+    pub armed: bool,
 }
 
 impl Simulate {
@@ -61,17 +77,34 @@ impl Simulate {
     pub fn new(builders: Vec<MiniWorldBuilder>) -> Self {
         Self {
             builders,
-            store: HashMap::new(),
             ..Default::default()
         }
     }
 
+    /// Renders the `store` results.
     pub fn render_simulation_outcome(&self) -> Element<'_, Self::ViewMessage> {
+        let action = match self.armed {
+            true => Message::Simulate,
+            false => Message::Arm,
+        };
+
+        let action_cta = match self.armed {
+            true => "Simulate".to_string(),
+            false => "Arm Simulation".to_string(),
+        };
+
         let mut content = Column::new()
             .spacing(Sizes::Xl)
-            .push(h1("Simulation Results".to_string()));
-        let results = render_simulation_results(self.store.clone());
-        content = content.push(results);
+            .push(h1("Simulation Results".to_string()))
+            .push(action_button(action_cta.to_string()).on_press(action));
+
+        // Get the last key in the cache mapping and use that outcome for rendering.
+        if let Some(last_key) = self.cache.0.keys().last() {
+            let last_outcome = self.cache.0.get(last_key).unwrap().state_data.clone();
+            let results = render_simulation_results(last_outcome);
+            content = content.push(results);
+        }
+
         content.into()
     }
 
@@ -86,53 +119,6 @@ impl Simulate {
             on_submit,
         )
     }
-}
-
-#[tracing::instrument(skip(m), level = "debug")]
-pub async fn run_simulation(m: InstanceManager) -> anyhow::Result<(), anyhow::Error> {
-    // Acquire the lock on the manager.
-    let mut locked = m.lock().await;
-
-    let max_retries: usize = 10;
-    let mut retries: usize = 0;
-
-    // Get a reference to the broadcast channel.
-    // todo does this work??
-    'outer: while let Some(ref mut tx) = locked.tx {
-        // First check if we reached the end of the price path, a condition to break the
-        // loop.
-        // todo: difficult to get this working.
-
-        // Broadcasting a message triggers the loop that is waiting to receive a
-        // message, which actually does the `step` call.
-        let msg = tx.lock().await.send(1);
-        tracing::debug!("Sent message: {:?}", msg);
-
-        match msg {
-            Ok(_) => {
-                tracing::info!("Sent message to manager!");
-                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-            }
-            Err(error) => {
-                tracing::error!("Error sending message to manager: {:?}", error);
-
-                // If we need to try again, wait a bit and try again.
-                if retries < max_retries {
-                    retries += 1;
-                    tokio::time::sleep(tokio::time::Duration::from_millis(1000 * (retries as u64)))
-                        .await;
-                    continue 'outer;
-                }
-
-                // Break on the max retries.
-                if retries >= max_retries {
-                    break;
-                }
-            }
-        }
-    }
-
-    Ok(())
 }
 
 #[tracing::instrument(level = "trace", skip(m))]
@@ -151,8 +137,9 @@ pub async fn sim_startup(m: InstanceManager) -> anyhow::Result<(), anyhow::Error
 
 #[tracing::instrument(level = "trace", skip(m), fields(layer = %"system", action = %"step"))]
 pub async fn handle_state_subscriptions(
+    id: Uuid,
     m: Arc<tokio::sync::Mutex<World>>,
-) -> anyhow::Result<StateSubscriptionStore, Arc<anyhow::Error>> {
+) -> anyhow::Result<(Uuid, StateSubscriptionStore), Arc<anyhow::Error>> {
     let mut state_data = HashMap::new();
 
     let world = m.lock().await;
@@ -196,7 +183,7 @@ pub async fn handle_state_subscriptions(
         }
     }
 
-    Ok(state_data)
+    Ok((id, state_data))
 }
 
 impl State for Simulate {
@@ -205,35 +192,55 @@ impl State for Simulate {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Message::Ready(world) => match world {
-                Ok(world) => {
-                    tracing::info!("Simulation finished!");
-                    self.world = Some(world);
-                    let m = self.world.clone().unwrap();
-                    return Command::perform(handle_state_subscriptions(m), Message::Outcome);
-                }
-                Err(error) => {
-                    tracing::error!("Error spawning manager: {:?}", error);
-                }
-            },
-            Message::Simulate => {
-                return Command::perform(async {}, |_| Message::Complete);
-            }
             Message::Empty => {}
-            Message::Submit => {}
-            Message::Complete => {
-                // When the simulation completes, we want to get the ending
-                // reserves.
-                if let Some(world) = self.world.clone() {
-                    let m = world.clone();
-                    return Command::perform(handle_state_subscriptions(m), Message::Outcome);
-                }
+            Message::Arm => {
+                tracing::debug!("Arming simulation");
+                self.armed = true;
+            }
+            Message::Armed(builder) => {
+                self.builders.push(builder);
+            }
+            Message::Simulate => {
+                return Command::perform(
+                    portfolio_adjustment::spawn(self.builders.clone()),
+                    Message::Complete,
+                );
+            }
+            Message::Complete(result) => {
+                // Set the cached world.
+                let world = match result {
+                    Ok(world) => world,
+                    Err(error) => {
+                        tracing::error!("Error did not get simulation world returned: {:?}", error);
+                        return Command::none();
+                    }
+                };
+
+                let key = Uuid::new_v4();
+                self.cache.0.insert(
+                    key,
+                    WorldOutcome {
+                        world: Some(world.clone()),
+                        state_data: HashMap::new(),
+                    },
+                );
+
+                // When the simulation completes, we query the final state of the agent
+                // subscriptions in the simulation.
+                return Command::perform(
+                    handle_state_subscriptions(key, world),
+                    Message::FetchResults,
+                );
             }
             // Load the state data into the store so it can be rendered.
-            Message::Outcome(state_data) => match state_data {
-                Ok(state_data) => {
-                    tracing::info!("Successfully fetched state data: {:?}", state_data);
-                    self.store = state_data;
+            Message::FetchResults(state_data) => match state_data {
+                Ok((key, value)) => {
+                    tracing::info!(
+                        "Successfully fetched state for world {:} {:?}",
+                        key.clone(),
+                        value.clone()
+                    );
+                    self.cache.0.get_mut(&key).unwrap().state_data = value;
                 }
                 Err(error) => {
                     tracing::error!("Error getting state data: {:?}", error);

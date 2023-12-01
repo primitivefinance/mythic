@@ -8,9 +8,8 @@ edition = "2021"
 [dependencies]
 simulation = { path = "../../simulation" }
 
-alloy-primitives = { version = "0.5.0", features = ["serde"] }
-uuid = { version = "1.6.1", features = ["v4", "serde"] }
 
+alloy-primitives.workspace = true
 chrono.workspace = true
 ethers.workspace = true
 anyhow.workspace = true
@@ -18,3 +17,4 @@ serde.workspace = true
 serde_json.workspace = true
 serde_with.workspace = true
 tracing.workspace = true
+uuid.workspace = true

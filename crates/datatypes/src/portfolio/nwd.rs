@@ -95,6 +95,18 @@ impl Add<Weight> for NWD {
     }
 }
 
+impl Add<NWD> for NWD {
+    type Output = Self;
+
+    fn add(self, rhs: NWD) -> Self::Output {
+        let mut nwd = self.clone();
+        for w in rhs.0 {
+            nwd.adjust(w.id, w.value).unwrap();
+        }
+        nwd
+    }
+}
+
 /// Subtract a weight from the distribution.
 /// Subtracting a weight will require all weights to be proportionally
 /// increased.

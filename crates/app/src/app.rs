@@ -384,9 +384,7 @@ impl App {
                 }
             }
             view::sidebar::Route::Open(location) => match location {
-                view::sidebar::Location::Portfolio(name) => {
-                    DashboardWrapper::new(Some(name.clone())).into()
-                }
+                view::sidebar::Location::Portfolio(name) => DashboardWrapper::new(None).into(),
                 view::sidebar::Location::Empty => EmptyScreen::new().into(),
             },
             _ => EmptyScreen::new().into(),

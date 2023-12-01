@@ -19,6 +19,17 @@ pub struct Weight {
     pub value: f64,
 }
 
+/// A macro for creating a weight.
+#[macro_export]
+macro_rules! weight {
+    ($x:expr) => {
+        Weight {
+            id: ::uuid::Uuid::nil(),
+            value: $x,
+        }
+    };
+}
+
 pub const MAX_WEIGHT: Weight = Weight {
     id: Uuid::nil(),
     value: 1.0,

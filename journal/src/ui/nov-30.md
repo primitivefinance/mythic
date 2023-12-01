@@ -45,3 +45,11 @@ Twenty-five steps! Can we bring that down?
 8. User clicks "simulate".
 9. Stages parent collapses all the stage's states and runs the simulation using all the information.
 10. User sees the simulation results!
+
+
+# finished
+Finished at 11:00pm on the dot Nov 30. 
+
+There are some quirks. Like you need to click the submit button in the flow (cant just go in tabs) or else it breaks right now. Also once you arm a sim, if you arm it and there's no review form submission, breaks the simulation button from running.
+
+Also has some quirks on negative inputs and parsing it. Also some not so clear behavior with the portfolio data type arithmetic. All things we can clean up.

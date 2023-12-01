@@ -5,10 +5,13 @@ pub mod nwd;
 pub mod position;
 pub mod weight;
 
-use std::ops::Mul;
+use std::ops::{AddAssign, SubAssign};
 
 use position::{Position, Positions};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use self::{nwd::NWD, position::PositionError, weight::Weight};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct Portfolio {
@@ -24,6 +27,63 @@ impl Portfolio {
             name,
             ticker,
             positions,
+        }
+    }
+
+    pub fn adjust(&mut self, id: Uuid, delta: f64) -> Result<(), PositionError> {
+        self.positions.adjust(id, delta)
+    }
+
+    pub fn aum(&self) -> f64 {
+        self.positions.aum()
+    }
+
+    pub fn sync_prices(&mut self, prices: Vec<f64>) -> Result<(), PositionError> {
+        self.positions.sync_prices(prices);
+
+        Ok(())
+    }
+
+    pub fn weights(&self) -> Vec<f64> {
+        self.positions.weights()
+    }
+
+    pub fn nwd(&self) -> NWD {
+        self.positions.as_nwd()
+    }
+}
+
+impl AddAssign<Position> for Portfolio {
+    fn add_assign(&mut self, rhs: Position) {
+        self.positions += rhs;
+    }
+}
+
+impl AddAssign<Vec<Position>> for Portfolio {
+    fn add_assign(&mut self, rhs: Vec<Position>) {
+        self.positions += Positions::from(rhs);
+    }
+}
+
+impl SubAssign<Position> for Portfolio {
+    fn sub_assign(&mut self, rhs: Position) {
+        self.positions -= rhs;
+    }
+}
+
+impl From<Vec<Position>> for Portfolio {
+    fn from(positions: Vec<Position>) -> Self {
+        let mut portfolio = Portfolio::default();
+        portfolio.positions = Positions::from(positions);
+        portfolio
+    }
+}
+
+impl From<Positions> for Portfolio {
+    fn from(positions: Positions) -> Self {
+        Self {
+            positions,
+            ..Default::default()
         }
     }
 }

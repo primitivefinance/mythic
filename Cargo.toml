@@ -26,6 +26,9 @@ arbiter-core = { version = "0.9.0" }
 ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
+# ethereum types
+alloy-primitives = { version = "0.5.0", features = ["serde"] }
+
 ## Config and parsing
 serde = "1.0.188"
 serde_json = "1.0.107"
@@ -47,6 +50,7 @@ thiserror = "1.0.50"
 
 bytesize = "1.2.0"
 dotenv = "0.15.0"
+uuid = { version = "1.6.1", features = ["v4", "serde"] }
 
 # Visualization
 plotters = "0.3.5"

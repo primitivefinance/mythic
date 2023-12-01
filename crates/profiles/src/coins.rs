@@ -1,71 +1,8 @@
-use std::{collections::HashMap, fs::File};
+use std::fs::File;
+
+use datatypes::portfolio::coin_list::CoinList;
 
 use super::*;
-
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct StaticCoin {
-    pub symbol: String,
-    pub name: String,
-    pub decimals: u8,
-    pub tags: Vec<String>,
-    pub chain_id: u64,
-    // todo: does this work for token list standard?
-    pub address: String,
-    pub logo_uri: String,
-}
-
-impl StaticCoin {
-    pub fn new(symbol: String) -> Self {
-        Self {
-            symbol,
-            ..Default::default()
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CoinTags {
-    pub name: String,
-    pub description: String,
-}
-
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CoinListVersion {
-    pub major: u8,
-    pub minor: u8,
-    pub patch: u8,
-}
-
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct CoinList {
-    pub name: String,
-    pub logo_uri: String,
-    pub keywords: Vec<String>,
-    pub timestamp: String,
-    pub tags: Vec<CoinTags>,
-    pub tokens: Vec<StaticCoin>,
-    pub token_map: HashMap<String, StaticCoin>,
-    pub version: CoinListVersion,
-}
-
-impl CoinList {
-    pub fn add_token(&mut self, token: StaticCoin) {
-        self.tokens.push(token);
-    }
-
-    pub fn get_mapping_key(&self, token: &StaticCoin) -> String {
-        format!("{}_{}", token.chain_id, token.address)
-    }
-
-    pub fn build_token_map(&mut self) {
-        let mut token_map = HashMap::new();
-        for token in self.tokens.iter() {
-            let key = self.get_mapping_key(token);
-            token_map.insert(key, token.clone());
-        }
-        self.token_map = token_map;
-    }
-}
 
 const COIN_LIST_EXTENSION: &'static str = "json";
 const COIN_LIST_SUFFIX: &'static str = "coinlist";

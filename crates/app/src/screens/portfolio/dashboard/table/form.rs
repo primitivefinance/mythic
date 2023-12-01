@@ -20,6 +20,7 @@ pub enum DeltaFormMessage {
     Balance(usize, Option<String>),
     MarketValue(usize, Option<String>),
     Weight(usize, Option<String>),
+    WeightUpdated,
 }
 
 impl MessageWrapper for DeltaFormMessage {
@@ -106,6 +107,10 @@ impl State for DeltaForm {
                         self.weight.remove(&index);
                     }
                 }
+
+                // Propagates the weight update back the parent so that any sibling dependencies
+                // (i.e. prepare stage) can have their adjusted portfolios updated.
+                return Command::perform(async {}, |_| DeltaFormMessage::WeightUpdated);
             }
             _ => {}
         }

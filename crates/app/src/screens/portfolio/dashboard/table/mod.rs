@@ -1,20 +1,17 @@
 //! Portfolio table which renders all positions and a form for editing deltas to
 //! adjust the portfolio's positions.
 
-use profiles::portfolios::{Portfolio, Position};
+use datatypes::portfolio::{position::Position, Portfolio};
 
-use self::summary::DeltaSummary;
 use super::*;
 
 pub mod form;
-pub mod summary;
 use form::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct PortfolioTable {
     pub form: DeltaForm,
-    pub positions: Vec<Position>,
-    pub summary: Option<DeltaSummary>,
+    pub original: Portfolio,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -22,16 +19,11 @@ pub enum Message {
     #[default]
     Empty,
     /// Updates the underlying portfolio that is being rendered.
-    Portfolio(Portfolio),
+    Load(Portfolio),
     /// Updates the form within the table.
     DeltaForm(form::DeltaFormMessage),
-    /// Refreshes the summary table with the edited deltas.
-    Ready,
     /// Clears the summary table and form.
     Clear,
-    /// Refreshes the summary table sibling component.
-    /// note: This is not rendered by this component's `view` method.
-    Summary(summary::Message),
 }
 
 impl MessageWrapper for Message {
@@ -44,7 +36,7 @@ impl MessageWrapperView for Message {
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(msg: Message) -> Self {
-        super::Message::PortfolioTable(msg)
+        super::Message::UpdateTable(msg)
     }
 }
 
@@ -74,15 +66,8 @@ impl PortfolioTable {
     pub fn new() -> Self {
         Self {
             form: DeltaForm::default(),
-            positions: Vec::new(),
-            summary: None,
+            original: Portfolio::default(),
         }
-    }
-
-    /// If adjustments have been prepared and the summary table is being
-    /// rendered.
-    pub fn prepared(&self) -> bool {
-        self.summary.is_some()
     }
 
     /// Closure for handling the form events.
@@ -92,7 +77,9 @@ impl PortfolioTable {
     /// summary table.
     /// todo: support more targets, price, and market value fields.
     pub fn get_form_deltas(&self) -> Vec<PositionDelta> {
-        self.positions
+        self.original
+            .positions
+            .0
             .iter()
             .enumerate()
             .map(|(pos_index, _)| {
@@ -108,15 +95,6 @@ impl PortfolioTable {
                 }
             })
             .collect()
-    }
-
-    /// todo: investigate if this empty element will cause any problems...
-    #[allow(dead_code)]
-    pub fn summary_table(&self) -> Element<'_, Self::AppMessage> {
-        match self.summary.as_ref() {
-            Some(summary) => summary.view().map(|x| x.into()),
-            None => iced::widget::Space::new(0.0, 0.0).into(),
-        }
     }
 
     /// Renders the dual cell column for a target value and its delta input
@@ -147,7 +125,7 @@ impl PortfolioTable {
         position: &'a Position,
         pos_index: usize,
     ) -> Vec<CellBuilder<Self::AppMessage>> {
-        self.target_cell(pos_index, position.weight.unwrap_or_default())
+        self.target_cell(pos_index, position.weight.unwrap_or_default().into())
     }
 
     /// Gets the builders for each cell in the table.
@@ -257,7 +235,9 @@ impl PortfolioTable {
             .padding_cell_internal(Sizes::Xs)
             .column(
                 ColumnBuilder::new().headers(Self::headers()).rows(
-                    self.positions
+                    self.original
+                        .positions
+                        .0
                         .iter()
                         .enumerate()
                         .map(|(pos_index, position)| {
@@ -283,25 +263,15 @@ impl State for PortfolioTable {
         let mut cmd = Command::none();
 
         match msg {
-            Self::AppMessage::Portfolio(portfolio) => {
-                self.positions = portfolio.positions;
+            Self::AppMessage::Load(portfolio) => {
+                self.original = portfolio.clone();
             }
             Self::AppMessage::DeltaForm(msg) => {
                 cmd = self.form.update(msg).map(Self::AppMessage::DeltaForm);
             }
-            Self::AppMessage::Ready => {
-                self.summary = Some(DeltaSummary::new().deltas(self.get_form_deltas()))
-            }
             Self::AppMessage::Clear => {
                 self.form.clear();
-                self.summary = None;
             }
-            Self::AppMessage::Summary(msg) => match self.summary.as_mut() {
-                Some(summary) => {
-                    cmd = summary.update(msg).map(Self::AppMessage::Summary);
-                }
-                None => {}
-            },
             Self::AppMessage::Empty => {}
             _ => {}
         }
