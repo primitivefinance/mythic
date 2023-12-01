@@ -13,8 +13,6 @@ members = ["simulation", "cfmm_math", "analysis", "crates/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
-alloy-primitives = { version = "0.5.1" }
-
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
 cfmm_math = { path = "./cfmm_math", version = "0.1.0" }
