@@ -20,3 +20,5 @@ journal/book/*
 *.svg
 
 .vscode/
+
+!ui/src/mvp/abi/**/*.json

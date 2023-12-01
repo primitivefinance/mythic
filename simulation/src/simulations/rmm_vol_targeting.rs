@@ -1,4 +1,5 @@
-use arbiter_core::{bindings::arbiter_math::ArbiterMath, environment::builder::BlockSettings};
+use arbiter_bindings::bindings::arbiter_math::ArbiterMath;
+use arbiter_core::environment::builder::BlockSettings;
 
 use super::{errors::SimulationError, *};
 use crate::{

@@ -94,6 +94,7 @@ impl G3mPortfolioManagerType {
             let g3m_args = (
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
+                parse_ether(params.initial_weight_x.0)?,
                 parse_ether(params.fee.0)? / 10000,
             );
             let g3m = G3M::deploy(client.clone(), g3m_args)?.send().await?;

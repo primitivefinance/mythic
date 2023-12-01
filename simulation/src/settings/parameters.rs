@@ -22,7 +22,7 @@ impl Parameterized for Single {
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct Multiple(LinspaceParameters);
+pub struct Multiple(pub LinspaceParameters);
 impl Parameterized for Multiple {
     fn parameters(&self) -> Vec<f64> {
         self.0.generate()

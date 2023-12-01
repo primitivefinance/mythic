@@ -1,5 +1,5 @@
 // use crate::visualize::statistical::plot_statistical;
-use arbiter_core::bindings::liquid_exchange;
+use arbiter_bindings::bindings::liquid_exchange;
 
 use super::*;
 use crate::{

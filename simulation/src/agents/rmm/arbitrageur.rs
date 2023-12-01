@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::atomic};
 
-use arbiter_core::bindings::arbiter_math::ArbiterMath;
+use arbiter_bindings::bindings::arbiter_math::ArbiterMath;
 use bindings::rmm_atomic_arbitrage::RMMAtomicArbitrage;
 use ethers::abi::AbiEncode;
 
