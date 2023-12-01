@@ -168,6 +168,11 @@ pub async fn load_app() -> LoadResult {
         contacts::Category::Trusted,
     );
 
+    tracing::info!(
+        "Anvil running at endpoint {}",
+        local.clone().anvil.unwrap().endpoint()
+    );
+
     let chains = app::Chains {
         local_wallet: local,
         arbiter: Arc::new(Mutex::new(EnvironmentBuilder::new().build())),
