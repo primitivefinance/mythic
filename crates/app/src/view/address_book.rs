@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
-use api::contacts::{self, Contacts};
 use iced::Color;
 use iced_aw::{graphics::icons::icon_to_char, ICON_FONT};
+use user::contacts::{self, Contacts};
 
 use super::{
     components::{button::route_button_style, tables::summary_table},

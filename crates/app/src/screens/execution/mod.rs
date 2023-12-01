@@ -5,11 +5,11 @@ pub mod utils;
 
 use std::{self};
 
-use api::contacts::{self, ContactList};
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use clients::{forking::forking::Forker, scroll::Scroll};
 use ethers::types::Address;
 use iced::{Command, Element, Subscription};
+use user::contacts::{self, ContactList};
 
 use self::{
     form::FormMessage,

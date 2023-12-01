@@ -1,11 +1,11 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use api::contacts::{self, ContactValue};
 use arbiter_core::environment::Environment;
 use clients::{arbiter::world::WorldManager, client::Local, ledger::LedgerClient, scroll::Scroll};
 use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
+use user::contacts::{self, ContactValue};
 
 use super::{
     screens::{

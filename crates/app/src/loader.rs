@@ -1,5 +1,4 @@
 use alloy_primitives;
-use api::contacts;
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use clients::{client::Local, ledger::LedgerClient};
 use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
@@ -9,6 +8,7 @@ use iced::{
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
+use user::contacts;
 
 use super::{profile::Profile, *};
 

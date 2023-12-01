@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, HashMap};
 
-use api::contacts;
 use ethers::utils::format_ether;
 use iced::widget::{Column, Container, Row};
 use iced_aw::Icon;
 use simulation::agents::SubscribedData;
+use user::contacts;
 
 use self::{control::control_panel, monitor::labeled_data_cards, sidebar::Page};
 use super::{
