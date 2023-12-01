@@ -57,7 +57,7 @@ contract RMMAtomicArbitrage {
         if (quote_balance > input) {
             TokenLike(quote).transfer(msg.sender, quote_balance);
         } else {
-            revert NotProfitable(asset_balance, quote_balance, input - quote_balance);
+            revert NotProfitable(quote_balance, input, input - quote_balance);
         }
         // require(quote_balance > input, "Not profitable");
     }

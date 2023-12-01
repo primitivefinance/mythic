@@ -181,7 +181,12 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            let decoded_output =
+                                bindings::rmm_atomic_arbitrage::NotProfitable::decode(&output)?;
+                            info!(
+                                "Execution revert: {:?} Gas Used: {:?}",
+                                decoded_output, gas_used
+                            );
                         }
                     }
                 }

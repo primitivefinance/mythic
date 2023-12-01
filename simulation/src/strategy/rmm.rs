@@ -115,17 +115,19 @@ impl ArbitrageStrategy for RmmStrategy {
             I256::from_raw(tau),
         );
 
-        let (reserve_x, reserve_y) = get_reserves(self).await?;
-        let (reserve_x, reserve_y) = (I256::from_raw(reserve_x), I256::from_raw(reserve_y));
+        let gamma = I256::from_raw(self.get_swap_fee().await?);
 
-        let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
+        let (reserve_x, reserve_y) = get_reserves(self).await?;
+        let (reserve_x, _reserve_y) = (I256::from_raw(reserve_x), I256::from_raw(reserve_y));
 
         let i_wad = I256::from_raw(WAD);
 
         let next_liquidity = I256::from_raw(get_next_liquidity(self).await?);
+        let target_price_wad = I256::from_raw(target_price_wad);
 
         let dx = get_dx(
             target_price_wad,
+            gamma,
             sigma,
             strike_price,
             reserve_x,
@@ -155,17 +157,19 @@ impl ArbitrageStrategy for RmmStrategy {
             I256::from_raw(tau),
         );
 
-        let (reserve_x, reserve_y) = get_reserves(self).await?;
-        let (reserve_x, reserve_y) = (I256::from_raw(reserve_x), I256::from_raw(reserve_y));
+        let gamma = I256::from_raw(self.get_swap_fee().await?);
 
-        let liquidity = I256::from_raw(self.0.get_liquidity().call().await?);
+        let (reserve_x, reserve_y) = get_reserves(self).await?;
+        let (_reserve_x, reserve_y) = (I256::from_raw(reserve_x), I256::from_raw(reserve_y));
 
         let i_wad = I256::from_raw(WAD);
 
         let next_liquidity = I256::from_raw(get_next_liquidity(self).await?);
+        let target_price_wad = I256::from_raw(target_price_wad);
 
         let dy = get_dy(
             target_price_wad,
+            gamma,
             sigma,
             strike_price,
             reserve_y,
@@ -217,7 +221,8 @@ pub async fn get_strategy_args(strategy: &RmmStrategy) -> Result<(U256, U256, U2
 /// \Phi\left(\frac{\ln\frac{S'}{K}-\frac{1}{2}\sigma^2}{\sigma}\right)-y}
 #[tracing::instrument(skip(rmm_math), ret, level = "trace")]
 pub async fn get_dy(
-    target_price_wad: U256,
+    target_price_wad: I256,
+    gamma: I256,
     sigma: I256,
     strike_price: I256,
     reserve_y: I256,
@@ -225,23 +230,26 @@ pub async fn get_dy(
     i_wad: I256,
     rmm_math: &ArbiterMath<RevmMiddleware>,
 ) -> Result<I256> {
-    let outer = (strike_price * liquidity) / i_wad;
-    let log = rmm_math
-        .log(I256::from_raw(target_price_wad) * i_wad / strike_price)
+    let log_p = rmm_math
+        .log(target_price_wad * i_wad / strike_price)
         .call()
         .await?;
-    let inner = log * i_wad / sigma - (sigma / 2);
-    let delta = outer * rmm_math.cdf(inner).call().await? / i_wad;
-    let dy = delta - reserve_y;
+    let inner_p = log_p * i_wad / sigma - (sigma / 2);
+    let cdf_p = rmm_math.cdf(inner_p).call().await?;
+    let delta = (liquidity * strike_price) / i_wad * (cdf_p) / i_wad;
+    let dy = (delta - reserve_y) * i_wad * i_wad
+        / (((gamma - i_wad) * cdf_p) / (reserve_y * i_wad * i_wad / (strike_price * liquidity))
+            + i_wad);
 
-    Ok(dy)
+    Ok(dy / i_wad)
 }
 
 // \boxed{\Delta x =
 // L\cdot\left(1-\Phi\left(\frac{\ln\frac{S'}{K}+\frac{1}{2}\sigma^2}{\sigma}\
 // right)\right) - x}
 pub async fn get_dx(
-    target_price_wad: U256,
+    target_price_wad: I256,
+    gamma: I256,
     sigma: I256,
     strike_price: I256,
     reserve_x: I256,
@@ -249,12 +257,92 @@ pub async fn get_dx(
     i_wad: I256,
     rmm_math: &ArbiterMath<RevmMiddleware>,
 ) -> Result<I256> {
-    let log = rmm_math
-        .log(I256::from_raw(target_price_wad) * i_wad / strike_price)
+    let log_p = rmm_math
+        .log(target_price_wad * i_wad / strike_price)
         .call()
         .await?;
-    let inner = log * i_wad / sigma + (sigma / 2);
-    let delta = liquidity * (i_wad - rmm_math.cdf(inner).call().await?) / i_wad;
-    let dx = delta - reserve_x;
-    Ok(dx)
+    let inner_p = log_p * i_wad / sigma + (sigma / 2);
+    let cdf_p = rmm_math.cdf(inner_p).call().await?;
+    let delta = liquidity * (i_wad - cdf_p) / i_wad;
+    let dx = (delta - reserve_x) * i_wad * i_wad
+        / (((gamma - i_wad) * (i_wad - cdf_p)) / (reserve_x * i_wad / liquidity) + i_wad);
+    Ok(dx / i_wad)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use arbiter_core::environment::builder::EnvironmentBuilder;
+
+    #[tokio::test]
+    async fn test_get_dx() {
+        let environment = EnvironmentBuilder::new().label("test").build();
+        let client = RevmMiddleware::new(&environment, "arbitrageur".into()).unwrap();
+        let rmm_math = ArbiterMath::deploy(client.clone(), ())
+            .unwrap()
+            .send()
+            .await
+            .unwrap();
+        let i_wad = I256::from_raw(parse_ether("1").unwrap());
+
+        let target_price_wad = I256::from_raw(parse_ether("0.9").unwrap());
+        let gamma = I256::from_raw(parse_ether("0.997").unwrap());
+        let sigma = I256::from_raw(parse_ether("1").unwrap());
+        let strike_price = I256::from_raw(parse_ether("1").unwrap());
+        let reserve_x = I256::from_raw(parse_ether("1").unwrap());
+        let liquidity = I256::from_raw(parse_ether("3.241096705").unwrap());
+
+        let dx = get_dx(
+            target_price_wad,
+            gamma,
+            sigma,
+            strike_price,
+            reserve_x,
+            liquidity,
+            i_wad,
+            &rmm_math,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            dx,
+            I256::from_raw(parse_ether("0.000000000000000001").unwrap())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_dy() {
+        let environment = EnvironmentBuilder::new().label("test").build();
+        let client = RevmMiddleware::new(&environment, "arbitrageur".into()).unwrap();
+        let rmm_math = ArbiterMath::deploy(client.clone(), ())
+            .unwrap()
+            .send()
+            .await
+            .unwrap();
+        let i_wad = I256::from_raw(parse_ether("1").unwrap());
+
+        let target_price_wad = I256::from_raw(parse_ether("1.1").unwrap());
+        let gamma = I256::from_raw(parse_ether("0.997").unwrap());
+        let sigma = I256::from_raw(parse_ether("1").unwrap());
+        let strike_price = I256::from_raw(parse_ether("1").unwrap());
+        let reserve_y = I256::from_raw(parse_ether("1").unwrap());
+        let liquidity = I256::from_raw(parse_ether("3.241096705").unwrap());
+
+        let dy = get_dy(
+            target_price_wad,
+            gamma,
+            sigma,
+            strike_price,
+            reserve_y,
+            liquidity,
+            i_wad,
+            &rmm_math,
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            dy,
+            I256::from_raw(parse_ether("0.000000000000000001").unwrap())
+        );
+    }
 }
