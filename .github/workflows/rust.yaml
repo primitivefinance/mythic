@@ -9,11 +9,15 @@ env:
 
 
 jobs:
-  build-clippy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
+
+    - name: Install libclang
+      run: sudo apt-get update && sudo apt-get install -y libclang-dev
+
 
     - name: Setup Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -21,24 +25,54 @@ jobs:
         profile: minimal
         toolchain: nightly
         override: true
-        components: rustfmt, clippy
-  
+        # components: rustfmt, clippy
     - uses: Swatinem/rust-cache@v2
 
-    - name: Rustfmt
-      uses: actions-rs/cargo@v1
-      with:
-        command: fmt
-        args: --all -- --check
 
     - name: Build
-      run: cargo build --verbose
+      run: cargo build
 
-    - name: Clippy
-      uses: actions-rs/cargo@v1
-      with:
-        command: clippy
-        args: --all --all-features -- -D warnings
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all --all-features -- -D warnings
   
   test:
     runs-on: ubuntu-latest
@@ -90,7 +124,7 @@ jobs:
           check_hidden: true
           check_filenames: true
           skip: .git,Cargo.lock,target,position_renderer.rs,portfolio.rs
-          ignore_words_list: crate,Crate,functio
+          ignore_words_list: crate,Crate,functio,initialY,initialL,initialX
 
 
     

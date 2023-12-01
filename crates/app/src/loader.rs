@@ -1,6 +1,6 @@
 use api::contacts;
 use arbiter_core::environment::builder::EnvironmentBuilder;
-use clients::rpc::local::Local;
+use clients::{client::Local, ledger::LedgerClient};
 use iced::{
     font,
     widget::{column, container, progress_bar},
@@ -11,7 +11,8 @@ use profiles::coins::{CoinList, StaticCoin};
 
 use super::{profile::Profile, *};
 
-type LoadResult = anyhow::Result<(app::Storage, app::Chains), anyhow::Error>;
+type LoadResult =
+    anyhow::Result<(app::Storage, app::Chains, clients::ledger::LedgerClient), anyhow::Error>;
 
 #[derive(Debug)]
 pub enum Message {
@@ -30,7 +31,7 @@ pub struct Loader {
 /// Loads any async data or disk data into the application's state types.
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
-#[tracing::instrument]
+// #[tracing::instrument]
 pub async fn load_app() -> LoadResult {
     // todo: do we want this?
     let profile = Profile::load(None);
@@ -167,11 +168,12 @@ pub async fn load_app() -> LoadResult {
     );
 
     let chains = app::Chains {
-        local,
+        local_wallet: local,
         arbiter: Arc::new(Mutex::new(EnvironmentBuilder::new().build())),
     };
-
-    Ok((storage, chains))
+    let ledger =
+        LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
+    Ok((storage, chains, ledger))
 }
 
 /// Placeholder function for any future async calls we might want to do.

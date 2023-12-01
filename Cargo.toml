@@ -13,6 +13,7 @@ members = ["simulation", "cfmm_math", "analysis", "crates/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
+alloy-primitives = { version = "0.5.1" }
 
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
@@ -21,8 +22,9 @@ analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter" }
+arbiter-core = { version = "0.9.0" }
 ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
+ethers-core = "2.0.4"
 
 ## Config and parsing
 serde = "1.0.188"

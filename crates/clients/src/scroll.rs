@@ -208,10 +208,13 @@ impl Scroll {
 
         // Uses the [`Cheatcodes::Access`] cheatcode to load the db of the target
         // account.
+        // have to type cast because these types got changed arbiter
+        let type_casted: revm_primitives::alloy_primitives::Address =
+            self.payload.target.to_fixed_bytes().into();
         let result = client
             .clone()
             .apply_cheatcode(cheatcodes::Cheatcodes::Access {
-                address: self.payload.target.clone(),
+                address: type_casted,
             })
             .await?;
 
