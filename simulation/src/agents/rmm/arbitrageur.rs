@@ -58,8 +58,8 @@ impl<S: ArbitrageStrategy> RmmArbitrageur<S> {
         token_admin
             .mint(
                 client.address(),
-                parse_ether(10).unwrap(),
-                parse_ether(10).unwrap(),
+                parse_ether(10_000).unwrap(),
+                parse_ether(10_000).unwrap(),
             )
             .await?;
 
@@ -145,7 +145,6 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
         let arby = self.atomic_arbitrage.quote().call().await?;
         let arbx = ArbiterToken::new(arbx, self.client.clone());
         let arby = ArbiterToken::new(arby, self.client.clone());
-        let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
         let arby_balance = arby.balance_of(self.client.address()).call().await?;
         debug!("arby_balance: {:?}", arby_balance);
 
@@ -155,10 +154,12 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to raise price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let (input, next_liquidity) = self
+                let (input, output, next_liquidity) = self
                     .rmm_strategy
                     .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
+                let reserves = self.rmm_strategy.get_reserves_and_liquidity().await?;
+                debug!("reserves and liquidity before swap: {:?}", reserves);
 
                 info!("got input: {:?}", input);
                 if input <= 0.into() {
@@ -167,11 +168,11 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
 
                 let tx = self
                     .atomic_arbitrage
-                    .raise_exchange_price(input, next_liquidity);
+                    .raise_exchange_price(input, output, next_liquidity);
 
                 let output = tx.send().await;
-                let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
+                let reserves = self.rmm_strategy.get_reserves_and_liquidity().await?;
                 debug!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
@@ -196,23 +197,29 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let (input, next_liquidity) = self
+                let (input, output, next_liquidity) = self
                     .rmm_strategy
                     .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
                 info!("Got input: {:?}", input);
+                info!("Got output: {:?}", output);
+                info!("Got next_liquidity: {:?}", next_liquidity);
                 if input <= 0.into() {
                     return Ok(());
                 }
+                let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
+                let input = input * liquid_exchange_price_wad / WAD + 1;
                 let tx = self
                     .atomic_arbitrage
-                    .lower_exchange_price(input, next_liquidity);
+                    .lower_exchange_price(input, output, next_liquidity);
                 let output = tx.send().await;
-                let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
+                let reserves = self.rmm_strategy.get_reserves_and_liquidity().await?;
+                debug!("reserves and liquidity: {:?}", reserves);
                 trace!("arby_balance after: {:?}", arby_balance);
                 match output {
                     Ok(output) => {
+                        debug!("Sent arbitrage to successfully lower price.");
                         output.await?;
                     }
                     Err(e) => {

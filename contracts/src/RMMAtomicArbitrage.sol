@@ -10,6 +10,12 @@ interface StrategyLike {
         uint256 nextLiquidity,
         uint256 amount
     ) external returns (uint256);
+    function swap(
+        bool swapDirection,
+        uint256 nextLiquidity,
+        uint256 amountIn,
+        uint256 amountOut
+    ) external returns (uint256);
 }
 
 interface TokenLike {
@@ -20,7 +26,11 @@ interface TokenLike {
 }
 
 contract RMMAtomicArbitrage {
-    error NotProfitable(uint256 first_swap_output, uint256 second_swap_output, uint256 difference);
+    error NotProfitable(
+        uint256 input,
+        uint256 output,
+        uint256 difference
+    );
 
     address public exchange;
     address public liquidExchange;
@@ -39,7 +49,11 @@ contract RMMAtomicArbitrage {
         quote = quoteAddress;
     }
 
-    function lower_exchange_price(uint256 input, uint256 nextLiquidity) external {
+    function lower_exchange_price(
+        uint256 input,
+        uint256 output,
+        uint256 nextLiquidity
+    ) external {
         // pull in tokens from arbitrageur
         TokenLike(quote).transferFrom(msg.sender, address(this), input);
 
@@ -50,25 +64,29 @@ contract RMMAtomicArbitrage {
         // do swap on Exchange
         uint256 asset_balance = TokenLike(asset).balanceOf(address(this));
         TokenLike(asset).approve(exchange, asset_balance);
-        StrategyLike(exchange).swapAmountIn(true, nextLiquidity, asset_balance);
+        StrategyLike(exchange).swap(true, nextLiquidity, asset_balance, output);
 
         // send quote tokens to arbitrageur if we have tokens and the trade is profitable
-        uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
-        if (quote_balance > input) {
-            TokenLike(quote).transfer(msg.sender, quote_balance);
+        uint256 postQuoteBalance = TokenLike(quote).balanceOf(address(this));
+        if (postQuoteBalance > input) {
+            // revert Debug(quote_balance);
+            TokenLike(quote).transfer(msg.sender, postQuoteBalance);
         } else {
-            revert NotProfitable(quote_balance, input, input - quote_balance);
+            revert NotProfitable(input, postQuoteBalance, input - postQuoteBalance);
         }
-        // require(quote_balance > input, "Not profitable");
     }
 
-    function raise_exchange_price(uint256 input, uint256 nextLiquidity) external {
+    function raise_exchange_price(
+        uint256 input,
+        uint256 output,
+        uint256 nextLiquidity
+    ) external {
         // pull in tokens from arbitrageur
         TokenLike(quote).transferFrom(msg.sender, address(this), input);
 
         // exchange quote for asset on Exchange
         TokenLike(quote).approve(exchange, input);
-        StrategyLike(exchange).swapAmountIn(false, nextLiquidity, input);
+        StrategyLike(exchange).swap(false, nextLiquidity, input, output);
 
         // do swap on LiquidExchange
         uint256 asset_balance = TokenLike(asset).balanceOf(address(this));
@@ -76,11 +94,11 @@ contract RMMAtomicArbitrage {
         ExchangeLike(liquidExchange).swap(asset, asset_balance);
 
         // send quote tokens to arbitrageur if we have tokens and the trade is profitable
-        uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
-        if (quote_balance > input) {
-            TokenLike(quote).transfer(msg.sender, quote_balance);
+        uint256 postQuoteBalance = TokenLike(quote).balanceOf(address(this));
+        if (postQuoteBalance > input) {
+            TokenLike(quote).transfer(msg.sender, postQuoteBalance);
         } else {
-            revert NotProfitable(quote_balance, input, input - quote_balance);
+            revert NotProfitable(input, postQuoteBalance, input - postQuoteBalance);
         }
     }
 }

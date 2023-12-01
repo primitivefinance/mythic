@@ -51,8 +51,8 @@ impl<S: ArbitrageStrategy> Arbitrageur<S> {
         token_admin
             .mint(
                 client.address(),
-                parse_ether(25).unwrap(),
-                parse_ether(25).unwrap(),
+                parse_ether(10_000).unwrap(),
+                parse_ether(10_000).unwrap(),
             )
             .await?;
 
@@ -137,7 +137,7 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to increase price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let (input, _next_liquidity) = self
+                let (input, _output, _next_liquidity) = self
                     .strategy
                     .get_y_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
@@ -166,11 +166,13 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
-                let (input, _next_liquidity) = self
+                let (input, _output, _next_liquidity) = self
                     .strategy
                     .get_x_input(target_price, &self.g3m_math, &self.rmm_math)
                     .await?;
                 trace!("Got input: {:?}", input);
+                let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
+                let input = input * liquid_exchange_price_wad / WAD + 1;
                 let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;
                 match output {

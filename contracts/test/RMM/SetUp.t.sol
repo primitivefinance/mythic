@@ -10,11 +10,18 @@ contract RMMSetUp is Test {
     MockERC20 public tokenY;
     RMM public rmm;
 
-    uint256 initialPrice = 2000 ether;
-    uint256 strikePrice = 1800 ether;
-    uint256 sigma = 0.05 ether;
+    // uint256 initialPrice = 2000 ether;
+    // uint256 strikePrice = 1800 ether;
+    // uint256 sigma = 0.05 ether;
+    // uint256 tau = 1 ether;
+    // uint256 swapFee = 0.997 ether;
+
+    uint256 initialPrice = 1 ether;
+    uint256 strikePrice = 1 ether;
+    uint256 sigma = 1 ether;
     uint256 tau = 1 ether;
     uint256 swapFee = 0.997 ether;
+
 
     function setUp() public {
         tokenX = new MockERC20("TokenX", "X", 18);

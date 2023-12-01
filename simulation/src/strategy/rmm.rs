@@ -102,12 +102,13 @@ impl LiquidityStrategy for RmmStrategy {
 /// of tokens to swap.
 #[async_trait::async_trait]
 impl ArbitrageStrategy for RmmStrategy {
+    #[tracing::instrument(ret, skip(self, _g3m_math, rmm_math), level = "trace")]
     async fn get_x_input(
         &self,
         target_price_wad: U256,
         _g3m_math: &SD59x18Math<RevmMiddleware>,
         rmm_math: &ArbiterMath<RevmMiddleware>,
-    ) -> Result<(U256, U256)> {
+    ) -> Result<(U256, U256, U256)> {
         let (sigma, strike_price, tau) = get_strategy_args(self).await?;
         let (sigma, strike_price, _tau) = (
             I256::from_raw(sigma),
@@ -122,8 +123,10 @@ impl ArbitrageStrategy for RmmStrategy {
 
         let i_wad = I256::from_raw(WAD);
 
-        let next_liquidity = I256::from_raw(get_next_liquidity(self).await?);
+        let next_liquidity = get_next_liquidity(self).await?;
         let target_price_wad = I256::from_raw(target_price_wad);
+
+        let next_liquidity_int = I256::from_raw(next_liquidity);
 
         let dx = get_dx(
             target_price_wad,
@@ -131,16 +134,16 @@ impl ArbitrageStrategy for RmmStrategy {
             sigma,
             strike_price,
             reserve_x,
-            next_liquidity,
+            next_liquidity_int,
             i_wad,
             rmm_math,
         )
         .await?;
-        debug!("dx: {}", dx);
+        let dy = get_amount_out(self, true, next_liquidity, dx.into_raw()).await?;
         if dx < 0.into() {
-            return Ok((0.into(), 0.into()));
+            return Ok((0.into(), 0.into(), 0.into()));
         }
-        Ok((dx.into_raw(), next_liquidity.into_raw()))
+        Ok((dx.into_raw(), dy, next_liquidity))
     }
 
     #[tracing::instrument(ret, skip(self, _g3m_math, rmm_math), level = "trace")]
@@ -149,7 +152,7 @@ impl ArbitrageStrategy for RmmStrategy {
         target_price_wad: U256,
         _g3m_math: &SD59x18Math<RevmMiddleware>,
         rmm_math: &ArbiterMath<RevmMiddleware>,
-    ) -> Result<(U256, U256)> {
+    ) -> Result<(U256, U256, U256)> {
         let (sigma, strike_price, tau) = get_strategy_args(self).await?;
         let (sigma, strike_price, _tau) = (
             I256::from_raw(sigma),
@@ -164,7 +167,8 @@ impl ArbitrageStrategy for RmmStrategy {
 
         let i_wad = I256::from_raw(WAD);
 
-        let next_liquidity = I256::from_raw(get_next_liquidity(self).await?);
+        let next_liquidity = get_next_liquidity(self).await?;
+        let next_liquidity_int = I256::from_raw(next_liquidity);
         let target_price_wad = I256::from_raw(target_price_wad);
 
         let dy = get_dy(
@@ -173,16 +177,17 @@ impl ArbitrageStrategy for RmmStrategy {
             sigma,
             strike_price,
             reserve_y,
-            next_liquidity,
+            next_liquidity_int,
             i_wad,
             rmm_math,
         )
         .await?;
-        debug!("dy: {}", dy);
+
+        let dx = get_amount_out(self, false, next_liquidity, dy.into_raw()).await?;
         if dy <= 0.into() {
-            return Ok((0.into(), 0.into()));
+            return Ok((0.into(), 0.into(), 0.into()));
         }
-        Ok((dy.into_raw(), next_liquidity.into_raw()))
+        Ok((dy.into_raw(), dx, next_liquidity))
     }
 
     #[tracing::instrument(ret, skip(self))]
@@ -204,6 +209,21 @@ pub async fn get_reserves(strategy: &RmmStrategy) -> Result<(U256, U256)> {
 #[tracing::instrument(skip(strategy), ret, level = "trace")]
 pub async fn get_next_liquidity(strategy: &RmmStrategy) -> Result<U256> {
     let next_liquidity = strategy.0.get_next_liquidity().call().await?;
+    Ok(next_liquidity)
+}
+
+#[tracing::instrument(skip(strategy), ret, level = "trace")]
+pub async fn get_amount_out(
+    strategy: &RmmStrategy,
+    swap_direction: bool,
+    next_liquidity: U256,
+    input: U256,
+) -> Result<U256> {
+    let next_liquidity = strategy
+        .0
+        .get_amount_out(swap_direction, next_liquidity, input)
+        .call()
+        .await?;
     Ok(next_liquidity)
 }
 
@@ -271,8 +291,9 @@ pub async fn get_dx(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use arbiter_core::environment::builder::EnvironmentBuilder;
+
+    use super::*;
 
     #[tokio::test]
     async fn test_get_dx() {

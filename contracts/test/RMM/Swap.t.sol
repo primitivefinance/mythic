@@ -10,7 +10,7 @@ contract RMMSwap is RMMSetUp {
     using FixedPointMathLib for uint128;
 
     function test_rmm_swap_x_in() public {
-        uint256 amountIn = 500 ether;
+        uint256 amountIn = 0.5 ether;
         bool swapDirection = true; // swap in X get Y out
 
         rmm.initExactX(5_000 ether, initialPrice);
@@ -18,80 +18,89 @@ contract RMMSwap is RMMSetUp {
         uint256 preReserveX = rmm.reserveX();
         uint256 preReserveY = rmm.reserveY();
 
-        uint256 nextLiquidity = rmm.totalLiquidity();
+        // uint256 nextLiquidity = rmm.totalLiquidity();
+        // console2.log("nextLiquidity", nextLiquidity);
+        uint256 nextLiquidity = rmm.getNextLiquidity();
         console2.log("nextLiquidity", nextLiquidity);
 
         uint256 deltaL = rmm.getDeltaL(swapDirection, nextLiquidity, amountIn);
         console2.log("deltaL", deltaL);
-        uint256 amountOut = rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
+        uint256 amountOut =
+            rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
         console2.log("amountOut", amountOut);
 
-        uint256 amountY = rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
+        uint256 amountY =
+            rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
         console2.log("amountY", amountY);
     }
 
     function test_rmm_swap_y_in() public {
-        uint256 amountIn = 50000 ether;
+        uint256 amountIn = 0.5 ether;
         bool swapDirection = false; // swap in Y get X out
 
         rmm.initExactX(5_000 ether, initialPrice);
 
-        uint256 nextLiquidity = rmm.totalLiquidity();
+        // uint256 nextLiquidity = rmm.totalLiquidity();
+        // console2.log("nextLiquidity", nextLiquidity);
+        uint256 nextLiquidity = rmm.getNextLiquidity();
         console2.log("nextLiquidity", nextLiquidity);
 
         uint256 deltaL = rmm.getDeltaL(swapDirection, nextLiquidity, amountIn);
         console2.log("deltaL", deltaL);
-        uint256 amountOut = rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
+        uint256 amountOut =
+            rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
         console2.log("amountOut", amountOut);
 
-        uint256 amountX = rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
+        uint256 amountX =
+            rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
         console2.log("amountX", amountX);
     }
 
     function test_rmm_swap_x_in_after_update_strike() public {
-        uint256 amountIn = 500 ether;
+        uint256 amountIn = 5 ether;
         bool swapDirection = true; // swap in X get Y out
 
         rmm.initExactX(5_000 ether, initialPrice);
 
         uint256 strike = rmm.strikePrice();
         stdstore.target(address(rmm)).sig(rmm.targetStrike.selector)
-            .checked_write(1820 ether);
+            .checked_write(1.1 ether);
         uint256 nextLiquidity = rmm.getNextLiquidity();
         console2.log("nextLiquidity", nextLiquidity);
 
         uint256 deltaL = rmm.getDeltaL(swapDirection, nextLiquidity, amountIn);
         console2.log("deltaL", deltaL);
-        uint256 amountOut = rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
+        uint256 amountOut =
+            rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
         console2.log("amountOut", amountOut);
 
-        uint256 amountY = rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
+        uint256 amountY =
+            rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
         console2.log("amountY", amountY);
     }
 
     function test_rmm_swap_y_in_after_update_strike() public {
-        uint256 amountIn = 50000 ether;
+        uint256 amountIn = 5 ether;
         bool swapDirection = false; // swap in X get Y out
 
         rmm.initExactX(5_000 ether, initialPrice);
 
         uint256 strike = rmm.strikePrice();
         stdstore.target(address(rmm)).sig(rmm.targetStrike.selector)
-            .checked_write(1820 ether);
+            .checked_write(1.1 ether);
         uint256 nextLiquidity = rmm.getNextLiquidity();
         console2.log("nextLiquidity", nextLiquidity);
 
         uint256 deltaL = rmm.getDeltaL(swapDirection, nextLiquidity, amountIn);
         console2.log("deltaL", deltaL);
-        uint256 amountOut = rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
+        uint256 amountOut =
+            rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
         console2.log("amountOut", amountOut);
 
-        uint256 amountX = rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
+        uint256 amountX =
+            rmm.swap(swapDirection, nextLiquidity, amountIn, amountOut);
         console2.log("amountX", amountX);
     }
-
-
-
 
     // function test_rmm_swap_UpdatesReserves() public {
     //     uint256 amountIn = 500 ether;

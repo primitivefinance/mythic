@@ -20,6 +20,11 @@ interface IStrategy {
     function logData() external;
     function getPortfolioValue() external view returns (uint256);
     function getNextLiquidity() external view returns (uint256);
+    function getAmountOut(
+        bool swapDirection,
+        uint256 nextLiquidity,
+        uint256 amountIn
+    ) external view returns (uint256);
 
     event AddLiquidity(
         address indexed sender,

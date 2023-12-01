@@ -16,6 +16,54 @@ pub mod i_strategy {
             constructor: ::core::option::Option::None,
             functions: ::core::convert::From::from([
                 (
+                    ::std::borrow::ToOwned::to_owned("getAmountOut"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("getAmountOut"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("swapDirection"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bool,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bool"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("nextLiquidity"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("amountIn"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("getInvariant"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -468,6 +516,20 @@ pub mod i_strategy {
                 ),
             )
         }
+        ///Calls the contract's `getAmountOut` (0x5d840ae5) function
+        pub fn get_amount_out(
+            &self,
+            swap_direction: bool,
+            next_liquidity: ::ethers::core::types::U256,
+            amount_in: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            self.0
+                .method_hash(
+                    [93, 132, 10, 229],
+                    (swap_direction, next_liquidity, amount_in),
+                )
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `getInvariant` (0xc0ff1a15) function
         pub fn get_invariant(
             &self,
@@ -770,6 +832,25 @@ pub mod i_strategy {
             Self::SwapFilter(value)
         }
     }
+    ///Container type for all input parameters for the `getAmountOut` function with signature `getAmountOut(bool,uint256,uint256)` and selector `0x5d840ae5`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "getAmountOut", abi = "getAmountOut(bool,uint256,uint256)")]
+    pub struct GetAmountOutCall {
+        pub swap_direction: bool,
+        pub next_liquidity: ::ethers::core::types::U256,
+        pub amount_in: ::ethers::core::types::U256,
+    }
     ///Container type for all input parameters for the `getInvariant` function with signature `getInvariant()` and selector `0xc0ff1a15`
     #[derive(
         Clone,
@@ -950,6 +1031,7 @@ pub mod i_strategy {
         Hash
     )]
     pub enum IStrategyCalls {
+        GetAmountOut(GetAmountOutCall),
         GetInvariant(GetInvariantCall),
         GetLiquidity(GetLiquidityCall),
         GetNextLiquidity(GetNextLiquidityCall),
@@ -967,6 +1049,11 @@ pub mod i_strategy {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
+            if let Ok(decoded) = <GetAmountOutCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::GetAmountOut(decoded));
+            }
             if let Ok(decoded) = <GetInvariantCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
@@ -1028,6 +1115,9 @@ pub mod i_strategy {
     impl ::ethers::core::abi::AbiEncode for IStrategyCalls {
         fn encode(self) -> Vec<u8> {
             match self {
+                Self::GetAmountOut(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::GetInvariant(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1065,6 +1155,7 @@ pub mod i_strategy {
     impl ::core::fmt::Display for IStrategyCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
+                Self::GetAmountOut(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetInvariant(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetLiquidity(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetNextLiquidity(element) => ::core::fmt::Display::fmt(element, f),
@@ -1077,6 +1168,11 @@ pub mod i_strategy {
                 Self::InitExactX(element) => ::core::fmt::Display::fmt(element, f),
                 Self::LogData(element) => ::core::fmt::Display::fmt(element, f),
             }
+        }
+    }
+    impl ::core::convert::From<GetAmountOutCall> for IStrategyCalls {
+        fn from(value: GetAmountOutCall) -> Self {
+            Self::GetAmountOut(value)
         }
     }
     impl ::core::convert::From<GetInvariantCall> for IStrategyCalls {
@@ -1134,6 +1230,20 @@ pub mod i_strategy {
             Self::LogData(value)
         }
     }
+    ///Container type for all return fields from the `getAmountOut` function with signature `getAmountOut(bool,uint256,uint256)` and selector `0x5d840ae5`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct GetAmountOutReturn(pub ::ethers::core::types::U256);
     ///Container type for all return fields from the `getInvariant` function with signature `getInvariant()` and selector `0xc0ff1a15`
     #[derive(
         Clone,

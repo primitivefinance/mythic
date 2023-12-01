@@ -13,7 +13,7 @@ uint256 constant TWO = 2e18;
 
 uint256 constant BISECTION_EPSILON = 10;
 
-uint256 constant BISECTION_MAX_ITER = 64;
+uint256 constant BISECTION_MAX_ITER = 128;
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for uint128;
@@ -290,8 +290,6 @@ function computeRootNextReserveY(
         ) + int256(computeSigmaSqrtTau(curve.sigma, curve.tau));
 }
 
-
-
 //compute new L using bisection
 // send the L along with the swap
 // assert that the compute swap constant function returns 0 with the new parameters and new L
@@ -315,10 +313,10 @@ function computeNextLiquidity(
         return L;
     } else if (initialConstant < 0) {
         upper = L;
-        lower = L.mulDivDown(98, 100);
+        lower = L.mulDivDown(50, 100);
     } else {
         lower = L;
-        upper = L.mulDivUp(102, 100);
+        upper = L.mulDivUp(150, 100);
     }
 
     newLiquidity = bisection(
@@ -327,7 +325,7 @@ function computeNextLiquidity(
         upper,
         BISECTION_EPSILON,
         BISECTION_MAX_ITER,
-        computeRootNextLiquidity 
+        computeRootNextLiquidity
     );
 }
 
@@ -335,7 +333,7 @@ function computeNextLiquidity(
 // send the L along with the swap
 // assert that the compute swap constant function returns 0 with the new parameters and new L
 function computeNextReserveX(
-    uint256 x, // reserveX 
+    uint256 x, // reserveX
     uint256 y, // reserveY + amountIn
     uint256 L, // nextLiquidity + deltaL
     uint256 K,
@@ -347,7 +345,8 @@ function computeNextReserveX(
 
     NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
 
-    int256 initialConstant = computeRootNextReserveX(abi.encode(normalCurve), normalCurve.x);
+    int256 initialConstant =
+        computeRootNextReserveX(abi.encode(normalCurve), normalCurve.x);
     if (initialConstant == 0) {
         return normalCurve.x;
     } else {
@@ -379,7 +378,8 @@ function computeNextReserveY(
 
     NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
 
-    int256 initialConstant = computeRootNextReserveY(abi.encode(normalCurve), normalCurve.y);
+    int256 initialConstant =
+        computeRootNextReserveY(abi.encode(normalCurve), normalCurve.y);
     if (initialConstant == 0) {
         return normalCurve.y;
     } else {
@@ -447,7 +447,7 @@ function checkSwapConstantNextReserveY(
     uint256 K,
     uint256 sigma,
     uint256 tau,
-    uint256 newReserveY 
+    uint256 newReserveY
 ) pure returns (int256) {
     NormalCurve memory normalCurve = transform(x, y, L, K, sigma, tau);
     return computeRootNextReserveY(abi.encode(normalCurve), newReserveY);
