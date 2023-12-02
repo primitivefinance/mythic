@@ -15,6 +15,7 @@ where
     pub strategy: S,
     pub strategy_address: Address,
     pub token_admin: TokenAdmin,
+    pub portfolio_value_start: U256,
 }
 
 impl<S: LiquidityStrategy + Sized> StrategyMonitorAgent<S> {
@@ -35,6 +36,7 @@ impl<S: LiquidityStrategy + Sized> StrategyMonitorAgent<S> {
             strategy,
             strategy_address,
             token_admin: token_admin.clone(),
+            portfolio_value_start: U256::zero(),
         })
     }
 }
@@ -51,6 +53,11 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for StrategyMonitorAgent<S> {
 
     fn get_name(&self) -> String {
         "Strategy Monitor".to_string()
+    }
+
+    async fn startup(&mut self) -> Result<()> {
+        self.portfolio_value_start = self.strategy.get_portfolio_value().await?;
+        Ok(())
     }
 
     async fn get_subscribed(&self) -> Result<Vec<SubscribedData>> {
@@ -73,26 +80,38 @@ impl<S: LiquidityStrategy + 'static + Debug> Agent for StrategyMonitorAgent<S> {
             .call()
             .await?;
 
+        let start_value: I256 = I256::from_raw(self.portfolio_value_start);
+        let end_value: I256 = I256::from_raw(portfolio_value);
+        let net_profit = end_value.checked_sub(start_value).unwrap();
+
+        debug!("Start value: {}", start_value);
+        debug!("End value: {}", end_value);
+        debug!("Net profit: {}", net_profit);
+
         let subbed = vec![
             SubscribedData {
-                name: "Reserves X".to_string(),
+                name: "X Price".to_string(),
+                data: spot_price.into_token(),
+            },
+            SubscribedData {
+                name: "Your X Balance".to_string(),
                 data: reserve_x.into_token(),
             },
             SubscribedData {
-                name: "Reserves Y".to_string(),
+                name: "Your Y Balance".to_string(),
                 data: reserve_y.into_token(),
             },
             SubscribedData {
-                name: "Spot Price".to_string(),
-                data: spot_price.into_token(),
+                name: "Your Portfolio Value".to_string(),
+                data: portfolio_value.into_token(),
+            },
+            SubscribedData {
+                name: "Your Net Profit".to_string(),
+                data: net_profit.into_token(),
             },
             SubscribedData {
                 name: "Invariant".to_string(),
                 data: invariant.into_token(),
-            },
-            SubscribedData {
-                name: "Portfolio Value".to_string(),
-                data: portfolio_value.into_token(),
             },
         ];
 

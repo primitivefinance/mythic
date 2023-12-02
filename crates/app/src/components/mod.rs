@@ -6,6 +6,8 @@ pub mod select;
 pub mod styles;
 pub mod tables;
 
+use std::borrow::Cow;
+
 use button::*;
 use iced::{
     widget::{pick_list, Button, Container},
@@ -61,7 +63,10 @@ pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
 
 /// Renders a column with a label and a piece of data with the DAGGERSQUARE
 /// font.
-pub fn labeled_data<'a>(label: String, data: String) -> Element<'a, Message, Renderer> {
+pub fn labeled_data<'a, Message>(label: String, data: String) -> Element<'a, Message, Renderer>
+where
+    Message: 'a,
+{
     // If data is a value above > 1000, replace the last three zeros with an
     // uppercase "K". Same with > 1_000_000 "M", etc.
     let data = match data.parse::<f64>() {
@@ -153,11 +158,14 @@ pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
 }
 
 /// Containers that groups multiple labeled data pieces under a label
-pub fn labeled_data_container<'a>(
+pub fn labeled_data_container<'a, Message>(
     _label: String,
     data: Vec<(String, String)>,
     max_elements: usize,
-) -> Element<'a, Message> {
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     let mut content = Column::new();
     content = content.push(labeled_data_row(data, max_elements));
     content.into()
@@ -166,10 +174,13 @@ pub fn labeled_data_container<'a>(
 /// Renders a row of labeled data elements using labeled_data. Specify the
 /// maximum amount of elements in the row, if the total amount of elements
 /// exceeds the value, it will push a new row to the column.
-pub fn labeled_data_row<'a>(
+pub fn labeled_data_row<'a, Message>(
     label_data: Vec<(String, String)>,
     max_elements: usize,
-) -> Element<'a, Message, Renderer> {
+) -> Element<'a, Message, Renderer>
+where
+    Message: 'a,
+{
     let mut content = Column::new();
     let mut row = Row::new().spacing(Sizes::Lg as u16);
     let mut i = 0;
@@ -308,7 +319,7 @@ impl Card {
     // todo: refactor this to use builder pattern.
     pub fn new<'a, Message, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message>
     where
-        Message: 'static,
+        Message: 'a,
     {
         let content = content.into();
         Container::new(content).style(CardContainer::theme())
@@ -354,33 +365,11 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
     let name = window.name().clone();
     Container::new(
         Column::new()
-            .push(
-                Container::new(
-                    Row::new()
-                        .align_items(alignment::Alignment::Center)
-                        .push(
-                            Column::new()
-                                .push(with_font(h1(name)))
-                                .width(Length::FillPortion(2)),
-                        )
-                        .push(
-                            Column::new()
-                                .push(
-                                    custom_icon_button(Icon::X, Sizes::Md as u16)
-                                        .on_press(view::Message::Page(view::sidebar::Page::Empty)),
-                                )
-                                .align_items(alignment::Alignment::End)
-                                .width(Length::FillPortion(2)),
-                        )
-                        .padding(Sizes::Lg as u16),
-                )
-                .style(WindowHeader::theme()),
-            )
+            .push(h2(name))
             .push(Row::new().push(content))
             .spacing(Sizes::Md as u16),
     )
     .max_height(ByteScale::Xl7 as u16)
-    .style(ScreenWindowContainer::theme())
 }
 
 /// Column with a label and text input field.
@@ -402,12 +391,15 @@ pub fn input_group<'a>(
 }
 
 /// Column with a label and pick list field.
-pub fn select_group<'a>(
+pub fn select_group<'a, Message>(
     title: String,
     options: Vec<String>,
     selected: Option<String>,
     on_selected: impl Fn(String) -> Message + 'a,
-) -> Element<'a, Message> {
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
     let title = h3(title.to_string());
     let input = custom_pick_list(options, selected.clone(), on_selected, None)
         .padding(Sizes::Md as u16)
@@ -458,6 +450,31 @@ where
     let input = create_input_component(value, on_change);
 
     Column::new().push(title).push(input).spacing(Sizes::Md)
+}
+
+/// Column with a label and pick list field.
+pub fn labeled_select<'a, Message, T>(
+    title: String,
+    options: impl Into<Cow<'a, [T]>>,
+    selected: Option<T>,
+    on_selected: impl Fn(T) -> Message + 'a,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+    T: ToString + Eq + 'static + Clone,
+    [T]: ToOwned<Owned = Vec<T>>,
+{
+    let title = h3(title.to_string());
+
+    Column::new()
+        .push(title)
+        .push(
+            custom_pick_list(options, selected, on_selected, None)
+                .padding(Sizes::Md as u16)
+                .width(Length::Fill),
+        )
+        .spacing(Sizes::Md as u16)
+        .into()
 }
 
 /// For use in the instructions container.

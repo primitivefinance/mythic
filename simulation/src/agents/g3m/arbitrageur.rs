@@ -228,7 +228,17 @@ impl<S: ArbitrageStrategy + std::marker::Sync + std::marker::Send + 'static> Age
             .call()
             .await?;
 
+        // todo: store this somewhere else maybe? this is from when we instantiate the
+        // agent.
+        let start_y_balance = parse_ether(25).unwrap();
+        let spot_price = self.liquid_exchange.price().call().await?;
+
+        let start_value = I256::from_raw(start_y_balance);
+        let end_value = I256::from_raw(y_balance);
+        let profit = end_value.checked_sub(start_value).unwrap();
+
         let subbed = vec![
+            SubscribedData::new("Profit".to_string(), profit.into_token()),
             SubscribedData::new("Balance X".to_string(), x_balance.into_token()),
             SubscribedData::new("Balance Y".to_string(), y_balance.into_token()),
         ];

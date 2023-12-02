@@ -2,7 +2,7 @@
 
 pub mod form;
 
-use profiles::coins::CoinList;
+use datatypes::portfolio::coin_list::CoinList;
 
 use super::*;
 use crate::components::tables::{

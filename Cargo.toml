@@ -13,8 +13,6 @@ members = ["simulation", "cfmm_math", "analysis", "crates/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
-alloy-primitives = { version = "0.5.1" }
-
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
 cfmm_math = { path = "./cfmm_math", version = "0.1.0" }
@@ -26,9 +24,13 @@ arbiter-core = { version = "0.9.0" }
 ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
+# ethereum types
+alloy-primitives = { version = "0.5.0", features = ["serde"] }
+
 ## Config and parsing
 serde = "1.0.188"
 serde_json = "1.0.107"
+serde_with = { version = "3.4.0", features = ["chrono_0_4"] }
 config = "0.13.3"
 
 ## Async
@@ -46,6 +48,7 @@ thiserror = "1.0.50"
 
 bytesize = "1.2.0"
 dotenv = "0.15.0"
+uuid = { version = "1.6.1", features = ["v4", "serde"] }
 
 # Visualization
 plotters = "0.3.5"
@@ -57,6 +60,9 @@ statrs = "0.16.0"
 linked-hash-map = "0.5.6"
 directories-next = "2.0.0"
 criterion = "0.5.1"
+
+# time
+chrono = { version = "0.4.31", features = ["serde"] }
 
 [dependencies]
 # main excalibur application

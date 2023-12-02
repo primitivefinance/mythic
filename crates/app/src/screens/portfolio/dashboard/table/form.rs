@@ -20,6 +20,7 @@ pub enum DeltaFormMessage {
     Balance(usize, Option<String>),
     MarketValue(usize, Option<String>),
     Weight(usize, Option<String>),
+    WeightUpdated,
 }
 
 impl MessageWrapper for DeltaFormMessage {
@@ -52,28 +53,64 @@ impl State for DeltaForm {
     fn update(&mut self, msg: Self::AppMessage) -> Command<Self::AppMessage> {
         match msg {
             DeltaFormMessage::Price(index, price) => {
-                tracing::trace!("Price changed: {}", price.clone().unwrap_or_default());
-                self.price.insert(index, price.unwrap_or_default());
+                tracing::trace!(
+                    "Price changed: {}",
+                    price.clone().unwrap_or("None".to_string()).clone()
+                );
+                match price {
+                    Some(price) => {
+                        self.price.insert(index, price);
+                    }
+                    None => {
+                        self.price.remove(&index);
+                    }
+                }
             }
             DeltaFormMessage::Balance(index, balance) => {
-                tracing::trace!("Balance changed: {}", balance.clone().unwrap_or_default());
-                self.balance.insert(index, balance.unwrap_or_default());
+                tracing::trace!(
+                    "Balance changed: {}",
+                    balance.clone().unwrap_or("None".to_string()).clone()
+                );
+                match balance {
+                    Some(balance) => {
+                        self.balance.insert(index, balance);
+                    }
+                    None => {
+                        self.balance.remove(&index);
+                    }
+                }
             }
             DeltaFormMessage::MarketValue(index, market_value) => {
                 tracing::trace!(
                     "Market value changed: {}",
-                    market_value.clone().unwrap_or_default()
+                    market_value.clone().unwrap_or("None".to_string()).clone()
                 );
-                self.market_value
-                    .insert(index, market_value.unwrap_or_default());
+                match market_value {
+                    Some(market_value) => {
+                        self.market_value.insert(index, market_value);
+                    }
+                    None => {
+                        self.market_value.remove(&index);
+                    }
+                }
             }
             DeltaFormMessage::Weight(index, weight) => {
                 tracing::trace!(
-                    "Weight changed: {} for position {}",
-                    weight.clone().unwrap_or_default(),
-                    index
+                    "Weight changed: {}",
+                    weight.clone().unwrap_or("None".to_string()).clone()
                 );
-                self.weight.insert(index, weight.unwrap_or_default());
+                match weight {
+                    Some(weight) => {
+                        self.weight.insert(index, weight);
+                    }
+                    None => {
+                        self.weight.remove(&index);
+                    }
+                }
+
+                // Propagates the weight update back the parent so that any sibling dependencies
+                // (i.e. prepare stage) can have their adjusted portfolios updated.
+                return Command::perform(async {}, |_| DeltaFormMessage::WeightUpdated);
             }
             _ => {}
         }

@@ -74,6 +74,8 @@ impl Local<Provider<Ws>, Wallet<SigningKey>> {
             .chain_id(CHAIN_ID)
             .spawn();
 
+        tracing::info!("Anvil running at {}", anvil.endpoint());
+
         Self {
             anvil: Some(Arc::new(anvil)),
             ..self

@@ -1,9 +1,9 @@
 //! Views for executing transactions.
 
-use api::contacts::ContactList;
 use datatypes::units::address_to_string;
 use iced::{widget::progress_bar, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
+use user::contacts::ContactList;
 
 use super::{
     components::{button::route_button_style, tables::*},

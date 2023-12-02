@@ -11,7 +11,9 @@ use iced::{
 mod app;
 mod components;
 mod loader;
+mod logging;
 mod screens;
+mod user;
 mod view;
 
 use std::sync::{Arc, Mutex};
@@ -21,9 +23,9 @@ use clients::arbiter::*;
 use components::*;
 use loader::Loader;
 use logging::tracer;
-use profiles::*;
 use screens::*;
 use styles::*;
+use user::*;
 
 pub struct MVP {
     state: State,

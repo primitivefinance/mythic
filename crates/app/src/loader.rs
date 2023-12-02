@@ -1,13 +1,14 @@
-use api::contacts;
+use alloy_primitives;
 use arbiter_core::environment::builder::EnvironmentBuilder;
 use clients::{client::Local, ledger::LedgerClient};
+use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
 use iced::{
     font,
     widget::{column, container, progress_bar},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
-use profiles::coins::{CoinList, StaticCoin};
+use user::contacts;
 
 use super::{profile::Profile, *};
 
@@ -101,10 +102,10 @@ pub async fn load_app() -> LoadResult {
     if let Some(address) = local.coin_contract {
         let mut coinlist = CoinList::load(None)?;
         if coinlist.tokens.is_empty() {
-            let coin: StaticCoin = StaticCoin {
+            let coin: Coin = Coin {
                 name: "Coin".to_string(),
                 symbol: "COIN".to_string(),
-                address: format!("0x{:x}", address),
+                address: alloy_primitives::Address::from(address.as_fixed_bytes()),
                 decimals: 18,
                 chain_id,
                 logo_uri: "".to_string(),
@@ -165,6 +166,11 @@ pub async fn load_app() -> LoadResult {
             ..Default::default()
         },
         contacts::Category::Trusted,
+    );
+
+    tracing::info!(
+        "Anvil running at endpoint {}",
+        local.clone().anvil.unwrap().endpoint()
     );
 
     let chains = app::Chains {

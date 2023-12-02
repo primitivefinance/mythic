@@ -1,9 +1,8 @@
 //! Save and load profiles from disk.
 use std::{fs::File, path::PathBuf};
 
-use api::contacts::Contacts;
-
 use super::{
+    contacts::Contacts,
     system::{get_data_dir, PROFILE_FILE_EXTENSION, PROFILE_FILE_NAME},
     Saveable,
 };

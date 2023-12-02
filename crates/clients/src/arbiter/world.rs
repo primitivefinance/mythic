@@ -73,6 +73,8 @@ pub struct World {
     pub config: SimulationConfig<Multiple>,
     // Rough rng for world.
     pub seed: u64,
+    // For checking if the sim has "ended".
+    pub current_step: usize,
 }
 
 const WORLD_TRACE_IDENTIFIER: &str = "world";
@@ -85,6 +87,7 @@ impl World {
             state: State::new(),
             config: SimulationConfig::default(),
             seed,
+            current_step: 0,
         }
     }
 
@@ -222,6 +225,8 @@ impl World {
                 tracing::debug_span!("agent", layer = %layer, id = %id, action = %action);
             agent.1.step().instrument(agent_span).await?;
         }
+
+        self.current_step += 1;
 
         Ok(())
     }
@@ -393,6 +398,7 @@ impl WorldBuilder {
             state: State::new(),
             config,
             seed,
+            current_step: 0,
         })
     }
 

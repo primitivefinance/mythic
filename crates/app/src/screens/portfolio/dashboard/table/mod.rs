@@ -1,20 +1,17 @@
 //! Portfolio table which renders all positions and a form for editing deltas to
 //! adjust the portfolio's positions.
 
-use profiles::portfolios::{Portfolio, Position, Targetable};
+use datatypes::portfolio::{position::Position, Portfolio};
 
-use self::summary::DeltaSummary;
 use super::*;
 
 pub mod form;
-pub mod summary;
 use form::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct PortfolioTable {
     pub form: DeltaForm,
-    pub positions: Vec<Position>,
-    pub summary: Option<DeltaSummary>,
+    pub original: Portfolio,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -22,16 +19,11 @@ pub enum Message {
     #[default]
     Empty,
     /// Updates the underlying portfolio that is being rendered.
-    Portfolio(Portfolio),
+    Load(Portfolio),
     /// Updates the form within the table.
     DeltaForm(form::DeltaFormMessage),
-    /// Refreshes the summary table with the edited deltas.
-    Ready,
     /// Clears the summary table and form.
     Clear,
-    /// Refreshes the summary table sibling component.
-    /// note: This is not rendered by this component's `view` method.
-    Summary(summary::Message),
 }
 
 impl MessageWrapper for Message {
@@ -44,7 +36,7 @@ impl MessageWrapperView for Message {
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(msg: Message) -> Self {
-        super::Message::PortfolioTable(msg)
+        super::Message::UpdateTable(msg)
     }
 }
 
@@ -52,8 +44,20 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 /// todo: support price and market value deltas...
 #[derive(Debug, Clone, Default)]
 pub struct PositionDelta {
+    pub id: usize,
     pub balance: Option<String>,
-    pub targets: Vec<Option<Targetable>>,
+    pub weight: Option<String>,
+    pub price: Option<String>,
+}
+
+impl PositionDelta {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.balance.is_none() && self.weight.is_none() && self.price.is_none()
+    }
 }
 
 impl PortfolioTable {
@@ -62,15 +66,8 @@ impl PortfolioTable {
     pub fn new() -> Self {
         Self {
             form: DeltaForm::default(),
-            positions: Vec::new(),
-            summary: None,
+            original: Portfolio::default(),
         }
-    }
-
-    /// If adjustments have been prepared and the summary table is being
-    /// rendered.
-    pub fn prepared(&self) -> bool {
-        self.summary.is_some()
     }
 
     /// Closure for handling the form events.
@@ -80,37 +77,24 @@ impl PortfolioTable {
     /// summary table.
     /// todo: support more targets, price, and market value fields.
     pub fn get_form_deltas(&self) -> Vec<PositionDelta> {
-        self.positions
+        self.original
+            .positions
+            .0
             .iter()
             .enumerate()
-            .map(|(pos_index, position)| {
-                let balance = self.form.balance.get(&pos_index).cloned();
-                let targets = position
-                    .clone()
-                    .targets
-                    .unwrap_or_default()
-                    .into_iter()
-                    .filter(|target| matches!(target, Targetable::Weight(_)))
-                    .map(|_target| {
-                        self.form
-                            .weight
-                            .get(&pos_index)
-                            .cloned()
-                            .map(|x| Targetable::from_string(Targetable::Weight(0.0), x))
-                    })
-                    .collect::<Vec<Option<Targetable>>>();
-
-                PositionDelta { balance, targets }
+            .map(|(pos_index, _)| {
+                // todo: support more fields to be changed!
+                // let balance = self.form.balance.get(&pos_index).cloned();
+                // let price = self.form.price.get(&pos_index).cloned();
+                let weight = self.form.weight.get(&pos_index).cloned();
+                PositionDelta {
+                    id: pos_index,
+                    balance: None,
+                    weight,
+                    price: None,
+                }
             })
             .collect()
-    }
-
-    /// todo: investigate if this empty element will cause any problems...
-    pub fn summary_table(&self) -> Element<'_, Self::AppMessage> {
-        match self.summary.as_ref() {
-            Some(summary) => summary.view().map(|x| x.into()),
-            None => iced::widget::Space::new(0.0, 0.0).into(),
-        }
     }
 
     /// Renders the dual cell column for a target value and its delta input
@@ -118,23 +102,13 @@ impl PortfolioTable {
     /// - pos_index is the index of the position in the portfolio's positions.
     /// - target is the target value to be displayed in the first cell.
     /// Why this I make this closure stuff so complicated?
-    pub fn target_cell(
-        &self,
-        pos_index: usize,
-        target: Targetable,
-    ) -> Vec<CellBuilder<Self::AppMessage>> {
+    pub fn target_cell(&self, pos_index: usize, target: f64) -> Vec<CellBuilder<Self::AppMessage>> {
         // todo: support more targets
-        let (value, on_change_msg) = match target {
-            Targetable::Weight(_x) => (
-                self.form.weight.get(&pos_index).cloned(),
-                Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
-                    as Self::FormEvent,
-            ),
-            _ => (
-                None,
-                Box::new(|_x| form::DeltaFormMessage::Empty.into()) as Self::FormEvent,
-            ),
-        };
+        let (value, on_change_msg) = (
+            self.form.weight.get(&pos_index).cloned(),
+            Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
+                as Self::FormEvent,
+        );
 
         vec![
             CellBuilder::new().value(Some(target.clone().to_string())),
@@ -151,14 +125,7 @@ impl PortfolioTable {
         position: &'a Position,
         pos_index: usize,
     ) -> Vec<CellBuilder<Self::AppMessage>> {
-        position
-            .clone()
-            .targets
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|target| matches!(target, Targetable::Weight(_)))
-            .flat_map(|target| self.target_cell(pos_index, target).into_iter())
-            .collect::<Vec<CellBuilder<Self::AppMessage>>>()
+        self.target_cell(pos_index, position.weight.unwrap_or_default().into())
     }
 
     /// Gets the builders for each cell in the table.
@@ -167,22 +134,83 @@ impl PortfolioTable {
         position: &'a Position,
         pos_index: usize,
     ) -> Vec<CellBuilder<Self::AppMessage>> {
+        let price_current = position.cost.unwrap_or_default();
+        let balance_current = position.balance.unwrap_or_default();
+        let market_value_current = price_current * balance_current;
+
+        let price_adjusted = self
+            .form
+            .price
+            .get(&pos_index)
+            .map(|x| x.parse::<f64>().unwrap_or_default())
+            .unwrap_or_default();
+
+        let balance_adjusted = self
+            .form
+            .balance
+            .get(&pos_index)
+            .map(|x| x.parse::<f64>().unwrap_or_default())
+            .unwrap_or_default();
+
+        let market_value_adjusted = self
+            .form
+            .market_value
+            .get(&pos_index)
+            .map(|x| x.parse::<f64>().unwrap_or_default())
+            .unwrap_or_default();
+
+        let balance_delta = balance_adjusted - balance_current;
+        let market_value_delta = market_value_adjusted - market_value_current;
+
+        let price_label = if price_adjusted == 0.0 {
+            "-".to_string()
+        } else {
+            format!(
+                "({:.2}) {:.2}",
+                price_adjusted - price_current,
+                price_adjusted
+            )
+        };
+
+        let balance_label = if balance_adjusted == 0.0 {
+            "-".to_string()
+        } else {
+            format!("({:.2}) {:.2}", balance_delta, balance_adjusted)
+        };
+
+        let market_value_label = if market_value_adjusted == 0.0 {
+            "-".to_string()
+        } else {
+            format!("({:.2}) {:.2}", market_value_delta, market_value_adjusted)
+        };
+
+        let float_epsilon = 0.0001;
+
+        let balance_color = match balance_delta {
+            x if x > float_epsilon => GREEN_400,
+            x if x < -float_epsilon => RED_400,
+            _ => GRAY_400,
+        };
+
+        let market_value_color = match market_value_delta {
+            x if x > float_epsilon => GREEN_400,
+            x if x < -float_epsilon => RED_400,
+            _ => GRAY_400,
+        };
+
         vec![
             CellBuilder::new().value(Some(position.asset.symbol.clone())),
             CellBuilder::new().value(position.cost.map(|x| x.to_string())),
             CellBuilder::new()
-                .value(self.form.price.get(&pos_index).cloned())
-                .on_change(move |x| form::DeltaFormMessage::Price(pos_index, x).into())
+                .child(label_item(price_label))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
             CellBuilder::new().value(position.balance.map(|x| x.to_string())),
             CellBuilder::new()
-                .value(self.form.balance.get(&pos_index).cloned())
-                .on_change(move |x| form::DeltaFormMessage::Balance(pos_index, x).into())
+                .child(label_item(balance_label).style(balance_color))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
             CellBuilder::new().value(position.cost.map(|x| x.to_string())),
             CellBuilder::new()
-                .value(self.form.market_value.get(&pos_index).cloned())
-                .on_change(move |x| form::DeltaFormMessage::MarketValue(pos_index, x).into())
+                .child(label_item(market_value_label).style(market_value_color))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
         ]
     }
@@ -207,7 +235,9 @@ impl PortfolioTable {
             .padding_cell_internal(Sizes::Xs)
             .column(
                 ColumnBuilder::new().headers(Self::headers()).rows(
-                    self.positions
+                    self.original
+                        .positions
+                        .0
                         .iter()
                         .enumerate()
                         .map(|(pos_index, position)| {
@@ -233,25 +263,15 @@ impl State for PortfolioTable {
         let mut cmd = Command::none();
 
         match msg {
-            Self::AppMessage::Portfolio(portfolio) => {
-                self.positions = portfolio.positions;
+            Self::AppMessage::Load(portfolio) => {
+                self.original = portfolio.clone();
             }
             Self::AppMessage::DeltaForm(msg) => {
                 cmd = self.form.update(msg).map(Self::AppMessage::DeltaForm);
             }
-            Self::AppMessage::Ready => {
-                self.summary = Some(DeltaSummary::new().deltas(self.get_form_deltas()))
-            }
             Self::AppMessage::Clear => {
                 self.form.clear();
-                self.summary = None;
             }
-            Self::AppMessage::Summary(msg) => match self.summary.as_mut() {
-                Some(summary) => {
-                    cmd = summary.update(msg).map(Self::AppMessage::Summary);
-                }
-                None => {}
-            },
             Self::AppMessage::Empty => {}
             _ => {}
         }

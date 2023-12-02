@@ -1,4 +1,5 @@
 pub mod coins;
+pub mod contacts;
 pub mod portfolios;
 pub mod profile;
 pub mod system;

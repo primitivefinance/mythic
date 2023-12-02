@@ -1,9 +1,6 @@
 //! Implements the form for creating a portfolio.
 
-use profiles::{
-    coins::StaticCoin,
-    portfolios::{Portfolio, Position},
-};
+use datatypes::portfolio::{coin::Coin, position::Position, Portfolio};
 
 use super::*;
 use crate::components::containers::CustomContainer;
@@ -116,6 +113,8 @@ impl Form {
                             .parse::<f64>()
                             .unwrap(),
                     ),
+                    None,
+                    None,
                 )
             })
             .collect();
@@ -273,7 +272,7 @@ impl State for Form {
 
 #[derive(Debug, Clone, Default)]
 pub struct Asset {
-    pub coin: StaticCoin,
+    pub coin: Coin,
     pub ticker: String,
     pub price: Option<String>,
     pub balance: Option<String>,
@@ -281,7 +280,7 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub fn new(coin: StaticCoin, price: Option<String>) -> Self {
+    pub fn new(coin: Coin, price: Option<String>) -> Self {
         let ticker = coin.symbol.clone();
         Self {
             coin,

@@ -1,11 +1,11 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use api::contacts::{self, ContactValue};
 use arbiter_core::environment::Environment;
 use clients::{arbiter::world::WorldManager, client::Local, ledger::LedgerClient, scroll::Scroll};
 use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
+use user::contacts::{self, ContactValue};
 
 use super::{
     screens::{
@@ -15,7 +15,10 @@ use super::{
     view::sidebar::Page,
     *,
 };
-use crate::{screens::portfolio::dashboard::DashboardWrapper, view::sidebar::Sidebar};
+use crate::{
+    screens::{portfolio::dashboard::DashboardWrapper, State},
+    view::sidebar::Sidebar,
+};
 
 pub fn app_span() -> Span {
     tracing::info_span!("App")
@@ -107,14 +110,12 @@ pub enum StreamsMessage {
 #[derive(Default)]
 pub struct Cache {
     pub app_events: VecDeque<AppEventLog>,
-    pub current_page: Page,
 }
 
 impl Cache {
     pub fn new() -> Self {
         Self {
             app_events: VecDeque::new(),
-            current_page: Page::Empty,
         }
     }
 }
@@ -332,7 +333,6 @@ impl App {
     }
 
     fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
-        // todo: implement
         Command::none()
     }
 
@@ -358,18 +358,22 @@ impl App {
 
         self.windows.screen = match navigate_to {
             view::sidebar::Route::Page(page) => {
-                // Update the current page.
-                self.cache.current_page = *page;
+                // Updates the current page in the sidebar.
+                cmds.push(
+                    self.sidebar
+                        .update(view::sidebar::Route::Page(*page))
+                        .map(|x| x.into()),
+                );
 
                 match page {
+                    view::sidebar::Page::Empty => EmptyScreen::new().into(),
+                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                     view::sidebar::Page::Execute => Screen::new(Box::new(
                         execution::Execution::new(self.chains.clone(), self.storage.clone()),
                     )),
                     view::sidebar::Page::AddressBook => Screen::new(Box::new(
                         AddressBookScreen::new(self.storage.profile.contacts.clone()),
                     )),
-                    view::sidebar::Page::Empty => EmptyScreen::new().into(),
-                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                     view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new(
                         self.streams.app_event_receiver.clone(),
                     ))),
@@ -380,9 +384,7 @@ impl App {
                 }
             }
             view::sidebar::Route::Open(location) => match location {
-                view::sidebar::Location::Portfolio(name) => {
-                    DashboardWrapper::new(Some(name.clone())).into()
-                }
+                view::sidebar::Location::Portfolio(name) => DashboardWrapper::new(None).into(),
                 view::sidebar::Location::Empty => EmptyScreen::new().into(),
             },
             _ => EmptyScreen::new().into(),

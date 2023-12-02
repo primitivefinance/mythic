@@ -81,10 +81,9 @@ fn main() -> Result<()> {
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => {
-            tracing_subscriber::fmt()
-                .with_max_level(log_level)
-                .with_env_filter(env_filter)
-                .init();
+            tracing_subscriber::fmt().with_max_level(log_level).init();
+
+            println!("Starting simulations with verbosity: {}", log_level);
             println!("Reading from config path: {}", config_path);
             let start = Instant::now();
             let config = simulations::import(config_path)?;

@@ -1,6 +1,6 @@
 //! Screen for managing the address book.
 
-use api::contacts::{self, *};
+use user::contacts::{self, *};
 
 use super::{
     app::{AddressBookMessage, Message},

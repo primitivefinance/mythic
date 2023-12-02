@@ -2,6 +2,7 @@
 //! viewing it to executing adjustments.
 
 pub mod execute;
+pub mod prepare;
 pub mod review;
 pub mod simulate;
 
@@ -9,7 +10,8 @@ use clients::arbiter::portfolio_adjustment::MiniWorldBuilder;
 use ethers::utils::parse_ether;
 use simulation::agents::token_admin::TokenData;
 
-use super::*;
+use self::review::StrategyParameters;
+use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
 /// Weird? It works.
@@ -17,10 +19,12 @@ use super::*;
 pub enum DashboardState {
     #[default]
     Empty,
+    /// State of reviewing and finalizing the adjustments to make.
+    Prepare,
     /// State of reviewing the portfolio adjustment transaction.
-    Review(review::ReviewAdjustment),
+    Review,
     /// State of simulating the portfolio adjustment transaction.
-    Simulate(simulate::Simulate),
+    Simulate,
     /// State of executing the portfolio adjustment transaction.
     Execute,
 }
@@ -35,18 +39,25 @@ impl DashboardState {
 pub enum Message {
     #[default]
     Empty,
+    /// Loads the original portfolio.
+    Load(Portfolio),
+    /// Sets the adjusted portfolio.
+    SetAdjusted(Option<Portfolio>),
+    /// Resets the staging to the first step.
+    Reset,
     /// Steps the stage forward.
     Step,
     /// Routes to a target stage.
     Route(DashboardState),
-    /// Resets the staging to the first step.
-    Reset,
+    /// Message for Empty -> Prepare stage.
+    /// Needs the position index and adjustments, and the estimated price.
+    Start(Vec<PositionDelta>),
+    /// Prepares the adjustments for simulation.
+    Prepare(prepare::Message),
     /// Updates the review stage.
     Review(review::Message),
     /// Updates the simulate stage.
     Simulate(simulate::Message),
-    /// Loads the portfolio.
-    LoadPortfolio(Portfolio),
 }
 
 impl MessageWrapperView for Message {
@@ -59,7 +70,7 @@ impl MessageWrapper for Message {
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(msg: Message) -> Self {
-        super::Message::Stage(msg)
+        super::Message::UpdateStaging(msg)
     }
 }
 
@@ -77,9 +88,13 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 ///  in `load` to async spawn the simulations.
 #[derive(Debug, Clone, Default)]
 pub struct Stages {
-    pub portfolio: Option<Portfolio>,
+    /// Original portfolio loaded from file.
+    pub original: Option<Portfolio>,
+    pub adjusted: Option<Portfolio>,
     pub current: DashboardState,
-    pub simulations: Vec<MiniWorldBuilder>,
+    pub prepare: prepare::Prepare,
+    pub review: review::Review,
+    pub simulate: simulate::Simulate,
 }
 
 impl Stages {
@@ -87,127 +102,208 @@ impl Stages {
 
     pub fn new() -> Self {
         Self {
-            portfolio: None,
+            original: None,
+            adjusted: None,
             current: DashboardState::Empty,
-            simulations: vec![],
+            prepare: prepare::Prepare::default(),
+            review: review::Review::default(),
+            simulate: simulate::Simulate::default(),
         }
     }
 
-    pub fn construct(&mut self) {
-        if let Some(ref portfolio) = self.portfolio {
-            // Start editing the config builder, using the current state of the
-            // review form and the portfolio.
-            let mut builder = MiniWorldBuilder::default();
-
-            // Compute the amount of steps given the time step size of 15 and the time range
-            // provided by the user.
-            // todo: this is temp value, but do above
-            let steps: usize = 1000;
-            // Initial amount to deposit.
-            let deposit = parse_ether(0.01).unwrap();
-            // initial price.
-            let price = parse_ether(1.0).unwrap();
-            // Time between blocks, in seconds.
-            let timestep_size: u64 = 15;
-
-            // First add the coins. Make sure they are in the portfolio.
-            let coin_x: TokenData = portfolio
-                .positions
-                .iter()
-                .find(|x| x.asset.symbol == "X")
-                .expect("no X coin found")
-                .clone()
-                .into();
-            let coin_y: TokenData = portfolio
-                .positions
-                .iter()
-                .find(|x| x.asset.symbol == "Y")
-                .expect("no Y coin found")
-                .clone()
-                .into();
-            builder.config_builder.coins(coin_x, coin_y);
-
-            // Edit the lp agent.
-            builder.config_builder.deposit_x(deposit);
-            builder.config_builder.initial_price(price);
-
-            // Edit the seconds between blocks.
-            builder.config_builder.timestep_size(timestep_size);
-
-            // Edit the price and amount of steps.
-            // todo: matching the dca/static.toml config right now, change later
-            builder.config_builder.price_changer.seed(1);
-            builder.config_builder.price_changer.num_steps(steps);
-            builder.config_builder.price_changer.num_paths(10);
-            builder.config_builder.price_changer.initial_price(price);
-            builder.config_builder.price_changer.t_0(0.0);
-            builder.config_builder.price_changer.t_n(0.1);
-            builder.config_builder.price_changer.drift(0.1);
-            builder.config_builder.price_changer.volatility(0.35);
-
-            // Edit the portfolio manager.
-            let fee_wad = parse_ether(0.003).unwrap();
-            let start_weight_wad = parse_ether(0.01).unwrap();
-            let end_weight_wad = parse_ether(0.99).unwrap();
-            builder.config_builder.portfolio_manager.fee(fee_wad);
-            builder
-                .config_builder
-                .portfolio_manager
-                .start_weight_x(start_weight_wad);
-            builder
-                .config_builder
-                .portfolio_manager
-                .end_weight_x(end_weight_wad);
-            builder
-                .config_builder
-                .portfolio_manager
-                .end_timestamp(14985);
-
-            // Edit the swapper.
-            let balance = parse_ether(1.0).unwrap();
-            builder.config_builder.swapper.num_swaps(12);
-            builder.config_builder.swapper.start_timestamp(15);
-            builder.config_builder.swapper.end_timestamp(15000);
-            builder.config_builder.swapper.initial_balance(balance);
-            builder.config_builder.swapper.swap_direction(false);
-
-            // Finally, after making all the modifications to the config builder,
-            // we can add it to the builders.
-            self.simulations.push(builder);
+    pub fn guide(&self) -> Container<'static, Message> {
+        match self.current {
+            DashboardState::Empty => Container::new(Column::new()),
+            DashboardState::Prepare => self.prepare.guide(Some(Message::Step)),
+            DashboardState::Review => self.review.guide(),
+            DashboardState::Simulate => self.simulate.guide(Some(Message::Step)),
+            DashboardState::Execute => Container::new(Column::new()),
         }
     }
 
     pub fn step(&mut self) -> Command<Self::AppMessage> {
-        match &self.current {
+        match self.current.clone() {
             DashboardState::Empty => {
-                self.current = DashboardState::Review(review::ReviewAdjustment::default());
+                // todo: figure out what happens here?
+                return Command::perform(async {}, |_| Message::Route(DashboardState::Prepare));
             }
-            DashboardState::Review(_state) => {
-                // Construct the MiniWorldBuilder from the review form data and portfolio.
-                self.construct();
-                // Prepare the simulate screen with the MiniWorldBuilder.
-                let screen = simulate::Simulate::new(self.simulations.clone());
-                self.current = DashboardState::Simulate(screen);
-
-                // Trigger a callback message to let the app know that we are
-                // ready to simulate. This should be caught by the simulate
-                // screen and the result should be stored in the screen.
-
-                return Command::perform(
-                    portfolio_adjustment::spawn(self.simulations.clone()),
-                    simulate::Message::Ready,
-                )
-                .map(|x| x.into());
+            DashboardState::Prepare => {
+                // Route to the review stage.
+                return Command::perform(async {}, |_| Message::Route(DashboardState::Review));
             }
-            DashboardState::Simulate(_state) => {
-                self.current = DashboardState::Execute;
+            DashboardState::Review => {
+                // Route to the simulate stage.
+                return Command::perform(async {}, |_| Message::Route(DashboardState::Simulate));
+            }
+            DashboardState::Simulate => {
+                // Route to the execute stage.
+                return Command::perform(async {}, |_| Message::Route(DashboardState::Execute));
             }
             DashboardState::Execute => {
-                self.current = DashboardState::Empty;
+                // Route back to the empty page.
+                return Command::perform(async {}, |_| Message::Route(DashboardState::Empty));
             }
         }
+    }
 
-        Command::none()
+    pub fn arm_simulation(&mut self) -> Command<Self::AppMessage> {
+        if self.original.is_none() {
+            tracing::error!("Original portfolio is None. Bug!");
+            return Command::none();
+        }
+
+        let portfolio = self.original.clone().unwrap();
+        let mut builder = MiniWorldBuilder::default();
+
+        // Compute the amount of steps given the time step size of 15 and the time range
+        // provided by the user.
+        // todo: this is temp value, but do above
+        let steps: usize = 1000;
+        // Initial amount to deposit.
+        let deposit = parse_ether(0.01).unwrap();
+        // initial price.
+        let price = parse_ether(1.0).unwrap();
+        // Time between blocks, in seconds.
+        let timestep_size: u64 = 15;
+
+        // First add the coins. Make sure they are in the portfolio.
+        let coin_x: TokenData = portfolio
+            .positions
+            .0
+            .iter()
+            .find(|x| x.asset.symbol == "X")
+            .expect("no X coin found")
+            .clone()
+            .into();
+        let coin_y: TokenData = portfolio
+            .positions
+            .0
+            .iter()
+            .find(|x| x.asset.symbol == "Y")
+            .expect("no Y coin found")
+            .clone()
+            .into();
+        builder.config_builder.coins(coin_x, coin_y);
+
+        // Edit the lp agent.
+        builder.config_builder.deposit_x(deposit);
+        builder.config_builder.initial_price(price);
+
+        // Edit the seconds between blocks.
+        builder.config_builder.timestep_size(timestep_size);
+
+        // Edit the price and amount of steps.
+        // todo: matching the dca/static.toml config right now, change later
+        builder.config_builder.price_changer.seed(1);
+        builder.config_builder.price_changer.num_steps(steps);
+        builder.config_builder.price_changer.num_paths(10);
+        builder.config_builder.price_changer.initial_price(price);
+        builder.config_builder.price_changer.t_0(0.0);
+        builder.config_builder.price_changer.t_n(0.1);
+        builder.config_builder.price_changer.drift(0.1);
+        builder.config_builder.price_changer.volatility(0.35);
+
+        // Edit the portfolio manager.
+        let fee_wad = parse_ether(0.003).unwrap();
+        let start_weight_wad = parse_ether(0.01).unwrap();
+        let end_weight_wad = parse_ether(0.99).unwrap();
+        builder.config_builder.portfolio_manager.fee(fee_wad);
+        builder
+            .config_builder
+            .portfolio_manager
+            .start_weight_x(start_weight_wad);
+        builder
+            .config_builder
+            .portfolio_manager
+            .end_weight_x(end_weight_wad);
+        builder
+            .config_builder
+            .portfolio_manager
+            .end_timestamp(14985);
+
+        // Edit the swapper.
+        let balance = parse_ether(1.0).unwrap();
+        builder.config_builder.swapper.num_swaps(12);
+        builder.config_builder.swapper.start_timestamp(15);
+        builder.config_builder.swapper.end_timestamp(15000);
+        builder.config_builder.swapper.initial_balance(balance);
+        builder.config_builder.swapper.swap_direction(false);
+
+        if self.review.sealed.is_none() {
+            tracing::error!("Review form was not submitted!");
+            return Command::none();
+        }
+
+        // Edit the portfolio manager by applying the review form data provided by the
+        // user.
+        let parameters: StrategyParameters = self.review.sealed.clone().unwrap();
+        builder
+            .config_builder
+            .portfolio_manager
+            .fee(parse_ether(parameters.fee_percentage).unwrap());
+
+        // todo: implement the start time in the portfolio manager too?
+        builder
+            .config_builder
+            .swapper
+            .start_timestamp(parameters.start_time_seconds.round() as u64);
+
+        builder.config_builder.portfolio_manager.end_timestamp(
+            (parameters.start_time_seconds + parameters.duration_seconds).round() as u64,
+        );
+
+        // Finally, apply the weight changes to the portfolio manager.
+        if self.adjusted.is_none() {
+            tracing::error!("Weight changes were not computed!");
+            return Command::none();
+        }
+
+        let adjusted = self.adjusted.clone().unwrap();
+
+        let start_weight_x = portfolio
+            .positions
+            .0
+            .iter()
+            .filter(|x| x.asset.symbol == "X")
+            .filter(|x| x.weight.is_some())
+            .map(|x| x.weight.unwrap())
+            .next()
+            .unwrap();
+        builder
+            .config_builder
+            .portfolio_manager
+            .start_weight_x(parse_ether(start_weight_x).unwrap());
+
+        let end_weight_x = adjusted
+            .positions
+            .0
+            .iter()
+            .filter(|x| x.asset.symbol == "X")
+            .filter(|x| x.weight.is_some())
+            .map(|x| x.weight.unwrap())
+            .last()
+            .unwrap();
+        builder
+            .config_builder
+            .portfolio_manager
+            .end_weight_x(parse_ether(end_weight_x).unwrap());
+
+        let original_x_balance = portfolio
+            .positions
+            .0
+            .iter()
+            .filter(|x| x.asset.symbol == "X")
+            .filter(|x| x.balance.is_some())
+            .map(|x| x.balance.unwrap())
+            .next()
+            .unwrap();
+        builder
+            .config_builder
+            .deposit_x(parse_ether(original_x_balance).unwrap());
+
+        return Command::perform(async {}, |_| {
+            Message::Simulate(simulate::Message::Armed(builder))
+        });
     }
 }
 
@@ -216,28 +312,55 @@ impl State for Stages {
     type ViewMessage = Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
-        match &self.current {
-            DashboardState::Empty => {}
-            DashboardState::Review(_state) => {}
-            DashboardState::Simulate(_state) => {}
-            DashboardState::Execute => {}
-            _ => {}
-        }
-
-        Command::none()
+        Command::perform(async {}, |_| Message::Start(vec![]))
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Message::LoadPortfolio(portfolio) => {
-                self.portfolio = Some(portfolio);
+            Message::Load(portfolio) => {
+                self.original = Some(portfolio.clone());
+                self.prepare = prepare::Prepare::new(portfolio);
             }
-            Message::Step => return self.step(),
-            Message::Route(state) => {
-                self.current = state;
+            Message::SetAdjusted(portfolio) => {
+                tracing::debug!(
+                    "Setting adjusted portfolio in staging area: {:?}",
+                    portfolio
+                );
+
+                // Sets the adjusted portfolio.
+                self.adjusted = portfolio.clone();
+
+                let mut commands = vec![];
+
+                // If we are setting Some portfolio and we are on the empty page, route to the
+                // prepare page.
+                if portfolio.is_some() && matches!(self.current, DashboardState::Empty) {
+                    commands.push(Command::perform(async {}, |_| {
+                        Message::Route(DashboardState::Prepare)
+                    }));
+                }
+
+                // Propagates changes to the prepare stage since it renders the deltas.
+                commands.push(
+                    self.prepare
+                        .update(prepare::Message::SetAdjusted(portfolio))
+                        .map(|x| x.into()),
+                );
+
+                return Command::batch(commands);
             }
             Message::Reset => {
                 self.current = DashboardState::Empty;
+            }
+            Message::Step => return self.step(),
+            Message::Route(state) => {
+                self.current = match state {
+                    DashboardState::Empty => DashboardState::Empty,
+                    DashboardState::Prepare => DashboardState::Prepare,
+                    DashboardState::Review => DashboardState::Review,
+                    DashboardState::Simulate => DashboardState::Simulate,
+                    DashboardState::Execute => DashboardState::Execute,
+                };
             }
             // Below is where the complexity is...
             // The `current` state stores the specific screen that the user is on.
@@ -254,7 +377,7 @@ impl State for Stages {
                 // If its not a submit message, we just do the regular update.
                 // todo: write tests!
                 let should_step = match &self.current {
-                    DashboardState::Review(_) => {
+                    DashboardState::Review => {
                         matches!(message, review::Message::Form(review::FormMessage::Submit))
                     }
                     _ => false,
@@ -263,9 +386,9 @@ impl State for Stages {
                 let mut commands = vec![];
 
                 // todo: figure out proper order of operations here...
-                // batch executes simultaneously, so what's the effect here?
-                if let DashboardState::Review(state) = &mut self.current {
-                    commands.push(state.update(message.clone()).map(|x| x.into()));
+                // batch executes simultaneously, so whats the effect here?
+                if let DashboardState::Review = &mut self.current {
+                    commands.push(self.review.update(message.clone()).map(|x| x.into()));
                 }
 
                 if should_step {
@@ -275,21 +398,21 @@ impl State for Stages {
                 return Command::batch(commands);
             }
             Message::Simulate(message) => {
-                let should_step = match &self.current {
-                    DashboardState::Simulate(_) => {
-                        matches!(message, simulate::Message::Submit)
+                let should_arm = match &self.current {
+                    DashboardState::Simulate => {
+                        matches!(message, simulate::Message::Arm)
                     }
                     _ => false,
                 };
 
                 let mut commands = vec![];
 
-                if let DashboardState::Simulate(state) = &mut self.current {
-                    commands.push(state.update(message.clone()).map(|x| x.into()));
+                if should_arm {
+                    commands.push(self.arm_simulation());
                 }
 
-                if should_step {
-                    commands.push(self.step());
+                if let DashboardState::Simulate = &mut self.current {
+                    commands.push(self.simulate.update(message.clone()).map(|x| x.into()));
                 }
 
                 return Command::batch(commands);
@@ -301,13 +424,48 @@ impl State for Stages {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
+        let routes = Row::new()
+            .spacing(Sizes::Md)
+            .push(
+                action_button("Adjustments".to_string())
+                    .on_press(Message::Route(DashboardState::Prepare)),
+            )
+            .push(
+                action_button("Review".to_string())
+                    .on_press(Message::Route(DashboardState::Review)),
+            )
+            .push(
+                action_button("Simulate".to_string())
+                    .on_press(Message::Route(DashboardState::Simulate)),
+            )
+            .push(
+                action_button("Execute".to_string())
+                    .on_press(Message::Route(DashboardState::Execute)),
+            );
+
         // Storing different stages in this enum allows us to easily switch between them
         // using view() and the MessageWrapper trait.
-        match &self.current {
+        let content = match &self.current {
             DashboardState::Empty => Column::new().into(),
-            DashboardState::Review(state) => state.view().map(|x| x.into()),
-            DashboardState::Simulate(state) => state.view().map(|x| x.into()),
+            DashboardState::Prepare => self.prepare.view().map(|x| x.into()),
+            DashboardState::Review => self.review.view().map(|x| x.into()),
+            DashboardState::Simulate => self.simulate.view().map(|x| x.into()),
             DashboardState::Execute => Column::new().into(),
-        }
+        };
+
+        Container::new(
+            Row::new()
+                .spacing(Sizes::Lg)
+                .push(
+                    Column::new()
+                        .push(routes)
+                        .push(content)
+                        .width(Length::FillPortion(3)),
+                )
+                .push(self.guide().width(Length::FillPortion(1))),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
     }
 }
