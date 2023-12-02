@@ -22,7 +22,7 @@ use tokio::runtime::Builder;
 pub struct Simulation {
     pub agents: Agents,
     pub steps: usize,
-    environment: Environment,
+    pub environment: Environment,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]

@@ -20,11 +20,13 @@ analysis = { path = "./analysis", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
-arbiter-core = { version = "0.9.0" }
+arbiter-core = { path = "../../rust/arbiter/arbiter-core" }
 ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
 # ethereum types
+revm = { version = "=3.5.0", features = ["ethersdb", "std", "serde"] }
+revm-primitives = { version = "1.3.0" }
 alloy-primitives = { version = "0.5.0", features = ["serde"] }
 
 ## Config and parsing
@@ -67,6 +69,7 @@ chrono = { version = "0.4.31", features = ["serde"] }
 [dependencies]
 # main excalibur application
 app = { path = "./crates/app", version = "0.1.0" }
+sim = { path = "./crates/sim", version = "0.1.0" }
 
 criterion.workspace = true
 simulation.workspace = true

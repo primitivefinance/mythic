@@ -46,6 +46,7 @@ enum Commands {
         #[clap(index = 1, default_value = "")]
         app: String,
     },
+    V3,
 }
 
 fn main() -> Result<()> {
@@ -93,6 +94,7 @@ fn main() -> Result<()> {
         }
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app: _ }) => app::run()?,
+        Some(Commands::V3) => sim::run()?,
         None => Args::command().print_long_help()?,
     }
     Ok(())
