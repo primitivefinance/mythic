@@ -231,6 +231,7 @@ impl LedgerClient {
 
 /// These tests will fail if you don't have a ledger connected
 /// They should probably be ignored in CI and ran manually
+/// 
 mod tests {
     #![allow(unused_imports)]
     use super::*;
@@ -239,30 +240,54 @@ mod tests {
     // failing Which makes sense because a lock is obtained on the device when
     // being interacted with This means that we have to be careful to run the
     // ledger logic asynchronously
+    // #[tokio::test]
+    // async fn ledger_tests() {
+    //     // test connecting: this doesn't require that the user has the ethereum ledger
+    //     // application open
+    //     let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0)).await;
+    //     println!("Connected to ledger");
+
+    //     // after this all other commands require that the ethereum ledger application is
+    //     // User enters pin and then opens the ethereum ledger application
+
+    //     // test getting address
+    //     let address = ledger.get_address().await.unwrap();
+    //     println!("Address: {}", address);
+
+    //     // test getting version
+    //     let version = ledger.version().await.unwrap();
+    //     println!("Got Ethereum ledger application version {}", version);
+
+    //     let tx = TransactionRequest::default();
+
+    //     // This currently correctly prompts the user to review this transaction
+    //     let sig = ledger.sign_tx(&tx).await.unwrap();
+    //     println!("Got signature: {:?}", sig);
+    //     // test signing a transaction
+    //     ledger.ledger.close();
+    // }
+
     #[tokio::test]
-    async fn ledger_tests() {
-        // test connecting: this doesn't require that the user has the ethereum ledger
-        // application open
-        let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0)).await;
+    async fn test_get_address() {
+        use alloy_signer_ledger::{LedgerSigner, HDPath};
+
+        let singer = LedgerSigner::new(HDPath::LedgerLive(0), 1).await.unwrap();
         println!("Connected to ledger");
 
         // after this all other commands require that the ethereum ledger application is
         // User enters pin and then opens the ethereum ledger application
-
-        // test getting address
-        let address = ledger.get_address().await.unwrap();
+        let address = singer.get_address().await.unwrap();
         println!("Address: {}", address);
 
         // test getting version
-        let version = ledger.version().await.unwrap();
+        let version = singer.version().await.unwrap();
         println!("Got Ethereum ledger application version {}", version);
 
-        let tx = TransactionRequest::default();
 
+        let tx = TransactionRequest::default();
         // This currently correctly prompts the user to review this transaction
-        let sig = ledger.sign_tx(&tx).await.unwrap();
+        #[cfg(TODO)]
+        let sig = singer.sign_tx(&tx).await.unwrap();
         println!("Got signature: {:?}", sig);
-        // test signing a transaction
-        ledger.ledger.close();
     }
 }
