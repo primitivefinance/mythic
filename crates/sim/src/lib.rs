@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod agents;
+pub mod bindings;
 pub mod config;
 pub mod engine;
 
@@ -7,7 +8,6 @@ use std::any::Any;
 
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
-use ethers::types::H160;
 use serde::{Deserialize, Serialize};
 // todo: remove
 use simulation::agents::{block_admin::BlockAdminParameters, AgentParameters};
@@ -39,7 +39,11 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-pub fn from_ethers_address(address: H160) -> alloy_primitives::Address {
+pub fn to_ethers_address(address: alloy_primitives::Address) -> ethers::types::Address {
+    ethers::types::Address::from(address.into_array())
+}
+
+pub fn from_ethers_address(address: ethers::types::Address) -> alloy_primitives::Address {
     alloy_primitives::Address::from(address.as_fixed_bytes())
 }
 
