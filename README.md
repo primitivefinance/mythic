@@ -25,6 +25,9 @@ cargo install --path .
 ```
 
 ## Installation part 2: foundry dependencies, artifacts, and bindings
+
+There is one (let's keep it that way!) dependency: primitivefinance/solstat. This has its own dependencies forge-std and solmate, which we also use. Make sure to use forge to install this prior to building the contracts.
+
 ```bash
 make
 ```

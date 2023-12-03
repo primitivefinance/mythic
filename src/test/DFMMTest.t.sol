@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../v3/BisectionLib.sol";
-import "../v3/DFMM.sol";
+import "../DFMM.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 

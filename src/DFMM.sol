@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
-import "./BisectionLib.sol";
+import "./v3/BisectionLib.sol";
 
 /// @dev Taking the square root of a WAD value returns a value with units of 1E9.
 /// Multiplying the result by SQRT_WAD will normalize it back to WAD units.
