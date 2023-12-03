@@ -5,18 +5,18 @@ edition = "2021"
 
 [[bin]]
 name = "excalibur"
-path = "src/main.rs"
+path = "bin/main.rs"
 
 [workspace]
-members = ["simulation", "cfmm_math", "analysis", "crates/*"]
+members = ["simulation", "crates/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
 # Local
 simulation = { path = "./simulation", version = "0.1.0" }
-cfmm_math = { path = "./cfmm_math", version = "0.1.0" }
-analysis = { path = "./analysis", version = "0.1.0" }
+analysis = { path = "./crates/analysis", version = "0.1.0" }
+cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
@@ -71,6 +71,7 @@ chrono = { version = "0.4.31", features = ["serde"] }
 # main excalibur application
 app = { path = "./crates/app", version = "0.1.0" }
 sim = { path = "./crates/sim", version = "0.1.0" }
+
 
 criterion.workspace = true
 simulation.workspace = true

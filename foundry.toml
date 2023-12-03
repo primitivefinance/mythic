@@ -1,14 +1,10 @@
 [profile.default]
-libs = ["contracts/lib"]
-out = "contracts/out"
-remappings = [
-  "/solmate=contracts/lib/solmate/src",
-  "@prb/math/=contracts/lib/prb-math/src/",
-  "forge-std/=contracts/lib/forge-std/src/",
-]
+libs = ["lib"]
+out = "out/"
+remappings = []
 solc_version = "0.8.19"
-src = "./contracts/src"
-test = "./contracts/src/test"
+src = "src/"
+test = "src/test/"
 bytecode_hash = "none"
 cbor_metadata = false
 extra_output = ["storageLayout"]

@@ -1,24 +1,31 @@
+# rust
 /target
+Cargo.lock
+Cargo.lock~serde
+
+# env
 .env
+.vscode/
+
+# foundry
 cache/
+out/
+
+# python
 .DS_store
 __pycache__
 
+# data
 *.csv
-
 *.json
 !analysis/test.json
 !analysis/src/tests/output/0.json
 !analysis/src/tests/output/1.json
 !analysis/src/tests/output/errors.json
 
-Cargo.lock
-Cargo.lock~serde
-
+# notes
 journal/book/*
 
+# ui
 *.svg
-
-.vscode/
-
 !ui/src/mvp/abi/**/*.json
