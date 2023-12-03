@@ -12,28 +12,10 @@ contract DFMMTest is Test {
     address tokenX;
     address tokenY;
 
-    uint256 public constant SWAP_FEE = 0.01e18;
-
-    function findLiquidity(
-        uint256 reserveX,
-        uint256 reserveY,
-        Parameters memory params
-    ) public view returns (uint256 liquidity) {
-        uint256 lower = reserveX + 1;
-        uint256 upper = 1e35;
-        int256 invariant_start = 0;
-        liquidity = bisection(
-            abi.encode(reserveX, reserveY, invariant_start, params),
-            lower,
-            upper,
-            1,
-            256,
-            findRootLiquidity
-        );
-    }
+    uint256 public constant TEST_SWAP_FEE = 0.01e18;
 
     function setUp() public {
-        source = new LogNormal(SWAP_FEE);
+        source = new LogNormal(TEST_SWAP_FEE);
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
         MockERC20(tokenX).mint(address(this), 1e18);
@@ -42,20 +24,6 @@ contract DFMMTest is Test {
         dfmm = new DFMM(tokenX, tokenY);
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
-    }
-
-    function test_mulWadDownInt() public {
-        int256 a = 1e18;
-        int256 b = 1e18;
-        uint256 c = uint256(source.mulWadDownInt(a, b));
-        assertEq(c, 1e18);
-    }
-
-    function test_mulWadDownInt_revert_overflow() public {
-        int256 a = 1e18;
-        int256 b = type(int256).max;
-        vm.expectRevert();
-        source.mulWadDownInt(a, b);
     }
 
     /// @dev Initializes a basic pool in dfmm.
@@ -69,7 +37,10 @@ contract DFMMTest is Test {
         uint256 init_x = 0.5e18;
         uint256 init_l = LogNormal(source).lx(init_x, init_p, params);
         uint256 init_y = LogNormal(source).yl(init_l, init_p, params);
-        uint256 found_l = findLiquidity(init_x, init_y, params);
+        int256 swapConstantInit = 0;
+        uint256 found_l = LogNormal(source).findLiquidity(
+            init_x, init_y, swapConstantInit, params
+        );
 
         bytes memory init_data =
             LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
@@ -99,7 +70,10 @@ contract DFMMTest is Test {
         uint256 init_y = LogNormal(source).yl(init_l, init_p, params);
         console2.log("init_l", init_l);
         console2.log("init_y", init_y);
-        uint256 found_l = findLiquidity(init_x, init_y, params);
+        int256 swapConstantInit = 0;
+        uint256 found_l = LogNormal(source).findLiquidity(
+            init_x, init_y, swapConstantInit, params
+        );
         console2.log("found_l", found_l);
 
         // This computation is slightly off (invariant won't be zero).
@@ -140,7 +114,7 @@ contract DFMMTest is Test {
         uint256 feePercentageWad = source.swapFeePercentageWad();
 
         // Get all the current data: reserves, liquidity, invariant, params.
-        int256 invariant = dfmm.magicConstant(address(source));
+        int256 invariant = dfmm.getSwapConstant(address(source));
         console2.logInt(invariant);
 
         (uint256 reserveXWad, uint256 reserveYWad, uint256 liquidity) =
@@ -172,8 +146,9 @@ contract DFMMTest is Test {
         uint256 adjustedLiquidity = liquidity + expectedLiquidityGrowth;
         console2.log("Submitted new liquidity", adjustedLiquidity);
 
-        uint256 adjustedReserveY =
-            findY(adjustedReserveX, adjustedLiquidity, invariant, params);
+        uint256 adjustedReserveY = LogNormal(source).findY(
+            adjustedReserveX, adjustedLiquidity, invariant, params
+        );
         console2.log("Submitted new Y reserve", adjustedReserveY);
 
         // Increase the adjusted y reserve by a "rounding espilon". This reduces the amount out,
@@ -201,7 +176,7 @@ contract DFMMTest is Test {
         dfmm.swap(address(source), swapData);
     }
 
-    function test_dfmm_simulate_swap_x_in() public basic() {
+    function test_dfmm_simulate_swap_x_in() public basic {
         uint256 amountIn = 0.1 ether;
         bool swapXIn = true;
 
@@ -224,7 +199,7 @@ contract DFMMTest is Test {
         assertEq(newYBalance - yBalance, estimatedOut);
     }
 
-    function test_dfmm_simulate_swap_y_in() public basic() {
+    function test_dfmm_simulate_swap_y_in() public basic {
         uint256 amountIn = 0.1 ether;
         bool swapXIn = false;
 
@@ -246,22 +221,4 @@ contract DFMMTest is Test {
 
         assertEq(newXBalance - xBalance, estimatedOut);
     }
-}
-
-function findY(
-    uint256 reserveX,
-    uint256 liquidity,
-    int256 invariant,
-    Parameters memory params
-) view returns (uint256 reserveY) {
-    uint256 lower = 100;
-    uint256 upper = params.strikePriceWad - 1;
-    reserveY = bisection(
-        abi.encode(reserveX, liquidity, invariant, params),
-        lower,
-        upper,
-        1,
-        256,
-        findRootY
-    );
 }

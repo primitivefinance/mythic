@@ -6,57 +6,75 @@ import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "./BisectionLib.sol";
 
+/// @dev Taking the square root of a WAD value returns a value with units of 1E9.
+/// Multiplying the result by SQRT_WAD will normalize it back to WAD units.
+uint256 constant SQRT_WAD = 1e9;
+
+/// @dev Parameterization of the Log Normal curve.
 struct Parameters {
     uint256 strikePriceWad;
     uint256 sigmaPercentWad;
     uint256 tauYearsWad;
 }
 
-uint256 constant SQRT_WAD = 1e9;
-
+/// @dev This is a pure anonymous function defined at the file level, which allows
+/// it to be passed as an argument to another function. BisectionLib.sol takes this
+/// function as an argument to find the root of the trading function given the reserveXWad.
 function findRootX(
     bytes memory data,
     uint256 reserveXWad
 ) pure returns (int256) {
-    (uint256 y, uint256 liquidity, int256 invariant, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
-    // todo: maybe update with swapConstantGrowth with previous invariant.
+    (
+        uint256 y,
+        uint256 liquidity,
+        int256 swapConstant,
+        Parameters memory params
+    ) = abi.decode(data, (uint256, uint256, int256, Parameters));
     return tradingFunction({
         reserveXWad: reserveXWad,
         reserveYWad: y,
         totalLiquidity: liquidity,
         params: params
-    }) - invariant;
+    }) - swapConstant;
 }
 
+/// @dev This is a pure anonymous function defined at the file level, which allows
+/// it to be passed as an argument to another function. BisectionLib.sol takes this
+/// function as an argument to find the root of the trading function given the reserveYWad.
 function findRootY(
     bytes memory data,
     uint256 reserveYWad
 ) pure returns (int256) {
-    (uint256 x, uint256 liquidity, int256 invariant, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
-    // todo: maybe update with swapConstantGrowth with previous invariant.
+    (
+        uint256 x,
+        uint256 liquidity,
+        int256 swapConstant,
+        Parameters memory params
+    ) = abi.decode(data, (uint256, uint256, int256, Parameters));
     return tradingFunction({
         reserveXWad: x,
         reserveYWad: reserveYWad,
         totalLiquidity: liquidity,
         params: params
-    }) - invariant;
+    }) - swapConstant;
 }
 
+/// @dev This is a pure anonymous function defined at the file level, which allows
+/// it to be passed as an argument to another function. BisectionLib.sol takes this
+/// function as an argument to find the root of the trading function given the liquidity.
 function findRootLiquidity(
     bytes memory data,
     uint256 liquidity
 ) pure returns (int256) {
-    (uint256 x, uint256 y, int256 invariant, Parameters memory params) =
+    (uint256 x, uint256 y, int256 swapConstant, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    // todo: maybe update with swapConstantGrowth with previous invariant.
+    // todo: maybe update with swapConstantGrowth with previous swapConstant.
     return tradingFunction({
         reserveXWad: x,
         reserveYWad: y,
         totalLiquidity: liquidity,
         params: params
-    }) - invariant;
+    }) - swapConstant;
 }
 
 /// @param sigmaPercentWad Must be in WAD units such that 1E18 = 100%.
@@ -86,11 +104,12 @@ function tradingFunction(
     Parameters memory params
 ) pure returns (int256) {
     require(reserveXWad < totalLiquidity, "tradingFunction: invalid x");
-    int256 part_0 = Gaussian.ppf(
+    int256 AAAAA = Gaussian.ppf(
         int256(FixedPointMathLib.divWadDown(reserveXWad, totalLiquidity))
     );
 
-    int256 part_1 = Gaussian.ppf(
+    // note: arithmetic overflow/underflow can occur here if KL > Y.
+    int256 BBBBB = Gaussian.ppf(
         int256(
             FixedPointMathLib.divWadDown(
                 reserveYWad,
@@ -101,16 +120,17 @@ function tradingFunction(
         )
     );
 
-    int256 part_2 = int256(
+    int256 CCCCC = int256(
         computeSigmaSqrtTau({
             sigmaPercentWad: params.sigmaPercentWad,
             tauYearsWad: params.tauYearsWad
         })
     );
 
-    return part_0 + part_1 + part_2;
+    return AAAAA + BBBBB + CCCCC;
 }
 
+/// @dev Contract that holds the strategy parameterization and validation function.
 interface Source {
     function init(bytes calldata data)
         external
@@ -135,6 +155,7 @@ interface Source {
         );
 }
 
+/// @dev Contract that holds the reserve and liquidity state.
 interface Core {
     function getReservesAndLiquidity()
         external
@@ -153,34 +174,37 @@ interface Core {
 ///
 /// Swaps are validated by the trading function:
 /// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
-contract LogNormal {
+contract LogNormal is Source {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
+    uint256 public constant BISECTION_EPSILON = 1;
+    uint256 public constant MAX_BISECTION_ITERS = 256;
     uint256 public constant HALF_WAD = 0.5e18;
     int256 public constant TWO_WAD = int256(2e18);
-
     uint256 public constant WAD = 1e18;
     uint256 public constant ZERO = 0;
+
+    uint256 public swapFeePercentageWad;
+    Parameters public slot;
 
     constructor(uint256 swapFeePercentageWad_) {
         swapFeePercentageWad = swapFeePercentageWad_;
     }
 
-    uint256 public swapFeePercentageWad;
-
-    Parameters public slot;
-
-    function encodeInitData(
-        uint256 reserveXWad,
-        uint256 reseveYWad,
-        uint256 totalLiquidity,
-        Parameters memory params
-    ) public pure returns (bytes memory) {
-        return abi.encode(reserveXWad, reseveYWad, totalLiquidity, params);
+    modifier onlyCore() {
+        console2.log(
+            "Make sure the calling contract of this console.log is the Core contract"
+        );
+        _;
     }
 
-    function magicConstant(bytes memory data) public view returns (int256) {
+    /// @dev Computes the result of the tradingFunction().
+    function computeSwapConstant(bytes memory data)
+        public
+        view
+        returns (int256)
+    {
         (uint256 reserveXWad, uint256 reserveYWad, uint256 totalLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction({
@@ -191,9 +215,21 @@ contract LogNormal {
         });
     }
 
+    /// @dev Encodes the reserves, liquidity, and parameters for initialization.
+    function encodeInitData(
+        uint256 reserveXWad,
+        uint256 reseveYWad,
+        uint256 totalLiquidity,
+        Parameters memory params
+    ) public pure returns (bytes memory) {
+        return abi.encode(reserveXWad, reseveYWad, totalLiquidity, params);
+    }
+
     /// @dev Decodes and validates pool initialization parameters.
+    /// Sets the `slot` state variable.
     function init(bytes calldata data)
         public
+        onlyCore
         returns (
             bool valid,
             int256 swapConstantGrowth,
@@ -220,14 +256,14 @@ contract LogNormal {
     function simulateSwap(
         bool swapXIn,
         uint256 amountIn
-    ) public view returns (bool, uint256, bytes memory) {
+    ) public view onlyCore returns (bool, uint256, bytes memory) {
         (
             uint256 adjustedReserveXWad,
             uint256 adjustedReserveYWad,
             uint256 adjustedLiquidity
         ) = Core(msg.sender).getReservesAndLiquidity();
 
-        int256 swapConstant = magicConstant(
+        int256 originalSwapConstant = computeSwapConstant(
             abi.encode(
                 adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
             )
@@ -246,7 +282,10 @@ contract LogNormal {
 
             uint256 originalReserveYWad = adjustedReserveYWad;
             adjustedReserveYWad = findY(
-                adjustedReserveXWad, adjustedLiquidity, swapConstant, slot
+                adjustedReserveXWad,
+                adjustedLiquidity,
+                originalSwapConstant,
+                slot
             );
             adjustedReserveYWad += 1;
 
@@ -263,7 +302,10 @@ contract LogNormal {
 
             uint256 originalReserveXWad = adjustedReserveXWad;
             adjustedReserveXWad = findX(
-                adjustedReserveYWad, adjustedLiquidity, swapConstant, slot
+                adjustedReserveYWad,
+                adjustedLiquidity,
+                originalSwapConstant,
+                slot
             );
             adjustedReserveXWad += 1;
 
@@ -277,45 +319,79 @@ contract LogNormal {
         return (valid, amountOut, swapData);
     }
 
+    /// @dev Finds the root of the swapConstant given the independent variable reserveXWad.
     function findY(
         uint256 reserveXWad,
         uint256 liquidity,
-        int256 invariant,
+        int256 swapConstant,
         Parameters memory params
-    ) public view returns (uint256 reserveY) {
+    ) public pure returns (uint256 reserveY) {
         uint256 lower = 100;
         uint256 upper = params.strikePriceWad - 1;
         reserveY = bisection(
-            abi.encode(reserveXWad, liquidity, invariant, params),
+            abi.encode(reserveXWad, liquidity, swapConstant, params),
             lower,
             upper,
-            1,
-            256,
+            BISECTION_EPSILON,
+            MAX_BISECTION_ITERS,
             findRootY
         );
     }
 
+    /// @dev Finds the root of the swapConstant given the independent variable reserveYWad.
     function findX(
         uint256 reserveYWad,
         uint256 liquidity,
-        int256 invariant,
+        int256 swapConstant,
         Parameters memory params
-    ) public view returns (uint256 reserveY) {
+    ) public pure returns (uint256 reserveY) {
         uint256 lower = 2;
         uint256 upper = WAD - 2;
         reserveY = bisection(
-            abi.encode(reserveYWad, liquidity, invariant, params),
+            abi.encode(reserveYWad, liquidity, swapConstant, params),
             lower,
             upper,
-            1,
-            256,
+            BISECTION_EPSILON,
+            MAX_BISECTION_ITERS,
             findRootX
         );
     }
 
+    /// @dev Finds the root of the swapConstant given the independent variable liquidity.
+    function findLiquidity(
+        uint256 reserveXWad,
+        uint256 reserveYWad,
+        int256 swapConstant,
+        Parameters memory params
+    ) public pure returns (uint256 liquidity) {
+        uint256 lower = reserveXWad + 1;
+        uint256 upper = 1e27;
+        liquidity = bisection(
+            abi.encode(reserveXWad, reserveYWad, swapConstant, params),
+            lower,
+            upper,
+            BISECTION_EPSILON,
+            MAX_BISECTION_ITERS,
+            findRootLiquidity
+        );
+    }
+
+    /// @dev Encodes the arguments for the swap validation function.
+    function encodeValidateData(
+        uint256 adjustedReserveXWad,
+        uint256 adjustedReserveYWad,
+        uint256 adjustedLiquidity
+    ) public pure returns (bytes memory) {
+        return abi.encode(
+            adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
+        );
+    }
+
+    /// @dev Reverts if the caller is not a contract with the Core interface.
     function validate(bytes memory data)
         public
         view
+        onlyCore
         returns (
             bool valid,
             int256 swapConstantGrowth,
@@ -498,11 +574,7 @@ contract LogNormal {
             );
     }
 
-    /// @dev x * y / 1E18
-    function mulWadDownInt(int256 x, int256 y) public pure returns (int256 z) {
-        z = mulidiv(x, y, 1e18);
-    }
-
+    /// @dev Signed mul div, rounding up if the modulo quotient is non-zero.
     function mulidivUp(
         int256 x,
         int256 y,
@@ -515,7 +587,8 @@ contract LogNormal {
         }
     }
 
-    /// @dev From Solmate, but not in assembly
+    /// @notice Mul div signed integers.
+    /// @dev From Solmate, but not in assembly.
     function mulidiv(
         int256 x,
         int256 y,
@@ -524,12 +597,13 @@ contract LogNormal {
         unchecked {
             z = x * y;
             require(
-                denominator != 0 && (x == 0 || z / x == y), "muldiv invalid"
+                denominator != 0 && (x == 0 || z / x == y), "mulidiv invalid"
             );
             z = z / denominator;
         }
     }
 
+    /// @dev Casts a positived signed integer to an unsigned integer, reverting if `x` is negative.
     function toUint(int256 x) public pure returns (uint256) {
         unchecked {
             require(x >= 0, "toUint: negative");
@@ -540,10 +614,12 @@ contract LogNormal {
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
-contract DFMM {
+contract DFMM is Core {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
+    bool public inited;
+    uint256 public locked = 1;
     address public tokenX;
     address public tokenY;
     uint256 public reserveXWad;
@@ -556,6 +632,8 @@ contract DFMM {
         tokenY = tokenY_;
     }
 
+    error Invalid(bool negative, uint256 swapConstantGrowth);
+
     event Swap(
         address indexed swapper,
         address source,
@@ -566,14 +644,10 @@ contract DFMM {
         int256 liquidityDelta
     );
 
-    bool public inited;
-
     modifier initialized() {
         require(inited, "not initialized");
         _;
     }
-
-    uint256 public locked = 1;
 
     modifier lock() {
         require(locked == 1, "locked");
@@ -582,11 +656,17 @@ contract DFMM {
         locked = 1;
     }
 
-    error Invalid(bool negative, uint256 swapConstantGrowth);
-
-    function magicConstant(address source) public view returns (int256) {
+    function getSwapConstant(address source) public view returns (int256) {
         bytes memory data = abi.encode(reserveXWad, reserveYWad, totalLiquidity);
-        return LogNormal(source).magicConstant(data);
+        return LogNormal(source).computeSwapConstant(data);
+    }
+
+    function getReservesAndLiquidity()
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
     /// @param source The address of the source strategy contract.
@@ -615,11 +695,22 @@ contract DFMM {
         return (XXXXXXX, YYYYYY, LLLLLL);
     }
 
+    /// @dev Use this function to prepare swaps!
+    /// @param source The address of the source strategy contract.
+    /// @param swapXIn Whether the swap is X in, Y out.
+    /// @param amountIn The amount of the input token to swap.
+    /// @return valid Whether the swap is valid, as returned by source.validate().
+    /// @return estimatedOut The estimated amount of the output token.
+    /// @return swapData The data to be passed to the source strategy contract for swap validation.
     function simulateSwap(
         address source,
         bool swapXIn,
         uint256 amountIn
-    ) public view returns (bool, uint256, bytes memory) {
+    )
+        public
+        view
+        returns (bool valid, uint256 estimatedOut, bytes memory swapData)
+    {
         return LogNormal(source).simulateSwap(swapXIn, amountIn);
     }
 
@@ -670,6 +761,7 @@ contract DFMM {
         }
     }
 
+    /// @dev Computes the changes in reserves and transfers the tokens in and out.
     function _settle(
         uint256 adjustedReserveXWad,
         uint256 adjustedReserveYWad
@@ -723,13 +815,5 @@ contract DFMM {
                 >= outputBalance - outputAmount,
             "invalid swap: output token transfer"
         );
-    }
-
-    function getReservesAndLiquidity()
-        public
-        view
-        returns (uint256, uint256, uint256)
-    {
-        return (reserveXWad, reserveYWad, totalLiquidity);
     }
 }
