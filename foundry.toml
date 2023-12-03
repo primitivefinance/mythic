@@ -8,6 +8,7 @@ remappings = [
 ]
 solc_version = "0.8.19"
 src = "./contracts/src"
+test = "./contracts/src/test"
 bytecode_hash = "none"
 cbor_metadata = false
 extra_output = ["storageLayout"]
