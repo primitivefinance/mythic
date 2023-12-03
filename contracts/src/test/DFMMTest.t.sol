@@ -72,7 +72,7 @@ contract DFMMTest is Test {
         uint256 found_l = findLiquidity(init_x, init_y, params);
 
         bytes memory init_data =
-            LogNormal(source).encode(init_x, init_y, found_l, params);
+            LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
 
         dfmm.init(address(source), init_data);
 
@@ -104,7 +104,7 @@ contract DFMMTest is Test {
 
         // This computation is slightly off (invariant won't be zero).
         bytes memory init_data =
-            LogNormal(source).encode(init_x, init_y, found_l, params);
+            LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
 
         console2.log("init_x", init_x);
         console2.log("init_y", init_y);
@@ -136,7 +136,7 @@ contract DFMMTest is Test {
         );
     }
 
-    function test_dfmm_swap() public basic {
+    function test_dfmm_swap_x_in() public basic {
         uint256 feePercentageWad = source.swapFeePercentageWad();
 
         // Get all the current data: reserves, liquidity, invariant, params.
@@ -186,11 +186,65 @@ contract DFMMTest is Test {
         console2.log("Submitted trade y out", amountYOut);
         console2.log("Implied price", amountYOut * 1 ether / amountXIn);
 
+        // Try doing simulate swap to see if we get a similar result.
+        (bool valid, uint256 estimatedOut, bytes memory payload) =
+            dfmm.simulateSwap(address(source), true, amountXIn);
+        console2.log("valid", valid);
+        console2.log("estimatedOut", estimatedOut);
+        console2.logBytes(payload);
+
         // Try doing the swap with the adjusted reserves.
         bytes memory swapData =
             abi.encode(adjustedReserveX, adjustedReserveY, adjustedLiquidity);
+        console2.logBytes(swapData);
 
         dfmm.swap(address(source), swapData);
+    }
+
+    function test_dfmm_simulate_swap_x_in() public basic() {
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = true;
+
+        (bool valid, uint256 estimatedOut, bytes memory payload) =
+            dfmm.simulateSwap(address(source), swapXIn, amountIn);
+
+        console2.log("valid", valid);
+        console2.log("estimatedOut", estimatedOut);
+        console2.logBytes(payload);
+
+        // Get out current Y balance.
+        uint256 yBalance = MockERC20(tokenY).balanceOf(address(this));
+        dfmm.swap(address(source), payload);
+        uint256 newYBalance = MockERC20(tokenY).balanceOf(address(this));
+
+        console2.log("yBalance", yBalance);
+        console2.log("newYBalance", newYBalance);
+        console2.log("newYBalance - yBalance", newYBalance - yBalance);
+
+        assertEq(newYBalance - yBalance, estimatedOut);
+    }
+
+    function test_dfmm_simulate_swap_y_in() public basic() {
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = false;
+
+        (bool valid, uint256 estimatedOut, bytes memory payload) =
+            dfmm.simulateSwap(address(source), swapXIn, amountIn);
+
+        console2.log("valid", valid);
+        console2.log("estimatedOut", estimatedOut);
+        console2.logBytes(payload);
+
+        // Get out current X balance.
+        uint256 xBalance = MockERC20(tokenX).balanceOf(address(this));
+        dfmm.swap(address(source), payload);
+        uint256 newXBalance = MockERC20(tokenX).balanceOf(address(this));
+
+        console2.log("xBalance", xBalance);
+        console2.log("newXBalance", newXBalance);
+        console2.log("newXBalance - xBalance", newXBalance - xBalance);
+
+        assertEq(newXBalance - xBalance, estimatedOut);
     }
 }
 

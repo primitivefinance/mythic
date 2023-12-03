@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
+import "./BisectionLib.sol";
 
 struct Parameters {
     uint256 strikePriceWad;
@@ -17,7 +18,7 @@ function findRootX(
     bytes memory data,
     uint256 reserveXWad
 ) pure returns (int256) {
-    (uint256 liquidity, uint256 y, int256 invariant, Parameters memory params) =
+    (uint256 y, uint256 liquidity, int256 invariant, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
     // todo: maybe update with swapConstantGrowth with previous invariant.
     return tradingFunction({
@@ -170,7 +171,7 @@ contract LogNormal {
 
     Parameters public slot;
 
-    function encode(
+    function encodeInitData(
         uint256 reserveXWad,
         uint256 reseveYWad,
         uint256 totalLiquidity,
@@ -179,7 +180,7 @@ contract LogNormal {
         return abi.encode(reserveXWad, reseveYWad, totalLiquidity, params);
     }
 
-    function magicConstant(bytes calldata data) public view returns (int256) {
+    function magicConstant(bytes memory data) public view returns (int256) {
         (uint256 reserveXWad, uint256 reserveYWad, uint256 totalLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction({
@@ -215,7 +216,104 @@ contract LogNormal {
         valid = swapConstantGrowth >= (int256(ZERO) + 3);
     }
 
-    function validate(bytes calldata data)
+    /// @dev Estimates a swap's reserves and adjustments and returns its validity.
+    function simulateSwap(
+        bool swapXIn,
+        uint256 amountIn
+    ) public view returns (bool, uint256, bytes memory) {
+        (
+            uint256 adjustedReserveXWad,
+            uint256 adjustedReserveYWad,
+            uint256 adjustedLiquidity
+        ) = Core(msg.sender).getReservesAndLiquidity();
+
+        int256 swapConstant = magicConstant(
+            abi.encode(
+                adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
+            )
+        );
+
+        uint256 amountOut;
+
+        if (swapXIn) {
+            uint256 fees = amountIn.mulWadUp(swapFeePercentageWad);
+            uint256 liquidityDelta =
+                fees.mulWadUp(adjustedLiquidity).divWadUp(adjustedReserveXWad);
+            liquidityDelta += 1;
+
+            adjustedReserveXWad += amountIn;
+            adjustedLiquidity += liquidityDelta;
+
+            uint256 originalReserveYWad = adjustedReserveYWad;
+            adjustedReserveYWad = findY(
+                adjustedReserveXWad, adjustedLiquidity, swapConstant, slot
+            );
+            adjustedReserveYWad += 1;
+
+            amountOut = originalReserveYWad - adjustedReserveYWad;
+            console2.log("Esimated Y reserve to submit", adjustedReserveYWad);
+        } else {
+            uint256 fees = amountIn.mulWadUp(swapFeePercentageWad);
+            uint256 liquidityDelta =
+                fees.mulWadUp(adjustedLiquidity).divWadUp(adjustedReserveYWad);
+            liquidityDelta += 1;
+
+            adjustedReserveYWad += amountIn;
+            adjustedLiquidity += liquidityDelta;
+
+            uint256 originalReserveXWad = adjustedReserveXWad;
+            adjustedReserveXWad = findX(
+                adjustedReserveYWad, adjustedLiquidity, swapConstant, slot
+            );
+            adjustedReserveXWad += 1;
+
+            amountOut = originalReserveXWad - adjustedReserveXWad;
+        }
+
+        bytes memory swapData = abi.encode(
+            adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
+        );
+        (bool valid,,,,,) = validate(swapData);
+        return (valid, amountOut, swapData);
+    }
+
+    function findY(
+        uint256 reserveXWad,
+        uint256 liquidity,
+        int256 invariant,
+        Parameters memory params
+    ) public view returns (uint256 reserveY) {
+        uint256 lower = 100;
+        uint256 upper = params.strikePriceWad - 1;
+        reserveY = bisection(
+            abi.encode(reserveXWad, liquidity, invariant, params),
+            lower,
+            upper,
+            1,
+            256,
+            findRootY
+        );
+    }
+
+    function findX(
+        uint256 reserveYWad,
+        uint256 liquidity,
+        int256 invariant,
+        Parameters memory params
+    ) public view returns (uint256 reserveY) {
+        uint256 lower = 2;
+        uint256 upper = WAD - 2;
+        reserveY = bisection(
+            abi.encode(reserveYWad, liquidity, invariant, params),
+            lower,
+            upper,
+            1,
+            256,
+            findRootX
+        );
+    }
+
+    function validate(bytes memory data)
         public
         view
         returns (
@@ -269,7 +367,7 @@ contract LogNormal {
                 reserveYWad: originalReserveYWad,
                 totalLiquidity: originalLiquidity,
                 params: slot
-            }) - int256(0);
+            });
 
         console2.log("Swap constant growth");
         console2.logInt(swapConstantGrowth);
@@ -515,6 +613,14 @@ contract DFMM {
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
         return (XXXXXXX, YYYYYY, LLLLLL);
+    }
+
+    function simulateSwap(
+        address source,
+        bool swapXIn,
+        uint256 amountIn
+    ) public view returns (bool, uint256, bytes memory) {
+        return LogNormal(source).simulateSwap(swapXIn, amountIn);
     }
 
     /// @param source The address of the source strategy contract.
