@@ -126,8 +126,9 @@ contract RMM is IStrategy {
         if (exactX) {
             amountX = amount;
 
-            uint256 newLiquidity =
-                computeLGivenX(reserveX + amountX, price, strikePrice, sigma, tau);
+            uint256 newLiquidity = computeLGivenX(
+                reserveX + amountX, price, strikePrice, sigma, tau
+            );
             uint256 newReserveY =
                 computeYGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
@@ -136,8 +137,9 @@ contract RMM is IStrategy {
         } else {
             amountY = amount;
 
-            uint256 newLiquidity =
-                computeLGivenY(reserveY + amountY, price, strikePrice, sigma, tau);
+            uint256 newLiquidity = computeLGivenY(
+                reserveY + amountY, price, strikePrice, sigma, tau
+            );
             uint256 newReserveX =
                 computeXGivenL(newLiquidity, price, strikePrice, sigma, tau);
 
@@ -264,13 +266,17 @@ contract RMM is IStrategy {
         return (liquidityDelta, amountX);
     }
 
-    function _swap(bool swapDirection, uint256 amountIn) internal returns (uint256 amountOut) {
+    function _swap(
+        bool swapDirection,
+        uint256 amountIn
+    ) internal returns (uint256 amountOut) {
         uint256 price =
             computeSpotPrice(reserveX, totalLiquidity, strikePrice, sigma, tau);
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenX(fees, price, strikePrice, sigma, tau);
+            uint256 deltaL =
+                computeLGivenX(fees, price, strikePrice, sigma, tau);
 
             amountOut = uint256(
                 ~(
@@ -295,7 +301,8 @@ contract RMM is IStrategy {
             tokenY.transfer(msg.sender, amountOut);
         } else {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
-            uint256 deltaL = computeLGivenY(fees, price, strikePrice, sigma, tau);
+            uint256 deltaL =
+                computeLGivenY(fees, price, strikePrice, sigma, tau);
 
             amountOut = uint256(
                 ~(

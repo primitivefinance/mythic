@@ -1,7 +1,11 @@
 [profile.default]
+remappings = [
+    "solstat/=lib/solstat/src/",
+    "forge-std/=lib/solstat/lib/forge-std/src/",
+    "solmate/=lib/solstat/lib/solmate/src/",
+]
 libs = ["lib"]
 out = "out/"
-remappings = []
 solc_version = "0.8.19"
 src = "src/"
 test = "src/test/"
