@@ -159,7 +159,6 @@ contract DFMMTest is Test {
 
         // Compute the adjusted x reserve and adjusted liquidity.
         uint256 amountXIn = 0.1 ether;
-        console2.log("swap in", amountXIn);
 
         uint256 adjustedReserveX = reserveXWad + amountXIn;
         console2.log("Submitted new X reserve", adjustedReserveX);
@@ -182,7 +181,10 @@ contract DFMMTest is Test {
         adjustedReserveY += 1;
 
         uint256 amountYOut = reserveYWad - adjustedReserveY;
-        console2.log("amountYOut", amountYOut);
+
+        console2.log("Submitted trade x in", amountXIn);
+        console2.log("Submitted trade y out", amountYOut);
+        console2.log("Implied price", amountYOut * 1 ether / amountXIn);
 
         // Try doing the swap with the adjusted reserves.
         bytes memory swapData =

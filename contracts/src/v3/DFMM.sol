@@ -19,7 +19,7 @@ function findRootX(
 ) pure returns (int256) {
     (uint256 liquidity, uint256 y, int256 invariant, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    // todo: maybe update with difference with previous invariant.
+    // todo: maybe update with swapConstantGrowth with previous invariant.
     return tradingFunction({
         reserveXWad: reserveXWad,
         reserveYWad: y,
@@ -34,7 +34,7 @@ function findRootY(
 ) pure returns (int256) {
     (uint256 x, uint256 liquidity, int256 invariant, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    // todo: maybe update with difference with previous invariant.
+    // todo: maybe update with swapConstantGrowth with previous invariant.
     return tradingFunction({
         reserveXWad: x,
         reserveYWad: reserveYWad,
@@ -49,7 +49,7 @@ function findRootLiquidity(
 ) pure returns (int256) {
     (uint256 x, uint256 y, int256 invariant, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    // todo: maybe update with difference with previous invariant.
+    // todo: maybe update with swapConstantGrowth with previous invariant.
     return tradingFunction({
         reserveXWad: x,
         reserveYWad: y,
@@ -115,7 +115,7 @@ interface Source {
         external
         returns (
             bool valid,
-            int256 difference,
+            int256 swapConstantGrowth,
             uint256 reserveXWad,
             uint256 reserveYWad,
             uint256 totalLiquidity
@@ -126,7 +126,8 @@ interface Source {
         view
         returns (
             bool valid,
-            int256 difference,
+            int256 swapConstantGrowth,
+            int256 liquidityDelta,
             uint256 reserveXWad,
             uint256 reserveYWad,
             uint256 totalLiquidity
@@ -194,7 +195,7 @@ contract LogNormal {
         public
         returns (
             bool valid,
-            int256 difference,
+            int256 swapConstantGrowth,
             uint256 reserveXWad,
             uint256 reserveYWad,
             uint256 totalLiquidity
@@ -203,7 +204,7 @@ contract LogNormal {
         (reserveXWad, reserveYWad, totalLiquidity, slot) =
             abi.decode(data, (uint256, uint256, uint256, Parameters));
 
-        difference = tradingFunction({
+        swapConstantGrowth = tradingFunction({
             reserveXWad: reserveXWad,
             reserveYWad: reserveYWad,
             totalLiquidity: totalLiquidity,
@@ -211,7 +212,7 @@ contract LogNormal {
         });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
-        valid = difference >= (int256(ZERO) + 3);
+        valid = swapConstantGrowth >= (int256(ZERO) + 3);
     }
 
     function validate(bytes calldata data)
@@ -219,7 +220,8 @@ contract LogNormal {
         view
         returns (
             bool valid,
-            int256 difference,
+            int256 swapConstantGrowth,
+            int256 liquidityDelta,
             uint256 adjustedReserveXWad,
             uint256 adjustedReserveYWad,
             uint256 adjustedLiquidity
@@ -234,22 +236,29 @@ contract LogNormal {
         (adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
 
-        // lambda l = lambda x * L / X, where lamba x = delta x * (1 - fee)
+        // Rounding up is advantageous towards the protocol, to make sure swap fees
+        // are fully paid for.
+        uint256 minLiquidityDelta = 1;
+        if (adjustedReserveXWad > originalReserveXWad) {
+            // δl = δx * L / X, where δx = delta x * fee
+            uint256 amountIn = adjustedReserveXWad - originalReserveXWad;
+            uint256 fees = amountIn.mulWadUp(swapFeePercentageWad);
+            minLiquidityDelta +=
+                fees.mulWadUp(originalLiquidity).divWadUp(originalReserveXWad);
+        } else if (adjustedReserveYWad > originalReserveYWad) {
+            // δl = δx * L / X, where δx = delta x * fee
+            uint256 amountIn = adjustedReserveYWad - originalReserveYWad;
+            uint256 fees = amountIn.mulWadUp(swapFeePercentageWad);
+            minLiquidityDelta +=
+                fees.mulWadUp(originalLiquidity).divWadUp(originalReserveYWad);
+        } else {
+            // should never get here!
+            revert("invalid swap: inputs x and y have the same sign!");
+        }
 
-        // x for now, do y next
-        uint256 amountIn = adjustedReserveXWad - originalReserveXWad;
-        uint256 fees = amountIn.mulWadDown(swapFeePercentageWad);
-        uint256 deltaL =
-            fees.mulWadDown(originalLiquidity).divWadDown(originalReserveXWad);
+        liquidityDelta = int256(adjustedLiquidity) - int256(originalLiquidity);
 
-        uint256 liquidityDelta = adjustedLiquidity - originalLiquidity;
-        console2.log("Submitted liquidity delta", liquidityDelta);
-        console2.log("Min valid liquidity delta", deltaL);
-        console2.log("liquidityDelta - deltaL", liquidityDelta - deltaL);
-        console2.log(liquidityDelta, deltaL);
-        require(liquidityDelta >= deltaL, "invalid liquidity delta");
-
-        difference = tradingFunction({
+        swapConstantGrowth = tradingFunction({
             reserveXWad: adjustedReserveXWad,
             reserveYWad: adjustedReserveYWad,
             totalLiquidity: adjustedLiquidity,
@@ -262,11 +271,18 @@ contract LogNormal {
                 params: slot
             }) - int256(0);
 
-        console2.log("remainder");
-        console2.logInt(difference);
+        console2.log("Swap constant growth");
+        console2.logInt(swapConstantGrowth);
+        console2.log("Submitted Liquidity delta");
+        console2.logInt(liquidityDelta);
+        console2.log("Min liquidity delta");
+        console2.logInt(int256(minLiquidityDelta));
+        console2.log("liquidity delta - min liquidity delta");
+        console2.logInt(liquidityDelta - int256(minLiquidityDelta));
 
         // Valid should check that the trading function growth is >= expected fee growth.
-        valid = difference >= int256(ZERO);
+        valid = swapConstantGrowth >= int256(ZERO)
+            && liquidityDelta >= int256(minLiquidityDelta);
     }
 
     /// @dev Compute total liquidity given x reserves.
@@ -449,7 +465,7 @@ contract DFMM {
         address indexed tokenOut,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 amountLiquidity
+        int256 liquidityDelta
     );
 
     bool public inited;
@@ -468,7 +484,7 @@ contract DFMM {
         locked = 1;
     }
 
-    error Invalid(bool negative, uint256 difference);
+    error Invalid(bool negative, uint256 swapConstantGrowth);
 
     function magicConstant(address source) public view returns (int256) {
         bytes memory data = abi.encode(reserveXWad, reserveYWad, totalLiquidity);
@@ -483,12 +499,14 @@ contract DFMM {
     ) public lock returns (uint256, uint256, uint256) {
         (
             bool valid,
-            int256 difference,
+            int256 swapConstantGrowth,
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
         ) = Source(source).init(data);
-        if (!valid) revert Invalid(difference < 0, abs(difference));
+        if (!valid) {
+            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+        }
         inited = true;
         reserveXWad = XXXXXXX;
         reserveYWad = YYYYYY;
@@ -507,17 +525,17 @@ contract DFMM {
     ) public lock initialized {
         (
             bool valid,
-            int256 difference,
+            int256 swapConstantGrowth,
+            int256 liquidityDelta,
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
         ) = Source(source).validate(data);
-        if (!valid) revert Invalid(difference < 0, abs(difference));
+        if (!valid) {
+            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+        }
 
-        uint256 originalLiquidity = totalLiquidity;
-        require(LLLLLL >= originalLiquidity, "invalid liquidity");
-        uint256 amountLiquidity = LLLLLL - originalLiquidity;
-        totalLiquidity += amountLiquidity;
+        totalLiquidity = LLLLLL;
 
         {
             // Avoids stack too deep.
@@ -533,6 +551,7 @@ contract DFMM {
 
             address swapper = msg.sender;
             address strategy = source;
+            int256 liquidityDelta = liquidityDelta;
             emit Swap(
                 swapper,
                 strategy,
@@ -540,7 +559,7 @@ contract DFMM {
                 outputToken,
                 inputAmount,
                 outputAmount,
-                amountLiquidity
+                liquidityDelta
             );
         }
     }
@@ -579,6 +598,10 @@ contract DFMM {
             );
             outputAmount = originalReserveXWad - adjustedReserveXWad;
         }
+
+        // Do the state updates to the reserves before calling untrusted addresses.
+        reserveXWad = adjustedReserveXWad;
+        reserveYWad = adjustedReserveYWad;
 
         uint256 inputBalance = ERC20(inputToken).balanceOf(address(this));
         uint256 outputBalance = ERC20(outputToken).balanceOf(address(this));
