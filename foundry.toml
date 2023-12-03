@@ -4,15 +4,16 @@ remappings = [
     "forge-std/=lib/solstat/lib/forge-std/src/",
     "solmate/=lib/solstat/lib/solmate/src/",
 ]
-libs = ["lib"]
-out = "out/"
 solc_version = "0.8.19"
-src = "src/"
-test = "src/test/"
 bytecode_hash = "none"
 cbor_metadata = false
 extra_output = ["storageLayout"]
-# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+# these are defaults. explicitly setting them here for clarity.
+libs = ["lib"]
+out = "out/"
+src = "src/"
+test = "src/test/"
 
 [fmt]
 bracket_spacing = true
