@@ -15,11 +15,18 @@ Excalibur is an Ethereum Application Client which vertically integrates all comp
 
 ## Dependencies
 - [Anvil](https://github.com/foundry-rs/foundry) is installed and available in `$PATH`.
+- [Forge](https://github.com/foundry-rs/foundry) is installed and available in `$PATH`.
+- [Arbiter](https://github.com/primitivefinance/arbiter) is installed and available in `$PATH`.
 
-## Installation
+## Installation part 1: rust
 
 ```bash
 cargo install --path .
+```
+
+## Installation part 2: foundry dependencies, artifacts, and bindings
+```bash
+make
 ```
 
 ## Run
