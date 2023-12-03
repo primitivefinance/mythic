@@ -87,6 +87,10 @@ impl LedgerClient {
         let signature = self.sign_encoded_tx(&payload).await?;
         Ok(signature)
     }
+    // pub async fn close(&self) -> Result<(), LedgerError> {
+    //     &self.ledger.close();
+    //     todo!()
+    // }
 
     pub async fn get_app_configuration(&self) -> Result<(), LedgerError> {
         todo!()
@@ -234,43 +238,61 @@ impl LedgerClient {
 /// 
 mod tests {
     #![allow(unused_imports)]
+
+    use std::sync::Arc;
+
     use super::*;
+    use ethers::{providers::{Provider, Ws, Http}, signers::Wallet, middleware::Middleware};
+    use ethers_core::{k256::schnorr::SigningKey, utils::AnvilInstance};
+    use serial_test::serial;
+    use tokio::{time, time::Duration};
+
+    const RPC_URL_WS: &str = "ws://localhost:8545";
     // So I was initially trying to run this in it's own separate test as a unit
     // test but i think it was being run in it's own thread because it was
     // failing Which makes sense because a lock is obtained on the device when
     // being interacted with This means that we have to be careful to run the
     // ledger logic asynchronously
-    // #[tokio::test]
-    // async fn ledger_tests() {
-    //     // test connecting: this doesn't require that the user has the ethereum ledger
-    //     // application open
-    //     let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0)).await;
-    //     println!("Connected to ledger");
+    #[tokio::test]
+    #[serial]
+    async fn ledger_tests() {
+        // test connecting: this doesn't require that the user has the ethereum ledger
+        // application open
+        let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0)).await;
+        println!("Connected to ledger");
 
-    //     // after this all other commands require that the ethereum ledger application is
-    //     // User enters pin and then opens the ethereum ledger application
+        // after this all other commands require that the ethereum ledger application is
+        // User enters pin and then opens the ethereum ledger application
 
-    //     // test getting address
-    //     let address = ledger.get_address().await.unwrap();
-    //     println!("Address: {}", address);
+        // test getting address
+        let address = ledger.get_address().await.unwrap();
+        println!("Address: {}", address);
 
-    //     // test getting version
-    //     let version = ledger.version().await.unwrap();
-    //     println!("Got Ethereum ledger application version {}", version);
+        // test getting version
+        let version = ledger.version().await.unwrap();
+        println!("Got Ethereum ledger application version {}", version);
 
-    //     let tx = TransactionRequest::default();
+        let tx = TransactionRequest::default();
 
-    //     // This currently correctly prompts the user to review this transaction
-    //     let sig = ledger.sign_tx(&tx).await.unwrap();
-    //     println!("Got signature: {:?}", sig);
-    //     // test signing a transaction
-    //     ledger.ledger.close();
-    // }
+        // This currently correctly prompts the user to review this transaction
+        let sig = ledger.sign_tx(&tx).await.unwrap();
+        println!("Got signature: {:?}", sig);
+        // test signing a transaction
+
+        // How we grab the tx from the ledger        
+        let singed_tx = tx.rlp_signed(&sig);
+        let env = arbiter_core::environment::builder::EnvironmentBuilder::new().build();
+        let provider = Provider::<Http>::try_from("http://localhost:8545").unwrap();   // let client = anv;
+        provider.send_raw_transaction(singed_tx).await.unwrap(); // is part of the middleware trait so we can use this
+        // ledger.close();
+    }
 
     #[tokio::test]
-    async fn test_get_address() {
+    #[serial]
+    async fn test_alloy_ledger() {
         use alloy_signer_ledger::{LedgerSigner, HDPath};
 
+        // fails right here
         let singer = LedgerSigner::new(HDPath::LedgerLive(0), 1).await.unwrap();
         println!("Connected to ledger");
 
@@ -284,10 +306,11 @@ mod tests {
         println!("Got Ethereum ledger application version {}", version);
 
 
-        let tx = TransactionRequest::default();
-        // This currently correctly prompts the user to review this transaction
+        // let tx = TransactionRequest::default();
+
+        // need to wait for upstream to get this
         #[cfg(TODO)]
         let sig = singer.sign_tx(&tx).await.unwrap();
-        println!("Got signature: {:?}", sig);
+        // println!("Got signature: {:?}", sig);
     }
 }
