@@ -10,6 +10,8 @@ edition = "2021"
 revm.workspace = true
 revm-primitives.workspace = true
 
+itertools.workspace = true
+rand.workspace = true
 simulation.workspace = true
 cfmm_math.workspace = true
 alloy-primitives.workspace = true

@@ -3,9 +3,18 @@ pub mod agents;
 pub mod config;
 pub mod engine;
 
+use std::any::Any;
+
 use anyhow::{Error, Result};
+use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
+use ethers::types::H160;
+use serde::{Deserialize, Serialize};
 // todo: remove
 use simulation::agents::{block_admin::BlockAdminParameters, AgentParameters};
+use simulation::settings::{
+    parameters::{Multiple, Single},
+    Parameterized, SimulationConfig,
+};
 use tracing_subscriber;
 
 pub fn run() -> Result<()> {
@@ -28,4 +37,16 @@ pub fn run() -> Result<()> {
     tracing::info!("Simulation result: {:?}", result);
 
     Ok(())
+}
+
+pub fn from_ethers_address(address: H160) -> alloy_primitives::Address {
+    alloy_primitives::Address::from(address.as_fixed_bytes())
+}
+
+pub fn from_ethers_u256(value: ethers::types::U256) -> alloy_primitives::U256 {
+    alloy_primitives::U256::from(value.as_u128())
+}
+
+pub fn to_ethers_u256(value: alloy_primitives::U256) -> ethers::types::U256 {
+    ethers::types::U256::from_str_radix(value.to_string().as_str(), 10).unwrap()
 }

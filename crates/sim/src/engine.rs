@@ -19,7 +19,7 @@ use simulation::{
 use tokio::{runtime::Builder, sync::Semaphore};
 
 use super::{agent::Agents, config::ConfigBuilder, *};
-use crate::{agents::block_admin::BlockAdmin, config::Configurable};
+use crate::{agents::base::block_admin::BlockAdmin, config::Configurable};
 
 /// A live arbiter environment with agents, a config, and amount of steps to
 /// run.

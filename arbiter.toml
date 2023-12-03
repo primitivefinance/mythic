@@ -1,4 +1,4 @@
 bindings_workspace = "simulation" # must be a valid workspace member
-submodules = true                # change to true if you want the submodule bindings to be generated
+submodules = false                # change to true if you want the submodule bindings to be generated
 bindings_path = "simulation/src/"
 ignore_interfaces = false

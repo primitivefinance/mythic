@@ -47,7 +47,8 @@ tracing-futures = { version = "0.2.5", default-features = false }
 anyhow = "1.0.75"
 thiserror = "1.0.50"
 
-
+itertools = "0.12.0"
+rand = "0.8.5"
 bytesize = "1.2.0"
 dotenv = "0.15.0"
 uuid = { version = "1.6.1", features = ["v4", "serde"] }
