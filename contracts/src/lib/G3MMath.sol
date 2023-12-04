@@ -230,17 +230,16 @@ function computeInGivenOut(
     aI = convert(bI * (f.pow(wO / wI) - UNIT));
 }
 
-function SF(UD60x18 x, UD60x18 a, UD60x18 b) pure returns (UD60x18) {
+function computeSF(UD60x18 x, UD60x18 a, UD60x18 b) pure returns (UD60x18) {
     SD59x18 sx = sd(int256(UD60x18.unwrap(x)));
     SD59x18 sa = sd(int256(UD60x18.unwrap(a)));
     SD59x18 sb = sd(int256(UD60x18.unwrap(b)));
-
     SD59x18 boop = ((SDUNIT / (sa * sx + sb)) - SDUNIT).pow(-SDConvert(2));
-    return UNIT / (UNIT + UD60x18.wrap(uint256(SD59x18.unwrap(boop))));
+    return UNIT - UNIT / (UNIT + UD60x18.wrap(uint256(SD59x18.unwrap(boop))));
 }
 
-function SIF(UD60x18 x) pure returns (UD60x18) {
+function computeISF(UD60x18 x) pure returns (UD60x18) {
     SD59x18 boop = (SDUNIT / (SDUNIT - sd(int256(UD60x18.unwrap(x)))) - SDUNIT)
-        .pow(SDUNIT / SDConvert(2));
+        .pow(-(SDUNIT / SDConvert(2)));
     return UNIT / (UNIT + UD60x18.wrap(uint256(SD59x18.unwrap(boop))));
 }
