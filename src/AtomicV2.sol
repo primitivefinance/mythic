@@ -204,7 +204,7 @@ contract AtomicV2 {
             console2.log("maxAmountIn", maxAmountIn);
 
             amountIn =
-                findTrade(YTOX, target_price, minAmountIn, maxAmountIn, 5, 256);
+                findTrade(YTOX, target_price, minAmountIn, maxAmountIn, 5, 3);
         } else {
             // If the start price is greater than the target price, we need to lower the price.
             // Therefore, swap X -> Y on DEX until the price is less than the target price.
@@ -219,7 +219,7 @@ contract AtomicV2 {
             console2.log("maxAmountIn", maxAmountIn);
 
             amountIn =
-                findTrade(XTOY, target_price, minAmountIn, maxAmountIn, 5, 256);
+                findTrade(XTOY, target_price, minAmountIn, maxAmountIn, 5, 3);
         }
     }
 

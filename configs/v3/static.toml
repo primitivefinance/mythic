@@ -21,7 +21,7 @@ decimals = 18
 # The seed to use (optional)
 seed = 2
 # The number of steps in the process
-num_steps = 10
+num_steps = 100
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset
@@ -47,7 +47,7 @@ fee.fixed = 30
 # update_frequency = 450 # 1 update per 30 timestep day
 # update_frequency = 300 # 1 update per 20 timestep day
 # update_frequency = 150 # 1 update per 10 timestep day
-specialty.VolatilityTargeting.update_frequency.fixed = 75 # 1 update per 5 timestep day
+specialty.VolatilityTargeting.update_frequency.fixed = 5 # 1 update per 5 timestep day
 # The target volatility
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 

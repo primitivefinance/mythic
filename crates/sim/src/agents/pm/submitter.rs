@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use clients::protocol::ProtocolClient;
 use itertools::iproduct;
 use tracing::{debug, info, trace};
 
@@ -13,6 +14,7 @@ pub struct VolatilityTargetingSubmitter {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub dfmm: DFMM<RevmMiddleware>,
+    pub protocol_client: ProtocolClient,
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
@@ -95,10 +97,12 @@ impl VolatilityTargetingSubmitter {
                 Specialty::VolatilityTargeting(parameters) => {
                     let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
                     trace!("Deployed dfmm at address: {:?}", dfmm.address());
+                    let protocol_client = ProtocolClient::new(client.clone(), dfmm.address());
                     let strategist = VolatilityTargetingSubmitter {
                         client,
                         lex,
                         dfmm,
+                        protocol_client,
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,
                         target_volatility: parameters.target_volatility.0,
@@ -121,28 +125,23 @@ impl VolatilityTargetingSubmitter {
         if self.portfolio_rv.len() < 2 {
             return Ok(());
         }
-        // let portfolio_rv = self.portfolio_rv.last().unwrap().0;
-        // info!("portfolio_rv: {}", portfolio_rv);
-        // let rv_difference = portfolio_rv - self.target_volatility;
-        // let current_strike = self.dfmm.strike_price().call().await?;
-        // let current_strike_float =
-        // ethers::utils::format_ether(current_strike).parse::<f64>().unwrap();
-        // let strike_change = self.sensitivity * rv_difference;
-        // info!("current strike float: {}", current_strike_float);
-        // let mut new_strike = current_strike_float;
-        // if portfolio_rv > self.target_volatility {
-        // new_strike -= 0.0015;
-        // } else {
-        // new_strike += 0.0015;
-        // }
-        // info!("new strike float: {}", new_strike);
-        // self.dfmm
-        // .set_strike_price(
-        // parse_ether(new_strike.to_string()).unwrap(),
-        // U256::from(self.next_update_timestamp),
-        // )
-        // .send()
-        // .await?;
+        let portfolio_rv = self.portfolio_rv.last().unwrap().0;
+        info!("portfolio_rv: {}", portfolio_rv);
+        let current_strike = self.protocol_client.get_strike_price().await?;
+        let current_strike_float = ethers::utils::format_ether(current_strike)
+            .parse::<f64>()
+            .unwrap();
+        info!("current strike float: {}", current_strike_float);
+        let mut new_strike = current_strike_float;
+        if portfolio_rv > self.target_volatility {
+            new_strike -= 0.0015;
+        } else {
+            new_strike += 0.0015;
+        }
+        info!("new strike float: {}", new_strike);
+        self.protocol_client
+            .set_strike_price(new_strike, self.next_update_timestamp)
+            .await?;
         Ok(())
     }
 
@@ -170,13 +169,13 @@ impl VolatilityTargetingSubmitter {
             self.portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
-        debug!(
-            "hypothetical percent asset return: {}",
+        info!(
+            "Return[ASSET]: {}",
             (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
                 / self.asset_prices.first().unwrap().0
         );
-        debug!(
-            "portfolio percent return: {}",
+        info!(
+            "Return[PORTFOLIO]: {}",
             (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
                 / self.portfolio_prices.first().unwrap().0
         );

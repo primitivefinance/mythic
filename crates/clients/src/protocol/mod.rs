@@ -163,6 +163,32 @@ impl ProtocolClient {
             .await?;
         Ok(liquidity)
     }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn get_strike_price(&self) -> Result<U256> {
+        let strategy = self.get_strategy().await?;
+        let strike_price = strategy.strike_price().call().await?;
+        Ok(strike_price)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn set_strike_price(
+        &self,
+        target_strike_price_wad: F64Wad,
+        next_timestamp: u64,
+    ) -> Result<Option<TransactionReceipt>> {
+        let strategy = self.get_strategy().await?;
+        let target_strike_price_wad = to_wad(target_strike_price_wad);
+        let tx = strategy
+            .set_strike_price(
+                target_strike_price_wad,
+                ethers::types::U256::from(next_timestamp),
+            )
+            .send()
+            .await?
+            .await?;
+        Ok(tx)
+    }
 }
 
 fn to_wad(value: F64Wad) -> U256 {
