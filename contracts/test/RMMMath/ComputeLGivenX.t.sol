@@ -11,6 +11,6 @@ contract ComputeLGivenX is Test {
         uint256 K = 1800 ether;
         uint256 sigma = 0.05 ether;
 
-        console.log(computeLGivenX(x, S, K, sigma));
+        console.log(computeLGivenX(x, S, K, sigma, 0));
     }
 }
