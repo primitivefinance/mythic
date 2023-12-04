@@ -227,9 +227,7 @@ contract LogNormal is Source {
     }
 
     modifier onlyCore() {
-        console2.log(
-            "Make sure the calling contract of this console.log is the Core contract"
-        );
+        // todo:
         _;
     }
 
@@ -268,21 +266,9 @@ contract LogNormal is Source {
         uint256 reserveYWad,
         uint256 totalLiquidity
     ) public view returns (uint256) {
-        Parameters memory params = dynamicSlot();
-        console2.log(
-            "Finding next liquidity given strike price", params.strikePriceWad
-        );
-        console2.log(
-            "Finding next liquidity given sigma", params.sigmaPercentWad
-        );
-        console2.log("Finding next liquidity given tau", params.tauYearsWad);
-        console2.log("Finding next liquidity given reserveX", reserveXWad);
-        console2.log("Finding next liquidity given reserveY", reserveYWad);
-
         int256 swapConstant = computeSwapConstant(
             abi.encode(reserveXWad, reserveYWad, totalLiquidity)
         );
-        console2.logInt(swapConstant);
         return
             findLiquidity(reserveXWad, reserveYWad, swapConstant, dynamicSlot());
     }
@@ -354,15 +340,11 @@ contract LogNormal is Source {
             uint256 adjustedLiquidity
         ) = Core(msg.sender).getReservesAndLiquidity();
 
-        console2.log("Original liquidity :", adjustedLiquidity);
-
         // Make sure to override the original liquidity with the `getNextLiquidity` value.
         // This is because liquidity can change given any change in parameter, including over time via parameter tau.
         adjustedLiquidity = getNextLiquidity(
             adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
         );
-
-        console2.log("Found Next liquidity:", adjustedLiquidity);
 
         int256 originalSwapConstant = computeSwapConstant(
             abi.encode(
@@ -407,8 +389,6 @@ contract LogNormal is Source {
             adjustedLiquidity += liquidityDelta;
 
             uint256 originalReserveXWad = adjustedReserveXWad;
-            console2.log("adjustedY", adjustedReserveYWad);
-            console2.log("adjustedL", adjustedLiquidity);
             adjustedReserveXWad = findX(
                 adjustedReserveYWad,
                 adjustedLiquidity,
@@ -531,12 +511,10 @@ contract LogNormal is Source {
             uint256 originalLiquidity
         ) = Core(msg.sender).getReservesAndLiquidity();
 
-        console2.log("Original liquidity :", originalLiquidity);
         // Find the next liquidity and override the original liquidity with it.
         originalLiquidity = getNextLiquidity(
             originalReserveXWad, originalReserveYWad, originalLiquidity
         );
-        console2.log("Found Next liquidity:", originalLiquidity);
 
         (adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
@@ -575,15 +553,6 @@ contract LogNormal is Source {
                 totalLiquidity: originalLiquidity,
                 params: dynamicSlot()
             });
-
-        console2.log("Swap constant growth");
-        console2.logInt(swapConstantGrowth);
-        console2.log("Submitted Liquidity delta");
-        console2.logInt(liquidityDelta);
-        console2.log("Min liquidity delta");
-        console2.logInt(int256(minLiquidityDelta));
-        console2.log("liquidity delta - min liquidity delta");
-        console2.logInt(liquidityDelta - int256(minLiquidityDelta));
 
         // Valid should check that the trading function growth is >= expected fee growth.
         valid = swapConstantGrowth >= int256(ZERO)

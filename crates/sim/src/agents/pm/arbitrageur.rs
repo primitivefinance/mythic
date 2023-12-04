@@ -203,6 +203,70 @@ impl Arbitrageur {
         Ok(from_ethers_u256(amount))
     }
 
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn raise_price_maximize_profit_search(&self) -> Result<U256> {
+        let amount = self
+            .atomic_arbitrage
+            .search_raise_price(100.into(), 50.into())
+            .call()
+            .await;
+
+        let amount = match amount {
+            Ok((amount, profit)) => amount,
+            Err(e) => {
+                if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                    e.as_middleware_error().unwrap()
+                {
+                    warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                }
+
+                return Ok(U256::ZERO);
+            }
+        };
+
+        Ok(from_ethers_u256(amount))
+    }
+
+    #[tracing::instrument(skip(self), level = "info", ret)]
+    pub async fn lower_price_maximize_profit_search(&self) -> Result<U256> {
+        self.atomic_arbitrage
+            .search_lower_price(256.into(), 5.into())
+            .send()
+            .await?
+            .await?;
+
+        let trade_packet = self.atomic_arbitrage.trade_packet().call().await?;
+        let amount = trade_packet.3;
+        let profit = trade_packet.4;
+        info!(
+            "Trade: {:?} Profit: {:?}",
+            format_ether(from_ethers_u256(amount)),
+            format_ether(from_ethers_u256(profit))
+        );
+
+        // let amount = match amount {
+        // Ok((amount, profit)) => {
+        // tracing::info!(
+        // "Trade: {:?} Profit: {:?}",
+        // format_ether(from_ethers_u256(amount)),
+        // format_ether(from_ethers_u256(profit))
+        // );
+        // amount
+        // }
+        // Err(e) => {
+        // if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+        // e.as_middleware_error().unwrap()
+        // {
+        // warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+        // }
+        //
+        // return Ok(U256::ZERO);
+        // }
+        // };
+
+        Ok(from_ethers_u256(amount))
+    }
+
     pub async fn get_dx() -> Result<U256> {
         todo!()
     }
@@ -233,7 +297,8 @@ impl Agent for Arbitrageur {
                     format_units(target_price, "ether")?
                 );
 
-                let input = self.get_raise_price_trade_amount_y(target_price).await?;
+                let input = self.raise_price_maximize_profit_search().await?;
+                // let input = self.get_raise_price_trade_amount_y(target_price).await?;
                 debug!("TradeInput[RAISE PRICE] {:?}", format_ether(input));
 
                 let tx = self
@@ -271,7 +336,8 @@ impl Agent for Arbitrageur {
                     format_units(target_price, "ether")?
                 );
 
-                let input = self.get_lower_price_trade_amount_x(target_price).await?;
+                let input = self.lower_price_maximize_profit_search().await?;
+                // let input = self.get_lower_price_trade_amount_x(target_price).await?;
 
                 debug!("TradeInput[LOWER PRICE] {:?}", format_ether(input));
 

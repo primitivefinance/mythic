@@ -56,6 +56,170 @@ interface TokenLike {
     function allowance(address, address) external view returns (uint256);
 }
 
+interface MockTokenLike {
+    function mint(address, uint256) external;
+}
+
+contract ProfitFinder {
+    AtomicV2 public atomic;
+
+    constructor() {
+        atomic = AtomicV2(msg.sender);
+    }
+
+    function searchRaisePrice(
+        uint256 max_iters,
+        uint256 epsilon
+    ) external returns (int256 maxProfit, uint256 maxTrade) {
+        require(epsilon < 1000, "epsilon must be less than 1000");
+
+        uint256 lower = 1;
+        uint256 upper = 1e18;
+
+        maxProfit = type(int256).min;
+        maxTrade = lower;
+
+        uint256 iterations;
+        uint256 distance = upper - lower;
+        uint256 mid1;
+        uint256 mid2;
+        do {
+            mid1 = lower + (upper - lower) / 3;
+            mid2 = upper - (upper - lower) / 3;
+
+            MockTokenLike(atomic.quote()).mint(address(this), mid1 + mid2);
+            TokenLike(atomic.quote()).approve(address(atomic), mid1 + mid2);
+
+            int256 profit1;
+            int256 profit2;
+
+            try atomic.try_raise_exchange_price(mid1) {
+                profit1 = type(int256).min;
+            } catch (bytes memory err) {
+                assembly {
+                    // remove first 4 bytes
+                    err := add(err, 0x04)
+                }
+                profit1 = abi.decode(err, (int256));
+            }
+
+            try atomic.try_raise_exchange_price(mid2) {
+                profit2 = type(int256).min;
+            } catch (bytes memory err) {
+                assembly {
+                    // remove first 4 bytes
+                    err := add(err, 0x04)
+                }
+                profit2 = abi.decode(err, (int256));
+            }
+
+            console2.log("Trade1", mid1);
+            console2.log("Profit1", profit1);
+            console2.log("Trade2", mid2);
+            console2.log("Profit2", profit2);
+            console2.log("MaxProfit", maxProfit);
+
+            if (profit1 < profit2) {
+                lower = mid1;
+                maxProfit = profit2;
+                maxTrade = mid2;
+            } else {
+                upper = mid2;
+                maxProfit = profit1;
+                maxTrade = mid1;
+            }
+
+            distance = upper - lower;
+            iterations += 1;
+        } while (distance > epsilon && iterations < max_iters);
+
+        console2.log(
+            "ProfitFinder[FOUND] (i,trade,profit):",
+            iterations,
+            maxTrade,
+            uint256(maxProfit)
+        );
+
+        revert AtomicV2.MaximizingProfitTrade(maxTrade, uint256(maxProfit));
+    }
+
+    function searchLowerPrice(
+        uint256 max_iters,
+        uint256 epsilon
+    ) external returns (int256 maxProfit, uint256 maxTrade) {
+        require(epsilon < 1000, "epsilon must be less than 1000");
+
+        uint256 lower = 1;
+        uint256 upper = 1e20;
+
+        maxProfit = type(int256).min;
+        maxTrade = lower;
+
+        uint256 iterations;
+        uint256 distance = upper - lower;
+        uint256 mid1;
+        uint256 mid2;
+        do {
+            mid1 = lower + (upper - lower) / 3;
+            mid2 = upper - (upper - lower) / 3;
+
+            MockTokenLike(atomic.quote()).mint(address(this), mid1 + mid2);
+            TokenLike(atomic.quote()).approve(address(atomic), mid1 + mid2);
+
+            int256 profit1;
+            int256 profit2;
+
+            try atomic.try_lower_exchange_price(mid1) {
+                profit1 = type(int256).min;
+            } catch (bytes memory err) {
+                assembly {
+                    // remove first 4 bytes
+                    err := add(err, 0x04)
+                }
+                profit1 = abi.decode(err, (int256));
+            }
+
+            try atomic.try_lower_exchange_price(mid2) {
+                profit2 = type(int256).min;
+            } catch (bytes memory err) {
+                assembly {
+                    // remove first 4 bytes
+                    err := add(err, 0x04)
+                }
+                profit2 = abi.decode(err, (int256));
+            }
+
+            console2.log("Trade1", mid1);
+            console2.log("Profit1", profit1);
+            console2.log("Trade2", mid2);
+            console2.log("Profit2", profit2);
+            console2.log("MaxProfit", maxProfit);
+
+            if (profit1 < profit2) {
+                lower = mid1;
+                maxProfit = profit2;
+                maxTrade = mid2;
+            } else {
+                upper = mid2;
+                maxProfit = profit1;
+                maxTrade = mid1;
+            }
+
+            distance = upper - lower;
+            iterations += 1;
+        } while (distance > epsilon && iterations < max_iters);
+
+        console2.log(
+            "ProfitFinder[FOUND] (i,trade,profit):",
+            iterations,
+            maxTrade,
+            uint256(maxProfit)
+        );
+
+        revert AtomicV2.MaximizingProfitTrade(maxTrade, uint256(maxProfit));
+    }
+}
+
 /// @dev Takes Y tokens from Arbitrageur, swaps on either LEX or DEX, then swaps on the opposite exchange and returns the output Y tokens to Arbitrageur.
 contract AtomicV2 {
     error InsufficientBalanceY(uint256 balance, uint256 payment);
@@ -70,6 +234,7 @@ contract AtomicV2 {
     error NotProfitable(uint256 first_swap_output, uint256 second_swap_output);
 
     error FindingTradeError(bytes err);
+    error MaximizingProfitTrade(uint256 trade, uint256 profit);
 
     error UnprofitableArbitrage(
         uint256 start_y_balance,
@@ -84,6 +249,8 @@ contract AtomicV2 {
     address public liquidExchange;
     address public asset;
     address public quote;
+
+    ProfitFinder public profitFinder;
 
     /// @dev Since token x is transferred inside the arbitrage loop, this stores that value in the last arb loop.
     uint256 public intermediateTokenXBalance;
@@ -103,10 +270,63 @@ contract AtomicV2 {
         liquidExchange = liquidExchangeAddress;
         asset = assetAddress;
         quote = quoteAddress;
+        profitFinder = new ProfitFinder();
     }
 
     bool public XTOY = true;
     bool public YTOX = false;
+
+    struct TradePacket {
+        uint256 block_number;
+        uint256 block_timestamp;
+        bool raisePrice;
+        uint256 amountIn;
+        uint256 profit;
+    }
+
+    TradePacket public tradePacket;
+
+    function searchRaisePrice(
+        uint256 max_iters,
+        uint256 epsilon
+    ) public returns (uint256 amountIn, uint256 profit) {
+        try profitFinder.searchRaisePrice(max_iters, epsilon) { }
+        catch (bytes memory err) {
+            // cut the first 4 bytes
+            assembly {
+                err := add(err, 0x04)
+            }
+
+            (amountIn, profit) = abi.decode(err, (uint256, uint256));
+        }
+
+        tradePacket.block_number = block.number;
+        tradePacket.block_timestamp = block.timestamp;
+        tradePacket.raisePrice = true;
+        tradePacket.amountIn = amountIn;
+        tradePacket.profit = profit;
+    }
+
+    function searchLowerPrice(
+        uint256 max_iters,
+        uint256 epsilon
+    ) public returns (uint256 amountIn, uint256 profit) {
+        try profitFinder.searchLowerPrice(max_iters, epsilon) { }
+        catch (bytes memory err) {
+            // cut the first 4 bytes
+            assembly {
+                err := add(err, 0x04)
+            }
+
+            (amountIn, profit) = abi.decode(err, (uint256, uint256));
+        }
+
+        tradePacket.block_number = block.number;
+        tradePacket.block_timestamp = block.timestamp;
+        tradePacket.raisePrice = false;
+        tradePacket.amountIn = amountIn;
+        tradePacket.profit = profit;
+    }
 
     function findTrade(
         bool swapXIn,
@@ -223,6 +443,8 @@ contract AtomicV2 {
         }
     }
 
+    error AttemptedProfit(int256 profit);
+
     function lower_exchange_price(uint256 input) external {
         // Arbitrageur Y -> AtomicV2
         _invoice(input);
@@ -237,6 +459,24 @@ contract AtomicV2 {
         _payout();
     }
 
+    // Always reverts with the profit at the end.
+    function try_lower_exchange_price(uint256 input) external {
+        // Arbitrageur Y -> AtomicV2
+        _invoice(input);
+
+        // Y -> X on LEX
+        _lex_swap(YTOX, input);
+
+        // X -> Y on DEX
+        _dex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
+
+        intermediateTokenYEndBalance = TokenLike(quote).balanceOf(address(this));
+        revert AttemptedProfit(
+            int256(intermediateTokenYEndBalance)
+                - int256(intermediateTokenYStartBalance)
+        );
+    }
+
     function raise_exchange_price(uint256 input) external {
         // Arbitrageur Y -> AtomicV2
         _invoice(input);
@@ -249,6 +489,23 @@ contract AtomicV2 {
 
         // AtomicV2 Y -> Arbitrageur
         _payout();
+    }
+
+    function try_raise_exchange_price(uint256 input) external {
+        // Arbitrageur Y -> AtomicV2
+        _invoice(input);
+
+        // Y -> X on DEX
+        _dex_swap(YTOX, input);
+
+        // X -> Y on LEX
+        _lex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
+
+        intermediateTokenYEndBalance = TokenLike(quote).balanceOf(address(this));
+        revert AttemptedProfit(
+            int256(intermediateTokenYEndBalance)
+                - int256(intermediateTokenYStartBalance)
+        );
     }
 
     /// @dev Handles the payment from the arbitrageur.

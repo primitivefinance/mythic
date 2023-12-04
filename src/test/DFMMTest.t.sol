@@ -490,4 +490,78 @@ contract DFMMTest is Test {
         console2.log("Reserve[Y]", reserveY);
         console2.log("Liquidity", liquidity);
     }
+
+    function test_profit_finder_raise_price() public basic {
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000 ether);
+
+        lex.setPrice(1.5 ether);
+        uint256 input;
+
+        try atomic.profitFinder().searchRaisePrice(100, 10) { } catch { }
+        // do the trade
+        atomic.raise_exchange_price(input);
+        // check the cumulative profit
+        console2.log("input amount", input);
+        console2.log("cumulative profit", atomic.cumulativeProfit());
+    }
+
+    function test_profit_finder_lower_price() public basic {
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000 ether);
+
+        lex.setPrice(0.5 ether);
+        uint256 input;
+        try atomic.profitFinder().searchLowerPrice(100, 10) { } catch { }
+        // do the trade
+        atomic.lower_exchange_price(input);
+        // check the cumulative profit
+        console2.log("input amount", input);
+        console2.log("cumulative profit", atomic.cumulativeProfit());
+    }
+
+    function test_profit_finder_from_atomic_lower() public basic {
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000 ether);
+
+        lex.setPrice(0.8358473209862632 ether);
+        (uint256 input,) = atomic.searchLowerPrice(256, 10);
+        uint256 price = dfmm.internalPrice();
+        atomic.lower_exchange_price(input);
+
+        console2.log("Price[SRT]", price);
+        console2.log("Price[END]", dfmm.internalPrice());
+    }
+
+    function test_profit_finder_from_atomic_raise() public basic {
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000 ether);
+
+        lex.setPrice(1.5 ether);
+        atomic.searchRaisePrice(256, 10);
+    }
 }
