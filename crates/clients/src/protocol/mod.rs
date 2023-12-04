@@ -1,13 +1,11 @@
 //! Dynamic Function Market Making Protocol Client
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
-pub mod dfmm;
-pub mod log_normal;
-
 use std::sync::Arc;
 
 use anyhow::Result;
 use arbiter_core::middleware::RevmMiddleware;
+use bindings::{dfmm, log_normal};
 use tracing::debug;
 
 use super::*;

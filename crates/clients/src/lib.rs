@@ -2,6 +2,7 @@
 //! and connections to live networks.
 
 pub mod arbiter;
+mod bindings;
 pub mod client;
 pub mod forking;
 pub mod ledger;
