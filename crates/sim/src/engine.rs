@@ -8,15 +8,18 @@ use arbiter_core::environment::{
 use revm::db::{CacheDB, DbAccount, EmptyDB};
 use revm_primitives::{AccountInfo, HashMap as Map};
 use serde::{Deserialize, Serialize};
-// todo: remove simulation crate deps
-use simulation::settings::{
-    parameters::{Multiple, Single},
-    SimulationConfig,
-};
 use tokio::{runtime::Builder, sync::Semaphore};
 
-use super::{agent::Agents, config::ConfigBuilder, *};
-use crate::{config::Configurable, scenarios::Scenario};
+use super::*;
+use crate::{
+    agent::Agents,
+    configuration::{ConfigBuilder, Configurable},
+    scenarios::Scenario,
+    settings::{
+        parameters::{Multiple, Single},
+        SimulationConfig,
+    },
+};
 
 /// A live arbiter environment with agents, a config, and amount of steps to
 /// run.
@@ -381,10 +384,12 @@ async fn simulation_task(
 #[cfg(test)]
 mod tests {
     use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
-    use simulation::agents::{block_admin::BlockAdminParameters, AgentParameters};
 
     use super::*;
-    use crate::scenarios::BasicScenario;
+    use crate::{
+        agents::{base::block_admin::BlockAdminParameters, AgentParameters},
+        scenarios::BasicScenario,
+    };
 
     #[tokio::test]
     async fn test_serialize_deserialize() {

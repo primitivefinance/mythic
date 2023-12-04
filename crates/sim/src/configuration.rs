@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+
 // todo: remove this dep
-use simulation::{
+use crate::{
     agents::AgentParameters,
     settings::{parameters::Multiple, SimulationConfig},
 };

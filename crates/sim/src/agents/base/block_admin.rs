@@ -4,15 +4,14 @@ use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use ethers::providers::Middleware;
 use revm::db::{CacheDB, EmptyDB};
 use serde::{Deserialize, Serialize};
-use simulation::{
-    agents::AgentParameters,
-    settings::{parameters::Single, SimulationConfig},
-    simulations::Simulation,
-};
 use tracing::debug;
 
 use super::*;
-use crate::agent::Agent;
+use crate::{
+    agent::Agent,
+    agents::AgentParameters,
+    settings::{parameters::Single, SimulationConfig},
+};
 
 #[derive(Clone, Debug)]
 pub struct BlockAdmin {

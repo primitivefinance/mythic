@@ -1,9 +1,10 @@
 pub mod agent;
 pub mod agents;
 pub mod bindings;
-pub mod config;
+pub mod configuration;
 pub mod engine;
 pub mod scenarios;
+pub mod settings;
 
 use std::{any::Any, path::Path};
 
@@ -11,12 +12,12 @@ use ::config::ConfigError;
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use serde::{Deserialize, Serialize};
-// todo: remove
-use simulation::agents::AgentParameters;
-use simulation::settings::{
+use serde_json::Value;
+use settings::{
     parameters::{Multiple, Single},
     Parameterized, SimulationConfig,
 };
+use thiserror::Error;
 use tracing::Level;
 use tracing_subscriber;
 
@@ -31,7 +32,7 @@ pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigErr
 pub fn run() -> Result<()> {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
-    let path = "configs/volatility_targeting/static.toml";
+    let path = "configs/v3/static.toml";
     let config: SimulationConfig<Multiple> = import(path)?;
 
     let rt = tokio::runtime::Builder::new_multi_thread().build().unwrap();
@@ -53,6 +54,20 @@ pub fn run() -> Result<()> {
     tracing::info!("Total duration of simulations: {:?}", duration);
 
     Ok(())
+}
+
+#[derive(Clone, Error, Debug, Serialize, Deserialize)]
+pub enum SimulationError {
+    #[error("Generic error: {0}")]
+    GenericError(String),
+    #[error("Error in simulation: {0}")]
+    Error(Value),
+}
+
+impl From<anyhow::Error> for SimulationError {
+    fn from(error: anyhow::Error) -> Self {
+        SimulationError::GenericError(error.to_string())
+    }
 }
 
 pub fn to_ethers_address(address: alloy_primitives::Address) -> ethers::types::Address {

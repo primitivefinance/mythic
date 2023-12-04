@@ -1,7 +1,6 @@
 use alloy_primitives::Address;
 use arbiter_core::data_collection::EventLogger;
 use revm::db::{CacheDB, EmptyDB};
-use simulation::simulations::errors::SimulationError;
 
 use super::*;
 use crate::{
