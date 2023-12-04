@@ -6,7 +6,7 @@ use alloy_primitives::{
 };
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
-use tracing::{debug, info, trace};
+use tracing::{debug, error, info, trace};
 
 use super::{
     agents::base::token_admin::TokenAdmin,
@@ -112,7 +112,7 @@ impl Arbitrageur {
         debug!("liquid_exchange_price_wad: {:?}", liquid_exchange_price_wad);
         debug!("rmm_price_wad: {:?}", price);
 
-        let gamma_wad = WAD;
+        let gamma_wad = WAD.checked_sub(U256::from_str_radix("20", 10)?).unwrap();
         let upper_arb_bound = WAD * price / (WAD - gamma_wad);
         let lower_arb_bound = price * (WAD - gamma_wad) / WAD;
 
@@ -149,7 +149,7 @@ impl Agent for Arbitrageur {
 
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!(
+                debug!(
                     "Detected the need to raise price to {:?}",
                     format_units(target_price, "ether")?
                 );
@@ -171,18 +171,18 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!(
+                debug!(
                     "Detected the need to lower price to {:?}",
                     format_units(target_price, "ether")?
                 );
                 let input = U256::ZERO;
-                info!("Got input: {:?}", input);
+                debug!("Got input: {:?}", input);
                 if input.is_zero() {
                     return Ok(());
                 }
@@ -202,14 +202,14 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?}", output);
+                            debug!("Execution revert: {:?}", output);
                         }
                     }
                 }
-                info!("Sent arbitrage.");
+                debug!("Sent arbitrage.");
             }
             Swap::None => {
-                info!("No arbitrage opportunity");
+                debug!("No arbitrage opportunity");
             }
         }
         Ok(())
