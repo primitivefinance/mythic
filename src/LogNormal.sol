@@ -74,7 +74,7 @@ function findRootLiquidity(
         reserveYWad: y,
         totalLiquidity: liquidity,
         params: params
-    }) - swapConstant;
+    });
 }
 
 /// @param sigmaPercentWad Must be in WAD units such that 1E18 = 100%.
@@ -240,10 +240,8 @@ contract LogNormal is Source {
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
     function dynamicSlot() public view returns (Parameters memory params) {
-        params = staticSlot();
-        params.sigmaPercentWad = sigma();
-        params.strikePriceWad = strikePrice();
-        params.tauYearsWad = tau();
+        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad) =
+            (strikePrice(), sigma(), tau());
     }
 
     function _syncDynamicSlot() internal {
@@ -270,14 +268,23 @@ contract LogNormal is Source {
         uint256 reserveYWad,
         uint256 totalLiquidity
     ) public view returns (uint256) {
-        return findLiquidity(
-            reserveXWad,
-            reserveYWad,
-            computeSwapConstant(
-                abi.encode(reserveXWad, reserveYWad, totalLiquidity)
-            ),
-            dynamicSlot()
+        Parameters memory params = dynamicSlot();
+        console2.log(
+            "Finding next liquidity given strike price", params.strikePriceWad
         );
+        console2.log(
+            "Finding next liquidity given sigma", params.sigmaPercentWad
+        );
+        console2.log("Finding next liquidity given tau", params.tauYearsWad);
+        console2.log("Finding next liquidity given reserveX", reserveXWad);
+        console2.log("Finding next liquidity given reserveY", reserveYWad);
+
+        int256 swapConstant = computeSwapConstant(
+            abi.encode(reserveXWad, reserveYWad, totalLiquidity)
+        );
+        console2.logInt(swapConstant);
+        return
+            findLiquidity(reserveXWad, reserveYWad, swapConstant, dynamicSlot());
     }
 
     /// @dev Computes the result of the tradingFunction().

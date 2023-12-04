@@ -120,8 +120,12 @@ contract DFMMTest is Test {
 
         dfmm.init(init_data);
 
-        console2.log("Initialized liquidity:", found_l);
-
+        console2.log("Initialized L:       ", found_l);
+        console2.log("Initialized X:       ", init_x);
+        console2.log("Initialized Y:       ", init_y);
+        console2.log("Initialized strike:  ", source.strikePrice());
+        console2.log("Initialized sigma:   ", source.sigma());
+        console2.log("Initialized tau:     ", source.tau());
         _;
     }
 
@@ -444,6 +448,8 @@ contract DFMMTest is Test {
     }
 
     function test_dfmm_swap_dynamic_strike() public basic {
+        uint256 original_price = dfmm.internalPrice();
+
         // Change the strike.
         stdstore.target(address(source)).sig(source.targetStrike.selector)
             .checked_write(1.5 ether);
@@ -454,12 +460,34 @@ contract DFMMTest is Test {
         console2.log("Target strike: ", source.targetStrike());
 
         // Try doing a swap.
-        uint256 amountIn = 0.1 ether;
+        uint256 amountIn = 10;
         bool swapXIn = true;
 
         (bool valid, uint256 estimatedOut,, bytes memory payload) =
             dfmm.simulateSwap(swapXIn, amountIn);
 
+        (uint256 reserveX, uint256 reserveY, uint256 liquidity) =
+            dfmm.getReservesAndLiquidity();
+        console2.log("Balance[X]", MockERC20(tokenX).balanceOf(address(dfmm)));
+        console2.log("Balance[Y]", MockERC20(tokenY).balanceOf(address(dfmm)));
+        console2.log("Reserve[X]", reserveX);
+        console2.log("Reserve[Y]", reserveY);
+        console2.log("Liquidity", liquidity);
+
+        console2.log("Amount[IN]", amountIn);
+        console2.log("Amount[OUT]", estimatedOut);
+        console2.log("Price[APRX]", estimatedOut * 1 ether / amountIn);
+        uint256 oldPrice = dfmm.internalPrice();
         dfmm.swap(payload);
+        console2.log("Price[ORGN]", original_price);
+        console2.log("Price[OLD]", oldPrice);
+        console2.log("Price[NEW]", dfmm.internalPrice());
+
+        (reserveX, reserveY, liquidity) = dfmm.getReservesAndLiquidity();
+        console2.log("Balance[X]", MockERC20(tokenX).balanceOf(address(dfmm)));
+        console2.log("Balance[Y]", MockERC20(tokenY).balanceOf(address(dfmm)));
+        console2.log("Reserve[X]", reserveX);
+        console2.log("Reserve[Y]", reserveY);
+        console2.log("Liquidity", liquidity);
     }
 }
