@@ -5,6 +5,7 @@ pub mod arbiter;
 pub mod client;
 pub mod forking;
 pub mod ledger;
+pub mod protocol;
 pub mod scroll;
 
 use ethers::prelude::*;

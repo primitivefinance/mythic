@@ -17,6 +17,7 @@ members = ["simulation", "crates/*"]
 simulation = { path = "./simulation", version = "0.1.0" }
 analysis = { path = "./crates/analysis", version = "0.1.0" }
 cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
+clients = { path = "./crates/clients", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }

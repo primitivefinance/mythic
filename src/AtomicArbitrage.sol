@@ -5,7 +5,10 @@ interface ExchangeLike {
 }
 
 interface StrategyLike {
-    function swapAmountIn(bool swapDirection, uint256 amount) external returns (uint256);
+    function swapAmountIn(
+        bool swapDirection,
+        uint256 amount
+    ) external returns (uint256);
 }
 
 interface TokenLike {
@@ -29,17 +32,19 @@ contract AtomicArbitrage {
     event TestEvent3(uint256 t1);
     event TestEvent4(uint256 t1);
 
-    constructor(address exchangeAddress, address liquidExchangeAddress, address assetAddress, address quoteAddress) {
+    constructor(
+        address exchangeAddress,
+        address liquidExchangeAddress,
+        address assetAddress,
+        address quoteAddress
+    ) {
         exchange = exchangeAddress;
         liquidExchange = liquidExchangeAddress;
         asset = assetAddress;
         quote = quoteAddress;
     }
 
-
-    function lower_exchange_price(
-        uint256 input
-    ) external {
+    function lower_exchange_price(uint256 input) external {
         // pull in tokens from arbitrageur
         TokenLike(quote).transferFrom(msg.sender, address(this), input);
 
@@ -56,15 +61,13 @@ contract AtomicArbitrage {
         uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
         if (quote_balance > 0) {
             TokenLike(quote).transfer(msg.sender, quote_balance);
-            }
-        else {
+        } else {
             revert NotProfitable(asset_balance, quote_balance);
         }
         // require(quote_balance > input, "Not profitable");
     }
-    function raise_exchange_price(
-        uint256 input
-    ) external {
+
+    function raise_exchange_price(uint256 input) external {
         // pull in tokens from arbitrageur
         TokenLike(quote).transferFrom(msg.sender, address(this), input);
 
@@ -81,10 +84,8 @@ contract AtomicArbitrage {
         uint256 quote_balance = TokenLike(quote).balanceOf(address(this));
         if (quote_balance > 0) {
             TokenLike(quote).transfer(msg.sender, quote_balance);
-            }
-        else {
+        } else {
             revert NotProfitable(asset_balance, quote_balance);
         }
     }
-
 }

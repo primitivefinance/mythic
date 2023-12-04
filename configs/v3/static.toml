@@ -21,7 +21,7 @@ decimals = 18
 # The seed to use (optional)
 seed = 2
 # The number of steps in the process
-num_steps = 1825
+num_steps = 1
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset
@@ -57,3 +57,7 @@ specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 x_liquidity.fixed = 1
 # The initial price of the pair
 initial_price.fixed = 1.0
+# inital parameters
+sigma.fixed = 1.0
+tau.fixed = 1.0
+strike_price.fixed = 1.0

@@ -18,7 +18,6 @@ use settings::{
     Parameterized, SimulationConfig,
 };
 use thiserror::Error;
-use tracing::Level;
 use tracing_subscriber;
 
 pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
@@ -58,7 +57,7 @@ pub fn run(verbosity: Option<u8>) -> Result<()> {
 
     let duration = instant.elapsed();
 
-    tracing::debug!("Simulation result: {:?}", result);
+    tracing::trace!("Simulation result: {:?}", result);
     tracing::info!("Total duration of simulations: {:?}", duration);
 
     Ok(())
