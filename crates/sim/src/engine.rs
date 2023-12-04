@@ -8,18 +8,15 @@ use arbiter_core::environment::{
 use revm::db::{CacheDB, DbAccount, EmptyDB};
 use revm_primitives::{AccountInfo, HashMap as Map};
 use serde::{Deserialize, Serialize};
-// todo: remove
-use simulation::{
-    settings::{
-        parameters::{Multiple, Single},
-        SimulationConfig,
-    },
-    simulations::errors::SimulationError,
+// todo: remove simulation crate deps
+use simulation::settings::{
+    parameters::{Multiple, Single},
+    SimulationConfig,
 };
 use tokio::{runtime::Builder, sync::Semaphore};
 
 use super::{agent::Agents, config::ConfigBuilder, *};
-use crate::{agents::base::block_admin::BlockAdmin, config::Configurable};
+use crate::{config::Configurable, scenarios::Scenario};
 
 /// A live arbiter environment with agents, a config, and amount of steps to
 /// run.
@@ -218,21 +215,26 @@ impl ArbiterInstanceManager {
         self
     }
 
-    pub async fn build_instance(&mut self, config: SimulationConfig<Single>) -> ArbiterInstance {
+    pub async fn build_instance(
+        &mut self,
+        config: SimulationConfig<Single>,
+        scenario: impl Scenario,
+    ) -> ArbiterInstance {
         let db = self.builder.db.clone();
         let environment = self.builder.clone().build();
-        let (agents, steps, environment) = populate_agents(db, environment, config.clone())
+        let (agents, steps, environment) = scenario
+            .setup(db, environment, config.clone())
             .await
             .unwrap();
         ArbiterInstance::new(environment, config.clone(), agents, steps)
     }
 
-    pub async fn build(&mut self) -> Vec<ArbiterInstance> {
+    pub async fn build(&mut self, scenario: impl Scenario) -> Vec<ArbiterInstance> {
         let configs: Vec<SimulationConfig<Single>> = self.config_builder.get().clone().into();
 
         let mut instances = vec![];
         for config in configs {
-            let instance = self.build_instance(config).await;
+            let instance = self.build_instance(config, scenario.clone()).await;
             instances.push(instance);
         }
 
@@ -246,8 +248,11 @@ impl ArbiterInstanceManager {
         }
     }
 
-    pub async fn run_parallel(&mut self) -> Result<Vec<SnapshotDB>, Error> {
-        let result = run_parallel(self.clone()).await;
+    pub async fn run_parallel(
+        &mut self,
+        scenario: impl Scenario,
+    ) -> Result<Vec<SnapshotDB>, Error> {
+        let result = run_parallel(self.clone(), scenario).await;
         let result = result?.join().unwrap().unwrap();
         self.instances = result.clone();
         Ok(result)
@@ -283,26 +288,12 @@ impl<'de> Deserialize<'de> for ArbiterInstanceManager {
     }
 }
 
-// Runs to initialize the agents.
-// todo: passing db is temporary. we need the db to be accessible from the
-// running environment.
-pub async fn populate_agents(
-    db: Option<CacheDB<EmptyDB>>,
-    environment: Environment,
-    config: SimulationConfig<Single>,
-) -> Result<(Agents, usize, Environment), SimulationError> {
-    let steps = 10;
-    let mut agents = Agents::new();
-
-    let block_admin = BlockAdmin::new(db, &environment, &config, "block_admin").await?;
-    agents.add(block_admin);
-
-    Ok((agents, steps, environment))
-}
-
 type ParallelResult = std::thread::JoinHandle<Result<Vec<SnapshotDB>, Error>>;
 
-pub async fn run_parallel(builder: ArbiterInstanceManager) -> Result<ParallelResult, Error> {
+pub async fn run_parallel(
+    builder: ArbiterInstanceManager,
+    scenario: impl Scenario,
+) -> Result<ParallelResult, Error> {
     tracing::info!("Running simulation tasks in separate thread.");
     let slice = std::thread::spawn(move || {
         let rt = Builder::new_multi_thread().build()?;
@@ -310,7 +301,7 @@ pub async fn run_parallel(builder: ArbiterInstanceManager) -> Result<ParallelRes
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<Error>));
         let mut builder = builder.clone();
         let res = rt.block_on(async {
-            let mut instances = builder.build().await;
+            let mut instances = builder.build(scenario).await;
             let mut handles = vec![];
             let i = instances.len();
 
@@ -393,6 +384,7 @@ mod tests {
     use simulation::agents::{block_admin::BlockAdminParameters, AgentParameters};
 
     use super::*;
+    use crate::scenarios::BasicScenario;
 
     #[tokio::test]
     async fn test_serialize_deserialize() {
@@ -400,6 +392,8 @@ mod tests {
         tracing_subscriber::fmt()
             .with_max_level(tracing::Level::TRACE)
             .init();
+
+        let scenario = BasicScenario {};
 
         // Make a new manager and add an agent parameter to it.
         let mut manager = ArbiterInstanceManager::new();
@@ -412,7 +406,7 @@ mod tests {
         );
 
         // Run the sims, returning snapshot dbs to the manager's `instances`.
-        manager.run_parallel().await.unwrap();
+        manager.run_parallel(scenario.clone()).await.unwrap();
 
         // Serializing the manager will serialize its builders and snapshot dbs.
         let serialized = serde_json::to_string(&manager).unwrap();
@@ -424,7 +418,7 @@ mod tests {
         deserialized = deserialized.load_from_snapshot(snapshot);
 
         // Build the instances.
-        let instance = deserialized.build().await;
+        let instance = deserialized.build(scenario).await;
 
         // Only care about the first instance, in which we added the block admin.
         let instance = instance.first().unwrap();

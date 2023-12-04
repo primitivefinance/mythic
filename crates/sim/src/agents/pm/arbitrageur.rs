@@ -17,7 +17,7 @@ use super::{
 pub const WAD: U256 = U256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
 
 #[derive(Debug, Clone)]
-pub struct RmmArbitrageur {
+pub struct Arbitrageur {
     pub client: Arc<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
@@ -27,7 +27,7 @@ pub struct RmmArbitrageur {
     pub atomic_arbitrage: AtomicArbitrage<RevmMiddleware>,
 }
 
-impl RmmArbitrageur {
+impl Arbitrageur {
     pub async fn new(
         environment: &Environment,
         token_admin: &TokenAdmin,
@@ -134,7 +134,7 @@ impl RmmArbitrageur {
 }
 // TODO: make sure we're swapping on low and high vol strategies
 #[async_trait::async_trait]
-impl Agent for RmmArbitrageur {
+impl Agent for Arbitrageur {
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
         // Detect if there is an arbitrage opportunity.

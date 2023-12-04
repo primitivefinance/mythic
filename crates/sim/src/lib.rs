@@ -3,6 +3,7 @@ pub mod agents;
 pub mod bindings;
 pub mod config;
 pub mod engine;
+pub mod scenarios;
 
 use std::any::Any;
 
@@ -30,8 +31,10 @@ pub fn run() -> Result<()> {
             AgentParameters::BlockAdmin(BlockAdminParameters { timestep_size: 9 }),
         );
 
+        let scenario = scenarios::BasicScenario;
+
         // Run the sims, returning snapshot dbs to the manager's `instances`.
-        manager.run_parallel().await
+        manager.run_parallel(scenario).await
     })?;
 
     tracing::info!("Simulation result: {:?}", result);
