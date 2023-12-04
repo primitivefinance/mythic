@@ -21,7 +21,7 @@ decimals = 18
 # The seed to use (optional)
 seed = 2
 # The number of steps in the process
-num_steps = 1
+num_steps = 10
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset

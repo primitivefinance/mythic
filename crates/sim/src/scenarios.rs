@@ -73,6 +73,8 @@ impl Scenario for DFMMScenario {
             PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
         let steps = price_changer.trajectory.paths[0].len() - 1;
         let lex = from_ethers_address(price_changer.liquid_exchange.address());
+        let lex_events = price_changer.liquid_exchange.events();
+        agents.add(price_changer);
 
         // 2. Portfolio manager deploys a Dynamic Function MM & updates its parameters.
         let pm = VolatilityTargetingSubmitter::new(&environment, &config, "portfolio_manager", lex)
@@ -92,7 +94,7 @@ impl Scenario for DFMMScenario {
         EventLogger::builder()
             .directory(config.output_directory.clone())
             .file_name(config.output_file_name.clone().unwrap())
-            .add(price_changer.liquid_exchange.events(), "lex")
+            .add(lex_events, "lex")
             .add(market_events, "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")

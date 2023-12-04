@@ -153,6 +153,11 @@ interface Source {
             uint256 reserveYWad,
             uint256 totalLiquidity
         );
+
+    function internalPrice(
+        uint256 reserveXWad,
+        uint256 totalLiquidity
+    ) external view returns (uint256 price);
 }
 
 /// @dev Contract that holds the reserve and liquidity state.
@@ -178,6 +183,7 @@ contract LogNormal is Source {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
+    uint256 public constant APPROXIMATED_MINIMUM_X_INPUT = 10;
     uint256 public constant BISECTION_EPSILON = 1;
     uint256 public constant MAX_BISECTION_ITERS = 256;
     uint256 public constant HALF_WAD = 0.5e18;
@@ -256,7 +262,7 @@ contract LogNormal is Source {
     function simulateSwap(
         bool swapXIn,
         uint256 amountIn
-    ) public view onlyCore returns (bool, uint256, bytes memory) {
+    ) public view onlyCore returns (bool, uint256, uint256, bytes memory) {
         (
             uint256 adjustedReserveXWad,
             uint256 adjustedReserveYWad,
@@ -289,6 +295,11 @@ contract LogNormal is Source {
             );
             adjustedReserveYWad += 1;
 
+            require(
+                adjustedReserveYWad < originalReserveYWad,
+                "invalid swap: y reserve increased!"
+            );
+
             amountOut = originalReserveYWad - adjustedReserveYWad;
             console2.log("Esimated Y reserve to submit", adjustedReserveYWad);
         } else {
@@ -301,6 +312,8 @@ contract LogNormal is Source {
             adjustedLiquidity += liquidityDelta;
 
             uint256 originalReserveXWad = adjustedReserveXWad;
+            console2.log("adjustedY", adjustedReserveYWad);
+            console2.log("adjustedL", adjustedLiquidity);
             adjustedReserveXWad = findX(
                 adjustedReserveYWad,
                 adjustedLiquidity,
@@ -309,6 +322,10 @@ contract LogNormal is Source {
             );
             adjustedReserveXWad += 1;
 
+            require(
+                adjustedReserveXWad < originalReserveXWad,
+                "invalid swap: x reserve increased!"
+            );
             amountOut = originalReserveXWad - adjustedReserveXWad;
         }
 
@@ -316,7 +333,18 @@ contract LogNormal is Source {
             adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
         );
         (bool valid,,,,,) = validate(swapData);
-        return (valid, amountOut, swapData);
+        return (
+            valid,
+            amountOut,
+            computePrice({
+                reserveXWad: adjustedReserveXWad,
+                totalLiquidity: adjustedLiquidity,
+                strikePriceWad: slot.strikePriceWad,
+                sigmaPercentWad: slot.sigmaPercentWad,
+                tauYearsWad: slot.tauYearsWad
+            }),
+            swapData
+        );
     }
 
     /// @dev Finds the root of the swapConstant given the independent variable reserveXWad.
@@ -326,8 +354,8 @@ contract LogNormal is Source {
         int256 swapConstant,
         Parameters memory params
     ) public pure returns (uint256 reserveY) {
-        uint256 lower = 100;
-        uint256 upper = params.strikePriceWad - 1;
+        uint256 lower = 10;
+        uint256 upper = params.strikePriceWad - 10;
         reserveY = bisection(
             abi.encode(reserveXWad, liquidity, swapConstant, params),
             lower,
@@ -345,8 +373,8 @@ contract LogNormal is Source {
         int256 swapConstant,
         Parameters memory params
     ) public pure returns (uint256 reserveY) {
-        uint256 lower = 2;
-        uint256 upper = WAD - 2;
+        uint256 lower = 10;
+        uint256 upper = liquidity - 10; // max x = 1 - x / l, so l - x
         reserveY = bisection(
             abi.encode(reserveYWad, liquidity, swapConstant, params),
             lower,
@@ -457,6 +485,58 @@ contract LogNormal is Source {
         // Valid should check that the trading function growth is >= expected fee growth.
         valid = swapConstantGrowth >= int256(ZERO)
             && liquidityDelta >= int256(minLiquidityDelta);
+    }
+
+    uint256 public constant INFINITY_IS_NOT_REAL = type(uint256).max;
+
+    /// @dev Computes the internal price using this strategie's slot parameters.
+    function internalPrice(
+        uint256 reserveXWad,
+        uint256 totalLiquidity
+    ) public view returns (uint256 price) {
+        price = computePrice(
+            reserveXWad,
+            totalLiquidity,
+            slot.strikePriceWad,
+            slot.sigmaPercentWad,
+            slot.tauYearsWad
+        );
+    }
+
+    /// @dev Computes the approximated spot price given current reserves and liquidity.
+    function computePrice(
+        uint256 reserveXWad,
+        uint256 totalLiquidity,
+        uint256 strikePriceWad,
+        uint256 sigmaPercentWad,
+        uint256 tauYearsWad
+    ) public pure returns (uint256 price) {
+        uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigmaPercentWad, tauYearsWad);
+        uint256 halfSigmaSquared = computeHalfSigmaSquared(sigmaPercentWad);
+        uint256 halfSigmaSquaredTau = halfSigmaSquared.mulWadDown(tauYearsWad);
+
+        // Gaussian.ppf has a range of [-inf, inf], so we need to make sure the input is in [0, 1].
+        int256 reserveXDivLiquidity =
+            int256(reserveXWad.divWadDown(totalLiquidity));
+        // As x -> 1, price -> 0.
+        if (reserveXDivLiquidity >= int256(WAD)) {
+            return 0;
+        }
+        // As x -> 0, price -> infinity.
+        if (reserveXDivLiquidity <= int256(ZERO)) {
+            // todo: can returning an infinity price be worse than returning zero or reverting?
+            return INFINITY_IS_NOT_REAL;
+        }
+        // The output can be negative so we have to be careful not to lose that information by casting.
+        int256 inverse_cdf_result =
+            Gaussian.ppf(int256(WAD) - reserveXDivLiquidity);
+        int256 exponent = inverse_cdf_result * int256(sigmaSqrtTau)
+            / int256(WAD) - int256(halfSigmaSquaredTau);
+
+        // This result cannot be negative!
+        int256 exp_result = FixedPointMathLib.expWad(exponent);
+        uint256 exp_result_uint = toUint(exp_result);
+        price = strikePriceWad.mulWadUp(exp_result_uint);
     }
 
     /// @dev Compute total liquidity given x reserves.
@@ -677,6 +757,11 @@ contract DFMM is Core {
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
+    /// @dev Gets the approximated price of the pool given x reserves and liquidity.
+    function internalPrice() public view returns (uint256 price) {
+        price = LogNormal(source).internalPrice(reserveXWad, totalLiquidity);
+    }
+
     /// @param data The data to be passed to the source strategy contract for pool initialization & validation.
     function init(bytes calldata data)
         public
@@ -708,6 +793,7 @@ contract DFMM is Core {
     /// @param amountIn The amount of the input token to swap.
     /// @return valid Whether the swap is valid, as returned by source.validate().
     /// @return estimatedOut The estimated amount of the output token.
+    /// @return estimatedPrice The computed price after the swap.
     /// @return swapData The data to be passed to the source strategy contract for swap validation.
     function simulateSwap(
         bool swapXIn,
@@ -715,7 +801,12 @@ contract DFMM is Core {
     )
         public
         view
-        returns (bool valid, uint256 estimatedOut, bytes memory swapData)
+        returns (
+            bool valid,
+            uint256 estimatedOut,
+            uint256 estimatedPrice,
+            bytes memory swapData
+        )
     {
         return LogNormal(source).simulateSwap(swapXIn, amountIn);
     }

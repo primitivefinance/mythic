@@ -5,20 +5,90 @@ import "../v3/BisectionLib.sol";
 import "../DFMM.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
+import "../AtomicV2.sol";
+
+contract LEX {
+    using FixedPointMathLib for int256;
+    using FixedPointMathLib for uint256;
+
+    address public admin;
+    address public arbiterTokenX;
+    address public arbiterTokenY;
+    uint256 public price;
+    uint256 constant WAD = 10 ** 18;
+
+    // Each LiquidExchange contract will be deployed with a pair of token addresses and an initial price
+    constructor(
+        address arbiterTokenX_,
+        address arbiterTokenY_,
+        uint256 price_
+    ) {
+        admin = msg.sender; // Set the contract deployer as the initial admin
+        arbiterTokenX = arbiterTokenX_;
+        arbiterTokenY = arbiterTokenY_;
+        price = price_;
+    }
+
+    // Our admin lock
+    modifier onlyAdmin() {
+        require(msg.sender == admin, "Only admin can call this function");
+        _;
+    }
+
+    event PriceChange(uint256 price);
+    event Swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountOut,
+        address to
+    );
+
+    // Admin only function to set the price of x in terms of y
+    function setPrice(uint256 _price) public onlyAdmin {
+        price = _price;
+        emit PriceChange(price);
+    }
+
+    function swap(address tokenIn, uint256 amountIn) public {
+        uint256 amountOut;
+        address tokenOut;
+        if (tokenIn == arbiterTokenX) {
+            tokenOut = arbiterTokenY;
+            amountOut = FixedPointMathLib.mulWadDown(amountIn, price);
+        } else if (tokenIn == arbiterTokenY) {
+            tokenOut = arbiterTokenX;
+            amountOut = FixedPointMathLib.divWadDown(amountIn, price);
+        } else {
+            revert("Invalid token");
+        }
+        require(
+            ERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn),
+            "Transfer failed"
+        );
+        require(
+            ERC20(tokenOut).transfer(msg.sender, amountOut), "Transfer failed"
+        );
+        emit Swap(tokenIn, tokenOut, amountIn, amountOut, msg.sender);
+    }
+}
 
 contract DFMMTest is Test {
     LogNormal source;
     DFMM dfmm;
     address tokenX;
     address tokenY;
+    LEX lex;
 
-    uint256 public constant TEST_SWAP_FEE = 0.01e18;
+    uint256 public constant TEST_SWAP_FEE = 0.003e18;
 
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
         MockERC20(tokenX).mint(address(this), 1e18);
         MockERC20(tokenY).mint(address(this), 1e18);
+
+        lex = new LEX(tokenX, tokenY, 1e18);
 
         dfmm = new DFMM(tokenX, tokenY, TEST_SWAP_FEE);
         source = LogNormal(dfmm.source());
@@ -138,6 +208,10 @@ contract DFMMTest is Test {
 
         uint256 expectedLiquidityGrowth =
             source.lx(amountXIn * feePercentageWad / 1 ether, price, params);
+
+        // Try commenting this line of code out, the test should fail!
+        expectedLiquidityGrowth += 1;
+
         console2.log("expectedLiquidityGrowth", expectedLiquidityGrowth);
 
         // So we compute the adjusted liquidity amount to find the y, but pass in the origina liquidity.
@@ -161,7 +235,7 @@ contract DFMMTest is Test {
         console2.log("Implied price", amountYOut * 1 ether / amountXIn);
 
         // Try doing simulate swap to see if we get a similar result.
-        (bool valid, uint256 estimatedOut, bytes memory payload) =
+        (bool valid, uint256 estimatedOut,, bytes memory payload) =
             dfmm.simulateSwap(true, amountXIn);
         console2.log("valid", valid);
         console2.log("estimatedOut", estimatedOut);
@@ -176,10 +250,12 @@ contract DFMMTest is Test {
     }
 
     function test_dfmm_simulate_swap_x_in() public basic {
+        uint256 price_initial = dfmm.internalPrice();
+
         uint256 amountIn = 0.1 ether;
         bool swapXIn = true;
 
-        (bool valid, uint256 estimatedOut, bytes memory payload) =
+        (bool valid, uint256 estimatedOut,, bytes memory payload) =
             dfmm.simulateSwap(swapXIn, amountIn);
 
         console2.log("valid", valid);
@@ -190,11 +266,17 @@ contract DFMMTest is Test {
         uint256 yBalance = MockERC20(tokenY).balanceOf(address(this));
         dfmm.swap(payload);
         uint256 newYBalance = MockERC20(tokenY).balanceOf(address(this));
+        uint256 price_after = dfmm.internalPrice();
 
         console2.log("yBalance", yBalance);
         console2.log("newYBalance", newYBalance);
         console2.log("newYBalance - yBalance", newYBalance - yBalance);
-
+        console2.log("price_initial", price_initial);
+        console2.log("price_after", price_after);
+        assertTrue(
+            price_after < price_initial,
+            "price did not decrease after selling x tokens"
+        );
         assertEq(newYBalance - yBalance, estimatedOut);
     }
 
@@ -202,7 +284,7 @@ contract DFMMTest is Test {
         uint256 amountIn = 0.1 ether;
         bool swapXIn = false;
 
-        (bool valid, uint256 estimatedOut, bytes memory payload) =
+        (bool valid, uint256 estimatedOut,, bytes memory payload) =
             dfmm.simulateSwap(swapXIn, amountIn);
 
         console2.log("valid", valid);
@@ -219,5 +301,126 @@ contract DFMMTest is Test {
         console2.log("newXBalance - xBalance", newXBalance - xBalance);
 
         assertEq(newXBalance - xBalance, estimatedOut);
+    }
+
+    function test_dfmm_simulate_swap_y_in_small() public basic {
+        uint256 amountIn = 0.000001 ether;
+        bool swapXIn = false;
+
+        (bool valid, uint256 estimatedOut,, bytes memory payload) =
+            dfmm.simulateSwap(swapXIn, amountIn);
+
+        console2.log("valid", valid);
+        console2.log("estimatedOut", estimatedOut);
+        console2.logBytes(payload);
+
+        // Get out current X balance.
+        uint256 xBalance = MockERC20(tokenX).balanceOf(address(this));
+        dfmm.swap(payload);
+        uint256 newXBalance = MockERC20(tokenX).balanceOf(address(this));
+
+        console2.log("xBalance", xBalance);
+        console2.log("newXBalance", newXBalance);
+        console2.log("newXBalance - xBalance", newXBalance - xBalance);
+
+        assertEq(newXBalance - xBalance, estimatedOut);
+    }
+
+    function test_dfmm_find_trade_raise_price() public basic {
+        uint256 price_initial = dfmm.internalPrice();
+
+        // Need to raise price, so target price + 10%.
+        uint256 target_price = price_initial * 11 / 10;
+
+        (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
+        console2.log("x", x);
+        console2.log("y", y);
+        console2.log("l", l);
+
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(0), tokenX, tokenY);
+
+        uint256 amountIn =
+            atomic.try_arbitrage_until_target_price(target_price, 0);
+    }
+
+    function test_dfmm_find_trade_lower_price() public basic {
+        uint256 price_initial = dfmm.internalPrice();
+
+        // Need to raise price, so target price + 10%.
+        uint256 target_price = price_initial * 9 / 10; //333424706894090465;
+
+        (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
+        console2.log("x", x);
+        console2.log("y", y);
+        console2.log("l", l);
+
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(0), tokenX, tokenY);
+
+        atomic.try_arbitrage_until_target_price(target_price - 10, 0);
+
+        /* uint256 i;
+        while (i != 10) {
+            try atomic.try_arbitrage_until_target_price(target_price, 0) {
+                target_price = 333424706894090465 - i * 0.001 ether;
+            } catch { }
+
+            i++;
+        } */
+    }
+
+    function test_price_monotonicity() public basic {
+        (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
+
+        uint256 max_d = 1 ether - x * 1 ether / l;
+
+        uint256 i;
+        uint256 d = 1;
+        while (i != 25) {
+            uint256 price = source.internalPrice(x + d, l);
+            console2.log("x / l", x * 1e18 / l);
+            console2.log("x + d", x + d);
+            console2.log("price", price);
+            console2.log("cur d", d);
+
+            d += d * 5;
+            i++;
+        }
+
+        console2.log("max d", max_d);
+    }
+
+    function test_dfmm_atomic_arb_bug() public {
+        Parameters memory params = Parameters({
+            strikePriceWad: 1e18,
+            sigmaPercentWad: 1e18,
+            tauYearsWad: 1e18
+        });
+
+        bytes memory init_data = LogNormal(source).encodeInitData(
+            1000000000000000000, 999999999999999997, 3241096933647192684, params
+        );
+
+        dfmm.init(init_data);
+
+        uint256 target_price = 1 ether / 2; //333424706894090465;
+
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000 ether);
+
+        // Recreated from the stack trace from the sim!
+        lex.setPrice(0.9018324562457659 ether);
+        atomic.lower_exchange_price(0.121192175267026861 ether);
+        lex.setPrice(0.7139372064852015 ether);
+        atomic.lower_exchange_price(0.277888107205955025 ether);
+        lex.setPrice(0.7142109156818223 ether);
+        atomic.try_arbitrage_until_target_price(0.7142109156818223 ether, 0);
     }
 }

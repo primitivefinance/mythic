@@ -4,6 +4,7 @@
 //! Do not manually edit these files.
 //! These files may be overwritten by the codegen system at any time.
 pub mod atomic_arbitrage;
+pub mod atomic_v2;
 pub mod coin;
 pub mod counter;
 pub mod dfmm;

@@ -34,6 +34,19 @@ impl ProtocolClient {
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn get_swap_fee(&self) -> Result<U256> {
+        let strategy = self.get_strategy().await?;
+        let swap_fee = strategy.swap_fee_percentage_wad().call().await?;
+        Ok(swap_fee)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn get_internal_price(&self) -> Result<U256> {
+        let price = self.protocol.internal_price().call().await?;
+        Ok(price)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_init_payload(
         &self,
         init_reserve_x_wad: U256,
@@ -63,34 +76,6 @@ impl ProtocolClient {
     ) -> Result<U256> {
         let strategy = self.get_strategy().await?;
         let liquidity = strategy.lx(reserve_x_wad, price_wad, params).call().await?;
-        Ok(liquidity)
-    }
-
-    #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn get_y_given_liquidity(
-        &self,
-        liquidity_wad: U256,
-        price_wad: U256,
-        params: log_normal::Parameters,
-    ) -> Result<U256> {
-        let strategy = self.get_strategy().await?;
-        let y = strategy.yl(liquidity_wad, price_wad, params).call().await?;
-        Ok(y)
-    }
-
-    #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn find_liquidity(
-        &self,
-        reserve_x_wad: U256,
-        reserve_y_wad: U256,
-        swap_constant: I256,
-        params: log_normal::Parameters,
-    ) -> Result<U256> {
-        let strategy = self.get_strategy().await?;
-        let liquidity = strategy
-            .find_liquidity(reserve_x_wad, reserve_y_wad, swap_constant, params)
-            .call()
-            .await?;
         Ok(liquidity)
     }
 
@@ -151,6 +136,34 @@ impl ProtocolClient {
         let tx = self.protocol.init(payload).send().await?.await?;
 
         Ok(tx)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn get_y_given_liquidity(
+        &self,
+        liquidity_wad: U256,
+        price_wad: U256,
+        params: log_normal::Parameters,
+    ) -> Result<U256> {
+        let strategy = self.get_strategy().await?;
+        let y = strategy.yl(liquidity_wad, price_wad, params).call().await?;
+        Ok(y)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn find_liquidity(
+        &self,
+        reserve_x_wad: U256,
+        reserve_y_wad: U256,
+        swap_constant: I256,
+        params: log_normal::Parameters,
+    ) -> Result<U256> {
+        let strategy = self.get_strategy().await?;
+        let liquidity = strategy
+            .find_liquidity(reserve_x_wad, reserve_y_wad, swap_constant, params)
+            .call()
+            .await?;
+        Ok(liquidity)
     }
 }
 

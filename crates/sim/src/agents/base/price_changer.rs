@@ -59,9 +59,13 @@ impl Agent for PriceChanger {
     }
 
     async fn step(&mut self) -> Result<()> {
-        debug!("Updating price on lex");
+        let current_price = self.liquid_exchange.price().call().await?;
+        debug!("Updating lex price from {:?}", current_price);
         self.update_price().await?;
-        debug!("Price updated on lex");
+        debug!(
+            "Updated lex price to {:?}",
+            self.liquid_exchange.price().call().await?
+        );
         Ok(())
     }
     fn client(&self) -> Arc<RevmMiddleware> {

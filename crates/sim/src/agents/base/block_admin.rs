@@ -79,23 +79,24 @@ impl BlockAdmin {
 
 #[async_trait::async_trait]
 impl Agent for BlockAdmin {
+    async fn init(&mut self) -> Result<()> {
+        trace!("Updating block");
+        self.update_block()?;
+        trace!("Block updated");
+        Ok(())
+    }
+
+    async fn step(&mut self) -> Result<()> {
+        trace!("Updating block");
+        self.update_block()?;
+        trace!("Block updated");
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
 
-    async fn step(&mut self) -> Result<()> {
-        debug!("Updating block");
-        self.update_block()?;
-        debug!("Block updated");
-        Ok(())
-    }
-
-    async fn init(&mut self) -> Result<()> {
-        debug!("Updating block");
-        self.update_block()?;
-        debug!("Block updated");
-        Ok(())
-    }
     fn client(&self) -> Arc<RevmMiddleware> {
         self.client.clone()
     }
