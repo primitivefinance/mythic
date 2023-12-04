@@ -29,8 +29,16 @@ pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigErr
     SimulationConfig::new(config_path)
 }
 
-pub fn run() -> Result<()> {
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+pub fn run(verbosity: Option<u8>) -> Result<()> {
+    let log_level = match verbosity.unwrap_or(0) {
+        0 => tracing::Level::ERROR,
+        1 => tracing::Level::WARN,
+        2 => tracing::Level::INFO,
+        3 => tracing::Level::DEBUG,
+        _ => tracing::Level::TRACE,
+    };
+
+    tracing_subscriber::fmt().with_max_level(log_level).init();
 
     let path = "configs/v3/static.toml";
     let config: SimulationConfig<Multiple> = import(path)?;

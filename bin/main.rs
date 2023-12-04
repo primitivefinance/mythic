@@ -94,7 +94,7 @@ fn main() -> Result<()> {
         }
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app: _ }) => app::run()?,
-        Some(Commands::V3) => sim::run()?,
+        Some(Commands::V3) => sim::run(args.verbose)?,
         None => Args::command().print_long_help()?,
     }
     Ok(())

@@ -618,6 +618,7 @@ contract DFMM is Core {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
+    address public source;
     bool public inited;
     uint256 public locked = 1;
     address public tokenX;
@@ -627,9 +628,16 @@ contract DFMM is Core {
     uint256 public totalLiquidity;
     mapping(address account => uint256 balance) public balanceOf;
 
-    constructor(address tokenX_, address tokenY_) {
+    constructor(
+        address tokenX_,
+        address tokenY_,
+        uint256 swapFeePercentageWad
+    ) {
         tokenX = tokenX_;
         tokenY = tokenY_;
+
+        // todo: can update later to allow for different sources.
+        source = address(new LogNormal(swapFeePercentageWad));
     }
 
     error Invalid(bool negative, uint256 swapConstantGrowth);
@@ -656,7 +664,7 @@ contract DFMM is Core {
         locked = 1;
     }
 
-    function getSwapConstant(address source) public view returns (int256) {
+    function getSwapConstant() public view returns (int256) {
         bytes memory data = abi.encode(reserveXWad, reserveYWad, totalLiquidity);
         return LogNormal(source).computeSwapConstant(data);
     }
@@ -669,12 +677,12 @@ contract DFMM is Core {
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
-    /// @param source The address of the source strategy contract.
     /// @param data The data to be passed to the source strategy contract for pool initialization & validation.
-    function init(
-        address source,
-        bytes calldata data
-    ) public lock returns (uint256, uint256, uint256) {
+    function init(bytes calldata data)
+        public
+        lock
+        returns (uint256, uint256, uint256)
+    {
         (
             bool valid,
             int256 swapConstantGrowth,
@@ -696,14 +704,12 @@ contract DFMM is Core {
     }
 
     /// @dev Use this function to prepare swaps!
-    /// @param source The address of the source strategy contract.
     /// @param swapXIn Whether the swap is X in, Y out.
     /// @param amountIn The amount of the input token to swap.
     /// @return valid Whether the swap is valid, as returned by source.validate().
     /// @return estimatedOut The estimated amount of the output token.
     /// @return swapData The data to be passed to the source strategy contract for swap validation.
     function simulateSwap(
-        address source,
         bool swapXIn,
         uint256 amountIn
     )
@@ -714,12 +720,8 @@ contract DFMM is Core {
         return LogNormal(source).simulateSwap(swapXIn, amountIn);
     }
 
-    /// @param source The address of the source strategy contract.
     /// @param data The data to be passed to the source strategy contract for swap validation.
-    function swap(
-        address source,
-        bytes calldata data
-    ) public lock initialized {
+    function swap(bytes calldata data) public lock initialized {
         (
             bool valid,
             int256 swapConstantGrowth,

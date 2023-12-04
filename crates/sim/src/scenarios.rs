@@ -7,7 +7,10 @@ use crate::{
     agent::Agents,
     agents::{
         base::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin},
-        pm::{arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider},
+        pm::{
+            arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider,
+            submitter::VolatilityTargetingSubmitter,
+        },
     },
 };
 
@@ -63,29 +66,34 @@ impl Scenario for DFMMScenario {
         let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
         agents.add(token_admin.clone());
 
+        // ----- Scenario Specific ----- //
+
+        // 1. Price changer deploys a Liquid Exchange.
         let price_changer =
             PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
         let steps = price_changer.trajectory.paths[0].len() - 1;
+        let lex = from_ethers_address(price_changer.liquid_exchange.address());
 
-        let lp = LiquidityProvider::new(&environment, &config, "lp", &token_admin, Address::ZERO)
+        // 2. Portfolio manager deploys a Dynamic Function MM & updates its parameters.
+        let pm = VolatilityTargetingSubmitter::new(&environment, &config, "portfolio_manager", lex)
             .await?;
+        let market = from_ethers_address(pm.dfmm.address());
+        let market_events = pm.dfmm.events();
+        agents.add(pm);
+
+        // 3. Liquidity provider initializes the DFMM.
+        let lp = LiquidityProvider::new(&environment, &config, "lp", &token_admin, market).await?;
         agents.add(lp);
 
-        let arbitrageur = Arbitrageur::new(
-            &environment,
-            &token_admin,
-            from_ethers_address(price_changer.liquid_exchange.address()),
-            Address::ZERO,
-        )
-        .await?;
+        // 4. Arbitrageur arbitrages between the DFMM and the Liquid Exchange.
+        let arbitrageur = Arbitrageur::new(&environment, &token_admin, lex, market).await?;
         agents.add(arbitrageur.clone());
-
-        //.add(rmm_events, "rmm")
 
         EventLogger::builder()
             .directory(config.output_directory.clone())
             .file_name(config.output_file_name.clone().unwrap())
             .add(price_changer.liquid_exchange.events(), "lex")
+            .add(market_events, "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
             .add(arbitrageur.atomic_arbitrage.events(), "atomic_arbitrage")

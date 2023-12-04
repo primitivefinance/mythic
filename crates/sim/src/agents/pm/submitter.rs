@@ -12,7 +12,7 @@ use crate::{bindings::dfmm::DFMM, *};
 pub struct VolatilityTargetingSubmitter {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
-    pub rmm: DFMM<RevmMiddleware>,
+    pub dfmm: DFMM<RevmMiddleware>,
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
@@ -29,9 +29,9 @@ impl Agent for VolatilityTargetingSubmitter {
         let asset_price =
             ethers::utils::format_ether(self.lex.price().call().await?).parse::<f64>()?;
         let reserve_x =
-            ethers::utils::format_ether(self.rmm.reserve_x_wad().call().await?).parse::<f64>()?;
+            ethers::utils::format_ether(self.dfmm.reserve_x_wad().call().await?).parse::<f64>()?;
         let reserve_y =
-            ethers::utils::format_ether(self.rmm.reserve_y_wad().call().await?).parse::<f64>()?;
+            ethers::utils::format_ether(self.dfmm.reserve_y_wad().call().await?).parse::<f64>()?;
         let portfolio_price = reserve_x * asset_price + reserve_y;
 
         if self.portfolio_prices.is_empty() {
@@ -71,25 +71,34 @@ impl VolatilityTargetingSubmitter {
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let lex = LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
 
+        tracing::info!("params: {:?}", config.agent_parameters.get(&label));
+
         if let Some(AgentParameters::VolatilityTargetingSubmitter(params)) =
             config.agent_parameters.get(&label)
         {
-            let rmm_args = (
+            // let dfmm_args = (
+            // lex.arbiter_token_x().call().await?,
+            // lex.arbiter_token_y().call().await?,
+            // ethers::utils::parse_ether(1)?,
+            // ethers::utils::parse_ether(0.8)?,
+            // ethers::utils::parse_ether(1.0)?,
+            // ethers::utils::parse_ether(0.997)?,
+            // );
+
+            let args = (
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
-                ethers::utils::parse_ether(1)?,
-                ethers::utils::parse_ether(0.8)?,
-                ethers::utils::parse_ether(1.0)?,
-                ethers::utils::parse_ether(0.997)?,
+                ethers::utils::parse_ether(params.fee.0 / 10_000.0)?,
             );
+            tracing::info!("args: {:?}", args);
             match params.specialty {
-                RmmPortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
-                    let rmm = DFMM::deploy(client.clone(), rmm_args)?.send().await?;
-                    trace!("Deployed rmm at address: {:?}", rmm.address());
+                Specialty::VolatilityTargeting(parameters) => {
+                    let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
+                    trace!("Deployed dfmm at address: {:?}", dfmm.address());
                     let strategist = VolatilityTargetingSubmitter {
                         client,
                         lex,
-                        rmm,
+                        dfmm,
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,
                         target_volatility: parameters.target_volatility.0,
@@ -115,7 +124,7 @@ impl VolatilityTargetingSubmitter {
         // let portfolio_rv = self.portfolio_rv.last().unwrap().0;
         // info!("portfolio_rv: {}", portfolio_rv);
         // let rv_difference = portfolio_rv - self.target_volatility;
-        // let current_strike = self.rmm.strike_price().call().await?;
+        // let current_strike = self.dfmm.strike_price().call().await?;
         // let current_strike_float =
         // ethers::utils::format_ether(current_strike).parse::<f64>().unwrap();
         // let strike_change = self.sensitivity * rv_difference;
@@ -127,7 +136,7 @@ impl VolatilityTargetingSubmitter {
         // new_strike += 0.0015;
         // }
         // info!("new strike float: {}", new_strike);
-        // self.rmm
+        // self.dfmm
         // .set_strike_price(
         // parse_ether(new_strike.to_string()).unwrap(),
         // U256::from(self.next_update_timestamp),
@@ -190,17 +199,17 @@ pub struct SubmitterParameters<P: Parameterized> {
     tau: P,
     strike_price: P,
     pub fee: P,
-    pub specialty: RmmPortfolioManagerSpecialty<P>,
+    pub specialty: Specialty<P>,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub enum RmmPortfolioManagerSpecialty<P: Parameterized> {
-    VolatilityTargeting(RmmVolatilityTargetingParameters<P>),
+pub enum Specialty<P: Parameterized> {
+    VolatilityTargeting(DynamicVolatilityTargetingParameters<P>),
 }
 
 impl From<SubmitterParameters<Multiple>> for Vec<SubmitterParameters<Single>> {
     fn from(item: SubmitterParameters<Multiple>) -> Self {
-        let specialties: Vec<RmmPortfolioManagerSpecialty<Single>> = item.specialty.into();
+        let specialties: Vec<Specialty<Single>> = item.specialty.into();
         iproduct!(
             item.sigma.parameters(),
             item.tau.parameters(),
@@ -219,14 +228,15 @@ impl From<SubmitterParameters<Multiple>> for Vec<SubmitterParameters<Single>> {
     }
 }
 
-impl From<RmmPortfolioManagerSpecialty<Multiple>> for Vec<RmmPortfolioManagerSpecialty<Single>> {
-    fn from(item: RmmPortfolioManagerSpecialty<Multiple>) -> Self {
+impl From<Specialty<Multiple>> for Vec<Specialty<Single>> {
+    fn from(item: Specialty<Multiple>) -> Self {
         match item {
-            RmmPortfolioManagerSpecialty::VolatilityTargeting(parameters) => {
-                let parameters: Vec<RmmVolatilityTargetingParameters<Single>> = parameters.into();
+            Specialty::VolatilityTargeting(parameters) => {
+                let parameters: Vec<DynamicVolatilityTargetingParameters<Single>> =
+                    parameters.into();
                 parameters
                     .into_iter()
-                    .map(RmmPortfolioManagerSpecialty::VolatilityTargeting)
+                    .map(Specialty::VolatilityTargeting)
                     .collect()
             }
         }
@@ -234,20 +244,20 @@ impl From<RmmPortfolioManagerSpecialty<Multiple>> for Vec<RmmPortfolioManagerSpe
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct RmmVolatilityTargetingParameters<P: Parameterized> {
+pub struct DynamicVolatilityTargetingParameters<P: Parameterized> {
     pub target_volatility: P,
     pub update_frequency: P,
 }
 
-impl From<RmmVolatilityTargetingParameters<Multiple>>
-    for Vec<RmmVolatilityTargetingParameters<Single>>
+impl From<DynamicVolatilityTargetingParameters<Multiple>>
+    for Vec<DynamicVolatilityTargetingParameters<Single>>
 {
-    fn from(item: RmmVolatilityTargetingParameters<Multiple>) -> Self {
+    fn from(item: DynamicVolatilityTargetingParameters<Multiple>) -> Self {
         iproduct!(
             item.target_volatility.parameters(),
             item.update_frequency.parameters()
         )
-        .map(|(tv, uf)| RmmVolatilityTargetingParameters {
+        .map(|(tv, uf)| DynamicVolatilityTargetingParameters {
             target_volatility: Single(tv),
             update_frequency: Single(uf),
         })

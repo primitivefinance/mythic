@@ -41,12 +41,7 @@ impl Arbitrageur {
         let liquid_exchange =
             LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
 
-        let target_exchange = DFMM::deploy(
-            client.clone(),
-            (token_admin.arbx.address(), token_admin.arby.address()),
-        )?
-        .send()
-        .await?;
+        let target_exchange = DFMM::new(to_ethers_address(dfmm_address), client.clone());
 
         let atomic_arbitrage = AtomicArbitrage::deploy(
             client.clone(),

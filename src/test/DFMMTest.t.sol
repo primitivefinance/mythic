@@ -15,13 +15,13 @@ contract DFMMTest is Test {
     uint256 public constant TEST_SWAP_FEE = 0.01e18;
 
     function setUp() public {
-        source = new LogNormal(TEST_SWAP_FEE);
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
         MockERC20(tokenX).mint(address(this), 1e18);
         MockERC20(tokenY).mint(address(this), 1e18);
 
-        dfmm = new DFMM(tokenX, tokenY);
+        dfmm = new DFMM(tokenX, tokenY, TEST_SWAP_FEE);
+        source = LogNormal(dfmm.source());
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
     }
@@ -45,7 +45,7 @@ contract DFMMTest is Test {
         bytes memory init_data =
             LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
 
-        dfmm.init(address(source), init_data);
+        dfmm.init(init_data);
 
         _;
     }
@@ -87,8 +87,7 @@ contract DFMMTest is Test {
         console2.log(MockERC20(tokenX).balanceOf(address(this)));
         console2.log(MockERC20(tokenY).balanceOf(address(this)));
 
-        (uint256 x, uint256 y, uint256 l) =
-            dfmm.init(address(source), init_data);
+        (uint256 x, uint256 y, uint256 l) = dfmm.init(init_data);
         console2.log("x", x);
         console2.log("y", y);
         console2.log("l", l);
@@ -114,7 +113,7 @@ contract DFMMTest is Test {
         uint256 feePercentageWad = source.swapFeePercentageWad();
 
         // Get all the current data: reserves, liquidity, invariant, params.
-        int256 invariant = dfmm.getSwapConstant(address(source));
+        int256 invariant = dfmm.getSwapConstant();
         console2.logInt(invariant);
 
         (uint256 reserveXWad, uint256 reserveYWad, uint256 liquidity) =
@@ -163,7 +162,7 @@ contract DFMMTest is Test {
 
         // Try doing simulate swap to see if we get a similar result.
         (bool valid, uint256 estimatedOut, bytes memory payload) =
-            dfmm.simulateSwap(address(source), true, amountXIn);
+            dfmm.simulateSwap(true, amountXIn);
         console2.log("valid", valid);
         console2.log("estimatedOut", estimatedOut);
         console2.logBytes(payload);
@@ -173,7 +172,7 @@ contract DFMMTest is Test {
             abi.encode(adjustedReserveX, adjustedReserveY, adjustedLiquidity);
         console2.logBytes(swapData);
 
-        dfmm.swap(address(source), swapData);
+        dfmm.swap(swapData);
     }
 
     function test_dfmm_simulate_swap_x_in() public basic {
@@ -181,7 +180,7 @@ contract DFMMTest is Test {
         bool swapXIn = true;
 
         (bool valid, uint256 estimatedOut, bytes memory payload) =
-            dfmm.simulateSwap(address(source), swapXIn, amountIn);
+            dfmm.simulateSwap(swapXIn, amountIn);
 
         console2.log("valid", valid);
         console2.log("estimatedOut", estimatedOut);
@@ -189,7 +188,7 @@ contract DFMMTest is Test {
 
         // Get out current Y balance.
         uint256 yBalance = MockERC20(tokenY).balanceOf(address(this));
-        dfmm.swap(address(source), payload);
+        dfmm.swap(payload);
         uint256 newYBalance = MockERC20(tokenY).balanceOf(address(this));
 
         console2.log("yBalance", yBalance);
@@ -204,7 +203,7 @@ contract DFMMTest is Test {
         bool swapXIn = false;
 
         (bool valid, uint256 estimatedOut, bytes memory payload) =
-            dfmm.simulateSwap(address(source), swapXIn, amountIn);
+            dfmm.simulateSwap(swapXIn, amountIn);
 
         console2.log("valid", valid);
         console2.log("estimatedOut", estimatedOut);
@@ -212,7 +211,7 @@ contract DFMMTest is Test {
 
         // Get out current X balance.
         uint256 xBalance = MockERC20(tokenX).balanceOf(address(this));
-        dfmm.swap(address(source), payload);
+        dfmm.swap(payload);
         uint256 newXBalance = MockERC20(tokenX).balanceOf(address(this));
 
         console2.log("xBalance", xBalance);

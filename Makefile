@@ -6,3 +6,9 @@ all:
 	forge build
 	arbiter bind
 	@echo "Build complete. You're welcome ya' filthy animal!"
+
+build:
+	@echo "Building project artifacts."
+	forge build
+	arbiter bind
+	@echo "Build complete. You're welcome ya' filthy animal!"
