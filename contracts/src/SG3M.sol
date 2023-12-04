@@ -16,7 +16,7 @@ contract SG3M is IG3M, IStrategy {
     function instantiate(uint256 initial_x, uint256 initial_price) public {
         // y = x * (1 - w_x) / (price * w_y)
         // y = ( p * w_y * x ) / w_x
-        uint256 weight_x = UD60x18.unwrap(startWeightX);
+        uint256 weight_x = UD60x18.unwrap(weightX());
         uint256 weight_y = 1 ether - weight_x;
         uint256 initial_y =
             initial_price * weight_y * initial_x / weight_x / 1 ether;
@@ -163,7 +163,7 @@ contract SG3M is IG3M, IStrategy {
         uint256 amountX,
         uint256 price
     ) external returns (uint256, uint256) {
-        uint256 weight_x = UD60x18.unwrap(startWeightX);
+        uint256 weight_x = UD60x18.unwrap(weightX());
         uint256 weight_y = 1 ether - weight_x;
         uint256 initial_y = price * weight_y * amountX / weight_x / 1 ether;
         _initPool(amountX, initial_y);
