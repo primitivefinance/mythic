@@ -7,7 +7,7 @@ import "./IG3M.sol";
 import "./IStrategy.sol";
 
 /**
- * @notice Geometric Mean Market Maker.
+ * @notice Geometric Mean Market Maker with S curve.
  */
 contract SG3M is IG3M, IStrategy {
     event LogPrices(uint256 spotPrice, uint256 blockTimestamp);
@@ -480,7 +480,7 @@ contract SG3M is IG3M, IStrategy {
     function increment() public {
         uint256 random = uint256(
             keccak256(
-                abi.encodePacked(block.timestamp, block.difficulty, msg.sender)
+                abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)
             )
         );
         counter += random % 100;

@@ -504,7 +504,7 @@ contract G3M is IG3M, IStrategy {
     function increment() public {
         uint256 random = uint256(
             keccak256(
-                abi.encodePacked(block.timestamp, block.difficulty, msg.sender)
+                abi.encodePacked(block.timestamp, block.prevrandao, msg.sender)
             )
         );
         counter += random % 100;
