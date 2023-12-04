@@ -409,8 +409,14 @@ contract SG3M is IG3M, IStrategy {
             return targetWeightX;
         }
 
-        // TODO: Compute weight X
-        return startWeightX;
+        UD60x18 fw0 = computeISF(startWeightX);
+        UD60x18 fw1 = computeISF(targetWeightX);
+
+        UD60x18 duration = convert(endWeightUpdate - startWeightUpdate);
+        UD60x18 spent = convert(block.timestamp - startWeightUpdate);
+        UD60x18 t = spent / duration;
+
+        return computeSF(t, fw1 - fw0, fw0);
     }
 
     /// @inheritdoc IG3M
