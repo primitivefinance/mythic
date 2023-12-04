@@ -72,6 +72,12 @@ contract DFMM is Core {
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
+    function getNextLiquidity() public view returns (uint256) {
+        return Source(source).getNextLiquidity(
+            reserveXWad, reserveYWad, totalLiquidity
+        );
+    }
+
     /// @dev Gets the approximated price of the pool given x reserves and liquidity.
     function internalPrice() public view returns (uint256 price) {
         price = LogNormal(source).internalPrice(reserveXWad, totalLiquidity);

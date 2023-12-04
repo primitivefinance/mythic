@@ -158,6 +158,12 @@ interface Source {
         uint256 reserveXWad,
         uint256 totalLiquidity
     ) external view returns (uint256 price);
+
+    function getNextLiquidity(
+        uint256 reserveXWad,
+        uint256 reserveYWad,
+        uint256 totalLiquidity
+    ) external view returns (uint256);
 }
 
 /// @dev Contract that holds the reserve and liquidity state.
@@ -185,16 +191,38 @@ contract LogNormal is Source {
 
     uint256 public constant APPROXIMATED_MINIMUM_X_INPUT = 10;
     uint256 public constant BISECTION_EPSILON = 1;
-    uint256 public constant MAX_BISECTION_ITERS = 256;
+    uint256 public constant MAX_BISECTION_ITERS = 100;
     uint256 public constant HALF_WAD = 0.5e18;
     int256 public constant TWO_WAD = int256(2e18);
     uint256 public constant WAD = 1e18;
     uint256 public constant ZERO = 0;
 
     uint256 public swapFeePercentageWad;
-    Parameters public slot;
+    Parameters public __slot__;
+
+    uint256 private lastSigma;
+    uint256 public targetSigma;
+    uint256 private lastSigmaSync;
+    uint256 private sigmaUpdatePerSecond;
+    uint256 private sigmaUpdateEnd;
+
+    uint256 private lastStrike;
+    uint256 public targetStrike;
+    uint256 private lastStrikeSync;
+    uint256 private strikeUpdatePerSecond;
+    uint256 private strikeUpdateEnd;
+
+    uint256 private lastTau;
+    uint256 private targetTau;
+    uint256 private lastTauSync;
+    uint256 private tauUpdatePerSecond;
+    uint256 private tauUpdateEnd;
 
     constructor(uint256 swapFeePercentageWad_) {
+        require(
+            swapFeePercentageWad_ < WAD,
+            "swap fee percentage must be less than 100%"
+        );
         swapFeePercentageWad = swapFeePercentageWad_;
     }
 
@@ -203,6 +231,53 @@ contract LogNormal is Source {
             "Make sure the calling contract of this console.log is the Core contract"
         );
         _;
+    }
+
+    /// @dev Returns the original parameters that were used to initialize the pool.
+    function staticSlot() public view returns (Parameters memory) {
+        return __slot__;
+    }
+
+    /// @dev Slot holds out parameters, these return the dyanmic parameters.
+    function dynamicSlot() public view returns (Parameters memory params) {
+        params = staticSlot();
+        params.sigmaPercentWad = sigma();
+        params.strikePriceWad = strikePrice();
+        params.tauYearsWad = tau();
+    }
+
+    function _syncDynamicSlot() internal {
+        Parameters memory params = staticSlot();
+
+        targetSigma = params.sigmaPercentWad;
+        lastSigma = params.sigmaPercentWad;
+        sigmaUpdateEnd = block.timestamp;
+        lastSigmaSync = block.timestamp;
+
+        targetStrike = params.strikePriceWad;
+        lastStrike = params.strikePriceWad;
+        strikeUpdateEnd = block.timestamp;
+        lastStrikeSync = block.timestamp;
+
+        targetTau = params.tauYearsWad;
+        lastTau = params.tauYearsWad;
+        tauUpdateEnd = block.timestamp;
+        lastTauSync = block.timestamp;
+    }
+
+    function getNextLiquidity(
+        uint256 reserveXWad,
+        uint256 reserveYWad,
+        uint256 totalLiquidity
+    ) public view returns (uint256) {
+        return findLiquidity(
+            reserveXWad,
+            reserveYWad,
+            computeSwapConstant(
+                abi.encode(reserveXWad, reserveYWad, totalLiquidity)
+            ),
+            dynamicSlot()
+        );
     }
 
     /// @dev Computes the result of the tradingFunction().
@@ -217,7 +292,7 @@ contract LogNormal is Source {
             reserveXWad: reserveXWad,
             reserveYWad: reserveYWad,
             totalLiquidity: totalLiquidity,
-            params: slot
+            params: dynamicSlot()
         });
     }
 
@@ -244,14 +319,16 @@ contract LogNormal is Source {
             uint256 totalLiquidity
         )
     {
-        (reserveXWad, reserveYWad, totalLiquidity, slot) =
+        (reserveXWad, reserveYWad, totalLiquidity, __slot__) =
             abi.decode(data, (uint256, uint256, uint256, Parameters));
+
+        _syncDynamicSlot();
 
         swapConstantGrowth = tradingFunction({
             reserveXWad: reserveXWad,
             reserveYWad: reserveYWad,
             totalLiquidity: totalLiquidity,
-            params: slot
+            params: dynamicSlot()
         });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
@@ -263,11 +340,22 @@ contract LogNormal is Source {
         bool swapXIn,
         uint256 amountIn
     ) public view onlyCore returns (bool, uint256, uint256, bytes memory) {
+        // Note: these are the original values, but we use their variables to avoid stack too deep errors.
         (
             uint256 adjustedReserveXWad,
             uint256 adjustedReserveYWad,
             uint256 adjustedLiquidity
         ) = Core(msg.sender).getReservesAndLiquidity();
+
+        console2.log("Original liquidity :", adjustedLiquidity);
+
+        // Make sure to override the original liquidity with the `getNextLiquidity` value.
+        // This is because liquidity can change given any change in parameter, including over time via parameter tau.
+        adjustedLiquidity = getNextLiquidity(
+            adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
+        );
+
+        console2.log("Found Next liquidity:", adjustedLiquidity);
 
         int256 originalSwapConstant = computeSwapConstant(
             abi.encode(
@@ -291,7 +379,7 @@ contract LogNormal is Source {
                 adjustedReserveXWad,
                 adjustedLiquidity,
                 originalSwapConstant,
-                slot
+                dynamicSlot()
             );
             adjustedReserveYWad += 1;
 
@@ -318,7 +406,7 @@ contract LogNormal is Source {
                 adjustedReserveYWad,
                 adjustedLiquidity,
                 originalSwapConstant,
-                slot
+                dynamicSlot()
             );
             adjustedReserveXWad += 1;
 
@@ -333,15 +421,16 @@ contract LogNormal is Source {
             adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
         );
         (bool valid,,,,,) = validate(swapData);
+        Parameters memory params = dynamicSlot();
         return (
             valid,
             amountOut,
             computePrice({
                 reserveXWad: adjustedReserveXWad,
                 totalLiquidity: adjustedLiquidity,
-                strikePriceWad: slot.strikePriceWad,
-                sigmaPercentWad: slot.sigmaPercentWad,
-                tauYearsWad: slot.tauYearsWad
+                strikePriceWad: params.strikePriceWad,
+                sigmaPercentWad: params.sigmaPercentWad,
+                tauYearsWad: params.tauYearsWad
             }),
             swapData
         );
@@ -435,6 +524,13 @@ contract LogNormal is Source {
             uint256 originalLiquidity
         ) = Core(msg.sender).getReservesAndLiquidity();
 
+        console2.log("Original liquidity :", originalLiquidity);
+        // Find the next liquidity and override the original liquidity with it.
+        originalLiquidity = getNextLiquidity(
+            originalReserveXWad, originalReserveYWad, originalLiquidity
+        );
+        console2.log("Found Next liquidity:", originalLiquidity);
+
         (adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
 
@@ -464,13 +560,13 @@ contract LogNormal is Source {
             reserveXWad: adjustedReserveXWad,
             reserveYWad: adjustedReserveYWad,
             totalLiquidity: adjustedLiquidity,
-            params: slot
+            params: dynamicSlot()
         })
             - tradingFunction({
                 reserveXWad: originalReserveXWad,
                 reserveYWad: originalReserveYWad,
                 totalLiquidity: originalLiquidity,
-                params: slot
+                params: dynamicSlot()
             });
 
         console2.log("Swap constant growth");
@@ -494,12 +590,13 @@ contract LogNormal is Source {
         uint256 reserveXWad,
         uint256 totalLiquidity
     ) public view returns (uint256 price) {
+        Parameters memory params = dynamicSlot();
         price = computePrice(
             reserveXWad,
             totalLiquidity,
-            slot.strikePriceWad,
-            slot.sigmaPercentWad,
-            slot.tauYearsWad
+            params.strikePriceWad,
+            params.sigmaPercentWad,
+            params.tauYearsWad
         );
     }
 
@@ -538,6 +635,118 @@ contract LogNormal is Source {
         uint256 exp_result_uint = toUint(exp_result);
         price = strikePriceWad.mulWadUp(exp_result_uint);
     }
+
+    // ===== Parameters ===== //
+
+    function sigma() public view returns (uint256) {
+        if (block.timestamp >= sigmaUpdateEnd) {
+            return targetSigma;
+        }
+
+        return lastSigma > targetSigma
+            ? lastSigma - (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond
+            : lastSigma + (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond;
+    }
+
+    function strikePrice() public view returns (uint256) {
+        if (block.timestamp >= strikeUpdateEnd) {
+            return targetStrike;
+        }
+
+        return lastStrike > targetStrike
+            ? lastStrike
+                - (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond
+            : lastStrike
+                + (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond;
+    }
+
+    function tau() public view returns (uint256) {
+        if (block.timestamp >= tauUpdateEnd) {
+            return targetTau;
+        }
+
+        return lastTau > targetTau
+            ? lastTau - (block.timestamp - lastTauSync) * tauUpdatePerSecond
+            : lastTau + (block.timestamp - lastTauSync) * tauUpdatePerSecond;
+    }
+
+    function getParams() public view returns (uint256, uint256, uint256) {
+        return (strikePrice(), sigma(), tau());
+    }
+
+    function _syncSigma() private {
+        lastSigma = sigma();
+        lastSigmaSync = block.timestamp;
+    }
+
+    function _syncStrike() private {
+        lastStrike = strikePrice();
+        lastStrikeSync = block.timestamp;
+    }
+
+    function _syncTau() private {
+        lastTau = tau();
+        lastTauSync = block.timestamp;
+    }
+
+    event LogParameters(
+        uint256 sigma, uint256 strikePrice, uint256 tau, uint256 blockTimestamp
+    );
+
+    function setSigma(
+        uint256 newTargetSigma,
+        uint256 newSigmaUpdateEnd
+    ) external {
+        require(newSigmaUpdateEnd > block.timestamp, "Update end passed");
+
+        _syncSigma();
+
+        uint256 sigmaDelta = lastSigma > newTargetSigma
+            ? lastSigma - newTargetSigma
+            : newTargetSigma - lastSigma;
+
+        sigmaUpdatePerSecond =
+            sigmaDelta / (newSigmaUpdateEnd - block.timestamp);
+        targetSigma = newTargetSigma;
+        sigmaUpdateEnd = newSigmaUpdateEnd;
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+    }
+
+    function setStrikePrice(
+        uint256 newTargetStrike,
+        uint256 newStrikeUpdateEnd
+    ) external {
+        require(newStrikeUpdateEnd > block.timestamp, "Update end passed");
+
+        _syncStrike();
+
+        uint256 strikeDelta = lastStrike > newTargetStrike
+            ? lastStrike - newTargetStrike
+            : newTargetStrike - lastStrike;
+
+        strikeUpdatePerSecond =
+            strikeDelta / (newStrikeUpdateEnd - block.timestamp);
+        targetStrike = newTargetStrike;
+        strikeUpdateEnd = newStrikeUpdateEnd;
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+    }
+
+    function setTau(uint256 newTargetTau, uint256 newTauUpdateEnd) external {
+        require(newTauUpdateEnd > block.timestamp, "Update end passed");
+
+        _syncTau();
+
+        uint256 tauDelta = lastTau > newTargetTau
+            ? lastTau - newTargetTau
+            : newTargetTau - lastTau;
+
+        tauUpdatePerSecond = tauDelta / (newTauUpdateEnd - block.timestamp);
+        targetTau = newTargetTau;
+        tauUpdateEnd = newTauUpdateEnd;
+        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+    }
+
+    // ===== //
 
     /// @dev Compute total liquidity given x reserves.
     /// @return L_x(x, S) = x * WAD / (WAD - Gaussian.cdf[d1(S, K, sigma, tau)])

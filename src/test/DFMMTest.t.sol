@@ -74,6 +74,8 @@ contract LEX {
 }
 
 contract DFMMTest is Test {
+    using stdStorage for StdStorage;
+
     LogNormal source;
     DFMM dfmm;
     address tokenX;
@@ -98,6 +100,7 @@ contract DFMMTest is Test {
 
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
+        vm.warp(0);
         Parameters memory params = Parameters({
             strikePriceWad: 1e18,
             sigmaPercentWad: 1e18,
@@ -116,6 +119,8 @@ contract DFMMTest is Test {
             LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
 
         dfmm.init(init_data);
+
+        console2.log("Initialized liquidity:", found_l);
 
         _;
     }
@@ -193,9 +198,7 @@ contract DFMMTest is Test {
         console2.log("reserveYWad", reserveYWad);
         console2.log("liquidity", liquidity);
 
-        Parameters memory params;
-        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad) =
-            source.slot();
+        Parameters memory params = source.staticSlot();
 
         // todo: should take this out.
         uint256 price = 1.0e18;
@@ -422,5 +425,41 @@ contract DFMMTest is Test {
         atomic.lower_exchange_price(0.277888107205955025 ether);
         lex.setPrice(0.7142109156818223 ether);
         atomic.try_arbitrage_until_target_price(0.7142109156818223 ether, 0);
+    }
+
+    function test_dfmm_swap_over_time_dyanmic_tau() public basic {
+        console2.log("Current time: ", block.timestamp);
+        // Warp some time.
+        vm.warp(10 days);
+        console2.log("Updated time: ", block.timestamp);
+
+        // Try doing a swap.
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = true;
+
+        (bool valid, uint256 estimatedOut,, bytes memory payload) =
+            dfmm.simulateSwap(swapXIn, amountIn);
+
+        dfmm.swap(payload);
+    }
+
+    function test_dfmm_swap_dynamic_strike() public basic {
+        // Change the strike.
+        stdstore.target(address(source)).sig(source.targetStrike.selector)
+            .checked_write(1.5 ether);
+
+        // Log the strike price.
+        console2.log("Current strike: ", source.strikePrice());
+        // Log the target strike.
+        console2.log("Target strike: ", source.targetStrike());
+
+        // Try doing a swap.
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = true;
+
+        (bool valid, uint256 estimatedOut,, bytes memory payload) =
+            dfmm.simulateSwap(swapXIn, amountIn);
+
+        dfmm.swap(payload);
     }
 }

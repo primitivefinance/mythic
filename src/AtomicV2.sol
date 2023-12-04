@@ -29,7 +29,15 @@ interface StrategyLike {
 }
 
 interface StrategySource {
-    function slot()
+    function staticSlot()
+        external
+        view
+        returns (
+            uint256 strikePriceWad,
+            uint256 sigmaPercentWad,
+            uint256 tauYearsWad
+        );
+    function dynamicSlot()
         external
         view
         returns (
@@ -179,7 +187,7 @@ contract AtomicV2 {
     ) public view returns (uint256 amountIn) {
         uint256 start_price = StrategyLike(exchange).internalPrice();
         (uint256 strikePriceWad,,) =
-            StrategySource(StrategyLike(exchange).source()).slot();
+            StrategySource(StrategyLike(exchange).source()).dynamicSlot();
         (uint256 reserveX, uint256 reserveY, uint256 liquidity) =
             StrategyLike(exchange).getReservesAndLiquidity();
 
