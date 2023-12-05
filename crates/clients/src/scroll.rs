@@ -25,13 +25,13 @@ use ::revm::{
     primitives::{hash_map::HashMap as StorageMap, U256 as StorageValue},
 };
 use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
+use bindings::{coin::Coin, erc20::TransferCall};
 use datatypes::units::address_to_string;
 use ethers::{
     abi::Tokenize,
     types::{transaction::eip2718::TypedTransaction, Address},
     utils::parse_ether,
 };
-use simulation::bindings::coin::{Coin, TransferCall};
 
 use super::{forking::forking::*, *};
 
@@ -471,8 +471,8 @@ impl UnsealedTransaction {
 
 #[cfg(test)]
 mod tests {
+    use bindings::counter::Counter;
     use ethers::{prelude::*, utils::Anvil};
-    use simulation::bindings::counter::Counter;
 
     use super::{forking::*, scroll::*};
     use crate::tests::*;

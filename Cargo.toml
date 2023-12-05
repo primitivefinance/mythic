@@ -14,10 +14,13 @@ members = ["simulation", "crates/*"]
 
 [workspace.dependencies]
 # Local
+bindings = { path = "./crates/bindings", version = "0.1.0" }
 simulation = { path = "./simulation", version = "0.1.0" }
 analysis = { path = "./crates/analysis", version = "0.1.0" }
 cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
 clients = { path = "./crates/clients", version = "0.1.0" }
+sim = { path = "./crates/sim", version = "0.1.0" }
+datatypes = { path = "./crates/datatypes", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
@@ -72,7 +75,6 @@ chrono = { version = "0.4.31", features = ["serde"] }
 # main excalibur application
 app = { path = "./crates/app", version = "0.1.0" }
 sim = { path = "./crates/sim", version = "0.1.0" }
-
 
 criterion.workspace = true
 simulation.workspace = true

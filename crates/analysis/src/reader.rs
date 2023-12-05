@@ -1,10 +1,7 @@
 use std::{env, path::PathBuf};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use simulation::{
-    settings::{parameters::Single, SimulationConfig},
-    simulations::Simulation,
-};
+use sim::settings::{parameters::Single, SimulationConfig};
 
 use super::*;
 
@@ -79,10 +76,6 @@ impl SimulationData {
 
 #[cfg(test)]
 mod tests {
-    use simulation::{
-        bindings::g3m::{G3MErrors, G3MEvents},
-        simulations::SimulationType,
-    };
 
     use super::*;
 
@@ -97,7 +90,7 @@ mod tests {
     #[test]
     fn retrieve_events() {
         let simulation_data = SimulationData::new(FILE_NAME).unwrap();
-        let events = simulation_data.get_events("g3m", "SwapFilter");
+        let events = simulation_data.get_events("rmm", "SwapFilter");
         assert!(events.is_some());
         let events = events.unwrap();
         assert_eq!(events.len(), 8);
@@ -106,14 +99,14 @@ mod tests {
     #[test]
     fn retrieve_vectorized_event_structs() {
         let simulation_data = SimulationData::new(FILE_NAME).unwrap();
-        let values = simulation_data.get_vectorized_events::<g3m::SwapFilter>("g3m");
+        let values = simulation_data.get_vectorized_events::<bindings::rmm::SwapFilter>("rmm");
         assert_eq!(values.len(), 8);
     }
 
     #[test]
     fn retrieve_vectorized_event_structs_from_str() {
         let simulation_data = SimulationData::new(FILE_NAME).unwrap();
-        let values = simulation_data.get_vectorized_events_from_str("g3m", "SwapFilter");
+        let values = simulation_data.get_vectorized_events_from_str("rmm", "SwapFilter");
         assert_eq!(values.get("sender").unwrap().len(), 8);
     }
 

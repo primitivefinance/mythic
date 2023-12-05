@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env};
 
-use simulation::agents::{price_changer::PriceProcess, AgentParameters};
+use sim::agents::{base::price_changer::PriceProcess, AgentParameters};
 use tokio::{fs, sync::mpsc, task};
 
 use super::*;
@@ -100,6 +100,7 @@ mod tests {
 
     #[ignore]
     #[tokio::test(flavor = "multi_thread")]
+    #[cfg(feature = "dca")]
     async fn organize() {
         let batch = BatchData::new("dca/sweep").await;
         let data = batch.organize_hard_coded();

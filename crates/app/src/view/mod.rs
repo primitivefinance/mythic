@@ -1,16 +1,14 @@
 use std::collections::{BTreeMap, HashMap};
 
-use ethers::utils::format_ether;
+use ethers::{abi::Token, utils::format_ether};
 use iced::widget::{Column, Container, Row};
 use iced_aw::Icon;
-use simulation::agents::SubscribedData;
 use user::contacts;
 
 use self::{control::control_panel, monitor::labeled_data_cards, sidebar::Page};
 use super::{
     components::{containers::*, *},
     screens::address_book::AddressBookDisplay,
-    terminal::{StateSubscription, StateSubscriptionStore},
     tracer::AppEventLayer,
     *,
 };
@@ -175,7 +173,29 @@ pub fn terminal_layout<'a>(
         .into()
 }
 
+#[derive(Debug, Clone)]
+pub struct SubscribedData {
+    pub name: String,
+    pub data: Token,
+}
+
+impl SubscribedData {
+    pub fn new(name: String, data: Token) -> Self {
+        Self { name, data }
+    }
+}
+
 type SubscriptionViewWrapper = BTreeMap<u64, BTreeMap<String, Vec<(String, String)>>>;
+
+#[derive(Debug, Clone)]
+pub struct StateSubscription {
+    pub logs: Vec<SubscribedData>,
+    pub label: String,
+    pub category: AppEventLayer,
+    pub id: u64,
+}
+
+pub type StateSubscriptionStore = HashMap<u64, HashMap<String, StateSubscription>>;
 
 // todo: lot of logic to handle in here, maybe we parse it further up in the
 // app?

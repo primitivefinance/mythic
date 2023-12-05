@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use alloy_primitives::{Address, U256};
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
+use datatypes::TokenData;
 
 use super::*;
 
@@ -27,13 +28,6 @@ impl Agent for TokenAdmin {
 pub struct TokenAdminParameters {
     pub arbx: TokenData,
     pub arby: TokenData,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct TokenData {
-    pub name: String,
-    pub symbol: String,
-    pub decimals: u8,
 }
 
 impl TokenAdmin {

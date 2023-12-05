@@ -5,7 +5,6 @@ use arbiter_bindings::bindings::liquid_exchange;
 use ethers::types::U256;
 use reader::SimulationData;
 use serde_json::{from_reader, Value};
-pub use simulation::bindings::*;
 use tracing::{debug, info};
 use visualize::{
     plots::{statistical::StatisticalPlot, PlotSettings},
@@ -24,6 +23,7 @@ pub fn wad_to_float(wad: U256) -> f64 {
     wad.as_u128() as f64 / 10f64.powi(18)
 }
 
+#[cfg(feature = "dca")]
 pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
     let mut weights_statistical = (vec![], vec![]);
     let mut reserves_statistical = (vec![], vec![]);
@@ -34,7 +34,8 @@ pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
 
     for (idx, data) in data_set.iter().enumerate() {
         // Get the weights and indices for the plots
-        let weight_filter = data.get_vectorized_events::<g3m::LogSyncingWeightFilter>("g3m");
+        let weight_filter =
+            data.get_vectorized_events::<bindings::rmm::LogSyncingWeightFilter>("rmm");
         let indices: Vec<f64> = weight_filter
             .iter()
             .enumerate()
@@ -51,7 +52,7 @@ pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
         );
 
         // Get the reserves
-        let reserves = data.get_vectorized_events::<g3m::LogReservesFilter>("g3m");
+        let reserves = data.get_vectorized_events::<bindings::rmm::LogReservesFilter>("rmm");
         if idx == 0 {
             reserves_statistical.0 = indices.clone();
         }
@@ -63,7 +64,7 @@ pub fn plot_dca_weights(data_set: &[SimulationData], name: &str) {
         );
 
         // Get the prices
-        let swap_filter = data.get_vectorized_events::<g3m::LogPricesFilter>("g3m");
+        let swap_filter = data.get_vectorized_events::<bindings::rmm::LogPricesFilter>("rmm");
         if idx == 0 {
             prices_statistical.0 = indices.clone();
         }

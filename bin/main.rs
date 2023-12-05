@@ -3,7 +3,6 @@ use std::time::Instant;
 use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
-use simulation::simulations;
 use tracing_subscriber::filter::EnvFilter;
 
 /// Represents command-line arguments passed to the `Arbiter` tool.
@@ -81,17 +80,7 @@ fn main() -> Result<()> {
     let env_filter = EnvFilter::new(filter);
 
     match &args.command {
-        Some(Commands::Simulate { config_path }) => {
-            tracing_subscriber::fmt().with_max_level(log_level).init();
-
-            println!("Starting simulations with verbosity: {}", log_level);
-            println!("Reading from config path: {}", config_path);
-            let start = Instant::now();
-            let config = simulations::import(config_path)?;
-            simulations::batch(config)?;
-            let duration = start.elapsed();
-            println!("Total duration of simulations: {:?}", duration);
-        }
+        Some(Commands::Simulate { config_path }) => sim::run(args.verbose)?,
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app: _ }) => app::run()?,
         Some(Commands::V3) => sim::run(args.verbose)?,

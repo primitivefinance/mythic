@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
+use bindings::{coin::Coin, counter::Counter};
 use ethers::{
     core::k256::ecdsa::SigningKey,
     middleware::SignerMiddleware,
     prelude::*,
     utils::{Anvil, AnvilInstance},
 };
-use simulation::bindings::{coin::Coin, counter::Counter};
 use tracing::info;
 
 const RPC_URL_WS: &str = "ws://localhost:8545";

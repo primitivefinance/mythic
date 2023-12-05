@@ -1,6 +1,5 @@
 pub mod agent;
 pub mod agents;
-pub mod bindings;
 pub mod configuration;
 pub mod engine;
 pub mod scenarios;
@@ -11,6 +10,7 @@ use std::{any::Any, path::Path};
 use ::config::ConfigError;
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
+use bindings;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use settings::{

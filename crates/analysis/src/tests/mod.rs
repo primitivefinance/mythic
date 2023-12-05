@@ -43,6 +43,7 @@ fn read_in_and_plot_statistical() {
 
 #[test]
 #[ignore]
+#[cfg(feature = "dca")]
 fn plot_dca_weights() {
     let mut weights_statistical = (vec![], vec![]);
     let mut reserves_statistical = (vec![], vec![]);

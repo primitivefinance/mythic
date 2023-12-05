@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bindings.workspace = true
+sim.workspace = true
 arbiter-bindings.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
