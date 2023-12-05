@@ -9,8 +9,10 @@ all:
 
 build:
 	@echo "Building project artifacts."
-	forge build
 	forge bind --revert-strings debug -b crates/bindings --crate-name bindings --overwrite --force
-	mkdir -p ./crates/clients/src/bindings
-	cp -a ./crates/sim/src/bindings/* ./crates/clients/src/bindings
 	@echo "Build complete. You're welcome ya' filthy animal!"
+
+clean:
+	@echo "Cleaning repository."
+	forge clean
+	@echo "Clean complete. You made a mess!"

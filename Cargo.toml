@@ -1,6 +1,6 @@
 [package]
 name = "excalibur"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [[bin]]
@@ -8,14 +8,13 @@ name = "excalibur"
 path = "bin/main.rs"
 
 [workspace]
-members = ["simulation", "crates/*"]
+members = ["crates/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [workspace.dependencies]
 # Local
 bindings = { path = "./crates/bindings", version = "0.1.0" }
-simulation = { path = "./simulation", version = "0.1.0" }
 analysis = { path = "./crates/analysis", version = "0.1.0" }
 cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
 clients = { path = "./crates/clients", version = "0.1.0" }
@@ -77,7 +76,6 @@ app = { path = "./crates/app", version = "0.1.0" }
 sim = { path = "./crates/sim", version = "0.1.0" }
 
 criterion.workspace = true
-simulation.workspace = true
 cfmm_math.workspace = true
 analysis.workspace = true
 

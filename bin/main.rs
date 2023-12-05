@@ -37,7 +37,7 @@ struct Args {
 #[derive(Subcommand)]
 enum Commands {
     Simulate {
-        #[clap(index = 1, default_value = "configs/volatility_targeting/static.toml")]
+        #[clap(index = 1, default_value = "configs/v3/static.toml")]
         config_path: String,
     },
     Analyze,
@@ -45,7 +45,6 @@ enum Commands {
         #[clap(index = 1, default_value = "")]
         app: String,
     },
-    V3,
 }
 
 fn main() -> Result<()> {
@@ -80,10 +79,9 @@ fn main() -> Result<()> {
     let env_filter = EnvFilter::new(filter);
 
     match &args.command {
-        Some(Commands::Simulate { config_path }) => sim::run(args.verbose)?,
+        Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui { app: _ }) => app::run()?,
-        Some(Commands::V3) => sim::run(args.verbose)?,
         None => Args::command().print_long_help()?,
     }
     Ok(())

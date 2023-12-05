@@ -44,6 +44,16 @@ cargo run ui
 cargo run simulate <config>
 ```
 
+## Project layout
+- assets/ - Static assets used in application
+- benches/ - Benchmarks for all crates
+- bin - CLI entrypoint
+- configs/ - Simulation configurations
+- crates/ - All rust code
+- journal/ - Team knowledge corpus
+- lib/ - Git submodule dependencies
+- src/ - Smart contracts
+
 ## Architecture
 
 Excalibur is a full-stack client for interacting with EVM blockchain applications in simulated and live environments.

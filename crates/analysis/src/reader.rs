@@ -97,6 +97,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "rmm")]
     fn retrieve_vectorized_event_structs() {
         let simulation_data = SimulationData::new(FILE_NAME).unwrap();
         let values = simulation_data.get_vectorized_events::<bindings::rmm::SwapFilter>("rmm");

@@ -9,7 +9,6 @@ edition = "2021"
 datatypes.workspace = true
 bindings.workspace = true
 cfmm_math.workspace = true
-simulation.workspace = true
 clients.workspace = true
 
 

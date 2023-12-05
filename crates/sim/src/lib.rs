@@ -28,7 +28,7 @@ pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigErr
     SimulationConfig::new(config_path)
 }
 
-pub fn run(verbosity: Option<u8>) -> Result<()> {
+pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
     let log_level = match verbosity.unwrap_or(0) {
         0 => tracing::Level::ERROR,
         1 => tracing::Level::WARN,
@@ -39,11 +39,8 @@ pub fn run(verbosity: Option<u8>) -> Result<()> {
 
     tracing_subscriber::fmt().with_max_level(log_level).init();
 
-    let path = "configs/v3/static.toml";
     let config: SimulationConfig<Multiple> = import(path)?;
-
     let rt = tokio::runtime::Builder::new_multi_thread().build().unwrap();
-
     let instant = std::time::Instant::now();
 
     // Run the sims, returning snapshot dbs to the manager's `instances`.
