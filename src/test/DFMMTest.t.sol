@@ -504,7 +504,14 @@ contract DFMMTest is Test {
         lex.setPrice(1.5 ether);
         uint256 input;
 
-        try atomic.profitFinder().searchRaisePrice(100, 10) { } catch { }
+        try atomic.profitFinder().searchRaisePrice(100, 10) { }
+        catch (bytes memory err) {
+            assembly {
+                err := add(err, 0x04)
+            }
+
+            (input,) = abi.decode(err, (uint256, uint256));
+        }
         // do the trade
         atomic.raise_exchange_price(input);
         // check the cumulative profit
@@ -524,7 +531,14 @@ contract DFMMTest is Test {
 
         lex.setPrice(0.5 ether);
         uint256 input;
-        try atomic.profitFinder().searchLowerPrice(100, 10) { } catch { }
+        try atomic.profitFinder().searchLowerPrice(100, 10) { }
+        catch (bytes memory err) {
+            assembly {
+                err := add(err, 0x04)
+            }
+
+            (input,) = abi.decode(err, (uint256, uint256));
+        }
         // do the trade
         atomic.lower_exchange_price(input);
         // check the cumulative profit
@@ -543,7 +557,7 @@ contract DFMMTest is Test {
         MockERC20(tokenY).mint(address(lex), 1000 ether);
 
         lex.setPrice(0.8358473209862632 ether);
-        (uint256 input,) = atomic.searchLowerPrice(256, 10);
+        (uint256 input,) = atomic.searchLowerPrice(100, 5);
         uint256 price = dfmm.internalPrice();
         atomic.lower_exchange_price(input);
 

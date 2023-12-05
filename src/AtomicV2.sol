@@ -150,7 +150,7 @@ contract ProfitFinder {
         require(epsilon < 1000, "epsilon must be less than 1000");
 
         uint256 lower = 1;
-        uint256 upper = 1e20;
+        uint256 upper = 1e18;
 
         maxProfit = type(int256).min;
         maxTrade = lower;
