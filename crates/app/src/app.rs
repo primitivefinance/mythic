@@ -13,6 +13,7 @@ use super::{
 };
 use crate::{
     screens::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
+    user::networks::ChainPacket,
     view::sidebar::Sidebar,
 };
 
@@ -33,17 +34,11 @@ pub enum Message {
     WindowsMessage(WindowsMessage),
 }
 
+pub type RootMessage = Message;
+pub type RootViewMessage = view::Message;
+
 impl MessageWrapper for Message {
     type ParentMessage = Message;
-}
-
-#[derive(Debug)]
-pub enum AddressBookMessage {
-    Add(String, Address, contacts::Category),
-    Remove(String, contacts::Category),
-    Get(String, contacts::Category),
-    List(contacts::Category),
-    Clear(contacts::Category),
 }
 
 /// State for all chain related data.
@@ -124,6 +119,43 @@ pub struct Storage {
 #[derive(Debug)]
 pub enum StorageMessage {
     AddressBook(AddressBookMessage),
+    RPCStorage(RPCStorageMessage),
+}
+
+#[derive(Debug)]
+pub enum AddressBookMessage {
+    Add(String, Address, contacts::Category),
+    Remove(String, contacts::Category),
+    Get(String, contacts::Category),
+    List(contacts::Category),
+    Clear(contacts::Category),
+}
+
+#[derive(Debug)]
+pub enum RPCStorageMessage {
+    Add(ChainPacket),
+    Remove(String),
+    Get(String),
+    List,
+    Clear,
+}
+
+impl From<RPCStorageMessage> for StorageMessage {
+    fn from(msg: RPCStorageMessage) -> Self {
+        Self::RPCStorage(msg)
+    }
+}
+
+impl From<StorageMessage> for Message {
+    fn from(msg: StorageMessage) -> Self {
+        Self::StorageMessage(msg)
+    }
+}
+
+impl From<RPCStorageMessage> for Message {
+    fn from(msg: RPCStorageMessage) -> Self {
+        Self::StorageMessage(msg.into())
+    }
 }
 
 /// State for specific windows that are open.
@@ -200,6 +232,7 @@ impl App {
                 iced::clipboard::write(contents)
             }
             Message::Empty => Command::none(),
+            // All the view messages are forwarded to the screen.
             _ => self.windows.screen.update(message),
         })
     }
@@ -308,12 +341,53 @@ impl App {
         cmd
     }
 
+    fn rpcs_update(&mut self, message: RPCStorageMessage) -> Command<Message> {
+        let profile = &mut self.storage.profile;
+        match message {
+            RPCStorageMessage::Add(chain) => {
+                profile.rpcs.add(chain);
+            }
+            RPCStorageMessage::Remove(name) => {
+                tracing::debug!("Removing RPC from storage: {}", name);
+                profile.rpcs.remove(&name);
+            }
+            RPCStorageMessage::Get(name) => {
+                profile.rpcs.get(&name);
+            }
+            RPCStorageMessage::List => {
+                profile.rpcs.list();
+            }
+            RPCStorageMessage::Clear => {
+                profile.rpcs.clear();
+            }
+        }
+
+        // Make sure to save the new storage.
+        let result = profile.save();
+        match result {
+            Ok(_) => tracing::info!("Saved profile to disk"),
+            Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
+        }
+
+        // todo: this can probably be removed.
+        // we can just update the storage in the rpc settings manually.
+        let rpcs = profile.rpcs.clone();
+        tracing::info!("Syncing RPCs from app: {:?}", rpcs);
+        Command::perform(async {}, move |_| {
+            view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
+        })
+        .map(|x| x.into())
+    }
+
     #[allow(unused_assignments)]
     fn storage_update(&mut self, message: StorageMessage) -> Command<Message> {
         let mut cmd = Command::none();
         match message {
             StorageMessage::AddressBook(msg) => {
                 cmd = self.contacts_update(msg);
+            }
+            StorageMessage::RPCStorage(msg) => {
+                cmd = self.rpcs_update(msg);
             }
         }
         cmd
@@ -356,7 +430,9 @@ impl App {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
                     view::sidebar::Page::Portfolio => PortfolioRoot::new().into(),
                     view::sidebar::Page::Simulate => Terminal::new().into(),
-                    view::sidebar::Page::Settings => SettingsScreen::new().into(),
+                    view::sidebar::Page::Settings => {
+                        SettingsScreen::new(self.storage.clone()).into()
+                    }
                     view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                 }
             }

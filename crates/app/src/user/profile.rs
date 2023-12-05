@@ -3,6 +3,7 @@ use std::{fs::File, path::PathBuf};
 
 use super::{
     contacts::Contacts,
+    networks::RPCList,
     system::{get_data_dir, PROFILE_FILE_EXTENSION, PROFILE_FILE_NAME},
     Saveable,
 };
@@ -11,6 +12,7 @@ use super::{
 pub struct Profile {
     pub data_dir: PathBuf,
     pub contacts: Contacts,
+    pub rpcs: RPCList,
     pub name: Option<String>,
 }
 
@@ -36,7 +38,10 @@ impl Saveable for Profile {
             std::fs::create_dir(Self::app_dir()).expect("Failed to create app directory.");
         }
 
-        let profile_file = Self::path();
+        let profile_file = match name.clone() {
+            Some(name) => Self::file_path_with_name(name),
+            None => Self::path(),
+        };
         // Don't overwrite existing profiles.
         if profile_file.exists() {
             return Ok(Self::load(Some(profile_file))?);
@@ -54,6 +59,7 @@ impl Saveable for Profile {
         let value = Profile {
             data_dir: get_data_dir(),
             contacts: Contacts::new(),
+            rpcs: RPCList::new(),
             name,
         };
 
@@ -71,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_profile_create_new() {
-        let result = Profile::create_new(Some("test".to_string()));
+        let result = Profile::create_new(Some("test2".to_string()));
         assert!(result.is_ok());
         assert!(Path::new(&result.unwrap().file_path()).exists());
     }

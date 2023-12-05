@@ -21,7 +21,7 @@ use input::*;
 use styles::*;
 
 use self::{
-    containers::{CardContainer, CustomContainer, ScreenWindowContainer, WindowHeader},
+    containers::{CardContainer, CustomContainer, Indicator, ScreenWindowContainer, WindowHeader},
     select::custom_pick_list,
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
@@ -125,7 +125,10 @@ where
 
 /// Renders a nice red button.
 #[allow(dead_code)]
-pub fn destructive_button<'a>(label: String) -> iced::widget::Button<'a, Message> {
+pub fn destructive_button<'a, Message>(label: String) -> iced::widget::Button<'a, Message>
+where
+    Message: 'a,
+{
     let content = text(label)
         .size(16)
         .horizontal_alignment(iced::alignment::Horizontal::Center)
@@ -139,7 +142,11 @@ pub fn destructive_button<'a>(label: String) -> iced::widget::Button<'a, Message
         .background_color(Color::from_rgb8(189, 39, 29))
         .pressed()
         .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(200, 39, 30));
+        .background_color(Color::from_rgb8(200, 39, 30))
+        .disabled()
+        .border_radius(5.0.into())
+        .background_color(DISABLED_COLOR)
+        .text_color(DISABLED_TEXT_GRAY);
     button(content).style(destructive_button_style.as_custom())
 }
 
@@ -735,4 +742,101 @@ pub fn custom_icon_button<'a>(
         .background_color(PRIMARY_COLOR)
         .border_radius(5.0.into());
     button(content).style(control_button_style.as_custom())
+}
+
+/// An individual navigation step that can be rendered in a list of steps.
+#[derive(Debug, Clone)]
+pub struct NavigationStep<Message>
+where
+    Message: Clone + Default,
+{
+    pub icon: Icon,
+    pub label: String,
+    pub on_press: Message,
+    pub active: bool,
+    pub disabled: bool,
+}
+
+impl<Message> NavigationStep<Message>
+where
+    Message: Clone + Default,
+{
+    /// Creates a new navigation step.
+    pub fn new(icon: Icon, label: &str, on_press: Message, active: bool, disabled: bool) -> Self {
+        Self {
+            icon,
+            label: label.to_string(),
+            on_press,
+            active,
+            disabled,
+        }
+    }
+}
+
+impl Default for NavigationStep<Message> {
+    fn default() -> Self {
+        Self {
+            icon: Icon::Check,
+            label: "Default".to_string(),
+            on_press: Message::default(),
+            active: false,
+            disabled: false,
+        }
+    }
+}
+
+/// Renders a list of navigation steps with a custom icon, label, active flag,
+/// and message to emit.
+pub fn navigation_steps<'a, Message>(
+    title: &str,
+    steps: Vec<NavigationStep<Message>>,
+) -> Column<'a, Message>
+where
+    Message: 'a + Clone + Default,
+{
+    let mut content = Column::new().push(h3(title.to_string()));
+
+    for NavigationStep {
+        icon,
+        label,
+        on_press,
+        active,
+        disabled,
+    } in steps.into_iter()
+    {
+        let mut row = Row::new()
+            .spacing(Sizes::Sm)
+            .align_items(alignment::Alignment::Center);
+        if active {
+            row = row.push(
+                container(Column::new())
+                    .width(Length::Fixed(Sizes::Xs.into()))
+                    .height(Length::Fixed(Sizes::Xl.into()))
+                    .style(Indicator::theme()),
+            );
+        }
+
+        row = row
+            .push(text(icon_to_char(icon)).font(ICON_FONT))
+            .push(h3(label));
+
+        let bg_color = match active {
+            true => SELECTED_CONTAINER_COLOR,
+            false => Color::TRANSPARENT,
+        };
+
+        let mut row = button(row)
+            .padding(Sizes::Sm)
+            .style(route_button_style(bg_color).as_custom())
+            .width(Length::Fill);
+
+        // Disable the button if it has an empty message.
+        if !disabled {
+            row = row.on_press(on_press);
+        }
+
+        content = content.push(row);
+    }
+
+    content.spacing(Sizes::Sm)
 }

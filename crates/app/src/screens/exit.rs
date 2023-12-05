@@ -58,7 +58,7 @@ impl State for ExitScreen {
                 )
                 .spacing(10)
                 .align_items(alignment::Alignment::Center),
-            false => Column::new().push(button("Save and exit.").on_press(Self::ViewMessage::Exit)),
+            false => Column::new().push(h2("Saving and exiting...".to_string())),
         };
 
         Container::new(content)

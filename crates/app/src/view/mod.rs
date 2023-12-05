@@ -29,6 +29,7 @@ pub enum Message {
     // Specific window messages.
     CreatePortfolio(portfolio::create::Message),
     Dashboard(portfolio::dashboard::Message),
+    Settings(settings::Message),
 }
 
 impl MessageWrapperView for Message {
