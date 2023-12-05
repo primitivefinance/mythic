@@ -9,7 +9,7 @@ use crate::components::tables::{
     builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder,
 };
 
-type ParentMessage = developer::Message;
+type ParentMessage = super::Message;
 
 #[derive(Debug, Default, Clone)]
 pub enum Message {
@@ -21,7 +21,7 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = ParentMessage;
 }
 
 impl MessageWrapper for Message {
@@ -31,12 +31,6 @@ impl MessageWrapper for Message {
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Create(message)
-    }
-}
-
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::CreatePortfolio(message)
     }
 }
 
@@ -67,7 +61,7 @@ impl CreatePortfolio {
 }
 
 impl State for CreatePortfolio {
-    type ViewMessage = view::Message;
+    type ViewMessage = Message;
     type AppMessage = Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
@@ -149,7 +143,7 @@ impl State for CreatePortfolio {
                 self.form.table_data(),
             )
             .into(),
-            instruct.map(|x| developer::Message::Create(x).into()),
+            instruct.map(|x| x.into()),
         ];
 
         Container::new(

@@ -21,7 +21,7 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = ParentMessage;
 }
 
 impl MessageWrapper for Message {
@@ -35,15 +35,6 @@ impl MessageWrapper for Message {
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Form(message)
-    }
-}
-
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    // todo: now that we have the trait architecture for view messages, we just need
-    // to implement a parent view message instead of relying on the root view
-    // message.
-    fn from(message: Message) -> Self {
-        Self::Developer(developer::Message::Create(ParentMessage::Form(message)))
     }
 }
 

@@ -88,9 +88,6 @@ impl Sidebar {
         let mut column = Column::new();
         column = column.push(self.section("Apps".to_string()));
         column = column.push(self.page.view().map(|x| x.into()));
-        column = column.push(self.section("Bookmarks".to_string()));
-        column = column.push(self.bookmarks.view().map(|x| x.into()));
-
         column
             .spacing(Sizes::Xs as u16)
             .align_items(alignment::Alignment::Center)
@@ -153,12 +150,10 @@ impl screens::State for Sidebar {
 pub enum Page {
     #[default]
     Empty,
-    Terminal,
-    Execute,
-    AddressBook,
+    Portfolio,
+    Simulate,
+    Settings,
     Exit,
-    Experimental,
-    Developer,
 }
 
 impl Page {
@@ -170,11 +165,10 @@ impl Page {
     pub fn name(&self) -> String {
         match self {
             Page::Empty => "Select App".to_string(),
-            Page::Terminal => "Terminal".to_string(),
-            Page::Execute => "Execute".to_string(),
-            Page::AddressBook => "Address Book".to_string(),
-            Page::Exit => "Quit".to_string(),
-            Page::Developer => "Developer".to_string(),
+            Page::Portfolio => "Portfolio".to_string(),
+            Page::Simulate => "Simulate".to_string(),
+            Page::Settings => "Settings".to_string(),
+            Page::Exit => "Exit".to_string(),
             _ => "Experimental".to_string(),
         }
     }
@@ -182,11 +176,10 @@ impl Page {
     pub fn icon(&self) -> Icon {
         match self {
             Page::Empty => Icon::TerminalFill,
-            Page::Terminal => Icon::TerminalFill,
-            Page::Execute => Icon::Wallet,
-            Page::AddressBook => Icon::ShieldShaded,
+            Page::Portfolio => Icon::Wallet,
+            Page::Simulate => Icon::ShieldShaded,
+            Page::Settings => Icon::Gear,
             Page::Exit => Icon::X,
-            Page::Developer => Icon::Thermometer,
             _ => Icon::Gear,
         }
     }
@@ -200,16 +193,11 @@ impl Page {
 
     pub fn tabs(active: &Page) -> Vec<Self::PageTab> {
         let mut all = vec![
-            Page::Terminal.tab(active),
-            Page::Execute.tab(active),
-            Page::AddressBook.tab(active),
-            Page::Experimental.tab(active),
+            Page::Portfolio.tab(active),
+            Page::Simulate.tab(active),
+            Page::Settings.tab(active),
             Page::Exit.tab(active),
         ];
-
-        if std::env::var("DEV_MODE").is_ok() {
-            all.push(Page::Developer.tab(active));
-        }
 
         all
     }
@@ -245,6 +233,7 @@ impl Page {
 }
 
 /// todo: implement bookmark editing and better route management.
+/// todo: currently not used.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub struct Bookmarks {
     current: String,

@@ -43,14 +43,11 @@ pub struct Execution {
 // maybe replace clones with refs?
 impl Execution {
     pub fn new(chains: Chains, storage: Storage) -> Self {
-        let forker = Forker::new(
-            EnvironmentBuilder::new().build(),
-            chains.local_wallet.client.clone(),
-            0,
-            None,
-        );
+        let client = chains.get_signer(0, 0).map(|c| Some(c)).unwrap_or_default();
 
-        let forker_address = chains.clone().local_wallet.client.unwrap().address();
+        let forker = Forker::new(EnvironmentBuilder::new().build(), client.clone(), 0, None);
+
+        let forker_address = client.unwrap().address();
         tracing::info!("Forker address: 0x{:x}", forker_address);
 
         // Cache these contact lists so we don't need to refetch them on view...

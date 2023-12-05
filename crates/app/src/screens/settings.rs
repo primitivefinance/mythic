@@ -1,34 +1,24 @@
-pub mod create;
-pub mod dashboard;
-pub mod dev;
+//! Empty is a default screen if no app is selected.
 
 use iced::widget::Container;
 
 use super::*;
 
-#[derive(Debug, Clone, Default)]
-pub enum Message {
-    #[default]
-    Empty,
-    Create(create::Message),
-    Dashboard(dashboard::Message),
-}
+pub struct SettingsScreen;
 
-pub struct PortfolioRoot;
-
-impl PortfolioRoot {
+impl SettingsScreen {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl From<PortfolioRoot> for Screen {
-    fn from(screen: PortfolioRoot) -> Self {
+impl From<SettingsScreen> for Screen {
+    fn from(screen: SettingsScreen) -> Self {
         Screen::new(Box::new(screen))
     }
 }
 
-impl State for PortfolioRoot {
+impl State for SettingsScreen {
     type AppMessage = app::Message;
     type ViewMessage = view::Message;
 

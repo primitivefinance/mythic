@@ -6,9 +6,7 @@ use sim::engine::ArbiterInstance;
 use uuid::Uuid;
 
 use super::*;
-use crate::view::{
-    agent_card_grid, monitor::labeled_data_cards, StateSubscription, StateSubscriptionStore,
-};
+use crate::view::{agent_card_grid, labeled_data_cards, StateSubscription, StateSubscriptionStore};
 
 type World = Arc<ArbiterInstance>;
 type InstanceManager = Arc<tokio::sync::Mutex<ArbiterInstanceManager>>;

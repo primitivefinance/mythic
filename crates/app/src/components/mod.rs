@@ -13,7 +13,10 @@ use iced::{
     widget::{pick_list, Button, Container},
     BorderRadius, Color, Element, Padding, Renderer,
 };
-use iced_aw::Icon;
+use iced_aw::{
+    graphics::icons::{self, icon_to_char},
+    Icon, ICON_FONT,
+};
 use input::*;
 use styles::*;
 
@@ -24,7 +27,7 @@ use self::{
 };
 // These components should return View messages.
 use super::{
-    view::{control::custom_icon_button, sidebar::Page, Message},
+    view::{sidebar::Page, Message},
     *,
 };
 
@@ -716,4 +719,20 @@ where
         .spacing(Sizes::Md as u16)
         .align_items(alignment::Alignment::Center);
     row
+}
+
+pub fn custom_icon_button<'a>(
+    icon: icons::Icon,
+    font_size: u16,
+) -> iced::widget::Button<'a, Message> {
+    let content = text(icon_to_char(icon))
+        .font(ICON_FONT)
+        .size(font_size)
+        .style(Color::WHITE);
+    let control_button_style = CustomButtonStyle::new()
+        .background_color(Color::TRANSPARENT)
+        .hovered()
+        .background_color(PRIMARY_COLOR)
+        .border_radius(5.0.into());
+    button(content).style(control_button_style.as_custom())
 }

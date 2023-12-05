@@ -2,60 +2,32 @@ use std::collections::{BTreeMap, HashMap};
 
 use ethers::{abi::Token, utils::format_ether};
 use iced::widget::{Column, Container, Row};
-use iced_aw::Icon;
-use user::contacts;
 
-use self::{control::control_panel, monitor::labeled_data_cards, sidebar::Page};
+use self::sidebar::Page;
 use super::{
     components::{containers::*, *},
-    screens::address_book::AddressBookDisplay,
     tracer::AppEventLayer,
     *,
 };
 use crate::screens::State;
 
-pub mod address_book;
-pub mod agent;
-pub mod control;
-pub mod execute;
-pub mod monitor;
 pub mod sidebar;
-
-/// Messages emitted from user interaction with the settings.
-#[derive(Debug, Clone)]
-pub enum Settings {
-    ToggleRealtime,
-    ToggleFirehoseVisibility,
-}
-
-/// Messages emitted from user interaction with event_data components.
-#[derive(Debug, Clone)]
-pub enum Data {
-    // for debugging...
-    LogTrace,
-    // todo: this needs a refactor
-    UpdateWatchedValue(StateSubscriptionStore),
-    AppEvent,
-}
 
 /// Root message for the Terminal component.
 #[derive(Debug, Clone, Default)]
 pub enum Message {
     #[default]
     Empty,
+    // Exit application
     Exit,
+    // Confirm exit application
     ConfirmExit,
-    Simulation(control::Operation),
-    Settings(Settings),
-    Data(Data),
-    Page(Page),
-    Execution(Execution),
-    AddressBook(AddressBookViewMessage),
-    CopyToClipboard(String),
-    Experimental,
-    Developer(developer::Message),
-    CreatePortfolio(portfolio::create::Message),
+    // Route to a new page.
     Route(sidebar::Route),
+    // Copy to clipboard.
+    CopyToClipboard(String),
+    // Specific window messages.
+    CreatePortfolio(portfolio::create::Message),
     Dashboard(portfolio::dashboard::Message),
 }
 
@@ -70,40 +42,6 @@ impl MessageWrapper for Message {
 impl From<Message> for app::Message {
     fn from(message: Message) -> Self {
         app::Message::View(message)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum AddressBookViewMessage {
-    Add,
-    AddressChanged(Option<String>),
-    LabelChanged(Option<String>),
-    CategoryChanged(contacts::Category),
-    ClassChanged(contacts::Class),
-    Remove((contacts::Category, contacts::ContactKey)),
-    ResetForm,
-    RouteTo(contacts::Category),
-    ChangeDisplay(AddressBookDisplay),
-}
-
-#[derive(Debug, Clone)]
-pub enum Execution {
-    Form(execution::form::FormMessage),
-    Simulate,
-    Execute,
-    Results,
-    Reset,
-}
-
-impl From<Execution> for view::Message {
-    fn from(execution: Execution) -> Self {
-        view::Message::Execution(execution)
-    }
-}
-
-impl From<Execution> for app::Message {
-    fn from(execution: Execution) -> Self {
-        app::Message::View(execution.into())
     }
 }
 
@@ -145,31 +83,6 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .width(Length::Shrink)
         .height(Length::Shrink)
         .padding(Sizes::Xl as u16)
-        .into()
-}
-
-pub fn terminal_layout<'a>(
-    realtime: bool,
-    state_data: StateSubscriptionStore,
-) -> Element<'a, Message> {
-    let cloned = state_data.clone();
-    let control_view = control_panel(realtime);
-    let state_view = state_render(cloned);
-    let content_row = Row::new()
-        .push(Column::new().push(state_view))
-        .width(Length::Fill);
-
-    Column::new()
-        .push(
-            Card::new(container(control_view))
-                .padding(Sizes::Md as u16)
-                .width(Length::Fill),
-        )
-        .push(content_row)
-        .spacing(Sizes::Lg as u16)
-        .padding(Sizes::Xl as u16)
-        .width(Length::Fill)
-        .height(Length::Fill)
         .into()
 }
 
@@ -350,7 +263,7 @@ where
     let mut row = Row::new().spacing(Sizes::Lg as u16);
     let mut i = 0;
     for card in data.into_iter() {
-        row = row.push(agent::agent_card(card, false));
+        row = row.push(labeled_data_cards(card, 4));
         i += 1;
         if i == max {
             content = content.push(row);
@@ -362,28 +275,49 @@ where
     content.spacing(Sizes::Lg as u16).into()
 }
 
-#[allow(dead_code)]
-fn mock_agent_card() -> Element<'static, Message> {
-    agent::agent_card(
-        vec![
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-        ],
-        false,
-    )
+/// Renders a single piece of labeled data in a container with a panel
+/// background and padding.
+pub fn labeled_data_card<'a, Message>(
+    label: String,
+    data: String,
+    _max_width: u16,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    let mut content = Column::new()
+        .push(labeled_data(label, data))
+        .width(Length::Fixed(100.0));
+    content = content.spacing(Sizes::Sm as u16);
+    Card::new(container(content))
+        .padding(Sizes::Md as u16)
+        .into()
 }
 
-#[allow(dead_code)]
-fn mock_monitor_group() -> Element<'static, Message> {
-    labeled_data_cards(
-        vec![
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-            ("name".to_string(), "agent".to_string()),
-        ],
-        3,
-    )
+/// Renders a group of labeled data cards in a row with a maximum amount of
+/// elements per row. If the total amount of elements exceeds the maximum, it
+/// will push a new row inside the column. There is a group label rendered above
+/// the rows.
+pub fn labeled_data_cards<'a, Message>(
+    data: Vec<(String, String)>,
+    max_elements: usize,
+) -> Element<'a, Message>
+where
+    Message: 'a,
+{
+    let mut content = Column::new();
+
+    let mut row = Row::new().spacing(Sizes::Sm as u16);
+    let mut i = 0;
+    for (label, data) in data {
+        row = row.push(labeled_data_card(label, data, 200));
+        i += 1;
+        if i == max_elements {
+            content = content.push(row);
+            row = Row::new().spacing(Sizes::Sm as u16);
+            i = 0;
+        }
+    }
+    content = content.push(row);
+    content.spacing(16).into()
 }

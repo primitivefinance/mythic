@@ -1,5 +1,4 @@
 use alloy_primitives;
-use arbiter_core::environment::builder::EnvironmentBuilder;
 use clients::{client::Local, ledger::LedgerClient};
 use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
 use iced::{
@@ -10,10 +9,16 @@ use iced::{
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use user::contacts;
 
-use super::{profile::Profile, *};
+use super::{middleware::*, profile::Profile, *};
 
-type LoadResult =
-    anyhow::Result<(app::Storage, app::Chains, clients::ledger::LedgerClient), anyhow::Error>;
+type LoadResult = anyhow::Result<
+    (
+        app::Storage,
+        app::Chains,
+        Option<clients::ledger::LedgerClient>,
+    ),
+    anyhow::Error,
+>;
 
 #[derive(Debug)]
 pub enum Message {
@@ -90,10 +95,12 @@ pub async fn load_app() -> LoadResult {
             }
             false => {
                 tracing::info!("Starting Anvil with no contracts");
-                Local::default().with_anvil().with_dev_wallet().await
+                Local::default().with_anvil()
             }
         },
     };
+
+    tracing::debug!("Anvil local: {:?}", local);
 
     // Get the default coinlist, and if it's empty, populate it with the coin
     // contract, if there's a coin contract.
@@ -147,6 +154,15 @@ pub async fn load_app() -> LoadResult {
         None => Address::zero(),
     };
 
+    let (sub_clients, sign_clients) = from_anvil(&local.anvil.clone().unwrap()).await?;
+    let chains = app::Chains {
+        call_clients: vec![],
+        sub_clients,
+        sign_clients,
+    };
+
+    let client = chains.get_signer(0, 0).unwrap();
+
     storage.profile.contacts.add(
         coin_address,
         contacts::ContactValue {
@@ -157,7 +173,7 @@ pub async fn load_app() -> LoadResult {
         contacts::Category::Recent,
     );
 
-    let from = local.client.as_ref().unwrap().address();
+    let from = client.as_ref().address();
     storage.profile.contacts.add(
         from,
         contacts::ContactValue {
@@ -173,12 +189,24 @@ pub async fn load_app() -> LoadResult {
         local.clone().anvil.unwrap().endpoint()
     );
 
-    let chains = app::Chains {
-        local_wallet: local,
-        arbiter: Arc::new(Mutex::new(EnvironmentBuilder::new().build())),
-    };
+    // drop the client we were using since we don't need it.
+    tracing::debug!("Dropping client in loader.");
+    drop(client);
+    tracing::debug!("Dropped client in loader.");
+
     let ledger =
         LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
+
+    let ledger = match ledger {
+        Ok(ledger) => Some(ledger),
+        Err(e) => {
+            tracing::warn!("Failed to connect to ledger: {:?}", e);
+            tracing::info!("Creating a new default ledger.");
+
+            None
+        }
+    };
+
     Ok((storage, chains, ledger))
 }
 

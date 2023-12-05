@@ -1,63 +1,23 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use arbiter_core::environment::Environment;
-use clients::{client::Local, ledger::LedgerClient, scroll::Scroll};
+use clients::ledger::LedgerClient;
+use ethers::core::k256::ecdsa::SigningKey;
 use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
 use user::contacts::{self, ContactValue};
 
 use super::{
-    screens::{
-        address_book::AddressBookScreen, developer::DeveloperScreen, empty::EmptyScreen,
-        exit::ExitScreen, experimental::ExperimentalScreen, terminal::Terminal, Screen,
-    },
-    view::sidebar::Page,
+    screens::{empty::EmptyScreen, exit::ExitScreen, terminal::Terminal, Screen},
     *,
 };
 use crate::{
-    screens::{portfolio::dashboard::DashboardWrapper, State},
+    screens::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
     view::sidebar::Sidebar,
 };
 
 pub fn app_span() -> Span {
-    tracing::info_span!("App")
-}
-
-pub type SpawnResult = anyhow::Result<(), anyhow::Error>;
-
-/// Emitted on simulation events.
-#[derive(Debug)]
-pub enum Simulation {
-    Spawned(SpawnResult),
-    Completed,
-}
-
-/// Emitted when data is involved.
-#[derive(Debug)]
-pub enum Data {
-    ProcessTracer,
-}
-
-#[derive(Debug)]
-pub enum Execution {
-    Form(execution::form::FormMessage),
-    Simulated(anyhow::Result<Scroll, anyhow::Error>),
-    Executed(anyhow::Result<Scroll, anyhow::Error>),
-    // Triggered after Execution::Executed is completed.
-    Confirmed,
-}
-
-impl From<Execution> for WindowsMessage {
-    fn from(msg: Execution) -> Self {
-        WindowsMessage::Execution(msg)
-    }
-}
-
-impl From<Execution> for Message {
-    fn from(msg: Execution) -> Self {
-        Message::WindowsMessage(msg.into())
-    }
+    tracing::debug_span!("App")
 }
 
 /// Root message for the Application.
@@ -90,9 +50,33 @@ pub enum AddressBookMessage {
 /// Idea: maybe make chains over generic over signers?
 #[derive(Debug, Clone)]
 pub struct Chains {
-    pub arbiter: Arc<Mutex<Environment>>,
-    pub local_wallet: Local<Provider<Ws>, LocalWallet>,
+    pub sub_clients: Vec<Provider<Ws>>,
+    pub call_clients: Vec<Provider<Http>>,
+    pub sign_clients: Vec<Wallet<SigningKey>>,
 }
+
+impl Chains {
+    #[tracing::instrument(skip(self))]
+    pub fn get_signer(
+        &self,
+        sub_client: usize,
+        sign_client: usize,
+    ) -> anyhow::Result<Arc<SignerMiddleware<Provider<Ws>, Wallet<SigningKey>>>> {
+        let sub_client = self
+            .sub_clients
+            .get(sub_client)
+            .ok_or(anyhow::anyhow!("Sub client not found"))?;
+        let sign_client = self
+            .sign_clients
+            .get(sign_client)
+            .ok_or(anyhow::anyhow!("Sign client not found"))?;
+
+        tracing::debug!("Creating signer middleware");
+        let signer = SignerMiddleware::new(sub_client.clone(), sign_client.clone());
+        Ok(Arc::new(signer))
+    }
+}
+
 #[derive(Debug)]
 pub enum ChainMessage {}
 
@@ -104,6 +88,12 @@ pub struct Streams {
 #[derive(Debug)]
 pub enum StreamsMessage {
     Data(Data),
+}
+
+/// Emitted when data is involved.
+#[derive(Debug)]
+pub enum Data {
+    ProcessTracer,
 }
 
 /// State for all temporarily cached state.
@@ -144,7 +134,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: EmptyScreen::new().into(),
+            screen: PortfolioRoot::new().into(),
         }
     }
 }
@@ -152,8 +142,6 @@ impl Default for Windows {
 #[derive(Debug)]
 pub enum WindowsMessage {
     Switch(view::sidebar::Route),
-    Execution(Execution),
-    Simulation(Simulation),
 }
 
 impl From<WindowsMessage> for Message {
@@ -174,7 +162,7 @@ pub struct App {
     pub sidebar: Sidebar,
     // this is a handle that has a lock on the ledger device
     // we have to talk to it async
-    pub ledger: LedgerClient,
+    pub ledger: Option<LedgerClient>,
 }
 
 impl App {
@@ -182,7 +170,7 @@ impl App {
         storage: Storage,
         chains: Chains,
         streams: Streams,
-        ledger: LedgerClient,
+        ledger: Option<LedgerClient>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -280,9 +268,8 @@ impl App {
                 }
 
                 // todo: figure out how to best pipe updated app state to windows...
-                cmd = Command::perform(async {}, |_| {
-                    Message::View(view::Message::Data(view::Data::AppEvent))
-                });
+                // todo: update, old.
+                cmd = Command::perform(async {}, |_| Message::View(view::Message::Empty));
             }
         }
         cmd
@@ -367,24 +354,12 @@ impl App {
 
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
+                    view::sidebar::Page::Portfolio => PortfolioRoot::new().into(),
+                    view::sidebar::Page::Simulate => Terminal::new().into(),
+                    view::sidebar::Page::Settings => SettingsScreen::new().into(),
                     view::sidebar::Page::Exit => ExitScreen::new(true).into(),
-                    view::sidebar::Page::Execute => Screen::new(Box::new(
-                        execution::Execution::new(self.chains.clone(), self.storage.clone()),
-                    )),
-                    view::sidebar::Page::AddressBook => Screen::new(Box::new(
-                        AddressBookScreen::new(self.storage.profile.contacts.clone()),
-                    )),
-                    view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new())),
-                    view::sidebar::Page::Experimental => {
-                        Screen::new(Box::new(ExperimentalScreen::new()))
-                    }
-                    view::sidebar::Page::Developer => DeveloperScreen::new().into(),
                 }
             }
-            view::sidebar::Route::Open(location) => match location {
-                view::sidebar::Location::Portfolio(name) => DashboardWrapper::new(None).into(),
-                view::sidebar::Location::Empty => EmptyScreen::new().into(),
-            },
             _ => EmptyScreen::new().into(),
         };
 
@@ -403,14 +378,16 @@ mod tests {
     use super::*;
 
     fn cache_update_bench(c: &mut Criterion) {
-        // let mut app = App::new();
-        c.bench_function("cache_update", |b| {
-            b.iter(|| {
-                // app.cache_update(CacheMessage::AppEvent(AppEventLog::new(
-                // "test".to_string(),
-                // "test".to_string(),
-                // )))
-            })
-        });
+        // let storage = Storage::default();
+        // let chains = Chains::default();
+        // let mut app = App::new(storage, chains, Streams::default(), None).0;
+        // c.bench_function("cache_update", |b| {
+        // b.iter(|| {
+        // app.cache_update(CacheMessage::AppEvent(AppEventLog::new(
+        // "test".to_string(),
+        // "test".to_string(),
+        // )))
+        // })
+        // });
     }
 }

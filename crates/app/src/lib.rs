@@ -12,6 +12,7 @@ mod app;
 mod components;
 mod loader;
 mod logging;
+mod middleware;
 mod screens;
 mod user;
 mod view;

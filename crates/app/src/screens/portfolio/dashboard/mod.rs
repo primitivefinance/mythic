@@ -5,10 +5,7 @@ pub mod table;
 
 use std::collections::HashMap;
 
-use datatypes::{
-    portfolio::{coin::Coin, position::Position, weight::Weight, Portfolio},
-    weight,
-};
+use datatypes::portfolio::{coin::Coin, position::Position, weight::Weight, Portfolio};
 use stages::Stages;
 use uuid::Uuid;
 
@@ -32,9 +29,11 @@ async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<a
         Err(e) => {
             tracing::error!("Failed to load portfolio: {:?}", e);
             // return Err(Arc::new(e));
+            tracing::debug!("Loading the default portfolio.");
+            Portfolio::load(Some(Portfolio::file_path_with_name("default".to_string())))?
 
-            tracing::info!("Creating a new default portfolio.");
-            Portfolio::create_new(name.clone())?
+            // tracing::info!("Creating a new default portfolio.");
+            // Portfolio::create_new(name.clone())?
         }
     };
 
@@ -97,22 +96,16 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = super::Message;
 }
 
 impl MessageWrapper for Message {
-    type ParentMessage = developer::Message;
+    type ParentMessage = super::Message;
 }
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::Dash(message)
-    }
-}
-
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::Developer(developer::Message::Dash(message))
+    fn from(msg: Message) -> Self {
+        super::Message::Dashboard(msg)
     }
 }
 
@@ -130,7 +123,7 @@ pub struct Dashboard {
 
 impl Dashboard {
     pub type AppMessage = Message;
-    pub type ViewMessage = view::Message;
+    pub type ViewMessage = Message;
 
     /// Try loading the portfolio from the name.
     pub fn new(name: Option<String>) -> Self {
@@ -238,7 +231,7 @@ impl Dashboard {
 
 impl State for Dashboard {
     type AppMessage = Message;
-    type ViewMessage = view::Message;
+    type ViewMessage = Message;
 
     /// todo: how to handle different portfolio loads.
     fn load(&self) -> Command<Self::AppMessage> {
@@ -373,54 +366,5 @@ impl State for Dashboard {
             .max_height(ByteScale::Xl7)
             .max_width(ByteScale::Xl7.between(&ByteScale::Xl8))
             .into()
-    }
-}
-
-/// Wrapper around the dashboard so it can be used directly from the root app.
-pub struct DashboardWrapper {
-    pub dashboard: Dashboard,
-}
-
-impl From<DashboardWrapper> for Screen {
-    fn from(dashboard: DashboardWrapper) -> Self {
-        Screen::new(Box::new(dashboard))
-    }
-}
-
-impl DashboardWrapper {
-    pub fn new(name: Option<String>) -> Self {
-        Self {
-            dashboard: Dashboard::new(name),
-        }
-    }
-}
-
-impl State for DashboardWrapper {
-    type AppMessage = app::Message;
-    type ViewMessage = view::Message;
-
-    fn load(&self) -> Command<Self::AppMessage> {
-        let cmd: Command<developer::Message> = self.dashboard.load().map(|x| x.into());
-        cmd.map(|x| x.into())
-    }
-
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
-        match message {
-            app::Message::View(view::Message::Developer(msg)) => match msg {
-                developer::Message::Dash(message) => {
-                    let cmd: Command<developer::Message> =
-                        self.dashboard.update(message).map(|x| x.into());
-                    return cmd.map(|x| x.into());
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-
-        Command::none()
-    }
-
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
-        self.dashboard.view()
     }
 }
