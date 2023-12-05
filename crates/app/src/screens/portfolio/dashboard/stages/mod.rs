@@ -6,9 +6,9 @@ pub mod prepare;
 pub mod review;
 pub mod simulate;
 
-use clients::arbiter::portfolio_adjustment::MiniWorldBuilder;
+use datatypes::TokenData;
 use ethers::utils::parse_ether;
-use simulation::agents::token_admin::TokenData;
+use sim::engine::ArbiterInstanceManager;
 
 use self::review::StrategyParameters;
 use super::{table::PositionDelta, *};
@@ -153,153 +153,153 @@ impl Stages {
         }
 
         let portfolio = self.original.clone().unwrap();
-        let mut builder = MiniWorldBuilder::default();
+        let mut builder = ArbiterInstanceManager::new();
 
-        // Compute the amount of steps given the time step size of 15 and the time range
-        // provided by the user.
+        // // Compute the amount of steps given the time step size of 15 and the time
+        // range provided by the user.
         // todo: this is temp value, but do above
-        let steps: usize = 1000;
+        // let steps: usize = 1000;
         // Initial amount to deposit.
-        let deposit = parse_ether(0.01).unwrap();
+        // let deposit = parse_ether(0.01).unwrap();
         // initial price.
-        let price = parse_ether(1.0).unwrap();
+        // let price = parse_ether(1.0).unwrap();
         // Time between blocks, in seconds.
-        let timestep_size: u64 = 15;
-
+        // let timestep_size: u64 = 15;
+        //
         // First add the coins. Make sure they are in the portfolio.
-        let coin_x: TokenData = portfolio
-            .positions
-            .0
-            .iter()
-            .find(|x| x.asset.symbol == "X")
-            .expect("no X coin found")
-            .clone()
-            .into();
-        let coin_y: TokenData = portfolio
-            .positions
-            .0
-            .iter()
-            .find(|x| x.asset.symbol == "Y")
-            .expect("no Y coin found")
-            .clone()
-            .into();
-        builder.config_builder.coins(coin_x, coin_y);
-
+        // let coin_x: TokenData = portfolio
+        // .positions
+        // .0
+        // .iter()
+        // .find(|x| x.asset.symbol == "X")
+        // .expect("no X coin found")
+        // .clone()
+        // .into();
+        // let coin_y: TokenData = portfolio
+        // .positions
+        // .0
+        // .iter()
+        // .find(|x| x.asset.symbol == "Y")
+        // .expect("no Y coin found")
+        // .clone()
+        // .into();
+        // builder.config_builder.coins(coin_x, coin_y);
+        //
         // Edit the lp agent.
-        builder.config_builder.deposit_x(deposit);
-        builder.config_builder.initial_price(price);
-
+        // builder.config_builder.deposit_x(deposit);
+        // builder.config_builder.initial_price(price);
+        //
         // Edit the seconds between blocks.
-        builder.config_builder.timestep_size(timestep_size);
-
+        // builder.config_builder.timestep_size(timestep_size);
+        //
         // Edit the price and amount of steps.
         // todo: matching the dca/static.toml config right now, change later
-        builder.config_builder.price_changer.seed(1);
-        builder.config_builder.price_changer.num_steps(steps);
-        builder.config_builder.price_changer.num_paths(10);
-        builder.config_builder.price_changer.initial_price(price);
-        builder.config_builder.price_changer.t_0(0.0);
-        builder.config_builder.price_changer.t_n(0.1);
-        builder.config_builder.price_changer.drift(0.1);
-        builder.config_builder.price_changer.volatility(0.35);
-
+        // builder.config_builder.price_changer.seed(1);
+        // builder.config_builder.price_changer.num_steps(steps);
+        // builder.config_builder.price_changer.num_paths(10);
+        // builder.config_builder.price_changer.initial_price(price);
+        // builder.config_builder.price_changer.t_0(0.0);
+        // builder.config_builder.price_changer.t_n(0.1);
+        // builder.config_builder.price_changer.drift(0.1);
+        // builder.config_builder.price_changer.volatility(0.35);
+        //
         // Edit the portfolio manager.
-        let fee_wad = parse_ether(0.003).unwrap();
-        let start_weight_wad = parse_ether(0.01).unwrap();
-        let end_weight_wad = parse_ether(0.99).unwrap();
-        builder.config_builder.portfolio_manager.fee(fee_wad);
-        builder
-            .config_builder
-            .portfolio_manager
-            .start_weight_x(start_weight_wad);
-        builder
-            .config_builder
-            .portfolio_manager
-            .end_weight_x(end_weight_wad);
-        builder
-            .config_builder
-            .portfolio_manager
-            .end_timestamp(14985);
-
+        // let fee_wad = parse_ether(0.003).unwrap();
+        // let start_weight_wad = parse_ether(0.01).unwrap();
+        // let end_weight_wad = parse_ether(0.99).unwrap();
+        // builder.config_builder.portfolio_manager.fee(fee_wad);
+        // builder
+        // .config_builder
+        // .portfolio_manager
+        // .start_weight_x(start_weight_wad);
+        // builder
+        // .config_builder
+        // .portfolio_manager
+        // .end_weight_x(end_weight_wad);
+        // builder
+        // .config_builder
+        // .portfolio_manager
+        // .end_timestamp(14985);
+        //
         // Edit the swapper.
-        let balance = parse_ether(1.0).unwrap();
-        builder.config_builder.swapper.num_swaps(12);
-        builder.config_builder.swapper.start_timestamp(15);
-        builder.config_builder.swapper.end_timestamp(15000);
-        builder.config_builder.swapper.initial_balance(balance);
-        builder.config_builder.swapper.swap_direction(false);
-
-        if self.review.sealed.is_none() {
-            tracing::error!("Review form was not submitted!");
-            return Command::none();
-        }
-
+        // let balance = parse_ether(1.0).unwrap();
+        // builder.config_builder.swapper.num_swaps(12);
+        // builder.config_builder.swapper.start_timestamp(15);
+        // builder.config_builder.swapper.end_timestamp(15000);
+        // builder.config_builder.swapper.initial_balance(balance);
+        // builder.config_builder.swapper.swap_direction(false);
+        //
+        // if self.review.sealed.is_none() {
+        // tracing::error!("Review form was not submitted!");
+        // return Command::none();
+        // }
+        //
         // Edit the portfolio manager by applying the review form data provided by the
         // user.
-        let parameters: StrategyParameters = self.review.sealed.clone().unwrap();
-        builder
-            .config_builder
-            .portfolio_manager
-            .fee(parse_ether(parameters.fee_percentage).unwrap());
-
+        // let parameters: StrategyParameters = self.review.sealed.clone().unwrap();
+        // builder
+        // .config_builder
+        // .portfolio_manager
+        // .fee(parse_ether(parameters.fee_percentage).unwrap());
+        //
         // todo: implement the start time in the portfolio manager too?
-        builder
-            .config_builder
-            .swapper
-            .start_timestamp(parameters.start_time_seconds.round() as u64);
-
-        builder.config_builder.portfolio_manager.end_timestamp(
-            (parameters.start_time_seconds + parameters.duration_seconds).round() as u64,
-        );
-
+        // builder
+        // .config_builder
+        // .swapper
+        // .start_timestamp(parameters.start_time_seconds.round() as u64);
+        //
+        // builder.config_builder.portfolio_manager.end_timestamp(
+        // (parameters.start_time_seconds + parameters.duration_seconds).round() as u64,
+        // );
+        //
         // Finally, apply the weight changes to the portfolio manager.
-        if self.adjusted.is_none() {
-            tracing::error!("Weight changes were not computed!");
-            return Command::none();
-        }
-
-        let adjusted = self.adjusted.clone().unwrap();
-
-        let start_weight_x = portfolio
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.asset.symbol == "X")
-            .filter(|x| x.weight.is_some())
-            .map(|x| x.weight.unwrap())
-            .next()
-            .unwrap();
-        builder
-            .config_builder
-            .portfolio_manager
-            .start_weight_x(parse_ether(start_weight_x).unwrap());
-
-        let end_weight_x = adjusted
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.asset.symbol == "X")
-            .filter(|x| x.weight.is_some())
-            .map(|x| x.weight.unwrap())
-            .last()
-            .unwrap();
-        builder
-            .config_builder
-            .portfolio_manager
-            .end_weight_x(parse_ether(end_weight_x).unwrap());
-
-        let original_x_balance = portfolio
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.asset.symbol == "X")
-            .filter(|x| x.balance.is_some())
-            .map(|x| x.balance.unwrap())
-            .next()
-            .unwrap();
-        builder
-            .config_builder
-            .deposit_x(parse_ether(original_x_balance).unwrap());
+        // if self.adjusted.is_none() {
+        // tracing::error!("Weight changes were not computed!");
+        // return Command::none();
+        // }
+        //
+        // let adjusted = self.adjusted.clone().unwrap();
+        //
+        // let start_weight_x = portfolio
+        // .positions
+        // .0
+        // .iter()
+        // .filter(|x| x.asset.symbol == "X")
+        // .filter(|x| x.weight.is_some())
+        // .map(|x| x.weight.unwrap())
+        // .next()
+        // .unwrap();
+        // builder
+        // .config_builder
+        // .portfolio_manager
+        // .start_weight_x(parse_ether(start_weight_x).unwrap());
+        //
+        // let end_weight_x = adjusted
+        // .positions
+        // .0
+        // .iter()
+        // .filter(|x| x.asset.symbol == "X")
+        // .filter(|x| x.weight.is_some())
+        // .map(|x| x.weight.unwrap())
+        // .last()
+        // .unwrap();
+        // builder
+        // .config_builder
+        // .portfolio_manager
+        // .end_weight_x(parse_ether(end_weight_x).unwrap());
+        //
+        // let original_x_balance = portfolio
+        // .positions
+        // .0
+        // .iter()
+        // .filter(|x| x.asset.symbol == "X")
+        // .filter(|x| x.balance.is_some())
+        // .map(|x| x.balance.unwrap())
+        // .next()
+        // .unwrap();
+        // builder
+        // .config_builder
+        // .deposit_x(parse_ether(original_x_balance).unwrap());
 
         return Command::perform(async {}, |_| {
             Message::Simulate(simulate::Message::Armed(builder))

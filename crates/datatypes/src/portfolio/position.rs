@@ -8,12 +8,12 @@ use anyhow::Result;
 use chrono;
 /// ! A position is an individual portion of a portfolio.
 use serde::{Deserialize, Serialize};
-use simulation::agents::token_admin::TokenData;
 
 use super::{
     coin::Coin,
     nwd::NWD,
     weight::{Weight, WeightError},
+    TokenData,
 };
 
 /// A data type for a position in a portfolio.

@@ -15,11 +15,21 @@ Excalibur is an Ethereum Application Client which vertically integrates all comp
 
 ## Dependencies
 - [Anvil](https://github.com/foundry-rs/foundry) is installed and available in `$PATH`.
+- [Forge](https://github.com/foundry-rs/foundry) is installed and available in `$PATH`.
+- [Arbiter](https://github.com/primitivefinance/arbiter) is installed and available in `$PATH`.
 
-## Installation
+## Installation part 1: rust
 
 ```bash
 cargo install --path .
+```
+
+## Installation part 2: foundry dependencies, artifacts, and bindings
+
+There is one (let's keep it that way!) dependency: primitivefinance/solstat. This has its own dependencies forge-std and solmate, which we also use. Make sure to use forge to install this prior to building the contracts.
+
+```bash
+make
 ```
 
 ## Run
@@ -33,6 +43,16 @@ cargo run ui
 ```bash
 cargo run simulate <config>
 ```
+
+## Project layout
+- assets/ - Static assets used in application
+- benches/ - Benchmarks for all crates
+- bin - CLI entrypoint
+- configs/ - Simulation configurations
+- crates/ - All rust code
+- journal/ - Team knowledge corpus
+- lib/ - Git submodule dependencies
+- src/ - Smart contracts
 
 ## Architecture
 

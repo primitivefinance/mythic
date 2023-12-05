@@ -1,0 +1,41 @@
+[package]
+name = "sim"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+datatypes.workspace = true
+bindings.workspace = true
+cfmm_math.workspace = true
+clients.workspace = true
+
+
+unit-conversions = "0.1.13"
+
+revm.workspace = true
+revm-primitives.workspace = true
+
+itertools.workspace = true
+rand.workspace = true
+
+alloy-primitives.workspace = true
+arbiter-bindings.workspace = true
+arbiter-core.workspace = true
+ethers.workspace = true
+
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+config.workspace = true
+
+RustQuant.workspace = true
+statrs.workspace = true
+linked-hash-map.workspace = true

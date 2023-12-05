@@ -390,8 +390,8 @@ pub fn get_counter_path() -> anyhow::Result<std::path::PathBuf, anyhow::Error> {
 #[cfg(test)]
 mod tests {
     use arbiter_core::middleware::RevmMiddleware;
+    use bindings::counter::Counter;
     use ethers::{prelude::*, utils::Anvil};
-    use simulation::bindings::counter::Counter;
 
     use super::*;
     use crate::tests::TEST_SUBSCRIBER;

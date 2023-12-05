@@ -1,19 +1,17 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, convert::Infallible};
 
-use clients::arbiter::{
-    portfolio_adjustment::{InstanceManager, SimulatedWorld},
-    world::World,
-};
 use ethers::{abi::Token, utils::format_ether};
 use logging::tracer::AppEventLayer;
-use simulation::agents::SubscribedData;
+use sim::engine::ArbiterInstance;
 use uuid::Uuid;
 
 use super::*;
-use crate::{
-    screens::terminal::{StateSubscription, StateSubscriptionStore},
-    view::{agent_card_grid, monitor::labeled_data_cards},
+use crate::view::{
+    agent_card_grid, monitor::labeled_data_cards, StateSubscription, StateSubscriptionStore,
 };
+
+type World = Arc<ArbiterInstance>;
+type InstanceManager = Arc<tokio::sync::Mutex<ArbiterInstanceManager>>;
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -22,11 +20,11 @@ pub enum Message {
     /// Trigger preparation of simulation.
     Arm,
     /// Simulation is ready to be executed.
-    Armed(MiniWorldBuilder),
+    Armed(ArbiterInstanceManager),
     /// Simulation was called to be run.
     Simulate,
     /// Simulation has completed.
-    Complete(SimulatedWorld),
+    Complete,
     /// Fetched the final state of the simulation.
     FetchResults(anyhow::Result<(Uuid, StateSubscriptionStore), Arc<anyhow::Error>>),
 }
@@ -64,7 +62,7 @@ pub struct Simulate {
     /// Simulation settings form.
     form: Form,
     /// Constructs the simulation instances and exposes configuration options.
-    builders: Vec<MiniWorldBuilder>,
+    builders: Vec<ArbiterInstanceManager>,
     /// The worlds that have been simulated.
     cache: WorldCache,
     /// Whether the simulation has been armed.
@@ -74,7 +72,7 @@ pub struct Simulate {
 impl Simulate {
     pub type ViewMessage = Message;
 
-    pub fn new(builders: Vec<MiniWorldBuilder>) -> Self {
+    pub fn new(builders: Vec<ArbiterInstanceManager>) -> Self {
         Self {
             builders,
             ..Default::default()
@@ -125,66 +123,66 @@ impl Simulate {
 pub async fn sim_startup(m: InstanceManager) -> anyhow::Result<(), anyhow::Error> {
     let locked = m.lock().await;
 
-    for world in locked.worlds.iter() {
-        let mut world = world.lock().await;
-        let world_id = world.seed;
-        tracing::debug!("world.{}.: Running startup", world_id.clone());
-        world.startup().await?;
-    }
+    // for world in locked.worlds.iter() {
+    // let mut world = world.lock().await;
+    // let world_id = world.seed;
+    // tracing::debug!("world.{}.: Running startup", world_id.clone());
+    // world.startup().await?;
+    // }
 
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(m), fields(layer = %"system", action = %"step"))]
-pub async fn handle_state_subscriptions(
-    id: Uuid,
-    m: Arc<tokio::sync::Mutex<World>>,
-) -> anyhow::Result<(Uuid, StateSubscriptionStore), Arc<anyhow::Error>> {
-    let mut state_data = HashMap::new();
-
-    let world = m.lock().await;
-    let world_id = world.seed;
-    let mut agents = world.agents.lock().await;
-
-    // truncate the world id to just leave the first three characters
-    let formatted_world_id = world_id.clone().to_string();
-
-    for agent in agents.0.iter_mut() {
-        let subscribed = agent.1.get_subscribed().await.map_err(Arc::new)?;
-
-        // Skip empty subscriptions to avoid populating the state data with empty
-        // subscriptions.
-        if subscribed.is_empty() {
-            continue;
-        }
-
-        if agent.0.to_lowercase().contains("monitor") {
-            state_data.entry(world_id).or_insert(HashMap::new()).insert(
-                agent.0.to_string(),
-                StateSubscription {
-                    logs: subscribed,
-                    label: format!("{} {}", formatted_world_id, agent.0),
-                    category: AppEventLayer::System,
-                    id: world_id,
-                },
-            );
-        } else {
-            // Add the subscribed data as a state subscription inside the hashm ap with keys
-            // world id -> agent name
-            state_data.entry(world_id).or_insert(HashMap::new()).insert(
-                agent.0.to_string(),
-                StateSubscription {
-                    logs: subscribed,
-                    label: format!("{} {}", formatted_world_id, agent.0),
-                    category: AppEventLayer::Agent,
-                    id: world_id,
-                },
-            );
-        }
-    }
-
-    Ok((id, state_data))
-}
+// #[tracing::instrument(level = "trace", skip(m), fields(layer = %"system",
+// action = %"step"))] pub async fn handle_state_subscriptions(
+// id: Uuid,
+// m: Arc<tokio::sync::Mutex<World>>,
+// ) -> anyhow::Result<(Uuid, StateSubscriptionStore), Arc<anyhow::Error>> {
+// let mut state_data = HashMap::new();
+//
+// let world = m.lock().await;
+// let world_id = world.seed;
+// let mut agents = world.agents.lock().await;
+//
+// truncate the world id to just leave the first three characters
+// let formatted_world_id = world_id.clone().to_string();
+//
+// for agent in agents.0.iter_mut() {
+// let subscribed = agent.1.get_subscribed().await.map_err(Arc::new)?;
+//
+// Skip empty subscriptions to avoid populating the state data with empty
+// subscriptions.
+// if subscribed.is_empty() {
+// continue;
+// }
+//
+// if agent.0.to_lowercase().contains("monitor") {
+// state_data.entry(world_id).or_insert(HashMap::new()).insert(
+// agent.0.to_string(),
+// StateSubscription {
+// logs: subscribed,
+// label: format!("{} {}", formatted_world_id, agent.0),
+// category: AppEventLayer::System,
+// id: world_id,
+// },
+// );
+// } else {
+// Add the subscribed data as a state subscription inside the hashm ap with keys
+// world id -> agent name
+// state_data.entry(world_id).or_insert(HashMap::new()).insert(
+// agent.0.to_string(),
+// StateSubscription {
+// logs: subscribed,
+// label: format!("{} {}", formatted_world_id, agent.0),
+// category: AppEventLayer::Agent,
+// id: world_id,
+// },
+// );
+// }
+// }
+//
+// Ok((id, state_data))
+// }
 
 impl State for Simulate {
     type AppMessage = Message;
@@ -201,13 +199,10 @@ impl State for Simulate {
                 self.builders.push(builder);
             }
             Message::Simulate => {
-                return Command::perform(
-                    portfolio_adjustment::spawn(self.builders.clone()),
-                    Message::Complete,
-                );
+                return Command::perform(async {}, |_| Message::Complete);
             }
-            Message::Complete(result) => {
-                // Set the cached world.
+            Message::Complete => {
+                /* // Set the cached world.
                 let world = match result {
                     Ok(world) => world,
                     Err(error) => {
@@ -230,7 +225,7 @@ impl State for Simulate {
                 return Command::perform(
                     handle_state_subscriptions(key, world),
                     Message::FetchResults,
-                );
+                ); */
             }
             // Load the state data into the store so it can be rendered.
             Message::FetchResults(state_data) => match state_data {
@@ -288,7 +283,7 @@ where
         for (agent_name, agent) in cloned_world.into_iter() {
             let label = agent.label.clone();
             let category: AppEventLayer = agent.category.clone();
-            let logs: Vec<SubscribedData> = agent.logs.clone();
+            let logs: Vec<view::SubscribedData> = agent.logs.clone();
 
             // Insert the agent label if it has non empty state subscriptions
             if agent.logs.is_empty() {

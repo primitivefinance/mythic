@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
 use arbiter_core::environment::Environment;
-use clients::{arbiter::world::WorldManager, client::Local, ledger::LedgerClient, scroll::Scroll};
+use clients::{client::Local, ledger::LedgerClient, scroll::Scroll};
 use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
@@ -24,7 +24,7 @@ pub fn app_span() -> Span {
     tracing::info_span!("App")
 }
 
-pub type SpawnResult = anyhow::Result<Arc<tokio::sync::Mutex<WorldManager>>, anyhow::Error>;
+pub type SpawnResult = anyhow::Result<(), anyhow::Error>;
 
 /// Emitted on simulation events.
 #[derive(Debug)]
@@ -374,9 +374,7 @@ impl App {
                     view::sidebar::Page::AddressBook => Screen::new(Box::new(
                         AddressBookScreen::new(self.storage.profile.contacts.clone()),
                     )),
-                    view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new(
-                        self.streams.app_event_receiver.clone(),
-                    ))),
+                    view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new())),
                     view::sidebar::Page::Experimental => {
                         Screen::new(Box::new(ExperimentalScreen::new()))
                     }

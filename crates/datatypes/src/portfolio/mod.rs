@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use self::{nwd::NWD, position::PositionError, weight::Weight};
+use super::TokenData;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct Portfolio {

@@ -19,7 +19,6 @@ mod view;
 use std::sync::{Arc, Mutex};
 
 use app::App;
-use clients::arbiter::*;
 use components::*;
 use loader::Loader;
 use logging::tracer;
