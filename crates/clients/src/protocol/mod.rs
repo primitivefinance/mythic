@@ -67,6 +67,12 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn get_reserves_and_liquidity(&self) -> Result<(U256, U256, U256)> {
+        let reserves = self.protocol.get_reserves_and_liquidity().call().await?;
+        Ok(reserves)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_init_payload(
         &self,
         init_reserve_x_wad: U256,
@@ -128,7 +134,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .get_y_given_liquidity(init_liquidity_wad, init_price_wad, params.clone())
             .await?;
 
-        let init_swap_constant = I256::zero();
+        let init_swap_constant = I256::from(5);
 
         let liquidity_root = self
             .find_liquidity(
@@ -138,6 +144,10 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                 params.clone(),
             )
             .await?;
+
+        // Init fails with a negative swap constant of -1 (need +3). Subtracting
+        // liquidity gets us a higher swap constant.
+        let liquidity_root = liquidity_root - 5000;
 
         // Encode the data together to send it to the DFMM protocol.
         let payload = self

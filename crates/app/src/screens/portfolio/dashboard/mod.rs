@@ -161,7 +161,7 @@ impl Dashboard {
         Self {
             portfolio: None,
             table: PortfolioTable::new(),
-            stage: Stages::new(),
+            stage: Stages::new(dev_client.clone()),
             loaded_from: name,
             dev_client,
         }

@@ -58,6 +58,8 @@ pub enum Message {
     Review(review::Message),
     /// Updates the simulate stage.
     Simulate(simulate::Message),
+    /// Updates the execute stage.
+    Execute(execute::Message),
 }
 
 impl MessageWrapperView for Message {
@@ -95,12 +97,13 @@ pub struct Stages {
     pub prepare: prepare::Prepare,
     pub review: review::Review,
     pub simulate: simulate::Simulate,
+    pub execute: execute::Execute,
 }
 
 impl Stages {
     pub type AppMessage = Message;
 
-    pub fn new() -> Self {
+    pub fn new(dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>) -> Self {
         Self {
             original: None,
             adjusted: None,
@@ -108,6 +111,7 @@ impl Stages {
             prepare: prepare::Prepare::default(),
             review: review::Review::default(),
             simulate: simulate::Simulate::default(),
+            execute: execute::Execute::new(dev_client),
         }
     }
 
@@ -117,7 +121,7 @@ impl Stages {
             DashboardState::Prepare => self.prepare.guide(Some(Message::Step)),
             DashboardState::Review => self.review.guide(),
             DashboardState::Simulate => self.simulate.guide(Some(Message::Step)),
-            DashboardState::Execute => Container::new(Column::new()),
+            DashboardState::Execute => self.execute.guide(),
         }
     }
 
@@ -417,6 +421,22 @@ impl State for Stages {
 
                 return Command::batch(commands);
             }
+            Message::Execute(message) => {
+                let should_execute = match &self.current {
+                    DashboardState::Execute => {
+                        matches!(message, execute::Message::Execute)
+                    }
+                    _ => false,
+                };
+
+                let mut commands = vec![];
+
+                if let DashboardState::Execute = &mut self.current {
+                    commands.push(self.execute.update(message.clone()).map(|x| x.into()));
+                }
+
+                return Command::batch(commands);
+            }
             _ => {}
         }
 
@@ -450,7 +470,7 @@ impl State for Stages {
             DashboardState::Prepare => self.prepare.view().map(|x| x.into()),
             DashboardState::Review => self.review.view().map(|x| x.into()),
             DashboardState::Simulate => self.simulate.view().map(|x| x.into()),
-            DashboardState::Execute => Column::new().into(),
+            DashboardState::Execute => self.execute.view().map(|x| x.into()),
         };
 
         Container::new(

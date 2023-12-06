@@ -110,7 +110,7 @@ impl Simulate {
             vec![instruction_text(
                 "Review the simulated results and make any desired modifications before continuing to execution.".to_string(),
             )],
-            Some("Execute Adjustment".to_string()),
+            Some("Review Adjustment Transaction".to_string()),
             None,
             on_submit,
         )

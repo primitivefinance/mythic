@@ -118,4 +118,33 @@ impl<C: Middleware + 'static> DevClient<C> {
             )
             .await?)
     }
+
+    pub async fn get_position(&self) -> Result<ProtocolPosition> {
+        let (balance_x, balance_y, liquidity) = self.protocol.get_reserves_and_liquidity().await?;
+        let internal_price = self.protocol.get_internal_price().await?;
+        let balance_x = ethers::utils::format_ether(balance_x);
+        let balance_y = ethers::utils::format_ether(balance_y);
+        let liquidity = ethers::utils::format_ether(liquidity);
+        let internal_price = ethers::utils::format_ether(internal_price);
+
+        let balance_x = format!("{:.2}", balance_x.parse::<f64>().unwrap());
+        let balance_y = format!("{:.2}", balance_y.parse::<f64>().unwrap());
+        let liquidity = format!("{:.2}", liquidity.parse::<f64>().unwrap());
+        let internal_price = format!("{:.2}", internal_price.parse::<f64>().unwrap());
+
+        Ok(ProtocolPosition {
+            balance_x: Some(balance_x),
+            balance_y: Some(balance_y),
+            liquidity: Some(liquidity),
+            internal_price: Some(internal_price),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ProtocolPosition {
+    pub balance_x: Option<String>,
+    pub balance_y: Option<String>,
+    pub liquidity: Option<String>,
+    pub internal_price: Option<String>,
 }

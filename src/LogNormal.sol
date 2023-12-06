@@ -191,7 +191,7 @@ contract LogNormal is Source {
 
     uint256 public constant APPROXIMATED_MINIMUM_X_INPUT = 10;
     uint256 public constant BISECTION_EPSILON = 1;
-    uint256 public constant MAX_BISECTION_ITERS = 100;
+    uint256 public constant MAX_BISECTION_ITERS = 250;
     uint256 public constant HALF_WAD = 0.5e18;
     int256 public constant TWO_WAD = int256(2e18);
     uint256 public constant WAD = 1e18;
