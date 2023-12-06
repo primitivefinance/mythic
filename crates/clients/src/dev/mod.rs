@@ -7,6 +7,9 @@ use bindings::{log_normal, mock_erc20::MockERC20};
 
 use super::{protocol::ProtocolClient, *};
 
+pub const INITIAL_X_BALANCE: f64 = 100.0;
+pub const INITIAL_Y_BALANCE: f64 = 100.0;
+
 #[derive(Debug, Clone)]
 pub struct DevClient<C> {
     pub protocol: ProtocolClient<C>,
@@ -19,8 +22,16 @@ impl<C: Middleware + 'static> DevClient<C> {
         self.protocol.client.clone()
     }
 
+    pub async fn balance_of_x(&self, address: Address) -> Result<U256> {
+        Ok(self.token_x.balance_of(address).call().await?)
+    }
+
+    pub async fn balance_of_y(&self, address: Address) -> Result<U256> {
+        Ok(self.token_y.balance_of(address).call().await?)
+    }
+
     #[tracing::instrument(skip(client), level = "trace")]
-    pub async fn deploy(client: Arc<C>) -> Result<Self> {
+    pub async fn deploy(client: Arc<C>, sender: Address) -> Result<Self> {
         tracing::trace!("Deploying token x");
         let token_x_args = ("Token X".to_string(), "X".to_string(), 18_u8);
         let token_x = MockERC20::deploy(client.clone(), token_x_args)?
@@ -30,6 +41,19 @@ impl<C: Middleware + 'static> DevClient<C> {
         tracing::trace!("Deploying token y");
         let token_y_args = ("Token Y".to_string(), "Y".to_string(), 18_u8);
         let token_y = MockERC20::deploy(client.clone(), token_y_args)?
+            .send()
+            .await?;
+
+        // Mint an initial portfolio of 50/50.
+        let initial_portfolio = 0.5;
+        let initial_portfolio_wad = ethers::utils::parse_ether(initial_portfolio).unwrap();
+
+        token_x
+            .mint(sender, ethers::utils::parse_ether(INITIAL_X_BALANCE)?)
+            .send()
+            .await?;
+        token_y
+            .mint(sender, ethers::utils::parse_ether(INITIAL_Y_BALANCE)?)
             .send()
             .await?;
 
@@ -68,6 +92,7 @@ impl<C: Middleware + 'static> DevClient<C> {
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn create_position(
         &self,
+        sender: Address,
         amount_dollars: f64,
         price: f64,
         strike_price_wad: f64,
@@ -79,14 +104,8 @@ impl<C: Middleware + 'static> DevClient<C> {
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
 
-        self.token_x
-            .mint(self.protocol.protocol.address(), amount_x_wad)
-            .send()
-            .await?;
-        self.token_y
-            .mint(self.protocol.protocol.address(), amount_y_wad)
-            .send()
-            .await?;
+        self.token_x.mint(sender, amount_x_wad).send().await?;
+        self.token_y.mint(sender, amount_y_wad).send().await?;
 
         Ok(self
             .protocol

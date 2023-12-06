@@ -48,7 +48,7 @@ impl PortfolioRoot {
         Self {
             page: Page::default(),
             create: create::CreatePortfolio::new(),
-            dashboard: dashboard::Dashboard::new(None),
+            dashboard: dashboard::Dashboard::new(None, dev_client.clone()),
             dev_client,
         }
     }

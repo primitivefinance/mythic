@@ -200,15 +200,15 @@ impl PortfolioTable {
 
         vec![
             CellBuilder::new().value(Some(position.asset.symbol.clone())),
-            CellBuilder::new().value(position.cost.map(|x| x.to_string())),
+            CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
             CellBuilder::new()
                 .child(label_item(price_label))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
-            CellBuilder::new().value(position.balance.map(|x| x.to_string())),
+            CellBuilder::new().value(position.balance.map(|x| format!("{:.2}", x))),
             CellBuilder::new()
                 .child(label_item(balance_label).style(balance_color))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
-            CellBuilder::new().value(position.cost.map(|x| x.to_string())),
+            CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
             CellBuilder::new()
                 .child(label_item(market_value_label).style(market_value_color))
                 .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),

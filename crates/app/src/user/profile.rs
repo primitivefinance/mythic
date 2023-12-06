@@ -14,6 +14,7 @@ pub struct Profile {
     pub contacts: Contacts,
     pub rpcs: RPCList,
     pub name: Option<String>,
+    pub anvil_snapshot: Option<String>,
 }
 
 impl Saveable for Profile {
@@ -61,6 +62,7 @@ impl Saveable for Profile {
             contacts: Contacts::new(),
             rpcs: RPCList::new(),
             name,
+            anvil_snapshot: None,
         };
 
         serde_json::to_writer_pretty(file, &value)?;

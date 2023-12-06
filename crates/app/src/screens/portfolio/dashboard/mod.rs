@@ -5,7 +5,12 @@ pub mod table;
 
 use std::collections::HashMap;
 
-use datatypes::portfolio::{coin::Coin, position::Position, weight::Weight, Portfolio};
+use datatypes::portfolio::{
+    coin::Coin,
+    position::{Position, Positions},
+    weight::Weight,
+    Portfolio,
+};
 use stages::Stages;
 use uuid::Uuid;
 
@@ -20,52 +25,76 @@ use crate::components::{
 };
 
 /// Executed on `load` for the Dashboard screen.
-#[tracing::instrument(skip(name), ret)]
-async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
+#[tracing::instrument(skip(dev_client), ret)]
+async fn load_portfolio(
+    dev_client: Option<DevClient<DefaultMiddleware>>,
+    name: Option<String>,
+) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
     let path = name.clone().map(Portfolio::file_path_with_name);
     let portfolio = Portfolio::load(path);
     let mut portfolio = match portfolio {
         Ok(portfolio) => portfolio,
-        Err(e) => {
-            tracing::error!("Failed to load portfolio: {:?}", e);
-            // return Err(Arc::new(e));
-            tracing::debug!("Loading the default portfolio.");
-            Portfolio::load(Some(Portfolio::file_path_with_name("default".to_string())))?
-
-            // tracing::info!("Creating a new default portfolio.");
-            // Portfolio::create_new(name.clone())?
+        Err(_) => {
+            // If dev mode, load the dev profile.
+            if std::env::var("DEV_MODE").is_ok() {
+                // Else create it
+                tracing::debug!("Creating the dev portfolio.");
+                Portfolio::create_new(Some("dev".to_string()))?
+            } else {
+                // Else load the default profile.
+                tracing::debug!("Loading the default portfolio.");
+                Portfolio::load(Some(Portfolio::file_path_with_name("default".to_string())))?
+            }
         }
     };
 
-    // if dev mode, load up the basic two coin portfolio.
-    if std::env::var("DEV_MODE").is_ok() {
+    // If dev mode, load up the basic two coin portfolio.
+    if std::env::var("DEV_MODE").is_ok() && dev_client.is_some() {
+        let dev_client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>> =
+            dev_client.clone().unwrap();
         let coin_x: Coin = serde_json::from_str(super::dev::COIN_X)
             .map_err(|e| Arc::new(anyhow::Error::from(e)))?;
         let coin_y: Coin = serde_json::from_str(super::dev::COIN_Y)
             .map_err(|e| Arc::new(anyhow::Error::from(e)))?;
+        let balance_x = dev_client
+            .balance_of_x(dev_client.client().address())
+            .await?;
+        let balance_y = dev_client
+            .balance_of_y(dev_client.client().address())
+            .await?;
+        let initial_price = super::dev::INITIAL_X_PRICE;
+        let balance_x = ethers::utils::format_ether(balance_x)
+            .parse::<f64>()
+            .unwrap();
+        let balance_y = ethers::utils::format_ether(balance_y)
+            .parse::<f64>()
+            .unwrap();
 
+        // Based on the price of x and the balances, compute the weights of both.
+        let total_value = balance_x * initial_price + balance_y;
+        let position_x_weight = balance_x * initial_price / total_value;
+        let position_y_weight = balance_y / total_value;
         let position_x_weight = Weight {
             id: Uuid::new_v4(),
-            value: super::dev::INITIAL_X_WEIGHT.value,
+            value: position_x_weight,
+        };
+        let position_y_weight = Weight {
+            id: Uuid::new_v4(),
+            value: position_y_weight,
         };
 
         let position_x = Position::new(
             coin_x,
             Some(super::dev::INITIAL_X_PRICE),
-            Some(super::dev::INITIAL_X_BALANCE),
+            Some(balance_x),
             Some(position_x_weight),
             None,
         );
 
-        let position_y_weight = Weight {
-            id: Uuid::new_v4(),
-            value: 1.0,
-        };
-
         let position_y = Position::new(
             coin_y,
             Some(super::dev::INITIAL_Y_PRICE),
-            Some(super::dev::INITIAL_Y_BALANCE),
+            Some(balance_y),
             Some(position_y_weight),
             None,
         );
@@ -75,9 +104,9 @@ async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<a
         // added then the validate() would get called, and if that weight is not 1 then
         // it won't sum to 1.
         // Will need to work on this.
-        // Workaround is to set the first weight to 1.0, then add the second position.
-        portfolio += position_y;
-        portfolio += position_x;
+        // Workaround is to override the positions directly.
+        let positions = Positions::new(vec![position_x, position_y]);
+        portfolio.positions = positions;
     }
 
     Ok(portfolio)
@@ -119,6 +148,8 @@ pub struct Dashboard {
     stage: Stages,
     /// Original name of the loaded portfolio.
     loaded_from: Option<String>,
+    /// Dev client for loading the portfolio.
+    dev_client: Option<DevClient<DefaultMiddleware>>,
 }
 
 impl Dashboard {
@@ -126,12 +157,13 @@ impl Dashboard {
     pub type ViewMessage = Message;
 
     /// Try loading the portfolio from the name.
-    pub fn new(name: Option<String>) -> Self {
+    pub fn new(name: Option<String>, dev_client: Option<DevClient<DefaultMiddleware>>) -> Self {
         Self {
             portfolio: None,
             table: PortfolioTable::new(),
             stage: Stages::new(),
             loaded_from: name,
+            dev_client,
         }
     }
 
@@ -242,8 +274,12 @@ impl State for Dashboard {
 
         let mut commands = vec![];
 
-        // Loads the initial portfolio from file.
-        commands.push(Command::perform(load_portfolio(name), Message::Load));
+        // Loads the initial portfolio from the dev client
+        let dev_client = self.dev_client.clone();
+        commands.push(Command::perform(
+            load_portfolio(dev_client, None),
+            Message::Load,
+        ));
 
         // todo: does this even work for the children components?
         // Loads the staging area, which enters the first stage.

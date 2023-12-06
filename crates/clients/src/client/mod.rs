@@ -166,6 +166,12 @@ pub struct AnvilClient {
     pub anvil: Arc<AnvilInstance>,
 }
 
+impl std::fmt::Debug for AnvilClient {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AnvilClient").finish()
+    }
+}
+
 impl AnvilClient {
     pub fn new() -> anyhow::Result<Self> {
         let anvil = Anvil::default()
@@ -179,6 +185,22 @@ impl AnvilClient {
         Ok(Self {
             anvil: Arc::new(anvil),
         })
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn snapshot(&self) -> String {
+        // Create a provider to do an rpc call with.
+        let url = self.anvil.endpoint();
+
+        let provider = Provider::<Http>::connect(&url).await;
+
+        let params: Vec<String> = vec![];
+        let snapshot = provider
+            .request("anvil_dumpState", params)
+            .await
+            .expect("failed to get snapshot");
+
+        snapshot
     }
 }
 

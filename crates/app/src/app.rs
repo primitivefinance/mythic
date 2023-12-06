@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use clients::{dev::DevClient, ledger::LedgerClient};
+use clients::{client::AnvilClient, dev::DevClient, ledger::LedgerClient};
 use ethers::core::k256::ecdsa::SigningKey;
 use profile::Profile;
 use tracer::AppEventLog;
@@ -34,6 +34,7 @@ pub enum Message {
     CacheMessage(CacheMessage),
     StorageMessage(StorageMessage),
     WindowsMessage(WindowsMessage),
+    Exit,
 }
 
 pub type RootMessage = Message;
@@ -50,6 +51,7 @@ pub struct Chains {
     pub sub_clients: Vec<Provider<Ws>>,
     pub call_clients: Vec<Provider<Http>>,
     pub sign_clients: Vec<Wallet<SigningKey>>,
+    pub anvil_client: AnvilClient,
 }
 
 impl Chains {
@@ -122,6 +124,7 @@ pub struct Storage {
 pub enum StorageMessage {
     AddressBook(AddressBookMessage),
     RPCStorage(RPCStorageMessage),
+    AnvilSnapshot(anyhow::Result<String>),
 }
 
 #[derive(Debug)]
@@ -240,6 +243,7 @@ impl App {
     // All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         app_span().in_scope(|| match message {
+            Message::Exit => iced::window::close(),
             Message::Load => self.load(),
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
@@ -274,9 +278,24 @@ impl App {
         }
 
         // Call exit on the opened window.
+        let mut commands = Vec::new();
         let cmd = self.windows.screen.exit();
+        commands.push(cmd);
 
-        Command::batch(vec![cmd, iced::window::close()])
+        // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
+        // set the profile's anvil snapshot to the result.
+        let anvil_client = self.chains.anvil_client.clone();
+        match self.dev_client.clone() {
+            Some(dev_client) => {
+                let cmd = Command::perform(save_snapshot(anvil_client), |snapshot| {
+                    Message::StorageMessage(StorageMessage::AnvilSnapshot(snapshot))
+                });
+                commands.push(cmd);
+            }
+            None => {}
+        };
+
+        Command::batch(commands)
     }
 
     fn streams_update(&mut self, message: StreamsMessage) -> Command<Message> {
@@ -409,6 +428,19 @@ impl App {
             StorageMessage::RPCStorage(msg) => {
                 cmd = self.rpcs_update(msg);
             }
+            StorageMessage::AnvilSnapshot(snapshot) => {
+                tracing::debug!("Saving anvil snapshot to profile");
+                match snapshot {
+                    Ok(snapshot) => {
+                        self.storage.profile.anvil_snapshot = Some(snapshot);
+                        tracing::debug!("Saved anvil snapshot to profile");
+                    }
+                    Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
+                }
+
+                // Exits the application after saving the anvil snapshot.
+                return Command::perform(async {}, |_| Message::Exit);
+            }
         }
         cmd
     }
@@ -466,6 +498,10 @@ impl App {
 
         Command::batch(cmds)
     }
+}
+
+async fn save_snapshot(anvil: AnvilClient) -> anyhow::Result<String> {
+    Ok(anvil.snapshot().await)
 }
 
 #[cfg(test)]

@@ -5,6 +5,7 @@ use clients::{
     ledger::LedgerClient,
 };
 use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
+use ethers::middleware::SignerMiddleware;
 use iced::{
     font,
     widget::{column, container, progress_bar},
@@ -68,7 +69,8 @@ pub async fn load_dev_client(
     client: Arc<DefaultMiddleware>,
 ) -> anyhow::Result<DevClient<DefaultMiddleware>> {
     tracing::debug!("Loading dev client");
-    let dev_client = DevClient::deploy(client).await?;
+    let sender = client.address();
+    let dev_client = DevClient::deploy(client, sender).await?;
     Ok(dev_client)
 }
 
@@ -90,10 +92,22 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         call_clients: vec![],
         sub_clients,
         sign_clients,
+        anvil_client: anvil,
     };
 
     // Create a client from the default provider + signer.
     let default_anvil_client = chains.get_signer(0, 0).unwrap();
+
+    // If profile has an anvil snapshot, load it.
+    if let Some(snapshot) = &profile.anvil_snapshot {
+        let result: String = default_anvil_client
+            .provider()
+            .request("anvil_loadState", ())
+            .await
+            .expect("Failed to load snapshot.");
+
+        tracing::info!("Loaded snapshot: {:?}", result);
+    }
 
     // Load the dev client from dev mode flag.
     let dev_client = match flags.dev_mode {
