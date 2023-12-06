@@ -14,7 +14,7 @@ pub struct VolatilityTargetingSubmitter {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
     pub dfmm: DFMM<RevmMiddleware>,
-    pub protocol_client: ProtocolClient,
+    pub protocol_client: ProtocolClient<RevmMiddleware>,
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,

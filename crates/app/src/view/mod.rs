@@ -27,8 +27,7 @@ pub enum Message {
     // Copy to clipboard.
     CopyToClipboard(String),
     // Specific window messages.
-    CreatePortfolio(portfolio::create::Message),
-    Dashboard(portfolio::dashboard::Message),
+    Portfolio(portfolio::Message),
     Settings(settings::Message),
 }
 

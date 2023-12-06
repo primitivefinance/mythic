@@ -1,5 +1,9 @@
 use alloy_primitives;
-use clients::{client::Local, ledger::LedgerClient};
+use clients::{
+    client::{AnvilClient, Local},
+    dev::DevClient,
+    ledger::LedgerClient,
+};
 use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
 use iced::{
     font,
@@ -16,6 +20,7 @@ type LoadResult = anyhow::Result<
         app::Storage,
         app::Chains,
         Option<clients::ledger::LedgerClient>,
+        Option<clients::dev::DevClient<DefaultMiddleware>>,
     ),
     anyhow::Error,
 >;
@@ -24,7 +29,7 @@ type LoadResult = anyhow::Result<
 pub enum Message {
     View,
     Tick,
-    Loaded,
+    Loaded(super::Flags),
     Connected,
     LoadingFailed,
     Ready(LoadResult),
@@ -34,12 +39,8 @@ pub struct Loader {
     pub feedback: String,
 }
 
-/// Loads any async data or disk data into the application's state types.
-/// On load, the application will emit the Ready message to the root
-/// application, which will then open the App.
-// #[tracing::instrument]
-pub async fn load_app() -> LoadResult {
-    // todo: do we want this?
+#[tracing::instrument(level = "debug")]
+pub fn load_profile() -> anyhow::Result<Profile> {
     let profile = Profile::load(None);
     let profile = match profile {
         Ok(profile) => profile,
@@ -57,125 +58,96 @@ pub async fn load_app() -> LoadResult {
         profile.file_path()
     );
 
-    // todo: get this working without running anvil in background
-    let with_counter = std::env::var("WITH_COUNTER").is_ok();
-    let with_coin = std::env::var("WITH_COIN").is_ok();
-    let local = match with_counter {
-        true => match with_coin {
-            true => {
-                tracing::info!("Starting Anvil with Counter and Coin contracts");
-                Local::default()
-                    .with_anvil()
-                    .with_dev_wallet()
-                    .await
-                    .with_counter()
-                    .await
-                    .with_coin()
-                    .await
-            }
-            false => {
-                tracing::info!("Starting Anvil with Counter contract");
-                Local::default()
-                    .with_anvil()
-                    .with_dev_wallet()
-                    .await
-                    .with_counter()
-                    .await
-            }
-        },
-        false => match with_coin {
-            true => {
-                tracing::info!("Starting Anvil with Coin contract");
-                Local::default()
-                    .with_anvil()
-                    .with_dev_wallet()
-                    .await
-                    .with_coin()
-                    .await
-            }
-            false => {
-                tracing::info!("Starting Anvil with no contracts");
-                Local::default().with_anvil()
-            }
-        },
-    };
+    Ok(profile)
+}
 
-    tracing::debug!("Anvil local: {:?}", local);
+pub type DefaultMiddleware = SignerMiddleware<Provider<Ws>, LocalWallet>;
 
-    // Get the default coinlist, and if it's empty, populate it with the coin
-    // contract, if there's a coin contract.
-    // todo: move this logic to a better place that handles coin lists.
-    let chain_id = local.anvil.as_ref().unwrap().chain_id();
-    if let Some(address) = local.coin_contract {
-        let mut coinlist = CoinList::load(None)?;
-        if coinlist.tokens.is_empty() {
-            let coin: Coin = Coin {
-                name: "Coin".to_string(),
-                symbol: "COIN".to_string(),
-                address: alloy_primitives::Address::from(address.as_fixed_bytes()),
-                decimals: 18,
-                chain_id,
-                logo_uri: "".to_string(),
-                tags: vec![],
-            };
-            coinlist.tokens.push(coin);
-            coinlist.save()?;
-        }
-    }
+#[tracing::instrument(skip(client), level = "trace")]
+pub async fn load_dev_client(
+    client: Arc<DefaultMiddleware>,
+) -> anyhow::Result<DevClient<DefaultMiddleware>> {
+    tracing::debug!("Loading dev client");
+    let dev_client = DevClient::deploy(client).await?;
+    Ok(dev_client)
+}
 
-    let mut storage = app::Storage { profile };
+/// Loads any async data or disk data into the application's state types.
+/// On load, the application will emit the Ready message to the root
+/// application, which will then open the App.
+#[tracing::instrument(level = "debug")]
+pub async fn load_app(flags: super::Flags) -> LoadResult {
+    // Load an existing profile, or create a new one.
+    let profile = load_profile()?;
 
-    // Add the counter contract to the storage.
-    let mut label = "default";
-    let default_address = match local.counter_contract {
-        Some(address) => {
-            label = "counter";
-            address
-        }
-        // Address from deploying counter contract in dev mode.
-        None => "0x5fbdb2315678afecb367f032d93f642f64180aa3"
-            .parse::<Address>()
-            .unwrap(),
-    };
+    // Start anvil the background.
+    let anvil = AnvilClient::new()?;
+    let anvil_default_chain_id = anvil.anvil.clone().chain_id();
 
-    storage.profile.contacts.add(
-        default_address,
-        contacts::ContactValue {
-            label: label.to_string(),
-            class: contacts::Class::Contract,
-            ..Default::default()
-        },
-        contacts::Category::Untrusted,
-    );
-
-    let coin_address = match local.coin_contract {
-        Some(address) => address,
-        // Address from deploying coin contract in dev mode.
-        None => Address::zero(),
-    };
-
-    let (sub_clients, sign_clients) = from_anvil(&local.anvil.clone().unwrap()).await?;
+    // Get a default signer + provider from anvil.
+    let (sub_clients, sign_clients) = from_anvil(&anvil.anvil.clone()).await?;
     let chains = app::Chains {
         call_clients: vec![],
         sub_clients,
         sign_clients,
     };
 
-    let client = chains.get_signer(0, 0).unwrap();
+    // Create a client from the default provider + signer.
+    let default_anvil_client = chains.get_signer(0, 0).unwrap();
 
-    storage.profile.contacts.add(
-        coin_address,
-        contacts::ContactValue {
-            label: "Coin".to_string(),
-            class: contacts::Class::Contract,
-            ..Default::default()
-        },
-        contacts::Category::Recent,
-    );
+    // Load the dev client from dev mode flag.
+    let dev_client = match flags.dev_mode {
+        true => Some(load_dev_client(default_anvil_client.clone()).await?),
+        false => None,
+    };
 
-    let from = client.as_ref().address();
+    // Load the coinlist from disk.
+    let mut coinlist = CoinList::load(None)?;
+
+    // If dev_client is some, add the tokens to the coinlist.
+    if let Some(dev_client) = &dev_client {
+        let token_x = dev_client.token_x.address();
+        let token_y = dev_client.token_y.address();
+        let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
+        let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
+        let tokens = coinlist.tokens.clone();
+        let coin_x = tokens.iter().find(|c| c.address == token_x);
+        let coin_y = tokens.iter().find(|c| c.address == token_y);
+
+        if coin_x.is_none() {
+            let coin: Coin = Coin {
+                name: "Token X".to_string(),
+                symbol: "TKNX".to_string(),
+                address: token_x,
+                decimals: 18,
+                chain_id: anvil_default_chain_id,
+                logo_uri: "".to_string(),
+                tags: vec!["mock".to_string()],
+            };
+            coinlist += coin;
+            coinlist.save()?;
+        }
+
+        if coin_y.is_none() {
+            let coin: Coin = Coin {
+                name: "Token Y".to_string(),
+                symbol: "TKNY".to_string(),
+                address: token_y,
+                decimals: 18,
+                chain_id: anvil_default_chain_id,
+                logo_uri: "".to_string(),
+                tags: vec!["mock".to_string()],
+            };
+            coinlist += coin;
+            coinlist.save()?;
+        }
+    }
+
+    let mut storage = app::Storage { profile };
+
+    // Add the default signer to the contacts book.
     storage.profile.contacts.add(
-        from,
+        default_anvil_client.address(),
         contacts::ContactValue {
             label: "You".to_string(),
             class: contacts::Class::EOA,
@@ -184,16 +156,61 @@ pub async fn load_app() -> LoadResult {
         contacts::Category::Trusted,
     );
 
-    tracing::info!(
-        "Anvil running at endpoint {}",
-        local.clone().anvil.unwrap().endpoint()
-    );
+    // If dev_client is some, add the protocol's contracts to the storage.
+    if let Some(dev_client) = &dev_client {
+        let protocol = dev_client.protocol.protocol.address();
+        let strategy = dev_client.protocol.get_strategy().await.unwrap().address();
+        let token_x = dev_client.token_x.address();
+        let token_y = dev_client.token_y.address();
 
-    // drop the client we were using since we don't need it.
-    tracing::debug!("Dropping client in loader.");
-    drop(client);
-    tracing::debug!("Dropped client in loader.");
+        storage.profile.contacts.add(
+            protocol,
+            contacts::ContactValue {
+                label: "Protocol".to_string(),
+                class: contacts::Class::Contract,
+                ..Default::default()
+            },
+            contacts::Category::Untrusted,
+        );
 
+        storage.profile.contacts.add(
+            strategy,
+            contacts::ContactValue {
+                label: "Strategy".to_string(),
+                class: contacts::Class::Contract,
+                ..Default::default()
+            },
+            contacts::Category::Trusted,
+        );
+
+        storage.profile.contacts.add(
+            token_x,
+            contacts::ContactValue {
+                label: "Token X".to_string(),
+                class: contacts::Class::Contract,
+                ..Default::default()
+            },
+            contacts::Category::Untrusted,
+        );
+
+        storage.profile.contacts.add(
+            token_y,
+            contacts::ContactValue {
+                label: "Token Y".to_string(),
+                class: contacts::Class::Contract,
+                ..Default::default()
+            },
+            contacts::Category::Untrusted,
+        );
+    }
+
+    let ledger = connect_ledger().await;
+
+    Ok((storage, chains, ledger, dev_client))
+}
+
+#[tracing::instrument(level = "debug")]
+pub async fn connect_ledger() -> Option<LedgerClient> {
     let ledger =
         LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
 
@@ -207,7 +224,7 @@ pub async fn load_app() -> LoadResult {
         }
     };
 
-    Ok((storage, chains, ledger))
+    ledger
 }
 
 /// Placeholder function for any future async calls we might want to do.
@@ -216,9 +233,10 @@ pub async fn connect_to_server() -> anyhow::Result<()> {
 }
 
 impl Loader {
-    pub fn new() -> (Self, Command<Message>) {
+    pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
         // Triggers the next step in the main application loop by emitting the Loaded
         // message.
+        let flags = flags.clone();
         (
             Self {
                 progress: 0.0,
@@ -233,20 +251,20 @@ impl Loader {
 
                     Message::Connected
                 }),
-                font::load(ICON_FONT_BYTES).map(|res| {
+                font::load(ICON_FONT_BYTES).map(move |res| {
                     if let Err(e) = res {
                         tracing::error!("Failed to load icon font: {:?}", e);
                         return Message::LoadingFailed;
                     }
 
-                    Message::Loaded
+                    Message::Loaded(flags)
                 }),
             ]),
         )
     }
 
-    fn on_load(&mut self) -> Command<Message> {
-        Command::perform(load_app(), Message::Ready)
+    fn load(&mut self, flags: super::Flags) -> Command<Message> {
+        Command::perform(load_app(flags), Message::Ready)
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
@@ -265,7 +283,7 @@ impl Loader {
                 self.feedback = "Starting Anvil...".to_string();
                 Command::none()
             }
-            Message::Loaded => self.on_load(),
+            Message::Loaded(flags) => self.load(flags),
             _ => Command::none(),
         }
     }

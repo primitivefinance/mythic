@@ -7,7 +7,7 @@ pub use fixed_point_math_lib::*;
     clippy::upper_case_acronyms,
     clippy::type_complexity,
     dead_code,
-    non_camel_case_types
+    non_camel_case_types,
 )]
 pub mod fixed_point_math_lib {
     #[allow(deprecated)]
@@ -21,19 +21,22 @@ pub mod fixed_point_math_lib {
             fallback: false,
         }
     }
-    /// The parsed JSON ABI of the contract.
-    pub static FIXEDPOINTMATHLIB_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
-        ::ethers::contract::Lazy::new(__abi);
+    ///The parsed JSON ABI of the contract.
+    pub static FIXEDPOINTMATHLIB_ABI: ::ethers::contract::Lazy<
+        ::ethers::core::abi::Abi,
+    > = ::ethers::contract::Lazy::new(__abi);
     #[rustfmt::skip]
     const __BYTECODE: &[u8] = b"`|`7`\x0B\x82\x82\x829\x80Q`\0\x1A`s\x14`*WcNH{q`\xE0\x1B`\0R`\0`\x04R`$`\0\xFD[0`\0R`s\x81S\x82\x81\xF3\xFEs\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`\x80`@\x81\x90RbF\x1B\xCD`\xE5\x1B\x81R` `\x84\x90\x81R`5`\xA4R\x7FContract does not have fallback `\xC4\x90\x81Rtnor receive functions`X\x1B`\xE4R0\x93\x90\x93\x14\x92\x90\x82\xFD";
     /// The bytecode of the contract.
-    pub static FIXEDPOINTMATHLIB_BYTECODE: ::ethers::core::types::Bytes =
-        ::ethers::core::types::Bytes::from_static(__BYTECODE);
+    pub static FIXEDPOINTMATHLIB_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
+        __BYTECODE,
+    );
     #[rustfmt::skip]
     const __DEPLOYED_BYTECODE: &[u8] = b"s\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`\x80`@\x81\x90RbF\x1B\xCD`\xE5\x1B\x81R` `\x84\x90\x81R`5`\xA4R\x7FContract does not have fallback `\xC4\x90\x81Rtnor receive functions`X\x1B`\xE4R0\x93\x90\x93\x14\x92\x90\x82\xFD";
     /// The deployed bytecode of the contract.
-    pub static FIXEDPOINTMATHLIB_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes =
-        ::ethers::core::types::Bytes::from_static(__DEPLOYED_BYTECODE);
+    pub static FIXEDPOINTMATHLIB_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
+        __DEPLOYED_BYTECODE,
+    );
     pub struct FixedPointMathLib<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for FixedPointMathLib<M> {
         fn clone(&self) -> Self {
@@ -59,38 +62,34 @@ pub mod fixed_point_math_lib {
         }
     }
     impl<M: ::ethers::providers::Middleware> FixedPointMathLib<M> {
-        /// Creates a new contract instance with the specified `ethers` client
-        /// at `address`. The contract derefs to a `ethers::Contract`
-        /// object.
+        /// Creates a new contract instance with the specified `ethers` client at
+        /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            Self(::ethers::contract::Contract::new(
-                address.into(),
-                FIXEDPOINTMATHLIB_ABI.clone(),
-                client,
-            ))
+            Self(
+                ::ethers::contract::Contract::new(
+                    address.into(),
+                    FIXEDPOINTMATHLIB_ABI.clone(),
+                    client,
+                ),
+            )
         }
-        /// Constructs the general purpose `Deployer` instance based on the
-        /// provided constructor arguments and sends it. Returns a new
-        /// instance of a deployer that returns an instance of this contract
-        /// after sending the transaction
+        /// Constructs the general purpose `Deployer` instance based on the provided constructor arguments and sends it.
+        /// Returns a new instance of a deployer that returns an instance of this contract after sending the transaction
         ///
         /// Notes:
-        /// - If there are no constructor arguments, you should pass `()` as the
-        ///   argument.
+        /// - If there are no constructor arguments, you should pass `()` as the argument.
         /// - The default poll duration is 7 seconds.
         /// - The default number of confirmations is 1 block.
         ///
         ///
         /// # Example
         ///
-        /// Generate contract bindings with `abigen!` and deploy a new contract
-        /// instance.
+        /// Generate contract bindings with `abigen!` and deploy a new contract instance.
         ///
-        /// *Note*: this requires a `bytecode` and `abi` object in the
-        /// `greeter.json` artifact.
+        /// *Note*: this requires a `bytecode` and `abi` object in the `greeter.json` artifact.
         ///
         /// ```ignore
         /// # async fn deploy<M: ethers::providers::Middleware>(client: ::std::sync::Arc<M>) {
@@ -118,8 +117,7 @@ pub mod fixed_point_math_lib {
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-        for FixedPointMathLib<M>
-    {
+    for FixedPointMathLib<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }

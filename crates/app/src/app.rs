@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use clients::ledger::LedgerClient;
+use clients::{dev::DevClient, ledger::LedgerClient};
 use ethers::core::k256::ecdsa::SigningKey;
 use profile::Profile;
 use tracer::AppEventLog;
@@ -12,6 +12,7 @@ use super::{
     *,
 };
 use crate::{
+    loader::DefaultMiddleware,
     screens::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
     user::networks::ChainPacket,
     view::sidebar::Sidebar,
@@ -26,6 +27,7 @@ pub fn app_span() -> Span {
 pub enum Message {
     #[default]
     Empty,
+    Load,
     View(view::Message),
     ChainsMessage(ChainMessage),
     StreamsMessage(StreamsMessage),
@@ -166,7 +168,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: PortfolioRoot::new().into(),
+            screen: EmptyScreen::new().into(),
         }
     }
 }
@@ -195,6 +197,8 @@ pub struct App {
     // this is a handle that has a lock on the ledger device
     // we have to talk to it async
     pub ledger: Option<LedgerClient>,
+    // dev client for testing
+    pub dev_client: Option<DevClient<DefaultMiddleware>>,
 }
 
 impl App {
@@ -203,6 +207,7 @@ impl App {
         chains: Chains,
         streams: Streams,
         ledger: Option<LedgerClient>,
+        dev_client: Option<DevClient<DefaultMiddleware>>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -213,14 +218,29 @@ impl App {
                 windows: Windows::default(),
                 sidebar: Sidebar::new(),
                 ledger,
+                dev_client,
             },
-            Command::none(),
+            Command::perform(async {}, |_| Message::Load),
         )
+    }
+
+    // Loads the sidebar and the default screen.
+    pub fn load(&mut self) -> Command<Message> {
+        let mut cmds = Vec::new();
+
+        // Load the sidebar.
+        cmds.push(self.sidebar.load().map(|x| x.into()));
+
+        // Load the current window.
+        cmds.push(self.windows.screen.load().map(|x| x.into()));
+
+        Command::batch(cmds)
     }
 
     // All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         app_span().in_scope(|| match message {
+            Message::Load => self.load(),
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
             Message::StreamsMessage(msg) => self.streams_update(msg),
@@ -428,7 +448,9 @@ impl App {
 
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
-                    view::sidebar::Page::Portfolio => PortfolioRoot::new().into(),
+                    view::sidebar::Page::Portfolio => {
+                        PortfolioRoot::new(self.dev_client.clone()).into()
+                    }
                     view::sidebar::Page::Simulate => Terminal::new().into(),
                     view::sidebar::Page::Settings => {
                         SettingsScreen::new(self.storage.clone()).into()

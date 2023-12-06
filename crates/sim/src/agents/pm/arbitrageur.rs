@@ -25,7 +25,7 @@ pub const WAD: U256 = U256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
 pub struct Arbitrageur {
     pub client: Arc<RevmMiddleware>,
     /// Connects the Arbitrageur agent to the DFMM protocol.
-    pub protocol_client: ProtocolClient,
+    pub protocol_client: ProtocolClient<RevmMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
     pub liquid_exchange: LiquidExchange<RevmMiddleware>,
     /// Arbitrage vehicle for atomically swapping between exchanges.

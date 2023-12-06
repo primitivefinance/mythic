@@ -134,7 +134,6 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
                     // todo: remove these if you need to see sim traces...
                     && !metadata.target().starts_with("arbiter_core")
                     && !metadata.target().starts_with("simulation")
-                    && !metadata.target().starts_with("clients")
                     && !metadata.name().contains("create_task")
                     && !metadata.name().contains("step")
             }))

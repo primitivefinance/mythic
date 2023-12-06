@@ -93,7 +93,9 @@ where
 
     /// Handles spacing of all child elements.
     pub fn build(self) -> Column<'static, Message> {
-        let mut column = Column::new();
+        let mut column = Column::new().spacing(Sizes::Md);
+
+        let mut inner_column = Column::new();
 
         // Add the headers first.
         if !self.headers.is_empty() {
@@ -123,13 +125,18 @@ where
                 .padding_cell(self.padding_cell.unwrap_or_default())
                 .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
                 .into();
-            column = column.push(row);
+            inner_column = inner_column.push(row);
         }
+
+        column = column.push(
+            inner_column
+                .align_items(alignment::Alignment::Center)
+                .spacing(self.spacing.unwrap_or_default()),
+        );
 
         // Specifies spacing of rows.
         column
             .align_items(alignment::Alignment::Center)
-            .spacing(self.spacing.unwrap_or_default())
             .padding(self.padding.unwrap_or_default())
     }
 }

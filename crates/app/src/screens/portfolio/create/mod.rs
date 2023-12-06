@@ -55,6 +55,13 @@ pub struct CreatePortfolio {
 }
 
 impl CreatePortfolio {
+    pub fn new() -> Self {
+        Self {
+            form: form::Form::new(),
+            coinlist: CoinList::default(),
+        }
+    }
+
     pub fn ready(&self) -> bool {
         self.form.ready()
     }

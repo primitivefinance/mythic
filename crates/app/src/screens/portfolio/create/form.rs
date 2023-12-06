@@ -46,6 +46,14 @@ pub struct Form {
 }
 
 impl Form {
+    pub fn new() -> Self {
+        Self {
+            name: None,
+            ticker: None,
+            assets: vec![],
+        }
+    }
+
     // Message types!
     // todo: why are these not used?
     pub type AppMessage = Message;

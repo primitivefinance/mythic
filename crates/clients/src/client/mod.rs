@@ -161,6 +161,27 @@ impl Local<Provider<Ws>, Wallet<SigningKey>> {
     }
 }
 
+#[derive(Clone)]
+pub struct AnvilClient {
+    pub anvil: Arc<AnvilInstance>,
+}
+
+impl AnvilClient {
+    pub fn new() -> anyhow::Result<Self> {
+        let anvil = Anvil::default()
+            .arg("--gas-limit")
+            .arg("20000000")
+            .chain_id(CHAIN_ID)
+            .spawn();
+
+        tracing::info!("Anvil running at {}", anvil.endpoint());
+
+        Ok(Self {
+            anvil: Arc::new(anvil),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
