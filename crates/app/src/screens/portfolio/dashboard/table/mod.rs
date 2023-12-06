@@ -112,10 +112,7 @@ impl PortfolioTable {
 
         vec![
             CellBuilder::new().value(Some(target.clone().to_string())),
-            CellBuilder::new()
-                .value(value)
-                .on_change(on_change_msg)
-                .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
+            CellBuilder::new().value(value).on_change(on_change_msg),
         ]
     }
 
@@ -186,32 +183,36 @@ impl PortfolioTable {
 
         let float_epsilon = 0.0001;
 
-        let balance_color = match balance_delta {
-            x if x > float_epsilon => GREEN_400,
-            x if x < -float_epsilon => RED_400,
-            _ => GRAY_400,
+        let balance_color = if balance_label == "-" {
+            GRAY_800
+        } else {
+            match balance_delta {
+                x if x == 0.0 => GRAY_800,
+                x if x > float_epsilon => GREEN_400,
+                x if x < -float_epsilon => RED_400,
+                _ => GRAY_800,
+            }
         };
 
-        let market_value_color = match market_value_delta {
-            x if x > float_epsilon => GREEN_400,
-            x if x < -float_epsilon => RED_400,
-            _ => GRAY_400,
+        let market_value_color = if market_value_label == "-" {
+            GRAY_800
+        } else {
+            match market_value_delta {
+                x if x == 0.0 => GRAY_800,
+                x if x > float_epsilon => GREEN_400,
+                x if x < -float_epsilon => RED_400,
+                _ => GRAY_800,
+            }
         };
 
         vec![
             CellBuilder::new().value(Some(position.asset.symbol.clone())),
             CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
-            CellBuilder::new()
-                .child(label_item(price_label))
-                .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
+            CellBuilder::new().child(label_item(price_label)),
             CellBuilder::new().value(position.balance.map(|x| format!("{:.2}", x))),
-            CellBuilder::new()
-                .child(label_item(balance_label).style(balance_color))
-                .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
+            CellBuilder::new().child(label_item(balance_label).style(balance_color)),
             CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
-            CellBuilder::new()
-                .child(label_item(market_value_label).style(market_value_color))
-                .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))),
+            CellBuilder::new().child(label_item(market_value_label).style(market_value_color)),
         ]
     }
 
@@ -245,8 +246,15 @@ impl PortfolioTable {
                             let field_cells = self.cell_builders(position, pos_index);
                             let all_cells = field_cells.into_iter().chain(targets_cells).collect();
 
-                            RowBuilder::new().cells(all_cells).style(|| {
-                                CustomContainer::theme(Some(iced::Background::Color(GRAY_500)))
+                            let row_background = match pos_index % 2 == 0 {
+                                true => TABLE_ROW_1,
+                                false => TABLE_ROW_2,
+                            };
+
+                            RowBuilder::new().cells(all_cells).style(move || {
+                                CustomContainer::theme(Some(iced::Background::Color(
+                                    row_background,
+                                )))
                             })
                         })
                         .collect(),

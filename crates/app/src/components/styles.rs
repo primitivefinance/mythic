@@ -115,6 +115,9 @@ pub const MENU_BG_COLOR: Color = SIDEBAR_BG_COLOR;
 pub const CARD_BG_COLOR: Color = GRAY_400;
 pub const WINDOW_HEADER_COLOR: Color = GRAY_500;
 pub const INFO_BG_CONTAINER: Color = GRAY_500;
+pub const TABLE_HEADER_BG: Color = GRAY_300;
+pub const TABLE_ROW_1: Color = GRAY_500;
+pub const TABLE_ROW_2: Color = GRAY_400;
 
 // Element bg colors
 pub const BORDER_COLOR: Color = GRAY_800;

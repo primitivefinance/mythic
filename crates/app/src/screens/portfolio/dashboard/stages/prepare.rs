@@ -133,9 +133,20 @@ impl State for Prepare {
                         market_value_delta
                     );
 
+                    let balance_color = match market_value_delta {
+                        x if x > f64::EPSILON => GREEN_400,
+                        x if x < -f64::EPSILON => RED_400,
+                        _ => GRAY_800,
+                    };
+
                     (
-                        adjustment.adjusted.asset.name.clone(),
-                        format!("{:.2}% / ${:.2}", weight_delta * 100.0, market_value_delta),
+                        primary_label(adjustment.adjusted.asset.name.clone()),
+                        label_item(format!(
+                            "{:.2}% / ${:.2}",
+                            weight_delta * 100.0,
+                            market_value_delta
+                        ))
+                        .style(balance_color),
                     )
                 })
                 .collect(),

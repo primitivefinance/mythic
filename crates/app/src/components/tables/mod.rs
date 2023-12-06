@@ -193,22 +193,28 @@ pub fn summary_table<'a>(values: Vec<(String, String)>) -> Container<'a, Message
 /// Renders a simple dual column table with a label and value.
 pub fn key_value_table<'a, Message>(
     headers: Vec<String>,
-    data: Vec<(String, String)>,
+    data: Vec<(
+        impl Into<Element<'static, Message>>,
+        impl Into<Element<'static, Message>>,
+    )>,
 ) -> TableBuilder<Message>
 where
     Message: 'a + Default,
 {
     TableBuilder::new().padding_cell(Sizes::Md).column(
         ColumnBuilder::new().headers(headers).rows(
-            data.iter()
-                .map(|(label, value)| {
+            data.into_iter()
+                .enumerate()
+                .map(|(index, (label, value))| {
+                    let bg = match index % 2 == 0 {
+                        true => TABLE_ROW_1,
+                        false => TABLE_ROW_2,
+                    };
                     RowBuilder::new()
-                        .style(|| CustomContainer::theme(Some(iced::Background::Color(GRAY_500))))
+                        .style(move || CustomContainer::theme(Some(iced::Background::Color(bg))))
                         .cells(vec![
-                            CellBuilder::new().value(Some(label.clone())),
-                            CellBuilder::new().value(Some(value.clone())).style(|| {
-                                CustomContainer::theme(Some(iced::Background::Color(GRAY_400)))
-                            }),
+                            CellBuilder::new().child(label),
+                            CellBuilder::new().child(value),
                         ])
                 })
                 .collect(),

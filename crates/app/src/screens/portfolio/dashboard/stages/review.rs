@@ -92,7 +92,7 @@ impl Review {
             vec![instruction_text(
                 "Select the adjustment parameters and strategy to use.".to_string(),
             )],
-            Some("Simulate Adjustment".to_string()),
+            Some("Review Simulated Adjustment".to_string()),
             None,
             Some(Message::Form(FormMessage::Submit).into()),
         )
@@ -129,12 +129,7 @@ impl State for Review {
                 // we already have all the messaging infrastructure in place to
                 // react to it.
                 FormMessage::Submit => {
-                    let start_time_seconds = self
-                        .form
-                        .start_time
-                        .as_ref()
-                        .map(|x| x.to_seconds())
-                        .unwrap_or_default();
+                    let start_time_seconds = Times::Now.to_seconds();
 
                     let duration_seconds = self
                         .form
@@ -186,13 +181,6 @@ impl State for Review {
             .column_1(vec![
                 h2("Strategy Parameters".to_string()).into(),
                 labeled_select(
-                    "Adjust start time".to_string(),
-                    Times::to_options(),
-                    self.form.start_time.clone(),
-                    |x| FormMessage::StartTime(Some(x)),
-                )
-                .into(),
-                labeled_select(
                     "Adjust duration".to_string(),
                     Times::to_options(),
                     self.form.duration.clone(),
@@ -243,18 +231,11 @@ pub trait EnumList<T> {
 pub enum Times {
     Now,
     OneHour,
-    FourHour,
-    EightHour,
     TwelveHour,
     OneDay,
-    TwoDays,
-    ThreeDays,
     OneWeek,
     TwoWeeks,
     OneMonth,
-    ThreeMonths,
-    SixMonths,
-    OneYear,
 }
 
 impl Times {
@@ -268,18 +249,11 @@ impl Display for Times {
         match self {
             Times::Now => write!(f, "Now"),
             Times::OneHour => write!(f, "1 hour"),
-            Times::FourHour => write!(f, "4 hours"),
-            Times::EightHour => write!(f, "8 hours"),
             Times::TwelveHour => write!(f, "12 hours"),
             Times::OneDay => write!(f, "1 day"),
-            Times::TwoDays => write!(f, "2 days"),
-            Times::ThreeDays => write!(f, "3 days"),
             Times::OneWeek => write!(f, "1 week"),
             Times::TwoWeeks => write!(f, "2 weeks"),
             Times::OneMonth => write!(f, "1 month"),
-            Times::ThreeMonths => write!(f, "3 months"),
-            Times::SixMonths => write!(f, "6 months"),
-            Times::OneYear => write!(f, "1 year"),
         }
     }
 }
@@ -289,18 +263,11 @@ impl EnumList<f64> for Times {
         vec![
             Times::Now,
             Times::OneHour,
-            Times::FourHour,
-            Times::EightHour,
             Times::TwelveHour,
             Times::OneDay,
-            Times::TwoDays,
-            Times::ThreeDays,
             Times::OneWeek,
             Times::TwoWeeks,
             Times::OneMonth,
-            Times::ThreeMonths,
-            Times::SixMonths,
-            Times::OneYear,
         ]
     }
 
@@ -308,18 +275,11 @@ impl EnumList<f64> for Times {
         vec![
             Times::Now.to_string(),
             Times::OneHour.to_string(),
-            Times::FourHour.to_string(),
-            Times::EightHour.to_string(),
             Times::TwelveHour.to_string(),
             Times::OneDay.to_string(),
-            Times::TwoDays.to_string(),
-            Times::ThreeDays.to_string(),
             Times::OneWeek.to_string(),
             Times::TwoWeeks.to_string(),
             Times::OneMonth.to_string(),
-            Times::ThreeMonths.to_string(),
-            Times::SixMonths.to_string(),
-            Times::OneYear.to_string(),
         ]
     }
 
@@ -327,18 +287,13 @@ impl EnumList<f64> for Times {
         match self {
             Times::Now => 0.0,
             Times::OneHour => chrono::Duration::hours(1).num_seconds() as f64,
-            Times::FourHour => chrono::Duration::hours(4).num_seconds() as f64,
-            Times::EightHour => chrono::Duration::hours(8).num_seconds() as f64,
+
             Times::TwelveHour => chrono::Duration::hours(12).num_seconds() as f64,
             Times::OneDay => chrono::Duration::days(1).num_seconds() as f64,
-            Times::TwoDays => chrono::Duration::days(2).num_seconds() as f64,
-            Times::ThreeDays => chrono::Duration::days(3).num_seconds() as f64,
+
             Times::OneWeek => chrono::Duration::weeks(1).num_seconds() as f64,
             Times::TwoWeeks => chrono::Duration::weeks(2).num_seconds() as f64,
             Times::OneMonth => chrono::Duration::weeks(4).num_seconds() as f64, // Approximation
-            Times::ThreeMonths => chrono::Duration::weeks(12).num_seconds() as f64, // Approximation
-            Times::SixMonths => chrono::Duration::weeks(24).num_seconds() as f64, // Approximation
-            Times::OneYear => chrono::Duration::weeks(52).num_seconds() as f64, // Approximation
         }
     }
 }

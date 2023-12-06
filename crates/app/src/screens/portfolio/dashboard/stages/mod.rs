@@ -15,7 +15,7 @@ use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
 /// Weird? It works.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum DashboardState {
     #[default]
     Empty,
@@ -107,7 +107,7 @@ impl Stages {
         Self {
             original: None,
             adjusted: None,
-            current: DashboardState::Empty,
+            current: DashboardState::Prepare,
             prepare: prepare::Prepare::default(),
             review: review::Review::default(),
             simulate: simulate::Simulate::default(),
@@ -447,20 +447,29 @@ impl State for Stages {
         let routes = Row::new()
             .spacing(Sizes::Md)
             .push(
-                action_button("Adjustments".to_string())
-                    .on_press(Message::Route(DashboardState::Prepare)),
+                tab_button(
+                    self.current == DashboardState::Prepare,
+                    "Adjustments".to_string(),
+                )
+                .on_press(Message::Route(DashboardState::Prepare)),
             )
             .push(
-                action_button("Review".to_string())
+                tab_button(self.current == DashboardState::Review, "Review".to_string())
                     .on_press(Message::Route(DashboardState::Review)),
             )
             .push(
-                action_button("Simulate".to_string())
-                    .on_press(Message::Route(DashboardState::Simulate)),
+                tab_button(
+                    self.current == DashboardState::Simulate,
+                    "Simulate".to_string(),
+                )
+                .on_press(Message::Route(DashboardState::Simulate)),
             )
             .push(
-                action_button("Execute".to_string())
-                    .on_press(Message::Route(DashboardState::Execute)),
+                tab_button(
+                    self.current == DashboardState::Execute,
+                    "Execute".to_string(),
+                )
+                .on_press(Message::Route(DashboardState::Execute)),
             );
 
         // Storing different stages in this enum allows us to easily switch between them
@@ -473,19 +482,16 @@ impl State for Stages {
             DashboardState::Execute => self.execute.view().map(|x| x.into()),
         };
 
-        Container::new(
-            Row::new()
-                .spacing(Sizes::Lg)
-                .push(
-                    Column::new()
-                        .push(routes)
-                        .push(content)
-                        .width(Length::FillPortion(3)),
-                )
-                .push(self.guide().width(Length::FillPortion(1))),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+        let mut nav = Column::new().push(routes).spacing(Sizes::Lg);
+        let area = Row::new()
+            .spacing(Sizes::Lg)
+            .push(Column::new().push(content).width(Length::FillPortion(3)))
+            .push(self.guide().width(Length::FillPortion(1)));
+        nav = nav.push(area);
+
+        Container::new(nav)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
     }
 }

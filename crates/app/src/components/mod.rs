@@ -150,6 +150,63 @@ where
     button(content).style(destructive_button_style.as_custom())
 }
 
+/// Renders a tab-like button
+#[allow(dead_code)]
+pub fn tab_button<'a, Message>(active: bool, label: String) -> iced::widget::Button<'a, Message>
+where
+    Message: 'a,
+{
+    let content = text(label)
+        .size(16)
+        .horizontal_alignment(iced::alignment::Horizontal::Center)
+        .vertical_alignment(iced::alignment::Vertical::Center)
+        .style(Color::WHITE);
+    let tab_button_style = CustomButtonStyle::new()
+        .border_radius(5.0.into())
+        .background_color(Color::TRANSPARENT)
+        .hovered()
+        .border_radius(5.0.into())
+        .background_color(Color::from_rgb8(38, 36, 45))
+        .pressed()
+        .border_radius(5.0.into())
+        .background_color(Color::from_rgb8(38, 36, 50))
+        .disabled()
+        .border_radius(5.0.into())
+        .background_color(DISABLED_COLOR)
+        .text_color(DISABLED_TEXT_GRAY);
+    button(with_lower_indicator(
+        active,
+        Column::new().push(content).padding(Padding {
+            top: 12.0,
+            right: 5.0,
+            bottom: 12.0,
+            left: 5.0,
+        }),
+    ))
+    .style(tab_button_style.as_custom())
+}
+
+pub fn with_lower_indicator<'a, Message>(
+    toggle: bool,
+    elem: impl Into<Element<'a, Message>>,
+) -> Column<'a, Message>
+where
+    Message: 'a,
+{
+    let indicator = if toggle {
+        container(Column::new())
+            .style(Indicator::theme())
+            .height(Length::Fixed(2.0))
+    } else {
+        container(Column::new()).height(Length::Fixed(2.0))
+    };
+
+    Column::new()
+        .push(elem)
+        .push(indicator.width(Length::Fixed(100.0)))
+        .align_items(alignment::Alignment::Center)
+}
+
 /// Container that groups actions or settings with a label and a row of
 /// controls.
 pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
@@ -489,7 +546,7 @@ where
 
 /// For use in the instructions container.
 pub fn instruction_text<'a>(value: String) -> Text<'a> {
-    secondary_label(value).size(TextSize::Sm as u16)
+    highlight_label(value).size(TextSize::Sm as u16)
 }
 
 pub fn instructions_inner<'a, Message, T: Into<Element<'a, Message>>>(

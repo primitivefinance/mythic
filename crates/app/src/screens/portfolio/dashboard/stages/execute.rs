@@ -177,12 +177,12 @@ impl State for Execute {
     fn view(&self) -> Element<Self::ViewMessage> {
         let mut content = Column::new()
             .spacing(Sizes::Lg)
-            .push(Text::new("Execute").size(40));
+            .push(h2("Execute Adjustment".to_string()));
 
         if let Some(dev_client) = &self.dev_client {
             content = content.push(
                 destructive_button("Execute".to_string())
-                    .padding(Sizes::Sm)
+                    .padding(Sizes::Md)
                     .on_press(Message::Execute),
             )
         };

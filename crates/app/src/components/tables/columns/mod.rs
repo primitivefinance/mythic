@@ -93,26 +93,25 @@ where
 
     /// Handles spacing of all child elements.
     pub fn build(self) -> Column<'static, Message> {
-        let mut column = Column::new().spacing(Sizes::Md);
+        let mut column = Column::new();
 
         let mut inner_column = Column::new();
 
         // Add the headers first.
         if !self.headers.is_empty() {
             let row: Row<'static, Message> = RowBuilder::new()
+                .style(|| CustomContainer::theme(Some(iced::Background::Color(TABLE_HEADER_BG))))
                 .cells(
                     self.headers
                         .into_iter()
-                        .map(|header| {
-                            CellBuilder::new()
-                                .child(label_item(header))
-                                .internal_padding(self.padding_cell_internal)
-                                .external_padding(self.padding_cell)
-                        })
+                        .map(|header| CellBuilder::new().child(label_item(header)))
                         .collect(),
                 )
                 .spacing(self.spacing.unwrap_or_default())
                 .padding(self.padding_row.unwrap_or_default())
+                .padding(self.padding_row.unwrap_or_default())
+                .padding_cell(self.padding_cell.unwrap_or_default())
+                .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
                 .into();
             column = column.push(row);
         }

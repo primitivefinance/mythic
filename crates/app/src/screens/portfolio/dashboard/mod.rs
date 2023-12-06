@@ -211,12 +211,16 @@ impl Dashboard {
     pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Md)
-            .push(h1("Portfolio Dashboard".to_string()).size(TitleSize::Xl))
+            .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
             .into()
     }
 
     pub fn render_table(&self) -> Element<'_, Self::AppMessage> {
-        self.table.view().map(|x| x.into())
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(h2("Positions".to_string()))
+            .push(self.table.view().map(|x| x.into()))
+            .into()
     }
 
     pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
