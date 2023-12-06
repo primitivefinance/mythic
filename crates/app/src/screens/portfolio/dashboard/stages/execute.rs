@@ -10,6 +10,7 @@ pub enum Message {
     ExecuteResult(anyhow::Result<Option<TransactionReceipt>, Arc<anyhow::Error>>),
     FetchPosition,
     FetchPositionResult(anyhow::Result<ProtocolPosition, Arc<anyhow::Error>>),
+    NewStrategyPosition(Portfolio),
 }
 
 impl MessageWrapper for Message {
@@ -28,6 +29,7 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 
 #[derive(Debug, Clone, Default)]
 pub struct Execute {
+    pub original: Option<Portfolio>,
     pub dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
     pub tx_receipt: Option<TransactionReceipt>,
     pub on_submit: Option<super::Message>,
@@ -35,8 +37,12 @@ pub struct Execute {
 }
 
 impl Execute {
-    pub fn new(dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>) -> Self {
+    pub fn new(
+        dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
+        original_portfolio: Option<Portfolio>,
+    ) -> Self {
         Self {
+            original: original_portfolio,
             dev_client,
             tx_receipt: None,
             on_submit: None,
@@ -105,7 +111,7 @@ async fn execute_create_position(
 ) -> anyhow::Result<Option<TransactionReceipt>> {
     let caller = dev_client.protocol.client.address();
     let tx = dev_client
-        .create_position(caller, 100.0, 1.0, 1.0, 1.0, 1.0)
+        .create_position(caller, 75.0, 1.0, 1.0, 1.0, 1.0)
         .await?;
 
     Ok(tx)
@@ -161,12 +167,53 @@ impl State for Execute {
                 tracing::debug!("Fetch position result: {:?}", result);
                 match result {
                     Ok(position) => {
-                        self.position = Some(position);
+                        self.position = Some(position.clone());
+
+                        // Use this information to build a new portfolio, and
+                        // then emit a NewStrategyPosition message to have the
+                        // portfolio dashboard update.
+                        if let Some(original) = &self.original {
+                            let portfolio = original.clone();
+                            let price_y_per_x = position
+                                .internal_price
+                                .map(|x| x.parse::<f64>().unwrap())
+                                .unwrap();
+                            let price_x_per_y = 1.0 / price_y_per_x;
+
+                            let mut strategy_position_x = portfolio.positions.0[0].clone();
+                            strategy_position_x.balance = position
+                                .balance_x
+                                .map(|x| x.parse::<f64>().unwrap())
+                                .clone();
+
+                            strategy_position_x.cost = Some(price_x_per_y);
+
+                            let mut strategy_position_y = portfolio.positions.0[1].clone();
+                            strategy_position_y.balance = position
+                                .balance_y
+                                .map(|y| y.parse::<f64>().unwrap())
+                                .clone();
+                            strategy_position_y.cost = Some(price_y_per_x);
+
+                            let positions =
+                                Positions::new(vec![strategy_position_x, strategy_position_y]);
+
+                            let mut strategy_portfolio = portfolio.clone();
+                            strategy_portfolio.positions = positions;
+
+                            return Command::perform(async {}, move |_| {
+                                Message::NewStrategyPosition(strategy_portfolio)
+                            });
+                        }
                     }
                     Err(e) => {
                         tracing::error!("Fetch position error: {:?}", e);
                     }
                 }
+                Command::none()
+            }
+            Message::NewStrategyPosition(portfolio) => {
+                tracing::debug!("New strategy portfolio: {:?}", portfolio);
                 Command::none()
             }
             Message::Empty => Command::none(),

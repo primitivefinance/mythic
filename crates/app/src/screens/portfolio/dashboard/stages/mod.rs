@@ -111,7 +111,7 @@ impl Stages {
             prepare: prepare::Prepare::default(),
             review: review::Review::default(),
             simulate: simulate::Simulate::default(),
-            execute: execute::Execute::new(dev_client),
+            execute: execute::Execute::new(dev_client, None),
         }
     }
 
@@ -322,8 +322,10 @@ impl State for Stages {
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Message::Load(portfolio) => {
+                tracing::debug!("Loading portfolio in staging area: {:?}", portfolio);
                 self.original = Some(portfolio.clone());
-                self.prepare = prepare::Prepare::new(portfolio);
+                self.prepare = prepare::Prepare::new(portfolio.clone());
+                self.execute.original = Some(portfolio.clone());
             }
             Message::SetAdjusted(portfolio) => {
                 tracing::debug!(
