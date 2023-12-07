@@ -2,13 +2,20 @@
 
 use iced::{
     widget::{Column, Container},
-    Command, Element, Length,
+    Command, Element, Length, Point,
 };
-use plotters::{coord::Shift, prelude::ChartBuilder, series::LineSeries, style::RED};
+use plotters::{
+    coord::Shift,
+    define_color,
+    prelude::ChartBuilder,
+    series::LineSeries,
+    style::{IntoTextStyle, RGBColor, TextStyle, RED},
+};
 use plotters_backend::DrawingBackend;
 use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
+use crate::components::chart::MyChart;
 
 pub struct ExperimentalScreen {
     chart: MyChart,
@@ -46,7 +53,7 @@ impl State for ExperimentalScreen {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let chart = self.chart.view().map(move |_x| view::Message::Experimental);
+        let chart = self.chart.view().map(move |_x| view::Message::Empty);
         let content = Column::new()
             .padding(Sizes::Lg as u16)
             .push(h1("experimental".to_string()))
@@ -59,62 +66,4 @@ impl State for ExperimentalScreen {
             .height(Length::Fill)
             .into()
     }
-}
-
-/// Chart stuff
-#[allow(unused)]
-struct MyChart;
-
-impl MyChart {
-    pub fn new() -> Self {
-        Self
-    }
-
-    fn view(&self) -> Element<Message> {
-        let chart = ChartWidget::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill);
-
-        chart.into()
-    }
-}
-
-impl Chart<Message> for MyChart {
-    type State = ();
-    // leave it empty
-    fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, _builder: ChartBuilder<DB>) {}
-
-    fn draw_chart<DB: DrawingBackend>(&self, _state: &Self::State, root: DrawingArea<DB, Shift>) {
-        let children = root.split_evenly((2, 2));
-        for (i, area) in children.iter().enumerate() {
-            let builder = ChartBuilder::on(area);
-            draw_chart(builder, i + 1);
-        }
-    }
-}
-
-fn draw_chart<DB: DrawingBackend>(mut chart: ChartBuilder<DB>, power: usize) {
-    let mut chart = chart
-        .margin(30)
-        .caption(format!("y=x^{}", power), ("sans-serif", 22))
-        .x_label_area_size(30)
-        .y_label_area_size(30)
-        .build_cartesian_2d(-1f32..1f32, -1.2f32..1.2f32)
-        .unwrap();
-
-    chart
-        .configure_mesh()
-        .x_labels(3)
-        .y_labels(3)
-        .draw()
-        .unwrap();
-
-    chart
-        .draw_series(LineSeries::new(
-            (-50..=50)
-                .map(|x| x as f32 / 50.0)
-                .map(|x| (x, x.powf(power as f32))),
-            &RED,
-        ))
-        .unwrap();
 }

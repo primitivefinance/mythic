@@ -297,7 +297,6 @@ impl Loader {
     }
 
     fn load(&mut self, flags: super::Flags) -> Command<Message> {
-        self.feedback = "Connecting to cortex.".to_string();
         Command::perform(load_app(flags), Message::Ready)
     }
 

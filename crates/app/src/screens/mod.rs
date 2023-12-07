@@ -10,6 +10,7 @@ use super::*;
 
 pub mod empty;
 pub mod exit;
+pub mod experimental;
 pub mod portfolio;
 pub mod settings;
 pub mod terminal;

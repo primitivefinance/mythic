@@ -1,4 +1,5 @@
 pub mod button;
+pub mod chart;
 pub mod containers;
 pub mod input;
 pub mod logos;

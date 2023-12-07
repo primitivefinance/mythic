@@ -13,7 +13,9 @@ use super::{
 };
 use crate::{
     loader::DefaultMiddleware,
-    screens::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
+    screens::{
+        experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen, State,
+    },
     user::networks::ChainPacket,
     view::sidebar::Sidebar,
 };
@@ -171,7 +173,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: EmptyScreen::new().into(),
+            screen: ExperimentalScreen::new().into(),
         }
     }
 }
