@@ -98,6 +98,12 @@ pub const RED_400: Color = Color::from_rgb(
     0x41 as f32 / 255.0,
 );
 
+pub const MINT_500: Color = Color::from_rgb(
+    0x5A as f32 / 255.0,
+    0xFF as f32 / 255.0,
+    0xc4 as f32 / 255.0,
+);
+
 pub const PRIMARY_COLOR: Color = BLUE_500;
 pub const SECONDARY_COLOR: Color = CYAN_500;
 pub const PRIMARY_LABEL_COLOR: Color = Color::WHITE;

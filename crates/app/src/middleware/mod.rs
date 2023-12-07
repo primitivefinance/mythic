@@ -38,3 +38,24 @@ pub async fn from_anvil(
 
     Ok((clients, wallets))
 }
+
+pub fn s_curve(x: f32) -> f32 {
+    let sigmoid_x = 1.0 / (1.0 + (-x).exp());
+    (sigmoid_x - 0.5) * 2.0
+}
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_s_curve() {
+        let mut t = 0.0;
+        while t < 1.0 {
+            let s_curve = super::s_curve(t);
+            println!("s_curve: {} {}", t, s_curve);
+            assert!(s_curve >= 0.0);
+            assert!(s_curve <= 1.0);
+            t += 0.01;
+        }
+    }
+}

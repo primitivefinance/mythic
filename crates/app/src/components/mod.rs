@@ -2,6 +2,7 @@ pub mod button;
 pub mod containers;
 pub mod input;
 pub mod logos;
+pub mod progress;
 pub mod select;
 pub mod styles;
 pub mod tables;
@@ -365,7 +366,7 @@ pub fn quaternary_label<'a>(value: String) -> Text<'a> {
 /// todo: remove label item
 #[allow(dead_code)]
 pub fn highlight_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs).style(SECONDARY_COLOR)
+    text(value).size(FontSizes::Xs).style(MINT_500)
 }
 
 #[allow(dead_code)]

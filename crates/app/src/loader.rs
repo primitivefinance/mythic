@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use alloy_primitives;
 use clients::{
     client::{AnvilClient, Local},
@@ -8,13 +10,14 @@ use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
 use ethers::middleware::SignerMiddleware;
 use iced::{
     font,
-    widget::{column, container, progress_bar},
+    widget::{canvas::Cache, column, container, progress_bar, Canvas},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use user::contacts;
 
 use super::{middleware::*, profile::Profile, *};
+use crate::components::{containers::CustomContainer, logos::PhiLogo, progress::CustomProgressBar};
 
 type LoadResult = anyhow::Result<
     (
@@ -36,8 +39,12 @@ pub enum Message {
     Ready(LoadResult),
 }
 pub struct Loader {
+    pub screen_open: bool,
     pub progress: f32,
     pub feedback: String,
+    pub max_load_ticks: f32,
+    pub load_ticks: f32,
+    pub logo: PhiLogo,
 }
 
 #[tracing::instrument(level = "debug")]
@@ -251,10 +258,22 @@ impl Loader {
         // Triggers the next step in the main application loop by emitting the Loaded
         // message.
         let flags = flags.clone();
+
+        let max_load_seconds = 5.0;
+        let ticks_per_s = 40.0;
+
         (
             Self {
+                screen_open: false,
                 progress: 0.0,
                 feedback: "Loading profile".to_string(),
+                max_load_ticks: max_load_seconds * ticks_per_s,
+                load_ticks: 0.0,
+                logo: PhiLogo {
+                    start: Instant::now(),
+                    rotation: 0.0,
+                    cache: Cache::default(),
+                },
             },
             Command::batch(vec![
                 Command::perform(connect_to_server(), |res| {
@@ -278,23 +297,30 @@ impl Loader {
     }
 
     fn load(&mut self, flags: super::Flags) -> Command<Message> {
+        self.feedback = "Connecting to cortex.".to_string();
         Command::perform(load_app(flags), Message::Ready)
     }
 
     pub fn update(&mut self, message: Message) -> Command<Message> {
+        self.logo.cache.clear();
+
         match message {
             Message::Tick => {
-                // Update over time until its 80%.
-                if self.progress >= 0.8 {
+                self.feedback = self.get_progress_feedback();
+
+                if !self.screen_open {
                     return Command::none();
                 }
 
-                self.progress += 0.001;
+                self.load_ticks += 1.0;
+
+                self.progress = self.load_ticks / self.max_load_ticks;
+
                 Command::none()
             }
             Message::Connected => {
-                self.progress += 0.2;
-                self.feedback = "Starting Anvil...".to_string();
+                self.screen_open = true;
+                self.load_ticks = 0.0;
                 Command::none()
             }
             Message::Loaded(flags) => self.load(flags),
@@ -302,17 +328,54 @@ impl Loader {
         }
     }
 
+    pub fn get_progress_feedback(&self) -> String {
+        let s_curve_result = s_curve(self.progress);
+        let progress = (s_curve_result * 4.0) as usize;
+
+        match progress {
+            0 => "1 \\\\ Initiated loading procedure...".to_string(),
+            1 => "2 \\\\ Connecting to application...".to_string(),
+            2 => "3 \\\\ Connected. Synthesizing sandbox environment...".to_string(),
+            3 => "4 \\\\ Catalyzing data...".to_string(),
+            _ => "5 \\\\ Launching Excalibur...".to_string(),
+        }
+    }
+
     pub fn view(&self) -> Element<Message> {
         container(
             container(
                 column![
-                    highlight_label(self.feedback.clone()),
-                    progress_bar(0.0..=1.0, self.progress)
+                    progress_bar(0.0..=1.0, s_curve((self.progress).into()))
+                        .style(CustomProgressBar::theme())
+                        .height(Length::Fixed(Sizes::Md.into())),
+                    Row::new()
+                        .push(
+                            Column::new()
+                                .push(
+                                    Canvas::new(&self.logo)
+                                        .width(Length::Fixed(48.0))
+                                        .height(Length::Fixed(48.0))
+                                )
+                                .align_items(alignment::Alignment::Start)
+                                .width(Length::FillPortion(1)),
+                        )
+                        .push(
+                            Column::new()
+                                .push(highlight_label(self.feedback.clone()))
+                                .align_items(alignment::Alignment::End)
+                                .width(Length::FillPortion(3))
+                        )
+                        .align_items(alignment::Alignment::Center)
+                        .spacing(Sizes::Sm)
+                        .width(Length::Fill)
                 ]
-                .spacing(Sizes::Lg as u16),
+                .padding(Sizes::Sm)
+                .align_items(alignment::Alignment::End)
+                .spacing(Sizes::Sm as u16),
             )
             .max_width(ByteScale::Xl6 as u32 as f32),
         )
+        .style(CustomContainer::theme(Some(iced::Color::BLACK.into())))
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x()
@@ -321,7 +384,7 @@ impl Loader {
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
-        // Every 250ms update the progress bar by 0.001.
+        // Every 25ms update the progress bar by 0.001.
         iced::time::every(std::time::Duration::from_millis(25)).map(|_| Message::Tick)
     }
 }
