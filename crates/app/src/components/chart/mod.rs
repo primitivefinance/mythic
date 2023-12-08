@@ -192,32 +192,6 @@ impl Chart<Message> for CartesianChart {
                 .expect("Failed to plot lines");
         }
 
-        // if let Some(relative_position) = state.relative_position {
-        // tracing::info!("Drawing hover point {:?}", relative_position);
-        // let distance_threshold = 0.25; // Define a threshold for "closeness"
-        // let points = vec![(0.0, 0.0), (0.5, 0.5)];
-        // for point in &points {
-        // let distance = ((relative_position.x - point.0).powi(2)
-        // + (relative_position.y - point.1).powi(2))
-        // .sqrt();
-        // if distance <= distance_threshold {
-        // chart.draw_series(PointSeries::of_element(
-        // vec![*point],
-        // 5,
-        // &colors::WHITE,
-        // &|c, s, st| {
-        // return EmptyElement::at(c)    // We want to construct a composed element
-        // on-the-fly
-        // + Circle::new((0,0),s,st.filled()) // At this point, the new pixel coordinate
-        //   is established
-        // + plotters::prelude::Text::new(format!("{:?}", c), (10, 0), ("sans-serif",
-        //   10).into_font());
-        // },
-        // )).expect("Failed to plot points");
-        // }
-        // }
-        // }
-
         // Draw the preview line.
         if let Some(relative_position) = state.relative_position {
             // | ---------------- |
@@ -245,8 +219,10 @@ impl Chart<Message> for CartesianChart {
 
             // Get the furthest points on each axis. This is the rightmost point on the
             // x-axis, and the bottommost point on the y-axis.
+            let bound_x_start = coord_trans.get_x_range().start;
             let bound_x = coord_trans.get_x_range().end;
             let bound_y = coord_trans.get_y_range().start;
+            let bound_y_end = coord_trans.get_y_range().end;
 
             // Set the labels to be variable depending on the position of the cursor, but
             // locked on their opposite axis.
@@ -260,13 +236,95 @@ impl Chart<Message> for CartesianChart {
                     false => format!("{:.2}", y),
                 };
 
-                let label_offset = match x_label {
-                    true => (-10, -50),
-                    false => (-50, -10),
+                let near_left = x - bound_x * 0.025 <= bound_x_start;
+                let near_right = x >= bound_x - bound_x * 0.025;
+
+                // Reversed because we are on cartesian grid!
+                let near_top = y >= bound_y_end - bound_y_end * 0.025;
+                let near_bottom = y <= bound_y + bound_y_end * 0.025;
+
+                let container_width = 50;
+                let container_height = 35;
+
+                let label_container_coords: [(i32, i32); 2] = match x_label {
+                    true => {
+                        if near_left {
+                            [(0, -container_height), (container_width, 0)]
+                        } else if near_right {
+                            [(-container_width, -container_height), (0, 0)]
+                        } else {
+                            [
+                                (-container_width / 2, -container_height),
+                                (container_width / 2, 0),
+                            ]
+                        }
+                    }
+                    false => {
+                        if near_top {
+                            [(-container_width, 0), (0, container_height)]
+                        } else if near_bottom {
+                            [(-container_width, -container_height), (0, 0)]
+                        } else {
+                            [
+                                (-container_width, -container_height / 2),
+                                (0, container_height / 2),
+                            ]
+                        }
+                    }
                 };
 
+                let label_offset = match x_label {
+                    true => {
+                        // Clamping the labels based on the position of the label container, which
+                        // is clamped, on the x-axis.
+                        if near_left {
+                            (
+                                label_container_coords[0].0 + container_width / 4,
+                                label_container_coords[0].1 + container_height / 4,
+                            )
+                        } else if near_right {
+                            (
+                                label_container_coords[0].0 + container_width / 4,
+                                label_container_coords[0].1 + container_height / 4,
+                            )
+                        } else {
+                            (
+                                label_container_coords[0].0 + container_width / 4,
+                                label_container_coords[0].1 + container_height / 4,
+                            )
+                        }
+                    }
+                    false => {
+                        // Clamp the labels based on the position of the label container, which
+                        // is clamped, on the y-axis.
+                        // Adding  container_height / 6 to the x coordinate will move it inward from
+                        // the leftmost edge of the container.
+                        if near_top {
+                            (
+                                label_container_coords[0].0 + container_width / 4,
+                                label_container_coords[0].1 + container_height / 4,
+                            )
+                        } else if near_bottom {
+                            (
+                                label_container_coords[0].0 + container_width / 6,
+                                label_container_coords[0].1 + container_height / 4,
+                            )
+                        } else {
+                            (
+                                label_container_coords[0].0 + container_width / 4,
+                                label_container_coords[0].1 + container_height / 4,
+                            )
+                        }
+                    }
+                };
+
+                let rect = Rectangle::new(
+                    label_container_coords,
+                    ShapeStyle::from(&colors::full_palette::GREY_800).filled(),
+                );
+
                 return EmptyElement::at((x, y))
-                    + Circle::new((0, 0), 3, ShapeStyle::from(&colors::WHITE).filled())
+                    + rect
                     + plotters::prelude::Text::new(
                         label,
                         label_offset,
@@ -274,6 +332,23 @@ impl Chart<Message> for CartesianChart {
                     );
             };
 
+            // Draw a line through the y cursor position.
+            chart
+                .draw_series(LineSeries::new(
+                    vec![(0.0, translated.1), (bound_x, translated.1)].into_iter(),
+                    colors::full_palette::GREY_A400.filled(),
+                ))
+                .expect("Failed to plot lines");
+
+            // Draw a line through the x cursor position.
+            chart
+                .draw_series(LineSeries::new(
+                    vec![(translated.0, bound_y), (translated.0, bound_y_end)].into_iter(),
+                    colors::full_palette::GREY_A400.filled(),
+                ))
+                .expect("Failed to plot lines");
+
+            // Draw the y axis label.
             chart
                 .draw_series(PointSeries::of_element(
                     vec![y_label_coords],
@@ -285,6 +360,7 @@ impl Chart<Message> for CartesianChart {
                 ))
                 .expect("Failed to plot points");
 
+            // Draw the x axis label.
             chart
                 .draw_series(PointSeries::of_element(
                     vec![x_label_coords],
@@ -295,28 +371,6 @@ impl Chart<Message> for CartesianChart {
                     },
                 ))
                 .expect("Failed to plot points");
-
-            //  chart.draw_series(PointSeries::of_element(
-            // vec![relative_position],
-            // 5,
-            // &colors::WHITE,
-            // &|c, s, st| {
-            // return EmptyElement::at(c)    // We want to construct a composed
-            // element on-the-fly
-            // + Circle::new((0,0),s,st.filled()) // At this point, the new
-            //   pixel coordinate is established
-            // + plotters::prelude::Text::new(format!("{:?}", c), (10, 0),
-            //   ("sans-serif", 10).into_font());
-            // },
-            // )).expect("Failed to plot points");
-            // chart
-            // .draw_series(std::iter::once(Circle::new(
-            // relative_position,
-            // 5_i32,
-            // HOVER_COLOR.filled(),
-            // )))
-            // .expect("Failed to plot hover point")
-            // .label(format!("Coords: {:?}", relative_position));
         }
 
         // Draw the labels on the chart.
