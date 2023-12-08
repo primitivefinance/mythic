@@ -6,7 +6,7 @@ use clients::dev::DevClient;
 use iced::widget::Container;
 
 use super::*;
-use crate::{app::RootMessage, loader::DefaultMiddleware};
+use crate::{app::RootMessage, components::system::label, loader::DefaultMiddleware};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -87,7 +87,7 @@ impl State for PortfolioRoot {
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let content = match self.page.clone() {
-            Page::Empty => Column::new().push(h2("Select a page".to_string())).into(),
+            Page::Empty => Column::new().push(label(&"Select a page").build()).into(),
             Page::Create => self.create.view().map(|x| Message::Create(x).into()),
             Page::Dashboard => self.dashboard.view().map(|x| Message::Dashboard(x).into()),
         };

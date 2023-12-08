@@ -5,8 +5,9 @@ pub mod form;
 use datatypes::portfolio::coin_list::CoinList;
 
 use super::*;
-use crate::components::tables::{
-    builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder,
+use crate::components::{
+    system::label,
+    tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 
 type ParentMessage = super::Message;
@@ -107,9 +108,7 @@ impl State for CreatePortfolio {
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let column_1: Vec<Element<'a, Self::ViewMessage>> = vec![
-            h2("Create Portfolio".to_string())
-                .font(FONT_SEMIBOLD)
-                .into(),
+            label(&"Create Portfolio").title2().build().into(),
             self.form.view().map(|x| x.into()),
         ];
 
@@ -138,16 +137,6 @@ impl State for CreatePortfolio {
             key_value_row(
                 "Ticker".to_string(),
                 self.form.ticker.clone().unwrap_or("n/a".to_string()),
-            )
-            .into(),
-            static_table(
-                "Summary".to_string(),
-                vec![
-                    "Ticker".to_string(),
-                    "Price".to_string(),
-                    "Balance".to_string(),
-                ],
-                self.form.table_data(),
             )
             .into(),
             instruct.map(|x| x.into()),

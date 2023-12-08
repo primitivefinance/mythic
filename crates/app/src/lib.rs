@@ -21,7 +21,7 @@ mod view;
 use std::sync::{Arc, Mutex};
 
 use app::App;
-use components::*;
+use components::{system::ExcaliburTheme, *};
 use loader::Loader;
 use logging::tracer;
 use screens::*;
@@ -141,7 +141,7 @@ impl Application for MVP {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Custom(Box::new(custom_theme()))
+        ExcaliburTheme::theme()
     }
 }
 

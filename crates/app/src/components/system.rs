@@ -16,6 +16,12 @@ const BG2: Color = Color::from_rgb(
     0x0D as f32 / 255.0,
 );
 
+const BG3: Color = Color::from_rgb(
+    0x28 as f32 / 255.0,
+    0x28 as f32 / 255.0,
+    0x28 as f32 / 255.0,
+);
+
 /// Quantitative colors are for different sizes of values.
 /// - Hundreds < 1,000
 /// - Thousands < 1,000,000
@@ -39,6 +45,12 @@ pub enum LabelColors {
     Placeholder,
     Highlight,
 }
+
+const BLUE: Color = Color::from_rgb(
+    0x41 as f32 / 255.0,
+    0x51 as f32 / 255.0,
+    0xE4 as f32 / 255.0,
+);
 
 const MINT: Color = Color::from_rgb(
     0x5A as f32 / 255.0,
@@ -100,16 +112,18 @@ const PLACEHOLDER_LABEL: Color = Color::from_rgb(
 /// - Danger - Danger color, e.g. destructive action button.
 /// - Label - Label color, e.g. text color.
 /// - Quantitative - Quantitative color, e.g. quantitative text value color.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum ExcaliburColor {
     Background1,
     Background2,
+    Background3,
     #[default]
     Primary,
     Success,
     Danger,
     Label(LabelColors),
     Quantitative(QuantitativeColors),
+    Custom(Color),
 }
 
 impl ExcaliburColor {
@@ -117,7 +131,8 @@ impl ExcaliburColor {
         match self {
             ExcaliburColor::Background1 => BG1,
             ExcaliburColor::Background2 => BG2,
-            ExcaliburColor::Primary => MINT,
+            ExcaliburColor::Background3 => BG3,
+            ExcaliburColor::Primary => BLUE,
             ExcaliburColor::Success => GREEN,
             ExcaliburColor::Danger => RED,
             ExcaliburColor::Label(label_color) => match label_color {
@@ -134,7 +149,7 @@ impl ExcaliburColor {
                 QuantitativeColors::Millions => GREEN,
                 QuantitativeColors::Billions => HIGHLIGHT,
             },
-
+            ExcaliburColor::Custom(color) => *color,
             _ => Color::WHITE,
         }
     }
@@ -192,12 +207,8 @@ impl From<Typography> for iced::Pixels {
     }
 }
 
-pub const UI_FONT: Font = Font {
-    family: iced::font::Family::Name("Yu Gothic UI"),
-    weight: iced::font::Weight::Semibold,
-    stretch: iced::font::Stretch::Normal,
-    monospaced: false,
-};
+pub const SYMBOL_FONT: Font = Font::with_name("Yu Gothic");
+pub const UI_FONT: Font = Font::with_name("Yu Gothic UI");
 pub const UI_FONT_BOLD: Font = Font {
     family: iced::font::Family::Name("Yu Gothic UI"),
     weight: iced::font::Weight::Bold,
@@ -212,6 +223,8 @@ pub enum ExcaliburFonts {
     UI,
     UIBold,
     Branding,
+    Symbol,
+    Custom(iced::Font),
 }
 
 impl ExcaliburFonts {
@@ -220,6 +233,8 @@ impl ExcaliburFonts {
             ExcaliburFonts::UI => UI_FONT,
             ExcaliburFonts::UIBold => UI_FONT_BOLD,
             ExcaliburFonts::Branding => BRAND_FONT,
+            ExcaliburFonts::Symbol => SYMBOL_FONT,
+            ExcaliburFonts::Custom(font) => *font,
         }
     }
 }
@@ -242,6 +257,11 @@ impl Default for ExcaliburText {
             size: Typography::Body,
         }
     }
+}
+
+/// For constructing any text rendered in Excalibur.
+pub fn label<'a>(value: &str) -> ExcaliburText {
+    ExcaliburText::new(value)
 }
 
 impl ExcaliburText {
@@ -289,6 +309,11 @@ impl ExcaliburText {
             color: ExcaliburColor::Quantitative(color),
             ..self
         }
+    }
+
+    pub fn style(mut self, color: iced::Color) -> Self {
+        self.color = ExcaliburColor::Custom(color);
+        self
     }
 
     // Size
@@ -425,6 +450,20 @@ impl ExcaliburText {
 
     // Font
 
+    pub fn sf(self) -> Self {
+        Self {
+            font: ExcaliburFonts::Custom(iced::font::Font::DEFAULT),
+            ..self
+        }
+    }
+
+    pub fn mono(self) -> Self {
+        Self {
+            font: ExcaliburFonts::Custom(iced::font::Font::MONOSPACE),
+            ..self
+        }
+    }
+
     pub fn ui(self) -> Self {
         Self {
             font: ExcaliburFonts::UI,
@@ -439,6 +478,13 @@ impl ExcaliburText {
         }
     }
 
+    pub fn symbol(self) -> Self {
+        Self {
+            font: ExcaliburFonts::Symbol,
+            ..self
+        }
+    }
+
     pub fn branding(self) -> Self {
         Self {
             font: ExcaliburFonts::Branding,
@@ -447,9 +493,117 @@ impl ExcaliburText {
     }
 }
 
-/// For constructing any text rendered in Excalibur.
-pub fn label<'a>(value: &str) -> ExcaliburText {
-    ExcaliburText::new(value)
+/// For constructing Excalibur containers.
+pub fn layer() -> ExcaliburContainer {
+    ExcaliburContainer::default()
+}
+
+/// For building containers with different background shading, text, and
+/// borders.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ExcaliburContainer {
+    pub background: ExcaliburColor,
+    pub border_radius: BorderRadius,
+    pub border_width: f32,
+    pub border_color: ExcaliburColor,
+}
+
+impl container::StyleSheet for ExcaliburContainer {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        let background = self.background.color();
+        let border_color = self.border_color.color();
+        let border_radius = self.border_radius;
+        let border_width = self.border_width;
+
+        container::Appearance {
+            background: Some(iced::Background::Color(background)),
+            border_radius,
+            border_width,
+            border_color,
+            ..Default::default()
+        }
+    }
+}
+
+impl ExcaliburContainer {
+    pub fn build<'a, Message>(
+        self,
+        element: impl Into<Element<'a, Message>>,
+    ) -> Container<'a, Message>
+    where
+        Message: 'a,
+    {
+        Container::new(element).style(self.theme())
+    }
+
+    pub fn theme(self) -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(self))
+    }
+
+    // Levels
+
+    /// The layer that is furthest away and therefore the darkest.
+    pub fn bottom(mut self) -> Self {
+        self.background = ExcaliburColor::Background1;
+        self
+    }
+
+    /// The layer between the bottom and top layers.
+    pub fn middle(mut self) -> Self {
+        self.background = ExcaliburColor::Background2;
+        self
+    }
+
+    /// The layer that is closest and therefore the lightest.
+    pub fn top(mut self) -> Self {
+        self.background = ExcaliburColor::Background3;
+        self
+    }
+
+    /// Act as an indicator or barrier.
+    pub fn indicator(mut self, color: ExcaliburColor) -> Self {
+        self.background = color;
+        self
+    }
+
+    /// Choose your own color!
+    pub fn color(mut self, color: iced::Color) -> Self {
+        self.background = ExcaliburColor::Custom(color);
+        self
+    }
+
+    /// Choose your own color!
+    pub fn color_rgb(mut self, r: f32, g: f32, b: f32) -> Self {
+        self.background = ExcaliburColor::Custom(iced::Color::from_rgb(r, g, b));
+        self
+    }
+
+    // Border radius
+
+    pub fn sharp(mut self) -> Self {
+        self.border_radius = 0.0.into();
+        self
+    }
+
+    pub fn round(mut self, size: Sizes) -> Self {
+        self.border_radius = size.into();
+        self
+    }
+
+    pub fn round_custom(mut self, size: BorderRadius) -> Self {
+        self.border_radius = size.into();
+        self
+    }
+
+    // Border
+
+    pub fn border(mut self, color: ExcaliburColor, width: f32) -> Self {
+        self.border_color = color;
+        self.border_width = width;
+        self
+    }
 }
 
 /// todo!

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use iced::{Color, Font, Padding};
+use iced::{BorderRadius, Color, Font, Padding};
 
 pub const GRAY_100: Color = Color::from_rgb(
     0x15 as f32 / 255.0,
@@ -181,6 +181,24 @@ pub enum Sizes {
     Xl6 = 128,
 }
 
+impl From<Sizes> for BorderRadius {
+    fn from(item: Sizes) -> Self {
+        match item {
+            Sizes::Zero => 0.0.into(),
+            Sizes::Xs => 4.0.into(),
+            Sizes::Sm => 8.0.into(),
+            Sizes::Md => 16.0.into(),
+            Sizes::Lg => 24.0.into(),
+            Sizes::Xl => 32.0.into(),
+            Sizes::Xl2 => 56.0.into(),
+            Sizes::Xl3 => 64.0.into(),
+            Sizes::Xl4 => 72.0.into(),
+            Sizes::Xl5 => 96.0.into(),
+            Sizes::Xl6 => 128.0.into(),
+        }
+    }
+}
+
 impl From<Sizes> for f32 {
     fn from(item: Sizes) -> Self {
         match item {
@@ -233,82 +251,6 @@ impl From<Sizes> for Padding {
             Sizes::Xl6 => Padding::new(128.0),
         }
     }
-}
-
-/// Sizes for fonts
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FontSizes {
-    Xs = 12,
-    Sm = 14,
-    Md = 16,
-    Lg = 18,
-    TitleSm = 20,
-    TitleMd = 24,
-    TitleLg = 28,
-    TitleXl = 34,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TitleSize {
-    Sm = 20,
-    Md = 24,
-    Lg = 28,
-    Xl = 34,
-}
-
-impl From<TitleSize> for iced::Pixels {
-    fn from(item: TitleSize) -> Self {
-        match item {
-            TitleSize::Sm => 20.0.into(),
-            TitleSize::Md => 24.0.into(),
-            TitleSize::Lg => 28.0.into(),
-            TitleSize::Xl => 34.0.into(),
-        }
-    }
-}
-
-pub enum TextSize {
-    Xs = 12,
-    Sm = 14,
-    Md = 16,
-    Lg = 18,
-}
-
-impl From<FontSizes> for iced::Pixels {
-    fn from(font_size: FontSizes) -> Self {
-        match font_size {
-            FontSizes::Xs => 12.0.into(),
-            FontSizes::Sm => 14.0.into(),
-            FontSizes::Md => 16.0.into(),
-            FontSizes::Lg => 18.0.into(),
-            FontSizes::TitleSm => 20.0.into(),
-            FontSizes::TitleMd => 24.0.into(),
-            FontSizes::TitleLg => 28.0.into(),
-            FontSizes::TitleXl => 34.0.into(),
-        }
-    }
-}
-
-/// Scale from golden ratio.
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GoldenRatioScale {
-    Xs = 1,
-    Sm = 2,
-    Md = 3,
-    Lg = 5,
-    Xl = 8,
-    Xl2 = 13,
-    Xl3 = 21,
-    Xl4 = 34,
-    Xl5 = 55,
-    Xl6 = 89,
-    Xl7 = 144,
-    Xl8 = 233,
-    Xl9 = 377,
-    Xl10 = 610,
-    Xl11 = 987,
-    Xl12 = 1597,
 }
 
 /// Scale from byte sizes.

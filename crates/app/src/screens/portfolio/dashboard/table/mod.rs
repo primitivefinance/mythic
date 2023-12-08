@@ -4,6 +4,7 @@
 use datatypes::portfolio::{position::Position, Portfolio};
 
 use super::*;
+use crate::components::system::label;
 
 pub mod form;
 use form::*;
@@ -208,11 +209,11 @@ impl PortfolioTable {
         vec![
             CellBuilder::new().value(Some(position.asset.symbol.clone())),
             CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
-            CellBuilder::new().child(label_item(price_label)),
+            CellBuilder::new().child(label(&price_label).secondary().build()),
             CellBuilder::new().value(position.balance.map(|x| format!("{:.2}", x))),
-            CellBuilder::new().child(label_item(balance_label).style(balance_color)),
+            CellBuilder::new().child(label(&balance_label).secondary().build()),
             CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
-            CellBuilder::new().child(label_item(market_value_label).style(market_value_color)),
+            CellBuilder::new().child(label(&market_value_label).secondary().build()),
         ]
     }
 

@@ -229,14 +229,14 @@ impl Dashboard {
     pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Md)
-            .push(h1("Dashboard".to_string()).size(TitleSize::Xl))
+            .push(label(&"Dashboard").title1().build())
             .into()
     }
 
     pub fn render_table(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Lg)
-            .push(h2("Positions".to_string()))
+            .push(label(&"Positions").title2().build())
             .push(self.table.view().map(|x| x.into()))
             .into()
     }
@@ -244,7 +244,7 @@ impl Dashboard {
     pub fn render_deposited_table(&self) -> Element<'_, Self::AppMessage> {
         // If the table is not loaded, return an empty element.
         if self.deposited_portfolio.is_none() {
-            return Container::new(primary_label("No deposited positions.".to_string()))
+            return Container::new(label(&"No deposited positions.").build())
                 .center_x()
                 .center_y()
                 .into();
@@ -252,7 +252,7 @@ impl Dashboard {
 
         Column::new()
             .spacing(Sizes::Lg)
-            .push(h2("Active Strategies".to_string()))
+            .push(label(&"Active Strategies").title2().build())
             .push(self.deposited_table.view().map(|x| x.into()))
             .into()
     }
@@ -276,9 +276,11 @@ impl Dashboard {
                         Column::new()
                             .align_items(alignment::Alignment::Start)
                             .push(
-                                Card::new(h3(
-                                    "Make adjustments to view the estimated results".to_string()
-                                ))
+                                Card::new(
+                                    label(&"Make adjustments to view the estimated results")
+                                        .title3()
+                                        .build(),
+                                )
                                 .center_x()
                                 .center_y()
                                 .padding(Sizes::Lg)

@@ -8,12 +8,11 @@
 
 use super::*;
 
+pub mod dev;
 pub mod empty;
 pub mod exit;
-pub mod experimental;
 pub mod portfolio;
 pub mod settings;
-pub mod terminal;
 
 /// All messages need to be wrapped in a message type that their parent
 /// supports, this trait enforces that.

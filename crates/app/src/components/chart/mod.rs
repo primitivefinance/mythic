@@ -1,5 +1,3 @@
-pub mod example;
-
 use std::{cell::RefCell, sync::RwLock};
 
 use cfmm_math::trading_functions::rmm::compute_y_given_x_rust;

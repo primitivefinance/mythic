@@ -3,6 +3,7 @@
 use std::fmt::{self, Display};
 
 use super::*;
+use crate::components::system::label;
 
 #[derive(Debug, Clone, Default)]
 pub enum FormMessage {
@@ -179,7 +180,7 @@ impl State for Review {
             .column_2_alignment(alignment::Alignment::Start)
             .spacing(Sizes::Md)
             .column_1(vec![
-                h2("Strategy Parameters".to_string()).into(),
+                label(&"Strategy Parameters").build().into(),
                 labeled_select(
                     "Adjust duration".to_string(),
                     Times::to_options(),
@@ -196,7 +197,7 @@ impl State for Review {
                 .into(),
             ])
             .column_2(vec![
-                h2("Execution Strategy".to_string()).into(),
+                label(&"Execution Strategy").build().into(),
                 labeled_select(
                     "Choose rebalance rate".to_string(),
                     Strategies::to_options(),

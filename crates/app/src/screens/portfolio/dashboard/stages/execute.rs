@@ -1,6 +1,7 @@
 use clients::dev::ProtocolPosition;
 
 use super::*;
+use crate::components::system::label;
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -65,7 +66,7 @@ impl Execute {
     pub fn view_tx_logs(&self) -> Container<'static, Message> {
         let mut content = Column::new()
             .spacing(Sizes::Lg)
-            .push(title_small("Transaction Receipt".to_string()));
+            .push(label(&"Transaction Receipt").build());
 
         if let Some(tx_receipt) = &self.tx_receipt {
             let logs = tx_receipt.logs.clone();
@@ -224,7 +225,7 @@ impl State for Execute {
     fn view(&self) -> Element<Self::ViewMessage> {
         let mut content = Column::new()
             .spacing(Sizes::Lg)
-            .push(h2("Execute Adjustment".to_string()));
+            .push(label(&"Execute Adjustment").title2().build());
 
         if let Some(dev_client) = &self.dev_client {
             content = content.push(

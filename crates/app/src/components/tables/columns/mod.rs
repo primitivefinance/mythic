@@ -135,7 +135,9 @@ where
                     .cells(
                         self.headers
                             .into_iter()
-                            .map(|header| CellBuilder::new().child(label_item(header)))
+                            .map(|header| {
+                                CellBuilder::new().child(label(&header).headline().build())
+                            })
                             .collect(),
                     )
                     .spacing(self.spacing.unwrap_or_default())

@@ -16,8 +16,8 @@ use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
 use crate::components::{
-    chart::{example::MyChart, CartesianChart},
-    system::ExcaliburTable,
+    chart::CartesianChart,
+    system::{label, ExcaliburTable},
     tables::cells::CellBuilder,
 };
 
@@ -36,7 +36,6 @@ impl From<Message> for view::Message {
 
 pub struct ExperimentalScreen {
     pub show_example: bool,
-    example_chart: MyChart,
     line_chart: CartesianChart,
 }
 
@@ -44,7 +43,6 @@ impl ExperimentalScreen {
     pub fn new() -> Self {
         Self {
             show_example: false,
-            example_chart: MyChart::new(),
             line_chart: CartesianChart::new(),
         }
     }
@@ -90,22 +88,16 @@ impl State for ExperimentalScreen {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let chart = match self.show_example {
-            true => self
-                .example_chart
-                .view()
-                .map(move |_: view::Message| view::Message::Empty),
-            false => self
-                .line_chart
-                .view()
-                .map(move |x| Message::Chart(x).into()),
-        };
+        let chart = self
+            .line_chart
+            .view()
+            .map(move |x| Message::Chart(x).into());
 
         let content = Column::new()
             .padding(Sizes::Md as u16)
             .spacing(Sizes::Lg as u16)
-            .push(highlight_label("Good Morning, Alex.".to_string()).size(FontSizes::Md))
-            .push(highlight_label("It looks like your portfolio did well last night, maintaining 99.00% replication health.".to_string()).size(FontSizes::Md))
+            .push(label("Good Morning, Alex.").highlight().title2().build())
+            .push(label("It looks like your portfolio did well last night, maintaining 99.00% replication health.").highlight().title2().build())
             .push(chart)
             .width(Length::FillPortion(3));
 

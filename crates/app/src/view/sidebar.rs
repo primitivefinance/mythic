@@ -4,7 +4,9 @@ use iced::{widget::Space, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{components::button::*, *};
+use crate::components::system::label;
 
+const SYMBOL: &str = "φ";
 const TITLE: &str = "Excalibur";
 
 /// Defines all the possible locations that can be directly routed to in the
@@ -70,12 +72,12 @@ impl Sidebar {
     pub type ViewMessage = view::Message;
 
     /// Renders a section header with a label.
-    pub fn section<'a>(&self, label: String) -> Row<'a, Self::ViewMessage> {
+    pub fn section<'a>(&self, header: String) -> Row<'a, Self::ViewMessage> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
             .push(
                 Column::new()
-                    .push(secondary_label(label))
+                    .push(label(&header).tertiary().build())
                     .align_items(alignment::Alignment::Center),
             )
             .padding(Sizes::Sm)
@@ -89,7 +91,7 @@ impl Sidebar {
         column = column.push(self.section("Apps".to_string()));
         column = column.push(self.page.view().map(|x| x.into()));
         column
-            .spacing(Sizes::Xs as u16)
+            .spacing(Sizes::Xs)
             .align_items(alignment::Alignment::Center)
             .into()
     }
@@ -121,10 +123,10 @@ impl screens::State for Sidebar {
                 Row::new()
                     .spacing(Sizes::Sm)
                     .align_items(alignment::Alignment::Center)
-                    .push(with_yu_gothic(h1("φ".to_string())))
-                    .push(with_font(h1(TITLE.to_string()))),
+                    .push(label(SYMBOL).title3().symbol().build())
+                    .push(label(TITLE).title3().branding().build()),
             )
-            .padding(Sizes::Lg as u16)
+            .padding(Sizes::Lg)
             .align_items(alignment::Alignment::Center)
             .width(Length::Fill);
 
@@ -141,10 +143,10 @@ impl screens::State for Sidebar {
                 .push(
                     Column::new()
                         .push(self.layout())
-                        .spacing(Sizes::Lg as u16)
-                        .padding(Sizes::Xs as u16),
+                        .spacing(Sizes::Lg)
+                        .padding(Sizes::Xs),
                 )
-                .spacing(Sizes::Md as u16),
+                .spacing(Sizes::Md),
         )
         .height(Length::Fill)
         .into()
@@ -156,7 +158,6 @@ pub enum Page {
     #[default]
     Empty,
     Portfolio,
-    Simulate,
     Settings,
     Exit,
 }
@@ -171,7 +172,6 @@ impl Page {
         match self {
             Page::Empty => "Select App".to_string(),
             Page::Portfolio => "Portfolio".to_string(),
-            Page::Simulate => "Simulate".to_string(),
             Page::Settings => "Settings".to_string(),
             Page::Exit => "Exit".to_string(),
             _ => "Experimental".to_string(),
@@ -182,7 +182,6 @@ impl Page {
         match self {
             Page::Empty => Icon::TerminalFill,
             Page::Portfolio => Icon::Wallet,
-            Page::Simulate => Icon::ShieldShaded,
             Page::Settings => Icon::Gear,
             Page::Exit => Icon::X,
             _ => Icon::Gear,
@@ -199,7 +198,6 @@ impl Page {
     pub fn tabs(active: &Page) -> Vec<Self::PageTab> {
         let mut all = vec![
             Page::Portfolio.tab(active),
-            Page::Simulate.tab(active),
             Page::Settings.tab(active),
             Page::Exit.tab(active),
         ];
@@ -221,12 +219,12 @@ impl Page {
                         .push(Space::with_width(Length::Fixed(Sizes::Xs as u32 as f32)))
                         .push(text(icon_to_char(icon)).font(ICON_FONT))
                         .push(text(name))
-                        .spacing(Sizes::Md as u16),
+                        .spacing(Sizes::Md),
                 )
                 .width(Length::Fill)
                 .on_press(msg)
                 .style(style.as_custom())
-                .padding(Sizes::Sm as u16),
+                .padding(Sizes::Sm),
             );
         }
 

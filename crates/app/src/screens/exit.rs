@@ -3,6 +3,7 @@
 use iced::widget::Container;
 
 use super::*;
+use crate::components::system::label;
 
 pub struct ExitScreen {
     pub show_confirm: bool,
@@ -48,17 +49,15 @@ impl State for ExitScreen {
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let content = match self.show_confirm {
             true => Column::new()
-                .push(secondary_label(
-                    "Are you sure you want to exit?".to_string(),
-                ))
+                .push(label("Are you sure you want to exit?").secondary().build())
                 .push(
                     button("Yes, save and exit.")
                         .padding([10, 20])
                         .on_press(Self::ViewMessage::ConfirmExit),
                 )
-                .spacing(10)
+                .spacing(Sizes::Sm)
                 .align_items(alignment::Alignment::Center),
-            false => Column::new().push(h2("Saving and exiting...".to_string())),
+            false => Column::new().push(label("Saving and exiting...").title2().build()),
         };
 
         Container::new(content)

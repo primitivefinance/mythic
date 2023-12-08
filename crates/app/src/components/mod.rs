@@ -1,3 +1,5 @@
+//! Combines components into more complex components.
+
 pub mod button;
 pub mod chart;
 pub mod containers;
@@ -26,74 +28,11 @@ use styles::*;
 use self::{
     containers::{CardContainer, CustomContainer, Indicator},
     select::custom_pick_list,
+    system::label,
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
-use super::{
-    view::{sidebar::Page, Message},
-    *,
-};
-
-/// Renders a gray text label in lowercase.
-pub fn label_item<'a>(t: String) -> Text<'a> {
-    tertiary_label(t).size(TextSize::Md as u16)
-}
-
-/// Renders white text in the DAGGERSQUARE font.
-pub fn data_item<'a>(t: String) -> Text<'a> {
-    text(t).font(FONT_DAGGERSQUARE).style(Color::WHITE)
-}
-
-/// Renders a column with a label and an element.
-pub fn labeled<'a, T: Into<Element<'a, Message>>>(
-    label: String,
-    element: T,
-) -> Element<'a, Message> {
-    let mut content = Column::new()
-        .push(label_item(label))
-        .push(container(element).center_y());
-    content = content.spacing(8);
-    content.into()
-}
-
-/// Renders a row of labeled controls, where each control has a label.
-pub fn labeled_controls<'a, T: Into<Element<'a, Message>>>(
-    controls: Vec<(String, T)>,
-) -> Element<'a, Message> {
-    let mut content = Row::new();
-    for (label, control) in controls {
-        content = content.push(labeled(label, control));
-    }
-    content.spacing(Sizes::Md as u16).into()
-}
-
-/// Renders a column with a label and a piece of data with the DAGGERSQUARE
-/// font.
-pub fn labeled_data<'a, Message>(label: String, data: String) -> Element<'a, Message, Renderer>
-where
-    Message: 'a,
-{
-    // If data is a value above > 1000, replace the last three zeros with an
-    // uppercase "K". Same with > 1_000_000 "M", etc.
-    let data = match data.parse::<f64>() {
-        Ok(value) => {
-            if value > 1_000_000.0 {
-                format!("{:.2}M", value / 1_000_000.0)
-            } else if value > 1000.0 {
-                format!("{:.2}K", value / 1000.0)
-            } else {
-                data
-            }
-        }
-        Err(_) => data,
-    };
-
-    let mut content = Column::new()
-        .push(secondary_label(label).size(TextSize::Lg as u16))
-        .push(highlight_label(data).size(TitleSize::Md as u16));
-    content = content.spacing(Sizes::Sm as u16);
-    content.into()
-}
+use super::{view::Message, *};
 
 /// Renders a nice blue button.
 pub fn action_button<'a, Message>(label: String) -> iced::widget::Button<'a, Message>
@@ -210,100 +149,6 @@ where
         .align_items(alignment::Alignment::Center)
 }
 
-#[allow(dead_code)]
-pub fn title_large<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleLg)
-}
-
-#[allow(dead_code)]
-pub fn title_medium<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleMd)
-}
-
-#[allow(dead_code)]
-pub fn title_small<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleSm)
-}
-
-#[allow(dead_code)]
-pub fn body_text<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Md)
-}
-
-#[allow(dead_code)]
-pub fn caption<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs)
-}
-
-pub fn h1<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::TitleSm)
-}
-
-pub fn h2<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Lg)
-}
-
-#[allow(dead_code)]
-pub fn h3<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Md)
-}
-
-#[allow(dead_code)]
-pub fn h4<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm)
-}
-
-#[allow(dead_code)]
-pub fn h5<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs)
-}
-
-#[allow(dead_code)]
-pub fn paragraph<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm)
-}
-
-#[allow(dead_code)]
-pub fn primary_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm).style(PRIMARY_LABEL_COLOR)
-}
-
-#[allow(dead_code)]
-pub fn secondary_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm).style(SECONDARY_LABEL_COLOR)
-}
-
-#[allow(dead_code)]
-pub fn tertiary_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Sm).style(TERTIARY_LABEL_COLOR)
-}
-
-#[allow(dead_code)]
-pub fn quaternary_label<'a>(value: String) -> Text<'a> {
-    text(value)
-        .size(FontSizes::Sm)
-        .style(QUATERNARY_LABEL_COLOR)
-}
-
-/// todo: remove label item
-#[allow(dead_code)]
-pub fn highlight_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs).style(MINT_500)
-}
-
-#[allow(dead_code)]
-pub fn highlight_secondary_label<'a>(value: String) -> Text<'a> {
-    text(value).size(FontSizes::Xs).style(BLUE_400)
-}
-
-pub fn with_font(value: Text) -> Text {
-    value.font(FONT_DAGGERSQUARE)
-}
-
-pub fn with_yu_gothic(value: Text) -> Text {
-    value.font(FONT_YU_GOTHIC)
-}
-
 /// Card is just a container with a background color and some border radius.
 pub struct Card {
     background: Option<iced::Background>,
@@ -348,66 +193,6 @@ impl Card {
     }
 }
 
-/// note: the header needs to fill the container. but this pushes the content
-/// out to its max width.
-/// so we need to cap the window to a max width, which we should improve on in
-/// the future.
-pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
-    window: &'a Page,
-    content: T,
-) -> Container<'a, Message, Renderer> {
-    let name = window.name().clone();
-    Container::new(
-        Column::new()
-            .push(Row::new().push(content))
-            .spacing(Sizes::Md as u16),
-    )
-    .max_height(ByteScale::Xl7 as u16)
-}
-
-/// Column with a label and text input field.
-pub fn input_group<'a>(
-    title: String,
-    value: Option<String>,
-    _placeholder: String,
-    on_change: impl Fn(Option<String>) -> Message + 'static,
-) -> Column<'a, Message> {
-    let title = h3(title.to_string());
-    // todo: change this so padding is modifiable.
-    let input = create_input_component(value, on_change);
-
-    Column::new()
-        .push(title)
-        .push(input)
-        .width(Length::Shrink)
-        .spacing(Sizes::Md as u16)
-}
-
-/// Column with a label and pick list field.
-pub fn select_group<'a, Message>(
-    title: String,
-    options: Vec<String>,
-    selected: Option<String>,
-    on_selected: impl Fn(String) -> Message + 'a,
-) -> Element<'a, Message>
-where
-    Message: 'a,
-{
-    let title = h3(title.to_string());
-    let input = custom_pick_list(options, selected.clone(), on_selected, None)
-        .padding(Sizes::Md as u16)
-        .width(Length::Fill);
-
-    // let input_container =
-    // Container::new(input).style(MenuContainerTheme::theme());
-
-    Column::new()
-        .push(title)
-        .push(input)
-        .spacing(Sizes::Md as u16)
-        .into()
-}
-
 pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
     label: E,
     value: String,
@@ -430,7 +215,7 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
 
 /// Renders a label and text input inside a column.
 pub fn labeled_input<'a, Message>(
-    label: String,
+    text: String,
     value: Option<String>,
     _placeholder: String,
     on_change: impl Fn(Option<String>) -> Message + 'static,
@@ -438,7 +223,7 @@ pub fn labeled_input<'a, Message>(
 where
     Message: 'static,
 {
-    let title = label_item(label.to_string());
+    let title = label(&text).secondary().build();
     // todo: use placeholder
     let input = create_input_component(value, on_change);
 
@@ -457,7 +242,7 @@ where
     T: ToString + Eq + 'static + Clone,
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    let title = h3(title.to_string());
+    let title = label(&title).title3().build();
 
     Column::new()
         .push(title)
@@ -472,7 +257,7 @@ where
 
 /// For use in the instructions container.
 pub fn instruction_text<'a>(value: String) -> Text<'a> {
-    highlight_label(value).size(TextSize::Sm as u16)
+    label(&value).highlight().build()
 }
 
 pub fn instructions_inner<'a, Message, T: Into<Element<'a, Message>>>(
@@ -493,7 +278,7 @@ where
     inner
 }
 
-/// Renders an instructions title, description, an action button and feedback
+/// Renders an instructions title, ctaription, an action button and feedback
 /// in a card.
 /// note: Message must be `Clone` for the submit button to be converted to an
 /// Element.
@@ -510,7 +295,7 @@ where
         .spacing(Sizes::Sm)
         .padding(Sizes::Sm)
         .width(Length::Fill)
-        .push(h2("Instructions".to_string()));
+        .push(label("Instructions").title2().build());
 
     for instruction in instructions {
         inner = inner.push(instruction.into());
@@ -525,7 +310,9 @@ where
         submit = submit.on_press(on_submit)
     }
 
-    let feedback = highlight_label(feedback.unwrap_or_default().to_string())
+    let feedback = label(&feedback.unwrap_or_default())
+        .highlight()
+        .build()
         .horizontal_alignment(alignment::Horizontal::Center)
         .vertical_alignment(alignment::Vertical::Center);
 
@@ -537,47 +324,6 @@ where
             .spacing(Sizes::Md)
             .padding(Sizes::Md),
     )
-}
-
-/// Renders a table with static data.
-/// Message needs to implement Default.
-pub fn static_table<'a, Message>(
-    title: String,
-    headers: Vec<String>,
-    data: Vec<Vec<String>>,
-) -> Column<'a, Message>
-where
-    Message: 'static + Default,
-{
-    Column::new()
-        .spacing(Sizes::Md)
-        .push(label_item(title))
-        .push(
-            TableBuilder::new()
-                .column(
-                    ColumnBuilder::new().headers(headers).rows(
-                        data.into_iter()
-                            .map(|row| {
-                                RowBuilder::new()
-                                    .style(|| {
-                                        CustomContainer::theme(Some(iced::Background::Color(
-                                            GRAY_600,
-                                        )))
-                                    })
-                                    .cells(
-                                        row.into_iter()
-                                            .map(|cell| {
-                                                CellBuilder::new().child(primary_label(cell))
-                                            })
-                                            .collect(),
-                                    )
-                            })
-                            .collect(),
-                    ),
-                )
-                .padding_cell(Sizes::Xs)
-                .build(),
-        )
 }
 
 pub struct DualColumn<'a, Message>
@@ -690,8 +436,8 @@ pub fn key_value_row<'a, Message>(key: String, value: String) -> Row<'a, Message
 where
     Message: 'a,
 {
-    let key = label_item(key);
-    let value = primary_label(value);
+    let key = label(&key).secondary().build();
+    let value = label(&value).build();
     let mut row = Row::new()
         .push(
             Column::new()
@@ -734,7 +480,7 @@ where
     Message: Clone + Default,
 {
     pub icon: Icon,
-    pub label: String,
+    pub cta: String,
     pub on_press: Message,
     pub active: bool,
     pub disabled: bool,
@@ -745,10 +491,10 @@ where
     Message: Clone + Default,
 {
     /// Creates a new navigation step.
-    pub fn new(icon: Icon, label: &str, on_press: Message, active: bool, disabled: bool) -> Self {
+    pub fn new(icon: Icon, cta: &str, on_press: Message, active: bool, disabled: bool) -> Self {
         Self {
             icon,
-            label: label.to_string(),
+            cta: cta.to_string(),
             on_press,
             active,
             disabled,
@@ -760,7 +506,7 @@ impl Default for NavigationStep<Message> {
     fn default() -> Self {
         Self {
             icon: Icon::Check,
-            label: "Default".to_string(),
+            cta: "Default".to_string(),
             on_press: Message::default(),
             active: false,
             disabled: false,
@@ -777,11 +523,11 @@ pub fn navigation_steps<'a, Message>(
 where
     Message: 'a + Clone + Default,
 {
-    let mut content = Column::new().push(h3(title.to_string()));
+    let mut content = Column::new().push(label(&title).title3().build());
 
     for NavigationStep {
         icon,
-        label,
+        cta,
         on_press,
         active,
         disabled,
@@ -801,7 +547,7 @@ where
 
         row = row
             .push(text(icon_to_char(icon)).font(ICON_FONT))
-            .push(h3(label));
+            .push(label(&cta).title3().build());
 
         let bg_color = match active {
             true => SELECTED_CONTAINER_COLOR,

@@ -7,6 +7,7 @@ use super::*;
 use crate::{
     components::{
         containers::CustomContainer,
+        system::label,
         tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
     },
     user::networks::{ChainPacket, RPCList},
@@ -115,9 +116,13 @@ impl RpcManagement {
         // List all the rpcs from the RPC storage
         for chain_packet in self.storage.list() {
             let mut row = Row::new().spacing(Sizes::Md);
-            row = row.push(label_item(chain_packet.name.clone()));
-            row = row.push(label_item(chain_packet.chain_id.to_string()));
-            row = row.push(label_item(chain_packet.url.clone()));
+            row = row.push(label(&chain_packet.name.clone()).secondary().build());
+            row = row.push(
+                label(&chain_packet.chain_id.to_string())
+                    .secondary()
+                    .build(),
+            );
+            row = row.push(label(&chain_packet.url.clone()).secondary().build());
             content = content.push(row);
         }
 
@@ -272,7 +277,7 @@ impl State for RpcManagement {
 
         let upper_half = Column::new()
             .spacing(Sizes::Md)
-            .push(h2("Manage RPC Settings".to_string()))
+            .push(label(&"Manage RPC Settings").title2().build())
             .push(actions)
             .push(Card::new(self.rpc_table().build()).padding(Sizes::Sm));
 
@@ -316,7 +321,7 @@ impl State for RpcManagement {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label_item("Instructions".to_string()))
+                        .push(label(&"Instructions").build())
                         .push(submit_button)
                         .width(Length::FillPortion(2)),
                 );
@@ -329,8 +334,8 @@ impl State for RpcManagement {
         // if form error, push it as text.
         if let Some(feedback) = &self.form_feedback {
             let label = match feedback {
-                Feedback::Success(message) => label_item(message.clone()).style(GREEN_400),
-                Feedback::Error(message) => label_item(message.clone()).style(RED_400),
+                Feedback::Success(message) => label(&message.clone()).style(GREEN_400).build(),
+                Feedback::Error(message) => label(&message.clone()).style(RED_400).build(),
             };
 
             lower_half = lower_half.push(label);

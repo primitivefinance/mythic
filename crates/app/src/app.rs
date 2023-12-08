@@ -8,13 +8,14 @@ use tracing::Span;
 use user::contacts::{self, ContactValue};
 
 use super::{
-    screens::{empty::EmptyScreen, exit::ExitScreen, terminal::Terminal, Screen},
+    screens::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
 };
 use crate::{
     loader::DefaultMiddleware,
     screens::{
-        experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen, State,
+        dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
+        State,
     },
     user::networks::ChainPacket,
     view::sidebar::Sidebar,
@@ -485,7 +486,6 @@ impl App {
                     view::sidebar::Page::Portfolio => {
                         PortfolioRoot::new(self.dev_client.clone()).into()
                     }
-                    view::sidebar::Page::Simulate => Terminal::new().into(),
                     view::sidebar::Page::Settings => {
                         SettingsScreen::new(self.storage.clone()).into()
                     }

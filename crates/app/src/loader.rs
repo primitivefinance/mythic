@@ -17,7 +17,9 @@ use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use user::contacts;
 
 use super::{middleware::*, profile::Profile, *};
-use crate::components::{containers::CustomContainer, logos::PhiLogo, progress::CustomProgressBar};
+use crate::components::{
+    containers::CustomContainer, logos::PhiLogo, progress::CustomProgressBar, system::label,
+};
 
 type LoadResult = anyhow::Result<
     (
@@ -360,7 +362,7 @@ impl Loader {
                         )
                         .push(
                             Column::new()
-                                .push(highlight_label(self.feedback.clone()))
+                                .push(label(&self.feedback).highlight().build())
                                 .align_items(alignment::Alignment::End)
                                 .width(Length::FillPortion(3))
                         )

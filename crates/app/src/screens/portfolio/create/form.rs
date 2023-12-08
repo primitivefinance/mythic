@@ -261,7 +261,7 @@ impl State for Form {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label_item("Assets".to_string()))
+                        .push(label(&"Assets").secondary().build())
                         .push(scrollable(table.build())),
                 ),
         )
