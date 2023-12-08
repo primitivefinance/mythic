@@ -16,6 +16,7 @@ use plotters_backend::DrawingBackend;
 use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
+use crate::view;
 
 /// Chart stuff
 #[derive(Debug, Clone, Default)]
@@ -32,7 +33,7 @@ impl MyChart {
         }
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<view::Message> {
         let chart = ChartWidget::new(self)
             .width(Length::Fill)
             .height(Length::Fill);
@@ -41,7 +42,7 @@ impl MyChart {
     }
 }
 
-impl Chart<Message> for MyChart {
+impl<Message> Chart<Message> for MyChart {
     type State = MyChart;
     // leave it empty
     fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, _builder: ChartBuilder<DB>) {}

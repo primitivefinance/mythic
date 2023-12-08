@@ -100,10 +100,7 @@ pub trait MessageWrapperView: Sized {
 /// Implement this trait to create new application states, from entire windows
 /// to individual screens inside windows. This trait is used recursively to
 /// build the entire application.
-pub trait State
-where
-    Self: Sync + Send,
-{
+pub trait State {
     /// Messages returned by the implemented view method.
     /// There exists a global "View" message as a variant in the
     /// main application message enum.

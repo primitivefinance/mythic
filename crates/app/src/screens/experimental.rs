@@ -15,16 +15,33 @@ use plotters_backend::DrawingBackend;
 use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
-use crate::components::chart::MyChart;
+use crate::components::chart::{example::MyChart, CartesianChart};
+
+#[derive(Debug, Clone, Default)]
+pub enum Message {
+    #[default]
+    Empty,
+    Chart(chart::Message),
+}
+
+impl From<Message> for view::Message {
+    fn from(message: Message) -> Self {
+        Self::Experimental(message)
+    }
+}
 
 pub struct ExperimentalScreen {
-    chart: MyChart,
+    pub show_example: bool,
+    example_chart: MyChart,
+    line_chart: CartesianChart,
 }
 
 impl ExperimentalScreen {
     pub fn new() -> Self {
         Self {
-            chart: MyChart::new(),
+            show_example: false,
+            example_chart: MyChart::new(),
+            line_chart: CartesianChart::new(),
         }
     }
 }
@@ -48,12 +65,38 @@ impl State for ExperimentalScreen {
         Command::perform(loading(), |_| Self::AppMessage::Empty)
     }
 
-    fn update(&mut self, _message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+        match message {
+            Self::AppMessage::Empty => {}
+            Self::AppMessage::View(message) => match message {
+                Self::ViewMessage::Experimental(message) => match message {
+                    Message::Empty => {}
+                    Message::Chart(message) => match message {
+                        chart::Message::MouseEvent(event, point) => {
+                            // tracing::info!("Mouse event: {:?} {:?}", event,
+                            // point);
+                        }
+                    },
+                },
+                _ => {}
+            },
+            _ => {}
+        }
         Command::none()
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let chart = self.chart.view().map(move |_x| view::Message::Empty);
+        let chart = match self.show_example {
+            true => self
+                .example_chart
+                .view()
+                .map(move |_: view::Message| view::Message::Empty),
+            false => self
+                .line_chart
+                .view()
+                .map(move |x| Message::Chart(x).into()),
+        };
+
         let content = Column::new()
             .padding(Sizes::Lg as u16)
             .push(h1("experimental".to_string()))

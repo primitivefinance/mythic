@@ -171,3 +171,22 @@ pub fn compute_output_x_given_y_rust(
 
     kl * cdf - reserve_x_float
 }
+
+#[allow(clippy::too_many_arguments)]
+#[tracing::instrument(ret, level = "trace")]
+pub fn compute_y_given_x_rust(
+    reserve_x_float: f64,
+    liquidity_float: f64,
+    strike_price_float: f64,
+    sigma_float: f64,
+    tau_float: f64,
+) -> f64 {
+    let normal = Normal::new(0.0, 1.0).unwrap();
+    let sigma_sqrt_tau = compute_sigma_sqrt_tau(sigma_float, tau_float);
+    let kl = strike_price_float * (liquidity_float);
+
+    let cdf =
+        normal.cdf(-normal.inverse_cdf((reserve_x_float) / (liquidity_float)) - sigma_sqrt_tau);
+
+    kl * cdf
+}
