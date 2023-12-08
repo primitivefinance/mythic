@@ -4,13 +4,9 @@ use ethers::abi::Token;
 use iced::widget::{Column, Container, Row};
 
 use self::sidebar::Page;
-use super::{
-    components::{containers::*, *},
-    tracer::AppEventLayer,
-    *,
-};
+use super::{components::*, tracer::AppEventLayer, *};
 use crate::{
-    components::system::{label, ExcaliburColor},
+    components::system::{label, ExcaliburColor, ExcaliburContainer},
     screens::State,
 };
 
@@ -88,9 +84,11 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .width(Length::Shrink)
         .height(Length::Shrink)
         .padding(Sizes::Xl)
-        .style(CustomContainer::theme(Some(
-            ExcaliburColor::Background2.color().into(),
-        )))
+        .style(
+            ExcaliburContainer::default()
+                .background(ExcaliburColor::Background2)
+                .theme(),
+        )
         .into()
 }
 

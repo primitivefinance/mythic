@@ -3,7 +3,7 @@
 use datatypes::portfolio::{coin::Coin, position::Position, Portfolio};
 
 use super::*;
-use crate::components::containers::CustomContainer;
+use crate::components::system::ExcaliburContainer;
 
 /// Message type that passes forward the messages of this form.
 type ParentMessage = create::Message;
@@ -218,7 +218,9 @@ impl State for Form {
                         .map(|(i, asset)| {
                             RowBuilder::new()
                                 .style(|| {
-                                    CustomContainer::theme(Some(iced::Background::Color(GRAY_500)))
+                                    ExcaliburContainer::default()
+                                        .background_iced(GRAY_500)
+                                        .theme()
                                 })
                                 .cell(CellBuilder::new().value(Some(asset.ticker)))
                                 .cell(CellBuilder::new().value(asset.price))

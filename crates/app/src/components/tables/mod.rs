@@ -22,7 +22,7 @@ pub mod columns;
 pub mod rows;
 
 use self::{builder::TableBuilder, columns::ColumnBuilder, rows::RowBuilder};
-use super::*;
+use super::{system::ExcaliburContainer, *};
 
 /// Renders a simple dual column table with a label and value.
 pub fn key_value_table<'a, Message>(
@@ -45,7 +45,7 @@ where
                         false => TABLE_ROW_2,
                     };
                     RowBuilder::new()
-                        .style(move || CustomContainer::theme(Some(iced::Background::Color(bg))))
+                        .style(move || ExcaliburContainer::default().background_iced(bg).theme())
                         .cells(vec![
                             CellBuilder::new().child(label),
                             CellBuilder::new().child(value),

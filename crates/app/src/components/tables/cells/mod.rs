@@ -29,7 +29,7 @@ use iced::{
 };
 
 use super::components::*;
-use crate::components::containers::BorderedContainer;
+use crate::components::system::ExcaliburContainer;
 
 pub mod input;
 pub mod select;
@@ -250,6 +250,6 @@ where
     CellBuilder::new()
         .value(value)
         .on_change(on_change)
-        .style(BorderedContainer::theme)
+        .style(|| ExcaliburContainer::default().light_border().theme())
         .into()
 }

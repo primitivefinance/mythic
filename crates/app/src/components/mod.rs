@@ -2,7 +2,6 @@
 
 pub mod button;
 pub mod chart;
-pub mod containers;
 pub mod input;
 pub mod logos;
 pub mod progress;
@@ -26,9 +25,8 @@ use input::*;
 use styles::*;
 
 use self::{
-    containers::{CardContainer, CustomContainer, Indicator},
     select::custom_pick_list,
-    system::label,
+    system::{label, panel, ExcaliburColor, ExcaliburContainer},
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
@@ -137,7 +135,7 @@ where
 {
     let indicator = if toggle {
         container(Column::new())
-            .style(Indicator::theme())
+            .style(ExcaliburContainer::indicator().theme())
             .height(Length::Fixed(2.0))
     } else {
         container(Column::new()).height(Length::Fixed(2.0))
@@ -161,7 +159,7 @@ impl Card {
         Message: 'a,
     {
         let content = content.into();
-        Container::new(content).style(CardContainer::theme())
+        panel().card().build(content).into()
     }
 
     /// Returns a fresh instance of this Card.
@@ -186,10 +184,7 @@ impl Card {
         Message: 'static,
     {
         let content = content.into();
-        Container::new(content).style(CustomContainer::theme_with_border_radius(
-            self.background,
-            Some(border_radius),
-        ))
+        panel().card().border_radius(border_radius).build(content)
     }
 }
 
@@ -541,7 +536,7 @@ where
                 container(Column::new())
                     .width(Length::Fixed(Sizes::Xs.into()))
                     .height(Length::Fixed(Sizes::Xl.into()))
-                    .style(Indicator::theme()),
+                    .style(ExcaliburContainer::indicator().theme()),
             );
         }
 

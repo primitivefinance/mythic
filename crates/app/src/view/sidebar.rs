@@ -137,7 +137,11 @@ impl screens::State for Sidebar {
                         Container::new(Column::new())
                             .width(Length::Fill)
                             .height(Length::Fixed(1.0))
-                            .style(ContainerBlackBg::theme()),
+                            .style(
+                                ExcaliburContainer::default()
+                                    .background_iced(Color::BLACK)
+                                    .theme(),
+                            ),
                     ),
                 )
                 .push(

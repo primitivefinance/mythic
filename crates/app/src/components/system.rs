@@ -494,18 +494,29 @@ impl ExcaliburText {
 }
 
 /// For constructing Excalibur containers.
-pub fn layer() -> ExcaliburContainer {
+pub fn panel() -> ExcaliburContainer {
     ExcaliburContainer::default()
 }
 
 /// For building containers with different background shading, text, and
 /// borders.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy)]
 pub struct ExcaliburContainer {
     pub background: ExcaliburColor,
     pub border_radius: BorderRadius,
     pub border_width: f32,
     pub border_color: ExcaliburColor,
+}
+
+impl Default for ExcaliburContainer {
+    fn default() -> Self {
+        Self {
+            background: ExcaliburColor::Background1,
+            border_radius: Sizes::Sm.into(),
+            border_width: 0.0,
+            border_color: ExcaliburColor::Custom(Color::WHITE),
+        }
+    }
 }
 
 impl container::StyleSheet for ExcaliburContainer {
@@ -528,6 +539,15 @@ impl container::StyleSheet for ExcaliburContainer {
 }
 
 impl ExcaliburContainer {
+    pub fn indicator() -> Self {
+        Self {
+            background: ExcaliburColor::Primary,
+            border_radius: Sizes::Xs.into(),
+            border_width: 0.0,
+            border_color: ExcaliburColor::Custom(Color::WHITE),
+        }
+    }
+
     pub fn build<'a, Message>(
         self,
         element: impl Into<Element<'a, Message>>,
@@ -563,19 +583,19 @@ impl ExcaliburContainer {
     }
 
     /// Act as an indicator or barrier.
-    pub fn indicator(mut self, color: ExcaliburColor) -> Self {
+    pub fn background(mut self, color: ExcaliburColor) -> Self {
         self.background = color;
         self
     }
 
     /// Choose your own color!
-    pub fn color(mut self, color: iced::Color) -> Self {
+    pub fn background_iced(mut self, color: iced::Color) -> Self {
         self.background = ExcaliburColor::Custom(color);
         self
     }
 
     /// Choose your own color!
-    pub fn color_rgb(mut self, r: f32, g: f32, b: f32) -> Self {
+    pub fn background_rgb(mut self, r: f32, g: f32, b: f32) -> Self {
         self.background = ExcaliburColor::Custom(iced::Color::from_rgb(r, g, b));
         self
     }
@@ -592,7 +612,7 @@ impl ExcaliburContainer {
         self
     }
 
-    pub fn round_custom(mut self, size: BorderRadius) -> Self {
+    pub fn border_radius(mut self, size: BorderRadius) -> Self {
         self.border_radius = size.into();
         self
     }
@@ -602,6 +622,28 @@ impl ExcaliburContainer {
     pub fn border(mut self, color: ExcaliburColor, width: f32) -> Self {
         self.border_color = color;
         self.border_width = width;
+        self
+    }
+
+    pub fn light_border(mut self) -> Self {
+        self.border_color = ExcaliburColor::Custom(GRAY_1000);
+        self.border_width = 1.0;
+        self
+    }
+
+    pub fn black_border(mut self) -> Self {
+        self.border_color = ExcaliburColor::Custom(Color::BLACK);
+        self.border_width = 1.0;
+        self
+    }
+
+    // Presets
+
+    pub fn card(mut self) -> Self {
+        self.background = ExcaliburColor::Background3;
+        self.border_radius = Sizes::Sm.into();
+        self.border_color = ExcaliburColor::Custom(GRAY_1000);
+        self.border_width = 1.0;
         self
     }
 }

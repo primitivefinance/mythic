@@ -4,7 +4,7 @@
 use datatypes::portfolio::{position::Position, Portfolio};
 
 use super::*;
-use crate::components::system::label;
+use crate::components::system::{label, ExcaliburContainer};
 
 pub mod form;
 use form::*;
@@ -253,9 +253,9 @@ impl PortfolioTable {
                             };
 
                             RowBuilder::new().cells(all_cells).style(move || {
-                                CustomContainer::theme(Some(iced::Background::Color(
-                                    row_background,
-                                )))
+                                ExcaliburContainer::default()
+                                    .background_iced(row_background)
+                                    .theme()
                             })
                         })
                         .collect(),

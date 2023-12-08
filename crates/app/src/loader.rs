@@ -18,7 +18,9 @@ use user::contacts;
 
 use super::{middleware::*, profile::Profile, *};
 use crate::components::{
-    containers::CustomContainer, logos::PhiLogo, progress::CustomProgressBar, system::label,
+    logos::PhiLogo,
+    progress::CustomProgressBar,
+    system::{label, ExcaliburContainer},
 };
 
 type LoadResult = anyhow::Result<
@@ -376,7 +378,11 @@ impl Loader {
             )
             .max_width(ByteScale::Xl6 as u32 as f32),
         )
-        .style(CustomContainer::theme(Some(iced::Color::BLACK.into())))
+        .style(
+            ExcaliburContainer::default()
+                .background_iced(iced::Color::BLACK)
+                .theme(),
+        )
         .width(Length::Fill)
         .height(Length::Fill)
         .center_x()

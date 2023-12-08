@@ -1,5 +1,5 @@
 use super::{cells::CellBuilder, rows::RowBuilder, *};
-use crate::components::system::label;
+use crate::components::system::{label, ExcaliburColor, ExcaliburContainer};
 
 pub struct ColumnBuilder<Message>
 where
@@ -129,7 +129,9 @@ where
                     .into(),
                 None => RowBuilder::new()
                     .style(|| {
-                        CustomContainer::theme(Some(iced::Background::Color(TABLE_HEADER_BG)))
+                        ExcaliburContainer::default()
+                            .background(ExcaliburColor::Background2)
+                            .theme()
                     })
                     .border_bottom(true)
                     .cells(

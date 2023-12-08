@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use super::*;
 use crate::{
     components::{
-        containers::CustomContainer,
         system::label,
         tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
     },
