@@ -452,7 +452,7 @@ fn basic_log_normal_curve() -> Vec<(f32, f32)> {
     while x < x_max {
         let y = compute_y_given_x_rust(x, 1.0, 1.0, 2.0, 1.0);
         points.push((x, y));
-        x += 0.001;
+        x += 0.005;
     }
 
     points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect()

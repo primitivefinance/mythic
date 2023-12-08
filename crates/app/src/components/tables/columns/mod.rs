@@ -1,4 +1,5 @@
 use super::{cells::CellBuilder, rows::RowBuilder, *};
+use crate::components::system::label;
 
 pub struct ColumnBuilder<Message>
 where
@@ -12,6 +13,8 @@ where
     padding_row: Option<Sizes>,
     padding_cell: Option<Sizes>,
     padding_cell_internal: Option<Sizes>,
+    header_row: Option<RowBuilder<Message>>,
+    header_cell: Option<CellBuilder<Message>>,
 }
 
 impl<Message> Default for ColumnBuilder<Message>
@@ -37,11 +40,23 @@ where
             padding_row: None,
             padding_cell: None,
             padding_cell_internal: None,
+            header_row: None,
+            header_cell: None,
         }
     }
 
     pub fn headers(mut self, headers: Vec<String>) -> Self {
         self.headers = headers;
+        self
+    }
+
+    pub fn header_row(mut self, header_row: RowBuilder<Message>) -> Self {
+        self.header_row = Some(header_row);
+        self
+    }
+
+    pub fn header_cell(mut self, header_cell: CellBuilder<Message>) -> Self {
+        self.header_cell = Some(header_cell);
         self
     }
 
@@ -99,20 +114,38 @@ where
 
         // Add the headers first.
         if !self.headers.is_empty() {
-            let row: Row<'static, Message> = RowBuilder::new()
-                .style(|| CustomContainer::theme(Some(iced::Background::Color(TABLE_HEADER_BG))))
-                .cells(
-                    self.headers
-                        .into_iter()
-                        .map(|header| CellBuilder::new().child(label_item(header)))
-                        .collect(),
-                )
-                .spacing(self.spacing.unwrap_or_default())
-                .padding(self.padding_row.unwrap_or_default())
-                .padding(self.padding_row.unwrap_or_default())
-                .padding_cell(self.padding_cell.unwrap_or_default())
-                .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
-                .into();
+            let row: Row<'static, Message> = match self.header_row {
+                Some(header_row) => header_row
+                    .cells(
+                        self.headers
+                            .into_iter()
+                            .map(|header| CellBuilder::new().child(label(&header).body().build()))
+                            .collect(),
+                    )
+                    .spacing(self.spacing_cell.unwrap_or_default())
+                    .padding(self.padding_row.unwrap_or_default())
+                    .padding_cell(self.padding_cell.unwrap_or_default())
+                    .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
+                    .into(),
+                None => RowBuilder::new()
+                    .style(|| {
+                        CustomContainer::theme(Some(iced::Background::Color(TABLE_HEADER_BG)))
+                    })
+                    .border_bottom(true)
+                    .cells(
+                        self.headers
+                            .into_iter()
+                            .map(|header| CellBuilder::new().child(label_item(header)))
+                            .collect(),
+                    )
+                    .spacing(self.spacing.unwrap_or_default())
+                    .padding(self.padding_row.unwrap_or_default())
+                    .padding(self.padding_row.unwrap_or_default())
+                    .padding_cell(self.padding_cell.unwrap_or_default())
+                    .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
+                    .into(),
+            };
+
             column = column.push(row);
         }
 

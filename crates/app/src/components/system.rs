@@ -1,6 +1,6 @@
 //! Entire Excalibur component system.
 
-use iced::Font;
+use iced::{widget::Space, Font};
 
 use super::*;
 
@@ -454,3 +454,114 @@ pub fn label<'a>(value: &str) -> ExcaliburText {
 
 /// todo!
 pub struct ExcaliburButton;
+
+/// Constructs a table using the table builder to be used across Excalibur.
+/// Uses predefined sizes, colors, and fonts.
+/// todo: static lifetime kind of bad?
+pub struct ExcaliburTable<Message: Default>
+where
+    Message: 'static,
+{
+    pub col: ColumnBuilder<Message>,
+    pub row: RowBuilder<Message>,
+    pub headers: Vec<String>,
+}
+
+impl<Message: Default + Clone> ExcaliburTable<Message> {
+    pub fn new() -> Self {
+        Self {
+            col: ColumnBuilder::new(),
+            row: RowBuilder::new(),
+            headers: vec![],
+        }
+    }
+
+    pub fn build(self, cells: Vec<CellBuilder<Message>>) -> TableBuilder<Message> {
+        TableBuilder::new()
+            .padding_cell(Sizes::Md)
+            .padding_cell_internal(Sizes::Xs)
+            .column(
+                self.col
+                    .headers(self.headers)
+                    .rows(vec![self.row.cells(cells)]),
+            )
+    }
+
+    pub fn build_custom(self, cells: Vec<Vec<CellBuilder<Message>>>) -> TableBuilder<Message> {
+        TableBuilder::new()
+            .padding_cell(Sizes::Md)
+            .padding_cell_internal(Sizes::Xs)
+            .column(
+                self.col
+                    .headers(self.headers)
+                    .header_row(RowBuilder::new().border_bottom(true))
+                    .rows(
+                        cells
+                            .into_iter()
+                            .map(|cells| self.row.clone().cells(cells))
+                            .collect(),
+                    )
+                    .row(RowBuilder::new().border_bottom(true))
+                    .row(
+                        RowBuilder::new().cell(
+                            CellBuilder::new().child(
+                                label("Last sync: 12:00 Dec. 6, 2023.")
+                                    .caption()
+                                    .secondary()
+                                    .build(),
+                            ),
+                        ),
+                    ),
+            )
+    }
+
+    pub fn build_empty(self) -> TableBuilder<Message> {
+        TableBuilder::new()
+            .padding_cell(Sizes::Xl)
+            .padding_cell_internal(Sizes::Xl)
+            .column(
+                self.col
+                    .headers(self.headers)
+                    .header_row(RowBuilder::new().border_bottom(true))
+                    .rows(vec![RowBuilder::new().cell(CellBuilder::new().child(
+                        button("Create position").on_press(Message::default()),
+                    ))])
+                    .row(RowBuilder::new().border_bottom(true))
+                    .row(
+                        RowBuilder::new().cell(
+                            CellBuilder::new().child(
+                                label("Last sync: 12:00 Dec. 6, 2023.")
+                                    .caption()
+                                    .secondary()
+                                    .build(),
+                            ),
+                        ),
+                    ),
+            )
+    }
+
+    // Add a header to the table.
+    pub fn header(mut self, header: &str) -> Self {
+        self.headers.push(header.to_string());
+        self
+    }
+}
+
+pub struct BottomBorder;
+
+impl iced::widget::container::StyleSheet for BottomBorder {
+    type Style = iced::Theme;
+
+    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
+        container::Appearance {
+            background: Some(iced::Background::Color(Color::WHITE)),
+            ..Default::default()
+        }
+    }
+}
+
+impl BottomBorder {
+    pub fn theme() -> iced::theme::Container {
+        iced::theme::Container::Custom(Box::from(BottomBorder))
+    }
+}

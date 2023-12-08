@@ -1,4 +1,5 @@
 use super::{cells::CellBuilder, *};
+use crate::components::system::BottomBorder;
 
 /// Very basic table row with two cells, a label and text input.
 pub fn dev_row<'a, Message>(
@@ -14,6 +15,7 @@ where
 }
 
 /// todo: support Padding customization
+
 pub struct RowBuilder<Message>
 where
     Message: Default + 'static,
@@ -24,6 +26,24 @@ where
     padding_cell: Option<Sizes>,
     padding_cell_internal: Option<Sizes>,
     containerize: Box<dyn Fn(Row<'static, Message>) -> Row<'static, Message>>,
+    border_bottom: bool,
+}
+
+impl<Message> Clone for RowBuilder<Message>
+where
+    Message: Default + 'static,
+{
+    fn clone(&self) -> Self {
+        Self {
+            cells: vec![],
+            spacing: self.spacing,
+            padding: self.padding,
+            padding_cell: self.padding_cell,
+            padding_cell_internal: self.padding_cell_internal,
+            containerize: Box::new(|e| e),
+            border_bottom: self.border_bottom,
+        }
+    }
 }
 
 impl<Message> Default for RowBuilder<Message>
@@ -48,7 +68,13 @@ where
             padding_cell_internal: None,
             // Returns self.
             containerize: Box::new(|e| e),
+            border_bottom: false,
         }
+    }
+
+    pub fn border_bottom(mut self, border_bottom: bool) -> Self {
+        self.border_bottom = border_bottom;
+        self
     }
 
     pub fn style(mut self, style: impl Fn() -> iced::theme::Container + 'static) -> Self {
@@ -106,11 +132,26 @@ where
             row = row.push(cell);
         }
 
-        (self.containerize)(
-            row.align_items(alignment::Alignment::Center)
+        row = row
+            .align_items(alignment::Alignment::Center)
+            .spacing(self.spacing.unwrap_or_default())
+            .padding(self.padding.unwrap_or_default());
+
+        if self.border_bottom {
+            row = Row::new()
+                .push(
+                    Column::new().push(row).push(
+                        Container::new(iced::widget::Space::new(Length::Fill, Length::Fixed(2.0)))
+                            .width(Length::Fill)
+                            .style(BottomBorder::theme()),
+                    ),
+                )
+                .align_items(alignment::Alignment::Center)
                 .spacing(self.spacing.unwrap_or_default())
-                .padding(self.padding.unwrap_or_default()),
-        )
+                .padding(self.padding.unwrap_or_default());
+        }
+
+        (self.containerize)(row)
     }
 }
 

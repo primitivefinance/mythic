@@ -15,7 +15,11 @@ use plotters_backend::DrawingBackend;
 use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
-use crate::components::chart::{example::MyChart, CartesianChart};
+use crate::components::{
+    chart::{example::MyChart, CartesianChart},
+    system::ExcaliburTable,
+    tables::cells::CellBuilder,
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -105,6 +109,41 @@ impl State for ExperimentalScreen {
             .push(chart)
             .width(Length::FillPortion(3));
 
+        let cell_data: Vec<Vec<CellBuilder<Self::ViewMessage>>> = vec![
+            vec![
+                CellBuilder::new().value(Some("BTC".to_string())),
+                CellBuilder::new().value(Some("$1,000,000.00".to_string())),
+                CellBuilder::new().value(Some("0.00000000".to_string())),
+                CellBuilder::new().value(Some("0.00%".to_string())),
+            ],
+            vec![
+                CellBuilder::new().value(Some("ETH".to_string())),
+                CellBuilder::new().value(Some("$1,000,000.00".to_string())),
+                CellBuilder::new().value(Some("0.00000000".to_string())),
+                CellBuilder::new().value(Some("0.00%".to_string())),
+            ],
+            vec![
+                CellBuilder::new().value(Some("USDC".to_string())),
+                CellBuilder::new().value(Some("$1,000,000.00".to_string())),
+                CellBuilder::new().value(Some("0.00000000".to_string())),
+                CellBuilder::new().value(Some("0.00%".to_string())),
+            ],
+        ];
+
+        let exp_table = ExcaliburTable::new()
+            .header("Asset")
+            .header("Price")
+            .header("Balance")
+            .header("Weight")
+            .build_custom(cell_data);
+
+        let empty_table = ExcaliburTable::new()
+            .header("Asset")
+            .header("Price")
+            .header("Balance")
+            .header("Weight")
+            .build_empty();
+
         Container::new(
             Column::new()
                 .push(
@@ -113,7 +152,7 @@ impl State for ExperimentalScreen {
                         .push(Column::new().width(Length::FillPortion(2)))
                         .height(Length::FillPortion(3)),
                 )
-                .push(Row::new().height(Length::FillPortion(2))),
+                .push(Row::new().push(empty_table).height(Length::FillPortion(2))),
         )
         .center_x()
         .width(Length::Fill)
