@@ -511,5 +511,22 @@ contract G3M is IG3M, IStrategy {
     }
 
     function getNextLiquidity() external view override returns (uint256) { }
-    function getAmountOut(bool swapDirection, uint256 nextLiquidity, uint256 amountIn) external view override returns (uint256) { }
+    function getAmountOut(
+        bool swapDirection,
+        uint256 nextLiquidity,
+        uint256 amountIn
+    ) external view override returns (uint256) { }
+    function initExactTokensAndLiquidity(
+        uint256 amountX,
+        uint256 amountY,
+        uint256 liquidity
+    ) external { }
+    function computeInitialPoolState(
+        uint256 amountX,
+        uint256 initialPrice
+    )
+        external
+        view
+        returns (uint256 initialX, uint256 initialY, uint256 initialLiquidity)
+    { }
 }

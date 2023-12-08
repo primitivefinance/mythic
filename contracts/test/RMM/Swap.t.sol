@@ -9,6 +9,46 @@ contract RMMSwap is RMMSetUp {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for uint128;
 
+    function testSwapWithAtomicArb() public {
+        uint256 amountIn = 10506288307160081;
+        // uint256 amountIn = 555588307160079;
+        bool swapDirection = true; // swap in X get Y out
+
+        (uint256 initX, uint256 initY, uint256 initL) =
+            rmm.computeInitialPoolState(1 ether, initialPrice);
+
+        rmm.initExactTokensAndLiquidity(initX, initY, initL);
+        lex.setPrice(992047873705309300);
+
+        uint256 lexPrice = lex.price();
+        uint256 computedInput = amountIn * lexPrice / 1e18;
+        uint256 nextLiquidity = rmm.getNextLiquidity();
+        uint256 currLiquidity = rmm.totalLiquidity();
+        console2.log("nextLiquidity", nextLiquidity);
+        console2.log("currLiquidity", currLiquidity);
+
+        // uint256 amountOut =
+        //     rmm.getAmountOut(swapDirection, nextLiquidity, amountIn);
+        // arb.lower_exchange_price(computedInput, amountOut, nextLiquidity);
+        uint256 amountOut =
+            rmm.getAmountOut(swapDirection, nextLiquidity, computedInput);
+        uint256 amountY =
+            rmm.swap(swapDirection, nextLiquidity, computedInput, amountOut);
+        console2.log("amountY", amountY);
+        uint256 amountInValue = amountIn * lexPrice / 1e18;
+        console2.log("amountInValue", amountInValue);
+        uint256 amountOutValue = amountOut;
+        console2.log("amountOutValue", amountOutValue);
+        int256 profit = int256(amountOutValue) - int256(amountInValue);
+        console2.log("profit", profit);
+
+        uint256 spotPriceFromX = rmm.getSpotPrice();
+        uint256 spotPriceFromY = rmm.getSpotPriceFromY();
+        console2.log("spotPriceFromX", spotPriceFromX);
+        console2.log("spotPriceFromY", spotPriceFromY);
+        console2.log("lex price", lexPrice);
+    }
+
     function test_rmm_swap_x_in() public {
         uint256 amountIn = 0.5 ether;
         bool swapDirection = true; // swap in X get Y out

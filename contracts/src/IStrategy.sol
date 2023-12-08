@@ -20,6 +20,18 @@ interface IStrategy {
     function logData() external;
     function getPortfolioValue() external view returns (uint256);
     function getNextLiquidity() external view returns (uint256);
+    function computeInitialPoolState(
+        uint256 amountX,
+        uint256 initialPrice
+    )
+        external
+        view
+        returns (uint256 initialX, uint256 initialY, uint256 initialLiquidity);
+    function initExactTokensAndLiquidity(
+        uint256 amountX,
+        uint256 amountY,
+        uint256 liquidity
+    ) external;
     function getAmountOut(
         bool swapDirection,
         uint256 nextLiquidity,

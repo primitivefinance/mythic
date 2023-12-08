@@ -158,6 +158,28 @@ function computeSpotPrice(
     );
 }
 
+function computeSpotPriceGivenY(
+    uint256 y,
+    uint256 L,
+    uint256 K,
+    uint256 sigma
+) pure returns (uint256 spotPriceGivenY) {
+    uint256 sigmaPower2 =
+        uint256(FixedPointMathLib.powWad(int256(sigma), int256(ONE)));
+    uint256 yDivKL =
+        FixedPointMathLib.divWadDown(y, FixedPointMathLib.mulWadDown(K, L));
+
+    spotPriceGivenY = FixedPointMathLib.mulWadUp(
+        K,
+        uint256(
+            FixedPointMathLib.expWad(
+                int256(sigma) * Gaussian.ppf(int256(yDivKL)) / int256(ONE)
+                    + int256(sigmaPower2) / 2
+            )
+        )
+    );
+}
+
 // The formula for computing the change in y (deltaY) is as follows:
 // deltaY = K(L + deltaL) * Phi(-sigma - Phi^-1((x + deltaX) / (L + deltaL))) - y
 // where Phi is the cumulative distribution function of the standard normal distribution,

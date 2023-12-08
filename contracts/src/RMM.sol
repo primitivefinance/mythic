@@ -5,6 +5,7 @@ import "solmate/tokens/ERC20.sol";
 import "./IStrategy.sol";
 import "./lib/RMMMath.sol";
 import "./lib/BisectionLib.sol";
+import "forge-std/console2.sol";
 
 contract RMM is IStrategy {
     struct PoolParams {
@@ -21,14 +22,20 @@ contract RMM is IStrategy {
         bool swapDirection,
         uint256 amountIn,
         uint256 amountOut,
-        int256 swapConstant 
+        int256 swapConstant
     );
+
+    error XReserveOutOfRange(uint256 reserveX, int256 swapConstant);
+
+    error YReserveOutOfRange(uint256 reserveY, int256 swapConstant);
+
+    error LiquidityOutOfRange(uint256 liquidity, int256 swapConstant);
 
     error AmountOutConstantOutOfRange(
         bool swapDirection,
         uint256 amountIn,
         uint256 amountOut,
-        int256 swapConstant 
+        int256 swapConstant
     );
 
     ERC20 public tokenX;
@@ -127,6 +134,66 @@ contract RMM is IStrategy {
         totalLiquidity = liquidity;
         reserveX = amountX;
         reserveY = amountY;
+        balanceOf[msg.sender] = liquidity;
+
+        tokenX.transferFrom(msg.sender, address(this), amountX);
+        tokenY.transferFrom(msg.sender, address(this), amountY);
+    }
+
+    function computeInitialPoolState(
+        uint256 amountX,
+        uint256 initialPrice
+    )
+        public
+        view
+        returns (uint256 initialX, uint256 initialY, uint256 initialLiquidity)
+    {
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        uint256 baseLiquidity =
+            computeLGivenX(amountX, initialPrice, _strike, _sigma, _tau);
+        console2.log("base liquidity", baseLiquidity);
+        initialY =
+            computeYGivenL(baseLiquidity, initialPrice, _strike, _sigma, _tau);
+
+        console2.log("initialY", initialY);
+        initialLiquidity = computeNextLiquidity(
+            amountX, initialY, baseLiquidity, _strike, _sigma, _tau
+        );
+
+        console2.log("initialLiquidity", initialLiquidity);
+        initialX = amountX;
+    }
+
+    function initExactTokensAndLiquidity(
+        uint256 amountX,
+        uint256 amountY,
+        uint256 liquidity
+    ) external {
+        require(totalLiquidity == 0, "Pool already initialized");
+
+        (uint256 _strike, uint256 _sigma, uint256 _tau) = getParams();
+        int256 validLiquidity = checkSwapConstantNextLiquidity(
+            amountX, amountY, liquidity, _strike, _sigma, _tau, liquidity
+        );
+        int256 validAmountX = checkSwapConstantNextReserveX(
+            amountX, amountY, liquidity, _strike, _sigma, _tau, amountX
+        );
+        int256 validAmountY = checkSwapConstantNextReserveY(
+            amountX, amountY, liquidity, _strike, _sigma, _tau, amountY
+        );
+        if (-25 > validLiquidity || validLiquidity > 25) {
+            revert LiquidityOutOfRange(liquidity, validLiquidity);
+        }
+        if (-25 > validAmountX || validAmountX > 25) {
+            revert XReserveOutOfRange(amountX, validAmountX);
+        }
+        if (-25 > validAmountY || validAmountY > 25) {
+            revert YReserveOutOfRange(amountY, validAmountY);
+        }
+
+        totalLiquidity = liquidity;
+        reserveX += amountX;
+        reserveY += amountY;
         balanceOf[msg.sender] = liquidity;
 
         tokenX.transferFrom(msg.sender, address(this), amountX);
@@ -352,10 +419,7 @@ contract RMM is IStrategy {
 
         if (-25 > swapConstant || swapConstant > 25) {
             revert NextLiquidityConstantOutOfRange(
-                swapDirection,
-                amountIn,
-                amountOut,
-                swapConstant 
+                swapDirection, amountIn, amountOut, swapConstant
             );
         }
 
@@ -365,9 +429,11 @@ contract RMM is IStrategy {
 
         if (swapDirection) {
             uint256 fees = amountIn * (ONE - swapFee) / ONE;
+            console2.log("fees", fees);
             uint256 deltaL = computeLGivenX(
                 fees, price, params.strike, params.sigma, params.tau
             );
+            console2.log("deltaL", deltaL);
 
             int256 amountOutConstant = checkSwapConstantNextReserveY(
                 reserveX + amountIn,
@@ -379,12 +445,9 @@ contract RMM is IStrategy {
                 reserveY - amountOut
             );
 
-            if (-25 > amountOutConstant || amountOutConstant > 25) {
+            if (-50 > amountOutConstant || amountOutConstant > 50) {
                 revert AmountOutConstantOutOfRange(
-                    swapDirection,
-                    amountIn,
-                    amountOut,
-                    amountOutConstant
+                    swapDirection, amountIn, amountOut, amountOutConstant
                 );
             }
 
@@ -412,10 +475,7 @@ contract RMM is IStrategy {
 
             if (-25 > amountOutConstant || amountOutConstant > 25) {
                 revert AmountOutConstantOutOfRange(
-                    swapDirection,
-                    amountIn,
-                    amountOut,
-                    amountOutConstant
+                    swapDirection, amountIn, amountOut, amountOutConstant
                 );
             }
 
@@ -658,6 +718,12 @@ contract RMM is IStrategy {
     function getSpotPrice() public view returns (uint256) {
         return computeSpotPrice(
             reserveX, totalLiquidity, strikePrice(), sigma(), tau()
+        );
+    }
+
+    function getSpotPriceFromY() public view returns (uint256) {
+        return computeSpotPriceGivenY(
+            reserveY, totalLiquidity, strikePrice(), sigma()
         );
     }
 
