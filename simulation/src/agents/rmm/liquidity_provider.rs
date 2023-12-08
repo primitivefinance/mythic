@@ -76,9 +76,13 @@ impl<S: LiquidityStrategy + std::marker::Sync + std::marker::Send + 'static> Age
         // Initializes the liquidity of a pool with a target price given an initial
         // amount of x tokens.
         println!("we get here");
-        let tx = self
+        let (initial_x, initial_y, initial_liquidity) = self
             .rmm_strategy
-            .initialize_pool(self.initial_x, self.initial_price)
+            .get_initial_pool_state(self.initial_x, self.initial_price)
+            .await?;
+
+        self.rmm_strategy
+            .initialize_pool_rmm(initial_x, initial_y, initial_liquidity)
             .await?;
 
         info!(

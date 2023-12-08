@@ -43,6 +43,19 @@ pub trait LiquidityStrategy: Strategy + Sized {
         initial_price_wad: U256,
     ) -> Result<Option<TransactionReceipt>>;
 
+    async fn initialize_pool_rmm(
+        &self,
+        initial_x_wad: U256,
+        initial_y_wad: U256,
+        initial_liquidity_wad: U256,
+    ) -> Result<Option<TransactionReceipt>>;
+
+    async fn get_initial_pool_state(
+        &self,
+        initial_x_wad: U256,
+        initial_price_wad: U256,
+    ) -> Result<(U256, U256, U256)>;
+
     async fn get_reserve_x(&self) -> Result<U256>;
 
     async fn get_reserve_y(&self) -> Result<U256>;

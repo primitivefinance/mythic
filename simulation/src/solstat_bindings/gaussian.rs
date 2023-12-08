@@ -44,15 +44,6 @@ pub mod gaussian {
                         },
                     ],
                 ),
-                (
-                    ::std::borrow::ToOwned::to_owned("Overflow"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::AbiError {
-                            name: ::std::borrow::ToOwned::to_owned("Overflow"),
-                            inputs: ::std::vec![],
-                        },
-                    ],
-                ),
             ]),
             receive: false,
             fallback: false,
@@ -202,21 +193,6 @@ pub mod gaussian {
     )]
     #[etherror(name = "OutOfBounds", abi = "OutOfBounds()")]
     pub struct OutOfBounds;
-    ///Custom Error type `Overflow` with signature `Overflow()` and selector `0x35278d12`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthError,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[etherror(name = "Overflow", abi = "Overflow()")]
-    pub struct Overflow;
     ///Container type for all of the contract's custom errors
     #[derive(
         Clone,
@@ -232,7 +208,6 @@ pub mod gaussian {
         Infinity(Infinity),
         NegativeInfinity(NegativeInfinity),
         OutOfBounds(OutOfBounds),
-        Overflow(Overflow),
         /// The standard solidity revert string, with selector
         /// Error(string) -- 0x08c379a0
         RevertString(::std::string::String),
@@ -262,11 +237,6 @@ pub mod gaussian {
             ) {
                 return Ok(Self::OutOfBounds(decoded));
             }
-            if let Ok(decoded) = <Overflow as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::Overflow(decoded));
-            }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
@@ -280,9 +250,6 @@ pub mod gaussian {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::OutOfBounds(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::Overflow(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::RevertString(s) => ::ethers::core::abi::AbiEncode::encode(s),
@@ -301,8 +268,6 @@ pub mod gaussian {
                 }
                 _ if selector
                     == <OutOfBounds as ::ethers::contract::EthError>::selector() => true,
-                _ if selector
-                    == <Overflow as ::ethers::contract::EthError>::selector() => true,
                 _ => false,
             }
         }
@@ -313,7 +278,6 @@ pub mod gaussian {
                 Self::Infinity(element) => ::core::fmt::Display::fmt(element, f),
                 Self::NegativeInfinity(element) => ::core::fmt::Display::fmt(element, f),
                 Self::OutOfBounds(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Overflow(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
             }
         }
@@ -336,11 +300,6 @@ pub mod gaussian {
     impl ::core::convert::From<OutOfBounds> for GaussianErrors {
         fn from(value: OutOfBounds) -> Self {
             Self::OutOfBounds(value)
-        }
-    }
-    impl ::core::convert::From<Overflow> for GaussianErrors {
-        fn from(value: Overflow) -> Self {
-            Self::Overflow(value)
         }
     }
 }

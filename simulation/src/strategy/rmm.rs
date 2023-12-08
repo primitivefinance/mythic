@@ -73,6 +73,31 @@ impl LiquidityStrategy for RmmStrategy {
             .await?
             .await?)
     }
+    async fn initialize_pool_rmm(
+        &self,
+        initial_x_wad: U256,
+        initial_y_wad: U256,
+        initial_liquidity_wad: U256,
+    ) -> Result<Option<TransactionReceipt>> {
+        Ok(self
+            .0
+            .init_exact_tokens_and_liquidity(initial_x_wad, initial_y_wad, initial_liquidity_wad)
+            .send()
+            .await?
+            .await?)
+    }
+
+    async fn get_initial_pool_state(
+        &self,
+        initial_x_wad: U256,
+        initial_price_wad: U256,
+    ) -> Result<(U256, U256, U256)> {
+        Ok(self
+            .0
+            .compute_initial_pool_state(initial_x_wad, initial_price_wad)
+            .call()
+            .await?)
+    }
 
     async fn get_reserve_x(&self) -> Result<U256> {
         self.0.get_reserve_x().call().await.map_err(Into::into)

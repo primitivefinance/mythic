@@ -16,6 +16,67 @@ pub mod i_strategy {
             constructor: ::core::option::Option::None,
             functions: ::core::convert::From::from([
                 (
+                    ::std::borrow::ToOwned::to_owned("computeInitialPoolState"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "computeInitialPoolState",
+                            ),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("amountX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("initialPrice"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("initialX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("initialY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("initialLiquidity"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("getAmountOut"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -254,6 +315,48 @@ pub mod i_strategy {
                             ],
                             constant: ::core::option::Option::None,
                             state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("initExactTokensAndLiquidity"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "initExactTokensAndLiquidity",
+                            ),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("amountX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("amountY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("liquidity"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
                         },
                     ],
                 ),
@@ -516,6 +619,23 @@ pub mod i_strategy {
                 ),
             )
         }
+        ///Calls the contract's `computeInitialPoolState` (0x37aa7381) function
+        pub fn compute_initial_pool_state(
+            &self,
+            amount_x: ::ethers::core::types::U256,
+            initial_price: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            (
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+            ),
+        > {
+            self.0
+                .method_hash([55, 170, 115, 129], (amount_x, initial_price))
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `getAmountOut` (0x5d840ae5) function
         pub fn get_amount_out(
             &self,
@@ -603,6 +723,17 @@ pub mod i_strategy {
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
                 .method_hash([212, 202, 223, 104], ())
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `initExactTokensAndLiquidity` (0x9e1932d8) function
+        pub fn init_exact_tokens_and_liquidity(
+            &self,
+            amount_x: ::ethers::core::types::U256,
+            amount_y: ::ethers::core::types::U256,
+            liquidity: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+            self.0
+                .method_hash([158, 25, 50, 216], (amount_x, amount_y, liquidity))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `initExactX` (0xf9a1c85a) function
@@ -832,6 +963,27 @@ pub mod i_strategy {
             Self::SwapFilter(value)
         }
     }
+    ///Container type for all input parameters for the `computeInitialPoolState` function with signature `computeInitialPoolState(uint256,uint256)` and selector `0x37aa7381`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(
+        name = "computeInitialPoolState",
+        abi = "computeInitialPoolState(uint256,uint256)"
+    )]
+    pub struct ComputeInitialPoolStateCall {
+        pub amount_x: ::ethers::core::types::U256,
+        pub initial_price: ::ethers::core::types::U256,
+    }
     ///Container type for all input parameters for the `getAmountOut` function with signature `getAmountOut(bool,uint256,uint256)` and selector `0x5d840ae5`
     #[derive(
         Clone,
@@ -986,6 +1138,28 @@ pub mod i_strategy {
     )]
     #[ethcall(name = "getSwapFee", abi = "getSwapFee()")]
     pub struct GetSwapFeeCall;
+    ///Container type for all input parameters for the `initExactTokensAndLiquidity` function with signature `initExactTokensAndLiquidity(uint256,uint256,uint256)` and selector `0x9e1932d8`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(
+        name = "initExactTokensAndLiquidity",
+        abi = "initExactTokensAndLiquidity(uint256,uint256,uint256)"
+    )]
+    pub struct InitExactTokensAndLiquidityCall {
+        pub amount_x: ::ethers::core::types::U256,
+        pub amount_y: ::ethers::core::types::U256,
+        pub liquidity: ::ethers::core::types::U256,
+    }
     ///Container type for all input parameters for the `initExactX` function with signature `initExactX(uint256,uint256)` and selector `0xf9a1c85a`
     #[derive(
         Clone,
@@ -1031,6 +1205,7 @@ pub mod i_strategy {
         Hash
     )]
     pub enum IStrategyCalls {
+        ComputeInitialPoolState(ComputeInitialPoolStateCall),
         GetAmountOut(GetAmountOutCall),
         GetInvariant(GetInvariantCall),
         GetLiquidity(GetLiquidityCall),
@@ -1041,6 +1216,7 @@ pub mod i_strategy {
         GetSpotPrice(GetSpotPriceCall),
         GetStrategyData(GetStrategyDataCall),
         GetSwapFee(GetSwapFeeCall),
+        InitExactTokensAndLiquidity(InitExactTokensAndLiquidityCall),
         InitExactX(InitExactXCall),
         LogData(LogDataCall),
     }
@@ -1049,6 +1225,11 @@ pub mod i_strategy {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
+            if let Ok(decoded) = <ComputeInitialPoolStateCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::ComputeInitialPoolState(decoded));
+            }
             if let Ok(decoded) = <GetAmountOutCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
@@ -1099,6 +1280,11 @@ pub mod i_strategy {
             ) {
                 return Ok(Self::GetSwapFee(decoded));
             }
+            if let Ok(decoded) = <InitExactTokensAndLiquidityCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InitExactTokensAndLiquidity(decoded));
+            }
             if let Ok(decoded) = <InitExactXCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
@@ -1115,6 +1301,9 @@ pub mod i_strategy {
     impl ::ethers::core::abi::AbiEncode for IStrategyCalls {
         fn encode(self) -> Vec<u8> {
             match self {
+                Self::ComputeInitialPoolState(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::GetAmountOut(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1145,6 +1334,9 @@ pub mod i_strategy {
                 Self::GetSwapFee(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
+                Self::InitExactTokensAndLiquidity(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::InitExactX(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1155,6 +1347,9 @@ pub mod i_strategy {
     impl ::core::fmt::Display for IStrategyCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
+                Self::ComputeInitialPoolState(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
                 Self::GetAmountOut(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetInvariant(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetLiquidity(element) => ::core::fmt::Display::fmt(element, f),
@@ -1165,9 +1360,17 @@ pub mod i_strategy {
                 Self::GetSpotPrice(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetStrategyData(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetSwapFee(element) => ::core::fmt::Display::fmt(element, f),
+                Self::InitExactTokensAndLiquidity(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
                 Self::InitExactX(element) => ::core::fmt::Display::fmt(element, f),
                 Self::LogData(element) => ::core::fmt::Display::fmt(element, f),
             }
+        }
+    }
+    impl ::core::convert::From<ComputeInitialPoolStateCall> for IStrategyCalls {
+        fn from(value: ComputeInitialPoolStateCall) -> Self {
+            Self::ComputeInitialPoolState(value)
         }
     }
     impl ::core::convert::From<GetAmountOutCall> for IStrategyCalls {
@@ -1220,6 +1423,11 @@ pub mod i_strategy {
             Self::GetSwapFee(value)
         }
     }
+    impl ::core::convert::From<InitExactTokensAndLiquidityCall> for IStrategyCalls {
+        fn from(value: InitExactTokensAndLiquidityCall) -> Self {
+            Self::InitExactTokensAndLiquidity(value)
+        }
+    }
     impl ::core::convert::From<InitExactXCall> for IStrategyCalls {
         fn from(value: InitExactXCall) -> Self {
             Self::InitExactX(value)
@@ -1229,6 +1437,24 @@ pub mod i_strategy {
         fn from(value: LogDataCall) -> Self {
             Self::LogData(value)
         }
+    }
+    ///Container type for all return fields from the `computeInitialPoolState` function with signature `computeInitialPoolState(uint256,uint256)` and selector `0x37aa7381`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct ComputeInitialPoolStateReturn {
+        pub initial_x: ::ethers::core::types::U256,
+        pub initial_y: ::ethers::core::types::U256,
+        pub initial_liquidity: ::ethers::core::types::U256,
     }
     ///Container type for all return fields from the `getAmountOut` function with signature `getAmountOut(bool,uint256,uint256)` and selector `0x5d840ae5`
     #[derive(

@@ -86,6 +86,28 @@ impl LiquidityStrategy for G3mStrategy {
     async fn get_portfolio_value(&self) -> Result<U256> {
         Ok(self.0.get_portfolio_value().call().await?)
     }
+
+    async fn initialize_pool_rmm(
+        &self,
+        initial_x_wad: U256,
+        initial_y_wad: U256,
+        _initial_liquidity_wad: U256,
+    ) -> Result<Option<TransactionReceipt>> {
+        Ok(self
+            .0
+            .init_exact_x(initial_x_wad, initial_y_wad)
+            .send()
+            .await?
+            .await?)
+    }
+
+    async fn get_initial_pool_state(
+        &self,
+        initial_x_wad: U256,
+        initial_price_wad: U256,
+    ) -> Result<(U256, U256, U256)> {
+        Ok((0.into(), 0.into(), 0.into()))
+    }
 }
 
 /// Uses algebraic methods based on the G3M invariant math to compute the amount
