@@ -6,6 +6,7 @@ pub mod logos;
 pub mod progress;
 pub mod select;
 pub mod styles;
+pub mod system;
 pub mod tables;
 
 use std::borrow::Cow;
@@ -23,7 +24,7 @@ use input::*;
 use styles::*;
 
 use self::{
-    containers::{CardContainer, CustomContainer, Indicator, ScreenWindowContainer, WindowHeader},
+    containers::{CardContainer, CustomContainer, Indicator},
     select::custom_pick_list,
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
@@ -207,86 +208,6 @@ where
         .push(elem)
         .push(indicator.width(Length::Fixed(100.0)))
         .align_items(alignment::Alignment::Center)
-}
-
-/// Container that groups actions or settings with a label and a row of
-/// controls.
-pub fn controls_container<'a, T: Into<Element<'a, Message>>>(
-    label: String,
-    actions: Vec<T>,
-) -> Element<'a, Message> {
-    let mut content = Column::new().push(label_item(label));
-    let mut row = Row::new()
-        .spacing(4)
-        .align_items(iced::alignment::Alignment::Center);
-    for action in actions {
-        row = row.push(action.into());
-    }
-    content = content.push(row);
-    content.spacing(8).into()
-}
-
-/// Containers that groups multiple labeled data pieces under a label
-pub fn labeled_data_container<'a, Message>(
-    _label: String,
-    data: Vec<(String, String)>,
-    max_elements: usize,
-) -> Element<'a, Message>
-where
-    Message: 'a,
-{
-    let mut content = Column::new();
-    content = content.push(labeled_data_row(data, max_elements));
-    content.into()
-}
-
-/// Renders a row of labeled data elements using labeled_data. Specify the
-/// maximum amount of elements in the row, if the total amount of elements
-/// exceeds the value, it will push a new row to the column.
-pub fn labeled_data_row<'a, Message>(
-    label_data: Vec<(String, String)>,
-    max_elements: usize,
-) -> Element<'a, Message, Renderer>
-where
-    Message: 'a,
-{
-    let mut content = Column::new();
-    let mut row = Row::new().spacing(Sizes::Lg as u16);
-    let mut i = 0;
-    for (label, data) in label_data {
-        row = row.push(labeled_data(label, data));
-        i += 1;
-        if i == max_elements {
-            content = content.push(row);
-            row = Row::new().spacing(Sizes::Lg as u16);
-            i = 0;
-        }
-    }
-    content = content.push(row);
-    content.spacing(Sizes::Lg as u16).into()
-}
-
-/// Creates a row of two 50% width columns with the given elements.
-/// todo: replace proper spacing and padding sizes.
-pub fn dual_column<'a, T: Into<Element<'a, Message>>>(
-    first_column: Vec<T>,
-    second_column: Vec<T>,
-) -> Row<'a, Message> {
-    let first_column = Column::with_children(first_column.into_iter().map(|e| e.into()).collect())
-        .width(Length::FillPortion(2))
-        .spacing(Sizes::Md as u16)
-        .align_items(alignment::Alignment::Start);
-
-    let second_column =
-        Column::with_children(second_column.into_iter().map(|e| e.into()).collect())
-            .width(Length::FillPortion(2))
-            .spacing(Sizes::Md as u16)
-            .align_items(alignment::Alignment::End);
-
-    Row::new()
-        .spacing(Sizes::Md as u16)
-        .push(first_column)
-        .push(second_column)
 }
 
 #[allow(dead_code)]

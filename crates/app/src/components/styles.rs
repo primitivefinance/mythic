@@ -144,6 +144,12 @@ pub const PANEL: Color = GRAY_300;
 // pretty sure this breaks if they don't have daggersquare installed?
 pub const FONT_DAGGERSQUARE: Font = Font::with_name("DAGGERSQUARE");
 pub const FONT_YU_GOTHIC: Font = Font::with_name("Yu Gothic");
+pub const FONT_YU_GOTHIC_UI: Font = Font {
+    family: iced::font::Family::Name("Yu Gothic UI"),
+    weight: iced::font::Weight::Semibold,
+    stretch: iced::font::Stretch::Normal,
+    monospaced: false,
+};
 pub const FONT_BOLD: Font = Font {
     family: iced::font::Family::Name("Arial"),
     weight: iced::font::Weight::Bold,

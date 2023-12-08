@@ -1,10 +1,9 @@
 use std::{f32::consts::PI, time::Instant};
 
 use iced::{
-    widget::canvas::{self, path::arc, stroke, Cache, Canvas, Geometry, Path, Stroke},
+    widget::canvas::{path::arc, stroke, Cache, Path, Stroke},
     window::icon,
-    Application, Command, Element, Length, Point, Rectangle, Renderer, Settings, Subscription,
-    Theme,
+    Point, Rectangle,
 };
 
 use crate::components::styles::MINT_500;
