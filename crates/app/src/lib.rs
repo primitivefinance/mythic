@@ -4,6 +4,7 @@
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
+    theme::Palette,
     widget::{button, container, scrollable, text, Column, Container, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
@@ -140,7 +141,7 @@ impl Application for MVP {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
+        Theme::Custom(Box::new(custom_theme()))
     }
 }
 
@@ -149,4 +150,14 @@ pub fn run(dev_mode: bool) -> iced::Result {
     settings.window.icon = Some(logos::excalibur_logo_2());
     settings.antialiasing = true;
     MVP::run(settings)
+}
+
+pub fn custom_theme() -> iced::theme::Custom {
+    iced::theme::Custom::new(Palette {
+        background: iced::Color::BLACK.into(),
+        primary: MINT_500.into(),
+        text: PRIMARY_COLOR.into(),
+        success: MINT_500.into(),
+        danger: RED_400.into(),
+    })
 }

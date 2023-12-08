@@ -73,8 +73,8 @@ pub struct CartesianState {
 impl Default for CartesianState {
     fn default() -> Self {
         Self {
-            x_range: (0.0, 1.0),
-            y_range: (0.0, 1.0),
+            x_range: (-0.1, 1.0),
+            y_range: (-0.1, 1.0),
         }
     }
 }
@@ -98,6 +98,21 @@ impl Chart<Message> for CartesianChart {
     // ) -> Geometry {
     // renderer.draw_cache(&self.cache.clone().read().unwrap(), bounds, draw_fn)
     // }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Self::State,
+        bounds: iced::Rectangle,
+        cursor: Cursor,
+    ) -> iced::mouse::Interaction {
+        if let Cursor::Available(point) = cursor {
+            if bounds.contains(point) {
+                return iced::mouse::Interaction::Crosshair;
+            }
+        }
+
+        iced::mouse::Interaction::default()
+    }
 
     fn update(
         &self,
@@ -150,7 +165,7 @@ impl Chart<Message> for CartesianChart {
         use plotters::style::colors;
 
         const POINT_COLOR: RGBColor = colors::MAGENTA;
-        const LINE_COLOR: RGBColor = colors::CYAN;
+        const LINE_COLOR: RGBColor = colors::full_palette::TEAL_A400;
         const HOVER_COLOR: RGBColor = colors::full_palette::AMBER_500;
         const MESH_COLOR: RGBAColor = RGBAColor(0x1c, 0x1c, 0x1c, 0.8);
 
@@ -170,6 +185,7 @@ impl Chart<Message> for CartesianChart {
             .light_line_style(MESH_COLOR)
             .x_labels(3)
             .y_labels(3)
+            .max_light_lines(3)
             .draw()
             .expect("Failed to draw chart mesh");
 
@@ -187,7 +203,7 @@ impl Chart<Message> for CartesianChart {
             chart
                 .draw_series(LineSeries::new(
                     vec![line.0, line.1].into_iter(),
-                    LINE_COLOR.filled(),
+                    LINE_COLOR.filled().stroke_width(2),
                 ))
                 .expect("Failed to plot lines");
         }
@@ -335,7 +351,7 @@ impl Chart<Message> for CartesianChart {
             // Draw a line through the y cursor position.
             chart
                 .draw_series(LineSeries::new(
-                    vec![(0.0, translated.1), (bound_x, translated.1)].into_iter(),
+                    vec![(bound_x_start, translated.1), (bound_x, translated.1)].into_iter(),
                     colors::full_palette::GREY_A400.filled(),
                 ))
                 .expect("Failed to plot lines");
@@ -373,6 +389,40 @@ impl Chart<Message> for CartesianChart {
                 .expect("Failed to plot points");
         }
 
+        let coord_trans = chart.as_coord_spec();
+        let x_range = coord_trans.get_x_range();
+        let y_range = coord_trans.get_y_range();
+
+        // Draw a white line on the y=0 and x=0
+        chart
+            .draw_series(LineSeries::new(
+                vec![(x_range.start, 0.0), (x_range.end, 0.0)].into_iter(),
+                colors::full_palette::GREY_600.filled(),
+            ))
+            .expect("Failed to plot lines");
+
+        chart
+            .draw_series(LineSeries::new(
+                vec![(0.0, y_range.start), (0.0, y_range.end)].into_iter(),
+                colors::full_palette::GREY_600.filled(),
+            ))
+            .expect("Failed to plot lines");
+
+        // Finally, draw borders around the chart.
+        chart
+            .draw_series(LineSeries::new(
+                vec![
+                    (x_range.start, y_range.start),
+                    (x_range.end, y_range.start),
+                    (x_range.end, y_range.end),
+                    (x_range.start, y_range.end),
+                    (x_range.start, y_range.start),
+                ]
+                .into_iter(),
+                colors::full_palette::GREY_800.filled(),
+            ))
+            .expect("Failed to plot lines");
+
         // Draw the labels on the chart.
         // chart
         // .configure_series_labels()
@@ -400,9 +450,9 @@ fn basic_log_normal_curve() -> Vec<(f32, f32)> {
 
     let mut x = x_min;
     while x < x_max {
-        let y = compute_y_given_x_rust(x, 1.0, 1.0, 1.0, 1.0);
+        let y = compute_y_given_x_rust(x, 1.0, 1.0, 2.0, 1.0);
         points.push((x, y));
-        x += 0.005;
+        x += 0.001;
     }
 
     points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect()

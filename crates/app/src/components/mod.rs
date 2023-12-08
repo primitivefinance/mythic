@@ -379,6 +379,10 @@ pub fn with_font(value: Text) -> Text {
     value.font(FONT_DAGGERSQUARE)
 }
 
+pub fn with_yu_gothic(value: Text) -> Text {
+    value.font(FONT_YU_GOTHIC)
+}
+
 /// Card is just a container with a background color and some border radius.
 pub struct Card {
     background: Option<iced::Background>,
@@ -434,7 +438,6 @@ pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
     let name = window.name().clone();
     Container::new(
         Column::new()
-            .push(h2(name))
             .push(Row::new().push(content))
             .spacing(Sizes::Md as u16),
     )

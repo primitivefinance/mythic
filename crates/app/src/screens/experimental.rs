@@ -98,15 +98,26 @@ impl State for ExperimentalScreen {
         };
 
         let content = Column::new()
-            .padding(Sizes::Lg as u16)
-            .push(h1("experimental".to_string()))
-            .push(chart);
+            .padding(Sizes::Md as u16)
+            .spacing(Sizes::Lg as u16)
+            .push(highlight_label("Good Morning, Alex.".to_string()).size(FontSizes::Md))
+            .push(highlight_label("It looks like your portfolio did well last night, maintaining 99.00% replication health.".to_string()).size(FontSizes::Md))
+            .push(chart)
+            .width(Length::FillPortion(3));
 
-        Container::new(content)
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Container::new(
+            Column::new()
+                .push(
+                    Row::new()
+                        .push(content)
+                        .push(Column::new().width(Length::FillPortion(2)))
+                        .height(Length::FillPortion(3)),
+                )
+                .push(Row::new().height(Length::FillPortion(2))),
+        )
+        .center_x()
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
     }
 }

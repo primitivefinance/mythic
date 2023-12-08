@@ -46,6 +46,12 @@ impl From<Message> for app::Message {
     }
 }
 
+const BG_2: iced::Color = iced::Color::from_rgb(
+    0x04 as f32 / 255.0,
+    0x04 as f32 / 255.0,
+    0x04 as f32 / 255.0,
+);
+
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
     menu: &'a sidebar::Sidebar,
     content: T,
@@ -63,7 +69,6 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
                     .width(Length::FillPortion(5)),
             ),
     )
-    .style(BackgroundContainerTheme::theme())
     .width(Length::Fill)
     .height(Length::Fill)
     .center_x()
@@ -83,7 +88,8 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .align_y(alignment::Vertical::Center)
         .width(Length::Shrink)
         .height(Length::Shrink)
-        .padding(Sizes::Xl as u16)
+        .padding(Sizes::Xl)
+        .style(CustomContainer::theme(Some(BG_2.into())))
         .into()
 }
 

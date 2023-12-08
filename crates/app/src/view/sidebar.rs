@@ -117,7 +117,13 @@ impl screens::State for Sidebar {
     /// Renders the full sidebar.
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let title = Column::new()
-            .push(with_font(h1(TITLE.to_string())))
+            .push(
+                Row::new()
+                    .spacing(Sizes::Sm)
+                    .align_items(alignment::Alignment::Center)
+                    .push(with_yu_gothic(h1("φ".to_string())))
+                    .push(with_font(h1(TITLE.to_string()))),
+            )
             .padding(Sizes::Lg as u16)
             .align_items(alignment::Alignment::Center)
             .width(Length::Fill);
@@ -140,7 +146,6 @@ impl screens::State for Sidebar {
                 )
                 .spacing(Sizes::Md as u16),
         )
-        .style(SidebarContainer::theme())
         .height(Length::Fill)
         .into()
     }
