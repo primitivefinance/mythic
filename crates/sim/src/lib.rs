@@ -11,6 +11,7 @@ use ::config::ConfigError;
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use bindings;
+use ethers::{prelude::*, utils::parse_ether};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use settings::{
@@ -18,6 +19,7 @@ use settings::{
     Parameterized, SimulationConfig,
 };
 use thiserror::Error;
+use tracing::{debug, error, info, trace, warn};
 use tracing_subscriber;
 
 pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {

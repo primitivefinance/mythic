@@ -9,6 +9,8 @@ import "./v3/BisectionLib.sol";
 /// @dev Taking the square root of a WAD value returns a value with units of 1E9.
 /// Multiplying the result by SQRT_WAD will normalize it back to WAD units.
 uint256 constant SQRT_WAD = 1e9;
+uint256 constant TWO = 2e18;
+uint256 constant HALF = 0.5e18;
 
 /// @dev Parameterization of the Log Normal curve.
 struct Parameters {
@@ -325,7 +327,8 @@ contract LogNormal is Source {
         });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
-        valid = swapConstantGrowth >= (int256(ZERO) + 3);
+        valid =
+            -int256(10) < swapConstantGrowth && swapConstantGrowth < int256(10);
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -413,11 +416,11 @@ contract LogNormal is Source {
             valid,
             amountOut,
             computePrice({
-                reserveXWad: adjustedReserveXWad,
-                totalLiquidity: adjustedLiquidity,
-                strikePriceWad: params.strikePriceWad,
-                sigmaPercentWad: params.sigmaPercentWad,
-                tauYearsWad: params.tauYearsWad
+                x: adjustedReserveXWad,
+                L: adjustedLiquidity,
+                K: params.strikePriceWad,
+                _sigma: params.sigmaPercentWad,
+                _tau: params.tauYearsWad
             }),
             swapData
         );
@@ -431,7 +434,7 @@ contract LogNormal is Source {
         Parameters memory params
     ) public pure returns (uint256 reserveY) {
         uint256 lower = 10;
-        uint256 upper = params.strikePriceWad - 10;
+        uint256 upper = liquidity.mulWadUp(params.strikePriceWad) - 10;
         reserveY = bisection(
             abi.encode(reserveXWad, liquidity, swapConstant, params),
             lower,
@@ -576,41 +579,88 @@ contract LogNormal is Source {
         );
     }
 
-    /// @dev Computes the approximated spot price given current reserves and liquidity.
     function computePrice(
-        uint256 reserveXWad,
-        uint256 totalLiquidity,
-        uint256 strikePriceWad,
-        uint256 sigmaPercentWad,
-        uint256 tauYearsWad
-    ) public pure returns (uint256 price) {
-        uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigmaPercentWad, tauYearsWad);
-        uint256 halfSigmaSquared = computeHalfSigmaSquared(sigmaPercentWad);
-        uint256 halfSigmaSquaredTau = halfSigmaSquared.mulWadDown(tauYearsWad);
+        uint256 x,
+        uint256 L,
+        uint256 K,
+        uint256 _sigma,
+        uint256 _tau
+    ) public pure returns (uint256 spotPrice) {
+        uint256 sigmaSqrtTau = computeSigmaSqrtTau(_sigma, _tau);
+        uint256 halfSigmaPower2Tau = computeHalfSigmaPower2Tau(_sigma, _tau);
+        uint256 R1 = FixedPointMathLib.divWadDown(x, L);
 
-        // Gaussian.ppf has a range of [-inf, inf], so we need to make sure the input is in [0, 1].
-        int256 reserveXDivLiquidity =
-            int256(reserveXWad.divWadDown(totalLiquidity));
-        // As x -> 1, price -> 0.
-        if (reserveXDivLiquidity >= int256(WAD)) {
-            return 0;
-        }
-        // As x -> 0, price -> infinity.
-        if (reserveXDivLiquidity <= int256(ZERO)) {
-            // todo: can returning an infinity price be worse than returning zero or reverting?
-            return INFINITY_IS_NOT_REAL;
-        }
-        // The output can be negative so we have to be careful not to lose that information by casting.
-        int256 inverse_cdf_result =
-            Gaussian.ppf(int256(WAD) - reserveXDivLiquidity);
-        int256 exponent = inverse_cdf_result * int256(sigmaSqrtTau)
-            / int256(WAD) - int256(halfSigmaSquaredTau);
-
-        // This result cannot be negative!
-        int256 exp_result = FixedPointMathLib.expWad(exponent);
-        uint256 exp_result_uint = toUint(exp_result);
-        price = strikePriceWad.mulWadUp(exp_result_uint);
+        spotPrice = FixedPointMathLib.mulWadUp(
+            K,
+            uint256(
+                FixedPointMathLib.expWad(
+                    Gaussian.ppf(int256(WAD - R1)) * int256(sigmaSqrtTau)
+                        / int256(WAD) - int256(halfSigmaPower2Tau)
+                )
+            )
+        );
     }
+
+    function computeHalfSigmaPower2Tau(
+        uint256 _sigma,
+        uint256 _tau
+    ) public pure returns (uint256 halfSigmaPower2Tau) {
+        uint256 innerTerm = FixedPointMathLib.mulWadDown(
+            uint256(FixedPointMathLib.powWad(int256(_sigma), int256(TWO))), _tau
+        );
+
+        halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(HALF, innerTerm);
+    }
+
+    /// @dev Computes the approximated spot price given current reserves and liquidity.
+    // function computePrice(
+    //     uint256 reserveXWad,
+    //     uint256 totalLiquidity,
+    //     uint256 strikePriceWad,
+    //     uint256 sigmaPercentWad,
+    //     uint256 tauYearsWad
+    // ) public pure returns (uint256 price) {
+    // uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigmaPercentWad, tauYearsWad);
+    // uint256 halfSigmaSquared = computeHalfSigmaSquared(sigmaPercentWad);
+    // uint256 halfSigmaSquaredTau = halfSigmaSquared.mulWadDown(tauYearsWad);
+
+    // // Gaussian.ppf has a range of [-inf, inf], so we need to make sure the input is in [0, 1].
+    // int256 reserveXDivLiquidity =
+    //     int256(reserveXWad.divWadDown(totalLiquidity));
+    // // As x -> 1, price -> 0.
+    // if (reserveXDivLiquidity >= int256(WAD)) {
+    //     return 0;
+    // }
+    // // As x -> 0, price -> infinity.
+    // if (reserveXDivLiquidity <= int256(ZERO)) {
+    //     // todo: can returning an infinity price be worse than returning zero or reverting?
+    //     return INFINITY_IS_NOT_REAL;
+    // }
+    // // The output can be negative so we have to be careful not to lose that information by casting.
+    // int256 inverse_cdf_result =
+    //     Gaussian.ppf(int256(WAD) - reserveXDivLiquidity);
+    // int256 exponent = inverse_cdf_result * int256(sigmaSqrtTau)
+    //     / int256(WAD) - int256(halfSigmaSquaredTau);
+
+    // // This result cannot be negative!
+    // int256 exp_result = FixedPointMathLib.expWad(exponent);
+    // uint256 exp_result_uint = toUint(exp_result);
+    // price = strikePriceWad.mulWadUp(exp_result_uint);
+    //     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
+    //     uint256 halfSigmaPower2Tau = computeHalfSigmaPower2Tau(sigma, tau);
+    //     uint256 R1 = FixedPointMathLib.divWadDown(reserveXWad, liquidity);
+
+    //     price = FixedPointMathLib.mulWadUp(
+    //         strikePriceWad,
+    //         uint256(
+    //             FixedPointMathLib.expWad(
+    //                 Gaussian.ppf(int256(WAD - reserveXWad))
+    //                     * int256(sigmaSqrtTau) / int256(WAD)
+    //                     - int256(halfSigmaPower2Tau)
+    //             )
+    //         )
+    //     );
+    // }
 
     // ===== Parameters ===== //
 

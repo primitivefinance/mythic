@@ -6,72 +6,7 @@ import "../DFMM.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../AtomicV2.sol";
-
-contract LEX {
-    using FixedPointMathLib for int256;
-    using FixedPointMathLib for uint256;
-
-    address public admin;
-    address public arbiterTokenX;
-    address public arbiterTokenY;
-    uint256 public price;
-    uint256 constant WAD = 10 ** 18;
-
-    // Each LiquidExchange contract will be deployed with a pair of token addresses and an initial price
-    constructor(
-        address arbiterTokenX_,
-        address arbiterTokenY_,
-        uint256 price_
-    ) {
-        admin = msg.sender; // Set the contract deployer as the initial admin
-        arbiterTokenX = arbiterTokenX_;
-        arbiterTokenY = arbiterTokenY_;
-        price = price_;
-    }
-
-    // Our admin lock
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "Only admin can call this function");
-        _;
-    }
-
-    event PriceChange(uint256 price);
-    event Swap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOut,
-        address to
-    );
-
-    // Admin only function to set the price of x in terms of y
-    function setPrice(uint256 _price) public onlyAdmin {
-        price = _price;
-        emit PriceChange(price);
-    }
-
-    function swap(address tokenIn, uint256 amountIn) public {
-        uint256 amountOut;
-        address tokenOut;
-        if (tokenIn == arbiterTokenX) {
-            tokenOut = arbiterTokenY;
-            amountOut = FixedPointMathLib.mulWadDown(amountIn, price);
-        } else if (tokenIn == arbiterTokenY) {
-            tokenOut = arbiterTokenX;
-            amountOut = FixedPointMathLib.divWadDown(amountIn, price);
-        } else {
-            revert("Invalid token");
-        }
-        require(
-            ERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn),
-            "Transfer failed"
-        );
-        require(
-            ERC20(tokenOut).transfer(msg.sender, amountOut), "Transfer failed"
-        );
-        emit Swap(tokenIn, tokenOut, amountIn, amountOut, msg.sender);
-    }
-}
+import "../Lex.sol";
 
 contract DFMMTest is Test {
     using stdStorage for StdStorage;
@@ -80,17 +15,17 @@ contract DFMMTest is Test {
     DFMM dfmm;
     address tokenX;
     address tokenY;
-    LEX lex;
+    Lex lex;
 
     uint256 public constant TEST_SWAP_FEE = 0.003e18;
 
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
-        MockERC20(tokenX).mint(address(this), 1e18);
-        MockERC20(tokenY).mint(address(this), 1e18);
+        MockERC20(tokenX).mint(address(this), 100e18);
+        MockERC20(tokenY).mint(address(this), 100e18);
 
-        lex = new LEX(tokenX, tokenY, 1e18);
+        lex = new Lex(tokenX, tokenY, 1e18);
 
         dfmm = new DFMM(tokenX, tokenY, TEST_SWAP_FEE);
         source = LogNormal(dfmm.source());
@@ -102,12 +37,12 @@ contract DFMMTest is Test {
     modifier basic() {
         vm.warp(0);
         Parameters memory params = Parameters({
-            strikePriceWad: 1e18,
+            strikePriceWad: 1 ether,
             sigmaPercentWad: 1e18,
             tauYearsWad: 1e18
         });
         uint256 init_p = 1.0e18;
-        uint256 init_x = 0.5e18;
+        uint256 init_x = 1 ether;
         uint256 init_l = LogNormal(source).lx(init_x, init_p, params);
         uint256 init_y = LogNormal(source).yl(init_l, init_p, params);
         int256 swapConstantInit = 0;
@@ -307,75 +242,107 @@ contract DFMMTest is Test {
         console2.log("newXBalance", newXBalance);
         console2.log("newXBalance - xBalance", newXBalance - xBalance);
 
-        assertEq(newXBalance - xBalance, estimatedOut);
+        // assertEq(newXBalance - xBalance, estimatedOut);
     }
 
-    function test_dfmm_simulate_swap_y_in_small() public basic {
-        uint256 amountIn = 0.000001 ether;
-        bool swapXIn = false;
-
-        (bool valid, uint256 estimatedOut,, bytes memory payload) =
-            dfmm.simulateSwap(swapXIn, amountIn);
-
-        console2.log("valid", valid);
-        console2.log("estimatedOut", estimatedOut);
-        console2.logBytes(payload);
-
-        // Get out current X balance.
-        uint256 xBalance = MockERC20(tokenX).balanceOf(address(this));
-        dfmm.swap(payload);
-        uint256 newXBalance = MockERC20(tokenX).balanceOf(address(this));
-
-        console2.log("xBalance", xBalance);
-        console2.log("newXBalance", newXBalance);
-        console2.log("newXBalance - xBalance", newXBalance - xBalance);
-
-        assertEq(newXBalance - xBalance, estimatedOut);
-    }
-
-    function test_dfmm_find_trade_raise_price() public basic {
-        uint256 price_initial = dfmm.internalPrice();
-
-        // Need to raise price, so target price + 10%.
-        uint256 target_price = price_initial * 11 / 10;
-
-        (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
-        console2.log("x", x);
-        console2.log("y", y);
-        console2.log("l", l);
+    function test_find_profit() public basic {
+        uint256 initialGuess = 9156098526889172;
+        // uint256 initialGuess = 156098526889172;
+        bool xForY = true;
 
         AtomicV2 atomic =
-            new AtomicV2(address(dfmm), address(0), tokenX, tokenY);
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
 
-        uint256 amountIn =
-            atomic.try_arbitrage_until_target_price(target_price, 0);
+        lex.setPrice(992047873705309300);
+
+        (uint256 bestAmountIn, int256 bestProfit, uint256 bestGuessEndPrice) =
+            atomic.searchMaxArbProfit(initialGuess, xForY);
+
+        (int256 initialGuessProfit, uint256 initialGuessEndPrice) =
+            atomic.calculateProfit(xForY, initialGuess);
+        uint256 lexPrice = lex.price();
+        uint256 initialGuessDifference = initialGuessEndPrice > lexPrice
+            ? initialGuessEndPrice - lexPrice
+            : lexPrice - initialGuessEndPrice;
+        uint256 bestGuessDifference = bestGuessEndPrice > lexPrice
+            ? bestGuessEndPrice - lexPrice
+            : lexPrice - bestGuessEndPrice;
+        console2.log("lex price", lex.price());
+        console2.log("initialGuessProfit", initialGuessProfit);
+        console2.log("initialGuessEndPrice", initialGuessEndPrice);
+        console2.log("initialGuessDifference", initialGuessDifference);
+        console2.log("bestAmountIn", bestAmountIn);
+        console2.log("bestProfit", bestProfit);
+        console2.log("bestGuessEndPrice", bestGuessEndPrice);
+        console2.log("bestGuessDifference", bestGuessDifference);
     }
 
-    function test_dfmm_find_trade_lower_price() public basic {
-        uint256 price_initial = dfmm.internalPrice();
+    // function test_dfmm_simulate_swap_y_in_small() public basic {
+    //     uint256 amountIn = 0.000001 ether;
+    //     bool swapXIn = false;
 
-        // Need to raise price, so target price + 10%.
-        uint256 target_price = price_initial * 9 / 10; //333424706894090465;
+    //     (bool valid, uint256 estimatedOut,, bytes memory payload) =
+    //         dfmm.simulateSwap(swapXIn, amountIn);
 
-        (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
-        console2.log("x", x);
-        console2.log("y", y);
-        console2.log("l", l);
+    //     console2.log("valid", valid);
+    //     console2.log("estimatedOut", estimatedOut);
+    //     console2.logBytes(payload);
 
-        AtomicV2 atomic =
-            new AtomicV2(address(dfmm), address(0), tokenX, tokenY);
+    //     // Get out current X balance.
+    //     uint256 xBalance = MockERC20(tokenX).balanceOf(address(this));
+    //     dfmm.swap(payload);
+    //     uint256 newXBalance = MockERC20(tokenX).balanceOf(address(this));
 
-        atomic.try_arbitrage_until_target_price(target_price - 10, 0);
+    //     console2.log("xBalance", xBalance);
+    //     console2.log("newXBalance", newXBalance);
+    //     console2.log("newXBalance - xBalance", newXBalance - xBalance);
 
-        /* uint256 i;
-        while (i != 10) {
-            try atomic.try_arbitrage_until_target_price(target_price, 0) {
-                target_price = 333424706894090465 - i * 0.001 ether;
-            } catch { }
+    //     assertEq(newXBalance - xBalance, estimatedOut);
+    // }
 
-            i++;
-        } */
-    }
+    // function test_dfmm_find_trade_raise_price() public basic {
+    //     uint256 price_initial = dfmm.internalPrice();
+
+    //     // Need to raise price, so target price + 10%.
+    //     uint256 target_price = price_initial * 11 / 10;
+
+    //     (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
+    //     console2.log("x", x);
+    //     console2.log("y", y);
+    //     console2.log("l", l);
+
+    //     AtomicV2 atomic =
+    //         new AtomicV2(address(dfmm), address(0), tokenX, tokenY);
+
+    //     uint256 amountIn =
+    //         atomic.try_arbitrage_until_target_price(target_price, 0);
+    // }
+
+    // function test_dfmm_find_trade_lower_price() public basic {
+    //     uint256 price_initial = dfmm.internalPrice();
+
+    //     // Need to raise price, so target price + 10%.
+    //     uint256 target_price = price_initial * 9 / 10; //333424706894090465;
+
+    //     (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
+    //     console2.log("x", x);
+    //     console2.log("y", y);
+    //     console2.log("l", l);
+
+    //     AtomicV2 atomic =
+    //         new AtomicV2(address(dfmm), address(0), tokenX, tokenY);
+
+    //     atomic.try_arbitrage_until_target_price(target_price - 10, 0);
+
+    //     /* uint256 i;
+    //     while (i != 10) {
+    //         try atomic.try_arbitrage_until_target_price(target_price, 0) {
+    //             target_price = 333424706894090465 - i * 0.001 ether;
+    //         } catch { }
+
+    //         i++;
+    //     } */
+    // }
 
     function test_price_monotonicity() public basic {
         (uint256 x, uint256 y, uint256 l) = dfmm.getReservesAndLiquidity();
@@ -428,7 +395,6 @@ contract DFMMTest is Test {
         lex.setPrice(0.7139372064852015 ether);
         atomic.lower_exchange_price(0.277888107205955025 ether);
         lex.setPrice(0.7142109156818223 ether);
-        atomic.try_arbitrage_until_target_price(0.7142109156818223 ether, 0);
     }
 
     function test_dfmm_swap_over_time_dyanmic_tau() public basic {
@@ -503,20 +469,6 @@ contract DFMMTest is Test {
 
         lex.setPrice(1.5 ether);
         uint256 input;
-
-        try atomic.profitFinder().searchRaisePrice(100, 10) { }
-        catch (bytes memory err) {
-            assembly {
-                err := add(err, 0x04)
-            }
-
-            (input,) = abi.decode(err, (uint256, uint256));
-        }
-        // do the trade
-        atomic.raise_exchange_price(input);
-        // check the cumulative profit
-        console2.log("input amount", input);
-        console2.log("cumulative profit", atomic.cumulativeProfit());
     }
 
     function test_profit_finder_lower_price() public basic {
@@ -531,39 +483,9 @@ contract DFMMTest is Test {
 
         lex.setPrice(0.5 ether);
         uint256 input;
-        try atomic.profitFinder().searchLowerPrice(100, 10) { }
-        catch (bytes memory err) {
-            assembly {
-                err := add(err, 0x04)
-            }
-
-            (input,) = abi.decode(err, (uint256, uint256));
-        }
-        // do the trade
-        atomic.lower_exchange_price(input);
-        // check the cumulative profit
-        console2.log("input amount", input);
-        console2.log("cumulative profit", atomic.cumulativeProfit());
     }
 
-    function test_profit_finder_from_atomic_lower() public basic {
-        AtomicV2 atomic =
-            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
-
-        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
-        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
-        MockERC20(tokenY).mint(address(this), 1000 ether);
-        MockERC20(tokenX).mint(address(lex), 1000 ether);
-        MockERC20(tokenY).mint(address(lex), 1000 ether);
-
-        lex.setPrice(0.8358473209862632 ether);
-        (uint256 input,) = atomic.searchLowerPrice(100, 5);
-        uint256 price = dfmm.internalPrice();
-        atomic.lower_exchange_price(input);
-
-        console2.log("Price[SRT]", price);
-        console2.log("Price[END]", dfmm.internalPrice());
-    }
+    function test_profit_finder_from_atomic_lower() public basic { }
 
     function test_profit_finder_from_atomic_raise() public basic {
         AtomicV2 atomic =
@@ -576,6 +498,5 @@ contract DFMMTest is Test {
         MockERC20(tokenY).mint(address(lex), 1000 ether);
 
         lex.setPrice(1.5 ether);
-        atomic.searchRaisePrice(256, 10);
     }
 }

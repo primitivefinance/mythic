@@ -73,26 +73,14 @@ impl VolatilityTargetingSubmitter {
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let lex = LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
 
-        tracing::info!("params: {:?}", config.agent_parameters.get(&label));
-
         if let Some(AgentParameters::VolatilityTargetingSubmitter(params)) =
             config.agent_parameters.get(&label)
         {
-            // let dfmm_args = (
-            // lex.arbiter_token_x().call().await?,
-            // lex.arbiter_token_y().call().await?,
-            // ethers::utils::parse_ether(1)?,
-            // ethers::utils::parse_ether(0.8)?,
-            // ethers::utils::parse_ether(1.0)?,
-            // ethers::utils::parse_ether(0.997)?,
-            // );
-
             let args = (
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
                 ethers::utils::parse_ether(params.fee.0 / 10_000.0)?,
             );
-            tracing::info!("args: {:?}", args);
             match params.specialty {
                 Specialty::VolatilityTargeting(parameters) => {
                     let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
