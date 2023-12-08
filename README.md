@@ -63,6 +63,13 @@ Excalibur is a full-stack client for interacting with EVM blockchain application
 - Excalibur implements its own simulation management framework and communicates with Arbiter via an arbiter client. When combined, Excalibur is capable of running parallelized agent based simulations for any integrated ABS module.
 - Excalibur integrates various RPC client connections to enable live transaction execution in the application, including a "dev" client that runs Anvil instances.
 
+
+## UI Components
+
+Excalibur only has a few underlying primitives that can be chosen from to construct color and text.
+
+![](./assets/excalibur_ui_components.png)
+
 ## Future
 
 Excalibur's fully vertical application design makes it easy to plug in more components of the Ethereum stack. In the future, Excalibur will be able to easily connect to local RETH nodes.
