@@ -1,4 +1,9 @@
 //! Combines components into more complex components.
+//! All modules in this directory are either underlying component wrappers or
+//! the system module that defines most of the styling system.
+//!
+//! All the components that combine these parts and the styling system live in
+//! here.
 
 pub mod button;
 pub mod chart;

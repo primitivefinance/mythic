@@ -1,5 +1,10 @@
 //! Custom stylesheet wrapper for iced::Button.
-#![allow(dead_code)]
+//! Iced Buttons have multiple states that can be styled, but the default
+//! stylesheet only allows you to set one style for all states.
+//! This wrapper allows you to set different styles for each state.
+//! It introduces a lot of boilerplate, which is why there is an
+//! [`ExcaliburButton`] component that uses this wrapper to deliver a few
+//! predefined button styles.
 
 use iced::{
     widget::button::{Appearance, StyleSheet},
