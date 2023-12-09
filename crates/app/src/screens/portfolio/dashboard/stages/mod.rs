@@ -494,9 +494,11 @@ impl State for Stages {
         nav = nav
             .push(Column::new().push(content))
             .height(Length::FillPortion(3));
-        nav = nav.push(self.guide()).height(Length::FillPortion(1));
+        nav = nav
+            .push(self.guide().align_y(alignment::Vertical::Bottom))
+            .height(Length::FillPortion(1));
 
-        Container::new(nav)
+        Container::new(nav.height(Length::Fill))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()

@@ -611,14 +611,20 @@ impl Dashboard {
         Column::new()
             .spacing(Sizes::Lg)
             .push(space_between(
-                self.data_model.internal_price(),
-                self.data_model.tvl(),
+                space_between(self.data_model.internal_price(), self.data_model.tvl()).into(),
+                space_between(
+                    self.data_model.portfolio_value(),
+                    self.data_model.replication_health(),
+                )
+                .into(),
             ))
-            .push(space_between(
-                self.data_model.portfolio_value(),
-                self.data_model.replication_health(),
-            ))
-            .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
+            .push(
+                Column::new()
+                    .spacing(Sizes::Md)
+                    .push(label(&"Portfolio value / time").highlight().build())
+                    .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
+                    .push(label(&"Last sync: 1m ago").caption().tertiary().build()),
+            )
             .into()
     }
 
@@ -636,7 +642,10 @@ impl Dashboard {
                             .build(),
                     ),
             )
+            .push(Column::new()
+            .spacing(Sizes::Xs)
             .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
+            .push(label(&"Last sync: 1m ago").caption().tertiary().build()))
             .into()
     }
 
