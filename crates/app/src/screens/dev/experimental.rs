@@ -16,8 +16,9 @@ use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
 use crate::components::{
+    button::CustomButtonStyle,
     chart::CartesianChart,
-    system::{label, ExcaliburTable},
+    system::{label, ExcaliburButton, ExcaliburTable},
     tables::cells::CellBuilder,
 };
 
@@ -136,6 +137,56 @@ impl State for ExperimentalScreen {
             .header("Weight")
             .build_empty();
 
+        // .push(
+        // button(label(&"Danger button").build())
+        // .on_press(Self::ViewMessage::Experimental(Message::Empty))
+        // .style(CustomButtonStyle::destructive(&ExcaliburTheme::theme()).as_custom()),
+        // )
+        // .push(
+        // button(label(&"Secondary button").build())
+        // .on_press(Self::ViewMessage::Experimental(Message::Empty))
+        // .style(CustomButtonStyle::secondary(&ExcaliburTheme::theme()).as_custom()),
+        // )
+        // .push(
+        // button(label(&"Positive button").build())
+        // .on_press(Self::ViewMessage::Experimental(Message::Empty))
+        // .style(CustomButtonStyle::positive(&ExcaliburTheme::theme()).as_custom()),
+        // )
+        // .push(
+        // button(label(&"disabled button").build())
+        // .style(CustomButtonStyle::primary(&ExcaliburTheme::theme()).as_custom()),
+        // )
+
+        let misc = Column::new()
+            .spacing(Sizes::Sm)
+            .push(
+                ExcaliburButton::new()
+                    .primary()
+                    .build(label(&"New button").build())
+                    .padding(Sizes::Md)
+                    .on_press(Self::ViewMessage::Experimental(Message::Empty)),
+            )
+            .push(
+                ExcaliburButton::new()
+                    .primary()
+                    .build(label(&"New button").build())
+                    .padding(Sizes::Md),
+            )
+            .push(
+                ExcaliburButton::new()
+                    .danger()
+                    .build(label(&"New button").build())
+                    .padding(Sizes::Md)
+                    .on_press(Self::ViewMessage::Experimental(Message::Empty)),
+            )
+            .push(
+                ExcaliburButton::new()
+                    .transparent()
+                    .build(label(&"New button").build())
+                    .padding(Sizes::Md)
+                    .on_press(Self::ViewMessage::Experimental(Message::Empty)),
+            );
+
         Container::new(
             Column::new()
                 .push(
@@ -144,7 +195,12 @@ impl State for ExperimentalScreen {
                         .push(Column::new().width(Length::FillPortion(2)))
                         .height(Length::FillPortion(3)),
                 )
-                .push(Row::new().push(empty_table).height(Length::FillPortion(2))),
+                .push(
+                    Row::new()
+                        .push(empty_table.build().width(Length::FillPortion(2)))
+                        .push(misc.width(Length::FillPortion(1)))
+                        .height(Length::FillPortion(2)),
+                ),
         )
         .center_x()
         .width(Length::Fill)

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use super::*;
 use crate::{
     components::{
-        system::label,
+        system::{label, Card, ExcaliburButton},
         tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
     },
     user::networks::{ChainPacket, RPCList},
@@ -260,7 +260,10 @@ impl State for RpcManagement {
         // If any rpcs are selected then the rpc delete message will be Delete, else
         // Empty.
 
-        let mut delete_button = destructive_button("Delete RPCs".to_string()).padding(Sizes::Sm);
+        let mut delete_button = ExcaliburButton::new()
+            .danger()
+            .build(label(&"Delete RPCs").build())
+            .padding(Sizes::Sm);
         if !self.selected_rpcs.is_empty() {
             delete_button = delete_button.on_press(Message::Delete);
         }
@@ -268,7 +271,9 @@ impl State for RpcManagement {
         let actions = Row::new()
             .spacing(Sizes::Md)
             .push(
-                action_button("Add RPC".to_string())
+                ExcaliburButton::new()
+                    .primary()
+                    .build(label(&"Add RPC").build())
                     .padding(Sizes::Sm)
                     .on_press(Message::AddRpc),
             )
@@ -304,7 +309,9 @@ impl State for RpcManagement {
                 |x| Message::ChangeUrl(x),
             );
 
-            let submit_button = action_button("Add RPC to list".to_string())
+            let submit_button = ExcaliburButton::new()
+                .primary()
+                .build(label(&"Add RPC to list").build())
                 .on_press(Message::Submit)
                 .width(Length::Fill)
                 .padding(Sizes::Md);

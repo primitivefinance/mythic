@@ -26,69 +26,11 @@ use styles::*;
 
 use self::{
     select::custom_pick_list,
-    system::{label, panel, ExcaliburColor, ExcaliburContainer},
+    system::{label, panel, Card, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
 use super::{view::Message, *};
-
-/// Renders a nice blue button.
-pub fn action_button<'a, Message>(label: String) -> iced::widget::Button<'a, Message>
-where
-    Message: 'static,
-{
-    // todo: need to specify almost every style because the default button style
-    // doesn't work. we can just update the custom button style struct we made
-    // to use our own default style.
-    let action_button_style = CustomButtonStyle::new()
-        .text_color(Color::WHITE)
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(35, 88, 226))
-        .hovered()
-        .text_color(Color::WHITE)
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(88, 135, 255))
-        .pressed()
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(11, 63, 197))
-        .disabled()
-        .border_radius(5.0.into())
-        .background_color(DISABLED_COLOR)
-        .text_color(DISABLED_TEXT_GRAY);
-    button(
-        text(label)
-            .horizontal_alignment(alignment::Horizontal::Center)
-            .width(Length::Fill),
-    )
-    .style(action_button_style.as_custom())
-}
-
-/// Renders a nice red button.
-#[allow(dead_code)]
-pub fn destructive_button<'a, Message>(label: String) -> iced::widget::Button<'a, Message>
-where
-    Message: 'a,
-{
-    let content = text(label)
-        .size(16)
-        .horizontal_alignment(iced::alignment::Horizontal::Center)
-        .vertical_alignment(iced::alignment::Vertical::Center)
-        .style(Color::WHITE);
-    let destructive_button_style = CustomButtonStyle::new()
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(228, 75, 65))
-        .hovered()
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(189, 39, 29))
-        .pressed()
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(200, 39, 30))
-        .disabled()
-        .border_radius(5.0.into())
-        .background_color(DISABLED_COLOR)
-        .text_color(DISABLED_TEXT_GRAY);
-    button(content).style(destructive_button_style.as_custom())
-}
 
 /// Renders a tab-like button
 #[allow(dead_code)]
@@ -145,47 +87,6 @@ where
         .push(elem)
         .push(indicator.width(Length::Fixed(100.0)))
         .align_items(alignment::Alignment::Center)
-}
-
-/// Card is just a container with a background color and some border radius.
-pub struct Card {
-    background: Option<iced::Background>,
-}
-
-impl Card {
-    // todo: refactor this to use builder pattern.
-    pub fn new<'a, Message, T: Into<Element<'a, Message>>>(content: T) -> Container<'a, Message>
-    where
-        Message: 'a,
-    {
-        let content = content.into();
-        panel().card().build(content).into()
-    }
-
-    /// Returns a fresh instance of this Card.
-    pub fn template() -> Self {
-        Self {
-            background: Some(iced::Background::Color(BACKGROUND)),
-        }
-    }
-
-    /// Modifies the background.
-    pub fn background(mut self, background: Option<iced::Background>) -> Self {
-        self.background = background;
-        self
-    }
-
-    pub fn build<'a, Message, T: Into<Element<'a, Message>>>(
-        self,
-        content: T,
-        border_radius: BorderRadius,
-    ) -> Container<'a, Message>
-    where
-        Message: 'static,
-    {
-        let content = content.into();
-        panel().card().border_radius(border_radius).build(content)
-    }
 }
 
 pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
@@ -284,7 +185,7 @@ pub fn instructions<'a, Message, T: Into<Element<'a, Message>>>(
     on_submit: Option<Message>,
 ) -> Container<'a, Message>
 where
-    Message: 'static + Clone,
+    Message: 'a + Clone + Default,
 {
     let mut inner: Column<'a, Message> = Column::new()
         .spacing(Sizes::Sm)
@@ -296,10 +197,11 @@ where
         inner = inner.push(instruction.into());
     }
 
-    let mut submit: Button<'a, Message> =
-        action_button(action.unwrap_or_else(|| "Submit".to_string()).to_string())
-            .padding(Sizes::Md)
-            .width(Length::Fill);
+    let mut submit: Button<'a, Message> = ExcaliburButton::new()
+        .primary()
+        .build(label(&action.unwrap_or_else(|| "Submit".to_string())).build())
+        .padding(Sizes::Md)
+        .width(Length::Fill);
 
     if let Some(on_submit) = on_submit {
         submit = submit.on_press(on_submit)

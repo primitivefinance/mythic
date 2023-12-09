@@ -8,6 +8,11 @@ use iced::{
 
 use super::styles::*;
 
+/// Basically wraps the Button style sheet so that we can access and set
+/// different appearances for the button.
+/// Since each appearance has its own state, make sure to set each state to
+/// match the desired appearance.. For example, if border radius is 10, you must
+/// set the border radius for each state.
 #[derive(Debug, Clone, Copy)]
 pub struct CustomButtonStyle {
     pub active: Appearance,

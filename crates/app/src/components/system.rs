@@ -47,9 +47,9 @@ pub enum LabelColors {
 }
 
 const BLUE: Color = Color::from_rgb(
-    0x41 as f32 / 255.0,
-    0x51 as f32 / 255.0,
-    0xE4 as f32 / 255.0,
+    0x0E as f32 / 255.0,
+    0x44 as f32 / 255.0,
+    0xCC as f32 / 255.0,
 );
 
 const MINT: Color = Color::from_rgb(
@@ -66,8 +66,8 @@ const GREEN: Color = Color::from_rgb(
 
 const RED: Color = Color::from_rgb(
     0xFF as f32 / 255.0,
-    0x42 as f32 / 255.0,
-    0x42 as f32 / 255.0,
+    0x45 as f32 / 255.0,
+    0x3A as f32 / 255.0,
 );
 
 const HIGHLIGHT: Color = Color::from_rgb(
@@ -626,7 +626,7 @@ impl ExcaliburContainer {
     }
 
     pub fn light_border(mut self) -> Self {
-        self.border_color = ExcaliburColor::Custom(GRAY_1000);
+        self.border_color = ExcaliburColor::Custom(GRAY_600);
         self.border_width = 1.0;
         self
     }
@@ -649,7 +649,99 @@ impl ExcaliburContainer {
 }
 
 /// todo!
-pub struct ExcaliburButton;
+/// Exposes an easier to use API over the CustomButtonStyle, which is a wrapper
+/// over the iced Button stylesheet.
+pub struct ExcaliburButton {
+    pub style: CustomButtonStyle,
+}
+
+impl ExcaliburButton {
+    pub fn new() -> Self {
+        Self {
+            style: CustomButtonStyle::new(),
+        }
+    }
+
+    pub fn build<'a, Message>(self, element: impl Into<Element<'a, Message>>) -> Button<'a, Message>
+    where
+        Message: 'a,
+    {
+        button(element).style(self.theme())
+    }
+
+    pub fn theme(self) -> iced::theme::Button {
+        self.style.as_custom()
+    }
+
+    pub fn style(mut self, style: CustomButtonStyle) -> Self {
+        self.style = style;
+        self
+    }
+
+    pub fn primary(self) -> Self {
+        let color = ExcaliburColor::Label(LabelColors::Primary).into();
+        let border_radius = 3.0.into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Quaternary).into();
+        let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
+            .text_color(color)
+            .border_radius(border_radius)
+            .hovered()
+            .text_color(color)
+            .border_radius(border_radius)
+            .pressed()
+            .text_color(color)
+            .border_radius(border_radius)
+            .disabled()
+            .text_color(disabled_color)
+            .border_radius(border_radius);
+        Self { style }
+    }
+
+    pub fn danger(self) -> Self {
+        let color = ExcaliburColor::Label(LabelColors::Primary).into();
+        let border_radius = 3.0.into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Tertiary).into();
+        let style = CustomButtonStyle::destructive(&ExcaliburTheme::theme())
+            .text_color(color)
+            .border_radius(border_radius)
+            .hovered()
+            .text_color(color)
+            .border_radius(border_radius)
+            .pressed()
+            .text_color(color)
+            .border_radius(border_radius)
+            .disabled()
+            .text_color(disabled_color)
+            .border_radius(border_radius);
+        Self { style }
+    }
+
+    pub fn transparent(self) -> Self {
+        let background = Color::TRANSPARENT;
+        let semi_transparent_background = Color::from_rgba(40.0, 40.0, 40.0, 0.05);
+        let color = ExcaliburColor::Label(LabelColors::Primary).into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Tertiary).into();
+        let border_radius = 3.0.into();
+
+        let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
+            .background(Some(background.into()))
+            .text_color(color)
+            .border_radius(border_radius)
+            .hovered()
+            .background(Some(semi_transparent_background.into()))
+            .text_color(color)
+            .border_radius(border_radius)
+            .pressed()
+            .background(Some(semi_transparent_background.into()))
+            .text_color(color)
+            .border_radius(border_radius)
+            .disabled()
+            .background(Some(background.into()))
+            .text_color(disabled_color)
+            .border_radius(border_radius);
+        Self { style }
+    }
+}
 
 /// Constructs a table using the table builder to be used across Excalibur.
 /// Uses predefined sizes, colors, and fonts.
@@ -740,6 +832,17 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
     pub fn header(mut self, header: &str) -> Self {
         self.headers.push(header.to_string());
         self
+    }
+}
+
+pub struct Card;
+
+impl Card {
+    pub fn new<'a, Message>(element: impl Into<Element<'a, Message>>) -> Container<'a, Message>
+    where
+        Message: 'a,
+    {
+        panel().card().build(element).into()
     }
 }
 

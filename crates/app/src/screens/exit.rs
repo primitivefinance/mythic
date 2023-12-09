@@ -51,7 +51,7 @@ impl State for ExitScreen {
             true => Column::new()
                 .push(label("Are you sure you want to exit?").secondary().build())
                 .push(
-                    button("Yes, save and exit.")
+                    button(label(&"Yes, save and exit.").build())
                         .padding([10, 20])
                         .on_press(Self::ViewMessage::ConfirmExit),
                 )

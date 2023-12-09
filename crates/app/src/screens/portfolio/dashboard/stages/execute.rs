@@ -1,7 +1,7 @@
 use clients::dev::ProtocolPosition;
 
 use super::*;
-use crate::components::system::label;
+use crate::components::system::{label, ExcaliburButton};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -229,7 +229,9 @@ impl State for Execute {
 
         if let Some(dev_client) = &self.dev_client {
             content = content.push(
-                destructive_button("Execute".to_string())
+                ExcaliburButton::new()
+                    .danger()
+                    .build(label(&"Execute").build())
                     .padding(Sizes::Md)
                     .on_press(Message::Execute),
             )

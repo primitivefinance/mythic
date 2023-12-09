@@ -6,7 +6,7 @@ use sim::engine::ArbiterInstance;
 use uuid::Uuid;
 
 use super::*;
-use crate::components::system::label;
+use crate::components::system::{label, ExcaliburButton};
 
 type World = Arc<ArbiterInstance>;
 type InstanceManager = Arc<tokio::sync::Mutex<ArbiterInstanceManager>>;
@@ -89,7 +89,12 @@ impl Simulate {
         let mut content = Column::new()
             .spacing(Sizes::Xl)
             .push(label(&"Simulation Results").title1().build())
-            .push(action_button(action_cta.to_string()).on_press(action));
+            .push(
+                ExcaliburButton::new()
+                    .primary()
+                    .build(label(&action_cta).build())
+                    .on_press(action),
+            );
 
         content.into()
     }

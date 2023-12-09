@@ -16,9 +16,12 @@ use uuid::Uuid;
 
 use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
-use crate::components::tables::{
-    builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-    rows::RowBuilder,
+use crate::components::{
+    system::Card,
+    tables::{
+        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+        rows::RowBuilder,
+    },
 };
 
 /// Executed on `load` for the Dashboard screen.

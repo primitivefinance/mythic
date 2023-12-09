@@ -3,7 +3,7 @@
 use std::fmt::{self, Display};
 
 use super::*;
-use crate::components::system::label;
+use crate::components::system::{label, panel, Card};
 
 #[derive(Debug, Clone, Default)]
 pub enum FormMessage {
@@ -205,12 +205,12 @@ impl State for Review {
                     |x| FormMessage::Strategy(Some(x)),
                 )
                 .into(),
-                Card::template()
-                    .background(Some(iced::Background::Color(GRAY_500)))
-                    .build(
-                        instructions_inner(vec![instruction_text(current_description)]),
-                        9.0.into(),
-                    )
+                panel()
+                    .background_iced(GRAY_500)
+                    .border_radius(9.0.into())
+                    .build(instructions_inner(vec![instruction_text(
+                        current_description,
+                    )]))
                     .width(Length::Fill)
                     .padding(Sizes::Md)
                     .into(),
