@@ -445,12 +445,12 @@ contract AtomicV2 {
 
     error AttemptedProfit(int256 profit);
 
-    function lower_exchange_price(uint256 input) external {
+    function lower_exchange_price(uint256 input_y_amount) external {
         // Arbitrageur Y -> AtomicV2
-        _invoice(input);
+        _invoice(input_y_amount);
 
         // Y -> X on LEX
-        _lex_swap(YTOX, input);
+        _lex_swap(YTOX, input_y_amount);
 
         // X -> Y on DEX
         _dex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
@@ -460,12 +460,12 @@ contract AtomicV2 {
     }
 
     // Always reverts with the profit at the end.
-    function try_lower_exchange_price(uint256 input) external {
+    function try_lower_exchange_price(uint256 input_y_amount) external {
         // Arbitrageur Y -> AtomicV2
-        _invoice(input);
+        _invoice(input_y_amount);
 
         // Y -> X on LEX
-        _lex_swap(YTOX, input);
+        _lex_swap(YTOX, input_y_amount);
 
         // X -> Y on DEX
         _dex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
@@ -477,12 +477,12 @@ contract AtomicV2 {
         );
     }
 
-    function raise_exchange_price(uint256 input) external {
+    function raise_exchange_price(uint256 input_y_amount) external {
         // Arbitrageur Y -> AtomicV2
-        _invoice(input);
+        _invoice(input_y_amount);
 
         // Y -> X on DEX
-        _dex_swap(YTOX, input);
+        _dex_swap(YTOX, input_y_amount);
 
         // X -> Y on LEX
         _lex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
@@ -491,12 +491,12 @@ contract AtomicV2 {
         _payout();
     }
 
-    function try_raise_exchange_price(uint256 input) external {
+    function try_raise_exchange_price(uint256 input_y_amount) external {
         // Arbitrageur Y -> AtomicV2
-        _invoice(input);
+        _invoice(input_y_amount);
 
         // Y -> X on DEX
-        _dex_swap(YTOX, input);
+        _dex_swap(YTOX, input_y_amount);
 
         // X -> Y on LEX
         _lex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
@@ -509,19 +509,19 @@ contract AtomicV2 {
     }
 
     /// @dev Handles the payment from the arbitrageur.
-    function _invoice(uint256 amount) internal {
+    function _invoice(uint256 amount_y) internal {
         uint256 quote_balance = TokenLike(quote).balanceOf(msg.sender);
-        if (quote_balance < amount) {
-            revert InsufficientBalanceY(quote_balance, amount);
+        if (quote_balance < amount_y) {
+            revert InsufficientBalanceY(quote_balance, amount_y);
         }
 
         uint256 quote_approval =
             TokenLike(quote).allowance(msg.sender, address(this));
-        if (quote_approval < amount) {
-            revert InsufficientApprovalY(quote_approval, amount);
+        if (quote_approval < amount_y) {
+            revert InsufficientApprovalY(quote_approval, amount_y);
         }
 
-        TokenLike(quote).transferFrom(msg.sender, address(this), amount);
+        TokenLike(quote).transferFrom(msg.sender, address(this), amount_y);
 
         intermediateTokenYStartBalance =
             TokenLike(quote).balanceOf(address(this));
