@@ -1,3 +1,8 @@
+//! Root portfolio application screen.
+//! This serves as a parent for children flows.
+//! For example, creating a new portfolio, or viewing an existing portfolio are
+//! two different flows that stem from this root.
+
 pub mod create;
 pub mod dashboard;
 pub mod dev;
@@ -100,12 +105,15 @@ impl State for PortfolioRoot {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
-        if let Some(_) = &self.dev_client {
-            self.dashboard
-                .subscription()
-                .map(|x| Message::Dashboard(x).into())
-        } else {
-            Subscription::none()
-        }
+        // if let Some(_) = &self.dev_client {
+        // self.dashboard
+        // .subscription()
+        // .map(|x| Message::Dashboard(x).into())
+        // } else {
+        // Subscription::none()
+        // }
+        self.dashboard
+            .subscription()
+            .map(|x| Message::Dashboard(x).into())
     }
 }

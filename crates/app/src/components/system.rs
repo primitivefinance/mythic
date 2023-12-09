@@ -141,7 +141,7 @@ impl ExcaliburColor {
                 LabelColors::Tertiary => TERTIARY_LABEL,
                 LabelColors::Quaternary => QUATERNARY_LABEL,
                 LabelColors::Placeholder => PLACEHOLDER_LABEL,
-                LabelColors::Highlight => HIGHLIGHT,
+                LabelColors::Highlight => MINT,
             },
             ExcaliburColor::Quantitative(quantitative_color) => match quantitative_color {
                 QuantitativeColors::Hundreds => Color::WHITE,
@@ -246,6 +246,8 @@ pub struct ExcaliburText {
     pub color: ExcaliburColor,
     pub font: ExcaliburFonts,
     pub size: Typography,
+    pub horizontal_alignment: alignment::Horizontal,
+    pub vertical_alignment: alignment::Vertical,
 }
 
 impl Default for ExcaliburText {
@@ -255,6 +257,8 @@ impl Default for ExcaliburText {
             color: ExcaliburColor::Label(LabelColors::Primary),
             font: ExcaliburFonts::UI,
             size: Typography::Body,
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Top,
         }
     }
 }
@@ -262,6 +266,29 @@ impl Default for ExcaliburText {
 /// For constructing any text rendered in Excalibur.
 pub fn label<'a>(value: &str) -> ExcaliburText {
     ExcaliburText::new(value)
+}
+
+pub fn format_number(num: f64) -> (String, QuantitativeColors) {
+    let (divisor, suffix, color) = if num >= 1_000_000_000.0 {
+        (1_000_000_000.0, "B", QuantitativeColors::Billions)
+    } else if num >= 1_000_000.0 {
+        (1_000_000.0, "M", QuantitativeColors::Millions)
+    } else if num >= 1_000.0 {
+        (1_000.0, "K", QuantitativeColors::Thousands)
+    } else {
+        (1.0, "", QuantitativeColors::Hundreds)
+    };
+
+    let value = num / divisor;
+    let int_len = value.trunc().to_string().len();
+    let decimal_places = if int_len >= 4 { 0 } else { 4 - int_len };
+    let decimal_places = if suffix.is_empty() {
+        decimal_places + 1
+    } else {
+        decimal_places
+    };
+
+    (format!("{:.*}{}", decimal_places, value, suffix), color)
 }
 
 impl ExcaliburText {
@@ -279,6 +306,8 @@ impl ExcaliburText {
             .style(self.color.color())
             .font(self.font.font())
             .size(self.size)
+            .horizontal_alignment(self.horizontal_alignment)
+            .vertical_alignment(self.vertical_alignment)
     }
 
     // Class
@@ -288,20 +317,34 @@ impl ExcaliburText {
         // todo: this is probably very dangerous!
         let value = self.value.parse::<f64>().unwrap_or(0.0);
 
+        let (value, color) = format_number(value);
+
+        Self {
+            value,
+            color: ExcaliburColor::Quantitative(color),
+            ..self
+        }
+    }
+
+    /// Formats the text based on percentage value.
+    pub fn percentage(self) -> Self {
+        let value = self.value.parse::<f64>().unwrap_or(0.0);
         let mut color = QuantitativeColors::Hundreds;
 
-        let value = if value < 1_000.0 {
+        let percentage_value = value * 100.0;
+
+        let value = if percentage_value < 10.0 {
             color = QuantitativeColors::Hundreds;
-            format!("{:.2}", value)
-        } else if value < 1_000_000.0 {
+            format!("{:.2}%", percentage_value)
+        } else if percentage_value < 50.0 {
             color = QuantitativeColors::Thousands;
-            format!("{:.2}K", value / 1_000.0)
-        } else if value < 1_000_000_000.0 {
+            format!("{:.2}%", percentage_value)
+        } else if percentage_value < 95.0 {
             color = QuantitativeColors::Millions;
-            format!("{:.2}M", value / 1_000_000.0)
+            format!("{:.2}%", percentage_value)
         } else {
             color = QuantitativeColors::Billions;
-            format!("{:.2}B", value / 1_000_000_000.0)
+            format!("{:.2}%", percentage_value)
         };
 
         Self {
@@ -313,6 +356,17 @@ impl ExcaliburText {
 
     pub fn style(mut self, color: iced::Color) -> Self {
         self.color = ExcaliburColor::Custom(color);
+        self
+    }
+
+    pub fn brightness(mut self, brightness: f32) -> Self {
+        let internal_color = self.color.color();
+        self.color = ExcaliburColor::Custom(Color::from_rgba(
+            internal_color.r,
+            internal_color.g,
+            internal_color.b,
+            brightness,
+        ));
         self
     }
 
@@ -490,6 +544,56 @@ impl ExcaliburText {
             font: ExcaliburFonts::Branding,
             ..self
         }
+    }
+
+    // Alignment
+
+    pub fn left(self) -> Self {
+        Self {
+            horizontal_alignment: alignment::Horizontal::Left,
+            ..self
+        }
+    }
+
+    pub fn center(self) -> Self {
+        Self {
+            horizontal_alignment: alignment::Horizontal::Center,
+            ..self
+        }
+    }
+
+    pub fn right(self) -> Self {
+        Self {
+            horizontal_alignment: alignment::Horizontal::Right,
+            ..self
+        }
+    }
+
+    pub fn top(self) -> Self {
+        Self {
+            vertical_alignment: alignment::Vertical::Top,
+            ..self
+        }
+    }
+
+    pub fn middle(self) -> Self {
+        Self {
+            vertical_alignment: alignment::Vertical::Center,
+            ..self
+        }
+    }
+
+    pub fn bottom(self) -> Self {
+        Self {
+            vertical_alignment: alignment::Vertical::Bottom,
+            ..self
+        }
+    }
+}
+
+impl<Message> From<ExcaliburText> for Element<'_, Message> {
+    fn from(text: ExcaliburText) -> Self {
+        text.build().into()
     }
 }
 

@@ -359,6 +359,61 @@ where
     row
 }
 
+pub fn space_between<'a, Message>(
+    elem_1: Element<'a, Message>,
+    elem_2: Element<'a, Message>,
+) -> Row<'a, Message>
+where
+    Message: 'a,
+{
+    let mut row = Row::new()
+        .push(
+            Column::new()
+                .width(Length::FillPortion(2))
+                .align_items(alignment::Alignment::Start)
+                .push(elem_1),
+        )
+        .push(
+            Column::new()
+                .width(Length::FillPortion(2))
+                .align_items(alignment::Alignment::End)
+                .push(elem_2),
+        );
+    row = row
+        .spacing(Sizes::Md)
+        .align_items(alignment::Alignment::Center);
+    row
+}
+
+/// A container for titling and captioning a piece of data.
+///
+/// Layout:
+/// ---------------
+/// title
+/// Data
+/// caption
+/// ---------------
+///
+/// note: Row has their items centered aligned because iced Text elements
+/// will save all the space they need for their glyphs. For example,
+/// the end of a "p" is allocated, which makes bottom aligned text elements
+/// look like they are not on the same bottom, even though their "p" glyphs will
+/// be.
+pub fn double_labeled_data<'a, Message>(
+    data: Text<'a>,
+    title: Text<'a>,
+    caption: Text<'a>,
+) -> Column<'a, Message>
+where
+    Message: 'a,
+{
+    Column::new()
+        .spacing(Sizes::Sm)
+        .push(title)
+        .push(data)
+        .push(caption)
+}
+
 pub fn custom_icon_button<'a>(
     icon: icons::Icon,
     font_size: u16,

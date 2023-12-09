@@ -90,8 +90,8 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .center_y()
         .align_x(alignment::Horizontal::Center)
         .align_y(alignment::Vertical::Center)
-        .width(Length::Shrink)
-        .height(Length::Shrink)
+        .width(Length::Fill)
+        .height(Length::Fill)
         .padding(Sizes::Xl)
         .style(
             ExcaliburContainer::default()

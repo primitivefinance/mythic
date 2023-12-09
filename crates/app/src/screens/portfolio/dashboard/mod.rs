@@ -3,21 +3,28 @@
 pub mod stages;
 pub mod table;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 
+use alloy_primitives::{utils::parse_ether, Address, U256};
+use cfmm_math::trading_functions::rmm::{
+    compute_l_given_x_rust, compute_x_given_l_rust, compute_y_given_l_rust, compute_y_given_x_rust,
+};
+use chrono::{DateTime, Utc};
 use datatypes::portfolio::{
     coin::Coin,
     position::{Position, Positions},
     weight::Weight,
     Portfolio,
 };
+use iced::Color;
+use serde::{Deserialize, Serialize, Serializer};
 use stages::Stages;
 use uuid::Uuid;
 
 use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
 use crate::components::{
-    system::Card,
+    system::{Card, ExcaliburColor, ExcaliburContainer, ExcaliburText},
     tables::{
         builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
         rows::RowBuilder,
@@ -134,6 +141,7 @@ pub enum Message {
     UpdateTable(table::Message),
     /// Triggered every 3s.
     FetchPortfolioState,
+    Tick,
 }
 
 impl MessageWrapperView for Message {
@@ -147,6 +155,223 @@ impl MessageWrapper for Message {
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(msg: Message) -> Self {
         super::Message::Dashboard(msg)
+    }
+}
+
+/// The ENTIRE data model of the dashboard, stored in native types.
+#[derive(Debug, Clone, Default)]
+pub struct DataModel {
+    /// AMM reported spot price.
+    pub raw_internal_spot_price: Option<U256>,
+    /// Spot price from an external source.
+    pub raw_external_spot_price: Option<U256>,
+    pub raw_asset_token: Option<Address>,
+    pub raw_quote_token: Option<Address>,
+    pub raw_user_asset_balance: Option<U256>,
+    pub raw_user_quote_balance: Option<U256>,
+    pub raw_asset_reserve: Option<U256>,
+    pub raw_quote_reserve: Option<U256>,
+    pub raw_user_asset_reserve: Option<U256>,
+    pub raw_user_quote_reserve: Option<U256>,
+    pub raw_total_liquidity: Option<U256>,
+    pub raw_user_total_liquidity: Option<U256>,
+    pub raw_strike_price_wad: Option<U256>,
+    pub raw_time_remaining_wad: Option<U256>,
+    pub raw_volatility_wad: Option<U256>,
+    pub raw_portfolio_values_series: Option<Vec<(u64, U256)>>,
+    pub raw_last_chain_data_sync_timestamp: Option<DateTime<Utc>>,
+    pub raw_last_chain_data_sync_block: Option<u64>,
+}
+
+pub fn u256_to_label(value: Option<U256>) -> ExcaliburText {
+    if let Some(value) = value {
+        let value = alloy_primitives::utils::format_ether(value);
+        match value.parse::<f64>() {
+            Ok(_) => label(&value).quantitative().title1(),
+            Err(_) => label(&"Failed to parse U256 as float.")
+                .caption()
+                .tertiary(),
+        }
+    } else {
+        label(&"N/A").caption().tertiary()
+    }
+}
+
+/// Computes the portfolio value as Sum(quote balance, asset balance * spot
+/// price).
+pub fn derive_portfolio_value(
+    price: Option<U256>,
+    quote_balance: Option<U256>,
+    asset_balance: Option<U256>,
+) -> Option<U256> {
+    if let (Some(price), Some(quote_balance), Some(asset_balance)) =
+        (price, quote_balance, asset_balance)
+    {
+        let price = alloy_primitives::utils::format_ether(price);
+        let price = price.parse::<f64>().unwrap();
+        let quote_balance = alloy_primitives::utils::format_ether(quote_balance);
+        let quote_balance = quote_balance.parse::<f64>().unwrap();
+        let asset_balance = alloy_primitives::utils::format_ether(asset_balance);
+        let asset_balance = asset_balance.parse::<f64>().unwrap();
+
+        let portfolio_value = quote_balance + asset_balance * price;
+        let portfolio_value = format!("{}", portfolio_value);
+        let portfolio_value = alloy_primitives::utils::parse_ether(&portfolio_value).unwrap();
+
+        Some(portfolio_value)
+    } else {
+        None
+    }
+}
+
+/// Compute the theoretical portfolio value given price, x, K, v, t.
+pub fn derive_theoretical_portfolio_value(
+    price: Option<U256>,
+    liquidity: Option<U256>,
+    strike_price: Option<U256>,
+    volatility: Option<U256>,
+    time_remaining: Option<U256>,
+) -> Option<U256> {
+    if let (
+        Some(liquidity),
+        Some(price),
+        Some(strike_price),
+        Some(volatility),
+        Some(time_remaining),
+    ) = (liquidity, price, strike_price, volatility, time_remaining)
+    {
+        let price = alloy_primitives::utils::format_ether(price);
+        let price = price.parse::<f64>().unwrap();
+        let liquidity = alloy_primitives::utils::format_ether(liquidity);
+        let liquidity = liquidity.parse::<f64>().unwrap();
+        let strike_price = alloy_primitives::utils::format_ether(strike_price);
+        let strike_price = strike_price.parse::<f64>().unwrap();
+        let volatility = alloy_primitives::utils::format_ether(volatility);
+        let volatility = volatility.parse::<f64>().unwrap();
+        let time_remaining = alloy_primitives::utils::format_ether(time_remaining);
+        let time_remaining = time_remaining.parse::<f64>().unwrap();
+
+        // Get x given price, then l given x, then y given l.
+        let x = compute_x_given_l_rust(liquidity, price, strike_price, volatility, time_remaining);
+        let l = compute_l_given_x_rust(x, price, strike_price, volatility, time_remaining);
+        let y = compute_y_given_l_rust(l, price, strike_price, volatility, time_remaining);
+
+        let portfolio_value = y + x * price;
+        let portfolio_value = format!("{}", portfolio_value);
+        let portfolio_value = alloy_primitives::utils::parse_ether(&portfolio_value).unwrap();
+
+        Some(portfolio_value)
+    } else {
+        None
+    }
+}
+
+/// Get the current portfolio value divided by the theoretically computed
+/// portfolio value.
+pub fn derive_portfolio_value_ratio(
+    portfolio_value: Option<U256>,
+    theoretical_portfolio_value: Option<U256>,
+) -> Option<f64> {
+    if let (Some(portfolio_value), Some(theoretical_portfolio_value)) =
+        (portfolio_value, theoretical_portfolio_value)
+    {
+        let portfolio_value = alloy_primitives::utils::format_ether(portfolio_value);
+        let portfolio_value = portfolio_value.parse::<f64>().unwrap();
+        let theoretical_portfolio_value =
+            alloy_primitives::utils::format_ether(theoretical_portfolio_value);
+        let theoretical_portfolio_value = theoretical_portfolio_value.parse::<f64>().unwrap();
+
+        Some(portfolio_value / theoretical_portfolio_value)
+    } else {
+        None
+    }
+}
+
+/// The implementation defines how the data is synced and rendered.
+impl DataModel {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn internal_price<'a, Message>(&self) -> Element<'a, Message>
+    where
+        Message: 'a,
+    {
+        double_labeled_data(
+            u256_to_label(self.raw_internal_spot_price.clone()).build(),
+            label(&"Internal Price").highlight().build(),
+            label(&"ETH/USD").secondary().caption().build(),
+        )
+        .into()
+    }
+
+    pub fn portfolio_value<'a, Message>(&self) -> Element<'a, Message>
+    where
+        Message: 'a,
+    {
+        let pfv = derive_portfolio_value(
+            self.raw_internal_spot_price.clone(),
+            self.raw_user_quote_balance.clone(),
+            self.raw_user_asset_balance.clone(),
+        );
+
+        double_labeled_data(
+            u256_to_label(pfv).build(),
+            label(&"Portfolio Value").highlight().build(),
+            label(&"USD").secondary().caption().build(),
+        )
+        .into()
+    }
+
+    pub fn replication_health<'a, Message>(&self) -> Element<'a, Message>
+    where
+        Message: 'a,
+    {
+        let pfv = derive_portfolio_value(
+            self.raw_internal_spot_price.clone(),
+            self.raw_user_quote_balance.clone(),
+            self.raw_user_asset_balance.clone(),
+        );
+
+        let theoretical_pfv = derive_theoretical_portfolio_value(
+            self.raw_internal_spot_price.clone(),
+            self.raw_total_liquidity.clone(),
+            self.raw_strike_price_wad.clone(),
+            self.raw_volatility_wad.clone(),
+            self.raw_time_remaining_wad.clone(),
+        );
+
+        let ratio = derive_portfolio_value_ratio(pfv, theoretical_pfv);
+
+        let ratio = match ratio {
+            Some(ratio) => label(&format!("{}", ratio)).title1().percentage().build(),
+            None => label(&"N/A").caption().tertiary().build(),
+        };
+
+        double_labeled_data(
+            ratio,
+            label(&"Replication Health").highlight().build(),
+            label(&"PFV / tPFV").secondary().caption().build(),
+        )
+        .into()
+    }
+
+    pub fn tvl<'a, Message>(&self) -> Element<'a, Message>
+    where
+        Message: 'a,
+    {
+        let tvl = derive_portfolio_value(
+            self.raw_internal_spot_price.clone(),
+            self.raw_asset_reserve.clone(),
+            self.raw_quote_reserve.clone(),
+        );
+
+        double_labeled_data(
+            u256_to_label(tvl).build(),
+            label(&"Total Value Locked").highlight().build(),
+            label(&"USD").secondary().caption().build(),
+        )
+        .into()
     }
 }
 
@@ -166,6 +391,8 @@ pub struct Dashboard {
     pub deposited_portfolio: Option<Portfolio>,
     /// Table for the deposited portfolio.
     pub deposited_table: PortfolioTable,
+
+    pub data_model: DataModel,
 }
 
 impl Dashboard {
@@ -182,11 +409,54 @@ impl Dashboard {
             dev_client,
             deposited_portfolio: None,
             deposited_table: PortfolioTable::new(),
+            data_model: DataModel::new(),
         }
     }
 
     pub fn loaded(&self) -> bool {
         self.portfolio.is_some()
+    }
+
+    pub fn sample_data(&mut self) {
+        // Initial params: K = 1000, t = 1, v = 1.
+        let strike_price = 1000.0;
+        let strike_price_wad = parse_ether(&format!("{}", strike_price)).unwrap();
+        let tau = 1.0;
+        let tau_wad = parse_ether(&format!("{}", tau)).unwrap();
+        let sigma = 1.0;
+        let sigma_wad = parse_ether(&format!("{}", sigma)).unwrap();
+        self.data_model.raw_strike_price_wad = Some(strike_price_wad);
+        self.data_model.raw_time_remaining_wad = Some(tau_wad);
+        self.data_model.raw_volatility_wad = Some(sigma_wad);
+
+        // Initial deposit amounts and price.
+        let initial_price = 1000.0;
+        let initial_price_wad = parse_ether(&format!("{}", initial_price)).unwrap();
+        self.data_model.raw_external_spot_price = Some(initial_price_wad);
+        self.data_model.raw_internal_spot_price = Some(initial_price_wad);
+
+        let initial_x = 1000.0;
+        let initial_x_wad = parse_ether(&format!("{}", initial_x)).unwrap();
+        self.data_model.raw_user_asset_balance = Some(initial_x_wad);
+        self.data_model.raw_asset_reserve = Some(initial_x_wad);
+
+        let init_liquidity =
+            compute_l_given_x_rust(initial_x, initial_price, strike_price, sigma, tau);
+        let init_liquidity_wad = parse_ether(&format!("{}", init_liquidity)).unwrap();
+        self.data_model.raw_user_total_liquidity = Some(init_liquidity_wad);
+        self.data_model.raw_total_liquidity = Some(init_liquidity_wad);
+
+        let initial_y =
+            compute_y_given_l_rust(init_liquidity, initial_price, strike_price, sigma, tau);
+        let initial_y_wad = parse_ether(&format!("{}", initial_y)).unwrap();
+        self.data_model.raw_user_quote_balance = Some(initial_y_wad);
+        self.data_model.raw_quote_reserve = Some(initial_y_wad);
+    }
+
+    fn update_position(&mut self, price: f64) {
+        // New price, need to adjust reserves and liquidity.
+        let price_wad = parse_ether(&format!("{}", price)).unwrap();
+        self.data_model.raw_internal_spot_price = Some(price_wad);
     }
 
     #[tracing::instrument(skip(self), level = "debug")]
@@ -299,6 +569,41 @@ impl Dashboard {
             _ => self.stage.view().map(|x| x.into()),
         }
     }
+
+    pub fn quadrant_i(&self) -> Element<'_, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(space_between(
+                self.data_model.internal_price(),
+                self.data_model.tvl(),
+            ))
+            .push(space_between(
+                self.data_model.portfolio_value(),
+                self.data_model.replication_health(),
+            ))
+            .into()
+    }
+
+    pub fn quadrant_ii(&self) -> Element<'_, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(self.render_deposited_table())
+            .into()
+    }
+
+    pub fn quadrant_iii(&self) -> Element<'_, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(self.render_staging_area())
+            .into()
+    }
+
+    pub fn quadrant_iv(&self) -> Element<'_, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(self.data_model.internal_price())
+            .into()
+    }
 }
 
 impl State for Dashboard {
@@ -331,9 +636,10 @@ impl State for Dashboard {
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Load(Ok(portfolio)) => {
-                self.portfolio = Some(portfolio.clone());
-                tracing::debug!("Loaded portfolio: in Load in dashboard {:?}", portfolio);
+                // Set some initial values in data model temporarily.
+                self.sample_data();
 
+                // self.data_model.raw
                 let mut commands: Vec<Command<Self::AppMessage>> = vec![];
 
                 // Store the portfolio in the staging area to reference it.
@@ -354,6 +660,14 @@ impl State for Dashboard {
             }
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load portfolio: {:?}", e);
+            }
+            Message::Tick => {
+                let random_val = rand::random::<f64>();
+                let random_sign = rand::random::<bool>();
+                let random_val = if random_sign { random_val } else { -random_val };
+                let val = 1000.0 * (1.0 + (random_val as f64 / 2.0));
+
+                self.update_position(val);
             }
             // todo: this might be a little slow, since it gets the adjusted portfolio.
             Message::UpdateTable(message) => {
@@ -507,23 +821,53 @@ impl State for Dashboard {
         Command::none()
     }
 
+    // Layout is a 2x2 quadrant grid
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let mut content = Column::new().spacing(Sizes::Lg);
-        content = content.push(self.render_header().map(|x| x.into()));
-        content = content.push(self.render_deposited_table().map(|x| x.into()));
-        content = content.push(self.render_table().map(|x| x.into()));
-        content = content.push(self.render_staging_area().map(|x| x.into()));
+        let mut quadrant_1 = ExcaliburContainer::default()
+            .light_border()
+            .build(Column::new().push(self.quadrant_i()))
+            .padding(Sizes::Md);
+        let mut quadrant_2 = ExcaliburContainer::default()
+            .light_border()
+            .build((self.quadrant_ii()))
+            .padding(Sizes::Md);
+        let mut quadrant_3 = ExcaliburContainer::default()
+            .light_border()
+            .build((self.quadrant_iii()))
+            .padding(Sizes::Md);
+        let mut quadrant_4 = ExcaliburContainer::default()
+            .light_border()
+            .build((self.quadrant_iv()))
+            .padding(Sizes::Md);
 
-        Container::new(content)
-            .align_y(alignment::Vertical::Top)
-            .center_x()
-            .max_height(ByteScale::Xl7)
-            .max_width(ByteScale::Xl7.between(&ByteScale::Xl8))
-            .into()
+        Container::new(
+            Column::new()
+                .spacing(Sizes::Lg)
+                .push(
+                    Row::new()
+                        .spacing(Sizes::Lg)
+                        .push(quadrant_2.width(Length::FillPortion(2)))
+                        .push(quadrant_1.width(Length::FillPortion(2)))
+                        .height(Length::FillPortion(2)),
+                )
+                .push(
+                    Row::new()
+                        .spacing(Sizes::Lg)
+                        .push(quadrant_3.width(Length::FillPortion(2)))
+                        .push(quadrant_4.width(Length::FillPortion(2)))
+                        .height(Length::FillPortion(2)),
+                )
+                .width(Length::Fill),
+        )
+        .into()
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
+        let s1 = iced::time::every(std::time::Duration::from_secs(1)).map(|_| Message::Tick);
         // every 5s fetch portfolio state
-        iced::time::every(std::time::Duration::from_secs(5)).map(|_| Message::FetchPortfolioState)
+        let s2 = iced::time::every(std::time::Duration::from_secs(5))
+            .map(|_| Message::FetchPortfolioState);
+
+        Subscription::batch(vec![s1])
     }
 }

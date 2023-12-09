@@ -236,7 +236,7 @@ impl State for Simulate {
     }
 }
 
-pub fn parse_token_int(value: Token) -> (bool, U256) {
+pub fn parse_token_int(value: Token) -> (bool, ethers::types::U256) {
     let mut signed = false;
     let value_int = value.clone().into_int();
     let value_uint = match value_int {
@@ -254,7 +254,7 @@ pub fn parse_token_int(value: Token) -> (bool, U256) {
     (signed, value_uint)
 }
 
-pub fn format_int_wad(signed: bool, value: U256) -> String {
+pub fn format_int_wad(signed: bool, value: ethers::types::U256) -> String {
     let formatted = format_ether(value).parse::<f64>().unwrap_or_default();
     let sign = if signed { "-" } else { "" };
     // truncated
