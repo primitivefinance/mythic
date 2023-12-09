@@ -447,7 +447,7 @@ impl State for Stages {
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let routes = Row::new()
-            .spacing(Sizes::Md)
+            .spacing(Sizes::Sm)
             .push(
                 tab_button(
                     self.current == DashboardState::Prepare,
@@ -484,12 +484,17 @@ impl State for Stages {
             DashboardState::Execute => self.execute.view().map(|x| x.into()),
         };
 
-        let mut nav = Column::new().push(routes).spacing(Sizes::Lg);
-        let area = Row::new()
-            .spacing(Sizes::Lg)
-            .push(Column::new().push(content).width(Length::FillPortion(3)))
-            .push(self.guide().width(Length::FillPortion(1)));
-        nav = nav.push(area);
+        let mut nav = Column::new().spacing(Sizes::Md);
+        // let area = Row::new()
+        // .spacing(Sizes::Md)
+        // .push(Column::new().push(content))
+        // .push(self.guide());
+        // nav = nav.push(area);
+        nav = nav.push(routes).height(Length::FillPortion(1));
+        nav = nav
+            .push(Column::new().push(content))
+            .height(Length::FillPortion(3));
+        nav = nav.push(self.guide()).height(Length::FillPortion(1));
 
         Container::new(nav)
             .width(Length::Fill)

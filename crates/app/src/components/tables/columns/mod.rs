@@ -133,7 +133,7 @@ where
                             .background(ExcaliburColor::Background2)
                             .theme()
                     })
-                    .border_bottom(true)
+                    .border_bottom(ExcaliburContainer::default().white_border().theme())
                     .cells(
                         self.headers
                             .into_iter()

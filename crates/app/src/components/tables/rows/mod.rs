@@ -26,7 +26,7 @@ where
     padding_cell: Option<Sizes>,
     padding_cell_internal: Option<Sizes>,
     containerize: Box<dyn Fn(Row<'static, Message>) -> Row<'static, Message>>,
-    border_bottom: bool,
+    border_bottom: Option<iced::theme::Container>,
 }
 
 impl<Message> Clone for RowBuilder<Message>
@@ -41,7 +41,7 @@ where
             padding_cell: self.padding_cell,
             padding_cell_internal: self.padding_cell_internal,
             containerize: Box::new(|e| e),
-            border_bottom: self.border_bottom,
+            border_bottom: None,
         }
     }
 }
@@ -68,12 +68,12 @@ where
             padding_cell_internal: None,
             // Returns self.
             containerize: Box::new(|e| e),
-            border_bottom: false,
+            border_bottom: None,
         }
     }
 
-    pub fn border_bottom(mut self, border_bottom: bool) -> Self {
-        self.border_bottom = border_bottom;
+    pub fn border_bottom(mut self, border_bottom: iced::theme::Container) -> Self {
+        self.border_bottom = Some(border_bottom);
         self
     }
 
@@ -137,13 +137,13 @@ where
             .spacing(self.spacing.unwrap_or_default())
             .padding(self.padding.unwrap_or_default());
 
-        if self.border_bottom {
+        if let Some(border_bottom) = self.border_bottom {
             row = Row::new()
                 .push(
                     Column::new().push(row).push(
                         Container::new(iced::widget::Space::new(Length::Fill, Length::Fixed(2.0)))
                             .width(Length::Fill)
-                            .style(BottomBorder::theme()),
+                            .style(border_bottom),
                     ),
                 )
                 .align_items(alignment::Alignment::Center)

@@ -44,6 +44,7 @@ pub enum LabelColors {
     Quaternary,
     Placeholder,
     Highlight,
+    Disabled,
 }
 
 const BLUE: Color = Color::from_rgb(
@@ -142,6 +143,7 @@ impl ExcaliburColor {
                 LabelColors::Quaternary => QUATERNARY_LABEL,
                 LabelColors::Placeholder => PLACEHOLDER_LABEL,
                 LabelColors::Highlight => MINT,
+                LabelColors::Disabled => DISABLED_TEXT_GRAY,
             },
             ExcaliburColor::Quantitative(quantitative_color) => match quantitative_color {
                 QuantitativeColors::Hundreds => Color::WHITE,
@@ -190,6 +192,7 @@ pub enum Typography {
     Subhead = 15,
     Footnote = 14,
     Caption = 12,
+    Caption2 = 10,
 }
 
 impl From<Typography> for iced::Pixels {
@@ -203,6 +206,7 @@ impl From<Typography> for iced::Pixels {
             Typography::Subhead => iced::Pixels(15.0),
             Typography::Footnote => iced::Pixels(14.0),
             Typography::Caption => iced::Pixels(12.0),
+            Typography::Caption2 => iced::Pixels(10.0),
         }
     }
 }
@@ -428,6 +432,13 @@ impl ExcaliburText {
         }
     }
 
+    pub fn caption2(self) -> Self {
+        Self {
+            size: Typography::Caption2,
+            ..self
+        }
+    }
+
     // Color
 
     pub fn primary(self) -> Self {
@@ -548,6 +559,7 @@ impl ExcaliburText {
 
     // Alignment
 
+    /// Sets text horizontal alignment to left.
     pub fn left(self) -> Self {
         Self {
             horizontal_alignment: alignment::Horizontal::Left,
@@ -555,6 +567,7 @@ impl ExcaliburText {
         }
     }
 
+    /// Sets text horizontal alignment to center.
     pub fn center(self) -> Self {
         Self {
             horizontal_alignment: alignment::Horizontal::Center,
@@ -562,6 +575,7 @@ impl ExcaliburText {
         }
     }
 
+    /// Sets text horizontal alignment to right.
     pub fn right(self) -> Self {
         Self {
             horizontal_alignment: alignment::Horizontal::Right,
@@ -569,6 +583,7 @@ impl ExcaliburText {
         }
     }
 
+    /// Sets text vertical alignment to top.
     pub fn top(self) -> Self {
         Self {
             vertical_alignment: alignment::Vertical::Top,
@@ -576,6 +591,7 @@ impl ExcaliburText {
         }
     }
 
+    /// Sets text vertical alignment to middle.
     pub fn middle(self) -> Self {
         Self {
             vertical_alignment: alignment::Vertical::Center,
@@ -583,6 +599,7 @@ impl ExcaliburText {
         }
     }
 
+    /// Sets text vertical alignment to bottom.
     pub fn bottom(self) -> Self {
         Self {
             vertical_alignment: alignment::Vertical::Bottom,
@@ -741,12 +758,18 @@ impl ExcaliburContainer {
         self
     }
 
+    pub fn white_border(mut self) -> Self {
+        self.border_color = ExcaliburColor::Custom(Color::WHITE);
+        self.border_width = 1.0;
+        self
+    }
+
     // Presets
 
     pub fn card(mut self) -> Self {
         self.background = ExcaliburColor::Background3;
         self.border_radius = Sizes::Sm.into();
-        self.border_color = ExcaliburColor::Custom(GRAY_1000);
+        self.border_color = ExcaliburColor::Custom(GRAY_600);
         self.border_width = 1.0;
         self
     }
@@ -770,7 +793,7 @@ impl ExcaliburButton {
     where
         Message: 'a,
     {
-        button(element).style(self.theme())
+        button(Container::new(element).center_x().center_y()).style(self.theme())
     }
 
     pub fn theme(self) -> iced::theme::Button {
@@ -785,7 +808,7 @@ impl ExcaliburButton {
     pub fn primary(self) -> Self {
         let color = ExcaliburColor::Label(LabelColors::Primary).into();
         let border_radius = 3.0.into();
-        let disabled_color = ExcaliburColor::Label(LabelColors::Quaternary).into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled).into();
         let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
             .text_color(color)
             .border_radius(border_radius)
@@ -804,7 +827,7 @@ impl ExcaliburButton {
     pub fn danger(self) -> Self {
         let color = ExcaliburColor::Label(LabelColors::Primary).into();
         let border_radius = 3.0.into();
-        let disabled_color = ExcaliburColor::Label(LabelColors::Tertiary).into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled).into();
         let style = CustomButtonStyle::destructive(&ExcaliburTheme::theme())
             .text_color(color)
             .border_radius(border_radius)
@@ -824,7 +847,7 @@ impl ExcaliburButton {
         let background = Color::TRANSPARENT;
         let semi_transparent_background = Color::from_rgba(40.0, 40.0, 40.0, 0.05);
         let color = ExcaliburColor::Label(LabelColors::Primary).into();
-        let disabled_color = ExcaliburColor::Label(LabelColors::Tertiary).into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled).into();
         let border_radius = 3.0.into();
 
         let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
@@ -886,14 +909,23 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
             .column(
                 self.col
                     .headers(self.headers)
-                    .header_row(RowBuilder::new().border_bottom(true))
+                    .header_row(
+                        RowBuilder::new()
+                            .border_bottom(ExcaliburContainer::default().white_border().theme()),
+                    )
                     .rows(
                         cells
                             .into_iter()
-                            .map(|cells| self.row.clone().cells(cells))
+                            .map(|cells| {
+                                self.row
+                                    .clone()
+                                    .border_bottom(
+                                        ExcaliburContainer::default().light_border().theme(),
+                                    )
+                                    .cells(cells)
+                            })
                             .collect(),
                     )
-                    .row(RowBuilder::new().border_bottom(true))
                     .row(
                         RowBuilder::new().cell(
                             CellBuilder::new().child(
@@ -914,11 +946,17 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
             .column(
                 self.col
                     .headers(self.headers)
-                    .header_row(RowBuilder::new().border_bottom(true))
+                    .header_row(
+                        RowBuilder::new()
+                            .border_bottom(ExcaliburContainer::default().white_border().theme()),
+                    )
                     .rows(vec![RowBuilder::new().cell(CellBuilder::new().child(
                         button("Create position").on_press(Message::default()),
                     ))])
-                    .row(RowBuilder::new().border_bottom(true))
+                    .row(
+                        RowBuilder::new()
+                            .border_bottom(ExcaliburContainer::default().light_border().theme()),
+                    )
                     .row(
                         RowBuilder::new().cell(
                             CellBuilder::new().child(

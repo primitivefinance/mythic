@@ -249,9 +249,6 @@ impl State for Execute {
 
         content = content.push(result_content);
 
-        Container::new(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Container::new(content).into()
     }
 }

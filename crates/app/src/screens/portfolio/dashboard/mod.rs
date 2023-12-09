@@ -24,7 +24,8 @@ use uuid::Uuid;
 use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
 use crate::components::{
-    system::{Card, ExcaliburColor, ExcaliburContainer, ExcaliburText},
+    chart::CartesianChart,
+    system::{Card, ExcaliburColor, ExcaliburContainer, ExcaliburTable, ExcaliburText},
     tables::{
         builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
         rows::RowBuilder,
@@ -393,6 +394,8 @@ pub struct Dashboard {
     pub deposited_table: PortfolioTable,
 
     pub data_model: DataModel,
+    pub portfolio_values_plot: CartesianChart,
+    pub trading_function_plot: CartesianChart,
 }
 
 impl Dashboard {
@@ -410,6 +413,8 @@ impl Dashboard {
             deposited_portfolio: None,
             deposited_table: PortfolioTable::new(),
             data_model: DataModel::new(),
+            portfolio_values_plot: CartesianChart::new(),
+            trading_function_plot: CartesianChart::new(),
         }
     }
 
@@ -494,6 +499,38 @@ impl Dashboard {
         }
 
         Some(portfolio)
+    }
+
+    pub fn sample_table(&self) -> Element<'_, Self::AppMessage> {
+        let cell_data: Vec<Vec<CellBuilder<Self::ViewMessage>>> = vec![
+            vec![
+                CellBuilder::new().child(label("BTC").secondary().build()),
+                CellBuilder::new().child(label("1000000.00").quantitative().build()),
+                CellBuilder::new().child(label("0.00000000").quantitative().build()),
+                CellBuilder::new().child(label("0.09").percentage().build()),
+            ],
+            vec![
+                CellBuilder::new().child(label("ETH").secondary().build()),
+                CellBuilder::new().child(label("5000").quantitative().build()),
+                CellBuilder::new().child(label("0.00000000").quantitative().build()),
+                CellBuilder::new().child(label("0.90").percentage().build()),
+            ],
+            vec![
+                CellBuilder::new().child(label("USDC").secondary().build()),
+                CellBuilder::new().child(label("1").quantitative().build()),
+                CellBuilder::new().child(label("0.00000000").quantitative().build()),
+                CellBuilder::new().child(label("0.01").percentage().build()),
+            ],
+        ];
+
+        let exp_table = ExcaliburTable::new()
+            .header("Asset")
+            .header("Price")
+            .header("Balance")
+            .header("Weight")
+            .build_custom(cell_data);
+
+        exp_table.into()
     }
 
     pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
@@ -581,27 +618,39 @@ impl Dashboard {
                 self.data_model.portfolio_value(),
                 self.data_model.replication_health(),
             ))
+            .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
             .into()
     }
 
     pub fn quadrant_ii(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Lg)
-            .push(self.render_deposited_table())
+            .push(
+                Column::new()
+                    .spacing(Sizes::Sm)
+                    .push(label(&"Good morning, X938A.").title3().highlight().build())
+                    .push(
+                        label(&"Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.")
+                            .title3()
+                            .highlight()
+                            .build(),
+                    ),
+            )
+            .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
             .into()
     }
 
     pub fn quadrant_iii(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Lg)
-            .push(self.render_staging_area())
+            .push(self.sample_table())
             .into()
     }
 
     pub fn quadrant_iv(&self) -> Element<'_, Self::AppMessage> {
         Column::new()
             .spacing(Sizes::Lg)
-            .push(self.data_model.internal_price())
+            .push(self.render_staging_area())
             .into()
     }
 }

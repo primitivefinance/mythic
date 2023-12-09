@@ -229,8 +229,6 @@ impl State for Simulate {
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         Container::new(self.render_simulation_outcome())
-            .width(Length::Fill)
-            .height(Length::Fill)
             .center_x()
             .into()
     }

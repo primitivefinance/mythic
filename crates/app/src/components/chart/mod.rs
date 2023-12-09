@@ -19,14 +19,14 @@ use plotters_iced::{Chart, ChartWidget, Renderer};
 
 use super::*;
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct CartesianChart {
     cache: Arc<RwLock<Cache>>,
     relative_position: Option<Point>,
     pub state: CartesianState,
     points: Vec<(f32, f32)>,
     lines: Vec<((f32, f32), (f32, f32))>,
-    spec: Mutex<Option<Cartesian2d<RangedCoordf32, RangedCoordf32>>>,
+    // spec: Mutex<Option<Cartesian2d<RangedCoordf32, RangedCoordf32>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -50,7 +50,7 @@ impl CartesianChart {
             state: CartesianState::default(),
             points: vec![],
             lines,
-            spec: Mutex::new(None),
+            // spec: Mutex::new(None),
         }
     }
 
@@ -63,6 +63,7 @@ impl CartesianChart {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct CartesianState {
     pub x_range: (f32, f32),
     pub y_range: (f32, f32),
@@ -434,9 +435,10 @@ impl Chart<Message> for CartesianChart {
         // .draw()
         // .expect("Failed to draw labels");
 
-        // This line is saving the current state of the chart (like its range and scale)
-        // so it can be reused or referenced later without having to be recalculated.
-        *self.spec.lock().unwrap() = Some(chart.as_coord_spec().clone());
+        // This line is saving the current state of the chart (like its range
+        // and scale) so it can be reused or referenced later without
+        // having to be recalculated.
+        //*self.spec.lock().unwrap() = Some(chart.as_coord_spec().clone());
     }
 }
 

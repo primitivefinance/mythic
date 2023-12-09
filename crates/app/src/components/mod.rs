@@ -204,7 +204,11 @@ where
 
     let mut submit: Button<'a, Message> = ExcaliburButton::new()
         .primary()
-        .build(label(&action.unwrap_or_else(|| "Submit".to_string())).build())
+        .build(
+            text(&action.unwrap_or_else(|| "Submit".to_string()))
+                .width(Length::Fill)
+                .horizontal_alignment(alignment::Horizontal::Center),
+        )
         .padding(Sizes::Md)
         .width(Length::Fill);
 
@@ -212,19 +216,35 @@ where
         submit = submit.on_press(on_submit)
     }
 
-    let feedback = label(&feedback.unwrap_or_default())
+    let feedback = label(&feedback.unwrap_or("No feedback to report".to_string()))
         .highlight()
+        .caption2()
+        .secondary()
         .build()
         .horizontal_alignment(alignment::Horizontal::Center)
         .vertical_alignment(alignment::Vertical::Center);
 
-    Card::new(
-        Column::new()
-            .push(inner)
-            .push(submit)
-            .push(feedback)
+    // Card::new(
+    // Column::new()
+    // .push(inner)
+    // .push(submit)
+    // .push(feedback)
+    // .spacing(Sizes::Md)
+    // .padding(Sizes::Md),
+    // )
+
+    Container::new(
+        Row::new()
             .spacing(Sizes::Md)
-            .padding(Sizes::Md),
+            .align_items(alignment::Alignment::Center)
+            .push(inner.width(Length::FillPortion(2)))
+            .push(
+                Column::new()
+                    .spacing(Sizes::Xs)
+                    .width(Length::FillPortion(2))
+                    .push(submit)
+                    .push(feedback),
+            ),
     )
 }
 
