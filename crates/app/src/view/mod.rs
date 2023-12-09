@@ -1,12 +1,9 @@
-use std::collections::HashMap;
-
-use ethers::abi::Token;
 use iced::widget::{Column, Container, Row};
 
 use self::sidebar::Page;
-use super::{components::*, tracer::AppEventLayer, *};
+use super::*;
 use crate::{
-    components::system::{label, ExcaliburColor, ExcaliburContainer},
+    components::system::{ExcaliburColor, ExcaliburContainer},
     screens::State,
 };
 
@@ -47,6 +44,13 @@ impl From<Message> for app::Message {
     }
 }
 
+/// Root layout that is rendered by the root application.
+///
+/// Renders two components in a row:
+/// - Sidebar menu
+/// - Content
+///
+/// Content is wrapped by its own layout.
 pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
     menu: &'a sidebar::Sidebar,
     content: T,
@@ -64,6 +68,11 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
                     .width(Length::FillPortion(5)),
             ),
     )
+    .style(
+        ExcaliburContainer::default()
+            .background(ExcaliburColor::Background1)
+            .theme(),
+    )
     .width(Length::Fill)
     .height(Length::Fill)
     .center_x()
@@ -73,10 +82,10 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
 
 /// For rendering content inside a screen that implements [`State`].
 pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
-    window: &'a Page,
+    _window: &'a Page,
     content: T,
 ) -> Element<'a, Message> {
-    Container::new(screen_window(window, content))
+    Container::new(content)
         .center_x()
         .center_y()
         .align_x(alignment::Horizontal::Center)
@@ -90,21 +99,4 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
                 .theme(),
         )
         .into()
-}
-
-/// note: the header needs to fill the container. but this pushes the content
-/// out to its max width.
-/// so we need to cap the window to a max width, which we should improve on in
-/// the future.
-pub fn screen_window<'a, T: Into<Element<'a, Message>>>(
-    window: &'a Page,
-    content: T,
-) -> Container<'a, Message, iced::Renderer> {
-    let name = window.name().clone();
-    Container::new(
-        Column::new()
-            .push(Row::new().push(content))
-            .spacing(Sizes::Md as u16),
-    )
-    .max_height(ByteScale::Xl7 as u16)
 }
