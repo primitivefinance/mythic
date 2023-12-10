@@ -14,7 +14,7 @@
 //! - Computing plots off the data to be displayed in charts
 //! - Subscribing to data feeds from asynchronous sources
 
-use alloy_sol_types::{sol, SolCall, SolInterface};
+use alloy_sol_types::{sol, SolCall};
 use anyhow::{Error, Result};
 // todo: remove this in favor of alloy types when possible.
 use bindings::{dfmm::DFMM, log_normal::LogNormal};
@@ -92,10 +92,47 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub type Address = AlloyAddress;
     pub type Value = AlloyU256;
 
+    /// Creates a completely fresh model with no values set.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Sets up the model with the required addresses needed to fetch all the
+    /// data in the model.
+    pub fn setup(
+        &mut self,
+        user_address: AlloyAddress,
+        protocol_address: AlloyAddress,
+        strategy_address: AlloyAddress,
+        asset_token: AlloyAddress,
+        quote_token: AlloyAddress,
+    ) {
+        self.user_address = Some(user_address);
+        self.raw_protocol_address = Some(protocol_address);
+        self.raw_strategy_address = Some(strategy_address);
+        self.raw_asset_token = Some(asset_token);
+        self.raw_quote_token = Some(quote_token);
+    }
+
+    /// Updates the ENTIRE model! Wow!
+    pub async fn update(&mut self, client: Arc<Client>) -> Result<()> {
+        self.update_token_balances(client.clone()).await?;
+        self.update_protocol_state(client.clone()).await?;
+        self.update_strategy_state(client.clone()).await?;
+        self.update_last_sync_block(client.clone()).await?;
+        self.update_last_sync_timestamp()?;
+
+        Ok(())
+    }
+
+    pub fn update_last_sync_timestamp(&mut self) -> Result<()> {
+        let timestamp = Utc::now();
+        self.raw_last_chain_data_sync_timestamp = Some(timestamp);
+
+        Ok(())
+    }
+
+    /// Gets the protocol contract instance given the model's protocol address.
     pub async fn protocol(&self, client: Arc<Client>) -> Result<DFMM<Client>> {
         let protocol_address = self
             .raw_protocol_address
@@ -105,6 +142,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(protocol)
     }
 
+    /// Gets the strategy contract instance given the model's strategy address.
     pub async fn strategy(&self, client: Arc<Client>) -> Result<LogNormal<Client>> {
         let strategy_address = self
             .raw_strategy_address
@@ -114,13 +152,34 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(strategy)
     }
 
-    pub async fn fetch_balance(client: Arc<Client>, address: Self::Address) -> Result<Self::Value> {
+    // Provider
+
+    pub async fn fetch_block_number(&self, client: Arc<Client>) -> Result<u64> {
+        let block_number = client.get_block_number().await?;
+        Ok(block_number.as_u64())
+    }
+
+    pub async fn update_last_sync_block(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+        self.raw_last_chain_data_sync_block = Some(block_number);
+        Ok(())
+    }
+
+    /// Fetches the ether balance of an address.
+    pub async fn fetch_balance(
+        &self,
+        client: Arc<Client>,
+        address: Self::Address,
+    ) -> Result<Self::Value> {
         let converted_address = to_ethers_address(address);
         let balance = client.get_balance(converted_address, None).await?;
         let converted_balance = from_ethers_u256(balance);
         Ok(converted_balance)
     }
 
+    // Tokens
+
+    /// Fetches the balance of tokens of a given address for a given token.
     #[tracing::instrument(skip(client), level = "trace", ret, err)]
     pub async fn fetch_balance_of(
         &self,
