@@ -1033,10 +1033,28 @@ impl ExcaliburChart {
         self
     }
 
+    pub fn update_many_series(&mut self, new_series: Vec<ChartLineSeries>) {
+        self.chart.many_series(new_series);
+    }
+
+    pub fn update_points_of_interest(&mut self, points_of_interest: Vec<ChartPoint>) {
+        self.chart.points_of_interest(points_of_interest);
+    }
+
     /// Add multiple series to the chart.
     pub fn many_series(mut self, new_series: Vec<ChartLineSeries>) -> Self {
         self.chart.many_series(new_series);
         self
+    }
+
+    /// Update the x-axis range.
+    pub fn update_x_range(&mut self, x_range: (f32, f32)) {
+        self.chart.range.x_range = x_range;
+    }
+
+    /// Update the y-axis range.
+    pub fn update_y_range(&mut self, y_range: (f32, f32)) {
+        self.chart.range.y_range = y_range;
     }
 
     /// Add a point of interest to the chart.

@@ -23,7 +23,10 @@ use serde::{Deserialize, Serialize, Serializer};
 use stages::Stages;
 use uuid::Uuid;
 
-use self::{stages::DashboardState, table::PortfolioTable};
+use self::{
+    portfolio_model::RawDataModel, portfolio_view::DataView, stages::DashboardState,
+    table::PortfolioTable,
+};
 use super::*;
 use crate::{
     components::{
@@ -697,10 +700,18 @@ impl Dashboard {
     }
 
     pub fn quadrant_i(&self) -> Element<'_, Self::AppMessage> {
+        let mut model = RawDataModel::new();
+        model.raw_internal_spot_price = self.data_model.raw_internal_spot_price.clone();
+        let model_view = DataView::new(
+            model,
+            self.portfolio_values_plot.clone(),
+            self.trading_function_plot.clone(),
+        );
+
         Column::new()
             .spacing(Sizes::Lg)
             .push(space_between(
-                space_between(self.data_model.internal_price(), self.data_model.tvl()).into(),
+                space_between(model_view.internal_price(), self.data_model.tvl()).into(),
                 space_between(
                     self.data_model.portfolio_value(),
                     self.data_model.replication_health(),
