@@ -44,6 +44,7 @@ revm-primitives = { version = "1.3.0" }
 sim.workspace = true
 
 # workspace deps
+bindings.workspace = true
 async-trait.workspace = true
 reikna.workspace = true
 statrs.workspace = true
@@ -61,3 +62,4 @@ tokio-util.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+alloy-sol-types = "0.5.2"

@@ -1,5 +1,7 @@
 //! Renders a view of the portfolio's positions and strategies.
 
+mod portfolio_model;
+mod portfolio_view;
 pub mod stages;
 pub mod table;
 
