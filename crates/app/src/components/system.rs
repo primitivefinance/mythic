@@ -1,6 +1,6 @@
 //! Entire Excalibur component system.
 
-use iced::{widget::Space, Font};
+use iced::Font;
 
 use super::*;
 
@@ -977,6 +977,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
     }
 }
 
+/// Simple template for a Card built from the Excalibur components.
 pub struct Card;
 
 impl Card {
@@ -988,21 +989,7 @@ impl Card {
     }
 }
 
-pub struct BottomBorder;
+/// For constructing charts in Excalibur!
+pub struct ExcaliburChart;
 
-impl iced::widget::container::StyleSheet for BottomBorder {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _: &<Self as container::StyleSheet>::Style) -> container::Appearance {
-        container::Appearance {
-            background: Some(iced::Background::Color(Color::WHITE)),
-            ..Default::default()
-        }
-    }
-}
-
-impl BottomBorder {
-    pub fn theme() -> iced::theme::Container {
-        iced::theme::Container::Custom(Box::from(BottomBorder))
-    }
-}
+impl ExcaliburChart {}

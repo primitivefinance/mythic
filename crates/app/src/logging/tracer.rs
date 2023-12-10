@@ -136,6 +136,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
                     && !metadata.target().starts_with("simulation")
                     && !metadata.name().contains("create_task")
                     && !metadata.name().contains("step")
+                    && !metadata.target().starts_with("cfmm_math")
             }))
             .boxed()
     }

@@ -1,5 +1,4 @@
 use super::{cells::CellBuilder, *};
-use crate::components::system::BottomBorder;
 
 /// Very basic table row with two cells, a label and text input.
 pub fn dev_row<'a, Message>(
