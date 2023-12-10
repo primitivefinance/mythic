@@ -2,7 +2,13 @@
 
 use iced::Font;
 
-use super::*;
+use super::{
+    chart::{
+        basic_liq_dist_curve, basic_log_normal_curve, coords_to_line_series, CartesianChart,
+        ChartLineSeries, ChartPoint,
+    },
+    *,
+};
 
 const BG1: Color = Color::from_rgb(
     0x04 as f32 / 255.0,
@@ -990,6 +996,90 @@ impl Card {
 }
 
 /// For constructing charts in Excalibur!
-pub struct ExcaliburChart;
+#[derive(Debug, Clone, Default)]
+pub struct ExcaliburChart {
+    pub chart: CartesianChart,
+}
 
-impl ExcaliburChart {}
+impl ExcaliburChart {
+    pub fn new() -> Self {
+        Self {
+            chart: CartesianChart::new(),
+        }
+    }
+
+    pub fn build(&self) -> Element<'_, chart::Message> {
+        self.chart.view()
+    }
+
+    // Configuring the chart
+
+    pub fn series_color(mut self, index: usize, color: ExcaliburColor) -> Self {
+        // Convert the Excalibur color into a plotters RGBA color.
+        let color = color.color();
+        let converted_color = plotters::style::RGBColor(
+            (color.r * 255.0) as u8,
+            (color.g * 255.0) as u8,
+            (color.b * 255.0) as u8,
+        );
+
+        self.chart.series[index].color = converted_color;
+        self
+    }
+
+    /// Add a series to the chart.
+    pub fn series(mut self, series: ChartLineSeries) -> Self {
+        self.chart.series(series);
+        self
+    }
+
+    /// Add multiple series to the chart.
+    pub fn many_series(mut self, new_series: Vec<ChartLineSeries>) -> Self {
+        self.chart.many_series(new_series);
+        self
+    }
+
+    /// Add a point of interest to the chart.
+    pub fn point_of_interest(mut self, point_of_interest: ChartPoint) -> Self {
+        self.chart.point_of_interest(point_of_interest);
+        self
+    }
+
+    /// Add multiple points of interest to the chart.
+    pub fn points_of_interest(mut self, points_of_interest: Vec<ChartPoint>) -> Self {
+        self.chart.points_of_interest(points_of_interest);
+        self
+    }
+
+    /// Add an x-range to the chart.
+    pub fn x_range(mut self, x_range: (f32, f32)) -> Self {
+        self.chart.range.x_range = x_range;
+        self
+    }
+
+    /// Add a y-range to the chart.
+    pub fn y_range(mut self, y_range: (f32, f32)) -> Self {
+        self.chart.range.y_range = y_range;
+        self
+    }
+
+    // Chart templates
+    pub fn rmm_trading_fn(mut self) -> Self {
+        let log_normal_plot = basic_log_normal_curve();
+        let mut series = coords_to_line_series(log_normal_plot);
+        series.legend = "Log Normal".to_string();
+
+        let liq_dist_plot = basic_liq_dist_curve();
+        let mut series2 = coords_to_line_series(liq_dist_plot);
+        series2.legend = "Liq. Dist.".to_string();
+        series2.color = plotters::style::colors::full_palette::DEEPPURPLE_400;
+
+        let lines: Vec<ChartLineSeries> = vec![series, series2];
+
+        self.chart.many_series(lines);
+        self = self.x_range((-0.1, 1.0));
+        self = self.y_range((-0.1, 1.0));
+
+        self
+    }
+}

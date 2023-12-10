@@ -1,7 +1,9 @@
-use cfmm_math::trading_functions::rmm::{
-    compute_half_sigma_power_2_tau, compute_ln_s_div_k, compute_sigma_sqrt_tau,
-    compute_y_given_x_rust,
-};
+//! Interactive chart built on top of iced-plotters and plotters.
+//! todo: plot functions instead of the results of the functions!
+//! To accomplish that we need to update the plot as the x and y ranges change
+//! with the user's scrolling or dragging.
+
+use cfmm_math::trading_functions::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
     event,
     mouse::{Cursor, Event},
@@ -10,8 +12,6 @@ use iced::{
 };
 use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
 use plotters_iced::{Chart, ChartWidget};
-use reikna::integral::*;
-use statrs::distribution::Continuous;
 
 /// A point to plot on the chart.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -132,6 +132,7 @@ pub struct CartesianChart {
     pub point_label_container_style: RGBAColor,
 }
 
+/// Makes a default chart with a point of interest and a series plot.
 impl Default for CartesianChart {
     fn default() -> Self {
         Self {
@@ -162,6 +163,20 @@ impl Default for CartesianChart {
     }
 }
 
+/// Converts a vector of coordinates into a line series plot that draws line
+/// segments between each coordinate.
+pub fn coords_to_line_series(coords: Vec<(f32, f32)>) -> ChartLineSeries {
+    let line: Vec<((f32, f32), (f32, f32))> = coords
+        .windows(2)
+        .map(|window| ((window[0].0, window[0].1), (window[1].0, window[1].1)))
+        .collect();
+
+    let line: Vec<ChartLine> = line.into_iter().map(|line| line.into()).collect();
+    let series: ChartLineSeries = line.into();
+
+    series
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     MouseEvent(iced::mouse::Event, iced::Point),
@@ -170,41 +185,30 @@ pub enum Message {
 impl CartesianChart {
     pub type Message = Message;
 
+    /// Makes a completely fresh chart with no points or series.
+    /// Default has a point and a line series.
     pub fn new() -> Self {
-        let log_normal_plot = basic_log_normal_curve();
-        let line: Vec<((f32, f32), (f32, f32))> = log_normal_plot
-            .windows(2)
-            .map(|window| ((window[0].0, window[0].1), (window[1].0, window[1].1)))
-            .collect();
-
-        let line: Vec<ChartLine> = line.into_iter().map(|line| line.into()).collect();
-        let mut series: ChartLineSeries = line.into();
-        series.legend = "Log Normal".to_string();
-
-        let liq_dist_plot = basic_liq_dist_curve();
-        let line: Vec<((f32, f32), (f32, f32))> = liq_dist_plot
-            .windows(2)
-            .map(|window| ((window[0].0, window[0].1), (window[1].0, window[1].1)))
-            .collect();
-
-        let line: Vec<ChartLine> = line.into_iter().map(|line| line.into()).collect();
-        let mut series2: ChartLineSeries = line.into();
-        series2.legend = "Liq. Dist.".to_string();
-        series2.color = colors::full_palette::DEEPPURPLE_400;
-
-        let lines: Vec<ChartLineSeries> = vec![series, series2];
-
-        let range = CartesianRanges {
-            x_range: (-0.1, 1.0),
-            y_range: (-0.1, 5.0),
-        };
-
         Self {
-            points: vec![(0.5, 0.5).into()],
-            series: lines.clone(),
-            range,
+            series: vec![],
+            points: vec![],
             ..Default::default()
         }
+    }
+
+    pub fn series(&mut self, new_series: ChartLineSeries) {
+        self.series.push(new_series);
+    }
+
+    pub fn many_series(&mut self, new_series: Vec<ChartLineSeries>) {
+        self.series.extend(new_series);
+    }
+
+    pub fn point_of_interest(&mut self, new_point: ChartPoint) {
+        self.points.push(new_point);
+    }
+
+    pub fn points_of_interest(&mut self, new_points: Vec<ChartPoint>) {
+        self.points.extend(new_points);
     }
 
     pub fn view(&self) -> Element<Self::Message> {
@@ -234,14 +238,24 @@ impl Default for CartesianRanges {
     }
 }
 
+/// The state of the chart, which is interactively updated by the user in the
+/// [`update`] method.
 #[derive(Debug, Clone, Default)]
 pub struct ChartState {
+    /// The bounds of the chart, measured in absolute units.
     pub bounds: Option<iced::Rectangle>,
+    /// The x-axis and y-axis ranges of the chart.
     pub range: CartesianRanges,
+    /// The original x-axis and y-axis ranges of the chart before the user
+    /// changes it with zoom or drag.
     pub original_range: Option<CartesianRanges>,
+    /// The absolute position of the cursor inside the chart canvas bounds.
     pub relative_position: Option<Point>,
+    /// The absolute position of the cursor with the y-axis flipped.
     pub cartesian_position: Option<Point>,
+    /// Whether the left click is down.
     pub cursor_left_click_down: bool,
+    /// The initial position of the left click.
     pub initial_left_click_position: Option<Point>,
 }
 
@@ -390,6 +404,16 @@ impl Chart<Message> for CartesianChart {
                 }
                 _ => {}
             }
+        } else {
+            // Reset the relative position to None if the cursor is not available.
+            state.relative_position = None;
+            state.cartesian_position = None;
+
+            // Reset the left click down state if the cursor is not available.
+            if state.cursor_left_click_down {
+                state.cursor_left_click_down = false;
+                state.initial_left_click_position = None;
+            }
         }
 
         if state.bounds.is_none() {
@@ -429,33 +453,37 @@ impl Chart<Message> for CartesianChart {
             .draw()
             .expect("Failed to draw chart mesh");
 
-        // Draw the points on the chart.
-        chart
-            .draw_series(
-                self.points
-                    .iter()
-                    .map(|p| Circle::new((p.x, p.y), p.diameter, p.color.filled())),
-            )
-            .expect("Failed to plot points");
-
-        // Draw the line series' on the chart.
-        for line_series in self.series.iter().cloned() {
+        // Draw the points on the chart, if any.
+        if !self.points.is_empty() {
             chart
-                .draw_series(LineSeries::new(
-                    line_series
-                        .lines
+                .draw_series(
+                    self.points
                         .iter()
-                        .flat_map(|line| vec![(line.x1, line.y1), (line.x2, line.y2)]),
-                    line_series.color.filled().stroke_width(line_series.width),
-                ))
-                .expect("Failed to plot lines")
-                .label(line_series.legend)
-                .legend(move |(x, y)| {
-                    PathElement::new(
-                        vec![(x, y), (x + 20, y)],
+                        .map(|p| Circle::new((p.x, p.y), p.diameter, p.color.filled())),
+                )
+                .expect("Failed to plot points");
+        }
+
+        // Draw the line series' on the chart, if any.
+        if !self.series.is_empty() {
+            for line_series in self.series.iter().cloned() {
+                chart
+                    .draw_series(LineSeries::new(
+                        line_series
+                            .lines
+                            .iter()
+                            .flat_map(|line| vec![(line.x1, line.y1), (line.x2, line.y2)]),
                         line_series.color.filled().stroke_width(line_series.width),
-                    )
-                });
+                    ))
+                    .expect("Failed to plot lines")
+                    .label(line_series.legend)
+                    .legend(move |(x, y)| {
+                        PathElement::new(
+                            vec![(x, y), (x + 20, y)],
+                            line_series.color.filled().stroke_width(line_series.width),
+                        )
+                    });
+            }
         }
 
         // Draw the x-axis and y-axis indicators from the cursor position.
@@ -813,7 +841,7 @@ fn near_boundaries(
     }
 }
 
-fn basic_log_normal_curve() -> Vec<(f32, f32)> {
+pub fn basic_log_normal_curve() -> Vec<(f32, f32)> {
     let x_min = 0.0;
     let x_max = 1.0;
     let liquidity = 1.0;
@@ -833,46 +861,8 @@ fn basic_log_normal_curve() -> Vec<(f32, f32)> {
     points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect()
 }
 
-/// K e^(-1/2 v^2 t) (v sqrt(t) e^(ln(x / K) + 1/2 v^2 t) / Gaussian.pdf(ln(x/K)
-/// / v sqrt(t) + 1/2 v sqrt(t)))
-fn g_x(x: f64, strike: f64, sigma: f64, time_to_expiry: f64) -> f64 {
-    // If x is within float epilson of 0, return 0.
-    if x < f64::EPSILON && x > -f64::EPSILON {
-        return 0.0;
-    }
-
-    let normal = statrs::distribution::Normal::new(0.0, 1.0).unwrap();
-    // v sqrt(t)
-    let v_sqrt_t = compute_sigma_sqrt_tau(sigma, time_to_expiry);
-    // ln(x / K)
-    let ln_x_div_k = compute_ln_s_div_k(x, strike);
-    // 1/2 v sqrt(t)
-    let half_sigma_pow_two_tau = compute_half_sigma_power_2_tau(sigma, time_to_expiry);
-    // K e^(-1/2 v^2 t)
-    let term_1 = strike * (-half_sigma_pow_two_tau).exp();
-    // v sqrt(t) e^(ln(x / K) + 1/2 v^2 t)
-    let numerator = v_sqrt_t * (ln_x_div_k + half_sigma_pow_two_tau).exp();
-    // Gaussian.pdf(ln(x/K) / v sqrt(t) + 1/2 v sqrt(t))
-    let denominator = normal.pdf(ln_x_div_k / v_sqrt_t + half_sigma_pow_two_tau);
-
-    term_1 * numerator / denominator
-}
-
-/// a = L / integral(0, 1000)( 1 / g(x) gx )
-fn get_a(liquidity: f64, strike: f64, sigma: f64, time_to_expiry: f64) -> f64 {
-    let g_x = reikna::func!(move |x: f64| 1.0 / g_x(x, strike, sigma, time_to_expiry));
-    let integral = reikna::integral::integrate(&g_x, f64::EPSILON, 1000.0);
-    liquidity / integral
-}
-
-/// a / g(x)
-fn liq_distribution(x: f64, liquidity: f64, strike: f64, sigma: f64, time_to_expiry: f64) -> f64 {
-    let a = get_a(liquidity, strike, sigma, time_to_expiry);
-    a / g_x(x, strike, sigma, time_to_expiry)
-}
-
 /// Plot the points of the basic normal liq distribution.
-fn basic_liq_dist_curve() -> Vec<(f32, f32)> {
+pub fn basic_liq_dist_curve() -> Vec<(f32, f32)> {
     let x_min = 0.01;
     let x_max = 1.0;
     let liquidity = 1.0;
@@ -942,10 +932,7 @@ impl From<(f32, f32)> for ChartPoint {
 
 #[cfg(test)]
 mod tests {
-    use statrs::{
-        assert_almost_eq,
-        distribution::{Continuous, ContinuousCDF, Normal},
-    };
+    use statrs::assert_almost_eq;
 
     use super::*;
 
@@ -1013,31 +1000,7 @@ mod tests {
 
         let depth = liq_distribution(x, liquidity, strike, sigma, time_to_expiry);
         println!("depth: {}", depth);
-    }
 
-    #[test]
-    fn test_g_x() {
-        let x = 0.5;
-        let liquidity = 1.0;
-        let strike = 1.0;
-        let sigma = 1.0;
-        let time_to_expiry = 1.0;
-
-        let depth = g_x(x, strike, sigma, time_to_expiry);
-        println!("depth: {}", depth);
-    }
-
-    #[test]
-    fn test_get_a() {
-        let x = 0.5;
-        let liquidity = 1.0;
-        let strike = 1.0;
-        let sigma = 1.0;
-        let time_to_expiry = 1.0;
-
-        let depth = get_a(liquidity, strike, sigma, time_to_expiry);
-        println!("depth: {}", depth);
-
-        assert_almost_eq!(depth, 1.0, 1e-2);
+        assert_almost_eq!(depth, 0.354, 1e-3);
     }
 }

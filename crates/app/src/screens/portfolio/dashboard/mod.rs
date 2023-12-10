@@ -25,7 +25,9 @@ use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
 use crate::components::{
     chart::CartesianChart,
-    system::{Card, ExcaliburColor, ExcaliburContainer, ExcaliburTable, ExcaliburText},
+    system::{
+        Card, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburTable, ExcaliburText,
+    },
     tables::{
         builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
         rows::RowBuilder,
@@ -394,8 +396,8 @@ pub struct Dashboard {
     pub deposited_table: PortfolioTable,
 
     pub data_model: DataModel,
-    pub portfolio_values_plot: CartesianChart,
-    pub trading_function_plot: CartesianChart,
+    pub portfolio_values_plot: ExcaliburChart,
+    pub trading_function_plot: ExcaliburChart,
 }
 
 impl Dashboard {
@@ -413,8 +415,8 @@ impl Dashboard {
             deposited_portfolio: None,
             deposited_table: PortfolioTable::new(),
             data_model: DataModel::new(),
-            portfolio_values_plot: CartesianChart::new(),
-            trading_function_plot: CartesianChart::new(),
+            portfolio_values_plot: ExcaliburChart::new().rmm_trading_fn(),
+            trading_function_plot: ExcaliburChart::new().rmm_trading_fn(),
         }
     }
 
@@ -622,7 +624,7 @@ impl Dashboard {
                 Column::new()
                     .spacing(Sizes::Md)
                     .push(label(&"Portfolio value / time").highlight().build())
-                    .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
+                    .push(self.portfolio_values_plot.build().map(|x| Message::Empty))
                     .push(label(&"Last sync: 1m ago").caption().tertiary().build()),
             )
             .into()
@@ -644,7 +646,7 @@ impl Dashboard {
             )
             .push(Column::new()
             .spacing(Sizes::Xs)
-            .push(self.portfolio_values_plot.view().map(|x| Message::Empty))
+            .push(self.portfolio_values_plot.build().map(|x| Message::Empty))
             .push(label(&"Last sync: 1m ago").caption().tertiary().build()))
             .into()
     }
