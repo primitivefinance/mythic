@@ -23,15 +23,19 @@ use uuid::Uuid;
 
 use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
-use crate::components::{
-    chart::CartesianChart,
-    system::{
-        Card, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburTable, ExcaliburText,
+use crate::{
+    components::{
+        chart::CartesianChart,
+        system::{
+            Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
+            ExcaliburTable, ExcaliburText,
+        },
+        tables::{
+            builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+            rows::RowBuilder,
+        },
     },
-    tables::{
-        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-        rows::RowBuilder,
-    },
+    middleware::{Cortex, Watcher},
 };
 
 /// Executed on `load` for the Dashboard screen.
@@ -66,6 +70,17 @@ async fn load_portfolio(
     }
 
     Ok(portfolio)
+}
+
+#[tracing::instrument(skip(client), ret)]
+async fn fetch_balance(
+    client: Arc<Provider<Ws>>,
+    address: ethers::types::Address,
+) -> anyhow::Result<ethers::types::U256, Arc<anyhow::Error>> {
+    client
+        .get_balance(address, None)
+        .await
+        .map_err(|e| Arc::new(anyhow::Error::from(e)))
 }
 
 async fn fetch_portfolio(
@@ -145,6 +160,7 @@ pub enum Message {
     /// Triggered every 3s.
     FetchPortfolioState,
     Tick,
+    Refetch,
 }
 
 impl MessageWrapperView for Message {
@@ -158,6 +174,44 @@ impl MessageWrapper for Message {
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(msg: Message) -> Self {
         super::Message::Dashboard(msg)
+    }
+}
+
+pub struct TestCortex<P, S>
+where
+    P: JsonRpcClient + 'static,
+    S: Signer + 'static,
+{
+    pub provider: Arc<Provider<P>>,
+    pub signer: S,
+    pub client: Arc<SignerMiddleware<Provider<P>, S>>,
+    pub watcher: Option<Watcher>,
+}
+
+#[async_trait::async_trait]
+impl Cortex for TestCortex<Ws, LocalWallet> {
+    type Provider = Ws;
+    type Signer = LocalWallet;
+    type Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>;
+
+    fn client(&self) -> Arc<SignerMiddleware<Provider<Ws>, LocalWallet>> {
+        self.client.clone()
+    }
+
+    fn provider(&self) -> Arc<Provider<Ws>> {
+        self.provider.clone()
+    }
+
+    fn signer(&self) -> Option<LocalWallet> {
+        Some(self.signer.clone())
+    }
+
+    fn protocol_address(&self) -> ethers::types::Address {
+        ethers::types::Address::zero()
+    }
+
+    fn strategy_address(&self) -> ethers::types::Address {
+        ethers::types::Address::zero()
     }
 }
 
@@ -398,6 +452,16 @@ pub struct Dashboard {
     pub data_model: DataModel,
     pub portfolio_values_plot: ExcaliburChart,
     pub trading_function_plot: ExcaliburChart,
+
+    pub cortex: Option<
+        Arc<
+            dyn Cortex<
+                Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>,
+                Provider = Ws,
+                Signer = LocalWallet,
+            >,
+        >,
+    >,
 }
 
 impl Dashboard {
@@ -406,6 +470,26 @@ impl Dashboard {
 
     /// Try loading the portfolio from the name.
     pub fn new(name: Option<String>, dev_client: Option<DevClient<DefaultMiddleware>>) -> Self {
+        let cortex = if let Some(dev) = dev_client.clone() {
+            let client: DevClient<DefaultMiddleware> = dev.clone();
+            let cortex: Arc<
+                dyn Cortex<
+                    Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>,
+                    Provider = Ws,
+                    Signer = LocalWallet,
+                >,
+            > = Arc::new(TestCortex {
+                provider: client.client().provider().clone().into(),
+                signer: client.client().signer().clone(),
+                client: client.client().clone(),
+                watcher: None,
+            });
+
+            Some(cortex)
+        } else {
+            None
+        };
+
         Self {
             portfolio: None,
             table: PortfolioTable::new(),
@@ -417,6 +501,7 @@ impl Dashboard {
             data_model: DataModel::new(),
             portfolio_values_plot: ExcaliburChart::new().rmm_trading_fn(),
             trading_function_plot: ExcaliburChart::new().rmm_trading_fn(),
+            cortex,
         }
     }
 
@@ -655,6 +740,12 @@ impl Dashboard {
         Column::new()
             .spacing(Sizes::Lg)
             .push(self.sample_table())
+            .push(
+                ExcaliburButton::new()
+                    .primary()
+                    .build(label(&"Refetch").build())
+                    .on_press(Message::Refetch),
+            )
             .into()
     }
 
@@ -695,6 +786,29 @@ impl State for Dashboard {
 
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
+            Message::Refetch => {
+                // Get the provider.
+                if let Some(cortex) = &self.cortex {
+                    let provider = cortex.provider().clone();
+
+                    let address = cortex.client().address();
+                    tracing::info!("Fetching balance for address: {:?}", address);
+
+                    // Fetch the balance of the caller.
+                    return Command::perform(fetch_balance(provider, address), move |result| {
+                        match result {
+                            Ok(balance) => {
+                                tracing::info!("Fetched balance: {:?}", balance);
+                                Message::Empty
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to fetch balance: {:?}", e);
+                                Message::Empty
+                            }
+                        }
+                    });
+                }
+            }
             Message::Load(Ok(portfolio)) => {
                 // Set some initial values in data model temporarily.
                 self.sample_data();
