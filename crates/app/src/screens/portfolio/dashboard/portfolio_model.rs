@@ -667,7 +667,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Transforms series data in native types to chart types.
-    pub fn transform_series(
+    pub fn transform_series_over_block_number(
         series: &[(u64, AlloyU256)],
     ) -> Result<(CartesianRanges, ChartLineSeries)> {
         let mut transformed = Vec::new();
@@ -680,13 +680,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         // Get the ranges, which should be within 20% of the last value.
+        let first_block = transformed.first().unwrap().0;
         let last_value = transformed.last().unwrap().1;
 
         let min_y = last_value - last_value * 0.2;
         let max_y = last_value + last_value * 0.2;
 
         let ranges = CartesianRanges {
-            x_range: (0.0, transformed.len() as f32),
+            x_range: (first_block, first_block + 10.0),
             y_range: (min_y, max_y),
         };
 
@@ -715,10 +716,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_portfolio_values_series
             .as_ref()
             .ok_or(Error::msg("Portfolio value series not set"))?;
-        let mut result = Self::transform_series(series)?;
+        let mut result = Self::transform_series_over_block_number(series)?;
 
         result.1.legend = "Portfolio Value".to_string();
         result.1.color = plotters::style::full_palette::DEEPPURPLE_400;
+        result.1.time_series = true;
 
         Ok(result)
     }
@@ -777,9 +779,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let max_x = total_liquidity;
         let max_y = strike_price * total_liquidity;
 
-        // Min y and min x are both 0, so we can set their mins to a little less than 0.
-        let min_x = -0.2;
-        let min_y = -0.2;
+        // Min y and min x are both 0, so set their margin to a slightly negative
+        // proportion of the total range.
+        let min_x = -max_x * 0.1; // 10%
+        let min_y = -max_y * 0.1; // 10%
 
         // Compute the x and y values for the curve.
         let mut points = vec![];

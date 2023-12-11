@@ -49,6 +49,10 @@ impl ValueToLabel<Result<AlloyU256, anyhow::Error>> for Result<AlloyU256, anyhow
     }
 }
 
+/// View all of the underlying data from the model for the portfolio dashboard.
+///
+/// Important! Make sure the chart starts completely blank (not default), this
+/// will make sure the initial ranges are set correctly.
 #[derive(Debug, Clone)]
 pub struct DataView {
     pub model: RawDataModel<AlloyAddress, AlloyU256>,
@@ -101,6 +105,8 @@ impl DataView {
         self.portfolio_strategy_plot.override_points(data.2);
         self.portfolio_strategy_plot.update_x_range(data.0.x_range);
         self.portfolio_strategy_plot.update_y_range(data.0.y_range);
+        // Only happens once.
+        self.portfolio_strategy_plot.override_ranges_flag(true);
     }
 
     /// Does not update the model, only updates the chart data to match the
@@ -119,6 +125,8 @@ impl DataView {
         self.portfolio_value_series.override_series(vec![data.1]);
         self.portfolio_value_series.update_x_range(data.0.x_range);
         self.portfolio_value_series.update_y_range(data.0.y_range);
+        // Only happens once.
+        self.portfolio_value_series.override_ranges_flag(true);
     }
 
     /// Standard view for a single data element with a title and caption.

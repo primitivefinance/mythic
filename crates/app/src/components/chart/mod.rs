@@ -40,12 +40,19 @@ impl Default for ChartPoint {
 /// - Each coordinate is a f32.
 /// - Each line series has a color and width.
 /// - Each line series has a legend.
+///
+/// - lines - Each line to plot.
+/// - color - The color of the line series.
+/// - width - The stroke width of the line series.
+/// - legend - The legend of the line series.
+/// - time_series - Whether the x-axis is a time unit or not.
 #[derive(Debug, Clone)]
 pub struct ChartLineSeries {
     pub lines: Vec<ChartLine>,
     pub color: RGBColor,
     pub width: u32,
     pub legend: String,
+    pub time_series: bool,
 }
 
 impl Default for ChartLineSeries {
@@ -55,6 +62,7 @@ impl Default for ChartLineSeries {
             color: colors::full_palette::TEAL_A400,
             width: 2,
             legend: "Series".to_string(),
+            time_series: false,
         }
     }
 }
@@ -130,6 +138,8 @@ pub struct CartesianChart {
     pub border_color: RGBAColor,
     /// Background color of the point label container on hover.
     pub point_label_container_style: RGBAColor,
+    /// Flag for overriding the original ranges.
+    pub override_ranges: bool,
 }
 
 /// Makes a default chart with a point of interest and a series plot.
@@ -159,6 +169,7 @@ impl Default for CartesianChart {
             origin_y_line_style: colors::full_palette::GREY_600.into(),
             border_color: colors::full_palette::GREY_800.into(),
             point_label_container_style: colors::full_palette::GREY_900.into(),
+            override_ranges: false,
         }
     }
 }
@@ -267,6 +278,9 @@ pub struct ChartState {
     pub cursor_left_click_down: bool,
     /// The initial position of the left click.
     pub initial_left_click_position: Option<Point>,
+    /// If the original coords have been overwritten. This can only occur once
+    /// right now.
+    pub permanent_override: bool,
 }
 
 impl Chart<Message> for CartesianChart {
@@ -434,6 +448,16 @@ impl Chart<Message> for CartesianChart {
             state.original_range = Some(self.range.clone());
         }
 
+        // Occurs once when the override flag is set.
+        // This is because we only have mutable state, but reference to self.
+        // Which makes it awkward to update the ranges used by the graph from outside
+        // the graph's state context.
+        if self.override_ranges && !state.permanent_override {
+            state.range = self.range.clone();
+            state.original_range = Some(self.range.clone());
+            state.permanent_override = true;
+        }
+
         (event::Status::Ignored, None)
     }
 
@@ -493,6 +517,99 @@ impl Chart<Message> for CartesianChart {
                             line_series.color.filled().stroke_width(line_series.width),
                         )
                     });
+
+                // If a series is a line series, draw a point for its latest
+                // value and also a static label + y-axis grid
+                // line.
+                if line_series.time_series {
+                    if let Some(last_line) = line_series.lines.last() {
+                        let last_point = (last_line.x2, last_line.y2);
+
+                        // Draw a point for the latest value.
+                        chart
+                            .draw_series(PointSeries::of_element(
+                                vec![last_point],
+                                5,
+                                ShapeStyle::from(line_series.color).filled(),
+                                &|c, _s, st| {
+                                    return EmptyElement::at(c)
+                                        + Circle::new((0, 0), 5, st.filled())
+                                        + Circle::new(
+                                            (0, 0),
+                                            2,
+                                            ShapeStyle::from(&self.axis_mesh_style).filled(),
+                                        );
+                                },
+                            ))
+                            .expect("Failed to plot points");
+
+                        // Draw a light grid line through the y-axis value of the point.
+                        chart
+                            .draw_series(LineSeries::new(
+                                vec![(last_point.0, 0.0), (last_point.0, last_point.1)].into_iter(),
+                                ShapeStyle::from(&self.axis_mesh_style).filled(),
+                            ))
+                            .expect("Failed to plot lines")
+                            .label(format!("{:.2}", last_point.1));
+
+                        // Draw a static label for the latest y value.
+
+                        let cursor_pos_cartesian = if let Some(relative) = state.relative_position {
+                            let coord_trans = chart.as_coord_spec();
+                            let translated = coord_trans
+                                .reverse_translate((relative.x as i32, relative.y as i32))
+                                .unwrap_or_default();
+
+                            Some((translated.0, translated.1))
+                        } else {
+                            None
+                        };
+
+                        if let Some(cursor_pos_cartesian) = cursor_pos_cartesian {
+                            let margin_y = state.range.y_range.1 - state.range.y_range.0;
+                            let margin_y = margin_y * 0.05;
+
+                            let margin_x = 1.0;
+
+                            if cursor_pos_cartesian.0 >= last_point.0 - margin_x
+                                && cursor_pos_cartesian.0 <= last_point.0 + margin_x
+                                && cursor_pos_cartesian.1 >= last_point.1 - margin_y
+                                && cursor_pos_cartesian.1 <= last_point.1 + margin_y
+                            {
+                                chart
+                                    .draw_series(PointSeries::of_element(
+                                        vec![last_point],
+                                        5,
+                                        ShapeStyle::from(&self.y_label_container_style).filled(),
+                                        &|c, _s, st| {
+                                            let label = format!("{:.2}", c.1);
+                                            let label_container_coords = [(0, -35), (85, 0)];
+                                            let label_offset = (
+                                                label_container_coords[0].0 + 10,
+                                                label_container_coords[0].1 + 10,
+                                            );
+                                            let rect = Rectangle::new(label_container_coords, st);
+
+                                            // If the cursor is near the point, render it, else
+                                            // render
+                                            // nothing.
+
+                                            return EmptyElement::at(c)
+                                                + rect
+                                                + plotters::prelude::Text::new(
+                                                    label,
+                                                    label_offset,
+                                                    ("sans-serif", self.label_font_size)
+                                                        .into_font()
+                                                        .color(&self.label_text_style),
+                                                );
+                                        },
+                                    ))
+                                    .expect("Failed to plot points");
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -725,7 +842,14 @@ impl Chart<Message> for CartesianChart {
             for point in &self.points {
                 let distance = (point.x - translated.0).powi(2) + (point.y - translated.1).powi(2);
 
-                if distance <= 0.001 {
+                // get the max distance of the chart, which is x-range^2 + y-range^2
+                let max_distance = (state.range.x_range.1 - state.range.x_range.0).powi(2)
+                    + (state.range.y_range.1 - state.range.y_range.0).powi(2);
+
+                // Change hover over poi distance.
+                let margin = max_distance * 0.005;
+
+                if distance <= margin {
                     nearest_point = Some((point.x, point.y));
                     break;
                 }
@@ -767,6 +891,49 @@ impl Chart<Message> for CartesianChart {
         let x_range = coord_trans.get_x_range();
         let y_range = coord_trans.get_y_range();
 
+        // Draw borders around the chart.
+        chart
+            .draw_series(LineSeries::new(
+                vec![
+                    (x_range.start, y_range.start),
+                    (x_range.end, y_range.start),
+                    (x_range.end, y_range.end),
+                    (x_range.start, y_range.end),
+                    (x_range.start, y_range.start),
+                ]
+                .into_iter(),
+                self.border_color.filled(),
+            ))
+            .expect("Failed to plot lines");
+
+        // If there is no chart plots or series, return an empty chart with a "No data"
+        // text element.
+        if self.points.is_empty() && self.series.is_empty() {
+            chart
+                .draw_series(PointSeries::of_element(
+                    vec![(0.5, 0.5)],
+                    0,
+                    ShapeStyle::from(self.label_text_style).filled(),
+                    &|c: (f32, f32), _s, st| {
+                        return EmptyElement::at((c.0, c.1))
+                            + Rectangle::new(
+                                [(0, 0), (100, 100)],
+                                ShapeStyle::from(colors::TRANSPARENT),
+                            )
+                            + plotters::prelude::Text::new(
+                                "No data",
+                                (-20, 20),
+                                ("sans-serif", self.label_font_size)
+                                    .into_font()
+                                    .color(&self.border_color),
+                            );
+                    },
+                ))
+                .expect("Failed to draw empty chart");
+
+            return;
+        }
+
         // Draw the origin line on the x-axis.
         chart
             .draw_series(LineSeries::new(
@@ -780,21 +947,6 @@ impl Chart<Message> for CartesianChart {
             .draw_series(LineSeries::new(
                 vec![(0.0, y_range.start), (0.0, y_range.end)].into_iter(),
                 self.origin_y_line_style.filled(),
-            ))
-            .expect("Failed to plot lines");
-
-        // Draw borders around the chart.
-        chart
-            .draw_series(LineSeries::new(
-                vec![
-                    (x_range.start, y_range.start),
-                    (x_range.end, y_range.start),
-                    (x_range.end, y_range.end),
-                    (x_range.start, y_range.end),
-                    (x_range.start, y_range.start),
-                ]
-                .into_iter(),
-                self.border_color.filled(),
             ))
             .expect("Failed to plot lines");
 

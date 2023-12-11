@@ -1082,6 +1082,10 @@ impl ExcaliburChart {
         self
     }
 
+    pub fn override_ranges_flag(&mut self, flag: bool) {
+        self.chart.override_ranges = flag;
+    }
+
     // Chart templates
     pub fn rmm_trading_fn(mut self) -> Self {
         let log_normal_plot = basic_log_normal_curve();

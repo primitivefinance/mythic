@@ -303,7 +303,11 @@ impl Dashboard {
         }
 
         // Create the data view based on this current model.
-        let mut data_view = DataView::default();
+        let mut data_view = DataView::new(
+            RawDataModel::<AlloyAddress, AlloyU256>::default(),
+            ExcaliburChart::new(),
+            ExcaliburChart::new(),
+        );
         data_view.update_model(data_model.clone());
 
         Self {
