@@ -5,9 +5,9 @@ mod portfolio_view;
 pub mod stages;
 pub mod table;
 
-use std::{collections::HashMap, time::Instant};
+use std::collections::HashMap;
 
-use alloy_primitives::{utils::parse_ether, Address, U256};
+use alloy_primitives::{utils::parse_ether, U256};
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use cfmm_math::trading_functions::rmm::{
     compute_l_given_x_rust, compute_x_given_l_rust, compute_y_given_l_rust, compute_y_given_x_rust,
@@ -19,8 +19,6 @@ use datatypes::portfolio::{
     weight::Weight,
     Portfolio,
 };
-use iced::Color;
-use serde::{Deserialize, Serialize, Serializer};
 use sim::{from_ethers_address, from_ethers_u256, to_ethers_address, to_ethers_u256};
 use stages::Stages;
 use uuid::Uuid;
@@ -35,10 +33,9 @@ use self::{
 use super::*;
 use crate::{
     components::{
-        chart::CartesianChart,
         system::{
             Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
-            ExcaliburTable, ExcaliburText,
+            ExcaliburTable,
         },
         tables::{
             builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
