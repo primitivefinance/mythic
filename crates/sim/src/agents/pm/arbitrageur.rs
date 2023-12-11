@@ -221,7 +221,7 @@ impl Arbitrageur {
         initial_guess_in: ethers::types::U256,
     ) -> Result<ethers::types::U256, Error> {
         info!("calling search max arb profit");
-        let (computed_amount_in, computed_profit) = self
+        let (computed_amount_in, computed_profit, _expected_price) = self
             .atomic_arbitrage
             .search_max_arb_profit(initial_guess_in, x_in)
             .call()

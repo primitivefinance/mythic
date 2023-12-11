@@ -254,27 +254,33 @@ contract DFMMTest is Test {
             new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
 
         lex.setPrice(992047873705309300);
+        (bool valid, uint256 estimatedOut, uint256 estimatedPrice,) =
+            dfmm.simulateSwap(xForY, initialGuess);
 
-        (uint256 bestAmountIn, int256 bestProfit, uint256 bestGuessEndPrice) =
-            atomic.searchMaxArbProfit(initialGuess, xForY);
+        // (uint256 bestAmountIn, int256 bestProfit, uint256 bestGuessEndPrice) =
+        //     atomic.searchMaxArbProfit(initialGuess, xForY);
 
         (int256 initialGuessProfit, uint256 initialGuessEndPrice) =
             atomic.calculateProfit(xForY, initialGuess);
         uint256 lexPrice = lex.price();
-        uint256 initialGuessDifference = initialGuessEndPrice > lexPrice
-            ? initialGuessEndPrice - lexPrice
-            : lexPrice - initialGuessEndPrice;
-        uint256 bestGuessDifference = bestGuessEndPrice > lexPrice
-            ? bestGuessEndPrice - lexPrice
-            : lexPrice - bestGuessEndPrice;
-        console2.log("lex price", lex.price());
-        console2.log("initialGuessProfit", initialGuessProfit);
-        console2.log("initialGuessEndPrice", initialGuessEndPrice);
-        console2.log("initialGuessDifference", initialGuessDifference);
-        console2.log("bestAmountIn", bestAmountIn);
-        console2.log("bestProfit", bestProfit);
-        console2.log("bestGuessEndPrice", bestGuessEndPrice);
-        console2.log("bestGuessDifference", bestGuessDifference);
+        uint256 averagePrice = estimatedOut * 1 ether / initialGuess;
+        console2.log("averagePrice", averagePrice);
+
+        // uint256 initialGuessDifference = initialGuessEndPrice > lexPrice
+        //     ? initialGuessEndPrice - lexPrice
+        //     : lexPrice - initialGuessEndPrice;
+        // uint256 bestGuessDifference = bestGuessEndPrice > lexPrice
+        //     ? bestGuessEndPrice - lexPrice
+        //     : lexPrice - bestGuessEndPrice;
+
+        // console2.log("lex price", lex.price());
+        // console2.log("initialGuessProfit", initialGuessProfit);
+        // console2.log("initialGuessEndPrice", initialGuessEndPrice);
+        // console2.log("initialGuessDifference", initialGuessDifference);
+        // console2.log("bestAmountIn", bestAmountIn);
+        // console2.log("bestProfit", bestProfit);
+        // console2.log("bestGuessEndPrice", bestGuessEndPrice);
+        // console2.log("bestGuessDifference", bestGuessDifference);
     }
 
     // function test_dfmm_simulate_swap_y_in_small() public basic {
