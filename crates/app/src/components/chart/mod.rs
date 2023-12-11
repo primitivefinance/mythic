@@ -199,7 +199,17 @@ impl CartesianChart {
         self.series.push(new_series);
     }
 
-    pub fn many_series(&mut self, new_series: Vec<ChartLineSeries>) {
+    // todo: improve this
+    pub fn override_series(&mut self, new_series: Vec<ChartLineSeries>) {
+        self.series = new_series;
+    }
+
+    // todo: improve this
+    pub fn override_points(&mut self, new_points: Vec<ChartPoint>) {
+        self.points = new_points;
+    }
+
+    pub fn extend_many_series(&mut self, new_series: Vec<ChartLineSeries>) {
         self.series.extend(new_series);
     }
 

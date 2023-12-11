@@ -137,6 +137,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
                     && !metadata.name().contains("create_task")
                     && !metadata.name().contains("step")
                     && !metadata.target().starts_with("cfmm_math")
+                    && !metadata.target().starts_with("ethers_providers::rpc")
             }))
             .boxed()
     }

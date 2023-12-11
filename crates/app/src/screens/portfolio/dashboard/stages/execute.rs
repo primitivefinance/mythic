@@ -174,37 +174,40 @@ impl State for Execute {
                         // then emit a NewStrategyPosition message to have the
                         // portfolio dashboard update.
                         if let Some(original) = &self.original {
-                            let portfolio = original.clone();
-                            let price_y_per_x = position
-                                .internal_price
-                                .map(|x| x.parse::<f64>().unwrap())
-                                .unwrap();
-                            let price_x_per_y = 1.0 / price_y_per_x;
-
-                            let mut strategy_position_x = portfolio.positions.0[0].clone();
-                            strategy_position_x.balance = position
-                                .balance_x
-                                .map(|x| x.parse::<f64>().unwrap())
-                                .clone();
-
-                            strategy_position_x.cost = Some(price_x_per_y);
-
-                            let mut strategy_position_y = portfolio.positions.0[1].clone();
-                            strategy_position_y.balance = position
-                                .balance_y
-                                .map(|y| y.parse::<f64>().unwrap())
-                                .clone();
-                            strategy_position_y.cost = Some(price_y_per_x);
-
-                            let positions =
-                                Positions::new(vec![strategy_position_x, strategy_position_y]);
-
-                            let mut strategy_portfolio = portfolio.clone();
-                            strategy_portfolio.positions = positions;
-
-                            return Command::perform(async {}, move |_| {
-                                Message::NewStrategyPosition(strategy_portfolio)
-                            });
+                            // let portfolio = original.clone();
+                            // let price_y_per_x = position
+                            // .internal_price
+                            // .map(|x| x.parse::<f64>().unwrap())
+                            // .unwrap();
+                            // let price_x_per_y = 1.0 / price_y_per_x;
+                            //
+                            // let mut strategy_position_x =
+                            // portfolio.positions.0[0].clone();
+                            // strategy_position_x.balance = position
+                            // .balance_x
+                            // .map(|x| x.parse::<f64>().unwrap())
+                            // .clone();
+                            //
+                            // strategy_position_x.cost = Some(price_x_per_y);
+                            //
+                            // let mut strategy_position_y =
+                            // portfolio.positions.0[1].clone();
+                            // strategy_position_y.balance = position
+                            // .balance_y
+                            // .map(|y| y.parse::<f64>().unwrap())
+                            // .clone();
+                            // strategy_position_y.cost = Some(price_y_per_x);
+                            //
+                            // let positions =
+                            // Positions::new(vec![strategy_position_x,
+                            // strategy_position_y]);
+                            //
+                            // let mut strategy_portfolio = portfolio.clone();
+                            // strategy_portfolio.positions = positions;
+                            //
+                            // return Command::perform(async {}, move |_| {
+                            // Message::NewStrategyPosition(strategy_portfolio)
+                            // });
                         }
                     }
                     Err(e) => {

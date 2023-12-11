@@ -8,6 +8,7 @@ pub mod table;
 use std::{collections::HashMap, time::Instant};
 
 use alloy_primitives::{utils::parse_ether, Address, U256};
+use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use cfmm_math::trading_functions::rmm::{
     compute_l_given_x_rust, compute_x_given_l_rust, compute_y_given_l_rust, compute_y_given_x_rust,
 };
@@ -20,11 +21,14 @@ use datatypes::portfolio::{
 };
 use iced::Color;
 use serde::{Deserialize, Serialize, Serializer};
+use sim::{from_ethers_address, from_ethers_u256, to_ethers_address, to_ethers_u256};
 use stages::Stages;
 use uuid::Uuid;
 
 use self::{
-    portfolio_model::RawDataModel, portfolio_view::DataView, stages::DashboardState,
+    portfolio_model::{AlloyAddress, AlloyU256, RawDataModel, ALLOY_WAD},
+    portfolio_view::DataView,
+    stages::DashboardState,
     table::PortfolioTable,
 };
 use super::*;
@@ -44,14 +48,11 @@ use crate::{
 };
 
 /// Executed on `load` for the Dashboard screen.
-#[tracing::instrument(skip(dev_client), ret)]
-async fn load_portfolio(
-    dev_client: Option<DevClient<DefaultMiddleware>>,
-    name: Option<String>,
-) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
+#[tracing::instrument(ret)]
+async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
     let path = name.clone().map(Portfolio::file_path_with_name);
     let portfolio = Portfolio::load(path);
-    let mut portfolio = match portfolio {
+    let portfolio = match portfolio {
         Ok(portfolio) => portfolio,
         Err(_) => {
             // If dev mode, load the dev profile.
@@ -68,10 +69,8 @@ async fn load_portfolio(
     };
 
     // If dev mode, load up the basic two coin portfolio.
-    if std::env::var("DEV_MODE").is_ok() && dev_client.is_some() {
-        let dev_client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>> =
-            dev_client.clone().unwrap();
-        portfolio = fetch_portfolio(portfolio, dev_client).await?;
+    if std::env::var("DEV_MODE").is_ok() {
+        // todo: use this
     }
 
     Ok(portfolio)
@@ -162,9 +161,13 @@ pub enum Message {
     UpdateStaging(stages::Message),
     /// Triggered when the user inputs a delta in the table.
     UpdateTable(table::Message),
-    /// Triggered every 3s.
-    FetchPortfolioState,
+    /// Triggered when new data is needs to be fetched.
+    UpdateDataModel(Result<RawDataModel<AlloyAddress, AlloyU256>, Arc<anyhow::Error>>),
+    /// Triggered when the view model needs to be synced to the data model.
+    UpdateDataView,
+    /// A 1s subscription.
     Tick,
+    /// todo: remove
     Refetch,
 }
 
@@ -220,244 +223,9 @@ impl Cortex for TestCortex<Ws, LocalWallet> {
     }
 }
 
-/// The ENTIRE data model of the dashboard, stored in native types.
-#[derive(Debug, Clone, Default)]
-pub struct DataModel {
-    /// AMM reported spot price.
-    pub raw_internal_spot_price: Option<U256>,
-    /// Spot price from an external source.
-    pub raw_external_spot_price: Option<U256>,
-    pub raw_asset_token: Option<Address>,
-    pub raw_quote_token: Option<Address>,
-    pub raw_user_asset_balance: Option<U256>,
-    pub raw_user_quote_balance: Option<U256>,
-    pub raw_asset_reserve: Option<U256>,
-    pub raw_quote_reserve: Option<U256>,
-    pub raw_user_asset_reserve: Option<U256>,
-    pub raw_user_quote_reserve: Option<U256>,
-    pub raw_total_liquidity: Option<U256>,
-    pub raw_user_total_liquidity: Option<U256>,
-    pub raw_strike_price_wad: Option<U256>,
-    pub raw_time_remaining_wad: Option<U256>,
-    pub raw_volatility_wad: Option<U256>,
-    pub raw_portfolio_values_series: Option<Vec<(u64, U256)>>,
-    pub raw_last_chain_data_sync_timestamp: Option<DateTime<Utc>>,
-    pub raw_last_chain_data_sync_block: Option<u64>,
-}
-
-pub fn u256_to_label(value: Option<U256>) -> ExcaliburText {
-    if let Some(value) = value {
-        let value = alloy_primitives::utils::format_ether(value);
-        match value.parse::<f64>() {
-            Ok(_) => label(&value).quantitative().title1(),
-            Err(_) => label(&"Failed to parse U256 as float.")
-                .caption()
-                .tertiary(),
-        }
-    } else {
-        label(&"N/A").caption().tertiary()
-    }
-}
-
-/// Computes the portfolio value as Sum(quote balance, asset balance * spot
-/// price).
-pub fn derive_portfolio_value(
-    price: Option<U256>,
-    quote_balance: Option<U256>,
-    asset_balance: Option<U256>,
-) -> Option<U256> {
-    if let (Some(price), Some(quote_balance), Some(asset_balance)) =
-        (price, quote_balance, asset_balance)
-    {
-        let price = alloy_primitives::utils::format_ether(price);
-        let price = price.parse::<f64>().unwrap();
-        let quote_balance = alloy_primitives::utils::format_ether(quote_balance);
-        let quote_balance = quote_balance.parse::<f64>().unwrap();
-        let asset_balance = alloy_primitives::utils::format_ether(asset_balance);
-        let asset_balance = asset_balance.parse::<f64>().unwrap();
-
-        let portfolio_value = quote_balance + asset_balance * price;
-        let portfolio_value = format!("{}", portfolio_value);
-        let portfolio_value = alloy_primitives::utils::parse_ether(&portfolio_value).unwrap();
-
-        Some(portfolio_value)
-    } else {
-        None
-    }
-}
-
-/// Compute the theoretical portfolio value given price, x, K, v, t.
-pub fn derive_theoretical_portfolio_value(
-    price: Option<U256>,
-    liquidity: Option<U256>,
-    strike_price: Option<U256>,
-    volatility: Option<U256>,
-    time_remaining: Option<U256>,
-) -> Option<U256> {
-    if let (
-        Some(liquidity),
-        Some(price),
-        Some(strike_price),
-        Some(volatility),
-        Some(time_remaining),
-    ) = (liquidity, price, strike_price, volatility, time_remaining)
-    {
-        let price = alloy_primitives::utils::format_ether(price);
-        let price = price.parse::<f64>().unwrap();
-        let liquidity = alloy_primitives::utils::format_ether(liquidity);
-        let liquidity = liquidity.parse::<f64>().unwrap();
-        let strike_price = alloy_primitives::utils::format_ether(strike_price);
-        let strike_price = strike_price.parse::<f64>().unwrap();
-        let volatility = alloy_primitives::utils::format_ether(volatility);
-        let volatility = volatility.parse::<f64>().unwrap();
-        let time_remaining = alloy_primitives::utils::format_ether(time_remaining);
-        let time_remaining = time_remaining.parse::<f64>().unwrap();
-
-        // Get x given price, then l given x, then y given l.
-        let x = compute_x_given_l_rust(liquidity, price, strike_price, volatility, time_remaining);
-        let l = compute_l_given_x_rust(x, price, strike_price, volatility, time_remaining);
-        let y = compute_y_given_l_rust(l, price, strike_price, volatility, time_remaining);
-
-        let portfolio_value = y + x * price;
-        let portfolio_value = format!("{}", portfolio_value);
-        let portfolio_value = alloy_primitives::utils::parse_ether(&portfolio_value).unwrap();
-
-        Some(portfolio_value)
-    } else {
-        None
-    }
-}
-
-/// Get the current portfolio value divided by the theoretically computed
-/// portfolio value.
-pub fn derive_portfolio_value_ratio(
-    portfolio_value: Option<U256>,
-    theoretical_portfolio_value: Option<U256>,
-) -> Option<f64> {
-    if let (Some(portfolio_value), Some(theoretical_portfolio_value)) =
-        (portfolio_value, theoretical_portfolio_value)
-    {
-        let portfolio_value = alloy_primitives::utils::format_ether(portfolio_value);
-        let portfolio_value = portfolio_value.parse::<f64>().unwrap();
-        let theoretical_portfolio_value =
-            alloy_primitives::utils::format_ether(theoretical_portfolio_value);
-        let theoretical_portfolio_value = theoretical_portfolio_value.parse::<f64>().unwrap();
-
-        Some(portfolio_value / theoretical_portfolio_value)
-    } else {
-        None
-    }
-}
-
-/// The implementation defines how the data is synced and rendered.
-impl DataModel {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn internal_price<'a, Message>(&self) -> Element<'a, Message>
-    where
-        Message: 'a,
-    {
-        double_labeled_data(
-            u256_to_label(self.raw_internal_spot_price.clone()).build(),
-            label(&"Internal Price").highlight().build(),
-            label(&"ETH/USD").secondary().caption().build(),
-        )
-        .into()
-    }
-
-    pub fn portfolio_value<'a, Message>(&self) -> Element<'a, Message>
-    where
-        Message: 'a,
-    {
-        let pfv = derive_portfolio_value(
-            self.raw_internal_spot_price.clone(),
-            self.raw_user_quote_balance.clone(),
-            self.raw_user_asset_balance.clone(),
-        );
-
-        double_labeled_data(
-            u256_to_label(pfv).build(),
-            label(&"Portfolio Value").highlight().build(),
-            label(&"USD").secondary().caption().build(),
-        )
-        .into()
-    }
-
-    pub fn replication_health<'a, Message>(&self) -> Element<'a, Message>
-    where
-        Message: 'a,
-    {
-        let pfv = derive_portfolio_value(
-            self.raw_internal_spot_price.clone(),
-            self.raw_user_quote_balance.clone(),
-            self.raw_user_asset_balance.clone(),
-        );
-
-        let theoretical_pfv = derive_theoretical_portfolio_value(
-            self.raw_internal_spot_price.clone(),
-            self.raw_total_liquidity.clone(),
-            self.raw_strike_price_wad.clone(),
-            self.raw_volatility_wad.clone(),
-            self.raw_time_remaining_wad.clone(),
-        );
-
-        let ratio = derive_portfolio_value_ratio(pfv, theoretical_pfv);
-
-        let ratio = match ratio {
-            Some(ratio) => label(&format!("{}", ratio)).title1().percentage().build(),
-            None => label(&"N/A").caption().tertiary().build(),
-        };
-
-        double_labeled_data(
-            ratio,
-            label(&"Replication Health").highlight().build(),
-            label(&"PFV / tPFV").secondary().caption().build(),
-        )
-        .into()
-    }
-
-    pub fn tvl<'a, Message>(&self) -> Element<'a, Message>
-    where
-        Message: 'a,
-    {
-        let tvl = derive_portfolio_value(
-            self.raw_internal_spot_price.clone(),
-            self.raw_asset_reserve.clone(),
-            self.raw_quote_reserve.clone(),
-        );
-
-        double_labeled_data(
-            u256_to_label(tvl).build(),
-            label(&"Total Value Locked").highlight().build(),
-            label(&"USD").secondary().caption().build(),
-        )
-        .into()
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct Dashboard {
-    /// Underlying data structure.
-    portfolio: Option<Portfolio>,
-    /// Table to render the underlying data.
-    table: PortfolioTable,
-    /// Stages of the dashboard for interacting with the underlying data.
-    stage: Stages,
-    /// Original name of the loaded portfolio.
-    loaded_from: Option<String>,
-    /// Dev client for loading the portfolio.
-    dev_client: Option<DevClient<DefaultMiddleware>>,
-    /// Portfolio that is deposited into an active strategy.
-    pub deposited_portfolio: Option<Portfolio>,
-    /// Table for the deposited portfolio.
-    pub deposited_table: PortfolioTable,
-
-    pub data_model: DataModel,
-    pub portfolio_values_plot: ExcaliburChart,
-    pub trading_function_plot: ExcaliburChart,
-
+    /// Connection to the network!
     pub cortex: Option<
         Arc<
             dyn Cortex<
@@ -467,6 +235,21 @@ pub struct Dashboard {
             >,
         >,
     >,
+
+    /// The portfolio that is loaded, synced, and saved on close.
+    pub portfolio: Option<Portfolio>,
+
+    /// The table state.
+    pub table: PortfolioTable,
+
+    /// The current action that the user is taking.
+    pub stage: Stages,
+
+    /// The underlying data model of the dashboard.
+    pub data_model: RawDataModel<AlloyAddress, AlloyU256>,
+
+    /// The view of the data model to render the dashboard components.
+    pub data_view: DataView,
 }
 
 impl Dashboard {
@@ -475,6 +258,7 @@ impl Dashboard {
 
     /// Try loading the portfolio from the name.
     pub fn new(name: Option<String>, dev_client: Option<DevClient<DefaultMiddleware>>) -> Self {
+        // Converts dev client to cortex, todo: just have cortex.
         let cortex = if let Some(dev) = dev_client.clone() {
             let client: DevClient<DefaultMiddleware> = dev.clone();
             let cortex: Arc<
@@ -495,65 +279,76 @@ impl Dashboard {
             None
         };
 
+        let mut data_model = RawDataModel::<AlloyAddress, AlloyU256>::default();
+
+        // Get the addresses from the dev client and setup the data_model with them.
+        // todo: get a better place to do this.
+        if let Some(dev_client) = dev_client.clone() {
+            let address = dev_client.client().address();
+            let user_address = from_ethers_address(address);
+            let raw_protocol_address = from_ethers_address(dev_client.protocol.protocol.address());
+            let raw_strategy_address = from_ethers_address(dev_client.strategy.address());
+            let raw_asset_token = from_ethers_address(dev_client.token_x.address());
+            let raw_quote_token = from_ethers_address(dev_client.token_y.address());
+            let lex = from_ethers_address(dev_client.liquid_exchange.address());
+
+            data_model.setup(
+                user_address,
+                lex,
+                raw_protocol_address,
+                raw_strategy_address,
+                raw_asset_token,
+                raw_quote_token,
+            );
+        }
+
+        // Create the data view based on this current model.
+        let mut data_view = DataView::default();
+        data_view.update_model(data_model.clone());
+
         Self {
+            cortex,
             portfolio: None,
             table: PortfolioTable::new(),
-            stage: Stages::new(dev_client.clone()),
-            loaded_from: name,
-            dev_client,
-            deposited_portfolio: None,
-            deposited_table: PortfolioTable::new(),
-            data_model: DataModel::new(),
-            portfolio_values_plot: ExcaliburChart::new().rmm_trading_fn(),
-            trading_function_plot: ExcaliburChart::new().rmm_trading_fn(),
-            cortex,
+            stage: Stages::new(dev_client),
+            data_model,
+            data_view,
         }
+    }
+
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub fn update_data(&self) -> Command<Message> {
+        let mut commands = vec![];
+
+        // Get the provider.
+        if let Some(cortex) = &self.cortex {
+            let client = cortex.provider().clone();
+            let data_model = self.data_model.clone();
+            commands.push(Command::perform(
+                async move {
+                    tracing::info!(
+                        "Updating model at block: {}",
+                        client
+                            .get_block_number()
+                            .await
+                            .map_err(|e| { Arc::new(anyhow::Error::from(e)) })?
+                    );
+                    // Get the data
+                    let mut data = data_model;
+                    // Update the data
+                    data.update(client).await?;
+                    // Return the data
+                    Ok(data)
+                },
+                Message::UpdateDataModel,
+            ));
+        }
+
+        Command::batch(commands)
     }
 
     pub fn loaded(&self) -> bool {
         self.portfolio.is_some()
-    }
-
-    pub fn sample_data(&mut self) {
-        // Initial params: K = 1000, t = 1, v = 1.
-        let strike_price = 1000.0;
-        let strike_price_wad = parse_ether(&format!("{}", strike_price)).unwrap();
-        let tau = 1.0;
-        let tau_wad = parse_ether(&format!("{}", tau)).unwrap();
-        let sigma = 1.0;
-        let sigma_wad = parse_ether(&format!("{}", sigma)).unwrap();
-        self.data_model.raw_strike_price_wad = Some(strike_price_wad);
-        self.data_model.raw_time_remaining_wad = Some(tau_wad);
-        self.data_model.raw_volatility_wad = Some(sigma_wad);
-
-        // Initial deposit amounts and price.
-        let initial_price = 1000.0;
-        let initial_price_wad = parse_ether(&format!("{}", initial_price)).unwrap();
-        self.data_model.raw_external_spot_price = Some(initial_price_wad);
-        self.data_model.raw_internal_spot_price = Some(initial_price_wad);
-
-        let initial_x = 1000.0;
-        let initial_x_wad = parse_ether(&format!("{}", initial_x)).unwrap();
-        self.data_model.raw_user_asset_balance = Some(initial_x_wad);
-        self.data_model.raw_asset_reserve = Some(initial_x_wad);
-
-        let init_liquidity =
-            compute_l_given_x_rust(initial_x, initial_price, strike_price, sigma, tau);
-        let init_liquidity_wad = parse_ether(&format!("{}", init_liquidity)).unwrap();
-        self.data_model.raw_user_total_liquidity = Some(init_liquidity_wad);
-        self.data_model.raw_total_liquidity = Some(init_liquidity_wad);
-
-        let initial_y =
-            compute_y_given_l_rust(init_liquidity, initial_price, strike_price, sigma, tau);
-        let initial_y_wad = parse_ether(&format!("{}", initial_y)).unwrap();
-        self.data_model.raw_user_quote_balance = Some(initial_y_wad);
-        self.data_model.raw_quote_reserve = Some(initial_y_wad);
-    }
-
-    fn update_position(&mut self, price: f64) {
-        // New price, need to adjust reserves and liquidity.
-        let price_wad = parse_ether(&format!("{}", price)).unwrap();
-        self.data_model.raw_internal_spot_price = Some(price_wad);
     }
 
     #[tracing::instrument(skip(self), level = "debug")]
@@ -625,37 +420,6 @@ impl Dashboard {
         exp_table.into()
     }
 
-    pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
-        Column::new()
-            .spacing(Sizes::Md)
-            .push(label(&"Dashboard").title1().build())
-            .into()
-    }
-
-    pub fn render_table(&self) -> Element<'_, Self::AppMessage> {
-        Column::new()
-            .spacing(Sizes::Lg)
-            .push(label(&"Positions").title2().build())
-            .push(self.table.view().map(|x| x.into()))
-            .into()
-    }
-
-    pub fn render_deposited_table(&self) -> Element<'_, Self::AppMessage> {
-        // If the table is not loaded, return an empty element.
-        if self.deposited_portfolio.is_none() {
-            return Container::new(label(&"No deposited positions.").build())
-                .center_x()
-                .center_y()
-                .into();
-        }
-
-        Column::new()
-            .spacing(Sizes::Lg)
-            .push(label(&"Active Strategies").title2().build())
-            .push(self.deposited_table.view().map(|x| x.into()))
-            .into()
-    }
-
     pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
         match self.stage.current {
             DashboardState::Empty => {
@@ -700,21 +464,13 @@ impl Dashboard {
     }
 
     pub fn quadrant_i(&self) -> Element<'_, Self::AppMessage> {
-        let mut model = RawDataModel::new();
-        model.raw_internal_spot_price = self.data_model.raw_internal_spot_price.clone();
-        let model_view = DataView::new(
-            model,
-            self.portfolio_values_plot.clone(),
-            self.trading_function_plot.clone(),
-        );
-
         Column::new()
             .spacing(Sizes::Lg)
             .push(space_between(
-                space_between(model_view.internal_price(), self.data_model.tvl()).into(),
+                space_between(self.data_view.external_price(), self.data_view.tvl()).into(),
                 space_between(
-                    self.data_model.portfolio_value(),
-                    self.data_model.replication_health(),
+                    self.data_view.internal_portfolio_value(),
+                    self.data_view.portfolio_health(),
                 )
                 .into(),
             ))
@@ -722,8 +478,12 @@ impl Dashboard {
                 Column::new()
                     .spacing(Sizes::Md)
                     .push(label(&"Portfolio value / time").highlight().build())
-                    .push(self.portfolio_values_plot.build().map(|x| Message::Empty))
-                    .push(label(&"Last sync: 1m ago").caption().tertiary().build()),
+                    .push(
+                        self.data_view
+                            .portfolio_value_series()
+                            .map(|x| Message::Empty),
+                    )
+                    .push(self.data_view.last_sync_timestamp()),
             )
             .into()
     }
@@ -744,8 +504,8 @@ impl Dashboard {
             )
             .push(Column::new()
             .spacing(Sizes::Xs)
-            .push(self.portfolio_values_plot.build().map(|x| Message::Empty))
-            .push(label(&"Last sync: 1m ago").caption().tertiary().build()))
+            .push(self.data_view.portfolio_strategy_plot().map(|x| Message::Empty))
+            .push(self.data_view.last_sync_timestamp()))
             .into()
     }
 
@@ -776,19 +536,11 @@ impl State for Dashboard {
 
     /// todo: how to handle different portfolio loads.
     fn load(&self) -> Command<Self::AppMessage> {
-        let name = match self.loaded_from.clone() {
-            Some(name) => Some(name),
-            None => None,
-        };
-
         let mut commands = vec![];
 
-        // Loads the initial portfolio from the dev client
-        let dev_client = self.dev_client.clone();
-        commands.push(Command::perform(
-            load_portfolio(dev_client, None),
-            Message::Load,
-        ));
+        commands.push(Command::perform(load_portfolio(None), Message::Load));
+
+        commands.push(self.update_data());
 
         // todo: does this even work for the children components?
         // Loads the staging area, which enters the first stage.
@@ -799,33 +551,7 @@ impl State for Dashboard {
 
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
-            Message::Refetch => {
-                // Get the provider.
-                if let Some(cortex) = &self.cortex {
-                    let provider = cortex.provider().clone();
-
-                    let address = cortex.client().address();
-                    tracing::info!("Fetching balance for address: {:?}", address);
-
-                    // Fetch the balance of the caller.
-                    return Command::perform(fetch_balance(provider, address), move |result| {
-                        match result {
-                            Ok(balance) => {
-                                tracing::info!("Fetched balance: {:?}", balance);
-                                Message::Empty
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to fetch balance: {:?}", e);
-                                Message::Empty
-                            }
-                        }
-                    });
-                }
-            }
             Message::Load(Ok(portfolio)) => {
-                // Set some initial values in data model temporarily.
-                self.sample_data();
-
                 // self.data_model.raw
                 let mut commands: Vec<Command<Self::AppMessage>> = vec![];
 
@@ -848,13 +574,93 @@ impl State for Dashboard {
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load portfolio: {:?}", e);
             }
-            Message::Tick => {
-                let random_val = rand::random::<f64>();
-                let random_sign = rand::random::<bool>();
-                let random_val = if random_sign { random_val } else { -random_val };
-                let val = 1000.0 * (1.0 + (random_val as f64 / 2.0));
+            Message::UpdateDataModel(Ok(data_model)) => {
+                // Update the data model.
+                self.data_model = data_model.clone();
+                // Sync the view model.
+                self.data_view.update_model(data_model.clone());
 
-                self.update_position(val);
+                tracing::info!("Updated to data model: {:?}", self.data_model);
+            }
+            Message::UpdateDataModel(Err(e)) => {
+                tracing::error!("Failed to update data model: {:?}", e);
+            }
+            Message::Refetch => {
+                return self.update_data();
+
+                // Get the provider.
+                /* if let Some(cortex) = &self.cortex {
+                    let provider = cortex.provider().clone();
+
+                    let address = cortex.client().address();
+                    tracing::info!("Fetching balance for address: {:?}", address);
+
+                    // Fetch the balance of the caller.
+                    return Command::perform(fetch_balance(provider, address), move |result| {
+                        match result {
+                            Ok(balance) => {
+                                tracing::info!("Fetched balance: {:?}", balance);
+                                Message::Empty
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to fetch balance: {:?}", e);
+                                Message::Empty
+                            }
+                        }
+                    });
+                } */
+            }
+            Message::Tick => {
+                let mut commands = vec![];
+
+                if let (Some(external_exchange), Some(cortex)) =
+                    (&self.data_model.raw_external_exchange_address, &self.cortex)
+                {
+                    tracing::info!("Tick, updating price.");
+                    let client = cortex.clone().client().clone();
+                    // for testing live price chart.
+                    let external_exchange = external_exchange.clone();
+                    commands.push(Command::perform(
+                        async move {
+                            let client = client.clone();
+                            let external_exchange = external_exchange.clone();
+                            // Call the set_price function on the external exchange.
+                            let lex = LiquidExchange::new(
+                                to_ethers_address(external_exchange.clone()),
+                                client,
+                            );
+
+                            let current_price = lex.price().await?;
+                            // make the new price a random price +/- 1% of current price.
+                            let random = (1.0 + (rand::random::<f64>() - 0.5) * 0.01);
+                            let random = parse_ether(format!("{}", random).as_str()).unwrap();
+                            let new_price = from_ethers_u256(current_price)
+                                .checked_mul(random)
+                                .unwrap()
+                                .checked_div(ALLOY_WAD)
+                                .unwrap();
+
+                            let result =
+                                lex.set_price(to_ethers_u256(new_price)).send().await?.await;
+
+                            match result {
+                                Ok(tx) => {
+                                    tracing::info!("Updated price. {:?}", tx);
+                                    Ok(())
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to set price: {:?}", e);
+                                    Err(anyhow::Error::from(e))
+                                }
+                            }
+                        },
+                        |_| Message::Empty,
+                    ));
+                }
+
+                commands.push(self.update_data());
+
+                return Command::batch(commands);
             }
             // todo: this might be a little slow, since it gets the adjusted portfolio.
             Message::UpdateTable(message) => {
@@ -931,76 +737,21 @@ impl State for Dashboard {
                     portfolio,
                 )) = stage.clone()
                 {
-                    self.deposited_portfolio = Some(portfolio.clone());
-                    commands.push(
-                        self.deposited_table
-                            .update(table::Message::Load(portfolio.clone()))
-                            .map(|x| x.into()),
-                    );
+                    // todo: update current position table with new strategy
+                    // position.
+                }
+
+                // Catch the FetchPositionResult and call update_data.
+                if let stages::Message::Execute(stages::execute::Message::FetchPositionResult(_)) =
+                    stage.clone()
+                {
+                    tracing::info!("Caught fetch position, updating data model.");
+                    commands.push(self.update_data());
                 }
 
                 commands.push(self.stage.update(stage).map(|x| x.into()));
 
                 return Command::batch(commands);
-            }
-            Message::FetchPortfolioState => {
-                // Refetch the origin and deposited portfolios via dev client, if dev client is
-                // available.
-                if let (Some(dev_client), Some(origin)) =
-                    (&self.dev_client, &self.portfolio).clone()
-                {
-                    let dev_client = dev_client.clone();
-                    let origin = self.portfolio.clone();
-                    let deposited = self.deposited_portfolio.clone();
-
-                    let mut commands = vec![];
-
-                    commands.push(Command::perform(
-                        async move {
-                            let origin = match origin {
-                                Some(origin) => {
-                                    Some(fetch_portfolio(origin, dev_client.clone()).await?)
-                                }
-                                None => None,
-                            };
-                            let deposited = match deposited {
-                                Some(deposited) => {
-                                    Some(fetch_portfolio(deposited, dev_client.clone()).await?)
-                                }
-                                None => None,
-                            };
-                            Ok::<(Option<Portfolio>, Option<Portfolio>), Arc<anyhow::Error>>((
-                                origin, deposited,
-                            ))
-                        },
-                        move |result| match result {
-                            Ok((origin, _deposited)) => {
-                                tracing::debug!(
-                                    "Fetched portfolio state in FETCH message. {:?}",
-                                    origin.clone()
-                                );
-                                if let Some(origin) = origin {
-                                    Message::Load(Ok(origin))
-                                } else {
-                                    Message::Empty
-                                }
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to fetch portfolio state: {:?}", e);
-                                Message::Empty
-                            }
-                        },
-                    ));
-
-                    // Fetches the deposited position, which emits an event that we capture in here
-                    // anyway.
-                    commands.push(Command::perform(async {}, |_| {
-                        Message::UpdateStaging(stages::Message::Execute(
-                            stages::execute::Message::FetchPosition,
-                        ))
-                    }));
-                    return Command::batch(commands);
-                }
             }
             _ => {}
         }
@@ -1010,19 +761,19 @@ impl State for Dashboard {
 
     // Layout is a 2x2 quadrant grid
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let mut quadrant_1 = ExcaliburContainer::default()
+        let quadrant_1 = ExcaliburContainer::default()
             .light_border()
             .build(Column::new().push(self.quadrant_i()))
             .padding(Sizes::Md);
-        let mut quadrant_2 = ExcaliburContainer::default()
+        let quadrant_2 = ExcaliburContainer::default()
             .light_border()
             .build((self.quadrant_ii()))
             .padding(Sizes::Md);
-        let mut quadrant_3 = ExcaliburContainer::default()
+        let quadrant_3 = ExcaliburContainer::default()
             .light_border()
             .build((self.quadrant_iii()))
             .padding(Sizes::Md);
-        let mut quadrant_4 = ExcaliburContainer::default()
+        let quadrant_4 = ExcaliburContainer::default()
             .light_border()
             .build((self.quadrant_iv()))
             .padding(Sizes::Md);
@@ -1050,11 +801,7 @@ impl State for Dashboard {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
-        let s1 = iced::time::every(std::time::Duration::from_secs(1)).map(|_| Message::Tick);
-        // every 5s fetch portfolio state
-        let s2 = iced::time::every(std::time::Duration::from_secs(5))
-            .map(|_| Message::FetchPortfolioState);
-
+        let s1 = iced::time::every(std::time::Duration::from_secs(5)).map(|_| Message::Tick);
         Subscription::batch(vec![s1])
     }
 }

@@ -3,16 +3,20 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use bindings::{log_normal, mock_erc20::MockERC20};
 
 use super::{protocol::ProtocolClient, *};
 
 pub const INITIAL_X_BALANCE: f64 = 100.0;
 pub const INITIAL_Y_BALANCE: f64 = 100.0;
+pub const INITIAL_PRICE: f64 = 1.0;
 
 #[derive(Debug, Clone)]
 pub struct DevClient<C> {
     pub protocol: ProtocolClient<C>,
+    pub strategy: log_normal::LogNormal<C>,
+    pub liquid_exchange: LiquidExchange<C>,
     pub token_x: MockERC20<C>,
     pub token_y: MockERC20<C>,
 }
@@ -61,7 +65,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
         tracing::trace!("Deploying protocol");
         let protocol = ProtocolClient::deploy_protocol(
-            client,
+            client.clone(),
             token_x.address(),
             token_y.address(),
             swap_fee_percent_wad,
@@ -78,10 +82,26 @@ impl<C: Middleware + 'static> DevClient<C> {
             .send()
             .await?;
 
+        let lex_args = (
+            token_x.address(),
+            token_y.address(),
+            ethers::utils::parse_ether(INITIAL_PRICE)?,
+        );
+
+        let liquid_exchange = LiquidExchange::deploy(client.clone(), lex_args)?
+            .send()
+            .await?;
+
+        let strategy = log_normal::LogNormal::new(protocol.protocol.source().call().await?, client);
+
+        // Make sure to set the token y price to 1.0.
+
         Ok(Self {
             protocol,
             token_x,
             token_y,
+            strategy,
+            liquid_exchange,
         })
     }
 

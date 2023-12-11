@@ -54,6 +54,7 @@ impl From<RawDataModelError> for Error {
 pub struct RawDataModel<A, V> {
     // Must set these addresses.
     pub user_address: Option<A>,
+    pub raw_external_exchange_address: Option<A>,
     pub raw_protocol_address: Option<A>,
     pub raw_strategy_address: Option<A>,
     pub raw_asset_token: Option<A>,
@@ -126,12 +127,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn setup(
         &mut self,
         user_address: AlloyAddress,
+        external_exchange_address: AlloyAddress,
         protocol_address: AlloyAddress,
         strategy_address: AlloyAddress,
         asset_token: AlloyAddress,
         quote_token: AlloyAddress,
     ) {
         self.user_address = Some(user_address);
+        self.raw_external_exchange_address = Some(external_exchange_address);
         self.raw_protocol_address = Some(protocol_address);
         self.raw_strategy_address = Some(strategy_address);
         self.raw_asset_token = Some(asset_token);
@@ -140,6 +143,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Updates the ENTIRE model! Wow!
     pub async fn update(&mut self, client: Arc<Client>) -> Result<()> {
+        // Update sync block + timestamp first, since the other update methods need it.
+        self.update_last_sync_block(client.clone()).await?;
+        self.update_last_sync_timestamp()?;
+
         // Update state first.
         self.update_token_balances(client.clone()).await?;
         self.update_protocol_state(client.clone()).await?;
@@ -152,10 +159,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.update_portfolio_value_series(client.clone()).await?;
         self.update_external_price_series(client.clone()).await?;
         self.update_internal_price_series(client.clone()).await?;
-
-        // Update sync block + timestamp.
-        self.update_last_sync_block(client.clone()).await?;
-        self.update_last_sync_timestamp()?;
 
         Ok(())
     }
@@ -215,7 +218,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     // Tokens
 
     /// Fetches the balance of tokens of a given address for a given token.
-    #[tracing::instrument(skip(client), level = "trace", ret, err)]
+    #[tracing::instrument(skip(client), level = "trace")]
     pub async fn fetch_balance_of(
         &self,
         client: Arc<Client>,
@@ -231,12 +234,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         tx.set_to(converted_token_address).set_data(payload);
 
         // Send the call to the token contract.
-        println!("Calling token contract: {:?}", tx);
         let balance = client.call(&tx, None).await?;
-        println!("Balance: {:?}", balance);
         let decoded: <IERC20::balanceOfCall as SolCall>::Return =
             IERC20::balanceOfCall::abi_decode_returns(&balance, false)?;
-        println!("Decoded call: {:?}", decoded);
         let decoded_balance: Self::Value = decoded.balance.into();
 
         Ok(decoded_balance)
@@ -291,7 +291,20 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<Client>,
         token_address: Self::Address,
     ) -> Result<Self::Value> {
-        todo!()
+        let external_exchange = self
+            .raw_external_exchange_address
+            .ok_or(Error::msg("External exchange address not set"))?;
+
+        // todo: replace
+
+        let lex = arbiter_bindings::bindings::liquid_exchange::LiquidExchange::new(
+            to_ethers_address(external_exchange),
+            client.clone(),
+        );
+        let price = lex.price().await?;
+        let price = from_ethers_u256(price);
+
+        Ok(price)
     }
 
     // Protocol state
@@ -349,22 +362,34 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
+        let asset_token = self
+            .raw_asset_token
+            .ok_or(Error::msg("Asset token not set"))?;
+        let quote_token = self
+            .raw_quote_token
+            .ok_or(Error::msg("Quote token not set"))?;
+
+        let asset_price = self
+            .fetch_external_price(client.clone(), asset_token)
+            .await?;
+        // todo: fix
+        let quote_price = ALLOY_WAD;
+
+        self.raw_external_spot_price = Some(asset_price);
+        self.raw_external_quote_price = Some(quote_price);
+
+        Ok(())
+    }
+
     /// Checks the current block number and updates the portfolio value series
     /// if the current block number is greater than the last block number.
+    /// todo: might need to separate the series subscriptions so they don't
+    /// throw errors and block the main upate.
     async fn update_portfolio_value_series(&mut self, client: Arc<Client>) -> Result<()> {
         // Check the current last sync block number, if its the same as the current one,
         // continue. Else, refetch and update the data.
         let block_number = self.fetch_block_number(client.clone()).await?;
-
-        // Make sure block is same as the last sync time, if it's not return an error
-        // "sync series before sync data"
-        if let Some(last_sync_block) = self.raw_last_chain_data_sync_block {
-            if block_number != last_sync_block {
-                return Err(Error::msg("sync series before sync data"));
-            }
-        } else {
-            return Err(Error::msg("Last sync block not set"));
-        }
 
         // Only update the series if the last element in the series is behind the
         // current block number.
@@ -386,39 +411,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
-        let asset_token = self
-            .raw_asset_token
-            .ok_or(Error::msg("Asset token not set"))?;
-        let quote_token = self
-            .raw_quote_token
-            .ok_or(Error::msg("Quote token not set"))?;
-
-        let asset_price = self
-            .fetch_external_price(client.clone(), asset_token)
-            .await?;
-        let quote_price = self
-            .fetch_external_price(client.clone(), quote_token)
-            .await?;
-
-        self.raw_external_spot_price = Some(asset_price);
-        self.raw_external_quote_price = Some(quote_price);
-
-        Ok(())
-    }
-
     async fn update_external_price_series(&mut self, client: Arc<Client>) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
-
-        // Make sure block is same as the last sync time, if it's not return an error
-        // "sync series before sync data"
-        if let Some(last_sync_block) = self.raw_last_chain_data_sync_block {
-            if block_number != last_sync_block {
-                return Err(Error::msg("sync series before sync data"));
-            }
-        } else {
-            return Err(Error::msg("Last sync block not set"));
-        }
 
         if let Some(series) = &self.raw_external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
@@ -442,16 +436,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     async fn update_internal_price_series(&mut self, client: Arc<Client>) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
-
-        // Make sure block is same as the last sync time, if it's not return an error
-        // "sync series before sync data"
-        if let Some(last_sync_block) = self.raw_last_chain_data_sync_block {
-            if block_number != last_sync_block {
-                return Err(Error::msg("sync series before sync data"));
-            }
-        } else {
-            return Err(Error::msg("Last sync block not set"));
-        }
 
         if let Some(series) = &self.raw_internal_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
@@ -508,6 +492,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Computes the sum of a dual asset portfolio given their balances and
     /// prices. Prices are assumed to be denominated in USD-pegged assets, and
     /// in WAD units.
+    #[tracing::instrument(level = "trace")]
     pub fn compute_portfolio_value(
         asset_price_wad: AlloyU256,
         quote_price_wad: AlloyU256,
@@ -577,7 +562,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .ok_or(Error::msg("Internal spot price not set"))?;
         let quote_price_wad = self
             .raw_external_quote_price
-            .ok_or(Error::msg("Internal spot price not set"))?;
+            .ok_or(Error::msg("External quote price not set"))?;
         let quote_balance_wad = self
             .raw_user_quote_balance
             .ok_or(Error::msg("User quote balance not set"))?;
@@ -730,7 +715,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_portfolio_values_series
             .as_ref()
             .ok_or(Error::msg("Portfolio value series not set"))?;
-        Self::transform_series(series)
+        let mut result = Self::transform_series(series)?;
+
+        result.1.legend = "Portfolio Value".to_string();
+        result.1.color = plotters::style::full_palette::DEEPPURPLE_400;
+
+        Ok(result)
     }
 
     /// Transforms the portfolio strategy into a plotted curve with the current
@@ -794,8 +784,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // Compute the x and y values for the curve.
         let mut points = vec![];
 
-        let mut x = min_x;
-        while x <= max_x {
+        // Initial x != 0!!! be careful.
+        let mut x = f64::EPSILON;
+        while x / total_liquidity < 1.0 {
             let y = compute_y_given_x_rust(
                 x,
                 total_liquidity,

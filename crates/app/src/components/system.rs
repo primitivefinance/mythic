@@ -1033,17 +1033,18 @@ impl ExcaliburChart {
         self
     }
 
-    pub fn update_many_series(&mut self, new_series: Vec<ChartLineSeries>) {
-        self.chart.many_series(new_series);
+    // todo: this is probably inefficient
+    pub fn override_series(&mut self, new_series: Vec<ChartLineSeries>) {
+        self.chart.override_series(new_series);
     }
 
-    pub fn update_points_of_interest(&mut self, points_of_interest: Vec<ChartPoint>) {
-        self.chart.points_of_interest(points_of_interest);
+    pub fn override_points(&mut self, points_of_interest: Vec<ChartPoint>) {
+        self.chart.override_points(points_of_interest);
     }
 
     /// Add multiple series to the chart.
     pub fn many_series(mut self, new_series: Vec<ChartLineSeries>) -> Self {
-        self.chart.many_series(new_series);
+        self.chart.extend_many_series(new_series);
         self
     }
 
@@ -1094,7 +1095,7 @@ impl ExcaliburChart {
 
         let lines: Vec<ChartLineSeries> = vec![series, series2];
 
-        self.chart.many_series(lines);
+        self.chart.extend_many_series(lines);
         self = self.x_range((-0.1, 1.0));
         self = self.y_range((-0.1, 1.0));
 
