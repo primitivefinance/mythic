@@ -226,32 +226,41 @@ impl State for Execute {
     }
 
     fn view(&self) -> Element<Self::ViewMessage> {
-        let mut content = Column::new()
-            .spacing(Sizes::Lg)
-            .push(label(&"Execute Adjustment").title2().build());
-
-        if let Some(dev_client) = &self.dev_client {
-            content = content.push(
-                ExcaliburButton::new()
-                    .danger()
-                    .build(label(&"Execute").build())
-                    .padding(Sizes::Md)
-                    .on_press(Message::Execute),
-            )
-        };
-
-        let mut result_content = Row::new().spacing(Sizes::Lg);
-
-        if self.tx_receipt.is_some() {
-            result_content = result_content.push(self.view_tx_logs());
-        }
-
-        if self.position.is_some() {
-            result_content = result_content.push(self.view_position());
-        }
-
-        content = content.push(result_content);
-
-        Container::new(content).into()
+        Card::new(
+            Column::new()
+                .width(Length::Fill)
+                .push(
+                    Container::new(
+                        Column::new()
+                            .push(label(&"Instructions").secondary().build())
+                            .push(
+                                label(&"Create a position to get started.")
+                                    .billions()
+                                    .build(),
+                            )
+                            .width(Length::Fill)
+                            .padding(Sizes::Lg),
+                    )
+                    .width(Length::Fill),
+                )
+                .push(
+                    ExcaliburContainer::default()
+                        .background(ExcaliburColor::Background2)
+                        .border_radius([0.0, 0.0, Sizes::Sm.into(), Sizes::Sm.into()].into())
+                        .build(
+                            ExcaliburButton::new()
+                                .primary()
+                                .build(label(&"Create position").build())
+                                .padding([8, 16, 8, 16])
+                                .on_press(Message::Execute),
+                        )
+                        .padding(Sizes::Lg)
+                        .center_x()
+                        .center_y()
+                        .width(Length::Fill),
+                ),
+        )
+        .width(Length::Fill)
+        .into()
     }
 }

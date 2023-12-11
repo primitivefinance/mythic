@@ -229,9 +229,11 @@ pub fn g_x(
     term_1 * numerator / denominator
 }
 
-/// a = L / integral(0, 1000)( 1 / g(x) gx )
+/// a = L / integral(0, 100)( 1 / g(x) gx )
 /// Warning: This function is undefined for x = 0. This will throw a NaN, which
 /// is why we pass the lower bound as f64::EPSILON.
+///
+/// Should do up to 1000, but thats slower than 100.
 #[allow(clippy::too_many_arguments)]
 #[tracing::instrument(ret, level = "trace")]
 pub fn get_a(
@@ -247,7 +249,7 @@ pub fn get_a(
             sigma_percent_wad_float,
             time_to_expiry_years_wad_float
         ));
-    let integral = reikna::integral::integrate(&g_x, f64::EPSILON, 1000.0);
+    let integral = reikna::integral::integrate(&g_x, f64::EPSILON, 100.0);
     total_liquidity_wad_float / integral
 }
 

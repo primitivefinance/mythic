@@ -179,6 +179,12 @@ impl Default for Windows {
     }
 }
 
+impl Windows {
+    pub fn new(screen: Screen) -> Self {
+        Self { screen }
+    }
+}
+
 #[derive(Debug)]
 pub enum WindowsMessage {
     Switch(view::sidebar::Route),
@@ -221,7 +227,7 @@ impl App {
                 streams,
                 chains,
                 cache: Cache::new(),
-                windows: Windows::default(),
+                windows: Windows::new(PortfolioRoot::new(dev_client.clone()).into()),
                 sidebar: Sidebar::new(),
                 ledger,
                 dev_client,

@@ -546,3 +546,44 @@ where
 
     content.spacing(Sizes::Sm)
 }
+
+/// Divides content into four quadrants with centered alignment.
+pub fn quadrant_container<'a, Message>(
+    top_left: Element<'a, Message>,
+    top_right: Element<'a, Message>,
+    bottom_left: Element<'a, Message>,
+    bottom_right: Element<'a, Message>,
+) -> Container<'a, Message>
+where
+    Message: 'a,
+{
+    let top_left = Container::new(top_left).center_x().center_y();
+    let top_right = Container::new(top_right).center_x().center_y();
+    let bottom_left = Container::new(bottom_left).center_x().center_y();
+    let bottom_right = Container::new(bottom_right).center_x().center_y();
+
+    let mut content = Column::new()
+        .push(
+            Row::new()
+                .height(Length::FillPortion(2))
+                .push(top_left.width(Length::FillPortion(2)))
+                .push(top_right.width(Length::FillPortion(2)))
+                .align_items(alignment::Alignment::Center),
+        )
+        .push(
+            Row::new()
+                .height(Length::FillPortion(2))
+                .push(bottom_left.width(Length::FillPortion(2)))
+                .push(bottom_right.width(Length::FillPortion(2)))
+                .align_items(alignment::Alignment::Center),
+        )
+        .align_items(alignment::Alignment::Center)
+        .spacing(Sizes::Md);
+
+    content = content
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .padding(Sizes::Md);
+
+    container(content)
+}

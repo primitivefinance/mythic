@@ -28,6 +28,12 @@ const BG3: Color = Color::from_rgb(
     0x28 as f32 / 255.0,
 );
 
+const CARD_BG: Color = Color::from_rgb(
+    0x2A as f32 / 255.0,
+    0x29 as f32 / 255.0,
+    0x2E as f32 / 255.0,
+);
+
 /// Quantitative colors are for different sizes of values.
 /// - Hundreds < 1,000
 /// - Thousands < 1,000,000
@@ -124,6 +130,7 @@ pub enum ExcaliburColor {
     Background1,
     Background2,
     Background3,
+    Card,
     #[default]
     Primary,
     Success,
@@ -139,6 +146,7 @@ impl ExcaliburColor {
             ExcaliburColor::Background1 => BG1,
             ExcaliburColor::Background2 => BG2,
             ExcaliburColor::Background3 => BG3,
+            ExcaliburColor::Card => CARD_BG,
             ExcaliburColor::Primary => BLUE,
             ExcaliburColor::Success => GREEN,
             ExcaliburColor::Danger => RED,
@@ -773,10 +781,8 @@ impl ExcaliburContainer {
     // Presets
 
     pub fn card(mut self) -> Self {
-        self.background = ExcaliburColor::Background3;
+        self.background = ExcaliburColor::Card;
         self.border_radius = Sizes::Sm.into();
-        self.border_color = ExcaliburColor::Custom(GRAY_600);
-        self.border_width = 1.0;
         self
     }
 }
@@ -931,16 +937,6 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
                                     .cells(cells)
                             })
                             .collect(),
-                    )
-                    .row(
-                        RowBuilder::new().cell(
-                            CellBuilder::new().child(
-                                label("Last sync: 12:00 Dec. 6, 2023.")
-                                    .caption()
-                                    .secondary()
-                                    .build(),
-                            ),
-                        ),
                     ),
             )
     }

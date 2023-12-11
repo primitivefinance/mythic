@@ -105,13 +105,6 @@ impl State for PortfolioRoot {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
-        // if let Some(_) = &self.dev_client {
-        // self.dashboard
-        // .subscription()
-        // .map(|x| Message::Dashboard(x).into())
-        // } else {
-        // Subscription::none()
-        // }
         self.dashboard
             .subscription()
             .map(|x| Message::Dashboard(x).into())

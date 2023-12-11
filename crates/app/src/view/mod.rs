@@ -92,10 +92,10 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .align_y(alignment::Vertical::Center)
         .width(Length::Fill)
         .height(Length::Fill)
-        .padding(Sizes::Xl)
+        .padding([16, 24, 16, 24])
         .style(
             ExcaliburContainer::default()
-                .background(ExcaliburColor::Background2)
+                .background(ExcaliburColor::Background1)
                 .theme(),
         )
         .into()

@@ -18,6 +18,8 @@ use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
 // todo: remove this in favor of alloy types when possible.
 use bindings::{dfmm::DFMM, log_normal::LogNormal};
+use cfmm_math::trading_functions::rmm::liq_distribution;
+use clients::dev::ProtocolPosition;
 use ethers::types::transaction::eip2718::TypedTransaction;
 use sim::{from_ethers_u256, to_ethers_address};
 
@@ -113,6 +115,16 @@ sol! {
 // view returns(uint liquidity); }
 // }
 
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct StrategyPosition {
+    pub balance_x: f64,
+    pub balance_y: f64,
+    pub liquidity: f64,
+    pub external_price: f64,
+    pub internal_price: f64,
+    pub quote_price: f64,
+}
+
 impl RawDataModel<AlloyAddress, AlloyU256> {
     pub type Address = AlloyAddress;
     pub type Value = AlloyU256;
@@ -188,6 +200,56 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let converted_address = to_ethers_address(strategy_address);
         let strategy = LogNormal::new(converted_address, client.clone());
         Ok(strategy)
+    }
+
+    /// Gets the balances and prices of the asset and quote tokens and formats
+    /// them into floats.
+    pub fn get_position_info(&self) -> Result<StrategyPosition> {
+        let balance_x = self
+            .raw_asset_reserve
+            .ok_or(Error::msg("Asset reserve not set"))?;
+        let balance_y = self
+            .raw_quote_reserve
+            .ok_or(Error::msg("Quote reserve not set"))?;
+        let internal_price = self
+            .raw_internal_spot_price
+            .ok_or(Error::msg("Internal spot price not set"))?;
+        let liquidity = self
+            .raw_total_liquidity
+            .ok_or(Error::msg("Total liquidity not set"))?;
+        let quote_price = self
+            .raw_external_quote_price
+            .ok_or(Error::msg("External quote price not set"))?;
+        let external_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("External spot price not set"))?;
+
+        let external_price = alloy_primitives::utils::format_ether(external_price);
+        let external_price = external_price.parse::<f64>()?;
+
+        let balance_x = alloy_primitives::utils::format_ether(balance_x);
+        let balance_x = balance_x.parse::<f64>()?;
+
+        let balance_y = alloy_primitives::utils::format_ether(balance_y);
+        let balance_y = balance_y.parse::<f64>()?;
+
+        let internal_price = alloy_primitives::utils::format_ether(internal_price);
+        let internal_price = internal_price.parse::<f64>()?;
+
+        let liquidity = alloy_primitives::utils::format_ether(liquidity);
+        let liquidity = liquidity.parse::<f64>()?;
+
+        let quote_price = alloy_primitives::utils::format_ether(quote_price);
+        let quote_price = quote_price.parse::<f64>()?;
+
+        Ok(StrategyPosition {
+            balance_x,
+            balance_y,
+            liquidity,
+            external_price,
+            internal_price,
+            quote_price,
+        })
     }
 
     // Provider
@@ -725,11 +787,30 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(result)
     }
 
+    /// Gets the points of interest on the strategy plot.
+    pub fn portfolio_strategy_points(&self) -> Result<Vec<ChartPoint>> {
+        let asset_reserve_wad = self
+            .raw_asset_reserve
+            .ok_or(Error::msg("Asset reserve not set"))?;
+        let quote_reserve_wad = self
+            .raw_quote_reserve
+            .ok_or(Error::msg("Quote reserve not set"))?;
+
+        let asset_reserve = alloy_primitives::utils::format_ether(asset_reserve_wad);
+        let asset_reserve = asset_reserve.parse::<f32>()?;
+
+        let quote_reserve = alloy_primitives::utils::format_ether(quote_reserve_wad);
+        let quote_reserve = quote_reserve.parse::<f32>()?;
+
+        let poi = (asset_reserve, quote_reserve);
+        let poi: Vec<ChartPoint> = vec![poi.into()];
+
+        Ok(poi)
+    }
+
     /// Transforms the portfolio strategy into a plotted curve with the current
     /// portfolio composition as a point of interest.
-    pub fn portfolio_strategy_plot(
-        &self,
-    ) -> Result<(CartesianRanges, Vec<ChartLineSeries>, Vec<ChartPoint>)> {
+    pub fn portfolio_strategy_plot(&self) -> Result<(CartesianRanges, Vec<ChartLineSeries>)> {
         // Get the current strategy parameters, reserves, and liquidity.
         let strike_price_wad = self
             .raw_strike_price_wad
@@ -747,14 +828,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_total_liquidity
             .ok_or(Error::msg("Total liquidity not set"))?;
 
-        let asset_reserve_wad = self
-            .raw_asset_reserve
-            .ok_or(Error::msg("Asset reserve not set"))?;
-
-        let quote_reserve_wad = self
-            .raw_quote_reserve
-            .ok_or(Error::msg("Quote reserve not set"))?;
-
         // Convert these to float types.
         let strike_price = alloy_primitives::utils::format_ether(strike_price_wad);
         let strike_price = strike_price.parse::<f64>()?;
@@ -768,12 +841,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
         let total_liquidity = total_liquidity.parse::<f64>()?;
 
-        let asset_reserve = alloy_primitives::utils::format_ether(asset_reserve_wad);
-        let asset_reserve = asset_reserve.parse::<f64>()?;
-
-        let quote_reserve = alloy_primitives::utils::format_ether(quote_reserve_wad);
-        let quote_reserve = quote_reserve.parse::<f64>()?;
-
         // Choose the maximum bounds for x and y. These use log normal curve
         // assumptions.
         let max_x = total_liquidity;
@@ -785,7 +852,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let min_y = -max_y * 0.1; // 10%
 
         // Compute the x and y values for the curve.
-        let mut points = vec![];
+        let mut curve_points = vec![];
+
+        let mut liq_dist_points = vec![];
 
         // Initial x != 0!!! be careful.
         let mut x = f64::EPSILON;
@@ -797,19 +866,32 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 volatility,
                 time_remaining,
             );
-            points.push((x, y));
+            curve_points.push((x, y));
+
+            // This really impacts performance!! Like freezes the app.
+            let liq_dist =
+                liq_distribution(x, total_liquidity, strike_price, volatility, time_remaining);
+            liq_dist_points.push((x, liq_dist));
+
             x += 0.1;
         }
 
-        // Convert the x and y values to points that can be converted to a line series,
-        // which uses f32 types.
-        let converted_points = points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect();
-        let mut curve_series = coords_to_line_series(converted_points);
+        // Convert the x and y values to curve_points that can be converted to a line
+        // series, which uses f32 types.
+        let converted_curve_points = curve_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut curve_series = coords_to_line_series(converted_curve_points);
         curve_series.legend = "Log Normal".to_string();
 
-        // Get the current point of interest, which is the x and y reserve.
-        let poi = (asset_reserve as f32, quote_reserve as f32);
-        let poi: Vec<ChartPoint> = vec![poi.into()];
+        let converted_liq_dist_points = liq_dist_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut liq_dist_series = coords_to_line_series(converted_liq_dist_points);
+        liq_dist_series.legend = "Liq. Dist.".to_string();
+        liq_dist_series.color = plotters::style::full_palette::DEEPPURPLE_400;
 
         // Set the ranges.
         let ranges = CartesianRanges {
@@ -818,7 +900,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         };
 
         // Return it all!
-        Ok((ranges, vec![curve_series], poi))
+        Ok((ranges, vec![curve_series, liq_dist_series]))
     }
 }
 

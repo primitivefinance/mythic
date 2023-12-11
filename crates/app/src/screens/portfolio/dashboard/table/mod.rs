@@ -273,7 +273,7 @@ impl State for PortfolioTable {
 
         match msg {
             Self::AppMessage::Load(portfolio) => {
-                tracing::debug!("Loading portfolio: {:?}", portfolio);
+                tracing::debug!("Loading portfolio: {:?}", portfolio.name);
                 self.original = portfolio.clone();
             }
             Self::AppMessage::DeltaForm(msg) => {

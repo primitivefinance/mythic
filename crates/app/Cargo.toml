@@ -44,6 +44,7 @@ revm-primitives = { version = "1.3.0" }
 sim.workspace = true
 
 # workspace deps
+RustQuant.workspace = true
 arbiter-bindings.workspace = true
 bindings.workspace = true
 async-trait.workspace = true

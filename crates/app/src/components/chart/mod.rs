@@ -613,6 +613,53 @@ impl Chart<Message> for CartesianChart {
             }
         }
 
+        let coord_trans = chart.as_coord_spec();
+        let x_range = coord_trans.get_x_range();
+        let y_range = coord_trans.get_y_range();
+
+        // Draw borders around the chart.
+        chart
+            .draw_series(LineSeries::new(
+                vec![
+                    (x_range.start, y_range.start),
+                    (x_range.end, y_range.start),
+                    (x_range.end, y_range.end),
+                    (x_range.start, y_range.end),
+                    (x_range.start, y_range.start),
+                ]
+                .into_iter(),
+                self.border_color.filled(),
+            ))
+            .expect("Failed to plot lines");
+
+        // If there is no chart plots or series, return an empty chart with a "No data"
+        // text element.
+        if self.points.is_empty() && self.series.is_empty() {
+            chart
+                .draw_series(PointSeries::of_element(
+                    vec![(0.5, 0.5)],
+                    0,
+                    ShapeStyle::from(self.label_text_style).filled(),
+                    &|c: (f32, f32), _s, st| {
+                        return EmptyElement::at((c.0, c.1))
+                            + Rectangle::new(
+                                [(0, 0), (100, 100)],
+                                ShapeStyle::from(colors::TRANSPARENT),
+                            )
+                            + plotters::prelude::Text::new(
+                                "No data",
+                                (-30, -10),
+                                ("sans-serif", self.label_font_size)
+                                    .into_font()
+                                    .color(&self.border_color),
+                            );
+                    },
+                ))
+                .expect("Failed to draw empty chart");
+
+            return;
+        }
+
         // Draw the x-axis and y-axis indicators from the cursor position.
         if let Some(relative_position) = state.relative_position {
             // | ---------------- |
@@ -885,53 +932,6 @@ impl Chart<Message> for CartesianChart {
                     ))
                     .expect("Failed to plot points");
             }
-        }
-
-        let coord_trans = chart.as_coord_spec();
-        let x_range = coord_trans.get_x_range();
-        let y_range = coord_trans.get_y_range();
-
-        // Draw borders around the chart.
-        chart
-            .draw_series(LineSeries::new(
-                vec![
-                    (x_range.start, y_range.start),
-                    (x_range.end, y_range.start),
-                    (x_range.end, y_range.end),
-                    (x_range.start, y_range.end),
-                    (x_range.start, y_range.start),
-                ]
-                .into_iter(),
-                self.border_color.filled(),
-            ))
-            .expect("Failed to plot lines");
-
-        // If there is no chart plots or series, return an empty chart with a "No data"
-        // text element.
-        if self.points.is_empty() && self.series.is_empty() {
-            chart
-                .draw_series(PointSeries::of_element(
-                    vec![(0.5, 0.5)],
-                    0,
-                    ShapeStyle::from(self.label_text_style).filled(),
-                    &|c: (f32, f32), _s, st| {
-                        return EmptyElement::at((c.0, c.1))
-                            + Rectangle::new(
-                                [(0, 0), (100, 100)],
-                                ShapeStyle::from(colors::TRANSPARENT),
-                            )
-                            + plotters::prelude::Text::new(
-                                "No data",
-                                (-20, 20),
-                                ("sans-serif", self.label_font_size)
-                                    .into_font()
-                                    .color(&self.border_color),
-                            );
-                    },
-                ))
-                .expect("Failed to draw empty chart");
-
-            return;
         }
 
         // Draw the origin line on the x-axis.

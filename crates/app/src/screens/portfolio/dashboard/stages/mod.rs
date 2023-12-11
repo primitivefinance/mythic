@@ -17,7 +17,6 @@ use super::{table::PositionDelta, *};
 /// Weird? It works.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum DashboardState {
-    #[default]
     Empty,
     /// State of reviewing and finalizing the adjustments to make.
     Prepare,
@@ -26,6 +25,8 @@ pub enum DashboardState {
     /// State of simulating the portfolio adjustment transaction.
     Simulate,
     /// State of executing the portfolio adjustment transaction.
+    /// FIXME: temp initial state while we test.
+    #[default]
     Execute,
 }
 
@@ -107,7 +108,7 @@ impl Stages {
         Self {
             original: None,
             adjusted: None,
-            current: DashboardState::Prepare,
+            current: DashboardState::default(),
             prepare: prepare::Prepare::default(),
             review: review::Review::default(),
             simulate: simulate::Simulate::default(),
@@ -484,23 +485,16 @@ impl State for Stages {
             DashboardState::Execute => self.execute.view().map(|x| x.into()),
         };
 
-        let mut nav = Column::new().spacing(Sizes::Md);
-        // let area = Row::new()
-        // .spacing(Sizes::Md)
+        // let mut nav = Column::new().spacing(Sizes::Md);
+        //
+        // nav = nav.push(routes).height(Length::FillPortion(1));
+        // nav = nav
         // .push(Column::new().push(content))
-        // .push(self.guide());
-        // nav = nav.push(area);
-        nav = nav.push(routes).height(Length::FillPortion(1));
-        nav = nav
-            .push(Column::new().push(content))
-            .height(Length::FillPortion(3));
-        nav = nav
-            .push(self.guide().align_y(alignment::Vertical::Bottom))
-            .height(Length::FillPortion(1));
+        // .height(Length::FillPortion(3));
+        // nav = nav
+        // .push(self.guide().align_y(alignment::Vertical::Bottom))
+        // .height(Length::FillPortion(1));
 
-        Container::new(nav.height(Length::Fill))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .into()
+        Container::new(content).into()
     }
 }

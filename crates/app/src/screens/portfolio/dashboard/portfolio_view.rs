@@ -28,7 +28,7 @@ impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
                     .tertiary(),
             }
         } else {
-            label(&"N/A").caption().tertiary()
+            label(&"N/A").title1().secondary()
         }
     }
 }
@@ -44,7 +44,7 @@ impl ValueToLabel<Result<AlloyU256, anyhow::Error>> for Result<AlloyU256, anyhow
                     .tertiary(),
             }
         } else {
-            label(&"N/A").caption().tertiary()
+            label(&"N/A").title1().secondary()
         }
     }
 }
@@ -83,14 +83,33 @@ impl DataView {
         }
     }
 
+    /// Does not populate the static plots, only the live plots.
     pub fn update_model(&mut self, model: RawDataModel<AlloyAddress, AlloyU256>) {
         self.model = model;
         self.sync_portfolio_value_series();
+
+        // If this is the first update, conditionally update the static plots once.
+        if self.portfolio_strategy_plot.chart.series.is_empty() {
+            self.sync_portfolio_strategy_curve();
+        }
+
+        // Render the points for the strategy chart, since those are not computationally
+        // intensive.
+        self.sync_portfolio_strategy_points();
+    }
+
+    /// Updates the static plots, make sure model is updated. Most likely
+    /// triggered by user.
+    /// Call this to refetch the strategy plot.
+    pub fn update_static_plots(&mut self) {
         self.sync_portfolio_strategy_curve();
+        self.sync_portfolio_strategy_points();
     }
 
     /// Does not update the model, only updates the chart data to match the
     /// existing model.
+    /// todo: these can be computationally costly, we should only do this when
+    /// the model changes or the user forces it.
     pub fn sync_portfolio_strategy_curve(&mut self) {
         // Get the series data.
         let data = self.model.portfolio_strategy_plot();
@@ -102,15 +121,29 @@ impl DataView {
         };
 
         self.portfolio_strategy_plot.override_series(data.1);
-        self.portfolio_strategy_plot.override_points(data.2);
         self.portfolio_strategy_plot.update_x_range(data.0.x_range);
         self.portfolio_strategy_plot.update_y_range(data.0.y_range);
         // Only happens once.
         self.portfolio_strategy_plot.override_ranges_flag(true);
     }
 
+    pub fn sync_portfolio_strategy_points(&mut self) {
+        // Get the pois
+        let data = self.model.portfolio_strategy_points();
+        let data = match data {
+            Ok(data) => data,
+            Err(_) => {
+                return;
+            }
+        };
+
+        self.portfolio_strategy_plot.override_points(data);
+    }
+
     /// Does not update the model, only updates the chart data to match the
     /// existing model.
+    /// todo: these can be computationally costly, we should only do this
+    /// when the model changes or the user forces it.
     pub fn sync_portfolio_value_series(&mut self) {
         // Get the series data.
         let data = self.model.portfolio_value_series();
@@ -167,7 +200,11 @@ impl DataView {
         Message: 'a,
     {
         let data = self.model.raw_external_spot_price.to_label();
-        self.data_title_caption(data, "External Price".to_string(), "ETH/USD".to_string())
+        let caption = format!(
+            "ETH/USD @ {}",
+            self.model.raw_last_chain_data_sync_block.unwrap_or(0)
+        );
+        self.data_title_caption(data, "External Price".to_string(), caption)
     }
 
     pub fn internal_portfolio_value<'a, Message>(&self) -> Element<'a, Message>
@@ -193,7 +230,7 @@ impl DataView {
                         .tertiary(),
                 }
             }
-            Err(_) => label(&"N/A").caption().tertiary(),
+            Err(_) => label(&"N/A").title1().secondary(),
         };
         self.data_title_caption(
             data,
@@ -234,7 +271,7 @@ impl DataView {
                 .tertiary()
                 .build()
                 .into(),
-            None => label(&"N/A").caption().tertiary().build().into(),
+            None => label(&"Last sync: N/A").caption().tertiary().build().into(),
         }
     }
 
@@ -250,7 +287,7 @@ impl DataView {
                 .tertiary()
                 .build()
                 .into(),
-            None => label(&"N/A").caption().tertiary().build().into(),
+            None => label(&"Last sync: N/A").caption().tertiary().build().into(),
         }
     }
 }

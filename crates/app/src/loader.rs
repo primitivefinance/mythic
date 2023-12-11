@@ -335,16 +335,25 @@ impl Loader {
         let s_curve_result = s_curve(self.progress);
         let progress = (s_curve_result * 4.0) as usize;
 
+        let random_index: usize = progress % CURRENCY_SYMBOLS.len();
+        let random_currency = CURRENCY_SYMBOLS[random_index].to_string();
+
         match progress {
-            0 => "1 \\\\ Initiated loading procedure...".to_string(),
-            1 => "2 \\\\ Connecting to application...".to_string(),
-            2 => "3 \\\\ Connected. Synthesizing sandbox environment...".to_string(),
-            3 => "4 \\\\ Catalyzing data...".to_string(),
-            _ => "5 \\\\ Launching Excalibur...".to_string(),
+            0 => format!("{} Initiated loading procedure...", random_currency),
+            1 => format!("{} Starting sandbox environment...", random_currency),
+            2 => format!(
+                "{} Connected. Deploying contracts in sandbox...",
+                random_currency
+            ),
+            3 => format!("{} Initializing sandbox state...", random_currency),
+            _ => format!("{} Launching Excalibur...", random_currency),
         }
     }
 
     pub fn view(&self) -> Element<Message> {
+        let random_index: usize = self.progress as usize % GREEK_SYMBOLS.len();
+        let random_greek = GREEK_SYMBOLS[random_index].to_string();
+
         container(
             container(
                 column![
@@ -355,7 +364,7 @@ impl Loader {
                         .push(
                             Column::new()
                                 .push(
-                                    Canvas::new(&self.logo)
+                                    Container::new(label(&random_greek).highlight().build())
                                         .width(Length::Fixed(48.0))
                                         .height(Length::Fixed(48.0))
                                 )
@@ -395,3 +404,6 @@ impl Loader {
         iced::time::every(std::time::Duration::from_millis(25)).map(|_| Message::Tick)
     }
 }
+
+pub const GREEK_SYMBOLS: [char; 10] = ['Γ', 'Δ', 'Θ', 'Λ', 'Ξ', 'Π', 'Σ', 'Φ', 'Ψ', 'Ω'];
+pub const CURRENCY_SYMBOLS: [char; 11] = ['$', '€', '£', '¥', '₩', '₿', '₽', '₹', '₺', '₴', 'Ξ'];
