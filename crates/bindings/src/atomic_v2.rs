@@ -324,7 +324,7 @@ pub mod atomic_v2 {
                             ),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("input"),
+                                    name: ::std::borrow::ToOwned::to_owned("input_y_amount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -388,7 +388,7 @@ pub mod atomic_v2 {
                             ),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("input"),
+                                    name: ::std::borrow::ToOwned::to_owned("input_y_amount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -611,7 +611,7 @@ pub mod atomic_v2 {
                             ),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("input"),
+                                    name: ::std::borrow::ToOwned::to_owned("input_y_amount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -635,7 +635,7 @@ pub mod atomic_v2 {
                             ),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("input"),
+                                    name: ::std::borrow::ToOwned::to_owned("input_y_amount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -1188,10 +1188,10 @@ pub mod atomic_v2 {
         ///Calls the contract's `lower_exchange_price` (0x35a99ad0) function
         pub fn lower_exchange_price(
             &self,
-            input: ::ethers::core::types::U256,
+            input_y_amount: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([53, 169, 154, 208], input)
+                .method_hash([53, 169, 154, 208], input_y_amount)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `profitFinder` (0x98d8834d) function
@@ -1219,10 +1219,10 @@ pub mod atomic_v2 {
         ///Calls the contract's `raise_exchange_price` (0x8a2fa54a) function
         pub fn raise_exchange_price(
             &self,
-            input: ::ethers::core::types::U256,
+            input_y_amount: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([138, 47, 165, 74], input)
+                .method_hash([138, 47, 165, 74], input_y_amount)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `searchLowerPrice` (0x35289300) function
@@ -1281,19 +1281,19 @@ pub mod atomic_v2 {
         ///Calls the contract's `try_lower_exchange_price` (0xefa34c78) function
         pub fn try_lower_exchange_price(
             &self,
-            input: ::ethers::core::types::U256,
+            input_y_amount: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([239, 163, 76, 120], input)
+                .method_hash([239, 163, 76, 120], input_y_amount)
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `try_raise_exchange_price` (0xd7823df7) function
         pub fn try_raise_exchange_price(
             &self,
-            input: ::ethers::core::types::U256,
+            input_y_amount: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([215, 130, 61, 247], input)
+                .method_hash([215, 130, 61, 247], input_y_amount)
                 .expect("method not found (this should never happen)")
         }
         ///Gets the contract's `Loss` event
@@ -2077,7 +2077,7 @@ pub mod atomic_v2 {
     )]
     #[ethcall(name = "lower_exchange_price", abi = "lower_exchange_price(uint256)")]
     pub struct LowerExchangePriceCall {
-        pub input: ::ethers::core::types::U256,
+        pub input_y_amount: ::ethers::core::types::U256,
     }
     ///Container type for all input parameters for the `profitFinder` function with signature `profitFinder()` and selector `0x98d8834d`
     #[derive(
@@ -2124,7 +2124,7 @@ pub mod atomic_v2 {
     )]
     #[ethcall(name = "raise_exchange_price", abi = "raise_exchange_price(uint256)")]
     pub struct RaiseExchangePriceCall {
-        pub input: ::ethers::core::types::U256,
+        pub input_y_amount: ::ethers::core::types::U256,
     }
     ///Container type for all input parameters for the `searchLowerPrice` function with signature `searchLowerPrice(uint256,uint256)` and selector `0x35289300`
     #[derive(
@@ -2216,7 +2216,7 @@ pub mod atomic_v2 {
         abi = "try_lower_exchange_price(uint256)"
     )]
     pub struct TryLowerExchangePriceCall {
-        pub input: ::ethers::core::types::U256,
+        pub input_y_amount: ::ethers::core::types::U256,
     }
     ///Container type for all input parameters for the `try_raise_exchange_price` function with signature `try_raise_exchange_price(uint256)` and selector `0xd7823df7`
     #[derive(
@@ -2236,7 +2236,7 @@ pub mod atomic_v2 {
         abi = "try_raise_exchange_price(uint256)"
     )]
     pub struct TryRaiseExchangePriceCall {
-        pub input: ::ethers::core::types::U256,
+        pub input_y_amount: ::ethers::core::types::U256,
     }
     ///Container type for all of the contract's call
     #[derive(
