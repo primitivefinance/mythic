@@ -11,7 +11,7 @@ use crate::agents::base::token_admin::TokenAdmin;
 #[derive(Debug, Clone)]
 pub struct LiquidityProvider {
     pub client: Arc<RevmMiddleware>,
-    pub protocol_client: ProtocolClient,
+    pub protocol_client: ProtocolClient<RevmMiddleware>,
     init_x_wad: f64,
     init_price_wad: f64,
     init_strike_price_wad: f64,

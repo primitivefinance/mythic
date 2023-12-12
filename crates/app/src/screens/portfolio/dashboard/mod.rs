@@ -1,85 +1,150 @@
 //! Renders a view of the portfolio's positions and strategies.
 
+mod portfolio_model;
+mod portfolio_view;
 pub mod stages;
 pub mod table;
 
 use std::collections::HashMap;
 
-use datatypes::{
-    portfolio::{coin::Coin, position::Position, weight::Weight, Portfolio},
-    weight,
+use alloy_primitives::{utils::parse_ether, U256};
+use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use cfmm_math::trading_functions::rmm::{
+    compute_l_given_x_rust, compute_x_given_l_rust, compute_y_given_l_rust, compute_y_given_x_rust,
 };
+use chrono::{DateTime, Utc};
+use datatypes::portfolio::{
+    coin::Coin,
+    position::{Position, Positions},
+    weight::Weight,
+    Portfolio,
+};
+use sim::{from_ethers_address, from_ethers_u256, to_ethers_address, to_ethers_u256};
 use stages::Stages;
 use uuid::Uuid;
+use RustQuant::stochastics::{GeometricBrownianMotion, StochasticProcess, Trajectories};
 
-use self::{stages::DashboardState, table::PortfolioTable};
+use self::{
+    portfolio_model::{AlloyAddress, AlloyU256, RawDataModel, ALLOY_WAD},
+    portfolio_view::DataView,
+    stages::DashboardState,
+    table::PortfolioTable,
+};
 use super::*;
-use crate::components::{
-    containers::CustomContainer,
-    tables::{
-        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-        rows::RowBuilder,
+use crate::{
+    components::{
+        system::{
+            Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
+            ExcaliburTable,
+        },
+        tables::{
+            builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+            rows::RowBuilder,
+        },
     },
+    middleware::{Cortex, Watcher},
 };
 
 /// Executed on `load` for the Dashboard screen.
-#[tracing::instrument(skip(name), ret)]
+#[tracing::instrument(ret)]
 async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
     let path = name.clone().map(Portfolio::file_path_with_name);
     let portfolio = Portfolio::load(path);
-    let mut portfolio = match portfolio {
+    let portfolio = match portfolio {
         Ok(portfolio) => portfolio,
-        Err(e) => {
-            tracing::error!("Failed to load portfolio: {:?}", e);
-            // return Err(Arc::new(e));
-
-            tracing::info!("Creating a new default portfolio.");
-            Portfolio::create_new(name.clone())?
+        Err(_) => {
+            // If dev mode, load the dev profile.
+            if std::env::var("DEV_MODE").is_ok() {
+                // Else create it
+                tracing::debug!("Creating the dev portfolio.");
+                Portfolio::create_new(Some("dev".to_string()))?
+            } else {
+                // Else load the default profile.
+                tracing::debug!("Loading the default portfolio.");
+                Portfolio::load(Some(Portfolio::file_path_with_name("default".to_string())))?
+            }
         }
     };
 
-    // if dev mode, load up the basic two coin portfolio.
+    // If dev mode, load up the basic two coin portfolio.
     if std::env::var("DEV_MODE").is_ok() {
-        let coin_x: Coin = serde_json::from_str(super::dev::COIN_X)
-            .map_err(|e| Arc::new(anyhow::Error::from(e)))?;
-        let coin_y: Coin = serde_json::from_str(super::dev::COIN_Y)
-            .map_err(|e| Arc::new(anyhow::Error::from(e)))?;
-
-        let position_x_weight = Weight {
-            id: Uuid::new_v4(),
-            value: super::dev::INITIAL_X_WEIGHT.value,
-        };
-
-        let position_x = Position::new(
-            coin_x,
-            Some(super::dev::INITIAL_X_PRICE),
-            Some(super::dev::INITIAL_X_BALANCE),
-            Some(position_x_weight),
-            None,
-        );
-
-        let position_y_weight = Weight {
-            id: Uuid::new_v4(),
-            value: 1.0,
-        };
-
-        let position_y = Position::new(
-            coin_y,
-            Some(super::dev::INITIAL_Y_PRICE),
-            Some(super::dev::INITIAL_Y_BALANCE),
-            Some(position_y_weight),
-            None,
-        );
-
-        // Add the positions to the portfolio.
-        // note: ran into a problem of adding positions sequentially, as they would be
-        // added then the validate() would get called, and if that weight is not 1 then
-        // it won't sum to 1.
-        // Will need to work on this.
-        // Workaround is to set the first weight to 1.0, then add the second position.
-        portfolio += position_y;
-        portfolio += position_x;
+        // todo: use this
     }
+
+    Ok(portfolio)
+}
+
+#[tracing::instrument(skip(client), ret)]
+async fn fetch_balance(
+    client: Arc<Provider<Ws>>,
+    address: ethers::types::Address,
+) -> anyhow::Result<ethers::types::U256, Arc<anyhow::Error>> {
+    client
+        .get_balance(address, None)
+        .await
+        .map_err(|e| Arc::new(anyhow::Error::from(e)))
+}
+
+async fn fetch_portfolio(
+    portfolio: Portfolio,
+    dev_client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>,
+) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
+    let mut portfolio = portfolio.clone();
+    let coin_x: Coin =
+        serde_json::from_str(super::dev::COIN_X).map_err(|e| Arc::new(anyhow::Error::from(e)))?;
+    let coin_y: Coin =
+        serde_json::from_str(super::dev::COIN_Y).map_err(|e| Arc::new(anyhow::Error::from(e)))?;
+    let balance_x = dev_client
+        .balance_of_x(dev_client.client().address())
+        .await?;
+    let balance_y = dev_client
+        .balance_of_y(dev_client.client().address())
+        .await?;
+    let initial_price = super::dev::INITIAL_X_PRICE;
+    let balance_x = ethers::utils::format_ether(balance_x)
+        .parse::<f64>()
+        .unwrap();
+    let balance_y = ethers::utils::format_ether(balance_y)
+        .parse::<f64>()
+        .unwrap();
+
+    // Based on the price of x and the balances, compute the weights of both.
+    let total_value = balance_x * initial_price + balance_y;
+    let position_x_weight = balance_x * initial_price / total_value;
+    let position_y_weight = balance_y / total_value;
+    let position_x_weight = Weight {
+        id: Uuid::new_v4(),
+        value: position_x_weight,
+    };
+    let position_y_weight = Weight {
+        id: Uuid::new_v4(),
+        value: position_y_weight,
+    };
+
+    let position_x = Position::new(
+        coin_x,
+        Some(super::dev::INITIAL_X_PRICE),
+        Some(balance_x),
+        Some(position_x_weight),
+        None,
+    );
+
+    let position_y = Position::new(
+        coin_y,
+        Some(super::dev::INITIAL_Y_PRICE),
+        Some(balance_y),
+        Some(position_y_weight),
+        None,
+    );
+
+    // Add the positions to the portfolio.
+    // note: ran into a problem of adding positions sequentially, as they would be
+    // added then the validate() would get called, and if that weight is not 1 then
+    // it won't sum to 1.
+    // Will need to work on this.
+    // Workaround is to override the positions directly.
+    let positions = Positions::new(vec![position_x, position_y]);
+    portfolio.positions = positions;
 
     Ok(portfolio)
 }
@@ -94,52 +159,233 @@ pub enum Message {
     UpdateStaging(stages::Message),
     /// Triggered when the user inputs a delta in the table.
     UpdateTable(table::Message),
+    /// Triggered when new data is needs to be fetched.
+    UpdateDataModel(Result<RawDataModel<AlloyAddress, AlloyU256>, Arc<anyhow::Error>>),
+    /// Triggered when the view model needs to be synced to the data model.
+    UpdateDataView,
+    /// A 1s subscription.
+    Tick,
+    /// todo: remove
+    Refetch,
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = super::Message;
 }
 
 impl MessageWrapper for Message {
-    type ParentMessage = developer::Message;
+    type ParentMessage = super::Message;
 }
 
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::Dash(message)
+    fn from(msg: Message) -> Self {
+        super::Message::Dashboard(msg)
     }
 }
 
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::Developer(developer::Message::Dash(message))
+pub struct TestCortex<P, S>
+where
+    P: JsonRpcClient + 'static,
+    S: Signer + 'static,
+{
+    pub provider: Arc<Provider<P>>,
+    pub signer: S,
+    pub client: Arc<SignerMiddleware<Provider<P>, S>>,
+    pub watcher: Option<Watcher>,
+}
+
+#[async_trait::async_trait]
+impl Cortex for TestCortex<Ws, LocalWallet> {
+    type Provider = Ws;
+    type Signer = LocalWallet;
+    type Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>;
+
+    fn client(&self) -> Arc<SignerMiddleware<Provider<Ws>, LocalWallet>> {
+        self.client.clone()
+    }
+
+    fn provider(&self) -> Arc<Provider<Ws>> {
+        self.provider.clone()
+    }
+
+    fn signer(&self) -> Option<LocalWallet> {
+        Some(self.signer.clone())
+    }
+
+    fn protocol_address(&self) -> ethers::types::Address {
+        ethers::types::Address::zero()
+    }
+
+    fn strategy_address(&self) -> ethers::types::Address {
+        ethers::types::Address::zero()
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Dashboard {
-    /// Underlying data structure.
-    portfolio: Option<Portfolio>,
-    /// Table to render the underlying data.
-    table: PortfolioTable,
-    /// Stages of the dashboard for interacting with the underlying data.
-    stage: Stages,
-    /// Original name of the loaded portfolio.
-    loaded_from: Option<String>,
+    /// Connection to the network!
+    pub cortex: Option<
+        Arc<
+            dyn Cortex<
+                Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>,
+                Provider = Ws,
+                Signer = LocalWallet,
+            >,
+        >,
+    >,
+
+    /// The portfolio that is loaded, synced, and saved on close.
+    pub portfolio: Option<Portfolio>,
+
+    /// The table state.
+    pub table: PortfolioTable,
+
+    /// The current action that the user is taking.
+    pub stage: Stages,
+
+    /// The underlying data model of the dashboard.
+    pub data_model: RawDataModel<AlloyAddress, AlloyU256>,
+
+    /// The view of the data model to render the dashboard components.
+    pub data_view: DataView,
+
+    /// A test price process
+    pub test_price_process: Option<PriceProcess>,
+}
+
+pub struct PriceProcess {
+    pub trajectories: Trajectories,
+    pub step: usize,
+    pub max_steps: usize,
+}
+
+impl Clone for PriceProcess {
+    fn clone(&self) -> Self {
+        let times: Vec<f64> = self.trajectories.times.clone();
+        let paths: Vec<Vec<f64>> = self.trajectories.paths.clone();
+        Self {
+            trajectories: Trajectories { times, paths },
+            step: self.step,
+            max_steps: self.max_steps,
+        }
+    }
+}
+
+impl std::fmt::Debug for PriceProcess {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PriceProcess")
+            .field("trajectories", &self.trajectories.paths)
+            .field("step", &self.step)
+            .field("max_steps", &self.max_steps)
+            .finish()
+    }
 }
 
 impl Dashboard {
     pub type AppMessage = Message;
-    pub type ViewMessage = view::Message;
+    pub type ViewMessage = Message;
 
     /// Try loading the portfolio from the name.
-    pub fn new(name: Option<String>) -> Self {
+    pub fn new(name: Option<String>, dev_client: Option<DevClient<DefaultMiddleware>>) -> Self {
+        // Converts dev client to cortex, todo: just have cortex.
+        let cortex = if let Some(dev) = dev_client.clone() {
+            let client: DevClient<DefaultMiddleware> = dev.clone();
+            let cortex: Arc<
+                dyn Cortex<
+                    Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>,
+                    Provider = Ws,
+                    Signer = LocalWallet,
+                >,
+            > = Arc::new(TestCortex {
+                provider: client.client().provider().clone().into(),
+                signer: client.client().signer().clone(),
+                client: client.client().clone(),
+                watcher: None,
+            });
+
+            Some(cortex)
+        } else {
+            None
+        };
+
+        let mut data_model = RawDataModel::<AlloyAddress, AlloyU256>::default();
+
+        // Get the addresses from the dev client and setup the data_model with them.
+        // todo: get a better place to do this.
+        if let Some(dev_client) = dev_client.clone() {
+            let address = dev_client.client().address();
+            let user_address = from_ethers_address(address);
+            let raw_protocol_address = from_ethers_address(dev_client.protocol.protocol.address());
+            let raw_strategy_address = from_ethers_address(dev_client.strategy.address());
+            let raw_asset_token = from_ethers_address(dev_client.token_x.address());
+            let raw_quote_token = from_ethers_address(dev_client.token_y.address());
+            let lex = from_ethers_address(dev_client.liquid_exchange.address());
+
+            data_model.setup(
+                user_address,
+                lex,
+                raw_protocol_address,
+                raw_strategy_address,
+                raw_asset_token,
+                raw_quote_token,
+            );
+        }
+
+        // Create the data view based on this current model.
+        let mut data_view = DataView::new(
+            RawDataModel::<AlloyAddress, AlloyU256>::default(),
+            ExcaliburChart::new(),
+            ExcaliburChart::new(),
+        );
+        data_view.update_model(data_model.clone());
+
+        let process = Some(PriceProcess {
+            trajectories: GeometricBrownianMotion::new(0.05, 0.9)
+                .euler_maruyama(1.0, 0.0, 1.0, 1000, 1, false),
+            step: 0,
+            max_steps: 1000,
+        });
+
         Self {
+            cortex,
             portfolio: None,
             table: PortfolioTable::new(),
-            stage: Stages::new(),
-            loaded_from: name,
+            stage: Stages::new(dev_client),
+            data_model,
+            data_view,
+            test_price_process: process,
         }
+    }
+
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub fn update_data(&self) -> Command<Message> {
+        let mut commands = vec![];
+
+        // Get the provider.
+        if let Some(cortex) = &self.cortex {
+            let client = cortex.provider().clone();
+            let data_model = self.data_model.clone();
+            commands.push(Command::perform(
+                async move {
+                    tracing::info!(
+                        "Updating model at block: {}",
+                        client
+                            .get_block_number()
+                            .await
+                            .map_err(|e| { Arc::new(anyhow::Error::from(e)) })?
+                    );
+                    // Get the data
+                    let mut data = data_model;
+                    // Update the data
+                    data.update(client).await?;
+                    // Return the data
+                    Ok(data)
+                },
+                Message::UpdateDataModel,
+            ));
+        }
+
+        Command::batch(commands)
     }
 
     pub fn loaded(&self) -> bool {
@@ -183,15 +429,75 @@ impl Dashboard {
         Some(portfolio)
     }
 
-    pub fn render_header(&self) -> Element<'_, Self::AppMessage> {
-        Column::new()
-            .spacing(Sizes::Md)
-            .push(h1("Portfolio Dashboard".to_string()).size(TitleSize::Xl))
-            .into()
-    }
+    pub fn positions_table(&self) -> Element<'_, Self::AppMessage> {
+        let portfolio = self.portfolio.clone();
+        let position_x = portfolio
+            .clone()
+            .unwrap_or_default()
+            .positions
+            .0
+            .iter()
+            .find(|x| x.asset.symbol == "X")
+            .cloned()
+            .unwrap_or_default();
 
-    pub fn render_table(&self) -> Element<'_, Self::AppMessage> {
-        self.table.view().map(|x| x.into())
+        let position_y = portfolio
+            .clone()
+            .unwrap_or_default()
+            .positions
+            .0
+            .iter()
+            .find(|x| x.asset.symbol == "Y")
+            .cloned()
+            .unwrap_or_default();
+
+        let mut cell_data: Vec<Vec<CellBuilder<Self::ViewMessage>>> = vec![];
+
+        if let (Some(x_cost), Some(x_balance), Some(x_weight)) =
+            (position_x.cost, position_x.balance, position_x.weight)
+        {
+            let x_cost = format!("{}", x_cost);
+            let x_balance = format!("{}", x_balance);
+            let x_weight = format!("{}", x_weight);
+
+            cell_data.push(vec![
+                CellBuilder::new().child(label("ETH").body().build()),
+                CellBuilder::new().child(label(&x_cost).quantitative().build()),
+                CellBuilder::new().child(label(&x_balance).quantitative().build()),
+                CellBuilder::new().child(label(&x_weight).percentage().build()),
+            ]);
+        }
+
+        if let (Some(y_cost), Some(y_balance), Some(y_weight)) =
+            (position_y.cost, position_y.balance, position_y.weight)
+        {
+            let y_cost = format!("{}", y_cost);
+            let y_balance = format!("{}", y_balance);
+            let y_weight = format!("{}", y_weight);
+
+            cell_data.push(vec![
+                CellBuilder::new().child(label("USDC").body().build()),
+                CellBuilder::new().child(label(&y_cost).quantitative().build()),
+                CellBuilder::new().child(label(&y_balance).quantitative().build()),
+                CellBuilder::new().child(label(&y_weight).percentage().build()),
+            ]);
+        }
+
+        // If no positions add an empty cell with "no data" label.
+        if cell_data.is_empty() {
+            cell_data.push(vec![
+                CellBuilder::new().child(label("No data").secondary().build())
+            ]);
+        }
+
+        let exp_table = ExcaliburTable::new()
+            .header("Asset")
+            .header("Price")
+            .header("Balance")
+            .header("Weight")
+            .build_custom(cell_data);
+
+        exp_table.into()
     }
 
     pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
@@ -213,9 +519,11 @@ impl Dashboard {
                         Column::new()
                             .align_items(alignment::Alignment::Start)
                             .push(
-                                Card::new(h3(
-                                    "Make adjustments to view the estimated results".to_string()
-                                ))
+                                Card::new(
+                                    label(&"Make adjustments to view the estimated results")
+                                        .title3()
+                                        .build(),
+                                )
                                 .center_x()
                                 .center_y()
                                 .padding(Sizes::Lg)
@@ -234,23 +542,101 @@ impl Dashboard {
             _ => self.stage.view().map(|x| x.into()),
         }
     }
+
+    pub fn quadrant_i(&self) -> Element<'_, Self::AppMessage> {
+        let data_quadrant = Row::new()
+            .spacing(Sizes::Sm)
+            .push(Container::new(self.data_view.external_price()).width(Length::FillPortion(1)))
+            .push(Container::new(self.data_view.tvl()).width(Length::FillPortion(1)))
+            .push(
+                Container::new(self.data_view.internal_portfolio_value())
+                    .width(Length::FillPortion(1)),
+            )
+            .push(Container::new(self.data_view.portfolio_health()).width(Length::FillPortion(1)));
+
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(data_quadrant)
+            .push(
+                Column::new()
+                    .spacing(Sizes::Md)
+                    .push(label(&"Liquidity curve").headline().highlight().build())
+                    .push(
+                        self.data_view
+                            .portfolio_strategy_plot()
+                            .map(|x| Message::Empty),
+                    )
+                    .push(self.data_view.last_sync_timestamp()),
+            )
+            .into()
+    }
+
+    pub fn quadrant_ii(&self) -> Element<'_, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(
+                Column::new()
+                    .spacing(Sizes::Sm)
+                    .push(label(&"Good morning, Alex.").title3().highlight().build())
+                    .push(
+                        label(&"Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.")
+                            .body()
+                            .build(),
+                    ).push(
+                        label(&format!("Date: {}", Utc::now().format("%Y-%m-%d"))).caption().tertiary().build(),
+                    ),
+            )
+            .push(Column::new()
+            .spacing(Sizes::Md)
+            .push(label(&"Portfolio value / time").highlight().headline().build())
+            .push(
+                self.data_view
+                    .portfolio_value_series()
+                    .map(|x| Message::Empty),
+            )
+            .push(self.data_view.last_sync_timestamp()))
+            .into()
+    }
+
+    pub fn quadrant_iii(&self) -> Element<'_, Self::AppMessage> {
+        Column::new()
+            .spacing(Sizes::Lg)
+            .push(
+                Row::new()
+                    .spacing(Sizes::Md)
+                    .push(label(&"Positions").highlight().build())
+                    .push(
+                        ExcaliburButton::new()
+                            .transparent()
+                            .build(label(&"Refetch").caption().secondary().build())
+                            .on_press(Message::Refetch),
+                    ),
+            )
+            .push(
+                Column::new()
+                    .spacing(Sizes::Sm)
+                    .push(self.positions_table())
+                    .push(self.data_view.last_sync_block()),
+            )
+            .into()
+    }
+
+    pub fn quadrant_iv(&self) -> Element<'_, Self::AppMessage> {
+        self.render_staging_area()
+    }
 }
 
 impl State for Dashboard {
     type AppMessage = Message;
-    type ViewMessage = view::Message;
+    type ViewMessage = Message;
 
     /// todo: how to handle different portfolio loads.
     fn load(&self) -> Command<Self::AppMessage> {
-        let name = match self.loaded_from.clone() {
-            Some(name) => Some(name),
-            None => None,
-        };
-
         let mut commands = vec![];
 
-        // Loads the initial portfolio from file.
-        commands.push(Command::perform(load_portfolio(name), Message::Load));
+        commands.push(Command::perform(load_portfolio(None), Message::Load));
+
+        commands.push(self.update_data());
 
         // todo: does this even work for the children components?
         // Loads the staging area, which enters the first stage.
@@ -262,8 +648,6 @@ impl State for Dashboard {
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
             Message::Load(Ok(portfolio)) => {
-                self.portfolio = Some(portfolio.clone());
-
                 let mut commands: Vec<Command<Self::AppMessage>> = vec![];
 
                 // Store the portfolio in the staging area to reference it.
@@ -280,10 +664,157 @@ impl State for Dashboard {
                         .map(|x| x.into()),
                 );
 
+                self.portfolio = Some(portfolio.clone());
+
                 return Command::batch(commands);
             }
             Message::Load(Err(e)) => {
                 tracing::error!("Failed to load portfolio: {:?}", e);
+            }
+            Message::UpdateDataModel(Ok(data_model)) => {
+                // Update the data model.
+                self.data_model = data_model.clone();
+                // Sync the view model.
+                self.data_view.update_model(data_model.clone());
+
+                tracing::debug!(
+                    "Synced data model to block: {:?}",
+                    self.data_model
+                        .raw_last_chain_data_sync_block
+                        .unwrap_or_default()
+                );
+
+                let pos_info = self.data_model.get_position_info();
+
+                tracing::debug!("Attempting to fetch portfolio positions");
+
+                // Update the portfolio with the new position info.
+                if let (Some(ref portfolio), Ok(pos_info)) = (&self.portfolio, pos_info) {
+                    tracing::debug!("Updating portfolio positions");
+                    let mut portfolio = portfolio.clone();
+
+                    // Based on the price of x and the balances, compute the weights of both.
+                    let total_value =
+                        pos_info.balance_x * pos_info.external_price + pos_info.balance_y;
+                    let position_x_weight =
+                        pos_info.balance_x * pos_info.external_price / total_value;
+                    let position_y_weight = pos_info.balance_y / total_value;
+                    let position_x_weight = Weight {
+                        id: Uuid::new_v4(),
+                        value: position_x_weight,
+                    };
+                    let position_y_weight = Weight {
+                        id: Uuid::new_v4(),
+                        value: position_y_weight,
+                    };
+
+                    let coin_x: Coin = serde_json::from_str(super::dev::COIN_X)
+                        .map_err(|e| Arc::new(anyhow::Error::from(e)))
+                        .expect("No x token");
+                    let coin_y: Coin = serde_json::from_str(super::dev::COIN_Y)
+                        .map_err(|e| Arc::new(anyhow::Error::from(e)))
+                        .expect("No y token");
+
+                    let position_x = Position::new(
+                        coin_x,
+                        Some(pos_info.external_price),
+                        Some(pos_info.balance_x),
+                        Some(position_x_weight),
+                        None,
+                    );
+
+                    let position_y = Position::new(
+                        coin_y,
+                        Some(pos_info.quote_price),
+                        Some(pos_info.balance_y),
+                        Some(position_y_weight),
+                        None,
+                    );
+
+                    // Workaround is to override the positions directly.
+                    let positions = Positions::new(vec![position_x, position_y]);
+                    portfolio.positions = positions;
+
+                    // Update the table with the new position info.
+                    return Command::perform(async {}, move |_| {
+                        Message::Load(Ok(portfolio.clone()))
+                    });
+                }
+            }
+            Message::UpdateDataModel(Err(e)) => {
+                tracing::error!("Failed to update data model: {:?}", e);
+            }
+            Message::Refetch => {
+                return self.update_data();
+            }
+            Message::Tick => {
+                let mut commands = vec![];
+
+                let mut next_price = None;
+                if let Some(mut process) = self.test_price_process.as_mut() {
+                    process.step += 1;
+                    if process.step < process.max_steps {
+                        let price = process.trajectories.paths[0].get(process.step).cloned();
+                        if let Some(price) = price {
+                            next_price = Some(price);
+                        }
+                    }
+                };
+
+                if let (Some(external_exchange), Some(cortex)) =
+                    (&self.data_model.raw_external_exchange_address, &self.cortex)
+                {
+                    tracing::info!("Tick, updating price.");
+                    let client = cortex.clone().client().clone();
+                    // for testing live price chart.
+                    let external_exchange = external_exchange.clone();
+
+                    commands.push(Command::perform(
+                        async move {
+                            let next_price = next_price.unwrap_or_default();
+                            let client = client.clone();
+                            let external_exchange = external_exchange.clone();
+                            // Call the set_price function on the external exchange.
+                            let lex = LiquidExchange::new(
+                                to_ethers_address(external_exchange.clone()),
+                                client,
+                            );
+
+                            let current_price = lex.price().await?;
+                            // make the new price a random price +/- 1% of current price.
+                            let random = (1.0 + (rand::random::<f64>() - 0.5) * 0.01);
+                            let random = parse_ether(format!("{}", random).as_str()).unwrap();
+                            let mut new_price = from_ethers_u256(current_price)
+                                .checked_mul(random)
+                                .unwrap()
+                                .checked_div(ALLOY_WAD)
+                                .unwrap();
+
+                            if next_price > 0.0 {
+                                new_price = parse_ether(&format!("{}", next_price))?;
+                            }
+
+                            let result =
+                                lex.set_price(to_ethers_u256(new_price)).send().await?.await;
+
+                            match result {
+                                Ok(tx) => {
+                                    tracing::info!("Updated price");
+                                    Ok(())
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to set price: {:?}", e);
+                                    Err(anyhow::Error::from(e))
+                                }
+                            }
+                        },
+                        |_| Message::Empty,
+                    ));
+                }
+
+                commands.push(self.update_data());
+
+                return Command::batch(commands);
             }
             // todo: this might be a little slow, since it gets the adjusted portfolio.
             Message::UpdateTable(message) => {
@@ -353,7 +884,28 @@ impl State for Dashboard {
                 return self.table.update(message.clone()).map(|x| x.into());
             }
             Message::UpdateStaging(stage) => {
-                return self.stage.update(stage).map(|x| x.into());
+                let mut commands = vec![];
+                // If its an Execute::NewStrategyPosition message, then update the deposited
+                // portfolio.
+                if let stages::Message::Execute(stages::execute::Message::NewStrategyPosition(
+                    portfolio,
+                )) = stage.clone()
+                {
+                    // todo: update current position table with new strategy
+                    // position.
+                }
+
+                // Catch the FetchPositionResult and call update_data.
+                if let stages::Message::Execute(stages::execute::Message::FetchPositionResult(_)) =
+                    stage.clone()
+                {
+                    tracing::info!("Caught fetch position, updating data model.");
+                    commands.push(self.update_data());
+                }
+
+                commands.push(self.stage.update(stage).map(|x| x.into()));
+
+                return Command::batch(commands);
             }
             _ => {}
         }
@@ -361,66 +913,44 @@ impl State for Dashboard {
         Command::none()
     }
 
+    // Layout is a 2x2 quadrant grid
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let mut content = Column::new().spacing(Sizes::Lg);
-        content = content.push(self.render_header().map(|x| x.into()));
-        content = content.push(self.render_table().map(|x| x.into()));
-        content = content.push(self.render_staging_area().map(|x| x.into()));
+        let quadrant_1 = ExcaliburContainer::default()
+            .build(Column::new().push(self.quadrant_i()))
+            .padding(Sizes::Md);
+        let quadrant_2 = ExcaliburContainer::default()
+            .build((self.quadrant_ii()))
+            .padding(Sizes::Md);
+        let quadrant_3 = ExcaliburContainer::default()
+            .build((self.quadrant_iii()))
+            .padding(Sizes::Md);
+        let quadrant_4 = Container::new(self.quadrant_iv());
 
-        Container::new(content)
-            .align_y(alignment::Vertical::Top)
-            .center_x()
-            .max_height(ByteScale::Xl7)
-            .max_width(ByteScale::Xl7.between(&ByteScale::Xl8))
-            .into()
-    }
-}
-
-/// Wrapper around the dashboard so it can be used directly from the root app.
-pub struct DashboardWrapper {
-    pub dashboard: Dashboard,
-}
-
-impl From<DashboardWrapper> for Screen {
-    fn from(dashboard: DashboardWrapper) -> Self {
-        Screen::new(Box::new(dashboard))
-    }
-}
-
-impl DashboardWrapper {
-    pub fn new(name: Option<String>) -> Self {
-        Self {
-            dashboard: Dashboard::new(name),
-        }
-    }
-}
-
-impl State for DashboardWrapper {
-    type AppMessage = app::Message;
-    type ViewMessage = view::Message;
-
-    fn load(&self) -> Command<Self::AppMessage> {
-        let cmd: Command<developer::Message> = self.dashboard.load().map(|x| x.into());
-        cmd.map(|x| x.into())
+        Container::new(
+            Column::new()
+                .spacing(Sizes::Xl)
+                .push(
+                    Row::new()
+                        .spacing(Sizes::Sm)
+                        .push(quadrant_2.width(Length::FillPortion(2)))
+                        .push(quadrant_1.width(Length::FillPortion(2)))
+                        .height(Length::FillPortion(3))
+                        .align_items(alignment::Alignment::Start),
+                )
+                .push(
+                    Row::new()
+                        .spacing(Sizes::Sm)
+                        .push(quadrant_3.width(Length::FillPortion(2)))
+                        .push(quadrant_4.width(Length::FillPortion(2)))
+                        .height(Length::FillPortion(2)),
+                )
+                .width(Length::Fill),
+        )
+        .into()
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
-        match message {
-            app::Message::View(view::Message::Developer(msg)) => match msg {
-                developer::Message::Dash(message) => {
-                    let cmd: Command<developer::Message> =
-                        self.dashboard.update(message).map(|x| x.into());
-                    return cmd.map(|x| x.into());
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-
-        Command::none()
-    }
-
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
-        self.dashboard.view()
+    fn subscription(&self) -> Subscription<Self::AppMessage> {
+        let s1 = iced::time::every(std::time::Duration::from_secs(5)).map(|_| Message::Tick);
+        Subscription::batch(vec![s1])
     }
 }

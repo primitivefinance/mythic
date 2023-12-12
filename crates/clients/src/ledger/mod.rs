@@ -17,11 +17,11 @@ pub struct LedgerClient {
 }
 
 impl LedgerClient {
-    pub async fn new_connection(derivation: DerivationType) -> Self {
-        Self {
-            ledger: Ledger::init().await.unwrap(),
+    pub async fn new_connection(derivation: DerivationType) -> anyhow::Result<Self, anyhow::Error> {
+        Ok(Self {
+            ledger: Ledger::init().await?,
             derivation,
-        }
+        })
     }
 
     /// Get the account which corresponds to our derivation path
@@ -243,7 +243,9 @@ mod tests {
     async fn ledger_tests() {
         // test connecting: this doesn't require that the user has the ethereum ledger
         // application open
-        let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0)).await;
+        let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0))
+            .await
+            .unwrap();
         println!("Connected to ledger");
 
         // after this all other commands require that the ethereum ledger application is

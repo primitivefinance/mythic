@@ -37,6 +37,14 @@ contract DFMM is Core {
 
     error Invalid(bool negative, uint256 swapConstantGrowth);
 
+    event Init(
+        address indexed swapper,
+        address indexed strategy,
+        uint256 XXXXXXX,
+        uint256 YYYYYY,
+        uint256 LLLLLL
+    );
+
     event Swap(
         address indexed swapper,
         address source,
@@ -106,6 +114,7 @@ contract DFMM is Core {
         balanceOf[msg.sender] = LLLLLL;
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
+        emit Init(msg.sender, source, XXXXXXX, YYYYYY, LLLLLL);
         return (XXXXXXX, YYYYYY, LLLLLL);
     }
 

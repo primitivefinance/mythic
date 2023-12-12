@@ -8,14 +8,11 @@
 
 use super::*;
 
-pub mod address_book;
-pub mod developer;
+pub mod dev;
 pub mod empty;
-pub mod execution;
 pub mod exit;
-pub mod experimental;
 pub mod portfolio;
-pub mod terminal;
+pub mod settings;
 
 /// All messages need to be wrapped in a message type that their parent
 /// supports, this trait enforces that.
@@ -102,10 +99,7 @@ pub trait MessageWrapperView: Sized {
 /// Implement this trait to create new application states, from entire windows
 /// to individual screens inside windows. This trait is used recursively to
 /// build the entire application.
-pub trait State
-where
-    Self: Sync + Send,
-{
+pub trait State {
     /// Messages returned by the implemented view method.
     /// There exists a global "View" message as a variant in the
     /// main application message enum.

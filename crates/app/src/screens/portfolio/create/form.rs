@@ -3,7 +3,7 @@
 use datatypes::portfolio::{coin::Coin, position::Position, Portfolio};
 
 use super::*;
-use crate::components::containers::CustomContainer;
+use crate::components::system::ExcaliburContainer;
 
 /// Message type that passes forward the messages of this form.
 type ParentMessage = create::Message;
@@ -21,7 +21,7 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = ParentMessage;
 }
 
 impl MessageWrapper for Message {
@@ -38,15 +38,6 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     }
 }
 
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    // todo: now that we have the trait architecture for view messages, we just need
-    // to implement a parent view message instead of relying on the root view
-    // message.
-    fn from(message: Message) -> Self {
-        Self::Developer(developer::Message::Create(ParentMessage::Form(message)))
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct Form {
     pub name: Option<String>,
@@ -55,6 +46,14 @@ pub struct Form {
 }
 
 impl Form {
+    pub fn new() -> Self {
+        Self {
+            name: None,
+            ticker: None,
+            assets: vec![],
+        }
+    }
+
     // Message types!
     // todo: why are these not used?
     pub type AppMessage = Message;
@@ -219,7 +218,9 @@ impl State for Form {
                         .map(|(i, asset)| {
                             RowBuilder::new()
                                 .style(|| {
-                                    CustomContainer::theme(Some(iced::Background::Color(GRAY_500)))
+                                    ExcaliburContainer::default()
+                                        .background_iced(GRAY_500)
+                                        .theme()
                                 })
                                 .cell(CellBuilder::new().value(Some(asset.ticker)))
                                 .cell(CellBuilder::new().value(asset.price))
@@ -262,7 +263,7 @@ impl State for Form {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label_item("Assets".to_string()))
+                        .push(label(&"Assets").secondary().build())
                         .push(scrollable(table.build())),
                 ),
         )

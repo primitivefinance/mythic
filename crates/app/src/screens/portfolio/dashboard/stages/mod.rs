@@ -15,9 +15,8 @@ use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
 /// Weird? It works.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum DashboardState {
-    #[default]
     Empty,
     /// State of reviewing and finalizing the adjustments to make.
     Prepare,
@@ -26,6 +25,8 @@ pub enum DashboardState {
     /// State of simulating the portfolio adjustment transaction.
     Simulate,
     /// State of executing the portfolio adjustment transaction.
+    /// FIXME: temp initial state while we test.
+    #[default]
     Execute,
 }
 
@@ -58,6 +59,8 @@ pub enum Message {
     Review(review::Message),
     /// Updates the simulate stage.
     Simulate(simulate::Message),
+    /// Updates the execute stage.
+    Execute(execute::Message),
 }
 
 impl MessageWrapperView for Message {
@@ -95,19 +98,21 @@ pub struct Stages {
     pub prepare: prepare::Prepare,
     pub review: review::Review,
     pub simulate: simulate::Simulate,
+    pub execute: execute::Execute,
 }
 
 impl Stages {
     pub type AppMessage = Message;
 
-    pub fn new() -> Self {
+    pub fn new(dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>) -> Self {
         Self {
             original: None,
             adjusted: None,
-            current: DashboardState::Empty,
+            current: DashboardState::default(),
             prepare: prepare::Prepare::default(),
             review: review::Review::default(),
             simulate: simulate::Simulate::default(),
+            execute: execute::Execute::new(dev_client, None),
         }
     }
 
@@ -117,7 +122,7 @@ impl Stages {
             DashboardState::Prepare => self.prepare.guide(Some(Message::Step)),
             DashboardState::Review => self.review.guide(),
             DashboardState::Simulate => self.simulate.guide(Some(Message::Step)),
-            DashboardState::Execute => Container::new(Column::new()),
+            DashboardState::Execute => self.execute.guide(),
         }
     }
 
@@ -318,8 +323,10 @@ impl State for Stages {
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Message::Load(portfolio) => {
+                tracing::debug!("Loading portfolio in staging area: {:?}", portfolio);
                 self.original = Some(portfolio.clone());
-                self.prepare = prepare::Prepare::new(portfolio);
+                self.prepare = prepare::Prepare::new(portfolio.clone());
+                self.execute.original = Some(portfolio.clone());
             }
             Message::SetAdjusted(portfolio) => {
                 tracing::debug!(
@@ -417,6 +424,22 @@ impl State for Stages {
 
                 return Command::batch(commands);
             }
+            Message::Execute(message) => {
+                let should_execute = match &self.current {
+                    DashboardState::Execute => {
+                        matches!(message, execute::Message::Execute)
+                    }
+                    _ => false,
+                };
+
+                let mut commands = vec![];
+
+                if let DashboardState::Execute = &mut self.current {
+                    commands.push(self.execute.update(message.clone()).map(|x| x.into()));
+                }
+
+                return Command::batch(commands);
+            }
             _ => {}
         }
 
@@ -425,22 +448,31 @@ impl State for Stages {
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let routes = Row::new()
-            .spacing(Sizes::Md)
+            .spacing(Sizes::Sm)
             .push(
-                action_button("Adjustments".to_string())
-                    .on_press(Message::Route(DashboardState::Prepare)),
+                tab_button(
+                    self.current == DashboardState::Prepare,
+                    "Adjustments".to_string(),
+                )
+                .on_press(Message::Route(DashboardState::Prepare)),
             )
             .push(
-                action_button("Review".to_string())
+                tab_button(self.current == DashboardState::Review, "Review".to_string())
                     .on_press(Message::Route(DashboardState::Review)),
             )
             .push(
-                action_button("Simulate".to_string())
-                    .on_press(Message::Route(DashboardState::Simulate)),
+                tab_button(
+                    self.current == DashboardState::Simulate,
+                    "Simulate".to_string(),
+                )
+                .on_press(Message::Route(DashboardState::Simulate)),
             )
             .push(
-                action_button("Execute".to_string())
-                    .on_press(Message::Route(DashboardState::Execute)),
+                tab_button(
+                    self.current == DashboardState::Execute,
+                    "Execute".to_string(),
+                )
+                .on_press(Message::Route(DashboardState::Execute)),
             );
 
         // Storing different stages in this enum allows us to easily switch between them
@@ -450,22 +482,19 @@ impl State for Stages {
             DashboardState::Prepare => self.prepare.view().map(|x| x.into()),
             DashboardState::Review => self.review.view().map(|x| x.into()),
             DashboardState::Simulate => self.simulate.view().map(|x| x.into()),
-            DashboardState::Execute => Column::new().into(),
+            DashboardState::Execute => self.execute.view().map(|x| x.into()),
         };
 
-        Container::new(
-            Row::new()
-                .spacing(Sizes::Lg)
-                .push(
-                    Column::new()
-                        .push(routes)
-                        .push(content)
-                        .width(Length::FillPortion(3)),
-                )
-                .push(self.guide().width(Length::FillPortion(1))),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+        // let mut nav = Column::new().spacing(Sizes::Md);
+        //
+        // nav = nav.push(routes).height(Length::FillPortion(1));
+        // nav = nav
+        // .push(Column::new().push(content))
+        // .height(Length::FillPortion(3));
+        // nav = nav
+        // .push(self.guide().align_y(alignment::Vertical::Bottom))
+        // .height(Length::FillPortion(1));
+
+        Container::new(content).into()
     }
 }

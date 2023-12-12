@@ -1,5 +1,6 @@
 pub mod coins;
 pub mod contacts;
+pub mod networks;
 pub mod portfolios;
 pub mod profile;
 pub mod system;
@@ -115,11 +116,11 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
 
         // If the file doesn't exist, create a new instance.
         if !path.exists() {
-            return Err(anyhow::anyhow!("Could not find file at path: {:?}", path));
-            // tracing::trace!("Creating new instance of {}.", Self::SUFFIX);
-            // let instance = Self::create_new(None)?;
-            // instance.save()?;
-            // return Ok(instance);
+            // return Err(anyhow::anyhow!("Could not find file at path: {:?}", path));
+            tracing::trace!("Creating new instance of {}.", Self::SUFFIX);
+            let instance = Self::create_new(None)?;
+            instance.save()?;
+            return Ok(instance);
         }
 
         tracing::trace!("Loading {} at path: {:?}", Self::SUFFIX, path);

@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use iced::widget::Container;
+pub mod experimental;
 
 use super::{
     portfolio::{
@@ -11,7 +12,13 @@ use super::{
     },
     *,
 };
-use crate::components::tables::Asset;
+
+#[derive(Debug, Clone, Default)]
+pub struct Asset {
+    pub ticker: String,
+    pub price: f64,
+    pub selected: bool,
+}
 
 pub struct DeveloperScreen {
     pub cache: Option<String>,
@@ -93,8 +100,8 @@ impl State for DeveloperScreen {
 
     fn load(&self) -> Command<Self::AppMessage> {
         let commands: Vec<Command<Message>> = vec![
-            self.create_screen.load().map(|x| x.into()),
-            self.dash_screen.load().map(|x| x.into()),
+            self.create_screen.load().map(|x| Message::Create(x).into()),
+            self.dash_screen.load().map(|x| Message::Dash(x).into()),
         ];
         Command::batch(commands).map(|x| x.into())
     }
@@ -103,8 +110,10 @@ impl State for DeveloperScreen {
         match message {
             app::Message::View(view::Message::Developer(msg)) => match msg {
                 Message::Create(message) => {
-                    let cmd: Command<Message> =
-                        self.create_screen.update(message).map(|x| x.into());
+                    let cmd: Command<Message> = self
+                        .create_screen
+                        .update(message)
+                        .map(|x| Message::Create(x).into());
                     return cmd.map(|x| x.into());
                 }
                 Message::OnChange(value) => {
@@ -128,7 +137,10 @@ impl State for DeveloperScreen {
                     asset.1.selected = !asset.1.selected;
                 }
                 Message::Dash(message) => {
-                    let cmd: Command<Message> = self.dash_screen.update(message).map(|x| x.into());
+                    let cmd: Command<Message> = self
+                        .dash_screen
+                        .update(message)
+                        .map(|x| Message::Dash(x).into());
                     return cmd.map(|x| x.into());
                 }
                 _ => {}
@@ -141,8 +153,8 @@ impl State for DeveloperScreen {
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let column = match self.dash_screen.loaded() {
-            false => self.create_screen.view(),
-            true => self.dash_screen.view(),
+            false => self.create_screen.view().map(|x| Message::Create(x).into()),
+            true => self.dash_screen.view().map(|x| Message::Dash(x).into()),
         };
 
         Container::new(column)

@@ -1,5 +1,15 @@
 use iced::window::icon;
 use crate::rand;
+use std::{f32::consts::PI, time::Instant};
+
+use iced::{
+    widget::canvas::{path::arc, stroke, Cache, Path, Stroke},
+    window::icon,
+    Point, Rectangle,
+};
+
+use crate::components::styles::MINT_500;
+
 /// Placeholder for the Excalibur logo.
 #[allow(dead_code)]
 const EXCALIBUR_LOGO: &[u8] = include_bytes!("../../../../assets/logos/excalibur_logo.png");

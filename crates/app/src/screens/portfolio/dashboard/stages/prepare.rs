@@ -5,7 +5,10 @@ use datatypes::portfolio::{position::Position, Portfolio};
 use serde::{Deserialize, Serialize};
 
 use super::*;
-use crate::screens::{MessageWrapper, MessageWrapperView};
+use crate::{
+    components::system::label,
+    screens::{MessageWrapper, MessageWrapperView},
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -133,9 +136,23 @@ impl State for Prepare {
                         market_value_delta
                     );
 
+                    let balance_color = match market_value_delta {
+                        x if x > f64::EPSILON => GREEN_400,
+                        x if x < -f64::EPSILON => RED_400,
+                        _ => GRAY_800,
+                    };
+
                     (
-                        adjustment.adjusted.asset.name.clone(),
-                        format!("{:.2}% / ${:.2}", weight_delta * 100.0, market_value_delta),
+                        label(&adjustment.adjusted.asset.name.clone())
+                            .secondary()
+                            .build(),
+                        label(&format!(
+                            "{:.2}% / ${:.2}",
+                            weight_delta * 100.0,
+                            market_value_delta
+                        ))
+                        .highlight()
+                        .build(),
                     )
                 })
                 .collect(),
