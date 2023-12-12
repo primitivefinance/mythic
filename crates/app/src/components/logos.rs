@@ -1,5 +1,5 @@
 use iced::window::icon;
-
+use crate::rand;
 /// Placeholder for the Excalibur logo.
 #[allow(dead_code)]
 const EXCALIBUR_LOGO: &[u8] = include_bytes!("../../../../assets/logos/excalibur_logo.png");
