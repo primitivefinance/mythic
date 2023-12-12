@@ -22,6 +22,7 @@ __pycache__
 !analysis/src/tests/output/0.json
 !analysis/src/tests/output/1.json
 !analysis/src/tests/output/errors.json
+*.pdf
 
 # notes
 journal/book/*
