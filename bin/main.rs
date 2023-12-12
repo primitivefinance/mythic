@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use anyhow::Result;
 use clap::{ArgAction, CommandFactory, Parser, Subcommand};
 use dotenv::dotenv;
@@ -76,7 +74,7 @@ fn main() -> Result<()> {
         filter.push_str(&format!(",arbiter_core={}", log_level));
     }
 
-    let env_filter = EnvFilter::new(filter);
+    let _env_filter = EnvFilter::new(filter);
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,

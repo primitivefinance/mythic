@@ -1,5 +1,5 @@
 //! Utilities for developers.
-
+#![allow(dead_code)]
 use datatypes::{portfolio::weight::Weight, weight};
 
 pub const COIN_X: &str = r#"{

@@ -147,7 +147,7 @@ impl Application for MVP {
 
 pub fn run(dev_mode: bool) -> iced::Result {
     let mut settings = Settings::with_flags(Flags { dev_mode });
-    settings.window.icon = Some(logos::excalibur_logo_2());
+    settings.window.icon = Some(logos::excalibur_logo_6());
     settings.antialiasing = true;
     MVP::run(settings)
 }
