@@ -5,11 +5,12 @@ pub mod form;
 use datatypes::portfolio::coin_list::CoinList;
 
 use super::*;
-use crate::components::tables::{
-    builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder,
+use crate::components::{
+    system::label,
+    tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 
-type ParentMessage = developer::Message;
+type ParentMessage = super::Message;
 
 #[derive(Debug, Default, Clone)]
 pub enum Message {
@@ -21,7 +22,7 @@ pub enum Message {
 }
 
 impl MessageWrapperView for Message {
-    type ParentMessage = view::Message;
+    type ParentMessage = ParentMessage;
 }
 
 impl MessageWrapper for Message {
@@ -31,12 +32,6 @@ impl MessageWrapper for Message {
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Create(message)
-    }
-}
-
-impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
-    fn from(message: Message) -> Self {
-        Self::CreatePortfolio(message)
     }
 }
 
@@ -61,13 +56,20 @@ pub struct CreatePortfolio {
 }
 
 impl CreatePortfolio {
+    pub fn new() -> Self {
+        Self {
+            form: form::Form::new(),
+            coinlist: CoinList::default(),
+        }
+    }
+
     pub fn ready(&self) -> bool {
         self.form.ready()
     }
 }
 
 impl State for CreatePortfolio {
-    type ViewMessage = view::Message;
+    type ViewMessage = Message;
     type AppMessage = Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
@@ -106,9 +108,7 @@ impl State for CreatePortfolio {
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let column_1: Vec<Element<'a, Self::ViewMessage>> = vec![
-            h2("Create Portfolio".to_string())
-                .font(FONT_SEMIBOLD)
-                .into(),
+            label(&"Create Portfolio").title2().build().into(),
             self.form.view().map(|x| x.into()),
         ];
 
@@ -139,17 +139,7 @@ impl State for CreatePortfolio {
                 self.form.ticker.clone().unwrap_or("n/a".to_string()),
             )
             .into(),
-            static_table(
-                "Summary".to_string(),
-                vec![
-                    "Ticker".to_string(),
-                    "Price".to_string(),
-                    "Balance".to_string(),
-                ],
-                self.form.table_data(),
-            )
-            .into(),
-            instruct.map(|x| developer::Message::Create(x).into()),
+            instruct.map(|x| x.into()),
         ];
 
         Container::new(

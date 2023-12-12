@@ -4,7 +4,9 @@ use iced::{widget::Space, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{components::button::*, *};
+use crate::components::system::label;
 
+const SYMBOL: &str = "φ";
 const TITLE: &str = "Excalibur";
 
 /// Defines all the possible locations that can be directly routed to in the
@@ -70,12 +72,12 @@ impl Sidebar {
     pub type ViewMessage = view::Message;
 
     /// Renders a section header with a label.
-    pub fn section<'a>(&self, label: String) -> Row<'a, Self::ViewMessage> {
+    pub fn section<'a>(&self, header: String) -> Row<'a, Self::ViewMessage> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
             .push(
                 Column::new()
-                    .push(secondary_label(label))
+                    .push(label(&header).tertiary().build())
                     .align_items(alignment::Alignment::Center),
             )
             .padding(Sizes::Sm)
@@ -88,11 +90,8 @@ impl Sidebar {
         let mut column = Column::new();
         column = column.push(self.section("Apps".to_string()));
         column = column.push(self.page.view().map(|x| x.into()));
-        column = column.push(self.section("Bookmarks".to_string()));
-        column = column.push(self.bookmarks.view().map(|x| x.into()));
-
         column
-            .spacing(Sizes::Xs as u16)
+            .spacing(Sizes::Xs)
             .align_items(alignment::Alignment::Center)
             .into()
     }
@@ -120,8 +119,14 @@ impl screens::State for Sidebar {
     /// Renders the full sidebar.
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let title = Column::new()
-            .push(with_font(h1(TITLE.to_string())))
-            .padding(Sizes::Lg as u16)
+            .push(
+                Row::new()
+                    .spacing(Sizes::Sm)
+                    .align_items(alignment::Alignment::Center)
+                    .push(label(SYMBOL).title3().symbol().build())
+                    .push(label(TITLE).title3().branding().build()),
+            )
+            .padding(Sizes::Lg)
             .align_items(alignment::Alignment::Center)
             .width(Length::Fill);
 
@@ -132,18 +137,21 @@ impl screens::State for Sidebar {
                         Container::new(Column::new())
                             .width(Length::Fill)
                             .height(Length::Fixed(1.0))
-                            .style(ContainerBlackBg::theme()),
+                            .style(
+                                ExcaliburContainer::default()
+                                    .background_iced(Color::BLACK)
+                                    .theme(),
+                            ),
                     ),
                 )
                 .push(
                     Column::new()
                         .push(self.layout())
-                        .spacing(Sizes::Lg as u16)
-                        .padding(Sizes::Xs as u16),
+                        .spacing(Sizes::Lg)
+                        .padding(Sizes::Xs),
                 )
-                .spacing(Sizes::Md as u16),
+                .spacing(Sizes::Md),
         )
-        .style(SidebarContainer::theme())
         .height(Length::Fill)
         .into()
     }
@@ -153,12 +161,9 @@ impl screens::State for Sidebar {
 pub enum Page {
     #[default]
     Empty,
-    Terminal,
-    Execute,
-    AddressBook,
+    Portfolio,
+    Settings,
     Exit,
-    Experimental,
-    Developer,
 }
 
 impl Page {
@@ -170,11 +175,9 @@ impl Page {
     pub fn name(&self) -> String {
         match self {
             Page::Empty => "Select App".to_string(),
-            Page::Terminal => "Terminal".to_string(),
-            Page::Execute => "Execute".to_string(),
-            Page::AddressBook => "Address Book".to_string(),
-            Page::Exit => "Quit".to_string(),
-            Page::Developer => "Developer".to_string(),
+            Page::Portfolio => "Portfolio".to_string(),
+            Page::Settings => "Settings".to_string(),
+            Page::Exit => "Exit".to_string(),
             _ => "Experimental".to_string(),
         }
     }
@@ -182,11 +185,9 @@ impl Page {
     pub fn icon(&self) -> Icon {
         match self {
             Page::Empty => Icon::TerminalFill,
-            Page::Terminal => Icon::TerminalFill,
-            Page::Execute => Icon::Wallet,
-            Page::AddressBook => Icon::ShieldShaded,
+            Page::Portfolio => Icon::Wallet,
+            Page::Settings => Icon::Gear,
             Page::Exit => Icon::X,
-            Page::Developer => Icon::Thermometer,
             _ => Icon::Gear,
         }
     }
@@ -200,16 +201,10 @@ impl Page {
 
     pub fn tabs(active: &Page) -> Vec<Self::PageTab> {
         let mut all = vec![
-            Page::Terminal.tab(active),
-            Page::Execute.tab(active),
-            Page::AddressBook.tab(active),
-            Page::Experimental.tab(active),
+            Page::Portfolio.tab(active),
+            Page::Settings.tab(active),
             Page::Exit.tab(active),
         ];
-
-        if std::env::var("DEV_MODE").is_ok() {
-            all.push(Page::Developer.tab(active));
-        }
 
         all
     }
@@ -228,12 +223,12 @@ impl Page {
                         .push(Space::with_width(Length::Fixed(Sizes::Xs as u32 as f32)))
                         .push(text(icon_to_char(icon)).font(ICON_FONT))
                         .push(text(name))
-                        .spacing(Sizes::Md as u16),
+                        .spacing(Sizes::Md),
                 )
                 .width(Length::Fill)
                 .on_press(msg)
                 .style(style.as_custom())
-                .padding(Sizes::Sm as u16),
+                .padding(Sizes::Sm),
             );
         }
 
@@ -245,6 +240,7 @@ impl Page {
 }
 
 /// todo: implement bookmark editing and better route management.
+/// todo: currently not used.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub struct Bookmarks {
     current: String,

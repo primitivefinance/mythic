@@ -4,6 +4,7 @@
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
+    theme::Palette,
     widget::{button, container, scrollable, text, Column, Container, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
@@ -12,6 +13,7 @@ mod app;
 mod components;
 mod loader;
 mod logging;
+mod middleware;
 mod screens;
 mod user;
 mod view;
@@ -19,7 +21,7 @@ mod view;
 use std::sync::{Arc, Mutex};
 
 use app::App;
-use components::*;
+use components::{system::ExcaliburTheme, *};
 use loader::Loader;
 use logging::tracer;
 use screens::*;
@@ -43,7 +45,10 @@ pub enum Message {
     Quit,
 }
 
-pub struct Flags;
+#[derive(Debug, Clone, Copy)]
+pub struct Flags {
+    pub dev_mode: bool,
+}
 
 impl Application for MVP {
     type Message = Message;
@@ -51,11 +56,16 @@ impl Application for MVP {
     type Executor = executor::Default;
     type Flags = Flags;
 
-    fn new(_flags: Flags) -> (MVP, Command<Message>) {
+    fn new(flags: Flags) -> (MVP, Command<Message>) {
         let tracer = tracer::setup_with_channel();
 
+        // Set the dev mode env variables based on the flag
+        if flags.dev_mode {
+            std::env::set_var("DEV_MODE", "true");
+        }
+
         // 1. Initialize application with the Loader state and Message::Load.
-        let (loader, command) = Loader::new();
+        let (loader, command) = Loader::new(flags);
         let state = State::Loader(loader);
 
         (
@@ -83,12 +93,12 @@ impl Application for MVP {
             }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready(Ok((storage, chains, ledger))) => {
+                loader::Message::Ready(Ok((storage, chains, ledger, dev_client))) => {
                     // 4. Create our app and move to the app state.
                     let streams = app::Streams {
                         app_event_receiver: self.tracer.receiver.clone(),
                     };
-                    let (app, command) = App::new(storage, chains, streams, ledger);
+                    let (app, command) = App::new(storage, chains, streams, ledger, dev_client);
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.
@@ -131,13 +141,23 @@ impl Application for MVP {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
+        ExcaliburTheme::theme()
     }
 }
 
-pub fn run() -> iced::Result {
-    let mut settings = Settings::with_flags(Flags);
+pub fn run(dev_mode: bool) -> iced::Result {
+    let mut settings = Settings::with_flags(Flags { dev_mode });
     settings.window.icon = Some(logos::excalibur_logo_2());
     settings.antialiasing = true;
     MVP::run(settings)
+}
+
+pub fn custom_theme() -> iced::theme::Custom {
+    iced::theme::Custom::new(Palette {
+        background: iced::Color::BLACK.into(),
+        primary: MINT_500.into(),
+        text: PRIMARY_COLOR.into(),
+        success: MINT_500.into(),
+        danger: RED_400.into(),
+    })
 }

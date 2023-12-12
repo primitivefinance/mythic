@@ -4,28 +4,50 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use arbiter_core::middleware::RevmMiddleware;
+// use arbiter_core::middleware::C;
 use bindings::{dfmm, log_normal};
 use tracing::debug;
 
 use super::*;
 
-#[derive(Debug, Clone)]
-pub struct ProtocolClient {
-    pub client: Arc<RevmMiddleware>,
-    pub protocol: dfmm::DFMM<RevmMiddleware>,
+#[derive(Debug)]
+pub struct ProtocolClient<C> {
+    pub client: Arc<C>,
+    pub protocol: dfmm::DFMM<C>,
+}
+
+impl<C> Clone for ProtocolClient<C> {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            protocol: self.protocol.clone(),
+        }
+    }
 }
 
 type F64Wad = f64;
 
-impl ProtocolClient {
-    pub fn new(client: Arc<RevmMiddleware>, dfmm_address: Address) -> Self {
+impl<C: Middleware + 'static> ProtocolClient<C> {
+    pub fn new(client: Arc<C>, dfmm_address: Address) -> Self {
         let protocol = dfmm::DFMM::new(dfmm_address, client.clone());
         Self { client, protocol }
     }
 
+    #[tracing::instrument(skip(client), level = "trace", ret)]
+    pub async fn deploy_protocol(
+        client: Arc<C>,
+        token_x: Address,
+        token_y: Address,
+        swap_fee_percent_wad: f64,
+    ) -> anyhow::Result<Self> {
+        let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
+        let args = (token_x, token_y, swap_fee_percent_wad);
+        let protocol = dfmm::DFMM::deploy(client.clone(), args)?.send().await?;
+        Ok(Self { client, protocol })
+    }
+
     #[tracing::instrument(skip(self), level = "trace")]
-    pub async fn get_strategy(&self) -> Result<log_normal::LogNormal<RevmMiddleware>> {
+    pub async fn get_strategy(&self) -> Result<log_normal::LogNormal<C>> {
         let strategy =
             log_normal::LogNormal::new(self.protocol.source().call().await?, self.client.clone());
         Ok(strategy)
@@ -42,6 +64,12 @@ impl ProtocolClient {
     pub async fn get_internal_price(&self) -> Result<U256> {
         let price = self.protocol.internal_price().call().await?;
         Ok(price)
+    }
+
+    #[tracing::instrument(skip(self), level = "trace", ret)]
+    pub async fn get_reserves_and_liquidity(&self) -> Result<(U256, U256, U256)> {
+        let reserves = self.protocol.get_reserves_and_liquidity().call().await?;
+        Ok(reserves)
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
@@ -106,7 +134,7 @@ impl ProtocolClient {
             .get_y_given_liquidity(init_liquidity_wad, init_price_wad, params.clone())
             .await?;
 
-        let init_swap_constant = I256::zero();
+        let init_swap_constant = I256::from(5);
 
         let liquidity_root = self
             .find_liquidity(
@@ -116,6 +144,10 @@ impl ProtocolClient {
                 params.clone(),
             )
             .await?;
+
+        // Init fails with a negative swap constant of -1 (need +3). Subtracting
+        // liquidity gets us a higher swap constant.
+        let liquidity_root = liquidity_root - 5000;
 
         // Encode the data together to send it to the DFMM protocol.
         let payload = self

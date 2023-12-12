@@ -87,10 +87,10 @@ contract DFMMTest is Test {
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
-        MockERC20(tokenX).mint(address(this), 1e18);
-        MockERC20(tokenY).mint(address(this), 1e18);
+        MockERC20(tokenX).mint(address(this), 1_000_000000 ether);
+        MockERC20(tokenY).mint(address(this), 1_000_000000 ether);
 
-        lex = new LEX(tokenX, tokenY, 1e18);
+        lex = new LEX(tokenX, tokenY, 1_000_000000 ether);
 
         dfmm = new DFMM(tokenX, tokenY, TEST_SWAP_FEE);
         source = LogNormal(dfmm.source());
@@ -107,13 +107,44 @@ contract DFMMTest is Test {
             tauYearsWad: 1e18
         });
         uint256 init_p = 1.0e18;
-        uint256 init_x = 0.5e18;
+        uint256 init_x = 1.0e18;
         uint256 init_l = LogNormal(source).lx(init_x, init_p, params);
         uint256 init_y = LogNormal(source).yl(init_l, init_p, params);
         int256 swapConstantInit = 0;
         uint256 found_l = LogNormal(source).findLiquidity(
             init_x, init_y, swapConstantInit, params
         );
+
+        bytes memory init_data =
+            LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
+
+        dfmm.init(init_data);
+
+        console2.log("Initialized L:       ", found_l);
+        console2.log("Initialized X:       ", init_x);
+        console2.log("Initialized Y:       ", init_y);
+        console2.log("Initialized strike:  ", source.strikePrice());
+        console2.log("Initialized sigma:   ", source.sigma());
+        console2.log("Initialized tau:     ", source.tau());
+        _;
+    }
+
+    /// @dev Initializes a basic pool in dfmm.
+    modifier pool_with_high_price() {
+        vm.warp(0);
+        Parameters memory params = Parameters({
+            strikePriceWad: 2500 ether,
+            sigmaPercentWad: 1e18,
+            tauYearsWad: 1e18
+        });
+        uint256 init_p = 2500 ether;
+        uint256 init_x = 0.5 ether;
+        uint256 init_l = LogNormal(source).lx(init_x, init_p, params);
+        uint256 init_y = LogNormal(source).yl(init_l, init_p, params);
+        int256 swapConstantInit = 0;
+        uint256 found_l = LogNormal(source).findLiquidity(
+            init_x, init_y, swapConstantInit, params
+        ) - 100;
 
         bytes memory init_data =
             LogNormal(source).encodeInitData(init_x, init_y, found_l, params);
@@ -577,5 +608,97 @@ contract DFMMTest is Test {
 
         lex.setPrice(1.5 ether);
         atomic.searchRaisePrice(256, 10);
+    }
+
+    function test_arb_loop() public pool_with_high_price {
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000000 ether);
+
+        // Set LEX 2500 -> 3000
+        lex.setPrice(3000 ether);
+
+        // Check current DEX price.
+        uint256 dex_price = dfmm.internalPrice();
+
+        // Swap Y -> X -> Y'.
+        uint256 y_in = 1 ether;
+        uint256 y_balance = MockERC20(tokenY).balanceOf(address(this));
+        atomic.raise_exchange_price(y_in);
+        uint256 y_balance_after = MockERC20(tokenY).balanceOf(address(this));
+
+        // Profit = Y' - Y
+        uint256 profit = y_balance_after - y_balance;
+
+        // Initial swap's output X tokens.
+        uint256 intermediate_x = atomic.intermediateTokenXBalance();
+
+        // Effective price = Y / X
+        uint256 effective_price = y_in * 1 ether / intermediate_x;
+
+        console2.log("dex price before", dex_price);
+        console2.log("dex price after", dfmm.internalPrice());
+        console2.log("intermediate x", intermediate_x);
+        console2.log("effective price", effective_price);
+        console2.log("y balance before", y_balance);
+        console2.log("y balance after", y_balance_after);
+        console2.log("profit", profit);
+    }
+
+    function test_arb_loop_simple() public basic {
+        AtomicV2 atomic =
+            new AtomicV2(address(dfmm), address(lex), tokenX, tokenY);
+
+        MockERC20(tokenX).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).approve(address(atomic), type(uint256).max);
+        MockERC20(tokenY).mint(address(this), 1000000 ether);
+        MockERC20(tokenX).mint(address(lex), 1000000 ether);
+        MockERC20(tokenY).mint(address(lex), 1000000 ether);
+
+        // Set LEX 1.0 -> 0.992047873705309300
+        uint256 new_price = 0.985 ether; //0.9920478737053093 ether;
+        lex.setPrice(new_price);
+
+        // Check current DEX price.
+        uint256 dex_price = dfmm.internalPrice();
+
+        // Swap Y -> X -> Y'.
+        uint256 delta_x = 0.0173635 ether; //0.0091561 ether;
+        uint256 delta_y_to_get_x = delta_x * lex.price() / 1 ether;
+        uint256 y_balance = MockERC20(tokenY).balanceOf(address(this));
+        atomic.lower_exchange_price(delta_y_to_get_x);
+        uint256 y_balance_after = MockERC20(tokenY).balanceOf(address(this));
+
+        // Profit = Y' - Y
+        uint256 profit = y_balance_after - y_balance;
+
+        // Initial swap's output X tokens.
+        uint256 intermediate_x = atomic.intermediateTokenXBalance();
+
+        // Make sure its the same as the delta_x we sent in.
+        assertEq(intermediate_x, delta_x, "invalid immediate x!");
+
+        // Intermediate Y is the initial Y we send in.
+        uint256 intermediate_y = atomic.intermediateTokenYStartBalance();
+
+        // End Y is the final Y we get out.
+        uint256 intermediate_y_end = atomic.intermediateTokenYEndBalance();
+
+        // Effective price = Y / X
+        uint256 effective_price = intermediate_y_end * 1 ether / intermediate_x;
+
+        console2.log("dex price before", dex_price);
+        console2.log("dex price after", dfmm.internalPrice());
+        console2.log("intermediate y", intermediate_y);
+        console2.log("intermediate x", intermediate_x);
+        console2.log("effective price", effective_price);
+        console2.log("y balance before", y_balance);
+        console2.log("y balance after", y_balance_after);
+        console2.log("profit", profit);
     }
 }

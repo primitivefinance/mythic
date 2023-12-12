@@ -10,6 +10,7 @@ edition = "2021"
 abi = { path = "../abi" }
 datatypes = { path = "../datatypes" }
 clients = { path = "../clients" }
+cfmm_math = { path = "../cfmm_math" }
 
 
 # deps
@@ -43,6 +44,12 @@ revm-primitives = { version = "1.3.0" }
 sim.workspace = true
 
 # workspace deps
+RustQuant.workspace = true
+arbiter-bindings.workspace = true
+bindings.workspace = true
+async-trait.workspace = true
+reikna.workspace = true
+statrs.workspace = true
 alloy-primitives.workspace = true
 arbiter-core.workspace = true
 anyhow.workspace = true
@@ -53,6 +60,8 @@ plotters.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
+tokio-util.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+alloy-sol-types = "0.5.2"

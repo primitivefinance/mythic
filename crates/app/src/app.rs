@@ -1,63 +1,28 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
-use arbiter_core::environment::Environment;
-use clients::{client::Local, ledger::LedgerClient, scroll::Scroll};
+use clients::{client::AnvilClient, dev::DevClient, ledger::LedgerClient};
+use ethers::core::k256::ecdsa::SigningKey;
 use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
 use user::contacts::{self, ContactValue};
 
 use super::{
-    screens::{
-        address_book::AddressBookScreen, developer::DeveloperScreen, empty::EmptyScreen,
-        exit::ExitScreen, experimental::ExperimentalScreen, terminal::Terminal, Screen,
-    },
-    view::sidebar::Page,
+    screens::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
 };
 use crate::{
-    screens::{portfolio::dashboard::DashboardWrapper, State},
+    loader::DefaultMiddleware,
+    screens::{
+        dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
+        State,
+    },
+    user::networks::ChainPacket,
     view::sidebar::Sidebar,
 };
 
 pub fn app_span() -> Span {
-    tracing::info_span!("App")
-}
-
-pub type SpawnResult = anyhow::Result<(), anyhow::Error>;
-
-/// Emitted on simulation events.
-#[derive(Debug)]
-pub enum Simulation {
-    Spawned(SpawnResult),
-    Completed,
-}
-
-/// Emitted when data is involved.
-#[derive(Debug)]
-pub enum Data {
-    ProcessTracer,
-}
-
-#[derive(Debug)]
-pub enum Execution {
-    Form(execution::form::FormMessage),
-    Simulated(anyhow::Result<Scroll, anyhow::Error>),
-    Executed(anyhow::Result<Scroll, anyhow::Error>),
-    // Triggered after Execution::Executed is completed.
-    Confirmed,
-}
-
-impl From<Execution> for WindowsMessage {
-    fn from(msg: Execution) -> Self {
-        WindowsMessage::Execution(msg)
-    }
-}
-
-impl From<Execution> for Message {
-    fn from(msg: Execution) -> Self {
-        Message::WindowsMessage(msg.into())
-    }
+    tracing::debug_span!("App")
 }
 
 /// Root message for the Application.
@@ -65,34 +30,55 @@ impl From<Execution> for Message {
 pub enum Message {
     #[default]
     Empty,
+    Load,
     View(view::Message),
     ChainsMessage(ChainMessage),
     StreamsMessage(StreamsMessage),
     CacheMessage(CacheMessage),
     StorageMessage(StorageMessage),
     WindowsMessage(WindowsMessage),
+    Exit,
 }
+
+pub type RootMessage = Message;
+pub type RootViewMessage = view::Message;
 
 impl MessageWrapper for Message {
     type ParentMessage = Message;
-}
-
-#[derive(Debug)]
-pub enum AddressBookMessage {
-    Add(String, Address, contacts::Category),
-    Remove(String, contacts::Category),
-    Get(String, contacts::Category),
-    List(contacts::Category),
-    Clear(contacts::Category),
 }
 
 /// State for all chain related data.
 /// Idea: maybe make chains over generic over signers?
 #[derive(Debug, Clone)]
 pub struct Chains {
-    pub arbiter: Arc<Mutex<Environment>>,
-    pub local_wallet: Local<Provider<Ws>, LocalWallet>,
+    pub sub_clients: Vec<Provider<Ws>>,
+    pub call_clients: Vec<Provider<Http>>,
+    pub sign_clients: Vec<Wallet<SigningKey>>,
+    pub anvil_client: AnvilClient,
 }
+
+impl Chains {
+    #[tracing::instrument(skip(self))]
+    pub fn get_signer(
+        &self,
+        sub_client: usize,
+        sign_client: usize,
+    ) -> anyhow::Result<Arc<SignerMiddleware<Provider<Ws>, Wallet<SigningKey>>>> {
+        let sub_client = self
+            .sub_clients
+            .get(sub_client)
+            .ok_or(anyhow::anyhow!("Sub client not found"))?;
+        let sign_client = self
+            .sign_clients
+            .get(sign_client)
+            .ok_or(anyhow::anyhow!("Sign client not found"))?;
+
+        tracing::debug!("Creating signer middleware");
+        let signer = SignerMiddleware::new(sub_client.clone(), sign_client.clone());
+        Ok(Arc::new(signer))
+    }
+}
+
 #[derive(Debug)]
 pub enum ChainMessage {}
 
@@ -104,6 +90,12 @@ pub struct Streams {
 #[derive(Debug)]
 pub enum StreamsMessage {
     Data(Data),
+}
+
+/// Emitted when data is involved.
+#[derive(Debug)]
+pub enum Data {
+    ProcessTracer,
 }
 
 /// State for all temporarily cached state.
@@ -134,6 +126,44 @@ pub struct Storage {
 #[derive(Debug)]
 pub enum StorageMessage {
     AddressBook(AddressBookMessage),
+    RPCStorage(RPCStorageMessage),
+    AnvilSnapshot(anyhow::Result<String>),
+}
+
+#[derive(Debug)]
+pub enum AddressBookMessage {
+    Add(String, Address, contacts::Category),
+    Remove(String, contacts::Category),
+    Get(String, contacts::Category),
+    List(contacts::Category),
+    Clear(contacts::Category),
+}
+
+#[derive(Debug)]
+pub enum RPCStorageMessage {
+    Add(ChainPacket),
+    Remove(String),
+    Get(String),
+    List,
+    Clear,
+}
+
+impl From<RPCStorageMessage> for StorageMessage {
+    fn from(msg: RPCStorageMessage) -> Self {
+        Self::RPCStorage(msg)
+    }
+}
+
+impl From<StorageMessage> for Message {
+    fn from(msg: StorageMessage) -> Self {
+        Self::StorageMessage(msg)
+    }
+}
+
+impl From<RPCStorageMessage> for Message {
+    fn from(msg: RPCStorageMessage) -> Self {
+        Self::StorageMessage(msg.into())
+    }
 }
 
 /// State for specific windows that are open.
@@ -144,16 +174,20 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: EmptyScreen::new().into(),
+            screen: ExperimentalScreen::new().into(),
         }
+    }
+}
+
+impl Windows {
+    pub fn new(screen: Screen) -> Self {
+        Self { screen }
     }
 }
 
 #[derive(Debug)]
 pub enum WindowsMessage {
     Switch(view::sidebar::Route),
-    Execution(Execution),
-    Simulation(Simulation),
 }
 
 impl From<WindowsMessage> for Message {
@@ -174,7 +208,9 @@ pub struct App {
     pub sidebar: Sidebar,
     // this is a handle that has a lock on the ledger device
     // we have to talk to it async
-    pub ledger: LedgerClient,
+    pub ledger: Option<LedgerClient>,
+    // dev client for testing
+    pub dev_client: Option<DevClient<DefaultMiddleware>>,
 }
 
 impl App {
@@ -182,7 +218,8 @@ impl App {
         storage: Storage,
         chains: Chains,
         streams: Streams,
-        ledger: LedgerClient,
+        ledger: Option<LedgerClient>,
+        dev_client: Option<DevClient<DefaultMiddleware>>,
     ) -> (Self, Command<Message>) {
         (
             Self {
@@ -190,17 +227,33 @@ impl App {
                 streams,
                 chains,
                 cache: Cache::new(),
-                windows: Windows::default(),
+                windows: Windows::new(PortfolioRoot::new(dev_client.clone()).into()),
                 sidebar: Sidebar::new(),
                 ledger,
+                dev_client,
             },
-            Command::none(),
+            Command::perform(async {}, |_| Message::Load),
         )
+    }
+
+    // Loads the sidebar and the default screen.
+    pub fn load(&mut self) -> Command<Message> {
+        let mut cmds = Vec::new();
+
+        // Load the sidebar.
+        cmds.push(self.sidebar.load().map(|x| x.into()));
+
+        // Load the current window.
+        cmds.push(self.windows.screen.load().map(|x| x.into()));
+
+        Command::batch(cmds)
     }
 
     // All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         app_span().in_scope(|| match message {
+            Message::Exit => iced::window::close(),
+            Message::Load => self.load(),
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
             Message::StreamsMessage(msg) => self.streams_update(msg),
@@ -212,6 +265,7 @@ impl App {
                 iced::clipboard::write(contents)
             }
             Message::Empty => Command::none(),
+            // All the view messages are forwarded to the screen.
             _ => self.windows.screen.update(message),
         })
     }
@@ -233,9 +287,24 @@ impl App {
         }
 
         // Call exit on the opened window.
+        let mut commands = Vec::new();
         let cmd = self.windows.screen.exit();
+        commands.push(cmd);
 
-        Command::batch(vec![cmd, iced::window::close()])
+        // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
+        // set the profile's anvil snapshot to the result.
+        let anvil_client = self.chains.anvil_client.clone();
+        match self.dev_client.clone() {
+            Some(dev_client) => {
+                let cmd = Command::perform(save_snapshot(anvil_client), |snapshot| {
+                    Message::StorageMessage(StorageMessage::AnvilSnapshot(snapshot))
+                });
+                commands.push(cmd);
+            }
+            None => {}
+        };
+
+        Command::batch(commands)
     }
 
     fn streams_update(&mut self, message: StreamsMessage) -> Command<Message> {
@@ -280,9 +349,8 @@ impl App {
                 }
 
                 // todo: figure out how to best pipe updated app state to windows...
-                cmd = Command::perform(async {}, |_| {
-                    Message::View(view::Message::Data(view::Data::AppEvent))
-                });
+                // todo: update, old.
+                cmd = Command::perform(async {}, |_| Message::View(view::Message::Empty));
             }
         }
         cmd
@@ -321,12 +389,66 @@ impl App {
         cmd
     }
 
+    fn rpcs_update(&mut self, message: RPCStorageMessage) -> Command<Message> {
+        let profile = &mut self.storage.profile;
+        match message {
+            RPCStorageMessage::Add(chain) => {
+                profile.rpcs.add(chain);
+            }
+            RPCStorageMessage::Remove(name) => {
+                tracing::debug!("Removing RPC from storage: {}", name);
+                profile.rpcs.remove(&name);
+            }
+            RPCStorageMessage::Get(name) => {
+                profile.rpcs.get(&name);
+            }
+            RPCStorageMessage::List => {
+                profile.rpcs.list();
+            }
+            RPCStorageMessage::Clear => {
+                profile.rpcs.clear();
+            }
+        }
+
+        // Make sure to save the new storage.
+        let result = profile.save();
+        match result {
+            Ok(_) => tracing::info!("Saved profile to disk"),
+            Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
+        }
+
+        // todo: this can probably be removed.
+        // we can just update the storage in the rpc settings manually.
+        let rpcs = profile.rpcs.clone();
+        tracing::info!("Syncing RPCs from app: {:?}", rpcs);
+        Command::perform(async {}, move |_| {
+            view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
+        })
+        .map(|x| x.into())
+    }
+
     #[allow(unused_assignments)]
     fn storage_update(&mut self, message: StorageMessage) -> Command<Message> {
         let mut cmd = Command::none();
         match message {
             StorageMessage::AddressBook(msg) => {
                 cmd = self.contacts_update(msg);
+            }
+            StorageMessage::RPCStorage(msg) => {
+                cmd = self.rpcs_update(msg);
+            }
+            StorageMessage::AnvilSnapshot(snapshot) => {
+                tracing::debug!("Saving anvil snapshot to profile");
+                match snapshot {
+                    Ok(snapshot) => {
+                        self.storage.profile.anvil_snapshot = Some(snapshot);
+                        tracing::debug!("Saved anvil snapshot to profile");
+                    }
+                    Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
+                }
+
+                // Exits the application after saving the anvil snapshot.
+                return Command::perform(async {}, |_| Message::Exit);
             }
         }
         cmd
@@ -367,24 +489,15 @@ impl App {
 
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
-                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
-                    view::sidebar::Page::Execute => Screen::new(Box::new(
-                        execution::Execution::new(self.chains.clone(), self.storage.clone()),
-                    )),
-                    view::sidebar::Page::AddressBook => Screen::new(Box::new(
-                        AddressBookScreen::new(self.storage.profile.contacts.clone()),
-                    )),
-                    view::sidebar::Page::Terminal => Screen::new(Box::new(Terminal::new())),
-                    view::sidebar::Page::Experimental => {
-                        Screen::new(Box::new(ExperimentalScreen::new()))
+                    view::sidebar::Page::Portfolio => {
+                        PortfolioRoot::new(self.dev_client.clone()).into()
                     }
-                    view::sidebar::Page::Developer => DeveloperScreen::new().into(),
+                    view::sidebar::Page::Settings => {
+                        SettingsScreen::new(self.storage.clone()).into()
+                    }
+                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                 }
             }
-            view::sidebar::Route::Open(location) => match location {
-                view::sidebar::Location::Portfolio(name) => DashboardWrapper::new(None).into(),
-                view::sidebar::Location::Empty => EmptyScreen::new().into(),
-            },
             _ => EmptyScreen::new().into(),
         };
 
@@ -395,6 +508,10 @@ impl App {
     }
 }
 
+async fn save_snapshot(anvil: AnvilClient) -> anyhow::Result<String> {
+    Ok(anvil.snapshot().await)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -403,14 +520,16 @@ mod tests {
     use super::*;
 
     fn cache_update_bench(c: &mut Criterion) {
-        // let mut app = App::new();
-        c.bench_function("cache_update", |b| {
-            b.iter(|| {
-                // app.cache_update(CacheMessage::AppEvent(AppEventLog::new(
-                // "test".to_string(),
-                // "test".to_string(),
-                // )))
-            })
-        });
+        // let storage = Storage::default();
+        // let chains = Chains::default();
+        // let mut app = App::new(storage, chains, Streams::default(), None).0;
+        // c.bench_function("cache_update", |b| {
+        // b.iter(|| {
+        // app.cache_update(CacheMessage::AppEvent(AppEventLog::new(
+        // "test".to_string(),
+        // "test".to_string(),
+        // )))
+        // })
+        // });
     }
 }

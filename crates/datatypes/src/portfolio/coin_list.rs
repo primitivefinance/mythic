@@ -4,7 +4,7 @@
 
 use std::{
     collections::BTreeMap,
-    ops::{Add, Div, Sub},
+    ops::{Add, AddAssign, Div, Sub},
 };
 
 use serde::{Deserialize, Serialize};
@@ -126,6 +126,12 @@ impl Sub<Coin> for CoinList {
     fn sub(mut self, rhs: Coin) -> Self::Output {
         self.tokens.retain(|token| *token != rhs);
         self
+    }
+}
+
+impl AddAssign<Coin> for CoinList {
+    fn add_assign(&mut self, rhs: Coin) {
+        self.tokens.push(rhs);
     }
 }
 

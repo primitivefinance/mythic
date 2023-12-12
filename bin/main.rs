@@ -31,6 +31,9 @@ struct Args {
 
     #[clap(long, global = true)]
     arbiter_core: bool,
+
+    #[clap(long, global = true)]
+    dev: bool,
 }
 
 /// Defines available subcommands for the `Arbiter` tool.
@@ -41,10 +44,7 @@ enum Commands {
         config_path: String,
     },
     Analyze,
-    Ui {
-        #[clap(index = 1, default_value = "")]
-        app: String,
-    },
+    Ui,
 }
 
 fn main() -> Result<()> {
@@ -81,7 +81,7 @@ fn main() -> Result<()> {
     match &args.command {
         Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,
         Some(Commands::Analyze) => todo!(),
-        Some(Commands::Ui { app: _ }) => app::run()?,
+        Some(Commands::Ui) => app::run(args.dev)?,
         None => Args::command().print_long_help()?,
     }
     Ok(())
