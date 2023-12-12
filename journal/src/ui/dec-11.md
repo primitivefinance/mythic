@@ -29,3 +29,8 @@ We have built every primitive requirement we need to ship this app, now we need 
 - [] Add theoretical curve to the liquidity curve chart
 - [] Add price curve for the liquidity curve chart
 - [] Bug: initializing with a larger deposit slows the app to a freeze?
+
+
+# refactor to do now:
+- Lift the data model to the root application so that going between dashboard/settings does not clear its state.
+- Redo the App's state. Remove: streams, chains, ledger, dev client, storage. Add: instead of storage, just a single loaded profile or a data dir to get it, cortex, data model. We should have: cache, window, profile/datadir, cortex, sidebar.

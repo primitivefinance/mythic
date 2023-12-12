@@ -33,7 +33,6 @@ pub enum Message {
     Load,
     View(view::Message),
     ChainsMessage(ChainMessage),
-    StreamsMessage(StreamsMessage),
     CacheMessage(CacheMessage),
     StorageMessage(StorageMessage),
     WindowsMessage(WindowsMessage),
@@ -79,23 +78,10 @@ impl Chains {
     }
 }
 
-#[derive(Debug)]
-pub enum ChainMessage {}
-
-/// State for all channel senders and receivers.
-pub struct Streams {
-    pub app_event_receiver: Arc<Mutex<Receiver<AppEventLog>>>,
-}
-
-#[derive(Debug)]
-pub enum StreamsMessage {
-    Data(Data),
-}
-
-/// Emitted when data is involved.
-#[derive(Debug)]
-pub enum Data {
-    ProcessTracer,
+#[derive(Debug, Default, Clone)]
+pub enum ChainMessage {
+    #[default]
+    Empty,
 }
 
 /// State for all temporarily cached state.
@@ -169,19 +155,21 @@ impl From<RPCStorageMessage> for Message {
 /// State for specific windows that are open.
 pub struct Windows {
     pub screen: Screen,
+    pub sidebar: Sidebar,
 }
 
 impl Default for Windows {
     fn default() -> Self {
         Self {
             screen: ExperimentalScreen::new().into(),
+            sidebar: Sidebar::new(),
         }
     }
 }
 
 impl Windows {
-    pub fn new(screen: Screen) -> Self {
-        Self { screen }
+    pub fn new(screen: Screen, sidebar: Sidebar) -> Self {
+        Self { screen, sidebar }
     }
 }
 
@@ -202,10 +190,8 @@ impl From<WindowsMessage> for Message {
 pub struct App {
     pub cache: Cache,
     pub storage: Storage,
-    pub streams: Streams,
     pub windows: Windows,
     pub chains: Chains,
-    pub sidebar: Sidebar,
     // this is a handle that has a lock on the ledger device
     // we have to talk to it async
     pub ledger: Option<LedgerClient>,
@@ -217,18 +203,18 @@ impl App {
     pub fn new(
         storage: Storage,
         chains: Chains,
-        streams: Streams,
         ledger: Option<LedgerClient>,
         dev_client: Option<DevClient<DefaultMiddleware>>,
     ) -> (Self, Command<Message>) {
         (
             Self {
                 storage,
-                streams,
                 chains,
                 cache: Cache::new(),
-                windows: Windows::new(PortfolioRoot::new(dev_client.clone()).into()),
-                sidebar: Sidebar::new(),
+                windows: Windows::new(
+                    PortfolioRoot::new(dev_client.clone()).into(),
+                    Sidebar::new(),
+                ),
                 ledger,
                 dev_client,
             },
@@ -241,7 +227,7 @@ impl App {
         let mut cmds = Vec::new();
 
         // Load the sidebar.
-        cmds.push(self.sidebar.load().map(|x| x.into()));
+        cmds.push(self.windows.sidebar.load().map(|x| x.into()));
 
         // Load the current window.
         cmds.push(self.windows.screen.load().map(|x| x.into()));
@@ -256,7 +242,6 @@ impl App {
             Message::Load => self.load(),
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
-            Message::StreamsMessage(msg) => self.streams_update(msg),
             Message::ChainsMessage(msg) => self.chains_update(msg),
             Message::WindowsMessage(msg) => self.windows_update(msg),
             Message::View(view::Message::Route(route)) => self.switch_window(&route),
@@ -271,7 +256,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<Message> {
-        view::app_layout(&self.sidebar, self.windows.screen.view()).map(Message::View)
+        view::app_layout(&self.windows.sidebar, self.windows.screen.view()).map(Message::View)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -305,30 +290,6 @@ impl App {
         };
 
         Command::batch(commands)
-    }
-
-    fn streams_update(&mut self, message: StreamsMessage) -> Command<Message> {
-        let cmd = Command::none();
-        match message {
-            StreamsMessage::Data(Data::ProcessTracer) => {
-                let cloned = self.streams.app_event_receiver.clone();
-                let locked = cloned.lock().unwrap();
-
-                let mut logs = Vec::new();
-
-                // todo: does this work? could it block if nothing?
-                while let Ok(log) = locked.try_recv() {
-                    logs.push(log);
-                }
-
-                // Warning! Cannot use any tracing in the following code branch.
-                if let Some(log) = logs.last() {
-                    return self.cache_update(CacheMessage::AppEvent(log.clone()));
-                }
-            }
-        }
-
-        cmd
     }
 
     #[allow(unused_assignments)]
@@ -482,7 +443,8 @@ impl App {
             view::sidebar::Route::Page(page) => {
                 // Updates the current page in the sidebar.
                 cmds.push(
-                    self.sidebar
+                    self.windows
+                        .sidebar
                         .update(view::sidebar::Route::Page(*page))
                         .map(|x| x.into()),
                 );
