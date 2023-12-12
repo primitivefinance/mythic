@@ -10,7 +10,6 @@ const EXCALIBUR_LOGO_4: &[u8] = include_bytes!("../../../../assets/logos/excalib
 const EXCALIBUR_LOGO_5: &[u8] = include_bytes!("../../../../assets/logos/excalibur_logo_5.png");
 const EXCALIBUR_LOGO_6: &[u8] = include_bytes!("../../../../assets/logos/excalibur_logo_6.png");
 
-
 pub fn get_random_logo() -> icon::Icon {
     let logos = vec![
         excalibur_logo_1(),
