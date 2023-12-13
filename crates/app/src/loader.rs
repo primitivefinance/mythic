@@ -1,22 +1,17 @@
 use std::time::Instant;
 
 use alloy_primitives;
-use clients::{
-    client::{AnvilClient, Local},
-    dev::DevClient,
-    ledger::LedgerClient,
-};
+use clients::{dev::DevClient, ledger::LedgerClient};
 use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
-use ethers::middleware::SignerMiddleware;
 use iced::{
     font,
-    widget::{canvas::Cache, column, container, progress_bar, Canvas},
+    widget::{canvas::Cache, column, container, progress_bar},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use user::contacts;
 
-use super::{middleware::*, profile::Profile, *};
+use super::{middleware::*, user::UserProfile, *};
 use crate::components::{
     logos::PhiLogo,
     progress::CustomProgressBar,
@@ -50,15 +45,15 @@ pub struct Loader {
 }
 
 #[tracing::instrument(level = "debug")]
-pub fn load_profile() -> anyhow::Result<Profile> {
-    let profile = Profile::load(None);
+pub fn load_profile() -> anyhow::Result<UserProfile> {
+    let profile = UserProfile::load(None);
     let profile = match profile {
         Ok(profile) => profile,
         Err(e) => {
             tracing::warn!("Failed to load profile: {:?}", e);
             tracing::info!("Creating a new default profile.");
 
-            Profile::create_new(None)?
+            UserProfile::create_new(None)?
         }
     };
 
@@ -70,8 +65,6 @@ pub fn load_profile() -> anyhow::Result<Profile> {
 
     Ok(profile)
 }
-
-pub type DefaultMiddleware = NetworkClient<Ws, LocalWallet>;
 
 #[tracing::instrument(skip(client), level = "trace")]
 pub async fn load_dev_client(
@@ -95,7 +88,7 @@ pub async fn load_dev_client(
 #[tracing::instrument(level = "debug")]
 pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load an existing profile, or create a new one.
-    let profile = load_profile()?;
+    let mut profile = load_profile()?;
 
     let mut exc_client = ExcaliburMiddleware::setup(flags.dev_mode).await?;
     let chain_id = if let Some(anvil) = &exc_client.anvil {
@@ -135,16 +128,13 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         tracing::info!("Loaded snapshot: {:?}", result);
     }
 
-    // Load the coinlist from disk.
-    let mut coinlist = CoinList::load(None)?;
-
-    // If dev_client is some, add the tokens to the coinlist.
+    // If dev_client is some, add the tokens to the coins.
     if let Some(anvil) = exc_client.anvil.as_ref() {
         let token_x = exc_client.contracts.get("token_x").unwrap();
         let token_y = exc_client.contracts.get("token_y").unwrap();
         let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
         let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
-        let tokens = coinlist.tokens.clone();
+        let tokens = profile.coins.tokens.clone();
         let coin_x = tokens.iter().find(|c| c.address == token_x);
         let coin_y = tokens.iter().find(|c| c.address == token_y);
 
@@ -158,8 +148,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 logo_uri: "".to_string(),
                 tags: vec!["mock".to_string()],
             };
-            coinlist += coin;
-            coinlist.save()?;
+            profile.coins += coin;
+            profile.save()?;
         }
 
         if coin_y.is_none() {
@@ -172,8 +162,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 logo_uri: "".to_string(),
                 tags: vec!["mock".to_string()],
             };
-            coinlist += coin;
-            coinlist.save()?;
+            profile.coins += coin;
+            profile.save()?;
         }
     }
 
@@ -237,8 +227,6 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Untrusted,
         );
     }
-
-    let ledger = connect_ledger().await;
 
     Ok((storage, Arc::new(exc_client)))
 }
@@ -416,3 +404,8 @@ impl Loader {
 
 pub const GREEK_SYMBOLS: [char; 10] = ['Γ', 'Δ', 'Θ', 'Λ', 'Ξ', 'Π', 'Σ', 'Φ', 'Ψ', 'Ω'];
 pub const CURRENCY_SYMBOLS: [char; 11] = ['$', '€', '£', '¥', '₩', '₿', '₽', '₹', '₺', '₴', 'Ξ'];
+
+pub fn s_curve(x: f32) -> f32 {
+    let sigmoid_x = 1.0 / (1.0 + (-x).exp());
+    (sigmoid_x - 0.5) * 2.0
+}

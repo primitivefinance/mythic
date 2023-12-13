@@ -123,29 +123,7 @@ impl Form {
             assets,
         );
 
-        // Don't overwrite if the name exists.
-        if portfolio.file_path().exists() {
-            tracing::error!(
-                "Portfolio already exists: {:?}. Use a different name.",
-                portfolio
-            );
-            return Command::none();
-        }
-
-        // Save to file.
-        let res = portfolio.save();
-        match res {
-            Ok(_) => {
-                tracing::debug!(
-                    "Portfolio saved: {:?} to path {:?}",
-                    portfolio,
-                    portfolio.file_path()
-                );
-            }
-            Err(e) => {
-                tracing::error!("Failed to save portfolio: {:?}", e);
-            }
-        }
+        // todo: save portfolio in user profile?
 
         Command::none()
     }

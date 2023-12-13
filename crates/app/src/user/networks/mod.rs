@@ -8,7 +8,7 @@ use std::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ChainPacket {
+pub struct RPCValue {
     pub chain_id: u64,
     pub name: String,
     pub url: String,
@@ -16,7 +16,7 @@ pub struct ChainPacket {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RPCList {
-    pub chains: HashMap<String, ChainPacket>,
+    pub chains: HashMap<String, RPCValue>,
 }
 
 impl RPCList {
@@ -26,11 +26,11 @@ impl RPCList {
         }
     }
 
-    pub fn add(&mut self, chain: ChainPacket) {
+    pub fn add(&mut self, chain: RPCValue) {
         self.chains.insert(chain.name.clone(), chain);
     }
 
-    pub fn get(&self, name: &str) -> Option<&ChainPacket> {
+    pub fn get(&self, name: &str) -> Option<&RPCValue> {
         self.chains.get(name)
     }
 
@@ -38,7 +38,7 @@ impl RPCList {
         self.chains.remove(name);
     }
 
-    pub fn list(&self) -> Vec<&ChainPacket> {
+    pub fn list(&self) -> Vec<&RPCValue> {
         self.chains.values().collect()
     }
 

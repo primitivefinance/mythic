@@ -1,25 +1,23 @@
-use std::{collections::VecDeque, sync::mpsc::Receiver};
+use std::collections::VecDeque;
 
-use chrono::Local;
-use clients::{client::AnvilClient, dev::DevClient, ledger::LedgerClient};
-use ethers::core::k256::ecdsa::SigningKey;
-use profile::Profile;
 use tracer::AppEventLog;
 use tracing::Span;
-use user::contacts::{self, ContactValue};
+use user::{
+    contacts::{self, ContactValue},
+    UserProfile,
+};
 
 use super::{
     screens::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
 };
 use crate::{
-    loader::DefaultMiddleware,
     middleware::ExcaliburMiddleware,
     screens::{
         dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
         State,
     },
-    user::networks::ChainPacket,
+    user::networks::RPCValue,
     view::sidebar::Sidebar,
 };
 
@@ -69,7 +67,7 @@ pub enum CacheMessage {
 /// State for all permanent state that is loaded from disk or api.
 #[derive(Debug, Clone, Default)]
 pub struct Storage {
-    pub profile: Profile,
+    pub profile: UserProfile,
 }
 
 #[derive(Debug)]
@@ -90,7 +88,7 @@ pub enum AddressBookMessage {
 
 #[derive(Debug)]
 pub enum RPCStorageMessage {
-    Add(ChainPacket),
+    Add(RPCValue),
     Remove(String),
     Get(String),
     List,
@@ -166,7 +164,7 @@ impl App {
         storage: Storage,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
-        let dashboard = PortfolioRoot::new(Some(client.clone())).into();
+        let dashboard = PortfolioRoot::new(Some(client.clone()), storage.profile.clone()).into();
         (
             Self {
                 client,
@@ -399,7 +397,8 @@ impl App {
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
                     view::sidebar::Page::Portfolio => {
-                        PortfolioRoot::new(Some(self.client.clone())).into()
+                        PortfolioRoot::new(Some(self.client.clone()), self.storage.profile.clone())
+                            .into()
                     }
                     view::sidebar::Page::Settings => {
                         SettingsScreen::new(self.storage.clone()).into()

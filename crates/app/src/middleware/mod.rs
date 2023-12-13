@@ -1,16 +1,13 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt};
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
 use bindings::mock_erc20::MockERC20;
-use clients::{dev::ProtocolPosition, protocol::ProtocolClient};
-use ethers::{
-    core::k256::ecdsa::SigningKey,
-    utils::{Anvil, AnvilInstance},
-};
+use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
+use ethers::utils::{Anvil, AnvilInstance};
 
 pub mod alloyed;
 pub mod watch;
@@ -20,20 +17,8 @@ use crate::screens::portfolio::dashboard::portfolio_model::EthersAddress;
 
 pub const SANDBOX_LABEL: &str = "sandbox";
 
-/// List of available networks to connect to.
-/// Local is the default http://localhost:8545.
-#[derive(Clone, Debug)]
-pub enum ExcaliburNetworks {
-    Local,
-    Mainnet,
-}
-
-#[derive(Clone, Debug)]
-pub enum ExcaliburEnvironments {
-    Sandbox,
-    Anvil,
-    Network(ExcaliburNetworks),
-}
+/// Standard client that excalibur uses.
+pub type NetworkClient<P, S> = SignerMiddleware<Provider<P>, S>;
 
 /// Connects users to networks.
 pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
@@ -51,13 +36,12 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     pub signers: Vec<S>,
     /// ANY
     pub contracts: HashMap<String, EthersAddress>,
+    /// HARDWARE
+    pub ledger: Option<LedgerClient>,
 }
 
-/// Standard client that excalibur uses.
-pub type NetworkClient<P, S> = SignerMiddleware<Provider<P>, S>;
-
-impl std::fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExcaliburMiddleware")
             .field("sandbox_client", &self.sandbox_client)
             .field("anvil_client", &self.anvil_client)
@@ -70,6 +54,24 @@ impl std::fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
 impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
     pub fn add_contract(&mut self, name: &str, address: EthersAddress) {
         self.contracts.insert(name.to_string(), address);
+    }
+
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn connect_ledger(&mut self) -> anyhow::Result<()> {
+        let ledger =
+            LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0))
+                .await;
+
+        let ledger = match ledger {
+            Ok(ledger) => Some(ledger),
+            Err(e) => {
+                tracing::warn!("Could not connect to ledger: {:?}", e);
+                None
+            }
+        };
+
+        self.ledger = ledger;
+        Ok(())
     }
 
     /// Returns the sandbox environment client.
@@ -143,6 +145,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             providers,
             signers,
             contracts: HashMap::new(),
+            ledger: None,
         })
     }
 
@@ -176,6 +179,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
                 providers,
                 signers,
                 contracts: HashMap::new(),
+                ledger: None,
             })
         } else {
             let sandbox = EnvironmentBuilder::new().build();
@@ -191,6 +195,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
                 providers,
                 signers,
                 contracts: HashMap::new(),
+                ledger: None,
             })
         }
     }
@@ -216,16 +221,6 @@ pub trait Protocol {
     ) -> anyhow::Result<Option<TransactionReceipt>>;
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition>;
-}
-
-pub async fn connect_call_client(url: String) -> anyhow::Result<Provider<Http>> {
-    let client = Provider::<Http>::try_from(&url).unwrap();
-    Ok(client)
-}
-
-pub async fn connect_sub_client(url: String) -> anyhow::Result<Provider<Ws>> {
-    let client = Provider::<Ws>::connect(&url).await?;
-    Ok(client)
 }
 
 #[async_trait::async_trait]
@@ -298,38 +293,6 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     }
 }
 
-pub async fn from_anvil(
-    anvil: &Arc<AnvilInstance>,
-) -> anyhow::Result<(Vec<Provider<Ws>>, Vec<Wallet<SigningKey>>)> {
-    let mut clients = Vec::new();
-    let mut wallets = Vec::new();
-
-    let wallet: LocalWallet = anvil
-        .keys()
-        .first()
-        .expect("no keys in anvil")
-        .clone()
-        .into();
-
-    let wallet = wallet.with_chain_id(anvil.chain_id());
-    let url = anvil.endpoint();
-    let url = url.replace("http", "ws");
-
-    let provider = connect_sub_client(url)
-        .await
-        .expect("failed to connect to anvil");
-
-    clients.push(provider);
-    wallets.push(wallet);
-
-    Ok((clients, wallets))
-}
-
-pub fn s_curve(x: f32) -> f32 {
-    let sigmoid_x = 1.0 / (1.0 + (-x).exp());
-    (sigmoid_x - 0.5) * 2.0
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -345,18 +308,6 @@ mod tests {
             .spawn();
 
         Ok(anvil)
-    }
-
-    #[test]
-    fn test_s_curve() {
-        let mut t = 0.0;
-        while t < 1.0 {
-            let s_curve = super::s_curve(t);
-            println!("s_curve: {} {}", t, s_curve);
-            assert!(s_curve >= 0.0);
-            assert!(s_curve <= 1.0);
-            t += 0.01;
-        }
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

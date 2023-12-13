@@ -41,35 +41,6 @@ use crate::components::{
     },
 };
 
-/// Executed on `load` for the Dashboard screen.
-#[tracing::instrument(ret)]
-async fn load_portfolio(name: Option<String>) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
-    let path = name.clone().map(Portfolio::file_path_with_name);
-    let portfolio = Portfolio::load(path);
-    let portfolio = match portfolio {
-        Ok(portfolio) => portfolio,
-        Err(_) => {
-            // If dev mode, load the dev profile.
-            if std::env::var("DEV_MODE").is_ok() {
-                // Else create it
-                tracing::debug!("Creating the dev portfolio.");
-                Portfolio::create_new(Some("dev".to_string()))?
-            } else {
-                // Else load the default profile.
-                tracing::debug!("Loading the default portfolio.");
-                Portfolio::load(Some(Portfolio::file_path_with_name("default".to_string())))?
-            }
-        }
-    };
-
-    // If dev mode, load up the basic two coin portfolio.
-    if std::env::var("DEV_MODE").is_ok() {
-        // todo: use this
-    }
-
-    Ok(portfolio)
-}
-
 #[tracing::instrument(skip(client), ret)]
 async fn fetch_balance(
     client: Arc<Provider<Ws>>,
@@ -150,7 +121,7 @@ pub enum Message {
     #[default]
     Empty,
     /// Triggered after `load_portfolio` completes.
-    Load(anyhow::Result<Portfolio, Arc<anyhow::Error>>),
+    Load(Option<Portfolio>),
     /// Triggered on any form changes or button clicks within the staging area.
     UpdateStaging(stages::Message),
     /// Triggered when the user inputs a delta in the table.
@@ -201,6 +172,8 @@ pub struct Dashboard {
 
     /// A test price process
     pub test_price_process: Option<PriceProcess>,
+
+    pub user_profile: UserProfile,
 }
 
 pub struct PriceProcess {
@@ -239,6 +212,7 @@ impl Dashboard {
     pub fn new(
         name: Option<String>,
         dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+        profile: UserProfile,
     ) -> Self {
         let mut data_model = RawDataModel::<AlloyAddress, AlloyU256>::default();
 
@@ -302,12 +276,13 @@ impl Dashboard {
 
         Self {
             cortex: dev_client.clone(),
-            portfolio: None,
+            portfolio: Some(profile.portfolio.clone()),
             table: PortfolioTable::new(),
             stage: Stages::new(dev_client),
             data_model,
             data_view,
             test_price_process: process,
+            user_profile: profile,
         }
     }
 
@@ -589,8 +564,6 @@ impl State for Dashboard {
     fn load(&self) -> Command<Self::AppMessage> {
         let mut commands = vec![];
 
-        commands.push(Command::perform(load_portfolio(None), Message::Load));
-
         commands.push(self.update_data());
 
         // todo: does this even work for the children components?
@@ -602,8 +575,9 @@ impl State for Dashboard {
 
     fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
         match message {
-            Message::Load(Ok(portfolio)) => {
+            Message::Load(portfolio) => {
                 let mut commands: Vec<Command<Self::AppMessage>> = vec![];
+                let portfolio = portfolio.unwrap_or_default();
 
                 // Store the portfolio in the staging area to reference it.
                 commands.push(
@@ -623,9 +597,6 @@ impl State for Dashboard {
 
                 return Command::batch(commands);
             }
-            Message::Load(Err(e)) => {
-                tracing::error!("Failed to load portfolio: {:?}", e);
-            }
             Message::UpdateDataModel(Ok(data_model)) => {
                 // Update the data model.
                 self.data_model = data_model.clone();
@@ -642,7 +613,6 @@ impl State for Dashboard {
                 let pos_info = self.data_model.get_position_info();
 
                 tracing::debug!("Attempting to fetch portfolio positions");
-
                 // Update the portfolio with the new position info.
                 if let (Some(ref portfolio), Ok(pos_info)) = (&self.portfolio, pos_info) {
                     tracing::debug!("Updating portfolio positions");
@@ -691,8 +661,12 @@ impl State for Dashboard {
                     portfolio.positions = positions;
 
                     // Update the table with the new position info.
+                    tracing::debug!(
+                        "Updating table with new position info. {:?}",
+                        portfolio.positions
+                    );
                     return Command::perform(async {}, move |_| {
-                        Message::Load(Ok(portfolio.clone()))
+                        Message::Load(Some(portfolio.clone()))
                     });
                 }
             }

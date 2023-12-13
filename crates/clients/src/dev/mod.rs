@@ -12,6 +12,7 @@ pub const INITIAL_X_BALANCE: f64 = 100.0;
 pub const INITIAL_Y_BALANCE: f64 = 100.0;
 pub const INITIAL_PRICE: f64 = 1.0;
 
+/// Client for easily setting up the development environment for the protocol.
 #[derive(Debug, Clone)]
 pub struct DevClient<C> {
     pub protocol: ProtocolClient<C>,
