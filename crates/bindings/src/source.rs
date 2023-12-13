@@ -66,6 +66,46 @@ pub mod source {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("getParams"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("getParams"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("strikePrice"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sigma"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("tau"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("init"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -303,6 +343,21 @@ pub mod source {
                 )
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `getParams` (0x5e615a6b) function
+        pub fn get_params(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            (
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+            ),
+        > {
+            self.0
+                .method_hash([94, 97, 90, 107], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `init` (0x4ddf47d4) function
         pub fn init(
             &self,
@@ -379,6 +434,21 @@ pub mod source {
         pub reserve_y_wad: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
+    ///Container type for all input parameters for the `getParams` function with signature `getParams()` and selector `0x5e615a6b`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "getParams", abi = "getParams()")]
+    pub struct GetParamsCall;
     ///Container type for all input parameters for the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
     #[derive(
         Clone,
@@ -444,6 +514,7 @@ pub mod source {
     )]
     pub enum SourceCalls {
         GetNextLiquidity(GetNextLiquidityCall),
+        GetParams(GetParamsCall),
         Init(InitCall),
         InternalPrice(InternalPriceCall),
         Validate(ValidateCall),
@@ -457,6 +528,11 @@ pub mod source {
                 data,
             ) {
                 return Ok(Self::GetNextLiquidity(decoded));
+            }
+            if let Ok(decoded) = <GetParamsCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::GetParams(decoded));
             }
             if let Ok(decoded) = <InitCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -482,6 +558,9 @@ pub mod source {
                 Self::GetNextLiquidity(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
+                Self::GetParams(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::InternalPrice(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
@@ -496,6 +575,7 @@ pub mod source {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::GetNextLiquidity(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetParams(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InternalPrice(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Validate(element) => ::core::fmt::Display::fmt(element, f),
@@ -505,6 +585,11 @@ pub mod source {
     impl ::core::convert::From<GetNextLiquidityCall> for SourceCalls {
         fn from(value: GetNextLiquidityCall) -> Self {
             Self::GetNextLiquidity(value)
+        }
+    }
+    impl ::core::convert::From<GetParamsCall> for SourceCalls {
+        fn from(value: GetParamsCall) -> Self {
+            Self::GetParams(value)
         }
     }
     impl ::core::convert::From<InitCall> for SourceCalls {
@@ -536,6 +621,24 @@ pub mod source {
         Hash
     )]
     pub struct GetNextLiquidityReturn(pub ::ethers::core::types::U256);
+    ///Container type for all return fields from the `getParams` function with signature `getParams()` and selector `0x5e615a6b`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct GetParamsReturn {
+        pub strike_price: ::ethers::core::types::U256,
+        pub sigma: ::ethers::core::types::U256,
+        pub tau: ::ethers::core::types::U256,
+    }
     ///Container type for all return fields from the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
     #[derive(
         Clone,

@@ -47,6 +47,10 @@ contract DFMM is Core {
         int256 liquidityDelta
     );
 
+    event LogParams(
+        uint256 strike, uint256 sigma, uint256 tau, uint256 rx, uint256 ry
+    );
+
     modifier initialized() {
         require(inited, "not initialized");
         _;
@@ -76,6 +80,10 @@ contract DFMM is Core {
         return Source(source).getNextLiquidity(
             reserveXWad, reserveYWad, totalLiquidity
         );
+    }
+
+    function getParams() public view returns (uint256, uint256, uint256) {
+        return Source(source).getParams();
     }
 
     /// @dev Gets the approximated price of the pool given x reserves and liquidity.
@@ -163,6 +171,12 @@ contract DFMM is Core {
             address swapper = msg.sender;
             address strategy = source;
             int256 liquidityDelta = liquidityDelta;
+            uint256 rx = XXXXXXX;
+            uint256 ry = YYYYYY;
+            (uint256 strike, uint256 sigma, uint256 tau) =
+                Source(source).getParams();
+
+            emit LogParams(strike, sigma, tau, rx, ry);
             emit Swap(
                 swapper,
                 strategy,

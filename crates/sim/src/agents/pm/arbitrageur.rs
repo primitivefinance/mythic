@@ -117,27 +117,27 @@ impl Arbitrageur {
 
         let target_exchange_price_wad = self.protocol_client.get_internal_price().await?;
         let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
-        info!("=== Start Loop ===");
+        debug!("=== Start Loop ===");
         info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
         info!("Price[DEX]: {:?}", format_ether(target_exchange_price_wad));
 
-        let swap_fee_wad = self.protocol_client.get_swap_fee().await?;
-        let swap_fee_wad = from_ethers_u256(swap_fee_wad);
-        let gamma_wad = WAD - swap_fee_wad;
-        let upper_arb_bound = WAD * target_exchange_price_wad / gamma_wad;
-        let lower_arb_bound = target_exchange_price_wad * gamma_wad / WAD;
-        debug!("SwapFee [DEX]  : {:?}", format_ether(swap_fee_wad));
-        debug!("ArbBound[UPPER]: {:?}", format_ether(upper_arb_bound));
-        debug!("ArbBound[LOWER]: {:?}", format_ether(lower_arb_bound));
+        // let swap_fee_wad = self.protocol_client.get_swap_fee().await?;
+        // let swap_fee_wad = from_ethers_u256(swap_fee_wad);
+        // let gamma_wad = WAD - swap_fee_wad;
+        // let upper_arb_bound = WAD * target_exchange_price_wad / gamma_wad;
+        // let lower_arb_bound = target_exchange_price_wad * gamma_wad / WAD;
+        // debug!("SwapFee [DEX]  : {:?}", format_ether(swap_fee_wad));
+        // debug!("ArbBound[UPPER]: {:?}", format_ether(upper_arb_bound));
+        // debug!("ArbBound[LOWER]: {:?}", format_ether(lower_arb_bound));
 
         // Check if we have an arbitrage opportunity by comparing against the bounds and
         // current price.
         // If these conditions are not satisfied, there cannot be a profitable
         // arbitrage. See: [An Analysis of Uniswap Markets](https://arxiv.org/pdf/1911.03380.pdf) Eq. 3, for example.
-        if liquid_exchange_price_wad > upper_arb_bound {
+        if liquid_exchange_price_wad > target_exchange_price_wad {
             // Raise the portfolio price by selling asset for quote
             Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
-        } else if liquid_exchange_price_wad < lower_arb_bound {
+        } else if liquid_exchange_price_wad < target_exchange_price_wad {
             // Lower the exchange price by selling asset for quote
             Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
         } else {
@@ -197,6 +197,7 @@ impl Arbitrageur {
         Ok(dx / i_wad)
     }
 
+    // todo (matt): figure out why this returns u256::max sometimes
     pub async fn get_dy(&self) -> Result<I256> {
         let (i_wad, target_price_wad, strike, sigma, _tau, gamma, _rx, ry, liq) =
             self.get_arb_inputs_as_i256().await?;
@@ -220,14 +221,13 @@ impl Arbitrageur {
         x_in: bool,
         initial_guess_in: ethers::types::U256,
     ) -> Result<ethers::types::U256, Error> {
-        info!("calling search max arb profit");
         let (computed_amount_in, computed_profit, _expected_price) = self
             .atomic_arbitrage
             .search_max_arb_profit(initial_guess_in, x_in)
             .call()
             .await?;
-        info!("computed amount in: {:?}", computed_amount_in);
-        info!("computed profit: {:?}", computed_profit);
+        debug!("computed amount in: {:?}", computed_amount_in);
+        debug!("computed profit: {:?}", computed_profit);
         Ok(computed_amount_in)
     }
 
@@ -246,10 +246,10 @@ impl Arbitrageur {
         let profit_down = self
             .compute_swap_profit(x_in, amount_in_down, lex_price)
             .await?;
-        info!("amount in: {amount_in}");
-        info!("profit up: {profit_up}");
-        info!("profit down: {profit_down}");
-        info!("profit up minus profit down: {:?}", profit_up - profit_down);
+        debug!("amount in: {amount_in}");
+        debug!("profit up: {profit_up}");
+        debug!("profit down: {profit_down}");
+        debug!("profit up minus profit down: {:?}", profit_up - profit_down);
         // info!("profit up minus profit down over iwad: {(profit_up - profit_down) *
         // i_wad / I256::from_raw(ethers::types::U256::from(2000))}");
 
@@ -315,20 +315,29 @@ impl Agent for Arbitrageur {
                     format_units(target_price, "ether")?
                 );
                 let x_in = false;
-                let initial_guess_in = self.get_dy().await?.into_raw();
-                info!("Initial Guess y in: {:?}", initial_guess_in);
+                let input = self.get_dy().await?.into_raw();
 
-                let input = self
-                    .compute_max_profit_trade(x_in, initial_guess_in)
-                    .await?;
+                // let input = self
+                //     .compute_max_profit_trade(x_in, initial_guess_in)
+                //     .await?;
 
-                info!("Optimal y input: {:?}", input);
+                debug!("Optimal y input: {:?}", input);
 
                 let tx = self.atomic_arbitrage.raise_exchange_price(input);
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                info!("arby_balance after: {:?}", arby_balance);
+                debug!("arby_balance after: {:?}", arby_balance);
+                let (reserve_x, reserve_y, liquidity) = self
+                    .protocol_client
+                    .protocol
+                    .get_reserves_and_liquidity()
+                    .call()
+                    .await?;
+                debug!(
+                    "reserve_x: {:?} reserve_y: {:?} liquidity: {:?}",
+                    reserve_x, reserve_y, liquidity
+                );
 
                 match output {
                     Ok(output) => {
@@ -347,7 +356,7 @@ impl Agent for Arbitrageur {
                 let internal_price = from_ethers_u256(internal_price);
                 info!("Price[LEX]: {:?}", format_ether(target_price));
                 info!("Price[DEX]: {:?}", format_ether(internal_price));
-                info!("=== End Loop ===");
+                debug!("=== End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
                 info!(
@@ -356,21 +365,33 @@ impl Agent for Arbitrageur {
                 );
 
                 let x_in = true;
-                let initial_guess_in = self.get_dx().await?.into_raw();
-                info!("Initial Guess x in: {:?}", initial_guess_in);
+                let liquid_exchange_price = self.liquid_exchange.price().call().await?;
+                let input = self.get_dx().await?.into_raw();
+                debug!("Initial Guess x in: {:?}", input);
 
-                let input = self
-                    .compute_max_profit_trade(x_in, initial_guess_in)
-                    .await?;
+                // let input = self
+                //     .compute_max_profit_trade(x_in, initial_guess_in)
+                //     .await?;
+                let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
 
-                info!("Optimal x input: {:?}", input);
+                debug!("Optimal x input: {:?}", input);
 
                 let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;
 
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
+                let (reserve_x, reserve_y, liquidity) = self
+                    .protocol_client
+                    .protocol
+                    .get_reserves_and_liquidity()
+                    .call()
+                    .await?;
                 info!("arby_balance after: {:?}", arby_balance);
+                info!(
+                    "reserve_x: {:?} reserve_y: {:?} liquidity: {:?}",
+                    reserve_x, reserve_y, liquidity
+                );
 
                 match output {
                     Ok(output) => {
@@ -380,7 +401,7 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            warn!("Execution revert: {:?}", output);
+                            warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
@@ -390,7 +411,7 @@ impl Agent for Arbitrageur {
                 let internal_price = from_ethers_u256(internal_price);
                 info!("Price[LEX]: {:?}", format_ether(target_price));
                 info!("Price[DEX]: {:?}", format_ether(internal_price));
-                info!("=== End Loop ===");
+                debug!("=== End Loop ===");
             }
             Swap::None => {
                 trace!("No arbitrage opportunity");

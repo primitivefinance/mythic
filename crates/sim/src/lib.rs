@@ -11,7 +11,7 @@ use ::config::ConfigError;
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use bindings;
-use ethers::{prelude::*, utils::parse_ether};
+use ethers::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use settings::{

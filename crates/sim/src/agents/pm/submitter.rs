@@ -18,6 +18,8 @@ pub struct VolatilityTargetingSubmitter {
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
+    pub sensitivity: f64,
+    pub max_strike_change: f64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
     pub portfolio_rv: Vec<(f64, u64)>,
@@ -94,6 +96,8 @@ impl VolatilityTargetingSubmitter {
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,
                         target_volatility: parameters.target_volatility.0,
+                        sensitivity: parameters.sensitivity.0,
+                        max_strike_change: parameters.max_strike_change.0,
                         portfolio_prices: Vec::new(),
                         asset_prices: Vec::new(),
                         portfolio_rv: Vec::new(),
@@ -121,10 +125,15 @@ impl VolatilityTargetingSubmitter {
             .unwrap();
         info!("current strike float: {}", current_strike_float);
         let mut new_strike = current_strike_float;
+        let vol_diff = (portfolio_rv - self.target_volatility).abs();
+        let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
+        if scaling_factor > self.max_strike_change {
+            scaling_factor = self.max_strike_change;
+        }
         if portfolio_rv > self.target_volatility {
-            new_strike -= 0.0015;
+            new_strike -= scaling_factor;
         } else {
-            new_strike += 0.0015;
+            new_strike += scaling_factor;
         }
         info!("new strike float: {}", new_strike);
         self.protocol_client
@@ -234,6 +243,8 @@ impl From<Specialty<Multiple>> for Vec<Specialty<Single>> {
 pub struct DynamicVolatilityTargetingParameters<P: Parameterized> {
     pub target_volatility: P,
     pub update_frequency: P,
+    pub sensitivity: P,
+    pub max_strike_change: P,
 }
 
 impl From<DynamicVolatilityTargetingParameters<Multiple>>
@@ -242,11 +253,15 @@ impl From<DynamicVolatilityTargetingParameters<Multiple>>
     fn from(item: DynamicVolatilityTargetingParameters<Multiple>) -> Self {
         iproduct!(
             item.target_volatility.parameters(),
-            item.update_frequency.parameters()
+            item.update_frequency.parameters(),
+            item.sensitivity.parameters(),
+            item.max_strike_change.parameters()
         )
-        .map(|(tv, uf)| DynamicVolatilityTargetingParameters {
+        .map(|(tv, uf, s, msc)| DynamicVolatilityTargetingParameters {
             target_volatility: Single(tv),
             update_frequency: Single(uf),
+            sensitivity: Single(s),
+            max_strike_change: Single(msc),
         })
         .collect()
     }

@@ -11,6 +11,7 @@ import "./v3/BisectionLib.sol";
 uint256 constant SQRT_WAD = 1e9;
 uint256 constant TWO = 2e18;
 uint256 constant HALF = 0.5e18;
+uint256 constant ONE = 1e18;
 
 /// @dev Parameterization of the Log Normal curve.
 struct Parameters {
@@ -106,21 +107,47 @@ function tradingFunction(
     Parameters memory params
 ) pure returns (int256) {
     require(reserveXWad < totalLiquidity, "tradingFunction: invalid x");
-    int256 AAAAA = Gaussian.ppf(
-        int256(FixedPointMathLib.divWadDown(reserveXWad, totalLiquidity))
-    );
 
-    // note: arithmetic overflow/underflow can occur here if KL > Y.
-    int256 BBBBB = Gaussian.ppf(
-        int256(
-            FixedPointMathLib.divWadDown(
-                reserveYWad,
-                FixedPointMathLib.mulWadDown(
-                    params.strikePriceWad, totalLiquidity
+    int256 AAAAA;
+    int256 BBBBB;
+    if (FixedPointMathLib.divWadDown(reserveXWad, totalLiquidity) >= ONE) {
+        AAAAA = int256(2 ^ 255 - 1);
+    } else {
+        AAAAA = Gaussian.ppf(
+            int256(FixedPointMathLib.divWadDown(reserveXWad, totalLiquidity))
+        );
+    }
+    if (
+        FixedPointMathLib.divWadDown(
+            reserveYWad,
+            FixedPointMathLib.mulWadDown(params.strikePriceWad, totalLiquidity)
+        ) >= ONE
+    ) {
+        BBBBB = int256(2 ^ 255 - 1);
+    } else {
+        BBBBB = Gaussian.ppf(
+            int256(
+                FixedPointMathLib.divWadDown(
+                    reserveYWad,
+                    FixedPointMathLib.mulWadDown(
+                        params.strikePriceWad, totalLiquidity
+                    )
                 )
             )
-        )
-    );
+        );
+    }
+
+    // note: arithmetic overflow/underflow can occur here if KL > Y.
+    // int256 BBBBB = Gaussian.ppf(
+    //     int256(
+    //         FixedPointMathLib.divWadDown(
+    //             reserveYWad,
+    //             FixedPointMathLib.mulWadDown(
+    //                 params.strikePriceWad, totalLiquidity
+    //             )
+    //         )
+    //     )
+    // );
 
     int256 CCCCC = int256(
         computeSigmaSqrtTau({
@@ -166,6 +193,11 @@ interface Source {
         uint256 reserveYWad,
         uint256 totalLiquidity
     ) external view returns (uint256);
+
+    function getParams()
+        external
+        view
+        returns (uint256 strikePrice, uint256 sigma, uint256 tau);
 }
 
 /// @dev Contract that holds the reserve and liquidity state.
@@ -193,7 +225,7 @@ contract LogNormal is Source {
 
     uint256 public constant APPROXIMATED_MINIMUM_X_INPUT = 10;
     uint256 public constant BISECTION_EPSILON = 1;
-    uint256 public constant MAX_BISECTION_ITERS = 100;
+    uint256 public constant MAX_BISECTION_ITERS = 90;
     uint256 public constant HALF_WAD = 0.5e18;
     int256 public constant TWO_WAD = int256(2e18);
     uint256 public constant WAD = 1e18;
@@ -465,13 +497,15 @@ contract LogNormal is Source {
     }
 
     /// @dev Finds the root of the swapConstant given the independent variable liquidity.
+    // TODO (matt): we should return i256 max in the case of ppf input > WAD
     function findLiquidity(
         uint256 reserveXWad,
         uint256 reserveYWad,
         int256 swapConstant,
         Parameters memory params
     ) public pure returns (uint256 liquidity) {
-        uint256 lower = reserveXWad + 1;
+        uint256 yOverK = reserveYWad.divWadDown(params.strikePriceWad);
+        uint256 lower = reserveXWad > yOverK ? reserveXWad + 1 : yOverK + 1;
         uint256 upper = 1e27;
         liquidity = bisection(
             abi.encode(reserveXWad, reserveYWad, swapConstant, params),
@@ -715,8 +749,11 @@ contract LogNormal is Source {
         lastTauSync = block.timestamp;
     }
 
-    event LogParameters(
-        uint256 sigma, uint256 strikePrice, uint256 tau, uint256 blockTimestamp
+    event SetSigma(
+        uint256 targetSigma,
+        uint256 lastSigma,
+        uint256 sigmaUpdateEnd,
+        uint256 delta
     );
 
     function setSigma(
@@ -735,8 +772,22 @@ contract LogNormal is Source {
             sigmaDelta / (newSigmaUpdateEnd - block.timestamp);
         targetSigma = newTargetSigma;
         sigmaUpdateEnd = newSigmaUpdateEnd;
-        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+        emit SetSigma(
+            targetSigma,
+            lastSigma,
+            sigmaUpdateEnd,
+            targetSigma > lastSigma
+                ? targetSigma - lastSigma
+                : lastSigma - targetSigma
+        );
     }
+
+    event SetStrikePrice(
+        uint256 targetStrike,
+        uint256 lastStrike,
+        uint256 strikeUpdateEnd,
+        uint256 delta
+    );
 
     function setStrikePrice(
         uint256 newTargetStrike,
@@ -754,8 +805,19 @@ contract LogNormal is Source {
             strikeDelta / (newStrikeUpdateEnd - block.timestamp);
         targetStrike = newTargetStrike;
         strikeUpdateEnd = newStrikeUpdateEnd;
-        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+        emit SetStrikePrice(
+            targetStrike,
+            lastStrike,
+            strikeUpdateEnd,
+            targetStrike > lastStrike
+                ? targetStrike - lastStrike
+                : lastStrike - targetStrike
+        );
     }
+
+    event SetTau(
+        uint256 targetTau, uint256 lastTau, uint256 tauUpdateEnd, uint256 delta
+    );
 
     function setTau(uint256 newTargetTau, uint256 newTauUpdateEnd) external {
         require(newTauUpdateEnd > block.timestamp, "Update end passed");
@@ -769,7 +831,12 @@ contract LogNormal is Source {
         tauUpdatePerSecond = tauDelta / (newTauUpdateEnd - block.timestamp);
         targetTau = newTargetTau;
         tauUpdateEnd = newTauUpdateEnd;
-        emit LogParameters(sigma(), strikePrice(), tau(), block.timestamp);
+        emit SetTau(
+            targetTau,
+            lastTau,
+            tauUpdateEnd,
+            targetTau > lastTau ? targetTau - lastTau : lastTau - targetTau
+        );
     }
 
     // ===== //

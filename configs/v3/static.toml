@@ -19,7 +19,7 @@ decimals = 18
 # Price process parameters
 [agent.price_changer.PriceChanger]
 # The seed to use (optional)
-seed = 2
+seed = 5
 # The number of steps in the process
 num_steps = 1825
 # The number of distinct paths to use
@@ -50,6 +50,10 @@ fee.fixed = 30
 specialty.VolatilityTargeting.update_frequency.fixed = 75 # 1 update per 5 timestep day
 # The target volatility
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
+# The sensitivity factor of the vol differential 
+specialty.VolatilityTargeting.sensitivity.fixed = 0.0115
+# Max strike update
+specialty.VolatilityTargeting.max_strike_change.fixed = 0.06
 
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]
