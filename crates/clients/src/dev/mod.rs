@@ -56,10 +56,12 @@ impl<C: Middleware + 'static> DevClient<C> {
         token_x
             .mint(sender, ethers::utils::parse_ether(INITIAL_X_BALANCE)?)
             .send()
+            .await?
             .await?;
         token_y
             .mint(sender, ethers::utils::parse_ether(INITIAL_Y_BALANCE)?)
             .send()
+            .await?
             .await?;
 
         let swap_fee_percent_wad = 0.003;
@@ -77,10 +79,12 @@ impl<C: Middleware + 'static> DevClient<C> {
         token_x
             .approve(protocol.protocol.address(), ethers::types::U256::MAX)
             .send()
+            .await?
             .await?;
         token_y
             .approve(protocol.protocol.address(), ethers::types::U256::MAX)
             .send()
+            .await?
             .await?;
 
         let lex_args = (

@@ -1,6 +1,3 @@
-use std::collections::VecDeque;
-
-use tracer::AppEventLog;
 use tracing::Span;
 use user::{
     contacts::{self, ContactValue},
@@ -14,7 +11,12 @@ use super::{
 use crate::{
     middleware::ExcaliburMiddleware,
     screens::{
-        dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
+        dev::experimental::ExperimentalScreen,
+        portfolio::{
+            dashboard::portfolio_model::{AlloyAddress, AlloyU256, RawDataModel},
+            PortfolioRoot,
+        },
+        settings::SettingsScreen,
         State,
     },
     user::networks::RPCValue,
@@ -28,14 +30,39 @@ pub fn app_span() -> Span {
 /// Root message for the Application.
 #[derive(Debug, Default)]
 pub enum Message {
+    /// An empty message used as a default.
     #[default]
     Empty,
+    /// Emitted on the initial load of the App.
     Load,
+    /// All interface level messages are wrapped in this View message.
     View(view::Message),
-    CacheMessage(CacheMessage),
-    StorageMessage(StorageMessage),
-    WindowsMessage(WindowsMessage),
+    /// Modifications to the persistent user profile.
+    UpdateUser(UserProfileMessage),
+    /// Switches the active "app" to the target Route.
+    SwitchWindow(view::sidebar::Route),
+    /// Exits the application immediately, without saving. Save should be called
+    /// before this event is triggered.
     Exit,
+}
+
+/// All messages for making modifications to the persistent user profile.
+#[derive(Debug)]
+pub enum UserProfileMessage {
+    /// Stores a stringified snapshot of an Anvil instance.
+    SaveAnvilSnapshot(anyhow::Result<String>),
+    /// Adds an address to the contacts list.
+    AddAddress(String, Address, contacts::Category),
+    /// Removes an address from the contacts list.
+    RemoveAddress(String, contacts::Category),
+    /// warning! Deletes all addresses from a category in the list.
+    ClearAddresses(contacts::Category),
+    /// Adds an RPC to the RPC list.
+    AddRPC(RPCValue),
+    /// Removes an RPC from the RPC list.
+    RemoveRPC(String),
+    /// warning! Deletes all RPCs from the list.
+    ClearRPCs,
 }
 
 pub type RootMessage = Message;
@@ -45,71 +72,24 @@ impl MessageWrapper for Message {
     type ParentMessage = Message;
 }
 
-/// State for all temporarily cached state.
+impl From<UserProfileMessage> for Message {
+    fn from(message: UserProfileMessage) -> Self {
+        Self::UpdateUser(message)
+    }
+}
+
+/// State for all temporarily cached state. This is cleared on exiting the
+/// application.
 #[derive(Default)]
 pub struct Cache {
-    pub app_events: VecDeque<AppEventLog>,
+    pub data: RawDataModel<AlloyAddress, AlloyU256>,
 }
 
 impl Cache {
     pub fn new() -> Self {
         Self {
-            app_events: VecDeque::new(),
+            data: RawDataModel::default(),
         }
-    }
-}
-
-#[derive(Debug)]
-pub enum CacheMessage {
-    AppEvent(AppEventLog),
-}
-
-/// State for all permanent state that is loaded from disk or api.
-#[derive(Debug, Clone, Default)]
-pub struct Storage {
-    pub profile: UserProfile,
-}
-
-#[derive(Debug)]
-pub enum StorageMessage {
-    AddressBook(AddressBookMessage),
-    RPCStorage(RPCStorageMessage),
-    AnvilSnapshot(anyhow::Result<String>),
-}
-
-#[derive(Debug)]
-pub enum AddressBookMessage {
-    Add(String, Address, contacts::Category),
-    Remove(String, contacts::Category),
-    Get(String, contacts::Category),
-    List(contacts::Category),
-    Clear(contacts::Category),
-}
-
-#[derive(Debug)]
-pub enum RPCStorageMessage {
-    Add(RPCValue),
-    Remove(String),
-    Get(String),
-    List,
-    Clear,
-}
-
-impl From<RPCStorageMessage> for StorageMessage {
-    fn from(msg: RPCStorageMessage) -> Self {
-        Self::RPCStorage(msg)
-    }
-}
-
-impl From<StorageMessage> for Message {
-    fn from(msg: StorageMessage) -> Self {
-        Self::StorageMessage(msg)
-    }
-}
-
-impl From<RPCStorageMessage> for Message {
-    fn from(msg: RPCStorageMessage) -> Self {
-        Self::StorageMessage(msg.into())
     }
 }
 
@@ -134,17 +114,6 @@ impl Windows {
     }
 }
 
-#[derive(Debug)]
-pub enum WindowsMessage {
-    Switch(view::sidebar::Route),
-}
-
-impl From<WindowsMessage> for Message {
-    fn from(msg: WindowsMessage) -> Self {
-        Message::WindowsMessage(msg)
-    }
-}
-
 /// Storage for the entire application.
 /// This should hold the most important pieces of data that many children
 /// components will need.
@@ -153,22 +122,22 @@ pub struct App {
     pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     /// Transient state for the application.
     pub cache: Cache,
-    /// Persistent state for the application.
-    pub storage: Storage,
+    /// Persistent state for the application stored as a user profile.
+    pub user: UserProfile,
     /// State of the active window and sidebar the user is viewing.
     pub windows: Windows,
 }
 
 impl App {
     pub fn new(
-        storage: Storage,
+        user: UserProfile,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
-        let dashboard = PortfolioRoot::new(Some(client.clone()), storage.profile.clone()).into();
+        let dashboard = PortfolioRoot::new(Some(client.clone()), user.clone()).into();
         (
             Self {
                 client,
-                storage,
+                user,
                 cache: Cache::new(),
                 windows: Windows::new(dashboard, Sidebar::new()),
             },
@@ -176,7 +145,7 @@ impl App {
         )
     }
 
-    // Loads the sidebar and the default screen.
+    /// Loads the sidebar and the default screen. Called after new().
     pub fn load(&mut self) -> Command<Message> {
         let mut cmds = Vec::new();
 
@@ -189,14 +158,13 @@ impl App {
         Command::batch(cmds)
     }
 
-    // All view updates are forwarded to the Screen's update function.
+    /// All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         app_span().in_scope(|| match message {
             Message::Exit => iced::window::close(),
             Message::Load => self.load(),
-            Message::StorageMessage(msg) => self.storage_update(msg),
-            Message::CacheMessage(msg) => self.cache_update(msg),
-            Message::WindowsMessage(msg) => self.windows_update(msg),
+            Message::UpdateUser(msg) => self.update_user(msg),
+            Message::SwitchWindow(route) => self.switch_window(&route),
             Message::View(view::Message::Route(route)) => self.switch_window(&route),
             Message::View(view::Message::Exit) => self.exit(),
             Message::View(view::Message::CopyToClipboard(contents)) => {
@@ -218,7 +186,7 @@ impl App {
 
     pub fn exit(&mut self) -> Command<Message> {
         // Save the profile to disk.
-        let result = self.storage.profile.save();
+        let result = self.user.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
@@ -233,8 +201,9 @@ impl App {
         // set the profile's anvil snapshot to the result.
         if let Some(_) = self.client.anvil {
             let cmd = Command::perform(save_snapshot(self.client.clone()), |result| {
-                Message::StorageMessage(StorageMessage::AnvilSnapshot(result))
-            });
+                UserProfileMessage::SaveAnvilSnapshot(result)
+            })
+            .map(|x| Message::UpdateUser(x));
             commands.push(cmd);
         }
 
@@ -242,116 +211,16 @@ impl App {
     }
 
     #[allow(unused_assignments)]
-    fn cache_update(&mut self, message: CacheMessage) -> Command<Message> {
+    fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
+        let profile = &mut self.user;
+
         let mut cmd = Command::none();
         match message {
-            // Cannot use tracing here.
-            CacheMessage::AppEvent(log) => {
-                // Define the maximum number of logs
-                const MAX_LOGS: usize = 100;
-
-                // Push the new log
-                self.cache.app_events.push_back(log);
-
-                // If the number of data_feed exceeds the maximum, remove the oldest one
-                if self.cache.app_events.len() > MAX_LOGS {
-                    self.cache.app_events.pop_front();
-                }
-
-                // todo: figure out how to best pipe updated app state to windows...
-                // todo: update, old.
-                cmd = Command::perform(async {}, |_| Message::View(view::Message::Empty));
-            }
-        }
-        cmd
-    }
-
-    fn contacts_update(&mut self, message: AddressBookMessage) -> Command<Message> {
-        let cmd = Command::none();
-        let contacts = &mut self.storage.profile.contacts;
-        match message {
-            // todo: update these messages
-            AddressBookMessage::Add(name, address, category) => {
-                contacts.add(
-                    address,
-                    ContactValue {
-                        label: name,
-                        ..Default::default()
-                    },
-                    category,
-                );
-            }
-            AddressBookMessage::Remove(name, category) => {
-                let address = name.parse::<Address>().unwrap();
-                contacts.remove(&address, category);
-            }
-            AddressBookMessage::Get(name, category) => {
-                let address = name.parse::<Address>().unwrap();
-                contacts.get(&address, category);
-            }
-            AddressBookMessage::List(category) => {
-                contacts.list(category);
-            }
-            AddressBookMessage::Clear(category) => {
-                contacts.clear(category);
-            }
-        }
-        cmd
-    }
-
-    fn rpcs_update(&mut self, message: RPCStorageMessage) -> Command<Message> {
-        let profile = &mut self.storage.profile;
-        match message {
-            RPCStorageMessage::Add(chain) => {
-                profile.rpcs.add(chain);
-            }
-            RPCStorageMessage::Remove(name) => {
-                tracing::debug!("Removing RPC from storage: {}", name);
-                profile.rpcs.remove(&name);
-            }
-            RPCStorageMessage::Get(name) => {
-                profile.rpcs.get(&name);
-            }
-            RPCStorageMessage::List => {
-                profile.rpcs.list();
-            }
-            RPCStorageMessage::Clear => {
-                profile.rpcs.clear();
-            }
-        }
-
-        // Make sure to save the new storage.
-        let result = profile.save();
-        match result {
-            Ok(_) => tracing::info!("Saved profile to disk"),
-            Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
-        }
-
-        // todo: this can probably be removed.
-        // we can just update the storage in the rpc settings manually.
-        let rpcs = profile.rpcs.clone();
-        tracing::info!("Syncing RPCs from app: {:?}", rpcs);
-        Command::perform(async {}, move |_| {
-            view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
-        })
-        .map(|x| x.into())
-    }
-
-    #[allow(unused_assignments)]
-    fn storage_update(&mut self, message: StorageMessage) -> Command<Message> {
-        let mut cmd = Command::none();
-        match message {
-            StorageMessage::AddressBook(msg) => {
-                cmd = self.contacts_update(msg);
-            }
-            StorageMessage::RPCStorage(msg) => {
-                cmd = self.rpcs_update(msg);
-            }
-            StorageMessage::AnvilSnapshot(snapshot) => {
+            UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
                 tracing::debug!("Saving anvil snapshot to profile");
                 match snapshot {
                     Ok(snapshot) => {
-                        self.storage.profile.anvil_snapshot = Some(snapshot);
+                        self.user.anvil_snapshot = Some(snapshot);
                         tracing::debug!("Saved anvil snapshot to profile");
                     }
                     Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
@@ -360,20 +229,47 @@ impl App {
                 // Exits the application after saving the anvil snapshot.
                 return Command::perform(async {}, |_| Message::Exit);
             }
-        }
-        cmd
-    }
-
-    // Forwards window messages to the screen.
-    #[allow(unused_assignments)]
-    fn windows_update(&mut self, message: WindowsMessage) -> Command<Message> {
-        let mut cmd = Command::none();
-        match message {
-            WindowsMessage::Switch(route) => {
-                cmd = self.switch_window(&route);
+            UserProfileMessage::AddAddress(name, address, category) => {
+                profile.contacts.add(
+                    address,
+                    ContactValue {
+                        label: name,
+                        ..Default::default()
+                    },
+                    category,
+                );
             }
-            _ => cmd = self.windows.screen.update(Message::WindowsMessage(message)),
+            UserProfileMessage::RemoveAddress(name, category) => {
+                let address = name.parse::<Address>().unwrap();
+                profile.contacts.remove(&address, category);
+            }
+            UserProfileMessage::ClearAddresses(category) => {
+                profile.contacts.clear(category);
+            }
+            UserProfileMessage::AddRPC(chain) => {
+                profile.rpcs.add(chain);
+            }
+            UserProfileMessage::RemoveRPC(name) => {
+                tracing::debug!("Removing RPC from storage: {}", name);
+                profile.rpcs.remove(&name);
+            }
+
+            UserProfileMessage::ClearRPCs => {
+                profile.rpcs.clear();
+            }
         }
+
+        let result = profile.save();
+        match result {
+            Ok(_) => tracing::info!("Saved profile to disk"),
+            Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
+        }
+
+        let rpcs = profile.rpcs.clone();
+        cmd = Command::perform(async {}, move |_| {
+            view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
+        })
+        .map(|x| x.into());
         cmd
     }
 
@@ -397,12 +293,9 @@ impl App {
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
                     view::sidebar::Page::Portfolio => {
-                        PortfolioRoot::new(Some(self.client.clone()), self.storage.profile.clone())
-                            .into()
+                        PortfolioRoot::new(Some(self.client.clone()), self.user.clone()).into()
                     }
-                    view::sidebar::Page::Settings => {
-                        SettingsScreen::new(self.storage.clone()).into()
-                    }
+                    view::sidebar::Page::Settings => SettingsScreen::new(self.user.clone()).into(),
                     view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                 }
             }

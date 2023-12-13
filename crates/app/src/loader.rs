@@ -1,8 +1,12 @@
+//! The application starts in the Loader state which executes async loading
+//! tasks. Once these complete they emit a message back to the iced Application
+//! impl in ./lib.rs, which then switches to the runtime App state.
+
 use std::time::Instant;
 
 use alloy_primitives;
 use clients::{dev::DevClient, ledger::LedgerClient};
-use datatypes::portfolio::{coin::Coin, coin_list::CoinList};
+use datatypes::portfolio::coin::Coin;
 use iced::{
     font,
     widget::{canvas::Cache, column, container, progress_bar},
@@ -20,7 +24,7 @@ use crate::components::{
 
 type LoadResult = anyhow::Result<
     (
-        app::Storage,
+        UserProfile,
         Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>,
     ),
     anyhow::Error,
@@ -167,10 +171,10 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         }
     }
 
-    let mut storage = app::Storage { profile };
+    let mut user = profile;
 
     // Add the default signer to the contacts book.
-    storage.profile.contacts.add(
+    user.contacts.add(
         exc_client.address().unwrap(),
         contacts::ContactValue {
             label: "You".to_string(),
@@ -180,14 +184,14 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         contacts::Category::Trusted,
     );
 
-    // If dev_client is some, add the protocol's contracts to the storage.
+    // If dev_client is some, add the protocol's contracts to the user.
     if flags.dev_mode {
         let protocol = exc_client.contracts.get("protocol").cloned().unwrap();
         let strategy = exc_client.contracts.get("strategy").cloned().unwrap();
         let token_x = exc_client.contracts.get("token_x").cloned().unwrap();
         let token_y = exc_client.contracts.get("token_y").cloned().unwrap();
 
-        storage.profile.contacts.add(
+        user.contacts.add(
             protocol,
             contacts::ContactValue {
                 label: "Protocol".to_string(),
@@ -197,7 +201,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Untrusted,
         );
 
-        storage.profile.contacts.add(
+        user.contacts.add(
             strategy,
             contacts::ContactValue {
                 label: "Strategy".to_string(),
@@ -207,7 +211,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Trusted,
         );
 
-        storage.profile.contacts.add(
+        user.contacts.add(
             token_x,
             contacts::ContactValue {
                 label: "Token X".to_string(),
@@ -217,7 +221,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Untrusted,
         );
 
-        storage.profile.contacts.add(
+        user.contacts.add(
             token_y,
             contacts::ContactValue {
                 label: "Token Y".to_string(),
@@ -228,7 +232,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         );
     }
 
-    Ok((storage, Arc::new(exc_client)))
+    Ok((user, Arc::new(exc_client)))
 }
 
 #[tracing::instrument(level = "debug")]
