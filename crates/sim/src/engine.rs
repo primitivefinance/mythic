@@ -83,9 +83,9 @@ impl ArbiterInstance {
 
     /// Consumes this instance, stopping the environment and returning the
     /// snapshot of its db.
-    pub fn stop(mut self) -> Result<SnapshotDB> {
+    pub fn stop(mut self) -> Result<()> {
         let db = self.environment.stop()?;
-        Ok(Self::snapshot(&db.clone().unwrap()))
+        Ok(())
     }
 
     pub fn snapshot(db: &CacheDB<EmptyDB>) -> SnapshotDB {
@@ -247,17 +247,14 @@ impl ArbiterInstanceManager {
     pub fn stop(&mut self, instances: Vec<ArbiterInstance>) {
         for instance in instances {
             let db = instance.stop().unwrap();
-            self.instances.push(db);
+            // self.instances.push(db);
         }
     }
 
-    pub async fn run_parallel(
-        &mut self,
-        scenario: impl Scenario,
-    ) -> Result<Vec<SnapshotDB>, Error> {
+    pub async fn run_parallel(&mut self, scenario: impl Scenario) -> Result<Vec<()>, Error> {
         let result = run_parallel(self.clone(), scenario).await;
         let result = result?.join().unwrap().unwrap();
-        self.instances = result.clone();
+        // self.instances = result.clone();
         Ok(result)
     }
 
@@ -291,7 +288,7 @@ impl<'de> Deserialize<'de> for ArbiterInstanceManager {
     }
 }
 
-type ParallelResult = std::thread::JoinHandle<Result<Vec<SnapshotDB>, Error>>;
+type ParallelResult = std::thread::JoinHandle<Result<Vec<()>, Error>>;
 
 pub async fn run_parallel(
     builder: ArbiterInstanceManager,
@@ -440,8 +437,7 @@ mod tests {
             .client()
             .address()
             .clone();
-        let address =
-            revm_primitives::alloy_primitives::Address::from(block_admin_address.as_fixed_bytes());
+        let address = block_admin_address;
         let account = client
             .apply_cheatcode(cheatcodes::Cheatcodes::Access { address })
             .await

@@ -31,18 +31,14 @@ use self::{
     table::PortfolioTable,
 };
 use super::*;
-use crate::{
-    components::{
-        system::{
-            Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
-            ExcaliburTable,
-        },
-        tables::{
-            builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-            rows::RowBuilder,
-        },
+use crate::components::{
+    system::{
+        Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburTable,
     },
-    middleware::{Cortex, Watcher},
+    tables::{
+        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+        rows::RowBuilder,
+    },
 };
 
 /// Executed on `load` for the Dashboard screen.
@@ -183,56 +179,10 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     }
 }
 
-pub struct TestCortex<P, S>
-where
-    P: JsonRpcClient + 'static,
-    S: Signer + 'static,
-{
-    pub provider: Arc<Provider<P>>,
-    pub signer: S,
-    pub client: Arc<SignerMiddleware<Provider<P>, S>>,
-    pub watcher: Option<Watcher>,
-}
-
-#[async_trait::async_trait]
-impl Cortex for TestCortex<Ws, LocalWallet> {
-    type Provider = Ws;
-    type Signer = LocalWallet;
-    type Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>;
-
-    fn client(&self) -> Arc<SignerMiddleware<Provider<Ws>, LocalWallet>> {
-        self.client.clone()
-    }
-
-    fn provider(&self) -> Arc<Provider<Ws>> {
-        self.provider.clone()
-    }
-
-    fn signer(&self) -> Option<LocalWallet> {
-        Some(self.signer.clone())
-    }
-
-    fn protocol_address(&self) -> ethers::types::Address {
-        ethers::types::Address::zero()
-    }
-
-    fn strategy_address(&self) -> ethers::types::Address {
-        ethers::types::Address::zero()
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct Dashboard {
     /// Connection to the network!
-    pub cortex: Option<
-        Arc<
-            dyn Cortex<
-                Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>,
-                Provider = Ws,
-                Signer = LocalWallet,
-            >,
-        >,
-    >,
+    pub cortex: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
 
     /// The portfolio that is loaded, synced, and saved on close.
     pub portfolio: Option<Portfolio>,
@@ -286,49 +236,53 @@ impl Dashboard {
     pub type ViewMessage = Message;
 
     /// Try loading the portfolio from the name.
-    pub fn new(name: Option<String>, dev_client: Option<DevClient<DefaultMiddleware>>) -> Self {
-        // Converts dev client to cortex, todo: just have cortex.
-        let cortex = if let Some(dev) = dev_client.clone() {
-            let client: DevClient<DefaultMiddleware> = dev.clone();
-            let cortex: Arc<
-                dyn Cortex<
-                    Middleware = SignerMiddleware<Provider<Ws>, LocalWallet>,
-                    Provider = Ws,
-                    Signer = LocalWallet,
-                >,
-            > = Arc::new(TestCortex {
-                provider: client.client().provider().clone().into(),
-                signer: client.client().signer().clone(),
-                client: client.client().clone(),
-                watcher: None,
-            });
-
-            Some(cortex)
-        } else {
-            None
-        };
-
+    pub fn new(
+        name: Option<String>,
+        dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    ) -> Self {
         let mut data_model = RawDataModel::<AlloyAddress, AlloyU256>::default();
 
         // Get the addresses from the dev client and setup the data_model with them.
         // todo: get a better place to do this.
         if let Some(dev_client) = dev_client.clone() {
-            let address = dev_client.client().address();
-            let user_address = from_ethers_address(address);
-            let raw_protocol_address = from_ethers_address(dev_client.protocol.protocol.address());
-            let raw_strategy_address = from_ethers_address(dev_client.strategy.address());
-            let raw_asset_token = from_ethers_address(dev_client.token_x.address());
-            let raw_quote_token = from_ethers_address(dev_client.token_y.address());
-            let lex = from_ethers_address(dev_client.liquid_exchange.address());
-
-            data_model.setup(
-                user_address,
-                lex,
-                raw_protocol_address,
-                raw_strategy_address,
-                raw_asset_token,
-                raw_quote_token,
+            let user_address = dev_client
+                .address()
+                .map_or(AlloyAddress::ZERO, from_ethers_address);
+            let (protocol, strategy, asset, quote, lex): (
+                AlloyAddress,
+                AlloyAddress,
+                AlloyAddress,
+                AlloyAddress,
+                AlloyAddress,
+            ) = (
+                dev_client
+                    .contracts
+                    .get("protocol")
+                    .cloned()
+                    .map_or(AlloyAddress::ZERO, from_ethers_address),
+                dev_client
+                    .contracts
+                    .get("strategy")
+                    .cloned()
+                    .map_or(AlloyAddress::ZERO, from_ethers_address),
+                dev_client
+                    .contracts
+                    .get("token_x")
+                    .cloned()
+                    .map_or(AlloyAddress::ZERO, from_ethers_address),
+                dev_client
+                    .contracts
+                    .get("token_y")
+                    .cloned()
+                    .map_or(AlloyAddress::ZERO, from_ethers_address),
+                dev_client
+                    .contracts
+                    .get("lex")
+                    .cloned()
+                    .map_or(AlloyAddress::ZERO, from_ethers_address),
             );
+
+            data_model.setup(user_address, lex, protocol, strategy, asset, quote);
         }
 
         // Create the data view based on this current model.
@@ -347,7 +301,7 @@ impl Dashboard {
         });
 
         Self {
-            cortex,
+            cortex: dev_client.clone(),
             portfolio: None,
             table: PortfolioTable::new(),
             stage: Stages::new(dev_client),
@@ -363,8 +317,9 @@ impl Dashboard {
 
         // Get the provider.
         if let Some(cortex) = &self.cortex {
-            let client = cortex.provider().clone();
+            let client = cortex.client().cloned().unwrap();
             let data_model = self.data_model.clone();
+            let provider = Arc::new(client.provider().clone());
             commands.push(Command::perform(
                 async move {
                     tracing::info!(
@@ -377,7 +332,7 @@ impl Dashboard {
                     // Get the data
                     let mut data = data_model;
                     // Update the data
-                    data.update(client).await?;
+                    data.update(provider.clone()).await?;
                     // Return the data
                     Ok(data)
                 },
@@ -765,7 +720,7 @@ impl State for Dashboard {
                     (&self.data_model.raw_external_exchange_address, &self.cortex)
                 {
                     tracing::info!("Tick, updating price.");
-                    let client = cortex.clone().client().clone();
+                    let client = cortex.client().cloned().unwrap();
                     // for testing live price chart.
                     let external_exchange = external_exchange.clone();
 

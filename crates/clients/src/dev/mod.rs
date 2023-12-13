@@ -36,7 +36,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     #[tracing::instrument(skip(client), level = "trace")]
     pub async fn deploy(client: Arc<C>, sender: Address) -> Result<Self> {
-        tracing::trace!("Deploying token x");
+        tracing::trace!("Deploying token x and minting them to sender: {:?}", sender);
         let token_x_args = ("Token X".to_string(), "X".to_string(), 18_u8);
         let token_x = MockERC20::deploy(client.clone(), token_x_args)?
             .send()

@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, sync::mpsc::Receiver};
 
+use chrono::Local;
 use clients::{client::AnvilClient, dev::DevClient, ledger::LedgerClient};
 use ethers::core::k256::ecdsa::SigningKey;
 use profile::Profile;
@@ -13,6 +14,7 @@ use super::{
 };
 use crate::{
     loader::DefaultMiddleware,
+    middleware::ExcaliburMiddleware,
     screens::{
         dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
         State,
@@ -32,7 +34,6 @@ pub enum Message {
     Empty,
     Load,
     View(view::Message),
-    ChainsMessage(ChainMessage),
     CacheMessage(CacheMessage),
     StorageMessage(StorageMessage),
     WindowsMessage(WindowsMessage),
@@ -44,44 +45,6 @@ pub type RootViewMessage = view::Message;
 
 impl MessageWrapper for Message {
     type ParentMessage = Message;
-}
-
-/// State for all chain related data.
-/// Idea: maybe make chains over generic over signers?
-#[derive(Debug, Clone)]
-pub struct Chains {
-    pub sub_clients: Vec<Provider<Ws>>,
-    pub call_clients: Vec<Provider<Http>>,
-    pub sign_clients: Vec<Wallet<SigningKey>>,
-    pub anvil_client: AnvilClient,
-}
-
-impl Chains {
-    #[tracing::instrument(skip(self))]
-    pub fn get_signer(
-        &self,
-        sub_client: usize,
-        sign_client: usize,
-    ) -> anyhow::Result<Arc<SignerMiddleware<Provider<Ws>, Wallet<SigningKey>>>> {
-        let sub_client = self
-            .sub_clients
-            .get(sub_client)
-            .ok_or(anyhow::anyhow!("Sub client not found"))?;
-        let sign_client = self
-            .sign_clients
-            .get(sign_client)
-            .ok_or(anyhow::anyhow!("Sign client not found"))?;
-
-        tracing::debug!("Creating signer middleware");
-        let signer = SignerMiddleware::new(sub_client.clone(), sign_client.clone());
-        Ok(Arc::new(signer))
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub enum ChainMessage {
-    #[default]
-    Empty,
 }
 
 /// State for all temporarily cached state.
@@ -188,35 +151,28 @@ impl From<WindowsMessage> for Message {
 /// This should hold the most important pieces of data that many children
 /// components will need.
 pub struct App {
+    /// Connection to networks.
+    pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    /// Transient state for the application.
     pub cache: Cache,
+    /// Persistent state for the application.
     pub storage: Storage,
+    /// State of the active window and sidebar the user is viewing.
     pub windows: Windows,
-    pub chains: Chains,
-    // this is a handle that has a lock on the ledger device
-    // we have to talk to it async
-    pub ledger: Option<LedgerClient>,
-    // dev client for testing
-    pub dev_client: Option<DevClient<DefaultMiddleware>>,
 }
 
 impl App {
     pub fn new(
         storage: Storage,
-        chains: Chains,
-        ledger: Option<LedgerClient>,
-        dev_client: Option<DevClient<DefaultMiddleware>>,
+        client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
+        let dashboard = PortfolioRoot::new(Some(client.clone())).into();
         (
             Self {
+                client,
                 storage,
-                chains,
                 cache: Cache::new(),
-                windows: Windows::new(
-                    PortfolioRoot::new(dev_client.clone()).into(),
-                    Sidebar::new(),
-                ),
-                ledger,
-                dev_client,
+                windows: Windows::new(dashboard, Sidebar::new()),
             },
             Command::perform(async {}, |_| Message::Load),
         )
@@ -242,7 +198,6 @@ impl App {
             Message::Load => self.load(),
             Message::StorageMessage(msg) => self.storage_update(msg),
             Message::CacheMessage(msg) => self.cache_update(msg),
-            Message::ChainsMessage(msg) => self.chains_update(msg),
             Message::WindowsMessage(msg) => self.windows_update(msg),
             Message::View(view::Message::Route(route)) => self.switch_window(&route),
             Message::View(view::Message::Exit) => self.exit(),
@@ -278,16 +233,12 @@ impl App {
 
         // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
         // set the profile's anvil snapshot to the result.
-        let anvil_client = self.chains.anvil_client.clone();
-        match self.dev_client.clone() {
-            Some(dev_client) => {
-                let cmd = Command::perform(save_snapshot(anvil_client), |snapshot| {
-                    Message::StorageMessage(StorageMessage::AnvilSnapshot(snapshot))
-                });
-                commands.push(cmd);
-            }
-            None => {}
-        };
+        if let Some(_) = self.client.anvil {
+            let cmd = Command::perform(save_snapshot(self.client.clone()), |result| {
+                Message::StorageMessage(StorageMessage::AnvilSnapshot(result))
+            });
+            commands.push(cmd);
+        }
 
         Command::batch(commands)
     }
@@ -415,10 +366,6 @@ impl App {
         cmd
     }
 
-    fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
-        Command::none()
-    }
-
     // Forwards window messages to the screen.
     #[allow(unused_assignments)]
     fn windows_update(&mut self, message: WindowsMessage) -> Command<Message> {
@@ -452,7 +399,7 @@ impl App {
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
                     view::sidebar::Page::Portfolio => {
-                        PortfolioRoot::new(self.dev_client.clone()).into()
+                        PortfolioRoot::new(Some(self.client.clone())).into()
                     }
                     view::sidebar::Page::Settings => {
                         SettingsScreen::new(self.storage.clone()).into()
@@ -470,8 +417,10 @@ impl App {
     }
 }
 
-async fn save_snapshot(anvil: AnvilClient) -> anyhow::Result<String> {
-    Ok(anvil.snapshot().await)
+async fn save_snapshot(
+    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+) -> anyhow::Result<String> {
+    client.snapshot().await
 }
 
 #[cfg(test)]

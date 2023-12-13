@@ -26,9 +26,7 @@ use crate::components::{
 type LoadResult = anyhow::Result<
     (
         app::Storage,
-        app::Chains,
-        Option<clients::ledger::LedgerClient>,
-        Option<clients::dev::DevClient<DefaultMiddleware>>,
+        Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>,
     ),
     anyhow::Error,
 >;
@@ -73,14 +71,20 @@ pub fn load_profile() -> anyhow::Result<Profile> {
     Ok(profile)
 }
 
-pub type DefaultMiddleware = SignerMiddleware<Provider<Ws>, LocalWallet>;
+pub type DefaultMiddleware = NetworkClient<Ws, LocalWallet>;
 
 #[tracing::instrument(skip(client), level = "trace")]
 pub async fn load_dev_client(
-    client: Arc<DefaultMiddleware>,
-) -> anyhow::Result<DevClient<DefaultMiddleware>> {
+    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+) -> anyhow::Result<DevClient<NetworkClient<Ws, LocalWallet>>> {
     tracing::debug!("Loading dev client");
-    let sender = client.address();
+    let signer = client
+        .signer()
+        .unwrap()
+        .clone()
+        .with_chain_id(client.clone().anvil.as_ref().unwrap().chain_id());
+    let sender = signer.address();
+    let client = client.client().unwrap().clone();
     let dev_client = DevClient::deploy(client, sender).await?;
     Ok(dev_client)
 }
@@ -93,25 +97,36 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load an existing profile, or create a new one.
     let profile = load_profile()?;
 
-    // Start anvil the background.
-    let anvil = AnvilClient::new()?;
-    let anvil_default_chain_id = anvil.anvil.clone().chain_id();
-
-    // Get a default signer + provider from anvil.
-    let (sub_clients, sign_clients) = from_anvil(&anvil.anvil.clone()).await?;
-    let chains = app::Chains {
-        call_clients: vec![],
-        sub_clients,
-        sign_clients,
-        anvil_client: anvil,
+    let mut exc_client = ExcaliburMiddleware::setup(flags.dev_mode).await?;
+    let chain_id = if let Some(anvil) = &exc_client.anvil {
+        anvil.chain_id()
+    } else {
+        1
     };
 
-    // Create a client from the default provider + signer.
-    let default_anvil_client = chains.get_signer(0, 0).unwrap();
+    // Load the dev client from dev mode flag.
+    if flags.dev_mode {
+        let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
+        let sender = signer.address();
+        let client = exc_client.client().unwrap().clone();
+        let client = client.with_signer(signer);
+        let dev_client = DevClient::deploy(client.into(), sender).await?;
+
+        exc_client.add_contract("protocol", dev_client.protocol.protocol.address());
+        exc_client.add_contract(
+            "strategy",
+            dev_client.protocol.get_strategy().await?.address(),
+        );
+        exc_client.add_contract("token_x", dev_client.token_x.address());
+        exc_client.add_contract("token_y", dev_client.token_y.address());
+        exc_client.add_contract("lex", dev_client.liquid_exchange.address());
+    }
 
     // If profile has an anvil snapshot, load it.
     if let Some(snapshot) = &profile.anvil_snapshot {
-        let result: String = default_anvil_client
+        let result: String = exc_client
+            .client()
+            .unwrap()
             .provider()
             .request("anvil_loadState", ())
             .await
@@ -120,19 +135,13 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         tracing::info!("Loaded snapshot: {:?}", result);
     }
 
-    // Load the dev client from dev mode flag.
-    let dev_client = match flags.dev_mode {
-        true => Some(load_dev_client(default_anvil_client.clone()).await?),
-        false => None,
-    };
-
     // Load the coinlist from disk.
     let mut coinlist = CoinList::load(None)?;
 
     // If dev_client is some, add the tokens to the coinlist.
-    if let Some(dev_client) = &dev_client {
-        let token_x = dev_client.token_x.address();
-        let token_y = dev_client.token_y.address();
+    if let Some(anvil) = exc_client.anvil.as_ref() {
+        let token_x = exc_client.contracts.get("token_x").unwrap();
+        let token_y = exc_client.contracts.get("token_y").unwrap();
         let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
         let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
         let tokens = coinlist.tokens.clone();
@@ -145,7 +154,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 symbol: "TKNX".to_string(),
                 address: token_x,
                 decimals: 18,
-                chain_id: anvil_default_chain_id,
+                chain_id: anvil.chain_id(),
                 logo_uri: "".to_string(),
                 tags: vec!["mock".to_string()],
             };
@@ -159,7 +168,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 symbol: "TKNY".to_string(),
                 address: token_y,
                 decimals: 18,
-                chain_id: anvil_default_chain_id,
+                chain_id: anvil.chain_id(),
                 logo_uri: "".to_string(),
                 tags: vec!["mock".to_string()],
             };
@@ -172,7 +181,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
 
     // Add the default signer to the contacts book.
     storage.profile.contacts.add(
-        default_anvil_client.address(),
+        exc_client.address().unwrap(),
         contacts::ContactValue {
             label: "You".to_string(),
             class: contacts::Class::EOA,
@@ -182,11 +191,11 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     );
 
     // If dev_client is some, add the protocol's contracts to the storage.
-    if let Some(dev_client) = &dev_client {
-        let protocol = dev_client.protocol.protocol.address();
-        let strategy = dev_client.protocol.get_strategy().await.unwrap().address();
-        let token_x = dev_client.token_x.address();
-        let token_y = dev_client.token_y.address();
+    if flags.dev_mode {
+        let protocol = exc_client.contracts.get("protocol").cloned().unwrap();
+        let strategy = exc_client.contracts.get("strategy").cloned().unwrap();
+        let token_x = exc_client.contracts.get("token_x").cloned().unwrap();
+        let token_y = exc_client.contracts.get("token_y").cloned().unwrap();
 
         storage.profile.contacts.add(
             protocol,
@@ -231,7 +240,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
 
     let ledger = connect_ledger().await;
 
-    Ok((storage, chains, ledger, dev_client))
+    Ok((storage, Arc::new(exc_client)))
 }
 
 #[tracing::instrument(level = "debug")]
