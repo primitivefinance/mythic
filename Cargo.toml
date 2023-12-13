@@ -60,7 +60,7 @@ uuid = { version = "1.6.1", features = ["v4", "serde"] }
 plotters = "0.3.5"
 
 # math
-RustQuant = { version = "0.0.39", features = ["seedable"] }
+RustQuant = { version = "0.0.40", features = ["seedable"] }
 statrs = "0.16.0"
 reikna = "0.12.3"
 
