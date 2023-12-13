@@ -158,7 +158,13 @@ impl ProtocolClient {
     ) -> Result<U256> {
         let strategy = self.get_strategy().await?;
         let liquidity = strategy
-            .find_liquidity(reserve_x_wad, reserve_y_wad, swap_constant, params)
+            .find_liquidity(
+                reserve_x_wad,
+                reserve_y_wad,
+                swap_constant,
+                U256::from(0),
+                params,
+            )
             .call()
             .await?;
         Ok(liquidity)

@@ -7,12 +7,10 @@ use alloy_primitives::{
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
 use clients::protocol::ProtocolClient;
-use ethers::abi::AbiDecode;
 
 use super::{
-    agents::base::token_admin::TokenAdmin,
-    bindings::atomic_v2::{self, AtomicV2},
-    Environment, Result, RevmMiddleware, *,
+    agents::base::token_admin::TokenAdmin, bindings::atomic_v2::AtomicV2, Environment, Result,
+    RevmMiddleware, *,
 };
 
 pub const WAD: U256 = U256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);

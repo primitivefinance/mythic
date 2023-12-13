@@ -47,7 +47,7 @@ contract DFMMTest is Test {
         uint256 init_y = LogNormal(source).yl(init_l, init_p, params);
         int256 swapConstantInit = 0;
         uint256 found_l = LogNormal(source).findLiquidity(
-            init_x, init_y, swapConstantInit, params
+            init_x, init_y, swapConstantInit, 0, params
         );
 
         bytes memory init_data =
@@ -86,7 +86,7 @@ contract DFMMTest is Test {
         console2.log("init_y", init_y);
         int256 swapConstantInit = 0;
         uint256 found_l = LogNormal(source).findLiquidity(
-            init_x, init_y, swapConstantInit, params
+            init_x, init_y, swapConstantInit, 0, params
         );
         console2.log("found_l", found_l);
 

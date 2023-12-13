@@ -69,7 +69,7 @@ function findRootLiquidity(
     bytes memory data,
     uint256 liquidity
 ) pure returns (int256) {
-    (uint256 x, uint256 y, int256 swapConstant, Parameters memory params) =
+    (uint256 x, uint256 y,, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
     // todo: maybe update with swapConstantGrowth with previous swapConstant.
     return tradingFunction({
@@ -303,8 +303,13 @@ contract LogNormal is Source {
         int256 swapConstant = computeSwapConstant(
             abi.encode(reserveXWad, reserveYWad, totalLiquidity)
         );
-        return
-            findLiquidity(reserveXWad, reserveYWad, swapConstant, dynamicSlot());
+        return findLiquidity(
+            reserveXWad,
+            reserveYWad,
+            swapConstant,
+            totalLiquidity,
+            dynamicSlot()
+        );
     }
 
     /// @dev Computes the result of the tradingFunction().
@@ -377,9 +382,19 @@ contract LogNormal is Source {
 
         // Make sure to override the original liquidity with the `getNextLiquidity` value.
         // This is because liquidity can change given any change in parameter, including over time via parameter tau.
-        adjustedLiquidity = getNextLiquidity(
-            adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
-        );
+        // conditionally get the next liquidity if any of the parameters are currently updating
+        // otherwise, use the original liquidity
+        if (
+            block.timestamp >= tauUpdateEnd
+                && block.timestamp >= strikeUpdateEnd
+                && block.timestamp >= sigmaUpdateEnd
+        ) {
+            adjustedLiquidity = adjustedLiquidity;
+        } else {
+            adjustedLiquidity = getNextLiquidity(
+                adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity
+            );
+        }
 
         int256 originalSwapConstant = computeSwapConstant(
             abi.encode(
@@ -497,22 +512,32 @@ contract LogNormal is Source {
     }
 
     /// @dev Finds the root of the swapConstant given the independent variable liquidity.
-    // TODO (matt): we should return i256 max in the case of ppf input > WAD
     function findLiquidity(
         uint256 reserveXWad,
         uint256 reserveYWad,
         int256 swapConstant,
+        uint256 initialGuessLiquidity,
         Parameters memory params
     ) public pure returns (uint256 liquidity) {
-        uint256 yOverK = reserveYWad.divWadDown(params.strikePriceWad);
-        uint256 lower = reserveXWad > yOverK ? reserveXWad + 1 : yOverK + 1;
-        uint256 upper = 1e27;
+        uint256 lower;
+        uint256 upper;
+        uint256 iters;
+        if (initialGuessLiquidity != 0) {
+            lower = initialGuessLiquidity.mulDivDown(90, 100);
+            upper = initialGuessLiquidity.mulDivUp(110, 100);
+            iters = 32;
+        } else {
+            uint256 yOverK = reserveYWad.divWadDown(params.strikePriceWad);
+            lower = reserveXWad > yOverK ? reserveXWad + 1 : yOverK + 1;
+            upper = 1e27;
+            iters = MAX_BISECTION_ITERS;
+        }
         liquidity = bisection(
             abi.encode(reserveXWad, reserveYWad, swapConstant, params),
             lower,
             upper,
             BISECTION_EPSILON,
-            MAX_BISECTION_ITERS,
+            iters,
             findRootLiquidity
         );
     }
