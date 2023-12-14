@@ -110,6 +110,7 @@ impl ProtocolClient {
 
         let liquidity_root = self
             .find_liquidity(
+                false,
                 init_reserve_x_wad,
                 init_reserve_y_wad,
                 init_swap_constant,
@@ -151,6 +152,7 @@ impl ProtocolClient {
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn find_liquidity(
         &self,
+        initialized: bool,
         reserve_x_wad: U256,
         reserve_y_wad: U256,
         swap_constant: I256,
@@ -159,6 +161,7 @@ impl ProtocolClient {
         let strategy = self.get_strategy().await?;
         let liquidity = strategy
             .find_liquidity(
+                initialized,
                 reserve_x_wad,
                 reserve_y_wad,
                 swap_constant,

@@ -47,10 +47,6 @@ contract DFMM is Core {
         int256 liquidityDelta
     );
 
-    event LogParams(
-        uint256 strike, uint256 sigma, uint256 tau, uint256 rx, uint256 ry
-    );
-
     modifier initialized() {
         require(inited, "not initialized");
         _;
@@ -63,32 +59,12 @@ contract DFMM is Core {
         locked = 1;
     }
 
-    function getSwapConstant() public view returns (int256) {
-        bytes memory data = abi.encode(reserveXWad, reserveYWad, totalLiquidity);
-        return LogNormal(source).computeSwapConstant(data);
-    }
-
     function getReservesAndLiquidity()
         public
         view
         returns (uint256, uint256, uint256)
     {
         return (reserveXWad, reserveYWad, totalLiquidity);
-    }
-
-    function getNextLiquidity() public view returns (uint256) {
-        return Source(source).getNextLiquidity(
-            reserveXWad, reserveYWad, totalLiquidity
-        );
-    }
-
-    function getParams() public view returns (uint256, uint256, uint256) {
-        return Source(source).getParams();
-    }
-
-    /// @dev Gets the approximated price of the pool given x reserves and liquidity.
-    function internalPrice() public view returns (uint256 price) {
-        price = LogNormal(source).internalPrice(reserveXWad, totalLiquidity);
     }
 
     /// @param data The data to be passed to the source strategy contract for pool initialization & validation.
@@ -115,29 +91,6 @@ contract DFMM is Core {
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
         return (XXXXXXX, YYYYYY, LLLLLL);
-    }
-
-    /// @dev Use this function to prepare swaps!
-    /// @param swapXIn Whether the swap is X in, Y out.
-    /// @param amountIn The amount of the input token to swap.
-    /// @return valid Whether the swap is valid, as returned by source.validate().
-    /// @return estimatedOut The estimated amount of the output token.
-    /// @return estimatedPrice The computed price after the swap.
-    /// @return swapData The data to be passed to the source strategy contract for swap validation.
-    function simulateSwap(
-        bool swapXIn,
-        uint256 amountIn
-    )
-        public
-        view
-        returns (
-            bool valid,
-            uint256 estimatedOut,
-            uint256 estimatedPrice,
-            bytes memory swapData
-        )
-    {
-        return LogNormal(source).simulateSwap(swapXIn, amountIn);
     }
 
     /// @param data The data to be passed to the source strategy contract for swap validation.
@@ -168,17 +121,9 @@ contract DFMM is Core {
                 adjustedReserveYWad: YYYYYY
             });
 
-            address swapper = msg.sender;
             address strategy = source;
-            int256 liquidityDelta = liquidityDelta;
-            uint256 rx = XXXXXXX;
-            uint256 ry = YYYYYY;
-            (uint256 strike, uint256 sigma, uint256 tau) =
-                Source(source).getParams();
-
-            emit LogParams(strike, sigma, tau, rx, ry);
             emit Swap(
-                swapper,
+                msg.sender,
                 strategy,
                 inputToken,
                 outputToken,
@@ -245,3 +190,6 @@ contract DFMM is Core {
         );
     }
 }
+
+// move pure functions to solver
+// pass solver address into core functions in strategy
