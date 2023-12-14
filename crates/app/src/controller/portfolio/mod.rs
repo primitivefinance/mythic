@@ -7,7 +7,6 @@ pub mod create;
 pub mod dashboard;
 pub mod dev;
 
-use clients::dev::DevClient;
 use iced::widget::Container;
 
 use super::*;
@@ -44,6 +43,9 @@ impl From<Message> for view::Message {
     }
 }
 
+/// Intermediary controller that manages the controllers related to portfolio
+/// management. Responsible for catching requests to update the root model and
+/// pushing them to the root controller.
 pub struct PortfolioRoot {
     pub page: Page,
     pub create: create::CreatePortfolio,
@@ -84,11 +86,40 @@ impl State for PortfolioRoot {
                     .create
                     .update(message)
                     .map(|x| Message::Create(x).into()),
+                Message::Dashboard(dashboard::Message::Refetch) => {
+                    let mut commands = vec![];
+
+                    // todo: very clunky way to push the sync model upstream...
+                    commands.push(
+                        Command::perform(async {}, |_| {
+                            Self::ViewMessage::Root(view::RootMessage::ModelSyncRequest)
+                        })
+                        .map(|x| Self::AppMessage::View(x)),
+                    );
+                    commands.push(
+                        self.dashboard
+                            .update(dashboard::Message::Refetch)
+                            .map(|x| Message::Dashboard(x).into()),
+                    );
+
+                    Command::batch(commands)
+                }
                 Message::Dashboard(message) => self
                     .dashboard
                     .update(message)
                     .map(|x| Message::Dashboard(x).into()),
             },
+
+            // Lazy update, todo: this is kind of complicated, can we make it easier?
+            // This will "catch" the root update model message and propagate it down to the
+            // dashboard. The result of this is that when model updates happen in the
+            // root controller, they will also sync the dashboard's model.
+            Self::AppMessage::ModelSyncResult(model) => {
+                return self
+                    .dashboard
+                    .update(dashboard::Message::UpdateDataModel(model))
+                    .map(|x| Message::Dashboard(x).into())
+            }
             _ => Command::none(),
         }
     }

@@ -177,6 +177,15 @@ pub struct UserProfile {
     pub anvil_snapshot: Option<String>,
 }
 
+impl UserProfile {
+    /// Updates the portfolio of this profile and saves to file.
+    pub fn update_portfolio(&mut self, portfolio: &Portfolio) -> Result<()> {
+        self.portfolio = portfolio.clone();
+        self.save()?;
+        Ok(())
+    }
+}
+
 impl Saveable for UserProfile {
     const EXTENSION: &'static str = PROFILE_FILE_EXTENSION;
     const SUFFIX: &'static str = PROFILE_FILE_NAME;

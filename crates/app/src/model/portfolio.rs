@@ -13,6 +13,12 @@
 //! - Updating and manipulating data
 //! - Computing plots off the data to be displayed in charts
 //! - Subscribing to data feeds from asynchronous sources
+//!
+//! # Glossary
+//! - "get" - Returns values stored in the model. Cheap.
+//! - "fetch" - Async call to acquire data from an external source. Expensive.
+//! - "compute" - Computes a result based on inputs. Can be expensive.
+//! - "derive" - Computes a result derived from model data input. Expensive.
 
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
@@ -54,9 +60,25 @@ impl From<RawDataModelError> for Error {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Cached {
+    pub raw_asset_token_info: Option<TokenInfo>,
+    pub raw_quote_token_info: Option<TokenInfo>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TokenInfo {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+}
+
 /// The model!
 #[derive(Debug, Clone, Default)]
 pub struct RawDataModel<A, V> {
+    // Cached data is updated only once.
+    pub cached: Cached,
+
     // Must set these addresses.
     pub user_address: Option<A>,
     pub raw_external_exchange_address: Option<A>,
@@ -99,6 +121,9 @@ sol! {
     #[derive(Debug)]
     interface IERC20 {
         function balanceOf(address account) external view returns(uint balance);
+        function name() external view returns(string name);
+        function symbol() external view returns(string symbol);
+        function decimals() external view returns(uint8 decimals);
     }
 }
 
@@ -175,7 +200,92 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.update_external_price_series(client.clone()).await?;
         self.update_internal_price_series(client.clone()).await?;
 
+        // Finally update cached data, which will only update if conditions are met.
+        self.update_cached(client.clone()).await?;
+
         Ok(())
+    }
+
+    pub async fn update_cached(&mut self, client: Arc<Client>) -> Result<()> {
+        // Only update token info if cache is not set.
+        if self.cached.raw_asset_token_info.is_none() || self.cached.raw_quote_token_info.is_none()
+        {
+            self.update_token_info(client.clone()).await?;
+        }
+        Ok(())
+    }
+
+    pub async fn update_token_info(&mut self, client: Arc<Client>) -> Result<()> {
+        let asset_token_info = self.cached.raw_asset_token_info.clone();
+        let quote_token_info = self.cached.raw_quote_token_info.clone();
+
+        if asset_token_info.is_none() {
+            let asset_token = self
+                .raw_asset_token
+                .ok_or(Error::msg("Asset token not set"))?;
+            let asset_token_info = self.fetch_token_info(client.clone(), asset_token).await?;
+            self.cached.raw_asset_token_info = Some(asset_token_info);
+        }
+
+        if quote_token_info.is_none() {
+            let quote_token = self
+                .raw_quote_token
+                .ok_or(Error::msg("Quote token not set"))?;
+            let quote_token_info = self.fetch_token_info(client.clone(), quote_token).await?;
+            self.cached.raw_quote_token_info = Some(quote_token_info);
+        }
+
+        Ok(())
+    }
+
+    pub async fn fetch_token_info(
+        &self,
+        client: Arc<Client>,
+        token_address: Self::Address,
+    ) -> Result<TokenInfo> {
+        let converted_token_address = to_ethers_address(token_address);
+
+        let payload = IERC20::nameCall {};
+        let payload = ethers::types::Bytes::from(payload.abi_encode());
+
+        let mut tx = TypedTransaction::default();
+        tx.set_to(converted_token_address).set_data(payload);
+
+        // Send the call to the token contract.
+        let name = client.call(&tx, None).await?;
+        let decoded: <IERC20::nameCall as SolCall>::Return =
+            IERC20::nameCall::abi_decode_returns(&name, false)?;
+        let name = decoded.name;
+
+        let payload = IERC20::symbolCall {};
+        let payload = ethers::types::Bytes::from(payload.abi_encode());
+
+        let mut tx = TypedTransaction::default();
+        tx.set_to(converted_token_address).set_data(payload);
+
+        // Send the call to the token contract.
+        let symbol = client.call(&tx, None).await?;
+        let decoded: <IERC20::symbolCall as SolCall>::Return =
+            IERC20::symbolCall::abi_decode_returns(&symbol, false)?;
+        let symbol = decoded.symbol;
+
+        let payload = IERC20::decimalsCall {};
+        let payload = ethers::types::Bytes::from(payload.abi_encode());
+
+        let mut tx = TypedTransaction::default();
+        tx.set_to(converted_token_address).set_data(payload);
+
+        // Send the call to the token contract.
+        let decimals = client.call(&tx, None).await?;
+        let decoded: <IERC20::decimalsCall as SolCall>::Return =
+            IERC20::decimalsCall::abi_decode_returns(&decimals, false)?;
+        let decimals = decoded.decimals;
+
+        Ok(TokenInfo {
+            name,
+            symbol,
+            decimals,
+        })
     }
 
     pub fn update_last_sync_timestamp(&mut self) -> Result<()> {
@@ -465,7 +575,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             }
         }
 
-        let portfolio_value = self.external_portfolio_value()?;
+        let portfolio_value = self.derive_external_portfolio_value()?;
 
         if let Some(series) = &mut self.raw_portfolio_values_series {
             series.push((block_number, portfolio_value));
@@ -558,7 +668,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// prices. Prices are assumed to be denominated in USD-pegged assets, and
     /// in WAD units.
     #[tracing::instrument(level = "trace")]
-    pub fn compute_portfolio_value(
+    pub fn compute_portfolio_value_real(
         asset_price_wad: AlloyU256,
         quote_price_wad: AlloyU256,
         quote_balance_wad: AlloyU256,
@@ -586,7 +696,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the theoretical portfolio value of a given strategy.
-    pub fn compute_theoretical_portfolio_value(
+    pub fn compute_portfolio_value_theoretical(
         asset_price_wad: AlloyU256,
         quote_price_wad: AlloyU256,
         total_liquidity_wad: AlloyU256,
@@ -621,7 +731,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the portfolio value of the user's balances of tokens according
     /// to their external prices.
-    pub fn external_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_external_portfolio_value(&self) -> Result<Self::Value> {
         let asset_price_wad = self
             .raw_external_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
@@ -635,7 +745,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_user_asset_balance
             .ok_or(Error::msg("User asset balance not set"))?;
 
-        Self::compute_portfolio_value(
+        Self::compute_portfolio_value_real(
             asset_price_wad,
             quote_price_wad,
             quote_balance_wad,
@@ -645,7 +755,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the portfolio value of the user's deposits in a strategy
     /// according to the internal price.
-    pub fn internal_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_internal_portfolio_value(&self) -> Result<Self::Value> {
         let asset_price_wad = self
             .raw_internal_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
@@ -663,7 +773,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_asset_reserve
             .ok_or(Error::msg("Asset reserve not set"))?;
 
-        Self::compute_portfolio_value(
+        Self::compute_portfolio_value_real(
             asset_price_wad,
             quote_price_wad,
             quote_balance_wad,
@@ -673,7 +783,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the theoretical portfolio value given the strategy parameters,
     /// external market price, and amount of liquidity.
-    pub fn theoretical_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_theoretical_portfolio_value(&self) -> Result<Self::Value> {
         let strike_price_wad = self
             .raw_strike_price_wad
             .ok_or(Error::msg("Strike price not set"))?;
@@ -698,7 +808,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_total_liquidity
             .ok_or(Error::msg("Total liquidity not set"))?;
 
-        Self::compute_theoretical_portfolio_value(
+        Self::compute_portfolio_value_theoretical(
             asset_price_wad,
             quote_price_wad,
             total_liquidity_wad,
@@ -724,9 +834,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the health of the user's portfolio.
-    pub fn portfolio_health(&self) -> Result<Self::Value> {
-        let internal_portfolio_value_wad = self.internal_portfolio_value()?;
-        let theoretical_value_wad = self.theoretical_portfolio_value()?;
+    pub fn derive_portfolio_health(&self) -> Result<Self::Value> {
+        let internal_portfolio_value_wad = self.derive_internal_portfolio_value()?;
+        let theoretical_value_wad = self.derive_theoretical_portfolio_value()?;
 
         Self::compute_health(internal_portfolio_value_wad, theoretical_value_wad)
     }
@@ -776,7 +886,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Transforms the portfolio value series into a chart series that can be
     /// plotted by the view logic.
-    pub fn portfolio_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+    pub fn derive_portfolio_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
             .raw_portfolio_values_series
             .as_ref()
@@ -791,7 +901,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the points of interest on the strategy plot.
-    pub fn portfolio_strategy_points(&self) -> Result<Vec<ChartPoint>> {
+    pub fn derive_portfolio_strategy_points(&self) -> Result<Vec<ChartPoint>> {
         let asset_reserve_wad = self
             .raw_asset_reserve
             .ok_or(Error::msg("Asset reserve not set"))?;
@@ -813,7 +923,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Transforms the portfolio strategy into a plotted curve with the current
     /// portfolio composition as a point of interest.
-    pub fn portfolio_strategy_plot(&self) -> Result<(CartesianRanges, Vec<ChartLineSeries>)> {
+    pub fn derive_portfolio_strategy_plot(
+        &self,
+    ) -> Result<(CartesianRanges, Vec<ChartLineSeries>)> {
         // Get the current strategy parameters, reserves, and liquidity.
         let strike_price_wad = self
             .raw_strike_price_wad

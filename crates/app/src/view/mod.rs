@@ -10,25 +10,42 @@ use crate::{
 pub mod portfolio_view;
 pub mod sidebar;
 
-/// Root message for the Terminal component.
+/// All controllers emit View messages. These get drilled down to the original
+/// controller that emitted them.
+///
+/// This enables controllers to communicate with controllers above them because
+/// the view messages start at the root application controller.
 #[derive(Debug, Clone, Default)]
 pub enum Message {
     #[default]
     Empty,
-    // Exit application
-    Exit,
+    // Root controller messages are "caught" in flight in the application's
+    // update function. Controllers can indirectly communicate with the root application
+    // this way.
+    Root(RootMessage),
+
+    // Children controllers emit their own messages that they expect to get back and process on
+    // their own.
+    Portfolio(portfolio::Message),
+    Settings(settings::Message),
+    Developer(dev::Message),
+    Experimental(dev::experimental::Message),
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum RootMessage {
+    #[default]
+    Empty,
+    // Exit the application safely, saving all persistent data before exiting.
+    SaveAndExit,
     // Confirm exit application
     ConfirmExit,
     // Route to a new page.
     Route(sidebar::Route),
     // Copy to clipboard.
     CopyToClipboard(String),
-    // Production pages.
-    Portfolio(portfolio::Message),
-    Settings(settings::Message),
-    // Developer pages
-    Developer(dev::Message),
-    Experimental(dev::experimental::Message),
+    // Updates the model.
+    ModelSyncRequest,
 }
 
 impl MessageWrapperView for Message {

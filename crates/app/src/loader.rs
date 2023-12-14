@@ -13,6 +13,7 @@ use iced::{
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
+use sim::from_ethers_address;
 
 use super::{
     middleware::*,
@@ -192,6 +193,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         let strategy = exc_client.contracts.get("strategy").cloned().unwrap();
         let token_x = exc_client.contracts.get("token_x").cloned().unwrap();
         let token_y = exc_client.contracts.get("token_y").cloned().unwrap();
+        let lex = exc_client.contracts.get("lex").cloned().unwrap();
 
         user.contacts.add(
             protocol,
@@ -231,6 +233,25 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 ..Default::default()
             },
             contacts::Category::Untrusted,
+        );
+
+        user.contacts.add(
+            lex,
+            contacts::ContactValue {
+                label: "Liquid Exchange".to_string(),
+                class: contacts::Class::Contract,
+                ..Default::default()
+            },
+            contacts::Category::Untrusted,
+        );
+
+        model.portfolio.setup(
+            from_ethers_address(exc_client.address().unwrap()),
+            from_ethers_address(lex),
+            from_ethers_address(protocol),
+            from_ethers_address(strategy),
+            from_ethers_address(token_x),
+            from_ethers_address(token_y),
         );
     }
 

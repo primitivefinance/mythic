@@ -1,5 +1,42 @@
+//! Root controller for Excalibur.
+//!
+//! Handles connecting all children controllers, the data model, and the data
+//! view together.
+//!
+//! ## Syncing the model
+//! Children components can request to sync and update the model by emitting a
+//! `SyncModel` message that is wrapped in a
+//! Message::View(view::Message::Root(..)).
+//!
+//! This is caught by the root application controller, which can handle the
+//! model update.
+//!
+//! Children components have their own model updated lazily. That is:
+//! - The root application controller updates the model.
+//! - The model gets propagated to the active children controller (i.e. a
+//!   screen).
+//! - Changing to a new screen will be instantiated with the updated model, but
+//!   the previous screen will not be updated.
+//! - The previous screen will be therefore be updated when it is reloaded from
+//!   a `switch_window` call.
+//!
+//! ## Routing
+//! The root application controller handles routing to different screens.
+//! These route messages start at the View message and get caught in flight,
+//! like the SyncModel message. From here, a message is returned to the Root
+//! application to route to a new page.
+//!
+//!
+//! ## Finding Bug Culprits:
+//! - Empty data: check the controller.
+//! - Missing data: check the model.
+//! - Wrong data: check the presenter.
+//! - Placement in the view: check the view.
+//!
+//! The Controller handles user input and updates the Model, the Presenter
+//! prepares data for the View, and the View handles rendering.
+
 use tracing::Span;
-use user::UserProfile;
 
 use super::{
     controller::{empty::EmptyScreen, exit::ExitScreen, Screen},
@@ -31,15 +68,17 @@ pub enum Message {
     Empty,
     /// Emitted on the initial load of the App.
     Load,
-    /// All interface level messages are wrapped in this View message.
+    /// Exits the application immediately, without saving. Save should be called
+    /// before this event is triggered.
+    DangerousExit,
+    /// All children controllers wrap their messages in View.
     View(view::Message),
     /// Modifications to the persistent user profile.
     UpdateUser(UserProfileMessage),
     /// Switches the active "app" to the target Route.
     SwitchWindow(view::sidebar::Route),
-    /// Exits the application immediately, without saving. Save should be called
-    /// before this event is triggered.
-    Exit,
+    /// Updates the model after it has been fetched.
+    ModelSyncResult(Result<Model, Arc<anyhow::Error>>),
 }
 
 /// All messages for making modifications to the persistent user profile.
@@ -139,16 +178,38 @@ impl App {
     /// All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         app_span().in_scope(|| match message {
-            Message::Exit => iced::window::close(),
             Message::Load => self.load(),
-            Message::UpdateUser(msg) => self.update_user(msg),
-            Message::SwitchWindow(route) => self.switch_window(&route),
-            Message::View(view::Message::Route(route)) => self.switch_window(&route),
-            Message::View(view::Message::Exit) => self.exit(),
-            Message::View(view::Message::CopyToClipboard(contents)) => {
-                iced::clipboard::write(contents)
+            Message::DangerousExit => iced::window::close(),
+            Message::ModelSyncResult(Ok(model)) => {
+                // Update the root model.
+                self.model = model.clone();
+
+                // Propagate the model to the active screen.
+                return self
+                    .windows
+                    .screen
+                    .update(Message::ModelSyncResult(Ok(model)));
             }
-            Message::Empty => Command::none(),
+            Message::ModelSyncResult(Err(e)) => {
+                tracing::warn!("Failed to sync model: {:?}", e);
+                Command::none()
+            }
+            Message::UpdateUser(msg) => self.update_user(msg),
+            Message::View(view::Message::Root(msg)) => match msg {
+                view::RootMessage::ModelSyncRequest => self.fetch_model(),
+                view::RootMessage::Route(route) => self.switch_window(&route),
+                view::RootMessage::CopyToClipboard(contents) => iced::clipboard::write(contents),
+                view::RootMessage::SaveAndExit => self.exit(),
+                view::RootMessage::Empty => Command::none(),
+                view::RootMessage::ConfirmExit => {
+                    tracing::debug!("Confirming exit");
+                    self.windows
+                        .screen
+                        .update(Message::View(view::Message::Root(msg)))
+                        .map(|x| x.into())
+                }
+            },
+
             // All the view messages are forwarded to the screen.
             _ => self.windows.screen.update(message),
         })
@@ -188,6 +249,26 @@ impl App {
         Command::batch(commands)
     }
 
+    /// Updates the model and returns its mutated state in a Result.
+    fn fetch_model(&mut self) -> Command<Message> {
+        if let Some(client) = self.client.client().cloned() {
+            let model = self.model.clone();
+            // todo: fix this clunky provider
+            let provider = Arc::new(client.provider().clone());
+            Command::perform(
+                async move {
+                    let mut model = model;
+                    model.update(provider).await?;
+                    Ok(model)
+                },
+                Message::ModelSyncResult,
+            )
+        } else {
+            tracing::debug!("No client. Not syncing model.");
+            Command::none()
+        }
+    }
+
     #[allow(unused_assignments)]
     fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
         let profile = &mut self.model.user;
@@ -205,7 +286,7 @@ impl App {
                 }
 
                 // Exits the application after saving the anvil snapshot.
-                return Command::perform(async {}, |_| Message::Exit);
+                return Command::perform(async {}, |_| Message::DangerousExit);
             }
             UserProfileMessage::AddAddress(name, address, category) => {
                 profile.contacts.add(

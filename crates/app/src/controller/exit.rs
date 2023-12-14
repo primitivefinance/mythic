@@ -32,16 +32,20 @@ impl State for ExitScreen {
     // todo: clean up the message piping in this...
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Self::AppMessage::View(view::Message::ConfirmExit) => {
-                self.show_confirm = false;
-                Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                    Self::AppMessage::View(view::Message::Exit)
-                })
-            }
-            Self::AppMessage::View(view::Message::Exit) => {
-                self.show_confirm = true;
-                Command::none()
-            }
+            Self::AppMessage::View(view::Message::Root(message)) => match message {
+                view::RootMessage::ConfirmExit => {
+                    self.show_confirm = false;
+                    Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                        Self::AppMessage::View(view::Message::Root(view::RootMessage::SaveAndExit))
+                    })
+                }
+                view::RootMessage::SaveAndExit => {
+                    self.show_confirm = true;
+                    Command::none()
+                }
+                _ => Command::none(),
+            },
+
             _ => Command::none(),
         }
     }
@@ -53,7 +57,7 @@ impl State for ExitScreen {
                 .push(
                     button(label(&"Yes, save and exit.").build())
                         .padding([10, 20])
-                        .on_press(Self::ViewMessage::ConfirmExit),
+                        .on_press(Self::ViewMessage::Root(view::RootMessage::ConfirmExit)),
                 )
                 .spacing(Sizes::Sm)
                 .align_items(alignment::Alignment::Center),

@@ -4,6 +4,8 @@
 //! The portfolio view takes in the portfolio's data model and builds components
 //! for the [controller](./mod.rs) to render.
 
+use chrono::{DateTime, Utc};
+
 use super::{
     model::portfolio::{AlloyAddress, AlloyU256, RawDataModel},
     *,
@@ -49,28 +51,34 @@ impl ValueToLabel<Result<AlloyU256, anyhow::Error>> for Result<AlloyU256, anyhow
     }
 }
 
-/// View all of the underlying data from the model for the portfolio dashboard.
-///
-/// Important! Make sure the chart starts completely blank (not default), this
-/// will make sure the initial ranges are set correctly.
+/// Responsible for transforming the model data into components for the view to
+/// handle, e.g. converting an `AlloyU256` into a `ExcaliburText` that can be
+/// shown to the user.
 #[derive(Debug, Clone)]
-pub struct DataView {
-    pub model: RawDataModel<AlloyAddress, AlloyU256>,
-    pub portfolio_value_series: ExcaliburChart,
-    pub portfolio_strategy_plot: ExcaliburChart,
+pub struct PortfolioPresenter {
+    model: RawDataModel<AlloyAddress, AlloyU256>,
+    /// Value series is a live chart of portfolio value wrt. time.
+    /// Therefore, it is continuously updated.
+    portfolio_value_series: ExcaliburChart,
+    /// Strategy plot can be computationally expensive. It is also static most
+    /// of the time, so it is cached and only force updated on user request.
+    portfolio_strategy_plot: ExcaliburChart,
 }
 
-impl Default for DataView {
+impl Default for PortfolioPresenter {
+    /// Makes `new` ExcaliburCharts so that the series and points are not set.
+    /// The default ExcaliburChart sets a line series and single point,
+    /// which affects the starting ranges of the chart.
     fn default() -> Self {
         Self {
-            model: RawDataModel::default(),
-            portfolio_value_series: ExcaliburChart::default(),
-            portfolio_strategy_plot: ExcaliburChart::default(),
+            model: RawDataModel::new(),
+            portfolio_value_series: ExcaliburChart::new(),
+            portfolio_strategy_plot: ExcaliburChart::new(),
         }
     }
 }
 
-impl DataView {
+impl PortfolioPresenter {
     pub fn new(
         model: RawDataModel<AlloyAddress, AlloyU256>,
         portfolio_value_series: ExcaliburChart,
@@ -83,27 +91,19 @@ impl DataView {
         }
     }
 
-    /// Does not populate the static plots, only the live plots.
-    pub fn update_model(&mut self, model: RawDataModel<AlloyAddress, AlloyU256>) {
+    pub fn update(&mut self, model: RawDataModel<AlloyAddress, AlloyU256>) {
         self.model = model;
         self.sync_portfolio_value_series();
+        self.sync_portfolio_strategy_points();
 
-        // If this is the first update, conditionally update the static plots once.
-        if self.portfolio_strategy_plot.chart.series.is_empty() {
+        // Update static if needed.
+        if self.static_needs_update() {
             self.sync_portfolio_strategy_curve();
         }
-
-        // Render the points for the strategy chart, since those are not computationally
-        // intensive.
-        self.sync_portfolio_strategy_points();
     }
 
-    /// Updates the static plots, make sure model is updated. Most likely
-    /// triggered by user.
-    /// Call this to refetch the strategy plot.
-    pub fn update_static_plots(&mut self) {
-        self.sync_portfolio_strategy_curve();
-        self.sync_portfolio_strategy_points();
+    pub fn static_needs_update(&self) -> bool {
+        self.portfolio_strategy_plot.chart.series.is_empty()
     }
 
     /// Does not update the model, only updates the chart data to match the
@@ -112,7 +112,7 @@ impl DataView {
     /// the model changes or the user forces it.
     pub fn sync_portfolio_strategy_curve(&mut self) {
         // Get the series data.
-        let data = self.model.portfolio_strategy_plot();
+        let data = self.model.derive_portfolio_strategy_plot();
         let data = match data {
             Ok(data) => data,
             Err(_) => {
@@ -129,7 +129,7 @@ impl DataView {
 
     pub fn sync_portfolio_strategy_points(&mut self) {
         // Get the pois
-        let data = self.model.portfolio_strategy_points();
+        let data = self.model.derive_portfolio_strategy_points();
         let data = match data {
             Ok(data) => data,
             Err(_) => {
@@ -146,7 +146,7 @@ impl DataView {
     /// when the model changes or the user forces it.
     pub fn sync_portfolio_value_series(&mut self) {
         // Get the series data.
-        let data = self.model.portfolio_value_series();
+        let data = self.model.derive_portfolio_value_series();
         let data = match data {
             Ok(data) => data,
             Err(e) => {
@@ -160,6 +160,77 @@ impl DataView {
         self.portfolio_value_series.update_y_range(data.0.y_range);
         // Only happens once.
         self.portfolio_value_series.override_ranges_flag(true);
+    }
+
+    pub fn get_block_number(&self) -> Option<u64> {
+        self.model.raw_last_chain_data_sync_block
+    }
+
+    pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
+        self.model.raw_last_chain_data_sync_timestamp
+    }
+
+    pub fn get_internal_price(&self) -> ExcaliburText {
+        self.model.raw_internal_spot_price.to_label()
+    }
+
+    pub fn get_external_price(&self) -> ExcaliburText {
+        self.model.raw_external_spot_price.to_label()
+    }
+
+    pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
+        self.model.derive_internal_portfolio_value().to_label()
+    }
+
+    pub fn get_portfolio_health(&self) -> ExcaliburText {
+        let data = self.model.derive_portfolio_health();
+        match data {
+            Ok(data) => {
+                let value = alloy_primitives::utils::format_ether(data);
+                match value.parse::<f64>() {
+                    Ok(_) => label(&format!("{}", value)).title1().percentage(),
+                    Err(_) => label(&"Failed to parse U256 as float.")
+                        .caption()
+                        .tertiary(),
+                }
+            }
+            Err(_) => label(&"N/A").title1().secondary(),
+        }
+    }
+
+    pub fn get_external_portfolio_value(&self) -> ExcaliburText {
+        self.model.derive_external_portfolio_value().to_label()
+    }
+
+    pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
+        let data = self.model.raw_last_chain_data_sync_timestamp;
+        match data {
+            Some(data) => label(&format!("Timestamp: {:}", data)).caption().tertiary(),
+            None => label(&"Timestamp: N/A").caption().tertiary(),
+        }
+    }
+
+    pub fn get_last_sync_block(&self) -> ExcaliburText {
+        let data = self.model.raw_last_chain_data_sync_block;
+        match data {
+            Some(data) => label(&format!("Block: {:}", data)).caption().tertiary(),
+            None => label(&"Block: N/A").caption().tertiary(),
+        }
+    }
+}
+
+/// View all of the underlying data from the model for the portfolio dashboard.
+///
+/// Important! Make sure the chart starts completely blank (not default), this
+/// will make sure the initial ranges are set correctly.
+#[derive(Debug, Clone, Default)]
+pub struct DataView {
+    pub presenter: PortfolioPresenter,
+}
+
+impl DataView {
+    pub fn new(presenter: PortfolioPresenter) -> Self {
+        Self { presenter }
     }
 
     /// Standard view for a single data element with a title and caption.
@@ -184,10 +255,10 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.raw_internal_spot_price.to_label();
+        let data = self.presenter.get_internal_price();
         let caption = format!(
             "ETH/USD @ {}",
-            self.model.raw_last_chain_data_sync_block.unwrap_or(0)
+            self.presenter.get_block_number().unwrap_or(0)
         );
 
         // todo: add a tooltip to the caption
@@ -199,10 +270,10 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.raw_external_spot_price.to_label();
+        let data = self.presenter.get_external_price();
         let caption = format!(
             "ETH/USD @ {}",
-            self.model.raw_last_chain_data_sync_block.unwrap_or(0)
+            self.presenter.get_block_number().unwrap_or(0)
         );
         self.data_title_caption(data, "External Price".to_string(), caption)
     }
@@ -211,7 +282,7 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.internal_portfolio_value().to_label();
+        let data = self.presenter.get_internal_portfolio_value();
         self.data_title_caption(data, "Portfolio Value".to_string(), "USD".to_string())
     }
 
@@ -219,19 +290,7 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.portfolio_health();
-        let data = match data {
-            Ok(data) => {
-                let value = alloy_primitives::utils::format_ether(data);
-                match value.parse::<f64>() {
-                    Ok(_) => label(&format!("{}", value)).title1().percentage(),
-                    Err(_) => label(&"Failed to parse U256 as float.")
-                        .caption()
-                        .tertiary(),
-                }
-            }
-            Err(_) => label(&"N/A").title1().secondary(),
-        };
+        let data = self.presenter.get_portfolio_health();
         self.data_title_caption(
             data,
             "Portfolio Health".to_string(),
@@ -245,18 +304,18 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.external_portfolio_value().to_label();
+        let data = self.presenter.get_external_portfolio_value();
         self.data_title_caption(data, "TVL".to_string(), "USD".to_string())
     }
 
     /// Plots the portfolio value series per block.
     pub fn portfolio_value_series(&self) -> Element<'_, chart::Message> {
-        self.portfolio_value_series.build()
+        self.presenter.portfolio_value_series.build()
     }
 
     /// Plots the portfolio strategy.
     pub fn portfolio_strategy_plot(&self) -> Element<'_, chart::Message> {
-        self.portfolio_strategy_plot.build()
+        self.presenter.portfolio_strategy_plot.build()
     }
 
     /// Renders the last sync time as a caption.
@@ -264,15 +323,7 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.raw_last_chain_data_sync_timestamp;
-        match data {
-            Some(data) => label(&format!("Last sync: {:}", data))
-                .caption()
-                .tertiary()
-                .build()
-                .into(),
-            None => label(&"Last sync: N/A").caption().tertiary().build().into(),
-        }
+        self.presenter.get_last_sync_timestamp().build().into()
     }
 
     /// Renders the last sync block as a caption.
@@ -280,14 +331,6 @@ impl DataView {
     where
         Message: 'a,
     {
-        let data = self.model.raw_last_chain_data_sync_block;
-        match data {
-            Some(data) => label(&format!("Last sync: {:}", data))
-                .caption()
-                .tertiary()
-                .build()
-                .into(),
-            None => label(&"Last sync: N/A").caption().tertiary().build().into(),
-        }
+        self.presenter.get_last_sync_block().build().into()
     }
 }

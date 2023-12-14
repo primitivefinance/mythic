@@ -1,3 +1,20 @@
+//! Building the Excalibur application, laws, rules, and axioms.
+//!
+//! We can break rules, find loopholes in laws, but cannot avoid axioms.
+//!
+//!
+//! # Axioms
+//! - Models handle data. Views handle presentation. Controllers manage user
+//!   input, models, and views.
+//! - Models and views do not communicate directly.
+//! - Data flows in one direction, starting at the model, and ending at the
+//!   view.
+//!
+//! # Rules
+//! - Switching to new controllers/screens/anything being rendered should
+//!   offload as much logic as possible from `new` to a dedicated `load`.
+//! - Add more rules!
+
 #![feature(associated_type_defaults)]
 #![feature(inherent_associated_types)]
 
@@ -24,7 +41,7 @@ use app::App;
 use components::{system::ExcaliburTheme, *};
 use controller::*;
 use loader::Loader;
-use model::*;
+use model::Model;
 use styles::*;
 
 pub struct MVP {

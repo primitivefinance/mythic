@@ -31,7 +31,7 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     /// ANVIL
     pub anvil_client: Option<Arc<SignerMiddleware<Provider<P>, S>>>,
     /// ANY
-    pub providers: Vec<Arc<SignerMiddleware<Provider<P>, S>>>,
+    pub clients: Vec<Arc<SignerMiddleware<Provider<P>, S>>>,
     /// ANY
     pub signers: Vec<S>,
     /// ANY
@@ -45,7 +45,7 @@ impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
         f.debug_struct("ExcaliburMiddleware")
             .field("sandbox_client", &self.sandbox_client)
             .field("anvil_client", &self.anvil_client)
-            .field("providers", &self.providers)
+            .field("clients", &self.clients)
             .field("signers", &self.signers)
             .finish()
     }
@@ -81,7 +81,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
 
     /// Returns the first provider in the list.
     pub fn client(&self) -> Option<&Arc<NetworkClient<P, S>>> {
-        self.providers.first()
+        self.clients.first()
     }
 
     /// Returns the first signer in the list.
@@ -132,9 +132,9 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
 
         let signers = vec![signer];
 
-        let mut providers = vec![];
+        let mut clients = vec![];
         if let Some(anvil_client) = anvil_client.clone() {
-            providers.push(anvil_client);
+            clients.push(anvil_client);
         }
 
         Ok(Self {
@@ -142,7 +142,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             sandbox_client,
             anvil,
             anvil_client,
-            providers,
+            clients,
             signers,
             contracts: HashMap::new(),
             ledger: None,
@@ -169,14 +169,14 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
                     .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
             );
             let signers = vec![signer];
-            let providers = vec![anvil_client.clone()];
+            let clients = vec![anvil_client.clone()];
 
             Ok(Self {
                 sandbox,
                 sandbox_client,
                 anvil: Some(anvil),
                 anvil_client: Some(anvil_client),
-                providers,
+                clients,
                 signers,
                 contracts: HashMap::new(),
                 ledger: None,
@@ -184,7 +184,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         } else {
             let sandbox = EnvironmentBuilder::new().build();
             let sandbox_client = RevmMiddleware::new(&sandbox, Some(SANDBOX_LABEL))?;
-            let providers = vec![];
+            let clients = vec![];
             let signers = vec![];
 
             Ok(Self {
@@ -192,7 +192,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
                 anvil_client: None,
                 sandbox,
                 sandbox_client,
-                providers,
+                clients,
                 signers,
                 contracts: HashMap::new(),
                 ledger: None,
