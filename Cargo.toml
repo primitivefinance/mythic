@@ -2,6 +2,7 @@
 name = "excalibur"
 version = "0.2.0"
 edition = "2021"
+description = "A non-custodial asset management platform designed to securely streamline the onchain investment process"
 
 [[bin]]
 name = "excalibur"
@@ -117,3 +118,23 @@ mdbook-katex = "0.5.8"
 name = "ui_benchmark"
 harness = false
 path = "benches/ui_benchmarks.rs"
+
+[package.metadata.bundle]
+name = "Excalibur"
+identifier = "com.primitivefinance.excalibur"
+icon = ["assets/logos/excalibur_logo.png"]
+resources = ["path/to/resource1", "path/to/resource2"] # Paths to any resources your application needs
+
+# macOS specific
+category = "public.app-category.finance"
+copyright = "Copyright (c) 2022 Primitive Finance"
+minimum_system_version = "10.14"
+
+# Windows specific
+product_name = "Excalibur"
+manufacturer = "Primitive Finance"
+upgrade_code = "INSERT-A-UNIQUE-GUID-HERE"
+
+# Linux specific
+package_name = "excalibur"
+package_version = "0.1.0"
