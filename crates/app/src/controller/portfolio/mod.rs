@@ -11,7 +11,10 @@ use clients::dev::DevClient;
 use iced::widget::Container;
 
 use super::*;
-use crate::{app::RootMessage, components::system::label, middleware::ExcaliburMiddleware};
+use crate::{
+    app::RootMessage, components::system::label, middleware::ExcaliburMiddleware,
+    model::user::UserProfile,
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -45,19 +48,16 @@ pub struct PortfolioRoot {
     pub page: Page,
     pub create: create::CreatePortfolio,
     pub dashboard: dashboard::Dashboard,
-    pub dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
 }
 
 impl PortfolioRoot {
-    pub fn new(
-        dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
-        profile: UserProfile,
-    ) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         Self {
             page: Page::default(),
-            create: create::CreatePortfolio::new(profile.clone()),
-            dashboard: dashboard::Dashboard::new(None, dev_client.clone(), profile.clone()),
-            dev_client,
+            create: create::CreatePortfolio::new(model.user.clone()),
+            dashboard: dashboard::Dashboard::new(None, client.clone(), model.clone()),
+            client,
         }
     }
 }

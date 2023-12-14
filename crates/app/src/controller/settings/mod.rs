@@ -10,7 +10,10 @@ use iced::widget::Container;
 use iced_aw::Icon;
 
 use super::*;
-use crate::app::{RootMessage, RootViewMessage, UserProfileMessage};
+use crate::{
+    app::{RootMessage, RootViewMessage, UserProfileMessage},
+    model::user::UserProfile,
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {

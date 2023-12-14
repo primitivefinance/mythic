@@ -1,7 +1,5 @@
 //! Renders a view of the portfolio's positions and strategies.
 
-pub mod portfolio_model;
-pub mod portfolio_view;
 pub mod stages;
 pub mod table;
 
@@ -24,21 +22,21 @@ use stages::Stages;
 use uuid::Uuid;
 use RustQuant::stochastics::{GeometricBrownianMotion, StochasticProcess, Trajectories};
 
-use self::{
-    portfolio_model::{AlloyAddress, AlloyU256, RawDataModel, ALLOY_WAD},
-    portfolio_view::DataView,
-    stages::DashboardState,
-    table::PortfolioTable,
-};
+use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
-use crate::components::{
-    system::{
-        Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburTable,
+use crate::{
+    components::{
+        system::{
+            Card, ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
+            ExcaliburTable,
+        },
+        tables::{
+            builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
+            rows::RowBuilder,
+        },
     },
-    tables::{
-        builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
-        rows::RowBuilder,
-    },
+    model::portfolio::{AlloyAddress, AlloyU256, RawDataModel, ALLOY_WAD},
+    view::portfolio_view::DataView,
 };
 
 #[tracing::instrument(skip(client), ret)]
@@ -54,19 +52,15 @@ async fn fetch_balance(
 
 async fn fetch_portfolio(
     portfolio: Portfolio,
-    dev_client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>,
+    client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>,
 ) -> anyhow::Result<Portfolio, Arc<anyhow::Error>> {
     let mut portfolio = portfolio.clone();
     let coin_x: Coin =
         serde_json::from_str(super::dev::COIN_X).map_err(|e| Arc::new(anyhow::Error::from(e)))?;
     let coin_y: Coin =
         serde_json::from_str(super::dev::COIN_Y).map_err(|e| Arc::new(anyhow::Error::from(e)))?;
-    let balance_x = dev_client
-        .balance_of_x(dev_client.client().address())
-        .await?;
-    let balance_y = dev_client
-        .balance_of_y(dev_client.client().address())
-        .await?;
+    let balance_x = client.balance_of_x(client.client().address()).await?;
+    let balance_y = client.balance_of_y(client.client().address()).await?;
     let initial_price = super::dev::INITIAL_X_PRICE;
     let balance_x = ethers::utils::format_ether(balance_x)
         .parse::<f64>()
@@ -153,7 +147,10 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 #[derive(Debug, Clone, Default)]
 pub struct Dashboard {
     /// Connection to the network!
-    pub cortex: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+
+    /// Root application model.
+    pub model: Model,
 
     /// The portfolio that is loaded, synced, and saved on close.
     pub portfolio: Option<Portfolio>,
@@ -164,16 +161,11 @@ pub struct Dashboard {
     /// The current action that the user is taking.
     pub stage: Stages,
 
-    /// The underlying data model of the dashboard.
-    pub data_model: RawDataModel<AlloyAddress, AlloyU256>,
-
     /// The view of the data model to render the dashboard components.
-    pub data_view: DataView,
+    pub data_view: view::portfolio_view::DataView,
 
     /// A test price process
     pub test_price_process: Option<PriceProcess>,
-
-    pub user_profile: UserProfile,
 }
 
 pub struct PriceProcess {
@@ -211,17 +203,19 @@ impl Dashboard {
     /// Try loading the portfolio from the name.
     pub fn new(
         name: Option<String>,
-        dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
-        profile: UserProfile,
+        client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+        model: Model,
     ) -> Self {
-        let mut data_model = RawDataModel::<AlloyAddress, AlloyU256>::default();
+        let mut model = model.clone();
+        let mut data_model = model.portfolio.clone();
 
         // Get the addresses from the dev client and setup the data_model with them.
         // todo: get a better place to do this.
-        if let Some(dev_client) = dev_client.clone() {
-            let user_address = dev_client
+        if let Some(client) = client.clone() {
+            let user_address = client
                 .address()
                 .map_or(AlloyAddress::ZERO, from_ethers_address);
+            tracing::info!("User address: {:?}", user_address);
             let (protocol, strategy, asset, quote, lex): (
                 AlloyAddress,
                 AlloyAddress,
@@ -229,27 +223,27 @@ impl Dashboard {
                 AlloyAddress,
                 AlloyAddress,
             ) = (
-                dev_client
+                client
                     .contracts
                     .get("protocol")
                     .cloned()
                     .map_or(AlloyAddress::ZERO, from_ethers_address),
-                dev_client
+                client
                     .contracts
                     .get("strategy")
                     .cloned()
                     .map_or(AlloyAddress::ZERO, from_ethers_address),
-                dev_client
+                client
                     .contracts
                     .get("token_x")
                     .cloned()
                     .map_or(AlloyAddress::ZERO, from_ethers_address),
-                dev_client
+                client
                     .contracts
                     .get("token_y")
                     .cloned()
                     .map_or(AlloyAddress::ZERO, from_ethers_address),
-                dev_client
+                client
                     .contracts
                     .get("lex")
                     .cloned()
@@ -259,9 +253,11 @@ impl Dashboard {
             data_model.setup(user_address, lex, protocol, strategy, asset, quote);
         }
 
+        tracing::info!("Set user address: {:?}", data_model.user_address);
+
         // Create the data view based on this current model.
         let mut data_view = DataView::new(
-            RawDataModel::<AlloyAddress, AlloyU256>::default(),
+            data_model.clone(),
             ExcaliburChart::new(),
             ExcaliburChart::new(),
         );
@@ -274,15 +270,17 @@ impl Dashboard {
             max_steps: 1000,
         });
 
+        let portfolio = model.user.portfolio.clone();
+        model.portfolio = data_model.clone();
+
         Self {
-            cortex: dev_client.clone(),
-            portfolio: Some(profile.portfolio.clone()),
+            client: client.clone(),
+            model,
+            portfolio: Some(portfolio),
             table: PortfolioTable::new(),
-            stage: Stages::new(dev_client),
-            data_model,
+            stage: Stages::new(client),
             data_view,
             test_price_process: process,
-            user_profile: profile,
         }
     }
 
@@ -291,9 +289,9 @@ impl Dashboard {
         let mut commands = vec![];
 
         // Get the provider.
-        if let Some(cortex) = &self.cortex {
-            let client = cortex.client().cloned().unwrap();
-            let data_model = self.data_model.clone();
+        if let Some(client) = &self.client {
+            let client = client.client().cloned().unwrap();
+            let data_model = self.model.portfolio.clone();
             let provider = Arc::new(client.provider().clone());
             commands.push(Command::perform(
                 async move {
@@ -599,18 +597,19 @@ impl State for Dashboard {
             }
             Message::UpdateDataModel(Ok(data_model)) => {
                 // Update the data model.
-                self.data_model = data_model.clone();
+                self.model.portfolio = data_model.clone();
                 // Sync the view model.
                 self.data_view.update_model(data_model.clone());
 
                 tracing::debug!(
                     "Synced data model to block: {:?}",
-                    self.data_model
+                    self.model
+                        .portfolio
                         .raw_last_chain_data_sync_block
                         .unwrap_or_default()
                 );
 
-                let pos_info = self.data_model.get_position_info();
+                let pos_info = self.model.portfolio.get_position_info();
 
                 tracing::debug!("Attempting to fetch portfolio positions");
                 // Update the portfolio with the new position info.
@@ -690,11 +689,12 @@ impl State for Dashboard {
                     }
                 };
 
-                if let (Some(external_exchange), Some(cortex)) =
-                    (&self.data_model.raw_external_exchange_address, &self.cortex)
-                {
+                if let (Some(external_exchange), Some(client)) = (
+                    &self.model.portfolio.raw_external_exchange_address,
+                    &self.client,
+                ) {
                     tracing::info!("Tick, updating price.");
-                    let client = cortex.client().cloned().unwrap();
+                    let client = client.client().cloned().unwrap();
                     // for testing live price chart.
                     let external_exchange = external_exchange.clone();
 

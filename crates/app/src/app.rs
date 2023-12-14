@@ -1,25 +1,21 @@
 use tracing::Span;
-use user::{
-    contacts::{self, ContactValue},
-    UserProfile,
-};
+use user::UserProfile;
 
 use super::{
-    screens::{empty::EmptyScreen, exit::ExitScreen, Screen},
+    controller::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
 };
 use crate::{
-    middleware::ExcaliburMiddleware,
-    screens::{
-        dev::experimental::ExperimentalScreen,
-        portfolio::{
-            dashboard::portfolio_model::{AlloyAddress, AlloyU256, RawDataModel},
-            PortfolioRoot,
-        },
-        settings::SettingsScreen,
+    controller::{
+        dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
         State,
     },
-    user::networks::RPCValue,
+    middleware::ExcaliburMiddleware,
+    model::{
+        contacts::{self, ContactValue},
+        rpcs::RPCValue,
+        user::{self, Saveable},
+    },
     view::sidebar::Sidebar,
 };
 
@@ -78,21 +74,6 @@ impl From<UserProfileMessage> for Message {
     }
 }
 
-/// State for all temporarily cached state. This is cleared on exiting the
-/// application.
-#[derive(Default)]
-pub struct Cache {
-    pub data: RawDataModel<AlloyAddress, AlloyU256>,
-}
-
-impl Cache {
-    pub fn new() -> Self {
-        Self {
-            data: RawDataModel::default(),
-        }
-    }
-}
-
 /// State for specific windows that are open.
 pub struct Windows {
     pub screen: Screen,
@@ -120,25 +101,22 @@ impl Windows {
 pub struct App {
     /// Connection to networks.
     pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-    /// Transient state for the application.
-    pub cache: Cache,
-    /// Persistent state for the application stored as a user profile.
-    pub user: UserProfile,
+    /// Data module of the application.
+    pub model: Model,
     /// State of the active window and sidebar the user is viewing.
     pub windows: Windows,
 }
 
 impl App {
     pub fn new(
-        user: UserProfile,
+        model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
-        let dashboard = PortfolioRoot::new(Some(client.clone()), user.clone()).into();
+        let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
         (
             Self {
                 client,
-                user,
-                cache: Cache::new(),
+                model,
                 windows: Windows::new(dashboard, Sidebar::new()),
             },
             Command::perform(async {}, |_| Message::Load),
@@ -186,7 +164,7 @@ impl App {
 
     pub fn exit(&mut self) -> Command<Message> {
         // Save the profile to disk.
-        let result = self.user.save();
+        let result = self.model.user.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
@@ -212,7 +190,7 @@ impl App {
 
     #[allow(unused_assignments)]
     fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
-        let profile = &mut self.user;
+        let profile = &mut self.model.user;
 
         let mut cmd = Command::none();
         match message {
@@ -220,7 +198,7 @@ impl App {
                 tracing::debug!("Saving anvil snapshot to profile");
                 match snapshot {
                     Ok(snapshot) => {
-                        self.user.anvil_snapshot = Some(snapshot);
+                        self.model.user.anvil_snapshot = Some(snapshot);
                         tracing::debug!("Saved anvil snapshot to profile");
                     }
                     Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
@@ -293,9 +271,11 @@ impl App {
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
                     view::sidebar::Page::Portfolio => {
-                        PortfolioRoot::new(Some(self.client.clone()), self.user.clone()).into()
+                        PortfolioRoot::new(Some(self.client.clone()), self.model.clone()).into()
                     }
-                    view::sidebar::Page::Settings => SettingsScreen::new(self.user.clone()).into(),
+                    view::sidebar::Page::Settings => {
+                        SettingsScreen::new(self.model.user.clone()).into()
+                    }
                     view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                 }
             }

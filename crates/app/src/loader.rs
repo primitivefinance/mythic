@@ -13,22 +13,23 @@ use iced::{
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
-use user::contacts;
 
-use super::{middleware::*, user::UserProfile, *};
-use crate::components::{
-    logos::PhiLogo,
-    progress::CustomProgressBar,
-    system::{label, ExcaliburContainer},
+use super::{
+    middleware::*,
+    model::{contacts, user::UserProfile},
+    *,
+};
+use crate::{
+    components::{
+        logos::PhiLogo,
+        progress::CustomProgressBar,
+        system::{label, ExcaliburContainer},
+    },
+    model::user::Saveable,
 };
 
-type LoadResult = anyhow::Result<
-    (
-        UserProfile,
-        Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>,
-    ),
-    anyhow::Error,
->;
+type LoadResult =
+    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
 
 #[derive(Debug)]
 pub enum Message {
@@ -93,6 +94,7 @@ pub async fn load_dev_client(
 pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load an existing profile, or create a new one.
     let mut profile = load_profile()?;
+    let mut model = Model::new(profile.clone());
 
     let mut exc_client = ExcaliburMiddleware::setup(flags.dev_mode).await?;
     let chain_id = if let Some(anvil) = &exc_client.anvil {
@@ -232,7 +234,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         );
     }
 
-    Ok((user, Arc::new(exc_client)))
+    Ok((model, Arc::new(exc_client)))
 }
 
 #[tracing::instrument(level = "debug")]

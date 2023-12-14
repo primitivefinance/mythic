@@ -11,22 +11,21 @@ use iced::{
 
 mod app;
 mod components;
+mod controller;
 mod loader;
-mod logging;
 mod middleware;
-mod screens;
-mod user;
+mod model;
+mod tracer;
 mod view;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use app::App;
 use components::{system::ExcaliburTheme, *};
+use controller::*;
 use loader::Loader;
-use logging::tracer;
-use screens::*;
+use model::*;
 use styles::*;
-use user::*;
 
 pub struct MVP {
     state: State,
@@ -93,9 +92,9 @@ impl Application for MVP {
             }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready(Ok((storage, client))) => {
+                loader::Message::Ready(Ok((model, client))) => {
                     // 4. Create our app and move to the app state.
-                    let (app, command) = App::new(storage, client);
+                    let (app, command) = App::new(model, client);
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.

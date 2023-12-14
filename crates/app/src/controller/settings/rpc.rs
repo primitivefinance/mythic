@@ -9,7 +9,7 @@ use crate::{
         system::{label, Card, ExcaliburButton},
         tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
     },
-    user::networks::{RPCList, RPCValue},
+    model::rpcs::{RPCList, RPCValue},
 };
 
 #[derive(Debug, Clone)]

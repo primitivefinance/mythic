@@ -18,8 +18,11 @@ use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
 // todo: remove this in favor of alloy types when possible.
 use bindings::{dfmm::DFMM, log_normal::LogNormal};
-use cfmm_math::trading_functions::rmm::liq_distribution;
-use clients::dev::ProtocolPosition;
+use cfmm_math::trading_functions::rmm::{
+    compute_l_given_x_rust, compute_x_given_l_rust, compute_y_given_l_rust, compute_y_given_x_rust,
+    liq_distribution,
+};
+use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
 use sim::{from_ethers_u256, to_ethers_address};
 
@@ -590,7 +593,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         strike_price_wad: AlloyU256,
         volatility_percent_wad: AlloyU256,
         time_remaining_years_wad: AlloyU256,
-    ) -> Result<U256> {
+    ) -> Result<AlloyU256> {
         let quote_price = alloy_primitives::utils::format_ether(quote_price_wad);
         let quote_price = quote_price.parse::<f64>()?;
         let price = alloy_primitives::utils::format_ether(asset_price_wad);

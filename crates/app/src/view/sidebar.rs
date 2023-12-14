@@ -97,7 +97,7 @@ impl Sidebar {
     }
 }
 
-impl screens::State for Sidebar {
+impl controller::State for Sidebar {
     type AppMessage = Route;
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {

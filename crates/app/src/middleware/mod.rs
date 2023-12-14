@@ -13,7 +13,7 @@ pub mod alloyed;
 pub mod watch;
 
 use super::*;
-use crate::screens::portfolio::dashboard::portfolio_model::EthersAddress;
+use crate::model::portfolio::EthersAddress;
 
 pub const SANDBOX_LABEL: &str = "sandbox";
 

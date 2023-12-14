@@ -4,9 +4,10 @@ use self::sidebar::Page;
 use super::*;
 use crate::{
     components::system::{ExcaliburColor, ExcaliburContainer},
-    screens::State,
+    controller::State,
 };
 
+pub mod portfolio_view;
 pub mod sidebar;
 
 /// Root message for the Terminal component.

@@ -1,7 +1,5 @@
 //! Save and load profiles from disk. This contains all the information a user
 //! needs to save and load their Excalibur workspace.
-pub mod contacts;
-pub mod networks;
 
 use std::{fs::File, path::PathBuf};
 
@@ -11,7 +9,7 @@ use directories_next::{self, ProjectDirs};
 use serde::{de::DeserializeOwned, Serialize};
 use tracing;
 
-use super::{contacts::Contacts, networks::RPCList};
+use super::{contacts::Contacts, rpcs::RPCList};
 
 pub const PROFILE_FILE_EXTENSION: &str = "json";
 pub const PROFILE_FILE_NAME: &str = "profile";

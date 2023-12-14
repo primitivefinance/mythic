@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::*;
 use crate::{
     components::system::label,
-    screens::{MessageWrapper, MessageWrapperView},
+    controller::{MessageWrapper, MessageWrapperView},
 };
 
 #[derive(Debug, Clone, Default)]

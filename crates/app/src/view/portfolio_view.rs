@@ -5,12 +5,12 @@
 //! for the [controller](./mod.rs) to render.
 
 use super::{
-    portfolio_model::{AlloyAddress, AlloyU256, RawDataModel},
+    model::portfolio::{AlloyAddress, AlloyU256, RawDataModel},
     *,
 };
 use crate::components::{
     double_labeled_data,
-    system::{label, ExcaliburText},
+    system::{label, ExcaliburChart, ExcaliburText},
 };
 
 pub trait ValueToLabel<V> {
