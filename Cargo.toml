@@ -132,7 +132,7 @@ minimum_system_version = "10.14"
 
 # Windows specific
 product_name = "Excalibur"
-manufacturer = "Primitive Finance"
+manufacturer = "Primitive Bits, Inc"
 upgrade_code = "INSERT-A-UNIQUE-GUID-HERE"
 
 # Linux specific
