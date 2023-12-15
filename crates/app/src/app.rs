@@ -46,7 +46,7 @@ use super::{
     *,
 };
 use crate::{
-    components::system::{label, ExcaliburColor, ExcaliburText, LabelColors},
+    components::system::{label, ExcaliburColor},
     controller::{
         dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
         State,
@@ -55,7 +55,7 @@ use crate::{
     model::{
         contacts::{self, ContactValue},
         rpcs::RPCValue,
-        user::{self, Saveable},
+        user::Saveable,
     },
     view::sidebar::Sidebar,
 };
@@ -199,6 +199,7 @@ impl App {
                 self.model = model.clone();
 
                 // Propagate the model to the active screen.
+                // todo: remove side effects
                 return self
                     .windows
                     .screen
@@ -210,12 +211,13 @@ impl App {
             }
             Message::UpdateUser(msg) => self.update_user(msg),
             Message::View(view::Message::Root(msg)) => match msg {
-                view::RootMessage::ModelSyncRequest => self.fetch_model(),
+                view::RootMessage::ModelSyncRequest => self.sync_model(),
                 view::RootMessage::Route(route) => self.switch_window(&route),
                 view::RootMessage::CopyToClipboard(contents) => iced::clipboard::write(contents),
                 view::RootMessage::SaveAndExit => self.exit(),
                 view::RootMessage::Empty => Command::none(),
                 view::RootMessage::ConfirmExit => {
+                    // todo: remove side effects
                     tracing::debug!("Confirming exit");
                     self.windows
                         .screen
@@ -270,7 +272,7 @@ impl App {
     }
 
     /// Updates the model and returns its mutated state in a Result.
-    fn fetch_model(&mut self) -> Command<Message> {
+    fn sync_model(&mut self) -> Command<Message> {
         if let Some(client) = self.client.client().cloned() {
             let model = self.model.clone();
             // todo: fix this clunky provider

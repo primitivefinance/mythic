@@ -25,8 +25,8 @@ use anyhow::{anyhow, Error, Result};
 // todo: remove this in favor of alloy types when possible.
 use bindings::{dfmm::DFMM, log_normal::LogNormal};
 use cfmm_math::trading_functions::rmm::{
-    compute_l_given_x_rust, compute_x_given_l_rust, compute_y_given_l_rust, compute_y_given_x_rust,
-    liq_distribution,
+    compute_l_given_x_rust, compute_price_given_x_rust, compute_x_given_l_rust,
+    compute_x_given_price, compute_y_given_l_rust, compute_y_given_x_rust, liq_distribution,
 };
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
@@ -93,6 +93,10 @@ pub struct RawDataModel<A, V> {
     pub raw_user_quote_balance: Option<V>,
     pub raw_protocol_asset_balance: Option<V>,
     pub raw_protocol_quote_balance: Option<V>,
+
+    // Values of tokens.
+    pub raw_user_asset_value_series: Option<Vec<(u64, V)>>,
+    pub raw_user_quote_value_series: Option<Vec<(u64, V)>>,
 
     // Prices
     pub raw_external_spot_price_series: Option<Vec<(u64, V)>>,
@@ -200,6 +204,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.update_portfolio_value_series(client.clone()).await?;
         self.update_external_price_series(client.clone()).await?;
         self.update_internal_price_series(client.clone()).await?;
+        self.update_user_asset_value_series(client.clone()).await?;
+        self.update_user_quote_value_series(client.clone()).await?;
 
         // Finally update cached data, which will only update if conditions are met.
         self.update_cached(client.clone()).await?;
@@ -610,6 +616,70 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    async fn update_user_asset_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        if let Some(series) = &self.raw_user_asset_value_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let asset_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("External price not set"))?;
+        let asset_balance = self
+            .raw_user_asset_balance
+            .ok_or(Error::msg("User asset balance not set"))?;
+
+        let asset_value = asset_balance
+            .checked_mul(asset_price)
+            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .checked_div(ALLOY_WAD)
+            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+        if let Some(series) = &mut self.raw_user_asset_value_series {
+            series.push((block_number, asset_value));
+        } else {
+            self.raw_user_asset_value_series = Some(vec![(block_number, asset_value)]);
+        }
+
+        Ok(())
+    }
+
+    async fn update_user_quote_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        if let Some(series) = &self.raw_user_quote_value_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let quote_price = self
+            .raw_external_quote_price
+            .ok_or(Error::msg("External quote price not set"))?;
+        let quote_balance = self
+            .raw_user_quote_balance
+            .ok_or(Error::msg("User quote balance not set"))?;
+
+        let quote_value = quote_balance
+            .checked_mul(quote_price)
+            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .checked_div(ALLOY_WAD)
+            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+        if let Some(series) = &mut self.raw_user_quote_value_series {
+            series.push((block_number, quote_value));
+        } else {
+            self.raw_user_quote_value_series = Some(vec![(block_number, quote_value)]);
+        }
+
+        Ok(())
+    }
+
     async fn update_internal_price_series(&mut self, client: Arc<Client>) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
@@ -911,13 +981,153 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .ok_or(Error::msg("Quote reserve not set"))?;
 
         let asset_reserve = alloy_primitives::utils::format_ether(asset_reserve_wad);
-        let asset_reserve = asset_reserve.parse::<f32>()?;
+        let asset_reserve = asset_reserve.parse::<f64>()?;
 
         let quote_reserve = alloy_primitives::utils::format_ether(quote_reserve_wad);
-        let quote_reserve = quote_reserve.parse::<f32>()?;
+        let quote_reserve = quote_reserve.parse::<f64>()?;
 
-        let poi = (asset_reserve, quote_reserve);
-        let poi: Vec<ChartPoint> = vec![poi.into()];
+        let total_liquidity_wad = self
+            .raw_total_liquidity
+            .ok_or(Error::msg("Total liquidity not set"))?;
+        let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
+        let total_liquidity = total_liquidity.parse::<f64>()?;
+
+        let internal_reserves = (
+            (asset_reserve / total_liquidity) as f32,
+            (quote_reserve / total_liquidity) as f32,
+        );
+
+        // Compute the theoretical reserves by using the price to find the x and y.
+        let spot_price_wad = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("Spot price not set"))?;
+        let spot_price_float = alloy_primitives::utils::format_ether(spot_price_wad);
+        let spot_price_float = spot_price_float.parse::<f64>()?;
+
+        let strike_price_wad = self
+            .raw_strike_price_wad
+            .ok_or(Error::msg("Strike price not set"))?;
+        let strike_price_wad_float = alloy_primitives::utils::format_ether(strike_price_wad);
+        let strike_price_wad_float = strike_price_wad_float.parse::<f64>()?;
+
+        let sigma_percent_wad = self
+            .raw_volatility_wad
+            .ok_or(Error::msg("Volatility not set"))?;
+        let sigma_percent_wad_float = alloy_primitives::utils::format_ether(sigma_percent_wad);
+        let sigma_percent_wad_float = sigma_percent_wad_float.parse::<f64>()?;
+
+        let time_to_expiry_years_wad = self
+            .raw_time_remaining_wad
+            .ok_or(Error::msg("Time remaining not set"))?;
+        let time_to_expiry_years_wad_float =
+            alloy_primitives::utils::format_ether(time_to_expiry_years_wad);
+        let time_to_expiry_years_wad_float = time_to_expiry_years_wad_float.parse::<f64>()?;
+
+        let theoretical_asset_reserve = compute_x_given_price(
+            spot_price_float,
+            total_liquidity,
+            strike_price_wad_float,
+            sigma_percent_wad_float,
+            time_to_expiry_years_wad_float,
+        );
+
+        let theoretical_quote_reserve = compute_y_given_x_rust(
+            theoretical_asset_reserve,
+            total_liquidity,
+            strike_price_wad_float,
+            sigma_percent_wad_float,
+            time_to_expiry_years_wad_float,
+        );
+
+        let theoretical_reserves = (
+            (theoretical_asset_reserve / total_liquidity) as f32,
+            (theoretical_quote_reserve / total_liquidity) as f32,
+        );
+
+        let theoretical_reserves = ChartPoint {
+            x: theoretical_reserves.0,
+            y: theoretical_reserves.1,
+            color: plotters::style::full_palette::DEEPORANGE_A400,
+            ..Default::default()
+        };
+
+        let internal_reserves = ChartPoint {
+            x: internal_reserves.0,
+            y: internal_reserves.1,
+            color: plotters::style::full_palette::DEEPPURPLE_A400,
+            ..Default::default()
+        };
+
+        let internal_liq_dist = liq_distribution(
+            internal_reserves.x as f64,
+            1.0,
+            strike_price_wad_float,
+            sigma_percent_wad_float,
+            time_to_expiry_years_wad_float,
+        ) as f32;
+
+        let internal_liq_dist = ChartPoint {
+            x: internal_reserves.x,
+            y: internal_liq_dist,
+            color: plotters::style::full_palette::DEEPPURPLE_A400,
+            ..Default::default()
+        };
+
+        // Hardcodes 1.0 liquidity to keep the scale in line.
+        // todo: fix these to scale better.
+        let internal_price = compute_price_given_x_rust(
+            internal_reserves.x as f64,
+            1.0,
+            strike_price_wad_float,
+            sigma_percent_wad_float,
+            time_to_expiry_years_wad_float,
+        );
+
+        let internal_price = ChartPoint {
+            x: internal_reserves.x,
+            y: internal_price as f32,
+            color: plotters::style::full_palette::DEEPPURPLE_A400,
+            ..Default::default()
+        };
+
+        let theoretical_price = compute_price_given_x_rust(
+            theoretical_reserves.x as f64,
+            1.0,
+            strike_price_wad_float,
+            sigma_percent_wad_float,
+            time_to_expiry_years_wad_float,
+        );
+
+        let theoretical_price = ChartPoint {
+            x: theoretical_reserves.x,
+            y: theoretical_price as f32,
+            color: plotters::style::full_palette::DEEPORANGE_A400,
+            ..Default::default()
+        };
+
+        let theoretical_liq_dist = liq_distribution(
+            theoretical_reserves.x as f64,
+            1.0,
+            strike_price_wad_float,
+            sigma_percent_wad_float,
+            time_to_expiry_years_wad_float,
+        ) as f32;
+
+        let theoretical_liq_dist = ChartPoint {
+            x: theoretical_reserves.x,
+            y: theoretical_liq_dist,
+            color: plotters::style::full_palette::DEEPORANGE_A400,
+            ..Default::default()
+        };
+
+        let poi: Vec<ChartPoint> = vec![
+            internal_reserves,
+            theoretical_reserves,
+            internal_price,
+            theoretical_price,
+            internal_liq_dist,
+            theoretical_liq_dist,
+        ];
 
         Ok(poi)
     }
@@ -959,8 +1169,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // Choose the maximum bounds for x and y. These use log normal curve
         // assumptions.
-        let max_x = total_liquidity;
-        let max_y = strike_price * total_liquidity;
+        // todo: fix bounds based on scaling, scale liquidity on/off
+        let max_x = 1.0; // total_liquidity;
+        let max_y = strike_price; // strike_price * total_liquidity;
 
         // Min y and min x are both 0, so set their margin to a slightly negative
         // proportion of the total range.
@@ -972,24 +1183,25 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let mut liq_dist_points = vec![];
 
+        let mut price_curve_points = vec![];
+
         // Initial x != 0!!! be careful.
         let mut x = f64::EPSILON;
-        while x / total_liquidity < 1.0 {
-            let y = compute_y_given_x_rust(
-                x,
-                total_liquidity,
-                strike_price,
-                volatility,
-                time_remaining,
-            );
+        let samples = 100.0;
+        let max = 1.0;
+        while x < max {
+            let y = compute_y_given_x_rust(x, 1.0, strike_price, volatility, time_remaining);
             curve_points.push((x, y));
 
             // This really impacts performance!! Like freezes the app.
-            let liq_dist =
-                liq_distribution(x, total_liquidity, strike_price, volatility, time_remaining);
+            let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
             liq_dist_points.push((x, liq_dist));
 
-            x += 0.1;
+            let price =
+                compute_price_given_x_rust(x, 1.0, strike_price, volatility, time_remaining);
+            price_curve_points.push((x, price));
+
+            x += max / samples;
         }
 
         // Convert the x and y values to curve_points that can be converted to a line
@@ -1007,7 +1219,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .collect();
         let mut liq_dist_series = coords_to_line_series(converted_liq_dist_points);
         liq_dist_series.legend = "Liq. Dist.".to_string();
-        liq_dist_series.color = plotters::style::full_palette::DEEPPURPLE_400;
+        liq_dist_series.color = plotters::style::full_palette::PURPLE_A400;
+
+        let converted_price_points = price_curve_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut price_curve_series = coords_to_line_series(converted_price_points);
+        price_curve_series.legend = "Price".to_string();
+        price_curve_series.color = plotters::style::full_palette::GREEN_A400;
 
         // Set the ranges.
         let ranges = CartesianRanges {
@@ -1016,7 +1236,50 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         };
 
         // Return it all!
-        Ok((ranges, vec![curve_series, liq_dist_series]))
+        Ok((
+            ranges,
+            vec![curve_series, liq_dist_series, price_curve_series],
+        ))
+    }
+
+    pub fn derive_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_user_asset_value_series
+            .as_ref()
+            .ok_or(Error::msg("User asset value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        let asset_name = if let Some(asset_token_info) = &self.cached.raw_asset_token_info {
+            &asset_token_info.symbol
+        } else {
+            "Asset"
+        };
+
+        result.1.legend = format!("$ {}", asset_name);
+        result.1.color = plotters::style::full_palette::BLUE_A400;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    pub fn derive_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_user_quote_value_series
+            .as_ref()
+            .ok_or(Error::msg("User quote value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        let quote_name = if let Some(quote_token_info) = &self.cached.raw_quote_token_info {
+            &quote_token_info.symbol
+        } else {
+            "Quote"
+        };
+
+        result.1.legend = format!("$ {}", quote_name);
+        result.1.color = plotters::style::full_palette::PINK_A400;
+        result.1.time_series = true;
+
+        Ok(result)
     }
 }
 

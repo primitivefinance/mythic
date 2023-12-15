@@ -157,7 +157,29 @@ impl PortfolioPresenter {
             }
         };
 
-        self.portfolio_value_series.override_series(vec![data.1]);
+        let asset_value_series = self.model.portfolio.derive_asset_value_series();
+        let asset_value_series = match asset_value_series {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!("Failed to get asset value series: {:}", e);
+                return;
+            }
+        };
+
+        let quote_value_series = self.model.portfolio.derive_quote_value_series();
+        let quote_value_series = match quote_value_series {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!("Failed to get quote value series: {:}", e);
+                return;
+            }
+        };
+
+        self.portfolio_value_series.override_series(vec![
+            data.1,
+            asset_value_series.1,
+            quote_value_series.1,
+        ]);
         self.portfolio_value_series.update_x_range(data.0.x_range);
         self.portfolio_value_series.update_y_range(data.0.y_range);
         // Only happens once.
