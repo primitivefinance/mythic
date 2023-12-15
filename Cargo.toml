@@ -23,7 +23,7 @@ datatypes = { path = "./crates/datatypes", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter", branch = "feat/impl-traits-for-revmmiddleware" }
+arbiter-core = { git = "https://github.com/primitivefinance/arbiter", branch = "main" }
 ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
