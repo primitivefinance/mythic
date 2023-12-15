@@ -35,57 +35,46 @@ contract Solver {
     }
 
     function getInitialPoolData(
-        uint256 amountX,
-        uint256 initalPrice,
+        uint256 rx,
+        uint256 S,
         Parameters memory params
     ) public pure returns (bytes memory) {
-        return computeInitialPoolData(amountX, initalPrice, params);
+        return computeInitialPoolData(rx, S, params);
     }
 
     function getNextLiquidity(
-        uint256 reserveXWad,
-        uint256 reserveYWad,
-        uint256 totalLiquidity
+        uint256 rx,
+        uint256 ry,
+        uint256 L
     ) public view returns (uint256) {
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(
-            abi.encode(reserveXWad, reserveYWad, totalLiquidity)
-        );
+        bytes memory data = abi.encode(rx, ry, L);
+        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
         return computeNextLiquidity(
-            reserveXWad,
-            reserveYWad,
-            swapConstant,
-            totalLiquidity,
-            StrategyLike(strategy).dynamicSlot()
+            rx, ry, swapConstant, L, StrategyLike(strategy).dynamicSlot()
         );
     }
 
     function getNextReserveX(
-        uint256 reserveYWad,
-        uint256 totalLiquidity
+        uint256 ry,
+        uint256 L
     ) public view returns (uint256) {
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(
-            abi.encode(reserveYWad, totalLiquidity)
-        );
-        return computeNextReserveX(
-            reserveYWad,
-            totalLiquidity,
-            swapConstant,
-            StrategyLike(strategy).dynamicSlot()
+        (uint256 rx,,) = StrategyLike(strategy).getReservesAndLiquidity();
+        bytes memory data = abi.encode(rx, ry, L);
+        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
+        return computeNextRx(
+            ry, L, swapConstant, StrategyLike(strategy).dynamicSlot()
         );
     }
 
     function getNextReserveY(
-        uint256 reserveXWad,
-        uint256 totalLiquidity
+        uint256 rx,
+        uint256 L
     ) public view returns (uint256) {
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(
-            abi.encode(reserveXWad, totalLiquidity)
-        );
-        return computeNextReserveY(
-            reserveXWad,
-            totalLiquidity,
-            swapConstant,
-            StrategyLike(strategy).dynamicSlot()
+        (, uint256 ry,) = StrategyLike(strategy).getReservesAndLiquidity();
+        bytes memory data = abi.encode(rx, ry, L);
+        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
+        return computeNextRy(
+            rx, L, swapConstant, StrategyLike(strategy).dynamicSlot()
         );
     }
 
@@ -103,15 +92,14 @@ contract Solver {
         uint256 amountOut;
         {
             uint256 swapFee = StrategyLike(strategy).swapFeePercentageWad();
-            uint256 startComputedLiquidity = getNextLiquidity(
+            uint256 startComputedL = getNextLiquidity(
                 startReserves.rx, startReserves.ry, startReserves.L
             );
 
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(swapFee);
-                uint256 deltaL = fees.mulWadUp(startComputedLiquidity).divWadUp(
-                    startReserves.rx
-                );
+                uint256 deltaL =
+                    fees.mulWadUp(startComputedL).divWadUp(startReserves.rx);
                 deltaL += 1;
 
                 endReserves.rx = startReserves.rx + amountIn;
@@ -127,12 +115,11 @@ contract Solver {
                 amountOut = startReserves.ry - endReserves.ry;
             } else {
                 uint256 fees = amountIn.mulWadUp(swapFee);
-                uint256 deltaL = fees.mulWadUp(startComputedLiquidity).divWadUp(
-                    startReserves.rx
-                );
+                uint256 deltaL =
+                    fees.mulWadUp(startComputedL).divWadUp(startReserves.ry);
                 deltaL += 1;
 
-                endReserves.ry = startReserves.rx + amountIn;
+                endReserves.ry = startReserves.ry + amountIn;
                 endReserves.L = startReserves.L + deltaL;
 
                 endReserves.rx = getNextReserveX(endReserves.ry, endReserves.L);

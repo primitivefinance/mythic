@@ -82,18 +82,14 @@ function findRootY(
     bytes memory data,
     uint256 reserveYWad
 ) pure returns (int256) {
-    (
-        uint256 rx,
-        uint256 liquidity,
-        int256 swapConstant,
-        Parameters memory params
-    ) = abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 rx, uint256 liquidity,, Parameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, Parameters));
     return tradingFunction({
         reserveXWad: rx,
         reserveYWad: reserveYWad,
         totalLiquidity: liquidity,
         params: params
-    }) - swapConstant;
+    });
 }
 
 /// @dev This is a pure anonymous function defined at the file level, which allows
@@ -103,18 +99,14 @@ function findRootX(
     bytes memory data,
     uint256 reserveXWad
 ) pure returns (int256) {
-    (
-        uint256 ry,
-        uint256 liquidity,
-        int256 swapConstant,
-        Parameters memory params
-    ) = abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 ry, uint256 liquidity,, Parameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, Parameters));
     return tradingFunction({
         reserveXWad: reserveXWad,
         reserveYWad: ry,
         totalLiquidity: liquidity,
         params: params
-    }) - swapConstant;
+    });
 }
 
 /// @dev This is a pure anonymous function defined at the file level, which allows
@@ -158,7 +150,7 @@ function computeNextLiquidity(
     int256 swapConstant,
     uint256 currentLiquidity,
     Parameters memory params
-) pure returns (uint256 liquidity) {
+) pure returns (uint256 L) {
     uint256 lower;
     uint256 upper;
     uint256 iters;
@@ -169,13 +161,13 @@ function computeNextLiquidity(
     } else if (swapConstant < 0) {
         upper = currentLiquidity;
         lower = reserveXWad > yOverK ? reserveXWad + 1 : yOverK + 1;
-        iters = 64;
+        iters = 128;
     } else {
         upper = 1e27;
         lower = currentLiquidity;
-        iters = 64;
+        iters = 128;
     }
-    liquidity = bisection(
+    L = bisection(
         abi.encode(reserveXWad, reserveYWad, swapConstant, params),
         lower,
         upper,
@@ -186,15 +178,15 @@ function computeNextLiquidity(
 }
 
 /// @dev Finds the root of the swapConstant given the independent variable reserveXWad.
-function computeNextReserveY(
+function computeNextRy(
     uint256 reserveXWad,
     uint256 liquidity,
     int256 swapConstant,
     Parameters memory params
-) pure returns (uint256 reserveY) {
+) pure returns (uint256 ry) {
     uint256 lower = 10;
     uint256 upper = liquidity.mulWadUp(params.strikePriceWad) - 10;
-    reserveY = bisection(
+    ry = bisection(
         abi.encode(reserveXWad, liquidity, swapConstant, params),
         lower,
         upper,
@@ -205,15 +197,15 @@ function computeNextReserveY(
 }
 
 /// @dev Finds the root of the swapConstant given the independent variable reserveYWad.
-function computeNextReserveX(
+function computeNextRx(
     uint256 reserveYWad,
     uint256 liquidity,
     int256 swapConstant,
     Parameters memory params
-) pure returns (uint256 reserveY) {
+) pure returns (uint256 rx) {
     uint256 lower = 10;
     uint256 upper = liquidity - 10; // max x = 1 - x / l, so l - x
-    reserveY = bisection(
+    rx = bisection(
         abi.encode(reserveYWad, liquidity, swapConstant, params),
         lower,
         upper,

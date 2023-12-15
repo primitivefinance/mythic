@@ -55,6 +55,7 @@ contract LogNormal is Source {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
+    Core public core;
     uint256 public swapFeePercentageWad;
     Parameters public __slot__;
 
@@ -82,10 +83,11 @@ contract LogNormal is Source {
             "swap fee percentage must be less than 100%"
         );
         swapFeePercentageWad = swapFeePercentageWad_;
+        core = Core(msg.sender);
     }
 
     modifier onlyCore() {
-        // todo:
+        // require(msg.sender == address(core), "only core");
         _;
     }
 
@@ -105,7 +107,7 @@ contract LogNormal is Source {
         view
         returns (uint256, uint256, uint256)
     {
-        return Core(msg.sender).getReservesAndLiquidity();
+        return core.getReservesAndLiquidity();
     }
 
     function _syncDynamicSlot() internal {
@@ -133,12 +135,12 @@ contract LogNormal is Source {
         view
         returns (int256)
     {
-        (uint256 reserveXWad, uint256 reserveYWad, uint256 totalLiquidity) =
+        (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction({
-            reserveXWad: reserveXWad,
-            reserveYWad: reserveYWad,
-            totalLiquidity: totalLiquidity,
+            reserveXWad: rx,
+            reserveYWad: ry,
+            totalLiquidity: L,
             params: dynamicSlot()
         });
     }
@@ -169,7 +171,6 @@ contract LogNormal is Source {
         });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
-        console2.log("swapConstantGrowth", swapConstantGrowth);
         valid = -(EPSILON) < swapConstantGrowth && swapConstantGrowth < EPSILON;
     }
 
@@ -220,22 +221,27 @@ contract LogNormal is Source {
 
         liquidityDelta = int256(adjustedLiquidity) - int256(originalLiquidity);
 
-        swapConstantGrowth = tradingFunction({
-            reserveXWad: adjustedReserveXWad,
-            reserveYWad: adjustedReserveYWad,
-            totalLiquidity: adjustedLiquidity,
-            params: dynamicSlot()
-        })
-            - tradingFunction({
-                reserveXWad: originalReserveXWad,
-                reserveYWad: originalReserveYWad,
-                totalLiquidity: originalLiquidity,
-                params: dynamicSlot()
-            });
-
+        // swapConstantGrowth = tradingFunction({
+        //     reserveXWad: adjustedReserveXWad,
+        //     reserveYWad: adjustedReserveYWad,
+        //     totalLiquidity: adjustedLiquidity,
+        //     params: dynamicSlot()
+        // })
+        //     - tradingFunction({
+        //         reserveXWad: originalReserveXWad,
+        //         reserveYWad: originalReserveYWad,
+        //         totalLiquidity: originalLiquidity,
+        //         params: dynamicSlot()
+        //     });
         // Valid should check that the trading function growth is >= expected fee growth.
-        valid = swapConstantGrowth >= int256(ZERO)
-            && liquidityDelta >= int256(minLiquidityDelta);
+        // valid = swapConstantGrowth >= int256(ZERO)
+        //     && liquidityDelta >= int256(minLiquidityDelta);
+
+        bool validSwapConstant =
+            -(EPSILON) < swapConstantGrowth && swapConstantGrowth < EPSILON;
+        // valid = swapConstantGrowth >= int256(ZERO)
+        //     && liquidityDelta >= int256(minLiquidityDelta);
+        valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 
     // ===== Parameters ===== //

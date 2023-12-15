@@ -50,5 +50,29 @@ contract LogNormalTest is Test {
         _;
     }
 
-    function test_dfmm_swap_x_in() public basic { }
+    function test_dfmm_swap_x_in() public basic {
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = true;
+
+        // Try doing simulate swap to see if we get a similar result.
+        (bool valid,,, bytes memory payload) =
+            solver.simulateSwap(swapXIn, amountIn);
+
+        assertEq(valid, true);
+
+        dfmm.swap(payload);
+    }
+
+    function test_dfmm_swap_y_in() public basic {
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = false;
+
+        // Try doing simulate swap to see if we get a similar result.
+        (bool valid,,, bytes memory payload) =
+            solver.simulateSwap(swapXIn, amountIn);
+
+        assertEq(valid, true);
+
+        dfmm.swap(payload);
+    }
 }
