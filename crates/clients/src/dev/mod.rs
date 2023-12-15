@@ -12,6 +12,7 @@ pub const INITIAL_X_BALANCE: f64 = 100.0;
 pub const INITIAL_Y_BALANCE: f64 = 100.0;
 pub const INITIAL_PRICE: f64 = 1.0;
 
+/// Client for easily setting up the development environment for the protocol.
 #[derive(Debug, Clone)]
 pub struct DevClient<C> {
     pub protocol: ProtocolClient<C>,
@@ -36,7 +37,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     #[tracing::instrument(skip(client), level = "trace")]
     pub async fn deploy(client: Arc<C>, sender: Address) -> Result<Self> {
-        tracing::trace!("Deploying token x");
+        tracing::trace!("Deploying token x and minting them to sender: {:?}", sender);
         let token_x_args = ("Token X".to_string(), "X".to_string(), 18_u8);
         let token_x = MockERC20::deploy(client.clone(), token_x_args)?
             .send()
@@ -55,10 +56,12 @@ impl<C: Middleware + 'static> DevClient<C> {
         token_x
             .mint(sender, ethers::utils::parse_ether(INITIAL_X_BALANCE)?)
             .send()
+            .await?
             .await?;
         token_y
             .mint(sender, ethers::utils::parse_ether(INITIAL_Y_BALANCE)?)
             .send()
+            .await?
             .await?;
 
         let swap_fee_percent_wad = 0.003;
@@ -76,10 +79,12 @@ impl<C: Middleware + 'static> DevClient<C> {
         token_x
             .approve(protocol.protocol.address(), ethers::types::U256::MAX)
             .send()
+            .await?
             .await?;
         token_y
             .approve(protocol.protocol.address(), ethers::types::U256::MAX)
             .send()
+            .await?
             .await?;
 
         let lex_args = (

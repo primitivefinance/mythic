@@ -11,8 +11,8 @@ use iced_aw::Icon;
 
 use super::*;
 use crate::{
-    app::{RootMessage, RootViewMessage},
-    user::profile::Profile,
+    app::{RootMessage, RootViewMessage, UserProfileMessage},
+    model::user::UserProfile,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -64,10 +64,10 @@ pub struct SettingsScreen {
 impl SettingsScreen {
     pub type ViewMessage = RootViewMessage;
 
-    pub fn new(storage: app::Storage) -> Self {
+    pub fn new(user: UserProfile) -> Self {
         Self {
             active: Pages::default(),
-            rpc: rpc::RpcManagement::new(storage.profile.rpcs.clone()),
+            rpc: rpc::RpcManagement::new(user.rpcs.clone()),
             signers: signers::SignerManagement::new(),
             contacts: contacts::ContactsManagement::new(),
         }
@@ -111,8 +111,6 @@ impl From<SettingsScreen> for Screen {
     }
 }
 
-type RPCMessage = app::RPCStorageMessage;
-
 impl State for SettingsScreen {
     type AppMessage = RootMessage;
     type ViewMessage = RootViewMessage;
@@ -136,7 +134,7 @@ impl State for SettingsScreen {
 
                             commands.push(
                                 Command::perform(async {}, move |_| {
-                                    app::RPCStorageMessage::Remove(name)
+                                    app::UserProfileMessage::RemoveRPC(name)
                                 })
                                 .map(|x| x.into()),
                             );
@@ -157,8 +155,10 @@ impl State for SettingsScreen {
 
                                 let mut commands = vec![];
                                 commands.push(
-                                    Command::perform(async {}, |_| RPCMessage::Add(chain))
-                                        .map(|x| x.into()),
+                                    Command::perform(async {}, |_| {
+                                        UserProfileMessage::AddRPC(chain)
+                                    })
+                                    .map(|x| x.into()),
                                 );
                                 commands
                                     .push(self.rpc.update(message).map(|x| Message::Rpc(x).into()));

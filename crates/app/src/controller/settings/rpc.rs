@@ -9,7 +9,7 @@ use crate::{
         system::{label, Card, ExcaliburButton},
         tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
     },
-    user::networks::{ChainPacket, RPCList},
+    model::rpcs::{RPCList, RPCValue},
 };
 
 #[derive(Debug, Clone)]
@@ -87,7 +87,7 @@ impl RpcManagement {
 
     /// Converts the form input into a chain packet, if the form is valid.
     #[tracing::instrument(skip(self), level = "trace")]
-    pub fn get_chain_packet(&self) -> anyhow::Result<ChainPacket, anyhow::Error> {
+    pub fn get_chain_packet(&self) -> anyhow::Result<RPCValue, anyhow::Error> {
         if let Some(chain_packet) = &self.chain_packet {
             let name = chain_packet.name.clone();
             let chain_id = chain_packet.chain_id.clone();
@@ -97,7 +97,7 @@ impl RpcManagement {
                 let chain_id = chain_id.parse::<u64>().map_err(|_| {
                     anyhow::anyhow!("Chain ID must be a number!").context("Chain ID error")
                 })?;
-                let chain_packet = ChainPacket {
+                let chain_packet = RPCValue {
                     name,
                     chain_id,
                     url,
@@ -134,7 +134,7 @@ impl RpcManagement {
             .list()
             .into_iter()
             .cloned()
-            .collect::<Vec<ChainPacket>>();
+            .collect::<Vec<RPCValue>>();
         let selected_rpcs = self.selected_rpcs.clone();
 
         let table = TableBuilder::new().padding_cell(Sizes::Md).column(

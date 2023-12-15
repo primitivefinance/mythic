@@ -330,6 +330,22 @@ impl ExcaliburText {
 
     // Class
 
+    /// Customizes the text parsed in as an f64 and processed through a
+    /// classifier. For example, the classifier can return a custom color if
+    /// the value is > 10.0. This is useful for colorizing values that might
+    /// have different "good" values vs. "bad" values.
+    ///
+    /// Return None in the classifier if you want to default to the original
+    /// text.
+    pub fn custom_format(self, classifier: impl FnOnce(f64) -> Option<ExcaliburColor>) -> Self {
+        let value = self.value.parse::<f64>().unwrap_or(0.0);
+        if let Some(color) = classifier(value) {
+            Self { color, ..self }
+        } else {
+            self
+        }
+    }
+
     /// Formats the text based on float value.
     pub fn quantitative(self) -> Self {
         // todo: this is probably very dangerous!

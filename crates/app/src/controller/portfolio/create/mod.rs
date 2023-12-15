@@ -35,20 +35,6 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     }
 }
 
-#[tracing::instrument(ret)]
-async fn load_coinlist() -> anyhow::Result<CoinList, Arc<anyhow::Error>> {
-    let coinlist = CoinList::load(None);
-    let coinlist = match coinlist {
-        Ok(coinlist) => coinlist,
-        Err(e) => {
-            tracing::error!("Failed to load coinlist: {:?}", e);
-            return Err(Arc::new(e));
-        }
-    };
-
-    Ok(coinlist)
-}
-
 #[derive(Debug, Clone, Default)]
 pub struct CreatePortfolio {
     form: form::Form,
@@ -56,10 +42,10 @@ pub struct CreatePortfolio {
 }
 
 impl CreatePortfolio {
-    pub fn new() -> Self {
+    pub fn new(profile: UserProfile) -> Self {
         Self {
             form: form::Form::new(),
-            coinlist: CoinList::default(),
+            coinlist: profile.coins,
         }
     }
 
@@ -73,10 +59,7 @@ impl State for CreatePortfolio {
     type AppMessage = Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
-        Command::perform(load_coinlist(), |x| {
-            // todo: fix this to point to its own message for its own screen.
-            Message::Load(x)
-        })
+        Command::none()
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {

@@ -1,17 +1,17 @@
-//! Root portfolio application screen.
-//! This serves as a parent for children flows.
-//! For example, creating a new portfolio, or viewing an existing portfolio are
-//! two different flows that stem from this root.
+//! Controller for managing
+//! 1. Dashboard controller
+//! 2. Create portfolio controller
 
 pub mod create;
 pub mod dashboard;
-pub mod dev;
 
-use clients::dev::DevClient;
 use iced::widget::Container;
 
 use super::*;
-use crate::{app::RootMessage, components::system::label, loader::DefaultMiddleware};
+use crate::{
+    app::RootMessage, components::system::label, middleware::ExcaliburMiddleware,
+    model::user::UserProfile,
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -41,20 +41,23 @@ impl From<Message> for view::Message {
     }
 }
 
+/// Intermediary controller that manages the controllers related to portfolio
+/// management. Responsible for catching requests to update the root model and
+/// pushing them to the root controller.
 pub struct PortfolioRoot {
     pub page: Page,
     pub create: create::CreatePortfolio,
     pub dashboard: dashboard::Dashboard,
-    pub dev_client: Option<DevClient<DefaultMiddleware>>,
+    pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
 }
 
 impl PortfolioRoot {
-    pub fn new(dev_client: Option<DevClient<DefaultMiddleware>>) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         Self {
             page: Page::default(),
-            create: create::CreatePortfolio::new(),
-            dashboard: dashboard::Dashboard::new(None, dev_client.clone()),
-            dev_client,
+            create: create::CreatePortfolio::new(model.user.clone()),
+            dashboard: dashboard::Dashboard::new(None, client.clone(), model.clone()),
+            client,
         }
     }
 }
@@ -81,11 +84,40 @@ impl State for PortfolioRoot {
                     .create
                     .update(message)
                     .map(|x| Message::Create(x).into()),
+                Message::Dashboard(dashboard::Message::Refetch) => {
+                    let mut commands = vec![];
+
+                    // todo: very clunky way to push the sync model upstream...
+                    commands.push(
+                        Command::perform(async {}, |_| {
+                            Self::ViewMessage::Root(view::RootMessage::ModelSyncRequest)
+                        })
+                        .map(|x| Self::AppMessage::View(x)),
+                    );
+                    commands.push(
+                        self.dashboard
+                            .update(dashboard::Message::Refetch)
+                            .map(|x| Message::Dashboard(x).into()),
+                    );
+
+                    Command::batch(commands)
+                }
                 Message::Dashboard(message) => self
                     .dashboard
                     .update(message)
                     .map(|x| Message::Dashboard(x).into()),
             },
+
+            // Lazy update, todo: this is kind of complicated, can we make it easier?
+            // This will "catch" the root update model message and propagate it down to the
+            // dashboard. The result of this is that when model updates happen in the
+            // root controller, they will also sync the dashboard's model.
+            Self::AppMessage::ModelSyncResult(model) => {
+                return self
+                    .dashboard
+                    .update(dashboard::Message::UpdateDataModel(model))
+                    .map(|x| Message::Dashboard(x).into())
+            }
             _ => Command::none(),
         }
     }

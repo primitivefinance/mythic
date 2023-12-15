@@ -1,7 +1,10 @@
 use clients::dev::ProtocolPosition;
 
 use super::*;
-use crate::components::system::{label, ExcaliburButton};
+use crate::{
+    components::system::{label, ExcaliburButton},
+    middleware::Protocol,
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -31,7 +34,7 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 #[derive(Debug, Clone, Default)]
 pub struct Execute {
     pub original: Option<Portfolio>,
-    pub dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
+    pub dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
     pub tx_receipt: Option<TransactionReceipt>,
     pub on_submit: Option<super::Message>,
     pub position: Option<ProtocolPosition>,
@@ -39,7 +42,7 @@ pub struct Execute {
 
 impl Execute {
     pub fn new(
-        dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>,
+        dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
         original_portfolio: Option<Portfolio>,
     ) -> Self {
         Self {
@@ -108,9 +111,9 @@ impl Execute {
 
 #[tracing::instrument(skip(dev_client), level = "trace", ret)]
 async fn execute_create_position(
-    dev_client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>,
+    dev_client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
 ) -> anyhow::Result<Option<TransactionReceipt>> {
-    let caller = dev_client.protocol.client.address();
+    let caller = dev_client.address().unwrap();
     let tx = dev_client
         .create_position(caller, 75.0, 1.0, 1.0, 1.0, 1.0)
         .await?;
@@ -120,9 +123,9 @@ async fn execute_create_position(
 
 #[tracing::instrument(skip(dev_client), level = "trace", ret)]
 async fn fetch_protocol_position(
-    dev_client: DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>,
+    dev_client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
 ) -> anyhow::Result<ProtocolPosition> {
-    let caller = dev_client.protocol.client.address();
+    let caller = dev_client.address().unwrap();
     let position = dev_client.get_position().await?;
     Ok(position)
 }

@@ -41,13 +41,13 @@ impl MessageWrapperView for Route {
 
 impl From<Route> for <Route as MessageWrapper>::ParentMessage {
     fn from(msg: Route) -> Self {
-        app::Message::View(view::Message::Route(msg))
+        app::Message::View(view::Message::Root(view::RootMessage::Route(msg)))
     }
 }
 
 impl From<Route> for <Route as MessageWrapperView>::ParentMessage {
     fn from(msg: Route) -> Self {
-        view::Message::Route(msg)
+        view::Message::Root(view::RootMessage::Route(msg))
     }
 }
 
@@ -97,7 +97,7 @@ impl Sidebar {
     }
 }
 
-impl screens::State for Sidebar {
+impl controller::State for Sidebar {
     type AppMessage = Route;
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {

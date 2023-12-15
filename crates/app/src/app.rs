@@ -1,23 +1,62 @@
-use std::{collections::VecDeque, sync::mpsc::Receiver};
+//! Root controller for Excalibur.
+//!
+//! Handles connecting all children controllers, the data model, and the data
+//! view together.
+//!
+//! ## Syncing the model
+//! Children components can request to sync and update the model by emitting a
+//! `SyncModel` message that is wrapped in a
+//! Message::View(view::Message::Root(..)).
+//!
+//! This is caught by the root application controller, which can handle the
+//! model update.
+//!
+//! Children components have their own model updated lazily. That is:
+//! - The root application controller updates the model.
+//! - The model gets propagated to the active children controller (i.e. a
+//!   screen).
+//! - Changing to a new screen will be instantiated with the updated model, but
+//!   the previous screen will not be updated.
+//! - The previous screen will be therefore be updated when it is reloaded from
+//!   a `switch_window` call.
+//!
+//! ## Routing
+//! The root application controller handles routing to different screens.
+//! These route messages start at the View message and get caught in flight,
+//! like the SyncModel message. From here, a message is returned to the Root
+//! application to route to a new page.
+//!
+//!
+//! ## Finding Bug Culprits:
+//! - Empty data: check the controller.
+//! - Missing data: check the model.
+//! - Wrong data: check the presenter.
+//! - Placement in the view: check the view.
+//!
+//! The Controller handles user input and updates the Model, the Presenter
+//! prepares data for the View, and the View handles rendering.
 
-use clients::{client::AnvilClient, dev::DevClient, ledger::LedgerClient};
-use ethers::core::k256::ecdsa::SigningKey;
-use profile::Profile;
-use tracer::AppEventLog;
+use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
 use tracing::Span;
-use user::contacts::{self, ContactValue};
 
 use super::{
-    screens::{empty::EmptyScreen, exit::ExitScreen, Screen},
+    controller::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
 };
 use crate::{
-    loader::DefaultMiddleware,
-    screens::{
+    components::system::{label, ExcaliburColor},
+    controller::{
         dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
         State,
     },
-    user::networks::ChainPacket,
+    middleware::ExcaliburMiddleware,
+    model::{
+        contacts::{self, ContactValue},
+        rpcs::RPCValue,
+        user::Saveable,
+    },
     view::sidebar::Sidebar,
 };
 
@@ -28,16 +67,40 @@ pub fn app_span() -> Span {
 /// Root message for the Application.
 #[derive(Debug, Default)]
 pub enum Message {
+    /// An empty message used as a default.
     #[default]
     Empty,
+    /// Emitted on the initial load of the App.
     Load,
+    /// Exits the application immediately.
+    QuitReady,
+    /// All children controllers wrap their messages in View.
     View(view::Message),
-    ChainsMessage(ChainMessage),
-    StreamsMessage(StreamsMessage),
-    CacheMessage(CacheMessage),
-    StorageMessage(StorageMessage),
-    WindowsMessage(WindowsMessage),
-    Exit,
+    /// Modifications to the persistent user profile.
+    UpdateUser(UserProfileMessage),
+    /// Switches the active "app" to the target Route.
+    SwitchWindow(view::sidebar::Route),
+    /// Updates the model after it has been fetched.
+    ModelSyncResult(Result<Model, Arc<anyhow::Error>>),
+}
+
+/// All messages for making modifications to the persistent user profile.
+#[derive(Debug)]
+pub enum UserProfileMessage {
+    /// Stores a stringified snapshot of an Anvil instance.
+    SaveAnvilSnapshot(anyhow::Result<AnvilSave>),
+    /// Adds an address to the contacts list.
+    AddAddress(String, Address, contacts::Category),
+    /// Removes an address from the contacts list.
+    RemoveAddress(String, contacts::Category),
+    /// warning! Deletes all addresses from a category in the list.
+    ClearAddresses(contacts::Category),
+    /// Adds an RPC to the RPC list.
+    AddRPC(RPCValue),
+    /// Removes an RPC from the RPC list.
+    RemoveRPC(String),
+    /// warning! Deletes all RPCs from the list.
+    ClearRPCs,
 }
 
 pub type RootMessage = Message;
@@ -47,152 +110,30 @@ impl MessageWrapper for Message {
     type ParentMessage = Message;
 }
 
-/// State for all chain related data.
-/// Idea: maybe make chains over generic over signers?
-#[derive(Debug, Clone)]
-pub struct Chains {
-    pub sub_clients: Vec<Provider<Ws>>,
-    pub call_clients: Vec<Provider<Http>>,
-    pub sign_clients: Vec<Wallet<SigningKey>>,
-    pub anvil_client: AnvilClient,
-}
-
-impl Chains {
-    #[tracing::instrument(skip(self))]
-    pub fn get_signer(
-        &self,
-        sub_client: usize,
-        sign_client: usize,
-    ) -> anyhow::Result<Arc<SignerMiddleware<Provider<Ws>, Wallet<SigningKey>>>> {
-        let sub_client = self
-            .sub_clients
-            .get(sub_client)
-            .ok_or(anyhow::anyhow!("Sub client not found"))?;
-        let sign_client = self
-            .sign_clients
-            .get(sign_client)
-            .ok_or(anyhow::anyhow!("Sign client not found"))?;
-
-        tracing::debug!("Creating signer middleware");
-        let signer = SignerMiddleware::new(sub_client.clone(), sign_client.clone());
-        Ok(Arc::new(signer))
-    }
-}
-
-#[derive(Debug)]
-pub enum ChainMessage {}
-
-/// State for all channel senders and receivers.
-pub struct Streams {
-    pub app_event_receiver: Arc<Mutex<Receiver<AppEventLog>>>,
-}
-
-#[derive(Debug)]
-pub enum StreamsMessage {
-    Data(Data),
-}
-
-/// Emitted when data is involved.
-#[derive(Debug)]
-pub enum Data {
-    ProcessTracer,
-}
-
-/// State for all temporarily cached state.
-#[derive(Default)]
-pub struct Cache {
-    pub app_events: VecDeque<AppEventLog>,
-}
-
-impl Cache {
-    pub fn new() -> Self {
-        Self {
-            app_events: VecDeque::new(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum CacheMessage {
-    AppEvent(AppEventLog),
-}
-
-/// State for all permanent state that is loaded from disk or api.
-#[derive(Debug, Clone, Default)]
-pub struct Storage {
-    pub profile: Profile,
-}
-
-#[derive(Debug)]
-pub enum StorageMessage {
-    AddressBook(AddressBookMessage),
-    RPCStorage(RPCStorageMessage),
-    AnvilSnapshot(anyhow::Result<String>),
-}
-
-#[derive(Debug)]
-pub enum AddressBookMessage {
-    Add(String, Address, contacts::Category),
-    Remove(String, contacts::Category),
-    Get(String, contacts::Category),
-    List(contacts::Category),
-    Clear(contacts::Category),
-}
-
-#[derive(Debug)]
-pub enum RPCStorageMessage {
-    Add(ChainPacket),
-    Remove(String),
-    Get(String),
-    List,
-    Clear,
-}
-
-impl From<RPCStorageMessage> for StorageMessage {
-    fn from(msg: RPCStorageMessage) -> Self {
-        Self::RPCStorage(msg)
-    }
-}
-
-impl From<StorageMessage> for Message {
-    fn from(msg: StorageMessage) -> Self {
-        Self::StorageMessage(msg)
-    }
-}
-
-impl From<RPCStorageMessage> for Message {
-    fn from(msg: RPCStorageMessage) -> Self {
-        Self::StorageMessage(msg.into())
+impl From<UserProfileMessage> for Message {
+    fn from(message: UserProfileMessage) -> Self {
+        Self::UpdateUser(message)
     }
 }
 
 /// State for specific windows that are open.
 pub struct Windows {
     pub screen: Screen,
+    pub sidebar: Sidebar,
 }
 
 impl Default for Windows {
     fn default() -> Self {
         Self {
             screen: ExperimentalScreen::new().into(),
+            sidebar: Sidebar::new(),
         }
     }
 }
 
 impl Windows {
-    pub fn new(screen: Screen) -> Self {
-        Self { screen }
-    }
-}
-
-#[derive(Debug)]
-pub enum WindowsMessage {
-    Switch(view::sidebar::Route),
-}
-
-impl From<WindowsMessage> for Message {
-    fn from(msg: WindowsMessage) -> Self {
-        Message::WindowsMessage(msg)
+    pub fn new(screen: Screen, sidebar: Sidebar) -> Self {
+        Self { screen, sidebar }
     }
 }
 
@@ -200,48 +141,40 @@ impl From<WindowsMessage> for Message {
 /// This should hold the most important pieces of data that many children
 /// components will need.
 pub struct App {
-    pub cache: Cache,
-    pub storage: Storage,
-    pub streams: Streams,
+    /// Connection to networks.
+    pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    /// Data module of the application.
+    pub model: Model,
+    /// State of the active window and sidebar the user is viewing.
     pub windows: Windows,
-    pub chains: Chains,
-    pub sidebar: Sidebar,
-    // this is a handle that has a lock on the ledger device
-    // we have to talk to it async
-    pub ledger: Option<LedgerClient>,
-    // dev client for testing
-    pub dev_client: Option<DevClient<DefaultMiddleware>>,
+
+    /// Rough tracking of update intervals.
+    pub app_clock: AppClock,
 }
 
 impl App {
     pub fn new(
-        storage: Storage,
-        chains: Chains,
-        streams: Streams,
-        ledger: Option<LedgerClient>,
-        dev_client: Option<DevClient<DefaultMiddleware>>,
+        model: Model,
+        client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
+        let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
         (
             Self {
-                storage,
-                streams,
-                chains,
-                cache: Cache::new(),
-                windows: Windows::new(PortfolioRoot::new(dev_client.clone()).into()),
-                sidebar: Sidebar::new(),
-                ledger,
-                dev_client,
+                client,
+                model,
+                windows: Windows::new(dashboard, Sidebar::new()),
+                app_clock: AppClock::new(),
             },
             Command::perform(async {}, |_| Message::Load),
         )
     }
 
-    // Loads the sidebar and the default screen.
+    /// Loads the sidebar and the default screen. Called after new().
     pub fn load(&mut self) -> Command<Message> {
         let mut cmds = Vec::new();
 
         // Load the sidebar.
-        cmds.push(self.sidebar.load().map(|x| x.into()));
+        cmds.push(self.windows.sidebar.load().map(|x| x.into()));
 
         // Load the current window.
         cmds.push(self.windows.screen.load().map(|x| x.into()));
@@ -249,29 +182,62 @@ impl App {
         Command::batch(cmds)
     }
 
-    // All view updates are forwarded to the Screen's update function.
+    /// All view updates are forwarded to the Screen's update function.
     pub fn update(&mut self, message: Message) -> Command<Message> {
+        // Handle the update clock first.
+        self.app_clock.update();
+
+        // Handle the update.
         app_span().in_scope(|| match message {
-            Message::Exit => iced::window::close(),
             Message::Load => self.load(),
-            Message::StorageMessage(msg) => self.storage_update(msg),
-            Message::CacheMessage(msg) => self.cache_update(msg),
-            Message::StreamsMessage(msg) => self.streams_update(msg),
-            Message::ChainsMessage(msg) => self.chains_update(msg),
-            Message::WindowsMessage(msg) => self.windows_update(msg),
-            Message::View(view::Message::Route(route)) => self.switch_window(&route),
-            Message::View(view::Message::Exit) => self.exit(),
-            Message::View(view::Message::CopyToClipboard(contents)) => {
-                iced::clipboard::write(contents)
+            Message::QuitReady => {
+                // Caught by the lib.rs and exits the application.
+                Command::none()
             }
-            Message::Empty => Command::none(),
+            Message::ModelSyncResult(Ok(model)) => {
+                // Update the root model.
+                self.model = model.clone();
+
+                // Propagate the model to the active screen.
+                // todo: remove side effects
+                return self
+                    .windows
+                    .screen
+                    .update(Message::ModelSyncResult(Ok(model)));
+            }
+            Message::ModelSyncResult(Err(e)) => {
+                tracing::warn!("Failed to sync model: {:?}", e);
+                Command::none()
+            }
+            Message::UpdateUser(msg) => self.update_user(msg),
+            Message::View(view::Message::Root(msg)) => match msg {
+                view::RootMessage::ModelSyncRequest => self.sync_model(),
+                view::RootMessage::Route(route) => self.switch_window(&route),
+                view::RootMessage::CopyToClipboard(contents) => iced::clipboard::write(contents),
+                view::RootMessage::SaveAndExit => self.exit(),
+                view::RootMessage::Empty => Command::none(),
+                view::RootMessage::ConfirmExit => {
+                    // todo: remove side effects
+                    tracing::debug!("Confirming exit");
+                    self.windows
+                        .screen
+                        .update(Message::View(view::Message::Root(msg)))
+                        .map(|x| x.into())
+                }
+            },
+
             // All the view messages are forwarded to the screen.
             _ => self.windows.screen.update(message),
         })
     }
 
     pub fn view(&self) -> Element<Message> {
-        view::app_layout(&self.sidebar, self.windows.screen.view()).map(Message::View)
+        view::app_layout(
+            &self.app_clock,
+            &self.windows.sidebar,
+            self.windows.screen.view(),
+        )
+        .map(Message::View)
     }
 
     pub fn subscription(&self) -> Subscription<Message> {
@@ -280,7 +246,7 @@ impl App {
 
     pub fn exit(&mut self) -> Command<Message> {
         // Save the profile to disk.
-        let result = self.storage.profile.save();
+        let result = self.model.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
@@ -293,76 +259,63 @@ impl App {
 
         // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
         // set the profile's anvil snapshot to the result.
-        let anvil_client = self.chains.anvil_client.clone();
-        match self.dev_client.clone() {
-            Some(dev_client) => {
-                let cmd = Command::perform(save_snapshot(anvil_client), |snapshot| {
-                    Message::StorageMessage(StorageMessage::AnvilSnapshot(snapshot))
-                });
-                commands.push(cmd);
-            }
-            None => {}
-        };
+        if let Some(_) = self.client.anvil {
+            let cmd = Command::perform(
+                save_snapshot(self.client.clone()),
+                UserProfileMessage::SaveAnvilSnapshot,
+            )
+            .map(|x| Message::UpdateUser(x));
+            commands.push(cmd);
+        }
 
         Command::batch(commands)
     }
 
-    fn streams_update(&mut self, message: StreamsMessage) -> Command<Message> {
-        let cmd = Command::none();
-        match message {
-            StreamsMessage::Data(Data::ProcessTracer) => {
-                let cloned = self.streams.app_event_receiver.clone();
-                let locked = cloned.lock().unwrap();
-
-                let mut logs = Vec::new();
-
-                // todo: does this work? could it block if nothing?
-                while let Ok(log) = locked.try_recv() {
-                    logs.push(log);
-                }
-
-                // Warning! Cannot use any tracing in the following code branch.
-                if let Some(log) = logs.last() {
-                    return self.cache_update(CacheMessage::AppEvent(log.clone()));
-                }
-            }
+    /// Updates the model and returns its mutated state in a Result.
+    fn sync_model(&mut self) -> Command<Message> {
+        if let Some(client) = self.client.client().cloned() {
+            let model = self.model.clone();
+            // todo: fix this clunky provider
+            let provider = Arc::new(client.provider().clone());
+            Command::perform(
+                async move {
+                    let mut model = model;
+                    model.update(provider).await?;
+                    Ok(model)
+                },
+                Message::ModelSyncResult,
+            )
+        } else {
+            tracing::debug!("No client. Not syncing model.");
+            Command::none()
         }
-
-        cmd
     }
 
     #[allow(unused_assignments)]
-    fn cache_update(&mut self, message: CacheMessage) -> Command<Message> {
+    fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
+        let model = &mut self.model;
+
         let mut cmd = Command::none();
         match message {
-            // Cannot use tracing here.
-            CacheMessage::AppEvent(log) => {
-                // Define the maximum number of logs
-                const MAX_LOGS: usize = 100;
-
-                // Push the new log
-                self.cache.app_events.push_back(log);
-
-                // If the number of data_feed exceeds the maximum, remove the oldest one
-                if self.cache.app_events.len() > MAX_LOGS {
-                    self.cache.app_events.pop_front();
+            UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
+                tracing::debug!("Saving anvil snapshot to profile");
+                match snapshot {
+                    Ok(snapshot) => {
+                        self.model.user.anvil_snapshot = Some(snapshot);
+                        if let Err(e) = self.model.save() {
+                            tracing::error!("Failed to save anvil snapshot to file: {:?}", e);
+                        } else {
+                            tracing::debug!("Saved anvil snapshot to file");
+                        }
+                    }
+                    Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
                 }
 
-                // todo: figure out how to best pipe updated app state to windows...
-                // todo: update, old.
-                cmd = Command::perform(async {}, |_| Message::View(view::Message::Empty));
+                // Exits the application after saving the anvil snapshot.
+                return Command::perform(async {}, |_| Message::QuitReady);
             }
-        }
-        cmd
-    }
-
-    fn contacts_update(&mut self, message: AddressBookMessage) -> Command<Message> {
-        let cmd = Command::none();
-        let contacts = &mut self.storage.profile.contacts;
-        match message {
-            // todo: update these messages
-            AddressBookMessage::Add(name, address, category) => {
-                contacts.add(
+            UserProfileMessage::AddAddress(name, address, category) => {
+                model.user.contacts.add(
                     address,
                     ContactValue {
                         label: name,
@@ -371,103 +324,37 @@ impl App {
                     category,
                 );
             }
-            AddressBookMessage::Remove(name, category) => {
+            UserProfileMessage::RemoveAddress(name, category) => {
                 let address = name.parse::<Address>().unwrap();
-                contacts.remove(&address, category);
+                model.user.contacts.remove(&address, category);
             }
-            AddressBookMessage::Get(name, category) => {
-                let address = name.parse::<Address>().unwrap();
-                contacts.get(&address, category);
+            UserProfileMessage::ClearAddresses(category) => {
+                model.user.contacts.clear(category);
             }
-            AddressBookMessage::List(category) => {
-                contacts.list(category);
+            UserProfileMessage::AddRPC(chain) => {
+                model.user.rpcs.add(chain);
             }
-            AddressBookMessage::Clear(category) => {
-                contacts.clear(category);
-            }
-        }
-        cmd
-    }
-
-    fn rpcs_update(&mut self, message: RPCStorageMessage) -> Command<Message> {
-        let profile = &mut self.storage.profile;
-        match message {
-            RPCStorageMessage::Add(chain) => {
-                profile.rpcs.add(chain);
-            }
-            RPCStorageMessage::Remove(name) => {
+            UserProfileMessage::RemoveRPC(name) => {
                 tracing::debug!("Removing RPC from storage: {}", name);
-                profile.rpcs.remove(&name);
+                model.user.rpcs.remove(&name);
             }
-            RPCStorageMessage::Get(name) => {
-                profile.rpcs.get(&name);
-            }
-            RPCStorageMessage::List => {
-                profile.rpcs.list();
-            }
-            RPCStorageMessage::Clear => {
-                profile.rpcs.clear();
+
+            UserProfileMessage::ClearRPCs => {
+                model.user.rpcs.clear();
             }
         }
 
-        // Make sure to save the new storage.
-        let result = profile.save();
+        let result = model.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
         }
 
-        // todo: this can probably be removed.
-        // we can just update the storage in the rpc settings manually.
-        let rpcs = profile.rpcs.clone();
-        tracing::info!("Syncing RPCs from app: {:?}", rpcs);
-        Command::perform(async {}, move |_| {
+        let rpcs = model.user.rpcs.clone();
+        cmd = Command::perform(async {}, move |_| {
             view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
         })
-        .map(|x| x.into())
-    }
-
-    #[allow(unused_assignments)]
-    fn storage_update(&mut self, message: StorageMessage) -> Command<Message> {
-        let mut cmd = Command::none();
-        match message {
-            StorageMessage::AddressBook(msg) => {
-                cmd = self.contacts_update(msg);
-            }
-            StorageMessage::RPCStorage(msg) => {
-                cmd = self.rpcs_update(msg);
-            }
-            StorageMessage::AnvilSnapshot(snapshot) => {
-                tracing::debug!("Saving anvil snapshot to profile");
-                match snapshot {
-                    Ok(snapshot) => {
-                        self.storage.profile.anvil_snapshot = Some(snapshot);
-                        tracing::debug!("Saved anvil snapshot to profile");
-                    }
-                    Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
-                }
-
-                // Exits the application after saving the anvil snapshot.
-                return Command::perform(async {}, |_| Message::Exit);
-            }
-        }
-        cmd
-    }
-
-    fn chains_update(&mut self, _message: ChainMessage) -> Command<Message> {
-        Command::none()
-    }
-
-    // Forwards window messages to the screen.
-    #[allow(unused_assignments)]
-    fn windows_update(&mut self, message: WindowsMessage) -> Command<Message> {
-        let mut cmd = Command::none();
-        match message {
-            WindowsMessage::Switch(route) => {
-                cmd = self.switch_window(&route);
-            }
-            _ => cmd = self.windows.screen.update(Message::WindowsMessage(message)),
-        }
+        .map(|x| x.into());
         cmd
     }
 
@@ -482,7 +369,8 @@ impl App {
             view::sidebar::Route::Page(page) => {
                 // Updates the current page in the sidebar.
                 cmds.push(
-                    self.sidebar
+                    self.windows
+                        .sidebar
                         .update(view::sidebar::Route::Page(*page))
                         .map(|x| x.into()),
                 );
@@ -490,10 +378,10 @@ impl App {
                 match page {
                     view::sidebar::Page::Empty => EmptyScreen::new().into(),
                     view::sidebar::Page::Portfolio => {
-                        PortfolioRoot::new(self.dev_client.clone()).into()
+                        PortfolioRoot::new(Some(self.client.clone()), self.model.clone()).into()
                     }
                     view::sidebar::Page::Settings => {
-                        SettingsScreen::new(self.storage.clone()).into()
+                        SettingsScreen::new(self.model.user.clone()).into()
                     }
                     view::sidebar::Page::Exit => ExitScreen::new(true).into(),
                 }
@@ -508,8 +396,221 @@ impl App {
     }
 }
 
-async fn save_snapshot(anvil: AnvilClient) -> anyhow::Result<String> {
-    Ok(anvil.snapshot().await)
+/// For measuring performance of the app, we measure the time between
+/// updates.
+#[derive(Debug)]
+pub struct AppClock {
+    pub last_update: std::time::Instant,
+    pub total_updates: usize,
+    pub total_time: Duration,
+    pub updates: Vec<Update>,
+}
+
+#[derive(Debug)]
+pub struct Update {
+    pub time: std::time::Instant,
+    pub duration: Duration,
+}
+
+impl AppClock {
+    pub fn new() -> Self {
+        Self {
+            last_update: std::time::Instant::now(),
+            total_updates: 0,
+            total_time: Duration::from_secs(0),
+            updates: Vec::new(),
+        }
+    }
+
+    pub fn update(&mut self) {
+        let now = std::time::Instant::now();
+        let elapsed = now.duration_since(self.last_update);
+        self.last_update = now;
+        self.total_updates += 1;
+        self.total_time += elapsed;
+
+        self.updates.push(Update {
+            time: now,
+            duration: elapsed,
+        });
+    }
+
+    pub fn average_cycle(&self, window_duration: Duration) -> Duration {
+        let now = std::time::Instant::now();
+        let window_start = now - window_duration;
+
+        let updates_in_window = self
+            .updates
+            .iter()
+            .filter(|update| update.time >= window_start)
+            .collect::<Vec<_>>();
+
+        if updates_in_window.is_empty() {
+            return Duration::from_secs(0);
+        }
+
+        let total_time_in_window: Duration =
+            updates_in_window.iter().map(|update| update.duration).sum();
+
+        total_time_in_window / updates_in_window.len() as u32
+    }
+
+    pub fn max_update_time(&self) -> Duration {
+        self.updates
+            .iter()
+            .map(|update| update.duration)
+            .max()
+            .unwrap_or(Duration::from_secs(0))
+    }
+
+    pub fn min_update_time(&self) -> Duration {
+        self.updates
+            .iter()
+            .map(|update| update.duration)
+            .min()
+            .unwrap_or(Duration::from_secs(0))
+    }
+
+    pub fn update_frequency(&self, window_duration: Duration) -> f64 {
+        let updates_in_window = self
+            .updates
+            .iter()
+            .filter(|update| update.time >= std::time::Instant::now() - window_duration)
+            .count();
+        updates_in_window as f64 / window_duration.as_secs_f64()
+    }
+
+    pub fn time_between_updates(&self) -> Option<Duration> {
+        self.updates
+            .iter()
+            .rev()
+            .take(2)
+            .collect::<Vec<_>>()
+            .windows(2)
+            .next()
+            .map(|window| window[0].time - window[1].time)
+    }
+
+    pub fn view_tbu<Message>(&self) -> Element<'_, Message> {
+        let tbu_value = self
+            .time_between_updates()
+            .unwrap_or(Duration::from_secs(0))
+            .as_millis();
+        let tbu = format!("dur:  {}ms", tbu_value);
+        label(&tbu)
+            .tertiary()
+            .caption2()
+            .custom_format(move |_| {
+                if tbu_value > 5_000 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        1.0, 0.0, 0.0, 0.05,
+                    )))
+                } else {
+                    None
+                }
+            })
+            .into()
+    }
+
+    pub fn view_max<Message>(&self) -> Element<'_, Message> {
+        let max_value = self.max_update_time().as_millis();
+        let max = format!("max:  {}ms", max_value);
+        label(&max)
+            .tertiary()
+            .caption2()
+            .custom_format(move |_| {
+                if max_value > 10_000 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        1.0, 0.0, 0.0, 0.05,
+                    )))
+                } else if max_value > 5_000 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        0.0, 0.8, 0.2, 0.05,
+                    )))
+                } else if max_value < 5_000 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        0.0, 1.0, 0.0, 0.05,
+                    )))
+                } else {
+                    None
+                }
+            })
+            .into()
+    }
+
+    pub fn view_min<Message>(&self) -> Element<'_, Message> {
+        let min = self.min_update_time().as_millis();
+        let min = format!("min:  {}ms", min);
+        label(&min).tertiary().caption2().into()
+    }
+
+    pub fn view_frequency<Message>(&self) -> Element<'_, Message> {
+        let frequency_value = self.update_frequency(Duration::from_secs(30));
+        let frequency = format!("freq:  {:.2}", frequency_value);
+        label(&frequency)
+            .tertiary()
+            .caption2()
+            .custom_format(move |_| {
+                if frequency_value > 10.0 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        1.0, 0.0, 0.0, 0.05,
+                    )))
+                } else if frequency_value < 2.0 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        0.0, 1.0, 0.0, 0.05,
+                    )))
+                } else {
+                    None
+                }
+            })
+            .into()
+    }
+
+    pub fn view_average<Message>(&self) -> Element<'_, Message> {
+        let average_value = self.average_cycle(Duration::from_secs(30)).as_millis();
+        let average = format!("avg.:  {}ms", average_value);
+        label(&average)
+            .tertiary()
+            .caption2()
+            .custom_format(move |_| {
+                if average_value > 2_500 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        1.0, 0.0, 0.0, 0.05,
+                    )))
+                } else if average_value > 1_000 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        0.0, 0.8, 0.2, 0.05,
+                    )))
+                } else if average_value < 1_000 {
+                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
+                        0.0, 1.0, 0.0, 0.05,
+                    )))
+                } else {
+                    None
+                }
+            })
+            .into()
+    }
+
+    pub fn view<Message>(&self) -> Element<'_, Message> {
+        let average = self.average_cycle(Duration::from_secs(30));
+        let average = format!("update time/s:  {}ms", average.as_millis());
+        label(&average).tertiary().caption2().into()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnvilSave {
+    pub snapshot: String,
+    pub block_number: u64,
+}
+
+#[tracing::instrument(skip(client))]
+async fn save_snapshot(
+    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+) -> anyhow::Result<AnvilSave> {
+    tracing::debug!("Attempting to save anvil snapshot");
+    client.snapshot().await
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, convert::Infallible};
 
 use ethers::{abi::Token, utils::format_ether};
-use logging::tracer::AppEventLayer;
 use sim::engine::ArbiterInstance;
+use tracer::AppEventLayer;
 use uuid::Uuid;
 
 use super::*;

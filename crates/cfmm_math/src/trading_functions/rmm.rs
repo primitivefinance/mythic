@@ -278,6 +278,48 @@ pub fn liq_distribution(
     )
 }
 
+/// P_x(x) = K e^(phi^-1(1 - x / L) sigma sqrt(t) - 1/2 sigma^2 t)
+/// x(P_x) = L * (1 - phi((ln(P_x / K) + 1/2 sigma^2 t) / sigma sqrt(t)))
+#[tracing::instrument(level = "trace")]
+pub fn compute_x_given_price(
+    spot_price_float: f64,
+    total_liquidity: f64,
+    strike_price_wad_float: f64,
+    sigma_percent_wad_float: f64,
+    time_to_expiry_years_wad_float: f64,
+) -> f64 {
+    let normal = statrs::distribution::Normal::new(0.0, 1.0).expect("Normal distribution failed");
+    let sigma_sqrt_tau =
+        compute_sigma_sqrt_tau(sigma_percent_wad_float, time_to_expiry_years_wad_float);
+    let half_sigma_pow_two_tau =
+        compute_half_sigma_power_2_tau(sigma_percent_wad_float, time_to_expiry_years_wad_float);
+
+    let ln_x_div_k = compute_ln_s_div_k(spot_price_float, strike_price_wad_float);
+    let cdf = normal.cdf((ln_x_div_k + half_sigma_pow_two_tau) / sigma_sqrt_tau);
+
+    total_liquidity * (1.0 - cdf)
+}
+
+/// P_x(x) = K e^(phi^-1(1 - x / L) sigma sqrt(t) - 1/2 sigma^2 t)
+pub fn compute_price_given_x_rust(
+    reserve_x_float: f64,
+    total_liquidity: f64,
+    strike_price_wad_float: f64,
+    sigma_percent_wad_float: f64,
+    time_to_expiry_years_wad_float: f64,
+) -> f64 {
+    let normal = statrs::distribution::Normal::new(0.0, 1.0).expect("Normal distribution failed");
+    let sigma_sqrt_tau =
+        compute_sigma_sqrt_tau(sigma_percent_wad_float, time_to_expiry_years_wad_float);
+    let half_sigma_pow_two_tau =
+        compute_half_sigma_power_2_tau(sigma_percent_wad_float, time_to_expiry_years_wad_float);
+
+    let power = normal.inverse_cdf(1.0 - reserve_x_float / total_liquidity) * sigma_sqrt_tau
+        - half_sigma_pow_two_tau;
+
+    strike_price_wad_float * power.exp()
+}
+
 #[cfg(test)]
 mod test {
     use statrs::assert_almost_eq;

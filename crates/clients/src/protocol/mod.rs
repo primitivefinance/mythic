@@ -33,6 +33,14 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Self { client, protocol }
     }
 
+    pub async fn get_tokens(&self) -> Result<(Address, Address)> {
+        let tokens = (
+            self.protocol.token_x().call().await?,
+            self.protocol.token_y().call().await?,
+        );
+        Ok(tokens)
+    }
+
     #[tracing::instrument(skip(client), level = "trace", ret)]
     pub async fn deploy_protocol(
         client: Arc<C>,

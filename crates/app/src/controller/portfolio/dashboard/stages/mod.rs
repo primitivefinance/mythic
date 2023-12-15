@@ -104,7 +104,7 @@ pub struct Stages {
 impl Stages {
     pub type AppMessage = Message;
 
-    pub fn new(dev_client: Option<DevClient<SignerMiddleware<Provider<Ws>, LocalWallet>>>) -> Self {
+    pub fn new(dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>) -> Self {
         Self {
             original: None,
             adjusted: None,

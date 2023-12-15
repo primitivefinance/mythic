@@ -110,7 +110,9 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
                 .as_custom(),
         )
         .padding(0)
-        .on_press(view::Message::CopyToClipboard(value));
+        .on_press(view::Message::Root(view::RootMessage::CopyToClipboard(
+            value,
+        )));
     copy_button
 }
 
