@@ -21,6 +21,7 @@ use super::{
     *,
 };
 use crate::{
+    app::AnvilSave,
     components::{
         logos::PhiLogo,
         progress::CustomProgressBar,
@@ -40,6 +41,7 @@ pub enum Message {
     Connected,
     LoadingFailed,
     Ready(LoadResult),
+    Quit,
 }
 pub struct Loader {
     pub screen_open: bool,
@@ -72,6 +74,28 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
     Ok(profile)
 }
 
+#[tracing::instrument(level = "debug")]
+pub fn load_user_data() -> anyhow::Result<Model> {
+    let model = Model::load(None);
+    let model = match model {
+        Ok(model) => model,
+        Err(e) => {
+            tracing::warn!("Failed to load model: {:?}", e);
+            tracing::info!("Creating a new default model.");
+
+            Model::create_new(None)?
+        }
+    };
+
+    tracing::debug!(
+        "Loaded model {:?} at path {:?}",
+        model.user.name,
+        model.file_path()
+    );
+
+    Ok(model)
+}
+
 #[tracing::instrument(skip(client), level = "trace")]
 pub async fn load_dev_client(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
@@ -88,159 +112,144 @@ pub async fn load_dev_client(
     Ok(dev_client)
 }
 
+pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token_y", "lex"];
+
 /// Loads any async data or disk data into the application's state types.
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
 pub async fn load_app(flags: super::Flags) -> LoadResult {
-    // Load an existing profile, or create a new one.
-    let mut profile = load_profile()?;
-    let mut model = Model::new(profile.clone());
+    // Load the user's save or create a new one.
+    let mut model = load_user_data()?;
 
     let mut exc_client = ExcaliburMiddleware::setup(flags.dev_mode).await?;
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
-        1
+        31337
     };
 
-    // Load the dev client from dev mode flag.
-    if flags.dev_mode {
+    // If profile has an anvil snapshot, load it.
+    let loaded_snapshot = if let Some(AnvilSave {
+        snapshot,
+        block_number,
+    }) = &model.user.anvil_snapshot
+    {
+        tracing::debug!(
+            "Attempting to load snapshot: {}",
+            &snapshot[..10.min(snapshot.len())],
+        );
+
+        let client = exc_client.client().unwrap().clone();
+
+        let success = client
+            .provider()
+            .request::<[String; 1], bool>("anvil_loadState", [snapshot.to_string()])
+            .await
+            .expect("Failed to load snapshot.");
+
+        tracing::info!("Loaded snapshot: {:?}", success);
+
+        if success {
+            tracing::info!("Syncing Anvil to block: {}", block_number);
+            client
+                .provider()
+                .request::<[u64; 1], ()>("anvil_mine", [*block_number])
+                .await
+                .expect("Failed to sync to block.");
+        }
+
+        success
+    } else {
+        false
+    };
+
+    // To synchronize a loaded snapshot with the necessary state:
+    // 1. Get the "saved" addresses from the user's contact book.
+    // 2. Sync the addresses to the exc_client.
+    // 3. Sync the addresses to the model.
+    if flags.dev_mode && loaded_snapshot {
+        for name in CONTRACT_NAMES.iter() {
+            if let Some(contracts) = model
+                .user
+                .contacts
+                .get_class_list(contacts::Class::Contract)
+            {
+                // If the contract value's label contains the name, add it to the exc_client.
+                // todo: need better loading of contracts from storage.
+                for (address, contact) in contracts.get_all() {
+                    if contact.label.contains(name) {
+                        exc_client.add_contract(name, *address);
+                    }
+                }
+            }
+        }
+    }
+
+    // If we are loading a fresh instance, deploy the contracts.
+    if flags.dev_mode && !loaded_snapshot {
         let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
         let sender = signer.address();
         let client = exc_client.client().unwrap().clone();
         let client = client.with_signer(signer);
         let dev_client = DevClient::deploy(client.into(), sender).await?;
 
-        exc_client.add_contract("protocol", dev_client.protocol.protocol.address());
-        exc_client.add_contract(
-            "strategy",
-            dev_client.protocol.get_strategy().await?.address(),
-        );
-        exc_client.add_contract("token_x", dev_client.token_x.address());
-        exc_client.add_contract("token_y", dev_client.token_y.address());
-        exc_client.add_contract("lex", dev_client.liquid_exchange.address());
-    }
+        let protocol = dev_client.protocol.protocol.address();
+        let strategy = dev_client.protocol.get_strategy().await?.address();
+        let token_x = dev_client.token_x.address();
+        let token_y = dev_client.token_y.address();
+        let lex = dev_client.liquid_exchange.address();
 
-    // If profile has an anvil snapshot, load it.
-    if let Some(snapshot) = &profile.anvil_snapshot {
-        let result: String = exc_client
-            .client()
-            .unwrap()
-            .provider()
-            .request("anvil_loadState", ())
-            .await
-            .expect("Failed to load snapshot.");
+        exc_client.add_contract("protocol", protocol);
+        exc_client.add_contract("strategy", strategy);
+        exc_client.add_contract("token_x", token_x);
+        exc_client.add_contract("token_y", token_y);
+        exc_client.add_contract("lex", lex);
 
-        tracing::info!("Loaded snapshot: {:?}", result);
-    }
-
-    // If dev_client is some, add the tokens to the coins.
-    if let Some(anvil) = exc_client.anvil.as_ref() {
-        let token_x = exc_client.contracts.get("token_x").unwrap();
-        let token_y = exc_client.contracts.get("token_y").unwrap();
-        let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
-        let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
-        let tokens = profile.coins.tokens.clone();
-        let coin_x = tokens.iter().find(|c| c.address == token_x);
-        let coin_y = tokens.iter().find(|c| c.address == token_y);
-
-        if coin_x.is_none() {
-            let coin: Coin = Coin {
-                name: "Token X".to_string(),
-                symbol: "TKNX".to_string(),
-                address: token_x,
-                decimals: 18,
-                chain_id: anvil.chain_id(),
-                logo_uri: "".to_string(),
-                tags: vec!["mock".to_string()],
-            };
-            profile.coins += coin;
-            profile.save()?;
-        }
-
-        if coin_y.is_none() {
-            let coin: Coin = Coin {
-                name: "Token Y".to_string(),
-                symbol: "TKNY".to_string(),
-                address: token_y,
-                decimals: 18,
-                chain_id: anvil.chain_id(),
-                logo_uri: "".to_string(),
-                tags: vec!["mock".to_string()],
-            };
-            profile.coins += coin;
-            profile.save()?;
-        }
-    }
-
-    let mut user = profile;
-
-    if let Some(address) = exc_client.address() {
-        // Add the default signer to the contacts book.
-        user.contacts.add(
-            address,
-            contacts::ContactValue {
-                label: "You".to_string(),
-                class: contacts::Class::EOA,
-                ..Default::default()
-            },
-            contacts::Category::Trusted,
-        );
-    }
-
-    // If dev_client is some, add the protocol's contracts to the user.
-    if flags.dev_mode {
-        let protocol = exc_client.contracts.get("protocol").cloned().unwrap();
-        let strategy = exc_client.contracts.get("strategy").cloned().unwrap();
-        let token_x = exc_client.contracts.get("token_x").cloned().unwrap();
-        let token_y = exc_client.contracts.get("token_y").cloned().unwrap();
-        let lex = exc_client.contracts.get("lex").cloned().unwrap();
-
-        user.contacts.add(
+        model.user.contacts.add(
             protocol,
             contacts::ContactValue {
-                label: "Protocol".to_string(),
+                label: "protocol".to_string(),
                 class: contacts::Class::Contract,
                 ..Default::default()
             },
             contacts::Category::Untrusted,
         );
 
-        user.contacts.add(
+        model.user.contacts.add(
             strategy,
             contacts::ContactValue {
-                label: "Strategy".to_string(),
+                label: "strategy".to_string(),
                 class: contacts::Class::Contract,
                 ..Default::default()
             },
             contacts::Category::Trusted,
         );
 
-        user.contacts.add(
+        model.user.contacts.add(
             token_x,
             contacts::ContactValue {
-                label: "Token X".to_string(),
+                label: "token_x".to_string(),
                 class: contacts::Class::Contract,
                 ..Default::default()
             },
             contacts::Category::Untrusted,
         );
 
-        user.contacts.add(
+        model.user.contacts.add(
             token_y,
             contacts::ContactValue {
-                label: "Token Y".to_string(),
+                label: "token_y".to_string(),
                 class: contacts::Class::Contract,
                 ..Default::default()
             },
             contacts::Category::Untrusted,
         );
 
-        user.contacts.add(
+        model.user.contacts.add(
             lex,
             contacts::ContactValue {
-                label: "Liquid Exchange".to_string(),
+                label: "lex".to_string(),
                 class: contacts::Class::Contract,
                 ..Default::default()
             },
@@ -254,6 +263,53 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             from_ethers_address(strategy),
             from_ethers_address(token_x),
             from_ethers_address(token_y),
+        );
+
+        let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
+        let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
+        let tokens = model.user.coins.tokens.clone();
+        let coin_x = tokens.iter().find(|c| c.address == token_x);
+        let coin_y = tokens.iter().find(|c| c.address == token_y);
+
+        if coin_x.is_none() {
+            let coin: Coin = Coin {
+                name: "Token X".to_string(),
+                symbol: "TKNX".to_string(),
+                address: token_x,
+                decimals: 18,
+                chain_id,
+                logo_uri: "".to_string(),
+                tags: vec!["mock".to_string()],
+            };
+            model.user.coins += coin;
+            model.save()?;
+        }
+
+        if coin_y.is_none() {
+            let coin: Coin = Coin {
+                name: "Token Y".to_string(),
+                symbol: "TKNY".to_string(),
+                address: token_y,
+                decimals: 18,
+                chain_id,
+                logo_uri: "".to_string(),
+                tags: vec!["mock".to_string()],
+            };
+            model.user.coins += coin;
+            model.save()?;
+        }
+    }
+
+    // Add the default signer to the contacts book, if there is a signer.
+    if let Some(address) = exc_client.address() {
+        model.user.contacts.add(
+            address,
+            contacts::ContactValue {
+                label: "You".to_string(),
+                class: contacts::Class::EOA,
+                ..Default::default()
+            },
+            contacts::Category::Trusted,
         );
     }
 
@@ -389,11 +445,7 @@ impl Loader {
                     Row::new()
                         .push(
                             Column::new()
-                                .push(
-                                    Container::new(label(&random_greek).highlight().build())
-                                        .width(Length::Fixed(48.0))
-                                        .height(Length::Fixed(48.0))
-                                )
+                                .push(label(&random_greek).highlight().build())
                                 .align_items(alignment::Alignment::Start)
                                 .width(Length::FillPortion(1)),
                         )

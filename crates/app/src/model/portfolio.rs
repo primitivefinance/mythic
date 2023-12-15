@@ -30,6 +30,7 @@ use cfmm_math::trading_functions::rmm::{
 };
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
+use serde::{Deserialize, Serialize};
 use sim::{from_ethers_u256, to_ethers_address};
 
 use super::*;
@@ -60,13 +61,13 @@ impl From<RawDataModelError> for Error {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Cached {
     pub raw_asset_token_info: Option<TokenInfo>,
     pub raw_quote_token_info: Option<TokenInfo>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TokenInfo {
     pub name: String,
     pub symbol: String,
@@ -74,7 +75,7 @@ pub struct TokenInfo {
 }
 
 /// The model!
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RawDataModel<A, V> {
     // Cached data is updated only once.
     pub cached: Cached,
@@ -143,7 +144,7 @@ sol! {
 // view returns(uint liquidity); }
 // }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StrategyPosition {
     pub balance_x: f64,
     pub balance_y: f64,

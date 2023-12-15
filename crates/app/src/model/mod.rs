@@ -5,6 +5,8 @@ pub mod portfolio;
 pub mod rpcs;
 pub mod user;
 
+use std::fs::File;
+
 use datatypes::portfolio::{
     coin::Coin,
     position::{Position, Positions},
@@ -14,11 +16,31 @@ use uuid::Uuid;
 
 use self::{
     portfolio::{AlloyAddress, AlloyU256},
-    user::UserProfile,
+    user::{Saveable, UserProfile},
 };
 use super::*;
 
-#[derive(Debug, Clone, Default)]
+pub const COIN_X: &str = r#"{
+    "symbol": "X",
+    "name": "X",
+    "decimals": 18,
+    "tags": [],
+    "chain_id": 31337,
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "logo_uri": ""
+}"#;
+
+pub const COIN_Y: &str = r#"{
+    "symbol": "Y",
+    "name": "Y",
+    "decimals": 18,
+    "tags": [],
+    "chain_id": 31337,
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa4",
+    "logo_uri": ""
+}"#;
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub portfolio: portfolio::RawDataModel<AlloyAddress, AlloyU256>,
     pub user: UserProfile,
@@ -66,8 +88,8 @@ impl Model {
             value: position_y_weight,
         };
 
-        let coin_x: Coin = serde_json::from_str(crate::portfolio::dev::COIN_X).expect("No x token");
-        let coin_y: Coin = serde_json::from_str(crate::portfolio::dev::COIN_Y).expect("No y token");
+        let coin_x: Coin = serde_json::from_str(COIN_X).expect("No x token");
+        let coin_y: Coin = serde_json::from_str(COIN_Y).expect("No y token");
 
         let position_x = Position::new(
             coin_x,
@@ -99,5 +121,58 @@ impl Model {
             client.get_block_number().await?
         );
         self.portfolio.update(client).await
+    }
+}
+
+pub const MODEL_EXTENSION: &str = "json";
+pub const MODEL_SUFFIX: &str = "user_data";
+
+impl Saveable for Model {
+    const EXTENSION: &'static str = MODEL_EXTENSION;
+    const SUFFIX: &'static str = MODEL_SUFFIX;
+
+    fn prefix(&self) -> Option<String> {
+        self.user.name.clone()
+    }
+
+    /// Creates a new user save.
+    fn create_new(name: Option<String>) -> anyhow::Result<Self, anyhow::Error> {
+        // Check the org directory exists, if not, create it.
+        if !Self::org_dir().exists() {
+            println!("Creating org directory: {:?}", Self::org_dir());
+            std::fs::create_dir(Self::org_dir()).expect("Failed to create org directory.");
+        }
+
+        // Check if the app directory exists, if not, create it.
+        if !Self::app_dir().exists() {
+            println!("Creating app directory: {:?}", Self::app_dir());
+            std::fs::create_dir(Self::app_dir()).expect("Failed to create app directory.");
+        }
+
+        let user_data_file = match name.clone() {
+            Some(name) => Self::file_path_with_name(name),
+            None => Self::path(),
+        };
+        // Don't overwrite existing profiles.
+        if user_data_file.exists() {
+            return Ok(Self::load(Some(user_data_file))?);
+        }
+
+        let mut formatted_path = Self::file_name_ending();
+        if let Some(name) = name.clone() {
+            formatted_path = format!("{}.{}", name, formatted_path);
+        }
+
+        let profile_path = Self::dir().join(formatted_path);
+        let file = File::create(profile_path)?;
+
+        let value = Model {
+            user: UserProfile::default(),
+            portfolio: portfolio::RawDataModel::new(),
+        };
+
+        serde_json::to_writer_pretty(file, &value)?;
+
+        Ok(value)
     }
 }

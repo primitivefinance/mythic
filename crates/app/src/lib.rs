@@ -58,7 +58,9 @@ enum State {
 pub enum Message {
     Load(Box<loader::Message>),
     Update(Box<app::Message>),
+    Event(iced::event::Event),
     Quit,
+    ForceQuit,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -97,15 +99,21 @@ impl Application for MVP {
         }
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match (&mut self.state, message) {
-            (_, Message::Quit) => {
+            (_, Message::ForceQuit) => window::close(),
+            (_, Message::Quit)
+            | (
+                _,
+                Message::Event(iced::event::Event::Window(iced::window::Event::CloseRequested)),
+            ) => {
                 let state_cmd = match self.state {
                     State::App(ref mut app) => app.exit().map(|msg| Message::Update(Box::new(msg))),
-                    _ => Command::none(),
+                    // todo: handle specific closure logic for the loading screen.
+                    _ => Command::perform(async {}, |()| Message::ForceQuit),
                 };
 
-                Command::batch(vec![state_cmd, window::close()])
+                Command::batch(vec![state_cmd])
             }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
@@ -121,10 +129,14 @@ impl Application for MVP {
                     tracing::error!("Failed to load app: {}", error_message);
                     Command::none()
                 }
+                loader::Message::Quit => Command::perform(async {}, |()| Message::ForceQuit),
                 // 2. Loader emits the Load message, update the loader state.
                 _ => l.update(*msg).map(|msg| Message::Load(Box::new(msg))),
             },
             (State::App(app), Message::Update(msg)) => {
+                if let app::Message::QuitReady = *msg {
+                    return Command::perform(async {}, |()| Message::ForceQuit);
+                }
                 // 6. Arrived at main application loop.
                 // note: application loop is by mapping the result of update with Update
                 // message.
@@ -142,15 +154,26 @@ impl Application for MVP {
         }
     }
 
-    #[allow(unreachable_patterns)]
     fn subscription(&self) -> Subscription<Message> {
-        match &self.state {
-            State::Loader(loader) => loader
-                .subscription()
-                .map(|msg| Message::Load(Box::new(msg))),
-            State::App(app) => app.subscription().map(|msg| Message::Update(Box::new(msg))),
-            _ => Subscription::none(),
-        }
+        Subscription::batch(vec![
+            match &self.state {
+                State::Loader(loader) => loader
+                    .subscription()
+                    .map(|msg| Message::Load(Box::new(msg))),
+                State::App(app) => app.subscription().map(|msg| Message::Update(Box::new(msg))),
+                _ => Subscription::none(),
+            },
+            iced::subscription::events_with(|event, _status| {
+                if matches!(
+                    event,
+                    iced::event::Event::Window(iced::window::Event::CloseRequested)
+                ) {
+                    Some(Self::Message::Event(event))
+                } else {
+                    None
+                }
+            }),
+        ])
     }
 
     fn theme(&self) -> Theme {
@@ -162,6 +185,8 @@ pub fn run(dev_mode: bool) -> iced::Result {
     let mut settings = Settings::with_flags(Flags { dev_mode });
     settings.window.icon = Some(logos::excalibur_logo_2());
     settings.antialiasing = true;
+    settings.exit_on_close_request = false;
+    settings.id = Some("excalibur-app".to_string());
     MVP::run(settings)
 }
 

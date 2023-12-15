@@ -38,6 +38,7 @@
 
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use super::{
@@ -71,9 +72,8 @@ pub enum Message {
     Empty,
     /// Emitted on the initial load of the App.
     Load,
-    /// Exits the application immediately, without saving. Save should be called
-    /// before this event is triggered.
-    DangerousExit,
+    /// Exits the application immediately.
+    QuitReady,
     /// All children controllers wrap their messages in View.
     View(view::Message),
     /// Modifications to the persistent user profile.
@@ -88,7 +88,7 @@ pub enum Message {
 #[derive(Debug)]
 pub enum UserProfileMessage {
     /// Stores a stringified snapshot of an Anvil instance.
-    SaveAnvilSnapshot(anyhow::Result<String>),
+    SaveAnvilSnapshot(anyhow::Result<AnvilSave>),
     /// Adds an address to the contacts list.
     AddAddress(String, Address, contacts::Category),
     /// Removes an address from the contacts list.
@@ -190,7 +190,10 @@ impl App {
         // Handle the update.
         app_span().in_scope(|| match message {
             Message::Load => self.load(),
-            Message::DangerousExit => iced::window::close(),
+            Message::QuitReady => {
+                // Caught by the lib.rs and exits the application.
+                Command::none()
+            }
             Message::ModelSyncResult(Ok(model)) => {
                 // Update the root model.
                 self.model = model.clone();
@@ -241,7 +244,7 @@ impl App {
 
     pub fn exit(&mut self) -> Command<Message> {
         // Save the profile to disk.
-        let result = self.model.user.save();
+        let result = self.model.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
@@ -255,9 +258,10 @@ impl App {
         // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
         // set the profile's anvil snapshot to the result.
         if let Some(_) = self.client.anvil {
-            let cmd = Command::perform(save_snapshot(self.client.clone()), |result| {
-                UserProfileMessage::SaveAnvilSnapshot(result)
-            })
+            let cmd = Command::perform(
+                save_snapshot(self.client.clone()),
+                UserProfileMessage::SaveAnvilSnapshot,
+            )
             .map(|x| Message::UpdateUser(x));
             commands.push(cmd);
         }
@@ -287,7 +291,7 @@ impl App {
 
     #[allow(unused_assignments)]
     fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
-        let profile = &mut self.model.user;
+        let model = &mut self.model;
 
         let mut cmd = Command::none();
         match message {
@@ -296,16 +300,20 @@ impl App {
                 match snapshot {
                     Ok(snapshot) => {
                         self.model.user.anvil_snapshot = Some(snapshot);
-                        tracing::debug!("Saved anvil snapshot to profile");
+                        if let Err(e) = self.model.save() {
+                            tracing::error!("Failed to save anvil snapshot to file: {:?}", e);
+                        } else {
+                            tracing::debug!("Saved anvil snapshot to file");
+                        }
                     }
                     Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
                 }
 
                 // Exits the application after saving the anvil snapshot.
-                return Command::perform(async {}, |_| Message::DangerousExit);
+                return Command::perform(async {}, |_| Message::QuitReady);
             }
             UserProfileMessage::AddAddress(name, address, category) => {
-                profile.contacts.add(
+                model.user.contacts.add(
                     address,
                     ContactValue {
                         label: name,
@@ -316,31 +324,31 @@ impl App {
             }
             UserProfileMessage::RemoveAddress(name, category) => {
                 let address = name.parse::<Address>().unwrap();
-                profile.contacts.remove(&address, category);
+                model.user.contacts.remove(&address, category);
             }
             UserProfileMessage::ClearAddresses(category) => {
-                profile.contacts.clear(category);
+                model.user.contacts.clear(category);
             }
             UserProfileMessage::AddRPC(chain) => {
-                profile.rpcs.add(chain);
+                model.user.rpcs.add(chain);
             }
             UserProfileMessage::RemoveRPC(name) => {
                 tracing::debug!("Removing RPC from storage: {}", name);
-                profile.rpcs.remove(&name);
+                model.user.rpcs.remove(&name);
             }
 
             UserProfileMessage::ClearRPCs => {
-                profile.rpcs.clear();
+                model.user.rpcs.clear();
             }
         }
 
-        let result = profile.save();
+        let result = model.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
         }
 
-        let rpcs = profile.rpcs.clone();
+        let rpcs = model.user.rpcs.clone();
         cmd = Command::perform(async {}, move |_| {
             view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
         })
@@ -589,9 +597,17 @@ impl AppClock {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnvilSave {
+    pub snapshot: String,
+    pub block_number: u64,
+}
+
+#[tracing::instrument(skip(client))]
 async fn save_snapshot(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<AnvilSave> {
+    tracing::debug!("Attempting to save anvil snapshot");
     client.snapshot().await
 }
 

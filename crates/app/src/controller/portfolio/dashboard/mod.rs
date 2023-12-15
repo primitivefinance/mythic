@@ -124,11 +124,8 @@ impl Dashboard {
         // Update the model
         self.model = updated_model.clone();
 
-        // Update the presenter
+        // Update the presenter with the new model.
         self.presenter.update(updated_model.clone());
-
-        // Finally, update the view.
-        // self.renderer.presenter = self.presenter.clone();
 
         Command::perform(async {}, move |_| {
             Message::Load(Some(updated_model.user.portfolio.clone()))
@@ -281,7 +278,7 @@ impl State for Dashboard {
                 let mut commands = vec![];
 
                 let mut next_price = None;
-                if let Some(mut process) = self.test_price_process.as_mut() {
+                if let Some(process) = self.test_price_process.as_mut() {
                     process.step += 1;
                     if process.step < process.max_steps {
                         let price = process.trajectories.paths[0].get(process.step).cloned();

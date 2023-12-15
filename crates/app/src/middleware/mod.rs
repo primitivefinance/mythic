@@ -13,7 +13,7 @@ pub mod alloyed;
 pub mod watch;
 
 use super::*;
-use crate::model::portfolio::EthersAddress;
+use crate::{app::AnvilSave, model::portfolio::EthersAddress};
 
 pub const SANDBOX_LABEL: &str = "sandbox";
 
@@ -99,8 +99,9 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
     }
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
-    pub async fn snapshot(&self) -> anyhow::Result<String> {
+    pub async fn snapshot(&self) -> anyhow::Result<AnvilSave> {
         let anvil_client = self.anvil_client.as_ref().unwrap();
+        let block_number = anvil_client.provider().get_block_number().await?.as_u64();
 
         let params: Vec<String> = vec![];
         let snapshot = anvil_client
@@ -109,7 +110,10 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
             .await
             .expect("failed to get snapshot");
 
-        Ok(snapshot)
+        Ok(AnvilSave {
+            block_number,
+            snapshot,
+        })
     }
 }
 
