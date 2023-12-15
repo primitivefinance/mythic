@@ -31,6 +31,7 @@ iced_aw = { version = "0.7.0", default-features = false, features = [
     "icon_text",
     "icons",
     "spinner",
+    "floating_element",
 ] }
 plotters-backend = "0.3.5"
 plotters-iced = "0.9.0"

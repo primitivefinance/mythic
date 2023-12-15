@@ -7,7 +7,6 @@ use std::collections::HashMap;
 
 use alloy_primitives::utils::parse_ether;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use chrono::Utc;
 use datatypes::portfolio::Portfolio;
 use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
 use stages::Stages;
@@ -17,7 +16,7 @@ use self::{stages::DashboardState, table::PortfolioTable};
 use super::*;
 use crate::{
     components::{
-        system::{Card, ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburTable},
+        system::{Card, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
         tables::{
             builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, key_value_table,
             rows::RowBuilder,
@@ -101,7 +100,7 @@ impl Dashboard {
         model: Model,
     ) -> Self {
         let presenter = PortfolioPresenter::default();
-        let renderer = DataView::new(presenter.clone());
+        let renderer = DataView;
 
         let process = Some(PriceProcess {
             trajectories: GeometricBrownianMotion::new(0.05, 0.9)
@@ -126,10 +125,10 @@ impl Dashboard {
         self.model = updated_model.clone();
 
         // Update the presenter
-        self.presenter.update(updated_model.portfolio.clone());
+        self.presenter.update(updated_model.clone());
 
         // Finally, update the view.
-        self.renderer.presenter = self.presenter.clone();
+        // self.renderer.presenter = self.presenter.clone();
 
         Command::perform(async {}, move |_| {
             Message::Load(Some(updated_model.user.portfolio.clone()))
@@ -182,75 +181,6 @@ impl Dashboard {
         Some(portfolio)
     }
 
-    pub fn positions_table(&self) -> Element<'_, Self::AppMessage> {
-        let portfolio = self.model.user.portfolio.clone();
-        let position_x = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .find(|x| x.asset.symbol == "X")
-            .cloned()
-            .unwrap_or_default();
-
-        let position_y = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .find(|x| x.asset.symbol == "Y")
-            .cloned()
-            .unwrap_or_default();
-
-        let mut cell_data: Vec<Vec<CellBuilder<Self::ViewMessage>>> = vec![];
-
-        if let (Some(x_cost), Some(x_balance), Some(x_weight)) =
-            (position_x.cost, position_x.balance, position_x.weight)
-        {
-            let x_cost = format!("{}", x_cost);
-            let x_balance = format!("{}", x_balance);
-            let x_weight = format!("{}", x_weight);
-
-            cell_data.push(vec![
-                CellBuilder::new().child(label("ETH").body().build()),
-                CellBuilder::new().child(label(&x_cost).quantitative().build()),
-                CellBuilder::new().child(label(&x_balance).quantitative().build()),
-                CellBuilder::new().child(label(&x_weight).percentage().build()),
-            ]);
-        }
-
-        if let (Some(y_cost), Some(y_balance), Some(y_weight)) =
-            (position_y.cost, position_y.balance, position_y.weight)
-        {
-            let y_cost = format!("{}", y_cost);
-            let y_balance = format!("{}", y_balance);
-            let y_weight = format!("{}", y_weight);
-
-            cell_data.push(vec![
-                CellBuilder::new().child(label("USDC").body().build()),
-                CellBuilder::new().child(label(&y_cost).quantitative().build()),
-                CellBuilder::new().child(label(&y_balance).quantitative().build()),
-                CellBuilder::new().child(label(&y_weight).percentage().build()),
-            ]);
-        }
-
-        // If no positions add an empty cell with "no data" label.
-        if cell_data.is_empty() {
-            cell_data.push(vec![
-                CellBuilder::new().child(label("No data").secondary().build())
-            ]);
-        }
-
-        let exp_table = ExcaliburTable::new()
-            .header("Asset")
-            .header("Price")
-            .header("Balance")
-            .header("Weight")
-            .build_custom(cell_data);
-
-        exp_table.into()
-    }
-
     pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
         match self.stage.current {
             DashboardState::Empty => {
@@ -292,88 +222,6 @@ impl Dashboard {
             }
             _ => self.stage.view().map(|x| x.into()),
         }
-    }
-
-    pub fn quadrant_i(&self) -> Element<'_, Self::AppMessage> {
-        let data_quadrant = Row::new()
-            .spacing(Sizes::Sm)
-            .push(Container::new(self.renderer.external_price()).width(Length::FillPortion(1)))
-            .push(Container::new(self.renderer.tvl()).width(Length::FillPortion(1)))
-            .push(
-                Container::new(self.renderer.internal_portfolio_value())
-                    .width(Length::FillPortion(1)),
-            )
-            .push(Container::new(self.renderer.portfolio_health()).width(Length::FillPortion(1)));
-
-        Column::new()
-            .spacing(Sizes::Lg)
-            .push(data_quadrant)
-            .push(
-                Column::new()
-                    .spacing(Sizes::Md)
-                    .push(label(&"Liquidity curve").headline().highlight().build())
-                    .push(
-                        self.renderer
-                            .portfolio_strategy_plot()
-                            .map(|x| Message::Empty),
-                    )
-                    .push(self.renderer.last_sync_timestamp()),
-            )
-            .into()
-    }
-
-    pub fn quadrant_ii(&self) -> Element<'_, Self::AppMessage> {
-        Column::new()
-            .spacing(Sizes::Lg)
-            .push(
-                Column::new()
-                    .spacing(Sizes::Sm)
-                    .push(label(&"Good morning, Alex.").title3().highlight().build())
-                    .push(
-                        label(&"Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.")
-                            .body()
-                            .build(),
-                    ).push(
-                        label(&format!("Date: {}", Utc::now().format("%Y-%m-%d"))).caption().tertiary().build(),
-                    ),
-            )
-            .push(Column::new()
-            .spacing(Sizes::Md)
-            .push(label(&"Portfolio value / time").highlight().headline().build())
-            .push(
-                self.renderer
-                    .portfolio_value_series()
-                    .map(|x| Message::Empty),
-            )
-            .push(self.renderer.last_sync_timestamp()))
-            .into()
-    }
-
-    pub fn quadrant_iii(&self) -> Element<'_, Self::AppMessage> {
-        Column::new()
-            .spacing(Sizes::Lg)
-            .push(
-                Row::new()
-                    .spacing(Sizes::Md)
-                    .push(label(&"Positions").highlight().build())
-                    .push(
-                        ExcaliburButton::new()
-                            .transparent()
-                            .build(label(&"Refetch").caption().secondary().build())
-                            .on_press(Message::Refetch),
-                    ),
-            )
-            .push(
-                Column::new()
-                    .spacing(Sizes::Sm)
-                    .push(self.positions_table())
-                    .push(self.renderer.last_sync_block()),
-            )
-            .into()
-    }
-
-    pub fn quadrant_iv(&self) -> Element<'_, Self::AppMessage> {
-        self.render_staging_area()
     }
 }
 
@@ -598,16 +446,42 @@ impl State for Dashboard {
 
     // Layout is a 2x2 quadrant grid
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let quadrant_1 = ExcaliburContainer::default()
-            .build(Column::new().push(self.quadrant_i()))
-            .padding(Sizes::Md);
-        let quadrant_2 = ExcaliburContainer::default()
-            .build((self.quadrant_ii()))
-            .padding(Sizes::Md);
+        let quadrant_1 = self.renderer.metrics_layout(
+            &self.presenter.portfolio_strategy_plot,
+            label(&"Liquidity curve").headline().highlight(),
+            self.presenter.get_external_price(),
+            self.presenter.get_external_portfolio_value(),
+            self.presenter.get_internal_portfolio_value(),
+            self.presenter.get_portfolio_health(),
+            self.presenter.get_last_sync_timestamp(),
+            self.presenter.get_block_number(),
+        );
+        let quadrant_2 = self.renderer.chart_and_greet_layout(
+                &self.presenter.portfolio_value_series,
+                label(&"Good morning, Alex.").title3().highlight(),
+                label(&"Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.").body(),
+                label(&"Portfolio value / time").highlight().headline(),
+                self.presenter.get_last_sync_timestamp()
+            );
+
+        let (table_builder, table_cells) = self
+            .renderer
+            .get_positions_table_builder(self.presenter.get_positions());
+
         let quadrant_3 = ExcaliburContainer::default()
-            .build((self.quadrant_iii()))
+            .build(self.renderer.table_layout(
+                label(&"Positions").highlight(),
+                vec![ExcaliburButton::new()
+                .transparent()
+                .build(label(&"Refetch").caption().secondary().build())
+                .on_press(Message::Refetch).into()],
+                table_builder,
+                table_cells,
+                self.presenter.get_last_sync_timestamp(),
+                self.presenter.get_last_sync_block(),
+            ))
             .padding(Sizes::Md);
-        let quadrant_4 = Container::new(self.quadrant_iv());
+        let quadrant_4 = Container::new(self.render_staging_area());
 
         Container::new(
             Column::new()

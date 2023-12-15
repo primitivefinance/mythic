@@ -176,16 +176,18 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
 
     let mut user = profile;
 
-    // Add the default signer to the contacts book.
-    user.contacts.add(
-        exc_client.address().unwrap(),
-        contacts::ContactValue {
-            label: "You".to_string(),
-            class: contacts::Class::EOA,
-            ..Default::default()
-        },
-        contacts::Category::Trusted,
-    );
+    if let Some(address) = exc_client.address() {
+        // Add the default signer to the contacts book.
+        user.contacts.add(
+            address,
+            contacts::ContactValue {
+                label: "You".to_string(),
+                class: contacts::Class::EOA,
+                ..Default::default()
+            },
+            contacts::Category::Trusted,
+        );
+    }
 
     // If dev_client is some, add the protocol's contracts to the user.
     if flags.dev_mode {

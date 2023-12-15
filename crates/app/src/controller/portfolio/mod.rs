@@ -1,7 +1,6 @@
-//! Root portfolio application screen.
-//! This serves as a parent for children flows.
-//! For example, creating a new portfolio, or viewing an existing portfolio are
-//! two different flows that stem from this root.
+//! Controller for managing
+//! 1. Dashboard controller
+//! 2. Create portfolio controller
 
 pub mod create;
 pub mod dashboard;
