@@ -55,9 +55,6 @@ contract LogNormal is Source {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
-    /// @notice the swap constant should never fall outside of range [-EPSILON, EPSILON]
-    int256 constant EPSILON = 10;
-
     uint256 public swapFeePercentageWad;
     Parameters public __slot__;
 
@@ -172,6 +169,7 @@ contract LogNormal is Source {
         });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
+        console2.log("swapConstantGrowth", swapConstantGrowth);
         valid = -(EPSILON) < swapConstantGrowth && swapConstantGrowth < EPSILON;
     }
 

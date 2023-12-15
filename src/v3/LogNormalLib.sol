@@ -2,18 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "solstat/Gaussian.sol";
+import "./LogNormalMathLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
-
-/// @dev Taking the square root of a WAD value returns a value with units of 1E9.
-/// Multiplying the result by SQRT_WAD will normalize it back to WAD units.
-uint256 constant SQRT_WAD = 1e9;
-uint256 constant TWO = 2e18;
-uint256 constant HALF = 0.5e18;
-uint256 constant ONE = 1e18;
-uint256 constant INFINITY_IS_NOT_REAL = type(uint256).max;
-uint256 constant ZERO = 0;
 
 /// @dev Parameterization of the Log Normal curve.
 struct Parameters {
@@ -22,19 +14,11 @@ struct Parameters {
     uint256 tauYearsWad;
 }
 
-/// @param sigmaPercentWad Must be in WAD units such that 1E18 = 100%.
-/// @param tauYearsWad Must be in WAD units such that 1E18 = 1 year.
-/// @return sigmaSqrtTau The product of sigma and the square root of tau in WAD units.
-function computeSigmaSqrtTau(
-    uint256 sigmaPercentWad,
-    uint256 tauYearsWad
-) pure returns (uint256) {
-    // Sqrt will return a value in 1E9 units.
-    uint256 sqrtTauNotWad = FixedPointMathLib.sqrt(tauYearsWad);
-    // Normalize it back to WAD units.
-    uint256 sqrtTauWad = sqrtTauNotWad * SQRT_WAD;
-    // Find the product of the WAD values.
-    return FixedPointMathLib.mulWadDown(sigmaPercentWad, sqrtTauWad);
+/// @dev Structure to hold reserve information
+struct Reserves {
+    uint256 rx;
+    uint256 ry;
+    uint256 L;
 }
 
 function tradingFunction(
@@ -74,12 +58,8 @@ function tradingFunction(
         );
     }
 
-    int256 CCCCC = int256(
-        computeSigmaSqrtTau({
-            sigmaPercentWad: params.sigmaPercentWad,
-            tauYearsWad: params.tauYearsWad
-        })
-    );
+    int256 CCCCC =
+        int256(computeSigmaSqrtTau(params.sigmaPercentWad, params.tauYearsWad));
 
     return AAAAA + BBBBB + CCCCC;
 }

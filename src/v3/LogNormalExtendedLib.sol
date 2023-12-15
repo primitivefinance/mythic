@@ -5,80 +5,74 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "./LogNormalLib.sol";
+import "./BisectionLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
+function computeLGivenX(
+    uint256 rx,
+    uint256 S,
+    Parameters memory params
+) pure returns (uint256 L) {
+    int256 denominator = int256(ONE) - Gaussian.cdf(computeD1(S, params));
+
+    L = FixedPointMathLib.divWadUp(rx, uint256(denominator));
+}
+
 /// @dev Computes reserves y given L(x, S).
 /// @return y(x, s) = K * L_x(x, S) * Gaussian.cdf[d2(S, K, sigma, tau)]
 function computeYGivenL(
-    uint256 totalLiquidity,
-    uint256 priceWad,
+    uint256 L,
+    uint256 S,
     Parameters memory params
 ) pure returns (uint256) {
-    int256 d2 = computeD2({ priceWad: priceWad, params: params });
+    int256 d2 = computeD2(S, params);
     int256 cdf = Gaussian.cdf(d2);
     uint256 unsignedCdf = toUint(cdf);
-    return params.strikePriceWad.mulWadUp(totalLiquidity).mulWadUp(unsignedCdf);
+    return params.strikePriceWad.mulWadUp(L).mulWadUp(unsignedCdf);
 }
 
 /// @dev Computes reserves x given L(y, S).
 /// @return x(y, s) = L_y(y, S) * (WAD - Gaussian.cdf[d1(S, K, sigma, tau)])
 function computeXGivenL(
-    uint256 totalLiquidity,
-    uint256 priceWad,
+    uint256 L,
+    uint256 S,
     Parameters memory params
 ) pure returns (uint256) {
-    int256 d1 = computeD1({ priceWad: priceWad, params: params });
+    int256 d1 = computeD1(S, params);
     int256 cdf = Gaussian.cdf(d1);
     uint256 unsignedCdf = toUint(cdf);
-    return totalLiquidity.mulWadUp(ONE - unsignedCdf);
+    return L.mulWadUp(ONE - unsignedCdf);
 }
 
-/// @param priceWad The price of X in Y, in WAD units.
-/// @param params Parameters of the Log Normal distribution.
-/// @return d1 (ln(price / K) + tau * sigma^2 / 2)) / (sigma * sqrt(tau))
 function computeD1(
-    uint256 priceWad,
+    uint256 S,
     Parameters memory params
 ) pure returns (int256 d1) {
-    // sigma * sqrt(tau)
-    uint256 sigmaSqrtTauWad = computeSigmaSqrtTau({
-        sigmaPercentWad: params.sigmaPercentWad,
-        tauYearsWad: params.tauYearsWad
-    });
-    // sigma^2 / 2
-    uint256 halfSigmaSquaredWad =
-        computeHalfSigmaSquared({ sigmaPercentWad: params.sigmaPercentWad });
-    // ln(price / K), round UP because ln(1) = 0, but ln(0) = undefined.
-    int256 logPriceOverStrikeWad = FixedPointMathLib.lnWad(
-        int256(priceWad.divWadUp(params.strikePriceWad))
-    );
-    // Round up because the division is truncation in the lnWad function.
-    logPriceOverStrikeWad++;
-    // (ln(price / K) + tau * sigma^2 * tau / 2))
-    int256 numerator = logPriceOverStrikeWad
-        + int256(halfSigmaSquaredWad.mulWadDown(params.tauYearsWad));
-    // sigma * sqrt(tau)
-    int256 denominator = int256(sigmaSqrtTauWad);
-    // (ln(price / K) + tau * sigma^2 / 2)) / (sigma * sqrt(tau))
-    d1 = mulidivUp(numerator, int256(ONE), denominator);
+    (uint256 K, uint256 sigma, uint256 tau) =
+        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad);
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
+    int256 lnSDivK = computeLnSDivK(S, K);
+    uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
+
+    d1 = (lnSDivK + int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);
 }
 
-/// @param priceWad The price of X in Y, in WAD units.
+/// @param S The price of X in Y, in WAD units.
 /// @param params Parameters of the Log Normal distribution.
 /// @return d2 = d1 - sigma * sqrt(tau), alternatively d2 = (ln(S/K) - tau * sigma^2 / 2) / (sigma * sqrt(tau))
 function computeD2(
-    uint256 priceWad,
+    uint256 S,
     Parameters memory params
 ) pure returns (int256 d2) {
-    d2 = computeD1(priceWad, params)
-        - int256(
-            computeSigmaSqrtTau({
-                sigmaPercentWad: params.sigmaPercentWad,
-                tauYearsWad: params.tauYearsWad
-            })
-        );
+    (uint256 K, uint256 sigma, uint256 tau) =
+        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad);
+    uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
+    int256 lnSDivK = computeLnSDivK(S, K);
+    uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
+
+    d2 = (lnSDivK - int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);
 }
 
 /// @dev This is a pure anonymous function defined at the file level, which allows
@@ -140,29 +134,91 @@ function findRootLiquidity(
     });
 }
 
-/// @dev Signed mul div, rounding up if the modulo quotient is non-zero.
-function mulidivUp(
-    int256 x,
-    int256 y,
-    int256 denominator
-) pure returns (int256 z) {
-    z = mulidiv(x, y, denominator);
-    if ((x * y) % denominator != 0) {
-        require(z < type(int256).max, "mulidivUp overflow");
-        z += 1;
+function computeInitialPoolData(
+    uint256 amountX,
+    uint256 initialPrice,
+    Parameters memory params
+) pure returns (bytes memory) {
+    uint256 L = computeLGivenX(amountX, initialPrice, params);
+    uint256 ry = computeYGivenL(L, initialPrice, params);
+    int256 swapConstant = tradingFunction({
+        reserveXWad: amountX,
+        reserveYWad: ry,
+        totalLiquidity: L,
+        params: params
+    });
+    L = computeNextLiquidity(amountX, ry, swapConstant, L, params);
+    return abi.encode(amountX, ry, L, params);
+}
+/// @dev Finds the root of the swapConstant given the independent variable liquidity.
+
+function computeNextLiquidity(
+    uint256 reserveXWad,
+    uint256 reserveYWad,
+    int256 swapConstant,
+    uint256 currentLiquidity,
+    Parameters memory params
+) pure returns (uint256 liquidity) {
+    uint256 lower;
+    uint256 upper;
+    uint256 iters;
+    uint256 yOverK = reserveYWad.divWadDown(params.strikePriceWad);
+
+    if (swapConstant < EPSILON && swapConstant > -(EPSILON)) {
+        return currentLiquidity;
+    } else if (swapConstant < 0) {
+        upper = currentLiquidity;
+        lower = reserveXWad > yOverK ? reserveXWad + 1 : yOverK + 1;
+        iters = 64;
+    } else {
+        upper = 1e27;
+        lower = currentLiquidity;
+        iters = 64;
     }
+    liquidity = bisection(
+        abi.encode(reserveXWad, reserveYWad, swapConstant, params),
+        lower,
+        upper,
+        uint256(EPSILON),
+        iters,
+        findRootLiquidity
+    );
 }
 
-/// @notice Mul div signed integers.
-/// @dev From Solmate, but not in assembly.
-function mulidiv(
-    int256 x,
-    int256 y,
-    int256 denominator
-) pure returns (int256 z) {
-    unchecked {
-        z = x * y;
-        require(denominator != 0 && (x == 0 || z / x == y), "mulidiv invalid");
-        z = z / denominator;
-    }
+/// @dev Finds the root of the swapConstant given the independent variable reserveXWad.
+function computeNextReserveY(
+    uint256 reserveXWad,
+    uint256 liquidity,
+    int256 swapConstant,
+    Parameters memory params
+) pure returns (uint256 reserveY) {
+    uint256 lower = 10;
+    uint256 upper = liquidity.mulWadUp(params.strikePriceWad) - 10;
+    reserveY = bisection(
+        abi.encode(reserveXWad, liquidity, swapConstant, params),
+        lower,
+        upper,
+        uint256(EPSILON),
+        256,
+        findRootY
+    );
+}
+
+/// @dev Finds the root of the swapConstant given the independent variable reserveYWad.
+function computeNextReserveX(
+    uint256 reserveYWad,
+    uint256 liquidity,
+    int256 swapConstant,
+    Parameters memory params
+) pure returns (uint256 reserveY) {
+    uint256 lower = 10;
+    uint256 upper = liquidity - 10; // max x = 1 - x / l, so l - x
+    reserveY = bisection(
+        abi.encode(reserveYWad, liquidity, swapConstant, params),
+        lower,
+        upper,
+        uint256(EPSILON),
+        256,
+        findRootX
+    );
 }
