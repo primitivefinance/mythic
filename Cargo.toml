@@ -127,7 +127,7 @@ resources = ["path/to/resource1", "path/to/resource2"] # Paths to any resources 
 
 # macOS specific
 category = "public.app-category.finance"
-copyright = "Copyright (c) 2022 Primitive Finance"
+copyright = "Copyright (c) 2024 Primitive Bits, Inc"
 minimum_system_version = "10.14"
 
 # Windows specific
