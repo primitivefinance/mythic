@@ -3,7 +3,9 @@ mod inventory;
 mod metrics;
 mod view;
 
+use alloy_primitives::utils::format_ether;
 use datatypes::portfolio::coin::Coin;
+use iced::futures::TryFutureExt;
 
 use self::{
     create::LiquidityTypes,
@@ -11,21 +13,26 @@ use self::{
     view::{MonolithicPresenter, MonolithicView},
 };
 use super::{dashboard::stages::review::Times, *};
-use crate::model::portfolio::AlloyAddress;
+use crate::{middleware::Protocol, model::portfolio::AlloyAddress};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
     #[default]
     Empty,
-    Allocate,
+    StartAllocate,
     Form(FormMessage),
     SelectPosition(AlloyAddress),
+    AllocateResult(anyhow::Result<Option<TransactionReceipt>, Arc<anyhow::Error>>),
+
+    // todo: do we need these on all pages?? maybe just reference the  model.
+    UpdateDataModel(Result<Model, Arc<anyhow::Error>>),
 }
 
 #[derive(Debug, Clone, Default)]
 pub enum FormMessage {
     #[default]
     Empty,
+    Close,
     Amount(Option<String>),
     Asset(Coin),
     Quote(Coin),
@@ -51,6 +58,7 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 
 #[derive(Debug, Clone, Default)]
 pub struct Monolithic {
+    client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
     model: Model,
     presenter: MonolithicPresenter,
     create: create::Form,
@@ -59,14 +67,131 @@ pub struct Monolithic {
 }
 
 impl Monolithic {
-    pub fn new(model: Model) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         let presenter = MonolithicPresenter::new(model.clone());
         Self {
+            client,
             model,
             presenter,
             create: create::Form::new(),
             allocate: false,
             view_position: None,
+        }
+    }
+
+    pub fn submit_ready(&self) -> Option<FormMessage> {
+        if self.create.amount.is_some() && self.create.liquidity.is_some() {
+            Some(FormMessage::Submit)
+        } else {
+            None
+        }
+    }
+
+    pub fn handle_updated_model(&mut self, updated_model: Model) -> Command<Message> {
+        // Update the model
+        self.model = updated_model.clone();
+
+        // Update presenter
+        self.presenter.update(updated_model.clone());
+
+        Command::none()
+    }
+
+    pub fn handle_submit_allocate(&mut self) -> anyhow::Result<Command<Message>> {
+        if let Some(client) = self.client.clone() {
+            if let Some(signer) = client.signer() {
+                let submitter = signer.address();
+
+                let deposit_amount = self.create.amount.clone();
+                let deposit_amount = match deposit_amount {
+                    Some(x) => x.parse::<f64>().unwrap(),
+                    None => return Err(anyhow::anyhow!("No deposit amount")),
+                };
+
+                let asset_price = self.model.portfolio.raw_external_spot_price.clone();
+                let asset_price = match asset_price {
+                    Some(x) => format_ether(x).parse::<f64>(),
+                    None => return Err(anyhow::anyhow!("No asset price")),
+                };
+                let asset_price = match asset_price {
+                    Ok(x) => x,
+                    Err(_) => return Err(anyhow::anyhow!("Failed to parse")),
+                };
+
+                let parameters = self.create.liquidity.clone();
+                let parameters: LiquidityTypes = match parameters {
+                    Some(x) => x,
+                    None => return Err(anyhow::anyhow!("No liquidity parameters")),
+                };
+                let parameters = parameters.to_parameters(asset_price);
+
+                let client = client.clone();
+                return Ok(Command::perform(
+                    async move {
+                        client
+                            .create_position(
+                                submitter,
+                                deposit_amount,
+                                asset_price,
+                                parameters.strike_price_wad,
+                                parameters.sigma_percent_wad,
+                                parameters.time_remaining_years_wad,
+                            )
+                            .map_err(Arc::new)
+                            .await
+                    },
+                    Message::AllocateResult,
+                ));
+            }
+
+            return Err(anyhow::anyhow!("No signer"));
+        }
+
+        Err(anyhow::anyhow!("No client"))
+    }
+
+    pub fn handle_form_message(&mut self, message: FormMessage) -> Command<Message> {
+        match message {
+            FormMessage::Empty => Command::none(),
+            FormMessage::Close => {
+                self.allocate = false;
+                Command::none()
+            }
+            FormMessage::Submit => {
+                self.allocate = false;
+
+                match self.handle_submit_allocate() {
+                    Ok(command) => command,
+                    Err(err) => {
+                        tracing::error!("Error when submitting allocate transaction: {:?}", err);
+                        Command::none()
+                    }
+                }
+            }
+            FormMessage::Amount(amount) => {
+                self.create.amount = amount;
+                Command::none()
+            }
+            FormMessage::Asset(asset) => {
+                self.create.chosen_asset = Some(asset);
+                Command::none()
+            }
+            FormMessage::Quote(quote) => {
+                self.create.chosen_quote = Some(quote);
+                Command::none()
+            }
+            FormMessage::Duration(duration) => {
+                self.create.duration = Some(duration);
+                Command::none()
+            }
+            FormMessage::EndPrice(end_price) => {
+                self.create.end_price = end_price;
+                Command::none()
+            }
+            FormMessage::Liquidity(liquidity) => {
+                self.create.liquidity = Some(liquidity);
+                Command::none()
+            }
         }
     }
 }
@@ -76,48 +201,36 @@ impl State for Monolithic {
     type ViewMessage = Message;
 
     fn load(&self) -> Command<Self::AppMessage> {
-        Command::none()
+        let model = self.model.clone();
+        Command::perform(async {}, |_| Self::AppMessage::UpdateDataModel(Ok(model)))
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
+            Self::AppMessage::UpdateDataModel(result) => match result {
+                Ok(updated_model) => self.handle_updated_model(updated_model),
+                Err(err) => {
+                    tracing::error!("Error when updating data model: {:?}", err);
+                    Command::none()
+                }
+            },
             Self::AppMessage::Empty => Command::none(),
             Self::AppMessage::SelectPosition(address) => {
                 self.view_position = Some(address);
                 Command::none()
             }
-            Self::AppMessage::Allocate => {
+            Self::AppMessage::StartAllocate => {
                 self.allocate = true;
                 Command::none()
             }
-            Self::AppMessage::Form(form_message) => match form_message {
-                FormMessage::Empty => Command::none(),
-                FormMessage::Submit => {
-                    self.allocate = false;
+            Self::AppMessage::Form(form_message) => self.handle_form_message(form_message),
+            Self::AppMessage::AllocateResult(result) => match result {
+                Ok(receipt) => {
+                    tracing::info!("Receipt: {:?}", receipt);
                     Command::none()
                 }
-                FormMessage::Amount(amount) => {
-                    self.create.amount = amount;
-                    Command::none()
-                }
-                FormMessage::Asset(asset) => {
-                    self.create.chosen_asset = Some(asset);
-                    Command::none()
-                }
-                FormMessage::Quote(quote) => {
-                    self.create.chosen_quote = Some(quote);
-                    Command::none()
-                }
-                FormMessage::Duration(duration) => {
-                    self.create.duration = Some(duration);
-                    Command::none()
-                }
-                FormMessage::EndPrice(end_price) => {
-                    self.create.end_price = end_price;
-                    Command::none()
-                }
-                FormMessage::Liquidity(liquidity) => {
-                    self.create.liquidity = Some(liquidity);
+                Err(err) => {
+                    tracing::error!("Error: {:?}", err);
                     Command::none()
                 }
             },
@@ -128,9 +241,10 @@ impl State for Monolithic {
         let (positions, logos) = self.presenter.get_positions();
         let mut content = Column::new().spacing(Sizes::Xl);
         content = content.push(MonolithicView::new().layout(
+            self.presenter.get_aum(),
             positions,
             logos,
-            Some(Message::Allocate),
+            Some(Message::StartAllocate),
             |x| Message::SelectPosition(x),
             |x| Message::Form(FormMessage::Amount(x)),
         ));
@@ -151,7 +265,8 @@ impl State for Monolithic {
             content = content.push(
                 self.create
                     .view::<FormMessage>(
-                        FormMessage::Submit,
+                        Some(FormMessage::Close),
+                        self.submit_ready(),
                         |x| FormMessage::Amount(x),
                         |x| FormMessage::Asset(x),
                         |x| FormMessage::Quote(x),

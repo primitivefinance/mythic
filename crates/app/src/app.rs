@@ -206,7 +206,10 @@ impl App {
                     .update(Message::ModelSyncResult(Ok(model)));
             }
             Message::ModelSyncResult(Err(e)) => {
-                tracing::warn!("Failed to sync model: {:?}", e);
+                tracing::error!(
+                    "Critical failure - sync model threw an error while updating: {:?}",
+                    e
+                );
                 Command::none()
             }
             Message::UpdateUser(msg) => self.update_user(msg),

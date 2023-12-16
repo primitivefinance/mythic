@@ -1,6 +1,6 @@
 use datatypes::portfolio::coin::Coin;
 use iced::Padding;
-use iced_aw::{graphics::icons::icon_to_char, ICON_FONT};
+use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use super::{dashboard::stages::review::Times, *};
 use crate::{
@@ -8,8 +8,8 @@ use crate::{
         input::create_input_component,
         select::excalibur_select,
         system::{
-            ExcaliburButton, ExcaliburChart, ExcaliburContainer, ExcaliburInputBuilder,
-            ExcaliburText,
+            ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
+            ExcaliburInputBuilder, ExcaliburText,
         },
     },
     controller::portfolio::dashboard::stages::review::EnumList,
@@ -35,7 +35,8 @@ impl Form {
 
     pub fn view<Message>(
         &self,
-        submit: Message,
+        on_close: Option<Message>,
+        submit: Option<Message>,
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
         on_select_asset: impl Fn(Coin) -> Message + 'static,
         on_select_quote: impl Fn(Coin) -> Message + 'static,
@@ -48,8 +49,6 @@ impl Form {
     {
         FormView::layout(
             FormView::prepare_form(
-                self.amount.clone(),
-                on_change_deposit,
                 self.coins.clone(),
                 self.chosen_asset.clone(),
                 self.chosen_quote.clone(),
@@ -64,16 +63,25 @@ impl Form {
                 self.liquidity,
                 on_select_liquidity,
             ),
+            FormView::deposit_and_submit(
+                self.amount.clone(),
+                on_change_deposit,
+                FormView::review_summary(
+                    "Review",
+                    vec![
+                        Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
+                        Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
+                        Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
+                    ],
+                ),
+                submit,
+            ),
             FormView::chart_layout(
                 &self.chart,
-                label("Strategy Preview"),
+                label("Strategy Preview").secondary(),
                 label("Synced").caption2().tertiary(),
             ),
-            Column::new()
-                .spacing(Sizes::Sm)
-                .push(label("Instructions").secondary().build())
-                .push(label("Review the details of the allocate.").build()),
-            FormView::submit(Some(submit)),
+            on_close,
         )
         .into()
     }
@@ -87,9 +95,37 @@ pub enum LiquidityTypes {
     High,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct LiquidityTemplateParameters {
+    pub strike_price_wad: f64,
+    pub sigma_percent_wad: f64,
+    pub time_remaining_years_wad: f64,
+}
+
 impl LiquidityTypes {
     pub fn all() -> Vec<Self> {
         vec![Self::Low, Self::Med, Self::High]
+    }
+
+    // todo: work on this!
+    pub fn to_parameters(&self, current_price: f64) -> LiquidityTemplateParameters {
+        match self {
+            LiquidityTypes::Low => LiquidityTemplateParameters {
+                strike_price_wad: current_price * 2.0,
+                sigma_percent_wad: 0.3,
+                time_remaining_years_wad: 1.0,
+            },
+            LiquidityTypes::Med => LiquidityTemplateParameters {
+                strike_price_wad: current_price,
+                sigma_percent_wad: 1.0,
+                time_remaining_years_wad: 1.0,
+            },
+            LiquidityTypes::High => LiquidityTemplateParameters {
+                strike_price_wad: current_price * 1.1,
+                sigma_percent_wad: 1.3,
+                time_remaining_years_wad: 1.0,
+            },
+        }
     }
 }
 
@@ -103,15 +139,34 @@ impl std::fmt::Display for LiquidityTypes {
     }
 }
 
+pub fn space_between<'a, Message>(
+    left: impl Into<Element<'a, Message>>,
+    right: impl Into<Element<'a, Message>>,
+) -> Row<'a, Message>
+where
+    Message: 'a,
+{
+    Row::new()
+        .push(Column::new().width(Length::Fill).push(left))
+        .push(
+            Column::new()
+                .width(Length::Fill)
+                .align_items(alignment::Alignment::End)
+                .push(right),
+        )
+        .align_items(alignment::Alignment::Center)
+        .width(Length::Fill)
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct FormView;
 
 impl FormView {
     pub fn layout<'a, Message>(
-        content: impl Into<Element<'a, Message>>,
+        strategy_form: impl Into<Element<'a, Message>>,
+        deposit_form: impl Into<Element<'a, Message>>,
         chart: impl Into<Element<'a, Message>>,
-        instructions: impl Into<Element<'a, Message>>,
-        action: impl Into<Element<'a, Message>>,
+        on_close: Option<Message>,
     ) -> Container<'a, Message>
     where
         Message: 'a + Clone,
@@ -120,45 +175,70 @@ impl FormView {
             Column::new()
                 .width(Length::Fill)
                 .spacing(Sizes::Lg)
-                .push(label("Allocate New Position").title1().build())
+                .push(space_between(
+                    Column::new()
+                        .spacing(Sizes::Sm)
+                        .push(label("Create new position").secondary().build())
+                        .push(label("ETH/USDC").title1().build()),
+                    ExcaliburButton::new()
+                        .transparent()
+                        .build(
+                            label(icon_to_char(Icon::X))
+                                .icon()
+                                .headline()
+                                .secondary()
+                                .build(),
+                        )
+                        .on_press_maybe(on_close),
+                ))
                 .push(
                     Row::new()
                         .spacing(Sizes::Md)
                         .push(
                             Column::new()
                                 .width(Length::FillPortion(2))
-                                .push(content.into()),
+                                .push(strategy_form.into()),
                         )
                         .push(
                             Column::new()
-                                .width(Length::FillPortion(2))
+                                .width(Length::FillPortion(3))
                                 .spacing(Sizes::Md)
-                                .push(Container::new(chart.into()).max_height(350.0)),
+                                .push(chart.into()),
                         )
                         .width(Length::Fill),
                 )
+                .push(deposit_form.into()),
+        )
+    }
+
+    pub fn deposit_and_submit<'a, Message>(
+        deposit_amount: Option<String>,
+        on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
+        review: impl Into<Element<'a, Message>>,
+        submit: Option<Message>,
+    ) -> Container<'a, Message>
+    where
+        Message: 'a + Clone + Default,
+    {
+        ExcaliburContainer::default().transparent().build(
+            Row::new()
+                .width(Length::Fill)
+                .spacing(Sizes::Md)
                 .push(
-                    Container::new(
-                        Row::new()
-                            .width(Length::Fill)
-                            .spacing(Sizes::Md)
-                            .push(Column::new().push(instructions.into()))
-                            .push(
-                                Column::new()
-                                    .width(Length::Fill)
-                                    .push(action.into())
-                                    .align_items(alignment::Alignment::End),
-                            ),
-                    )
-                    .width(Length::Fill)
-                    .align_x(alignment::Horizontal::Right),
+                    Self::deposit_form(deposit_amount, on_change_deposit)
+                        .width(Length::FillPortion(2)),
+                )
+                .push(
+                    Row::new()
+                        .spacing(Sizes::Sm)
+                        .width(Length::FillPortion(3))
+                        .push(Container::new(review.into()))
+                        .push(Self::submit(submit)),
                 ),
         )
     }
 
     pub fn prepare_form<'a, Message>(
-        deposit_amount: Option<String>,
-        on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
         choice_assets: Vec<Coin>,
         chosen_asset: Option<Coin>,
         chosen_quote: Option<Coin>,
@@ -177,40 +257,106 @@ impl FormView {
         Message: 'static + Default + Clone,
     {
         ExcaliburContainer::default().transparent().build(
-            Column::new()
-                .spacing(Sizes::Md)
-                .push(
-                    Row::new()
-                        .spacing(Sizes::Md)
+            Column::new().spacing(Sizes::Md).push(
+                Column::new()
+                    .spacing(Sizes::Md)
+                    .push(label("Choose strategy").secondary().build())
+                    .push(
+                        Column::new()
+                            .spacing(Sizes::Md)
+                            .push(
+                                Self::strategy_template(
+                                    Some(on_select_liquidity(LiquidityTypes::Low)),
+                                    LiquidityTypes::Low,
+                                    chosen_liquidity == Some(LiquidityTypes::Low),
+                                )
+                                .width(Length::Fill),
+                            )
+                            .push(
+                                Self::strategy_template(
+                                    Some(on_select_liquidity(LiquidityTypes::Med)),
+                                    LiquidityTypes::Med,
+                                    chosen_liquidity == Some(LiquidityTypes::Med),
+                                )
+                                .width(Length::Fill),
+                            )
+                            .push(
+                                Self::strategy_template(
+                                    Some(on_select_liquidity(LiquidityTypes::High)),
+                                    LiquidityTypes::High,
+                                    chosen_liquidity == Some(LiquidityTypes::High),
+                                )
+                                .width(Length::Fill),
+                            ),
+                    ),
+            ),
+        )
+    }
+
+    pub fn strategy_template<'a, Message>(
+        on_press: Option<Message>,
+        value: impl ToString,
+        active: bool,
+    ) -> Column<'a, Message>
+    where
+        Message: 'a + Clone + Default,
+    {
+        let mut value = label(value).secondary();
+        let mut background = ExcaliburColor::Background3;
+
+        if active {
+            value = value.highlight();
+            background = ExcaliburColor::Background4;
+        }
+
+        Column::new().push(
+            ExcaliburButton::new()
+                .selectable()
+                .border_radius(8.0.into())
+                .active()
+                .background(background)
+                .build(
+                    Column::new()
                         .push(
-                            Self::deposit_form(deposit_amount, on_change_deposit)
-                                .width(Length::FillPortion(2)),
+                            Row::new()
+                                .padding(Sizes::Md)
+                                .spacing(Sizes::Sm)
+                                .width(Length::Fill)
+                                .align_items(alignment::Alignment::Center)
+                                .push(Column::new().push(label("Type").build()))
+                                .push(
+                                    Column::new()
+                                        .width(Length::FillPortion(3))
+                                        .align_items(alignment::Alignment::End)
+                                        .push(value),
+                                ),
                         )
                         .push(
-                            Self::liquidity_type_form(
-                                choice_liquidity.clone(),
-                                chosen_liquidity,
-                                on_select_liquidity,
-                            )
-                            .width(Length::FillPortion(2)),
+                            ExcaliburContainer::default()
+                                .light_border()
+                                .border_radius([0.0, 0.0, 8.0, 8.0].into())
+                                .build(
+                                    Row::new()
+                                        .padding(Padding {
+                                            top: Sizes::Sm.into(),
+                                            bottom: Sizes::Sm.into(),
+                                            left: Sizes::Md.into(),
+                                            right: Sizes::Md.into(),
+                                        })
+                                        .push(
+                                            label(icon_to_char(Icon::Info))
+                                                .caption()
+                                                .secondary()
+                                                .icon()
+                                                .build(),
+                                        ),
+                                )
+                                .width(Length::Fill),
                         ),
                 )
-                .push(
-                    Row::new()
-                        .spacing(Sizes::Md)
-                        .push(
-                            Self::target_price_form(end_price, on_change_end_price)
-                                .width(Length::FillPortion(2)),
-                        )
-                        .push(
-                            Self::duration_form(
-                                choice_duration.clone(),
-                                chosen_duration,
-                                on_select_duration,
-                            )
-                            .width(Length::FillPortion(2)),
-                        ),
-                ),
+                .padding(0)
+                .width(Length::Fill)
+                .on_press_maybe(on_press),
         )
     }
 
@@ -220,18 +366,25 @@ impl FormView {
     {
         ExcaliburContainer::default().transparent().build(
             Column::new()
-                .spacing(Sizes::Sm)
+                .spacing(Sizes::Md)
                 .push(label("Submit").secondary().build())
                 .push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(label("Submit for Approval").build())
+                        .build(
+                            Row::new()
+                                .spacing(Sizes::Sm)
+                                .align_items(alignment::Alignment::Center)
+                                .push(label(icon_to_char(Icon::ShieldShaded)).icon().build())
+                                .push(label("Submit for Approval").build()),
+                        )
                         .padding(Padding {
                             top: Sizes::Md.into(),
                             bottom: Sizes::Md.into(),
                             left: Sizes::Lg.into(),
                             right: Sizes::Lg.into(),
-                        }),
+                        })
+                        .on_press_maybe(on_submit),
                 )
                 .width(Length::Fill),
         )
@@ -253,10 +406,16 @@ impl FormView {
                         .border_radius([8.0, 8.0, 0.0, 0.0].into())
                         .placeholder("Enter deposit amount".to_string())
                         .width(Length::Fill)
-                        .padding(Sizes::Md.into())
+                        .padding(Padding {
+                            top: Sizes::Lg.into(),
+                            bottom: Sizes::Lg.into(),
+                            left: Sizes::Md.into(),
+                            right: Sizes::Md.into(),
+                        })
+                        .size(system::Typography::Headline)
                         .icon(iced::widget::text_input::Icon::<iced::Font> {
                             font: ICON_FONT,
-                            code_point: icon_to_char(iced_aw::Icon::Check),
+                            code_point: icon_to_char(iced_aw::Icon::ShieldShaded),
                             size: Some(Sizes::Md.into()),
                             spacing: Sizes::Sm.into(),
                             side: iced::widget::text_input::Side::Left,
@@ -269,7 +428,12 @@ impl FormView {
                         .border_radius([0.0, 0.0, 8.0, 8.0].into())
                         .build(
                             Row::new()
-                                .padding(Sizes::Sm)
+                                .padding(Padding {
+                                    top: Sizes::Sm.into(),
+                                    bottom: Sizes::Sm.into(),
+                                    left: Sizes::Md.into(),
+                                    right: Sizes::Md.into(),
+                                })
                                 .push(label("Max").caption().secondary().build()),
                         )
                         .width(Length::Fill),
@@ -372,6 +536,21 @@ impl FormView {
         )
     }
 
+    pub fn review_summary<'a, Message>(
+        title: impl ToString,
+        rows: Vec<impl Into<Element<'a, Message>>>,
+    ) -> Container<'a, Message>
+    where
+        Message: 'a + Default,
+    {
+        Self::form_item(
+            title,
+            Column::with_children(rows.into_iter().map(|x| x.into()).collect::<Vec<_>>())
+                .spacing(Sizes::Sm)
+                .padding(Sizes::Md),
+        )
+    }
+
     pub fn form_item<'a, Message>(
         title: impl ToString,
         content: impl Into<Element<'a, Message>>,
@@ -403,8 +582,18 @@ impl FormView {
     {
         Column::new()
             .spacing(Sizes::Md)
-            .push(chart_title.build())
-            .push(chart.build().map(|_| Message::default()))
-            .push(sync_timestamp.build())
+            .push(
+                Row::new()
+                    .align_items(alignment::Alignment::Center)
+                    .spacing(Sizes::Md)
+                    .push(chart_title.build())
+                    .push(sync_timestamp.build()),
+            )
+            .push(
+                ExcaliburContainer::default()
+                    .build(chart.build().map(|_| Message::default()))
+                    .width(Length::Fill)
+                    .height(350.0),
+            )
     }
 }

@@ -256,6 +256,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Untrusted,
         );
 
+        tracing::info!("Loaded contacts: {:?}", model.user.contacts);
+
         model.portfolio.setup(
             from_ethers_address(exc_client.address().unwrap()),
             from_ethers_address(lex),
@@ -282,7 +284,6 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 tags: vec!["mock".to_string()],
             };
             model.user.coins += coin;
-            model.save()?;
         }
 
         if coin_y.is_none() {
@@ -296,8 +297,9 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 tags: vec!["mock".to_string()],
             };
             model.user.coins += coin;
-            model.save()?;
         }
+
+        model.save()?;
     }
 
     // Add the default signer to the contacts book, if there is a signer.
@@ -311,6 +313,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             },
             contacts::Category::Trusted,
         );
+        model.save()?;
     }
 
     Ok((model, Arc::new(exc_client)))

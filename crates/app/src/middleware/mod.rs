@@ -231,7 +231,11 @@ pub trait Protocol {
 impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     fn protocol(&self) -> Result<ProtocolClient<NetworkClient<Ws, LocalWallet>>> {
         let client = self.client().unwrap().clone();
-        let address = self.contracts.get("protocol").unwrap().clone();
+        let address = self.contracts.get("protocol").cloned();
+        let address = match address {
+            Some(address) => address,
+            None => return Err(anyhow::anyhow!("No protocol address")),
+        };
         let protocol = ProtocolClient::new(client, address);
         Ok(protocol)
     }

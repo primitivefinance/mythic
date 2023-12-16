@@ -3,6 +3,7 @@ use iced::{
     widget::{image, Image, Space},
     Padding,
 };
+use iced_aw::graphics::icons::icon_to_char;
 
 use super::*;
 use crate::{
@@ -14,6 +15,7 @@ pub struct Inventory;
 
 impl Inventory {
     pub fn layout<'a, Message>(
+        aum: impl ToString,
         positions: Positions,
         logos: Vec<String>,
         on_allocate: Option<Message>,
@@ -65,7 +67,8 @@ impl Inventory {
             .round(Sizes::Sm)
             .build(
                 Column::new()
-                    .push(Self::header("Portfolio", "4000000.00"))
+                    .spacing(Sizes::Md)
+                    .push(Self::header("Portfolio", aum))
                     .push(
                         ExcaliburContainer::default()
                             .border_radius([0.0, 0.0, 8.0, 8.0].into())
@@ -78,12 +81,12 @@ impl Inventory {
                                     .push(label("Allocated ($0.00M)").secondary().build())
                                     .push(allocated_positions),
                             )
-                            .padding(Sizes::Lg)
                             .width(Length::Fill)
-                            .max_height(800.0),
+                            .max_height(500.0),
                     )
                     .push(Self::footer::<Message>("Start Allocate", on_allocate)),
             )
+            .padding(Sizes::Xl2)
     }
 
     pub fn separator<'a, Message>() -> Container<'a, Message>
@@ -105,12 +108,34 @@ impl Inventory {
             .build(
                 Column::new()
                     .align_items(alignment::Alignment::Center)
-                    .spacing(Sizes::Sm)
-                    .push(label(title).secondary().build())
-                    .push(label(aum).quantitative().ui_bold().title1().build())
+                    .spacing(Sizes::Lg)
+                    .push(
+                        Row::new()
+                            .align_items(alignment::Alignment::Center)
+                            .spacing(Sizes::Sm)
+                            .push(Column::new().width(Length::FillPortion(1)))
+                            .push(
+                                Column::new()
+                                    .align_items(alignment::Alignment::Center)
+                                    .width(Length::FillPortion(1))
+                                    .spacing(Sizes::Sm)
+                                    .push(label(title).secondary().build())
+                                    .push(label(aum).quantitative().ui_bold().title1().build()),
+                            )
+                            .push(
+                                Column::new()
+                                    .align_items(alignment::Alignment::End)
+                                    .width(Length::FillPortion(1))
+                                    .push(
+                                        label(icon_to_char(iced_aw::Icon::Info))
+                                            .icon()
+                                            .secondary()
+                                            .build(),
+                                    ),
+                            ),
+                    )
                     .push(Self::separator()),
             )
-            .padding(Sizes::Md)
             .center_x()
             .width(Length::Fill)
     }
