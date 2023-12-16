@@ -48,38 +48,40 @@ impl Form {
         Message: 'static + Default + Clone,
     {
         FormView::layout(
-            FormView::prepare_form(
-                self.coins.clone(),
-                self.chosen_asset.clone(),
-                self.chosen_quote.clone(),
-                on_select_asset,
-                on_select_quote,
-                Times::to_options(),
-                self.duration,
-                on_select_duration,
-                self.end_price.clone(),
-                on_change_end_price,
-                LiquidityTypes::all(),
-                self.liquidity,
-                on_select_liquidity,
-            ),
-            FormView::deposit_and_submit(
-                self.amount.clone(),
-                on_change_deposit,
-                FormView::review_summary(
-                    "Review",
-                    vec![
-                        Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
-                        Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
-                        Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
-                    ],
+            FormView::form_content(
+                FormView::strategy_form(
+                    self.coins.clone(),
+                    self.chosen_asset.clone(),
+                    self.chosen_quote.clone(),
+                    on_select_asset,
+                    on_select_quote,
+                    Times::to_options(),
+                    self.duration,
+                    on_select_duration,
+                    self.end_price.clone(),
+                    on_change_end_price,
+                    LiquidityTypes::all(),
+                    self.liquidity,
+                    on_select_liquidity,
                 ),
-                submit,
-            ),
-            FormView::chart_layout(
-                &self.chart,
-                label("Strategy Preview").secondary(),
-                label("Synced").caption2().tertiary(),
+                FormView::deposit_form(
+                    self.amount.clone(),
+                    on_change_deposit,
+                    FormView::review_summary(
+                        "Review",
+                        vec![
+                            Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
+                            Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
+                            Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
+                        ],
+                    ),
+                    submit,
+                ),
+                FormView::chart_layout(
+                    &self.chart,
+                    label("Strategy Preview").secondary(),
+                    label("Synced").caption2().tertiary(),
+                ),
             ),
             on_close,
         )
@@ -163,9 +165,7 @@ pub struct FormView;
 
 impl FormView {
     pub fn layout<'a, Message>(
-        strategy_form: impl Into<Element<'a, Message>>,
-        deposit_form: impl Into<Element<'a, Message>>,
-        chart: impl Into<Element<'a, Message>>,
+        form_content: impl Into<Element<'a, Message>>,
         on_close: Option<Message>,
     ) -> Container<'a, Message>
     where
@@ -175,43 +175,70 @@ impl FormView {
             Column::new()
                 .width(Length::Fill)
                 .spacing(Sizes::Lg)
-                .push(space_between(
-                    Column::new()
-                        .spacing(Sizes::Sm)
-                        .push(label("Create new position").secondary().build())
-                        .push(label("ETH/USDC").title1().build()),
-                    ExcaliburButton::new()
-                        .transparent()
-                        .build(
-                            label(icon_to_char(Icon::X))
-                                .icon()
-                                .headline()
-                                .secondary()
-                                .build(),
-                        )
-                        .on_press_maybe(on_close),
-                ))
-                .push(
-                    Row::new()
-                        .spacing(Sizes::Md)
-                        .push(
-                            Column::new()
-                                .width(Length::FillPortion(2))
-                                .push(strategy_form.into()),
-                        )
-                        .push(
-                            Column::new()
-                                .width(Length::FillPortion(3))
-                                .spacing(Sizes::Md)
-                                .push(chart.into()),
-                        )
-                        .width(Length::Fill),
-                )
-                .push(deposit_form.into()),
+                .push(Self::header("Create new position", "ETH/USDC", on_close))
+                .push(form_content),
         )
     }
 
-    pub fn deposit_and_submit<'a, Message>(
+    pub fn header<'a, Message>(
+        subtitle: impl ToString,
+        title: impl ToString,
+        on_close: Option<Message>,
+    ) -> Row<'a, Message>
+    where
+        Message: 'a + Clone,
+    {
+        space_between(
+            Column::new()
+                .spacing(Sizes::Sm)
+                .push(label(subtitle).secondary().build())
+                .push(label(title).title1().build()),
+            ExcaliburButton::new()
+                .transparent()
+                .build(
+                    label(icon_to_char(Icon::X))
+                        .icon()
+                        .headline()
+                        .secondary()
+                        .build(),
+                )
+                .on_press_maybe(on_close),
+        )
+    }
+
+    /// Layout of the entire create position form, including preview chart.
+    pub fn form_content<'a, Message>(
+        strategy_form: impl Into<Element<'a, Message>>,
+        deposit_form: impl Into<Element<'a, Message>>,
+        chart: impl Into<Element<'a, Message>>,
+    ) -> Column<'a, Message>
+    where
+        Message: 'a,
+    {
+        Column::new()
+            .spacing(Sizes::Md)
+            .width(Length::Fill)
+            .push(
+                Row::new()
+                    .spacing(Sizes::Md)
+                    .push(
+                        Column::new()
+                            .width(Length::FillPortion(2))
+                            .push(strategy_form.into()),
+                    )
+                    .push(
+                        Column::new()
+                            .width(Length::FillPortion(3))
+                            .spacing(Sizes::Md)
+                            .push(chart.into()),
+                    )
+                    .width(Length::Fill),
+            )
+            .push(deposit_form.into())
+    }
+
+    /// Layout of the deposit input, review summary, and submit button.
+    pub fn deposit_form<'a, Message>(
         deposit_amount: Option<String>,
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
         review: impl Into<Element<'a, Message>>,
@@ -225,7 +252,7 @@ impl FormView {
                 .width(Length::Fill)
                 .spacing(Sizes::Md)
                 .push(
-                    Self::deposit_form(deposit_amount, on_change_deposit)
+                    Self::deposit_input(deposit_amount, on_change_deposit)
                         .width(Length::FillPortion(2)),
                 )
                 .push(
@@ -238,7 +265,25 @@ impl FormView {
         )
     }
 
-    pub fn prepare_form<'a, Message>(
+    /// Simple column of rows of review item elements.
+    pub fn review_summary<'a, Message>(
+        title: impl ToString,
+        rows: Vec<impl Into<Element<'a, Message>>>,
+    ) -> Container<'a, Message>
+    where
+        Message: 'a + Default,
+    {
+        Self::form_item(
+            title,
+            Column::with_children(rows.into_iter().map(|x| x.into()).collect::<Vec<_>>())
+                .spacing(Sizes::Sm)
+                .padding(Sizes::Md),
+        )
+    }
+
+    /// Layout of the strategy selections to choose from.
+    /// todo: add a toggle to switch to advanced mode that lets you choose.
+    pub fn strategy_form<'a, Message>(
         choice_assets: Vec<Coin>,
         chosen_asset: Option<Coin>,
         chosen_quote: Option<Coin>,
@@ -293,6 +338,7 @@ impl FormView {
         )
     }
 
+    /// "Cast" for each strategy template option.
     pub fn strategy_template<'a, Message>(
         on_press: Option<Message>,
         value: impl ToString,
@@ -360,6 +406,7 @@ impl FormView {
         )
     }
 
+    /// Form submit button for creating the position.
     pub fn submit<'a, Message>(on_submit: Option<Message>) -> Container<'a, Message>
     where
         Message: 'a + Clone,
@@ -390,7 +437,8 @@ impl FormView {
         )
     }
 
-    pub fn deposit_form<'a, Message>(
+    /// Form input for the deposit amount.
+    pub fn deposit_input<'a, Message>(
         deposit_amount: Option<String>,
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
     ) -> Container<'a, Message>
@@ -536,21 +584,7 @@ impl FormView {
         )
     }
 
-    pub fn review_summary<'a, Message>(
-        title: impl ToString,
-        rows: Vec<impl Into<Element<'a, Message>>>,
-    ) -> Container<'a, Message>
-    where
-        Message: 'a + Default,
-    {
-        Self::form_item(
-            title,
-            Column::with_children(rows.into_iter().map(|x| x.into()).collect::<Vec<_>>())
-                .spacing(Sizes::Sm)
-                .padding(Sizes::Md),
-        )
-    }
-
+    /// "Cast" of a single form element.
     pub fn form_item<'a, Message>(
         title: impl ToString,
         content: impl Into<Element<'a, Message>>,
@@ -572,6 +606,7 @@ impl FormView {
         )
     }
 
+    /// Layout of the chart.
     pub fn chart_layout<'a, Message>(
         chart: &'a ExcaliburChart,
         chart_title: ExcaliburText,
