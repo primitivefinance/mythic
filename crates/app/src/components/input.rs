@@ -55,7 +55,6 @@ impl<Message> Component<Message, Renderer> for InputComponent<Message> {
                 if value.is_empty() {
                     Some((self.on_change)(None))
                 } else {
-                    tracing::trace!("Input changed: {}", value);
                     let parsed_value = value.parse();
                     match parsed_value {
                         Ok(parsed_value) => Some((self.on_change)(Some(parsed_value))),
@@ -79,7 +78,7 @@ impl<Message> Component<Message, Renderer> for InputComponent<Message> {
                 .unwrap_or(""),
         )
         .on_input(StringInputComponentEvent::InputChanged)
-        .padding(Sizes::Md as u16);
+        .padding(Sizes::Sm);
 
         input.into()
     }

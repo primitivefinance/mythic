@@ -22,7 +22,14 @@ const BG2: Color = Color::from_rgb(
     0x0D as f32 / 255.0,
 );
 
+// not darker than BG1, but placed at the lowest level of the app.
 const BG3: Color = Color::from_rgb(
+    0x14 as f32 / 255.0,
+    0x14 as f32 / 255.0,
+    0x14 as f32 / 255.0,
+);
+
+const BG4: Color = Color::from_rgb(
     0x28 as f32 / 255.0,
     0x28 as f32 / 255.0,
     0x28 as f32 / 255.0,
@@ -130,6 +137,8 @@ pub enum ExcaliburColor {
     Background1,
     Background2,
     Background3,
+    Background4,
+    Transparent,
     Card,
     #[default]
     Primary,
@@ -146,6 +155,8 @@ impl ExcaliburColor {
             ExcaliburColor::Background1 => BG1,
             ExcaliburColor::Background2 => BG2,
             ExcaliburColor::Background3 => BG3,
+            ExcaliburColor::Background4 => BG4,
+            ExcaliburColor::Transparent => Color::TRANSPARENT,
             ExcaliburColor::Card => CARD_BG,
             ExcaliburColor::Primary => BLUE,
             ExcaliburColor::Success => GREEN,
@@ -174,6 +185,12 @@ impl ExcaliburColor {
 impl From<ExcaliburColor> for Color {
     fn from(color: ExcaliburColor) -> Self {
         color.color()
+    }
+}
+
+impl From<ExcaliburColor> for iced::Background {
+    fn from(color: ExcaliburColor) -> Self {
+        iced::Background::Color(color.color())
     }
 }
 
@@ -242,6 +259,7 @@ pub enum ExcaliburFonts {
     UIBold,
     Branding,
     Symbol,
+    Icon,
     Custom(iced::Font),
 }
 
@@ -252,6 +270,7 @@ impl ExcaliburFonts {
             ExcaliburFonts::UIBold => UI_FONT_BOLD,
             ExcaliburFonts::Branding => BRAND_FONT,
             ExcaliburFonts::Symbol => SYMBOL_FONT,
+            ExcaliburFonts::Icon => iced_aw::ICON_FONT,
             ExcaliburFonts::Custom(font) => *font,
         }
     }
@@ -282,7 +301,7 @@ impl Default for ExcaliburText {
 }
 
 /// For constructing any text rendered in Excalibur.
-pub fn label<'a>(value: &str) -> ExcaliburText {
+pub fn label<'a>(value: impl ToString) -> ExcaliburText {
     ExcaliburText::new(value)
 }
 
@@ -311,7 +330,7 @@ pub fn format_number(num: f64) -> (String, QuantitativeColors) {
 
 impl ExcaliburText {
     /// For constructing any text rendered in Excalibur.
-    pub fn new(value: &str) -> Self {
+    pub fn new(value: impl ToString) -> Self {
         Self {
             value: value.to_string(),
             ..Default::default()
@@ -587,6 +606,13 @@ impl ExcaliburText {
         }
     }
 
+    pub fn icon(self) -> Self {
+        Self {
+            font: ExcaliburFonts::Icon,
+            ..self
+        }
+    }
+
     // Alignment
 
     /// Sets text horizontal alignment to left.
@@ -662,10 +688,10 @@ pub struct ExcaliburContainer {
 impl Default for ExcaliburContainer {
     fn default() -> Self {
         Self {
-            background: ExcaliburColor::Background1,
+            background: ExcaliburColor::Transparent,
             border_radius: Sizes::Sm.into(),
             border_width: 0.0,
-            border_color: ExcaliburColor::Custom(Color::WHITE),
+            border_color: ExcaliburColor::Label(LabelColors::Quaternary),
         }
     }
 }
@@ -721,15 +747,27 @@ impl ExcaliburContainer {
         self
     }
 
-    /// The layer between the bottom and top layers.
-    pub fn middle(mut self) -> Self {
+    /// The layer between the bottom and middle layer.
+    pub fn middle_bottom(mut self) -> Self {
         self.background = ExcaliburColor::Background2;
+        self
+    }
+
+    /// The layer between the middle and top layer.
+    pub fn middle_top(mut self) -> Self {
+        self.background = ExcaliburColor::Background3;
         self
     }
 
     /// The layer that is closest and therefore the lightest.
     pub fn top(mut self) -> Self {
-        self.background = ExcaliburColor::Background3;
+        self.background = ExcaliburColor::Background4;
+        self
+    }
+
+    /// Transparent background
+    pub fn transparent(mut self) -> Self {
+        self.background = ExcaliburColor::Transparent;
         self
     }
 
@@ -784,7 +822,7 @@ impl ExcaliburContainer {
 
     pub fn black_border(mut self) -> Self {
         self.border_color = ExcaliburColor::Custom(Color::BLACK);
-        self.border_width = 1.0;
+        self.border_width = 2.0;
         self
     }
 

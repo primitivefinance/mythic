@@ -133,10 +133,6 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .width(Length::Fill)
         .height(Length::Fill)
         .padding([16, 24, 16, 24])
-        .style(
-            ExcaliburContainer::default()
-                .background(ExcaliburColor::Background1)
-                .theme(),
-        )
+        .style(ExcaliburContainer::default().middle_bottom().theme())
         .into()
 }
