@@ -182,7 +182,6 @@ impl UserProfile {
     /// Updates the portfolio of this profile and saves to file.
     pub fn update_portfolio(&mut self, portfolio: &Portfolio) -> Result<()> {
         self.portfolio = portfolio.clone();
-        self.save()?;
         Ok(())
     }
 }

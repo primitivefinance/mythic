@@ -21,6 +21,7 @@ pub enum Message {
     Create(create::Message),
     Dashboard(dashboard::Message),
     Monolithic(monolithic::Message),
+    SyncModel,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -61,7 +62,7 @@ impl PortfolioRoot {
             page: Page::default(),
             create: create::CreatePortfolio::new(model.user.clone()),
             dashboard: dashboard::Dashboard::new(None, client.clone(), model.clone()),
-            monolithic: monolithic::Monolithic::new(model.clone()),
+            monolithic: monolithic::Monolithic::new(client.clone(), model.clone()),
             client,
         }
     }
@@ -84,6 +85,10 @@ impl State for PortfolioRoot {
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::Message::Portfolio(message)) => match message {
+                Message::SyncModel => Command::perform(async {}, |_| {
+                    Self::ViewMessage::Root(view::RootMessage::ModelSyncRequest)
+                })
+                .map(|x| Self::AppMessage::View(x)),
                 Message::Empty => Command::none(),
                 Message::Create(message) => self
                     .create
@@ -95,7 +100,7 @@ impl State for PortfolioRoot {
                     // todo: very clunky way to push the sync model upstream...
                     commands.push(
                         Command::perform(async {}, |_| {
-                            Self::ViewMessage::Root(view::RootMessage::ModelSyncRequest)
+                            view::Message::Portfolio(Message::SyncModel)
                         })
                         .map(|x| Self::AppMessage::View(x)),
                     );
@@ -122,10 +127,14 @@ impl State for PortfolioRoot {
             // dashboard. The result of this is that when model updates happen in the
             // root controller, they will also sync the dashboard's model.
             Self::AppMessage::ModelSyncResult(model) => {
-                return self
-                    .dashboard
-                    .update(dashboard::Message::UpdateDataModel(model))
-                    .map(|x| Message::Dashboard(x).into())
+                return Command::batch(vec![
+                    self.dashboard
+                        .update(dashboard::Message::UpdateDataModel(model.clone()))
+                        .map(|x| Message::Dashboard(x).into()),
+                    self.monolithic
+                        .update(monolithic::Message::UpdateDataModel(model.clone()))
+                        .map(|x| Message::Monolithic(x).into()),
+                ])
             }
             _ => Command::none(),
         }
@@ -150,20 +159,27 @@ impl State for PortfolioRoot {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
-        match self.page {
-            Page::Empty => Subscription::none(),
-            Page::Create => self
-                .create
-                .subscription()
-                .map(|x| Message::Create(x).into()),
-            Page::Dashboard => self
-                .dashboard
+        // todo: fix the subscriptions!
+        // need subscriptions to fetch new blocks, new price path, etc.
+        Subscription::batch(vec![
+            self.dashboard
                 .subscription()
                 .map(|x| Message::Dashboard(x).into()),
-            Page::Monolithic => self
-                .monolithic
-                .subscription()
-                .map(|x| Message::Monolithic(x).into()),
-        }
+            match self.page {
+                Page::Empty => Subscription::none(),
+                Page::Create => self
+                    .create
+                    .subscription()
+                    .map(|x| Message::Create(x).into()),
+                Page::Dashboard => self
+                    .dashboard
+                    .subscription()
+                    .map(|x| Message::Dashboard(x).into()),
+                Page::Monolithic => self
+                    .monolithic
+                    .subscription()
+                    .map(|x| Message::Monolithic(x).into()),
+            },
+        ])
     }
 }

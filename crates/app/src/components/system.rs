@@ -229,6 +229,22 @@ pub enum Typography {
     Caption2 = 10,
 }
 
+impl From<Typography> for f32 {
+    fn from(typography: Typography) -> Self {
+        match typography {
+            Typography::Title1 => 28.0,
+            Typography::Title2 => 24.0,
+            Typography::Title3 => 20.0,
+            Typography::Headline => 18.0,
+            Typography::Body => 16.0,
+            Typography::Subhead => 15.0,
+            Typography::Footnote => 14.0,
+            Typography::Caption => 12.0,
+            Typography::Caption2 => 10.0,
+        }
+    }
+}
+
 impl From<Typography> for iced::Pixels {
     fn from(typography: Typography) -> Self {
         match typography {
@@ -874,6 +890,33 @@ impl ExcaliburButton {
         self
     }
 
+    pub fn active(mut self) -> Self {
+        self.style.current_state = ButtonState::Active;
+        self
+    }
+
+    /// Overrides the active button state's background color.
+    pub fn background(mut self, color: ExcaliburColor) -> Self {
+        self.style = self.style.background(Some(color.into()));
+        self
+    }
+
+    /// Overrides all button states with a border radius.
+    pub fn border_radius(mut self, border_radius: BorderRadius) -> Self {
+        let style = self
+            .style
+            .active()
+            .border_radius(border_radius)
+            .hovered()
+            .border_radius(border_radius)
+            .pressed()
+            .border_radius(border_radius)
+            .disabled()
+            .border_radius(border_radius);
+
+        Self { style }
+    }
+
     pub fn primary(self) -> Self {
         let color = ExcaliburColor::Label(LabelColors::Primary).into();
         let border_radius = 3.0.into();
@@ -935,6 +978,32 @@ impl ExcaliburButton {
             .background(Some(background.into()))
             .text_color(disabled_color)
             .border_radius(border_radius);
+        Self { style }
+    }
+
+    /// Button that can be pressed as a selection item.
+    pub fn selectable(self) -> Self {
+        let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
+            .background(Some(ExcaliburColor::Background3.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Primary).into())
+            .hovered()
+            .background(Some(ExcaliburColor::Background4.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Primary).into())
+            .pressed()
+            .background(Some(ExcaliburColor::Background2.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Primary).into())
+            .disabled()
+            .background(Some(ExcaliburColor::Background2.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_500).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Disabled).into());
+
         Self { style }
     }
 }
@@ -1208,6 +1277,11 @@ impl ExcaliburInputBuilder {
         )
         .style(move || self.style.build())
         .width(self.width)
+    }
+
+    pub fn size(mut self, size: Typography) -> Self {
+        self.size = Some(size.into());
+        self
     }
 
     pub fn padding(mut self, padding: Padding) -> Self {

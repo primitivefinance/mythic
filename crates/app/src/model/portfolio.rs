@@ -189,13 +189,21 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Updates the ENTIRE model! Wow!
     pub async fn update(&mut self, client: Arc<Client>) -> Result<()> {
         // Update sync block + timestamp first, since the other update methods need it.
+        // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
         self.update_last_sync_timestamp()?;
 
         // Update state first.
         self.update_token_balances(client.clone()).await?;
-        self.update_protocol_state(client.clone()).await?;
+        self.update_reserves_and_liquidity(client.clone()).await?;
         self.update_strategy_state(client.clone()).await?;
+
+        // todo: figure out how to handle the calls that should not fail and the ones
+        // that can be handled gracefully.
+        // Try to update the internal price, which only works if a position exists.
+        if let Err(error) = self.update_internal_price(client.clone()).await {
+            tracing::warn!("Internal price update failed: {:?}", error);
+        }
 
         // Update prices.
         self.update_external_prices(client.clone()).await?;
@@ -203,9 +211,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // Update series data.
         self.update_portfolio_value_series(client.clone()).await?;
         self.update_external_price_series(client.clone()).await?;
-        self.update_internal_price_series(client.clone()).await?;
         self.update_user_asset_value_series(client.clone()).await?;
         self.update_user_quote_value_series(client.clone()).await?;
+
+        // Try to update the internal portfolio, which only works if a position exists.
+        if let Err(error) = self.update_internal_price_series(client.clone()).await {
+            tracing::warn!("Internal portfolio update failed: {:?}", error);
+        }
 
         // Finally update cached data, which will only update if conditions are met.
         self.update_cached(client.clone()).await?;
@@ -327,22 +339,30 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn get_position_info(&self) -> Result<StrategyPosition> {
         let balance_x = self
             .raw_asset_reserve
-            .ok_or(Error::msg("Asset reserve not set"))?;
+            .ok_or(Error::msg("get_position_info: Asset reserve not set"))?;
         let balance_y = self
             .raw_quote_reserve
-            .ok_or(Error::msg("Quote reserve not set"))?;
+            .ok_or(Error::msg("get_position_info: Quote reserve not set"))?;
         let internal_price = self
             .raw_internal_spot_price
-            .ok_or(Error::msg("Internal spot price not set"))?;
+            .ok_or(Error::msg("get_position_info: Internal spot price not set"));
+        let internal_price = match internal_price {
+            Ok(internal_price) => internal_price,
+            Err(error) => {
+                // todo: figure out how to handle this case
+                tracing::warn!("Error fetching internal price: {:?}", error);
+                AlloyU256::ZERO
+            }
+        };
         let liquidity = self
             .raw_total_liquidity
-            .ok_or(Error::msg("Total liquidity not set"))?;
-        let quote_price = self
-            .raw_external_quote_price
-            .ok_or(Error::msg("External quote price not set"))?;
+            .ok_or(Error::msg("get_position_info: Total liquidity not set"))?;
+        let quote_price = self.raw_external_quote_price.ok_or(Error::msg(
+            "get_position_info: External quote price not set",
+        ))?;
         let external_price = self
             .raw_external_spot_price
-            .ok_or(Error::msg("External spot price not set"))?;
+            .ok_or(Error::msg("get_position_info: External spot price not set"))?;
 
         let external_price = alloy_primitives::utils::format_ether(external_price);
         let external_price = external_price.parse::<f64>()?;
@@ -483,7 +503,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             to_ethers_address(external_exchange),
             client.clone(),
         );
-        let price = lex.price().await?;
+        let price = lex.price().await;
+        let price = match price {
+            Ok(price) => price,
+            Err(error) => {
+                tracing::warn!("Error fetching external price: {:?}", error);
+                return Err(anyhow!("Error fetching external price"));
+            }
+        };
         let price = from_ethers_u256(price);
 
         Ok(price)
@@ -499,7 +526,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         let protocol = self.protocol(client.clone()).await?;
-        let (reserve_x, reserve_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
+        let result = protocol.get_reserves_and_liquidity().await;
+        let (reserve_x, reserve_y, liquidity) = match result {
+            Ok(result) => result,
+            Err(error) => {
+                tracing::warn!("Error fetching reserves and liquidity: {:?}", error);
+                return Err(anyhow!("Error fetching reserves and liquidity"));
+            }
+        };
         let reserve_x = from_ethers_u256(reserve_x);
         let reserve_y = from_ethers_u256(reserve_y);
         let liquidity = from_ethers_u256(liquidity);
@@ -511,7 +545,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         let protocol = self.protocol(client.clone()).await?;
-        let internal_price = protocol.internal_price().await?;
+        let internal_price = protocol.internal_price().await;
+        let internal_price = match internal_price {
+            Ok(internal_price) => internal_price,
+            Err(error) => {
+                tracing::warn!("Error fetching internal price: {:?}", error);
+                return Err(anyhow!("Error fetching internal price"));
+            }
+        };
+
         let internal_price = from_ethers_u256(internal_price);
         Ok(internal_price)
     }
@@ -531,14 +573,20 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok((strike_price, volatility, time_remaining))
     }
 
-    async fn update_protocol_state(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_reserves_and_liquidity(&mut self, client: Arc<Client>) -> Result<()> {
         let (reserve_x, reserve_y, liquidity) =
             self.fetch_reserves_and_liquidity(client.clone()).await?;
-        let internal_price = self.fetch_internal_price(client.clone()).await?;
 
         self.raw_asset_reserve = Some(reserve_x);
         self.raw_quote_reserve = Some(reserve_y);
         self.raw_total_liquidity = Some(liquidity);
+
+        Ok(())
+    }
+
+    async fn update_internal_price(&mut self, client: Arc<Client>) -> Result<()> {
+        let internal_price = self.fetch_internal_price(client.clone()).await?;
+
         self.raw_internal_spot_price = Some(internal_price);
 
         Ok(())
@@ -992,6 +1040,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
         let total_liquidity = total_liquidity.parse::<f64>()?;
 
+        // todo: handle better!
+        if total_liquidity == 0.0 {
+            return Err(anyhow!("Total liquidity is 0"));
+        }
+
         let internal_reserves = (
             (asset_reserve / total_liquidity) as f32,
             (quote_reserve / total_liquidity) as f32,
@@ -1023,6 +1076,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             alloy_primitives::utils::format_ether(time_to_expiry_years_wad);
         let time_to_expiry_years_wad_float = time_to_expiry_years_wad_float.parse::<f64>()?;
 
+        let mut points: Vec<ChartPoint> = vec![];
+
         let theoretical_asset_reserve = compute_x_given_price(
             spot_price_float,
             total_liquidity,
@@ -1050,45 +1105,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             color: plotters::style::full_palette::DEEPORANGE_A400,
             ..Default::default()
         };
-
-        let internal_reserves = ChartPoint {
-            x: internal_reserves.0,
-            y: internal_reserves.1,
-            color: plotters::style::full_palette::DEEPPURPLE_A400,
-            ..Default::default()
-        };
-
-        let internal_liq_dist = liq_distribution(
-            internal_reserves.x as f64,
-            1.0,
-            strike_price_wad_float,
-            sigma_percent_wad_float,
-            time_to_expiry_years_wad_float,
-        ) as f32;
-
-        let internal_liq_dist = ChartPoint {
-            x: internal_reserves.x,
-            y: internal_liq_dist,
-            color: plotters::style::full_palette::DEEPPURPLE_A400,
-            ..Default::default()
-        };
-
-        // Hardcodes 1.0 liquidity to keep the scale in line.
-        // todo: fix these to scale better.
-        let internal_price = compute_price_given_x_rust(
-            internal_reserves.x as f64,
-            1.0,
-            strike_price_wad_float,
-            sigma_percent_wad_float,
-            time_to_expiry_years_wad_float,
-        );
-
-        let internal_price = ChartPoint {
-            x: internal_reserves.x,
-            y: internal_price as f32,
-            color: plotters::style::full_palette::DEEPPURPLE_A400,
-            ..Default::default()
-        };
+        points.push(theoretical_reserves);
 
         let theoretical_price = compute_price_given_x_rust(
             theoretical_reserves.x as f64,
@@ -1104,6 +1121,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             color: plotters::style::full_palette::DEEPORANGE_A400,
             ..Default::default()
         };
+        points.push(theoretical_price);
 
         let theoretical_liq_dist = liq_distribution(
             theoretical_reserves.x as f64,
@@ -1119,17 +1137,53 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             color: plotters::style::full_palette::DEEPORANGE_A400,
             ..Default::default()
         };
+        points.push(theoretical_liq_dist);
 
-        let poi: Vec<ChartPoint> = vec![
-            internal_reserves,
-            theoretical_reserves,
-            internal_price,
-            theoretical_price,
-            internal_liq_dist,
-            theoretical_liq_dist,
-        ];
+        if internal_reserves.0 > 0.0 {
+            let internal_reserves = ChartPoint {
+                x: internal_reserves.0,
+                y: internal_reserves.1,
+                color: plotters::style::full_palette::DEEPPURPLE_A400,
+                ..Default::default()
+            };
+            points.push(internal_reserves);
 
-        Ok(poi)
+            let internal_liq_dist = liq_distribution(
+                internal_reserves.x as f64,
+                1.0,
+                strike_price_wad_float,
+                sigma_percent_wad_float,
+                time_to_expiry_years_wad_float,
+            ) as f32;
+
+            let internal_liq_dist = ChartPoint {
+                x: internal_reserves.x,
+                y: internal_liq_dist,
+                color: plotters::style::full_palette::DEEPPURPLE_A400,
+                ..Default::default()
+            };
+            points.push(internal_liq_dist);
+
+            // Hardcodes 1.0 liquidity to keep the scale in line.
+            // todo: fix these to scale better.
+            let internal_price = compute_price_given_x_rust(
+                internal_reserves.x as f64,
+                1.0,
+                strike_price_wad_float,
+                sigma_percent_wad_float,
+                time_to_expiry_years_wad_float,
+            );
+
+            let internal_price = ChartPoint {
+                x: internal_reserves.x,
+                y: internal_price as f32,
+                color: plotters::style::full_palette::DEEPPURPLE_A400,
+                ..Default::default()
+            };
+            points.push(internal_price);
+        }
+
+        Ok(points)
     }
 
     /// Transforms the portfolio strategy into a plotted curve with the current
@@ -1166,6 +1220,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
         let total_liquidity = total_liquidity.parse::<f64>()?;
+
+        if total_liquidity == 0.0 {
+            return Err(anyhow!("Total liquidity is 0"));
+        }
 
         // Choose the maximum bounds for x and y. These use log normal curve
         // assumptions.

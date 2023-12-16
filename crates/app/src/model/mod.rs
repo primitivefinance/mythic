@@ -60,7 +60,10 @@ impl Model {
         // 3. Using the position info, derives the weights of the positions.
         // 4. Propagates updated position info to the user's saved portfolio data.
         self.update_data_model(client).await.and_then(|_| {
-            self.update_portfolio_positions()?;
+            if let Err(error) = self.update_portfolio_positions() {
+                tracing::warn!("Failed to update portfolio positions: {:?}", error);
+            }
+
             Ok(())
         })
     }
@@ -77,8 +80,19 @@ impl Model {
         // todo: this code should be somewhere else, right?
         let total_value = pos_info.balance_x * pos_info.external_price
             + pos_info.balance_y * pos_info.quote_price;
+
         let position_x_weight = pos_info.balance_x * pos_info.external_price / total_value;
+        // If total_value is 0, there's no active positions!
+        if position_x_weight.is_nan() {
+            return Err(anyhow::anyhow!("Position X weight is NaN, 0 total value."));
+        }
+
         let position_y_weight = pos_info.balance_y / total_value;
+        // If total_value is 0, there's no active positions!
+        if position_y_weight.is_nan() {
+            return Err(anyhow::anyhow!("Position Y weight is NaN, 0 total value."));
+        }
+
         let position_x_weight = Weight {
             id: Uuid::new_v4(),
             value: position_x_weight,

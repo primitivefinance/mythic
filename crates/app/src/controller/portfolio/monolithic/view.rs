@@ -27,6 +27,18 @@ impl MonolithicPresenter {
         Self { model }
     }
 
+    pub fn update(&mut self, model: Model) {
+        self.model = model;
+    }
+
+    pub fn get_aum(&self) -> String {
+        let aum = self.model.portfolio.derive_internal_portfolio_value();
+        match aum {
+            Ok(data) => alloy_primitives::utils::format_ether(data),
+            Err(_) => "N/A".to_string(),
+        }
+    }
+
     pub fn get_positions(&self) -> (Positions, Vec<String>) {
         let portfolio = self.model.user.portfolio.clone();
         let position_x = portfolio
@@ -87,7 +99,19 @@ impl MonolithicPresenter {
                 .derive_internal_portfolio_value()
                 .to_label();
 
-            let health = self.model.portfolio.derive_portfolio_health().to_label();
+            let health = self.model.portfolio.derive_portfolio_health();
+            let health = match health {
+                Ok(data) => {
+                    let value = alloy_primitives::utils::format_ether(data);
+                    match value.parse::<f64>() {
+                        Ok(_) => label(&format!("{}", value)).title1().percentage(),
+                        Err(_) => label(&"Failed to parse U256 as float.")
+                            .caption()
+                            .tertiary(),
+                    }
+                }
+                Err(_) => label(&"N/A").title1().secondary(),
+            };
 
             (
                 label(position.asset.name).title1(),
@@ -115,6 +139,7 @@ impl MonolithicView {
 
     pub fn layout<'a, Message>(
         &self,
+        aum: impl ToString,
         positions: Positions,
         logos: Vec<String>,
         on_allocate: Option<Message>,
@@ -129,6 +154,7 @@ impl MonolithicView {
                 Column::new()
                     .spacing(Sizes::Lg)
                     .push(Inventory::layout(
+                        aum,
                         positions,
                         logos,
                         on_allocate,
