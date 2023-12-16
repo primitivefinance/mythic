@@ -133,12 +133,7 @@ impl MonolithicPresenter {
 pub struct MonolithicView;
 
 impl MonolithicView {
-    pub fn new() -> Self {
-        Self
-    }
-
     pub fn layout<'a, Message>(
-        &self,
         aum: impl ToString,
         positions: Positions,
         logos: Vec<String>,
@@ -178,7 +173,6 @@ impl MonolithicView {
     /// Body content fills the remaining space.
     /// Light gray border surrounds the container, with no background.
     pub fn item_layout<'a, Message>(
-        &self,
         title: impl ToString,
         element: impl Into<Element<'a, Message>>,
     ) -> Container<'a, Message>
@@ -188,37 +182,34 @@ impl MonolithicView {
         ExcaliburContainer::default()
             .transparent()
             .light_border()
-            .build(
-                self.stacked_containers(
-                    ExcaliburContainer::default().transparent().light_border(),
-                    ExcaliburContainer::default().transparent(),
-                    ExcaliburContainer::default().transparent(),
-                    Row::new()
-                        .spacing(Sizes::Sm)
-                        .width(Length::Fill)
-                        .push(
-                            Column::new()
-                                .width(Length::FillPortion(4))
-                                .push(label(title).secondary().build()),
-                        )
-                        .push(
-                            Column::new()
-                                .width(Length::FillPortion(1))
-                                .push(label(icon_to_char(Info)).icon().secondary().build())
-                                .align_items(alignment::Alignment::End),
-                        ),
-                    element,
-                    Space::new(Length::Fill, 0.0),
-                    9.0,
-                    800.0,
-                ),
-            )
+            .build(Self::stacked_containers(
+                ExcaliburContainer::default().transparent().light_border(),
+                ExcaliburContainer::default().transparent(),
+                ExcaliburContainer::default().transparent(),
+                Row::new()
+                    .spacing(Sizes::Sm)
+                    .width(Length::Fill)
+                    .push(
+                        Column::new()
+                            .width(Length::FillPortion(4))
+                            .push(label(title).secondary().build()),
+                    )
+                    .push(
+                        Column::new()
+                            .width(Length::FillPortion(1))
+                            .push(label(icon_to_char(Info)).icon().secondary().build())
+                            .align_items(alignment::Alignment::End),
+                    ),
+                element,
+                Space::new(Length::Fill, 0.0),
+                9.0,
+                800.0,
+            ))
     }
 
     /// Stacks three containers into a compact card with a max_height.
     /// Expects containers to be edited already except for border radius.
     pub fn stacked_containers<'a, Message>(
-        &self,
         header: ExcaliburContainer,
         body: ExcaliburContainer,
         footer: ExcaliburContainer,

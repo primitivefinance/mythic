@@ -240,7 +240,7 @@ impl State for Monolithic {
     fn view(&self) -> Element<Self::ViewMessage> {
         let (positions, logos) = self.presenter.get_positions();
         let mut content = Column::new().spacing(Sizes::Xl);
-        content = content.push(MonolithicView::new().layout(
+        content = content.push(MonolithicView::layout(
             self.presenter.get_aum(),
             positions,
             logos,
