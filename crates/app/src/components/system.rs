@@ -1,6 +1,9 @@
 //! Entire Excalibur component system.
 
-use iced::Font;
+use iced::{
+    widget::{component, text_input, Component},
+    Font,
+};
 
 use super::{
     chart::{
@@ -1154,5 +1157,457 @@ impl ExcaliburChart {
         self = self.y_range((-0.1, 1.0));
 
         self
+    }
+}
+
+#[derive(Clone)]
+pub struct ExcaliburInputBuilder {
+    padding: Option<Padding>,
+    placeholder: Option<String>,
+    font: Option<iced::Font>,
+    size: Option<f32>,
+    icon: Option<iced::widget::text_input::Icon<iced::Font>>,
+    style: CustomInputStyle,
+    width: Length,
+}
+
+impl Default for ExcaliburInputBuilder {
+    fn default() -> Self {
+        Self {
+            padding: None,
+            placeholder: None,
+            font: None,
+            size: None,
+            icon: None,
+            style: CustomInputStyle::new(),
+            width: Length::Shrink,
+        }
+    }
+}
+
+impl ExcaliburInputBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn build<Message>(
+        self,
+        value: Option<String>,
+        on_change: impl Fn(Option<String>) -> Message + 'static,
+    ) -> ExcaliburInput<Message> {
+        ExcaliburInput::new(
+            value,
+            on_change,
+            self.padding,
+            self.placeholder,
+            None,
+            None,
+            self.size,
+            self.font,
+            self.icon,
+        )
+        .style(move || self.style.build())
+        .width(self.width)
+    }
+
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.padding = Some(padding);
+        self
+    }
+
+    pub fn placeholder(mut self, placeholder: String) -> Self {
+        self.placeholder = Some(placeholder);
+        self
+    }
+
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn light_border(self) -> Self {
+        self.style
+            .active()
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+            .hovered()
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+            .background(ExcaliburColor::Background4.into());
+
+        self
+    }
+
+    pub fn border_radius(self, radius: BorderRadius) -> Self {
+        self.style.active().border_radius(radius);
+        self.style.focused().border_radius(radius);
+        self.style.hovered().border_radius(radius);
+        self.style.disabled().border_radius(radius);
+        self
+    }
+
+    pub fn icon(mut self, icon: iced::widget::text_input::Icon<iced::Font>) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum InputEvent {
+    Change(String),
+    Paste(String),
+    Submit,
+}
+
+pub struct ExcaliburInput<Message> {
+    placeholder: String,
+    value: Option<String>,
+    is_secure: bool,
+    font: Option<iced::Font>,
+    width: Length,
+    padding: Padding,
+    size: Option<f32>,
+    line_height: text::LineHeight,
+    on_input: Option<Box<dyn Fn(Option<String>) -> Message>>,
+    on_paste: Option<Box<dyn Fn(String) -> Message>>,
+    on_submit: Option<Message>,
+    icon: Option<iced::widget::text_input::Icon<iced::Font>>,
+    style: Option<Box<dyn Fn() -> <iced::Theme as iced::widget::text_input::StyleSheet>::Style>>,
+}
+
+impl<Message> ExcaliburInput<Message> {
+    pub fn new(
+        value: Option<String>,
+        on_input: impl Fn(Option<String>) -> Message + 'static,
+        padding: Option<Padding>,
+        placeholder: Option<String>,
+        on_paste: Option<Box<dyn Fn(String) -> Message>>,
+        on_submit: Option<Message>,
+        size: Option<f32>,
+        font: Option<iced::Font>,
+        icon: Option<iced::widget::text_input::Icon<iced::Font>>,
+    ) -> Self {
+        Self {
+            placeholder: placeholder.unwrap_or("".to_string()),
+            value,
+            is_secure: false,
+            font,
+            width: Length::Shrink,
+            padding: padding.unwrap_or(0.0.into()),
+            size,
+            line_height: text::LineHeight::from(1.0),
+            on_input: Some(Box::new(on_input)),
+            on_paste,
+            on_submit,
+            icon,
+            style: Some(Box::new(|| {
+                <iced::Theme as iced::widget::text_input::StyleSheet>::Style::default()
+            })),
+        }
+    }
+
+    pub fn style(
+        mut self,
+        style: impl Fn() -> <iced::Theme as iced::widget::text_input::StyleSheet>::Style + 'static,
+    ) -> Self {
+        self.style = Some(Box::new(style));
+        self
+    }
+
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+}
+
+impl<Message> Component<Message, iced::Renderer> for ExcaliburInput<Message>
+where
+    Message: Clone,
+{
+    type State = ();
+    type Event = InputEvent;
+
+    fn update(&mut self, _state: &mut Self::State, event: Self::Event) -> Option<Message> {
+        match event {
+            Self::Event::Change(value) => {
+                self.value = Some(value.clone());
+
+                if let Some(on_input) = &self.on_input {
+                    if value.is_empty() {
+                        Some((on_input)(None))
+                    } else {
+                        let parsed_value = value.parse();
+                        match parsed_value {
+                            Ok(parsed_value) => Some((on_input)(Some(parsed_value))),
+                            Err(e) => {
+                                tracing::warn!("Error parsing input: {:?}", e);
+                                None
+                            }
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
+            Self::Event::Paste(value) => {
+                self.value = Some(value.clone());
+
+                if let Some(on_paste) = &self.on_paste {
+                    if value.is_empty() {
+                        Some((on_paste)(value))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            Self::Event::Submit => {
+                if let Some(on_submit) = &self.on_submit {
+                    Some(on_submit.clone())
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    fn view(&self, _state: &Self::State) -> Element<Self::Event, iced::Renderer> {
+        let mut input = text_input(
+            &self.placeholder,
+            &self
+                .value
+                .as_ref()
+                .map(|v| v.to_string())
+                .unwrap_or("".to_string()),
+        )
+        .on_input(Self::Event::Change)
+        .padding(self.padding)
+        .width(self.width)
+        .line_height(self.line_height)
+        .on_submit(Self::Event::Submit)
+        .on_paste(Self::Event::Paste);
+
+        if let Some(size) = self.size {
+            input = input.size(size);
+        }
+
+        if let Some(icon) = &self.icon {
+            input = input.icon(icon.clone());
+        }
+
+        if let Some(font) = &self.font {
+            input = input.font(font.clone());
+        }
+
+        if self.is_secure {
+            input = input.password();
+        }
+
+        if let Some(style) = &self.style {
+            input = input.style(style());
+        }
+
+        input.into()
+    }
+}
+
+impl<'a, Event> From<ExcaliburInput<Event>> for Element<'a, Event, iced::Renderer>
+where
+    Event: 'a + Clone,
+{
+    fn from(config_input: ExcaliburInput<Event>) -> Self {
+        component(config_input)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum InputState {
+    #[default]
+    Active,
+    Focused,
+    Hovered,
+    Disabled,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CustomInputStyle {
+    pub active: text_input::Appearance,
+    pub focused: text_input::Appearance,
+    pub hovered: text_input::Appearance,
+    pub disabled: text_input::Appearance,
+    pub current: InputState,
+    pub placeholder_color: Color,
+    pub value_color: Color,
+    pub disabled_color: Color,
+    pub selection_color: Color,
+}
+
+impl Default for CustomInputStyle {
+    fn default() -> Self {
+        let default = text_input::Appearance {
+            background: ExcaliburColor::Transparent.into(),
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: ExcaliburColor::Transparent.into(),
+            icon_color: ExcaliburColor::Label(LabelColors::Primary).into(),
+        };
+        Self {
+            active: default,
+            focused: default,
+            hovered: default,
+            disabled: default,
+            current: InputState::Active,
+            placeholder_color: ExcaliburColor::Label(LabelColors::Placeholder).into(),
+            value_color: ExcaliburColor::Label(LabelColors::Primary).into(),
+            disabled_color: ExcaliburColor::Label(LabelColors::Disabled).into(),
+            selection_color: ExcaliburColor::Label(LabelColors::Tertiary).into(),
+        }
+    }
+}
+
+impl CustomInputStyle {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    // Edit the different states
+
+    pub fn active(mut self) -> Self {
+        self.current = InputState::Active;
+        self
+    }
+
+    pub fn focused(mut self) -> Self {
+        self.current = InputState::Focused;
+        self
+    }
+
+    pub fn hovered(mut self) -> Self {
+        self.current = InputState::Hovered;
+        self
+    }
+
+    pub fn disabled(mut self) -> Self {
+        self.current = InputState::Disabled;
+        self
+    }
+
+    // Edit the colors of the text
+
+    pub fn placeholder_color(mut self, color: ExcaliburColor) -> Self {
+        self.placeholder_color = color.into();
+        self
+    }
+
+    pub fn value_color(mut self, color: ExcaliburColor) -> Self {
+        self.value_color = color.into();
+        self
+    }
+
+    pub fn disabled_color(mut self, color: ExcaliburColor) -> Self {
+        self.disabled_color = color.into();
+        self
+    }
+
+    pub fn selection_color(mut self, color: ExcaliburColor) -> Self {
+        self.selection_color = color.into();
+        self
+    }
+
+    // Edit the values of different states
+
+    pub fn background(mut self, color: ExcaliburColor) -> Self {
+        match self.current {
+            InputState::Active => self.active.background = color.into(),
+            InputState::Focused => self.focused.background = color.into(),
+            InputState::Hovered => self.hovered.background = color.into(),
+            InputState::Disabled => self.disabled.background = color.into(),
+        }
+        self
+    }
+
+    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+        match self.current {
+            InputState::Active => self.active.border_radius = radius,
+            InputState::Focused => self.focused.border_radius = radius,
+            InputState::Hovered => self.hovered.border_radius = radius,
+            InputState::Disabled => self.disabled.border_radius = radius,
+        }
+        self
+    }
+
+    pub fn border_width(mut self, width: f32) -> Self {
+        match self.current {
+            InputState::Active => self.active.border_width = width,
+            InputState::Focused => self.focused.border_width = width,
+            InputState::Hovered => self.hovered.border_width = width,
+            InputState::Disabled => self.disabled.border_width = width,
+        }
+        self
+    }
+
+    pub fn border_color(mut self, color: ExcaliburColor) -> Self {
+        match self.current {
+            InputState::Active => self.active.border_color = color.into(),
+            InputState::Focused => self.focused.border_color = color.into(),
+            InputState::Hovered => self.hovered.border_color = color.into(),
+            InputState::Disabled => self.disabled.border_color = color.into(),
+        }
+        self
+    }
+
+    pub fn icon_color(mut self, color: ExcaliburColor) -> Self {
+        match self.current {
+            InputState::Active => self.active.icon_color = color.into(),
+            InputState::Focused => self.focused.icon_color = color.into(),
+            InputState::Hovered => self.hovered.icon_color = color.into(),
+            InputState::Disabled => self.disabled.icon_color = color.into(),
+        }
+        self
+    }
+
+    pub fn build(&self) -> iced::theme::TextInput {
+        iced::theme::TextInput::Custom(Box::new(*self))
+    }
+}
+
+impl text_input::StyleSheet for CustomInputStyle {
+    type Style = iced::Theme;
+
+    fn active(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.active.into()
+    }
+
+    fn focused(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.focused.into()
+    }
+
+    fn hovered(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.hovered.into()
+    }
+
+    fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.disabled.into()
+    }
+
+    fn placeholder_color(&self, _style: &Self::Style) -> Color {
+        self.placeholder_color
+    }
+
+    fn value_color(&self, _style: &Self::Style) -> Color {
+        self.value_color
+    }
+
+    fn selection_color(&self, _style: &Self::Style) -> Color {
+        self.selection_color
+    }
+
+    fn disabled_color(&self, _style: &Self::Style) -> Color {
+        self.disabled_color
     }
 }

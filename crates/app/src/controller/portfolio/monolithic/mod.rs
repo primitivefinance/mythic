@@ -126,7 +126,7 @@ impl State for Monolithic {
 
     fn view(&self) -> Element<Self::ViewMessage> {
         let (positions, logos) = self.presenter.get_positions();
-        let mut content = Column::new().spacing(Sizes::Md);
+        let mut content = Column::new().spacing(Sizes::Xl);
         content = content.push(MonolithicView::new().layout(
             positions,
             logos,
@@ -134,6 +134,18 @@ impl State for Monolithic {
             |x| Message::SelectPosition(x),
             |x| Message::Form(FormMessage::Amount(x)),
         ));
+
+        if let Some(address) = self.view_position {
+            let (title, external_price, aum, health) = self.presenter.get_metrics(address);
+
+            content = content.push(Metrics::layout(
+                title,
+                external_price,
+                label("USD"),
+                aum,
+                health,
+            ));
+        }
 
         if self.allocate {
             content = content.push(
@@ -149,18 +161,6 @@ impl State for Monolithic {
                     )
                     .map(|x| Message::Form(x)),
             );
-        } else {
-            if let Some(address) = self.view_position {
-                let (title, external_price, aum, health) = self.presenter.get_metrics(address);
-
-                content = content.push(Metrics::layout(
-                    title,
-                    external_price,
-                    label("USD"),
-                    aum,
-                    health,
-                ));
-            }
         }
 
         scrollable(

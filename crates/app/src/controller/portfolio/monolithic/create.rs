@@ -1,11 +1,16 @@
 use datatypes::portfolio::coin::Coin;
-use iced_aw::graphics::icons::icon_to_char;
+use iced::Padding;
+use iced_aw::{graphics::icons::icon_to_char, ICON_FONT};
 
 use super::{dashboard::stages::review::Times, *};
 use crate::{
     components::{
         input::create_input_component,
-        system::{ExcaliburButton, ExcaliburChart, ExcaliburContainer, ExcaliburText},
+        select::excalibur_select,
+        system::{
+            ExcaliburButton, ExcaliburChart, ExcaliburContainer, ExcaliburInputBuilder,
+            ExcaliburText,
+        },
     },
     controller::portfolio::dashboard::stages::review::EnumList,
     select::custom_pick_list,
@@ -59,14 +64,16 @@ impl Form {
                 self.liquidity,
                 on_select_liquidity,
             ),
-            FormView::chart_layout(&self.chart, label("Strategy Preview"), label("Synced")),
+            FormView::chart_layout(
+                &self.chart,
+                label("Strategy Preview"),
+                label("Synced").caption2().tertiary(),
+            ),
             Column::new()
                 .spacing(Sizes::Sm)
                 .push(label("Instructions").secondary().build())
                 .push(label("Review the details of the allocate.").build()),
-            ExcaliburButton::new()
-                .build(label("Create").build())
-                .on_press(submit),
+            FormView::submit(Some(submit)),
         )
         .into()
     }
@@ -107,37 +114,45 @@ impl FormView {
         action: impl Into<Element<'a, Message>>,
     ) -> Container<'a, Message>
     where
-        Message: 'a,
+        Message: 'a + Clone,
     {
         ExcaliburContainer::default().transparent().build(
-            Row::new()
-                .spacing(Sizes::Md)
+            Column::new()
+                .width(Length::Fill)
+                .spacing(Sizes::Lg)
+                .push(label("Allocate New Position").title1().build())
                 .push(
-                    Column::new()
-                        .width(Length::FillPortion(2))
-                        .push(content.into()),
-                )
-                .push(
-                    Column::new()
-                        .width(Length::FillPortion(2))
+                    Row::new()
                         .spacing(Sizes::Md)
-                        .push(Container::new(chart.into()).max_height(400.0))
                         .push(
-                            Container::new(
-                                Row::new()
-                                    .width(Length::Fill)
-                                    .spacing(Sizes::Md)
-                                    .push(Column::new().push(instructions.into()))
-                                    .push(
-                                        Column::new()
-                                            .push(action.into())
-                                            .align_items(alignment::Alignment::End),
-                                    ),
-                            )
-                            .height(Length::FillPortion(1)),
-                        ),
+                            Column::new()
+                                .width(Length::FillPortion(2))
+                                .push(content.into()),
+                        )
+                        .push(
+                            Column::new()
+                                .width(Length::FillPortion(2))
+                                .spacing(Sizes::Md)
+                                .push(Container::new(chart.into()).max_height(350.0)),
+                        )
+                        .width(Length::Fill),
                 )
-                .width(Length::Fill),
+                .push(
+                    Container::new(
+                        Row::new()
+                            .width(Length::Fill)
+                            .spacing(Sizes::Md)
+                            .push(Column::new().push(instructions.into()))
+                            .push(
+                                Column::new()
+                                    .width(Length::Fill)
+                                    .push(action.into())
+                                    .align_items(alignment::Alignment::End),
+                            ),
+                    )
+                    .width(Length::Fill)
+                    .align_x(alignment::Horizontal::Right),
+                ),
         )
     }
 
@@ -159,7 +174,7 @@ impl FormView {
         on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'static,
     ) -> Container<'a, Message>
     where
-        Message: 'static + Default,
+        Message: 'static + Default + Clone,
     {
         ExcaliburContainer::default().transparent().build(
             Column::new()
@@ -199,27 +214,54 @@ impl FormView {
         )
     }
 
+    pub fn submit<'a, Message>(on_submit: Option<Message>) -> Container<'a, Message>
+    where
+        Message: 'a + Clone,
+    {
+        ExcaliburContainer::default().transparent().build(
+            Column::new()
+                .spacing(Sizes::Sm)
+                .push(label("Submit").secondary().build())
+                .push(
+                    ExcaliburButton::new()
+                        .primary()
+                        .build(label("Submit for Approval").build())
+                        .padding(Padding {
+                            top: Sizes::Md.into(),
+                            bottom: Sizes::Md.into(),
+                            left: Sizes::Lg.into(),
+                            right: Sizes::Lg.into(),
+                        }),
+                )
+                .width(Length::Fill),
+        )
+    }
+
     pub fn deposit_form<'a, Message>(
         deposit_amount: Option<String>,
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
     ) -> Container<'a, Message>
     where
-        Message: 'a + Default,
+        Message: 'a + Default + Clone,
     {
         Self::form_item(
             "Deposit",
             Column::new()
                 .push(
-                    Row::new()
-                        .align_items(alignment::Alignment::Center)
-                        .padding(Sizes::Lg)
-                        .spacing(Sizes::Md)
-                        .push(Column::new().push(label("$")))
-                        .push(
-                            Column::new()
-                                .align_items(alignment::Alignment::End)
-                                .push(create_input_component(deposit_amount, on_change_deposit)),
-                        ),
+                    ExcaliburInputBuilder::new()
+                        .light_border()
+                        .border_radius([8.0, 8.0, 0.0, 0.0].into())
+                        .placeholder("Enter deposit amount".to_string())
+                        .width(Length::Fill)
+                        .padding(Sizes::Md.into())
+                        .icon(iced::widget::text_input::Icon::<iced::Font> {
+                            font: ICON_FONT,
+                            code_point: icon_to_char(iced_aw::Icon::Check),
+                            size: Some(Sizes::Md.into()),
+                            spacing: Sizes::Sm.into(),
+                            side: iced::widget::text_input::Side::Left,
+                        })
+                        .build(deposit_amount, on_change_deposit),
                 )
                 .push(
                     ExcaliburContainer::default()
@@ -246,22 +288,15 @@ impl FormView {
         Self::form_item(
             "Duration",
             Column::new().push(
-                Row::new()
-                    .align_items(alignment::Alignment::Center)
-                    .padding(Sizes::Lg)
-                    .spacing(Sizes::Md)
-                    .push(Column::new().push(label("Time")))
-                    .push(
-                        Column::new().align_items(alignment::Alignment::End).push(
-                            custom_pick_list(
-                                choice_duration,
-                                chosen_duration,
-                                on_select_duration,
-                                None,
-                            )
-                            .padding(Sizes::Md),
-                        ),
-                    ),
+                excalibur_select(
+                    choice_duration,
+                    chosen_duration,
+                    on_select_duration,
+                    "Select duration",
+                    Some(8.0.into()),
+                )
+                .padding(Sizes::Md)
+                .width(Length::Fill),
             ),
         )
     }
@@ -278,26 +313,15 @@ impl FormView {
             "Liquidity Type",
             Column::new()
                 .push(
-                    Row::new()
-                        .align_items(alignment::Alignment::Center)
-                        .padding(Sizes::Lg)
-                        .spacing(Sizes::Md)
-                        .push(Column::new().push(label("Type")))
-                        .push(
-                            Column::new()
-                                .align_items(alignment::Alignment::End)
-                                .push(
-                                    custom_pick_list(
-                                        choice_liquidity,
-                                        chosen_liquidity,
-                                        on_select_liquidity,
-                                        None,
-                                    )
-                                    .padding(Sizes::Md),
-                                )
-                                .width(Length::Fill),
-                        )
-                        .width(Length::Fill),
+                    excalibur_select(
+                        choice_liquidity,
+                        chosen_liquidity,
+                        on_select_liquidity,
+                        "Select liquidity type",
+                        Some([8.0, 8.0, 0.0, 0.0].into()),
+                    )
+                    .padding(Sizes::Md)
+                    .width(Length::Fill),
                 )
                 .push(
                     ExcaliburContainer::default()
@@ -325,21 +349,25 @@ impl FormView {
         on_change_end_price: impl Fn(Option<String>) -> Message + 'static,
     ) -> Container<'a, Message>
     where
-        Message: 'a + Default,
+        Message: 'a + Default + Clone,
     {
         Self::form_item(
             "Target Price",
             Column::new().push(
-                Row::new()
-                    .align_items(alignment::Alignment::Center)
-                    .padding(Sizes::Lg)
-                    .spacing(Sizes::Md)
-                    .push(Column::new().push(label("$")))
-                    .push(
-                        Column::new()
-                            .align_items(alignment::Alignment::End)
-                            .push(create_input_component(target_price, on_change_end_price)),
-                    ),
+                ExcaliburInputBuilder::new()
+                    .light_border()
+                    .border_radius([8.0, 8.0, 0.0, 0.0].into())
+                    .placeholder("Enter target price".to_string())
+                    .width(Length::Fill)
+                    .padding(Sizes::Md.into())
+                    .icon(iced::widget::text_input::Icon::<iced::Font> {
+                        font: ICON_FONT,
+                        code_point: icon_to_char(iced_aw::Icon::Check),
+                        size: Some(Sizes::Md.into()),
+                        spacing: Sizes::Sm.into(),
+                        side: iced::widget::text_input::Side::Left,
+                    })
+                    .build(target_price, on_change_end_price),
             ),
         )
     }
