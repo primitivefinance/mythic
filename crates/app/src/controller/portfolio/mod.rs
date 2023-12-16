@@ -4,6 +4,7 @@
 
 pub mod create;
 pub mod dashboard;
+pub mod monolithic;
 
 use iced::widget::Container;
 
@@ -19,14 +20,16 @@ pub enum Message {
     Empty,
     Create(create::Message),
     Dashboard(dashboard::Message),
+    Monolithic(monolithic::Message),
 }
 
 #[derive(Debug, Clone, Default)]
 pub enum Page {
     Empty,
     Create,
-    #[default]
     Dashboard,
+    #[default]
+    Monolithic,
 }
 
 impl From<Message> for RootMessage {
@@ -48,6 +51,7 @@ pub struct PortfolioRoot {
     pub page: Page,
     pub create: create::CreatePortfolio,
     pub dashboard: dashboard::Dashboard,
+    pub monolithic: monolithic::Monolithic,
     pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
 }
 
@@ -57,6 +61,7 @@ impl PortfolioRoot {
             page: Page::default(),
             create: create::CreatePortfolio::new(model.user.clone()),
             dashboard: dashboard::Dashboard::new(None, client.clone(), model.clone()),
+            monolithic: monolithic::Monolithic::new(model.clone()),
             client,
         }
     }
@@ -106,6 +111,10 @@ impl State for PortfolioRoot {
                     .dashboard
                     .update(message)
                     .map(|x| Message::Dashboard(x).into()),
+                Message::Monolithic(message) => self
+                    .monolithic
+                    .update(message)
+                    .map(|x| Message::Monolithic(x).into()),
             },
 
             // Lazy update, todo: this is kind of complicated, can we make it easier?
@@ -127,6 +136,10 @@ impl State for PortfolioRoot {
             Page::Empty => Column::new().push(label(&"Select a page").build()).into(),
             Page::Create => self.create.view().map(|x| Message::Create(x).into()),
             Page::Dashboard => self.dashboard.view().map(|x| Message::Dashboard(x).into()),
+            Page::Monolithic => self
+                .monolithic
+                .view()
+                .map(|x| Message::Monolithic(x).into()),
         };
 
         Container::new(content)
@@ -137,8 +150,20 @@ impl State for PortfolioRoot {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
-        self.dashboard
-            .subscription()
-            .map(|x| Message::Dashboard(x).into())
+        match self.page {
+            Page::Empty => Subscription::none(),
+            Page::Create => self
+                .create
+                .subscription()
+                .map(|x| Message::Create(x).into()),
+            Page::Dashboard => self
+                .dashboard
+                .subscription()
+                .map(|x| Message::Dashboard(x).into()),
+            Page::Monolithic => self
+                .monolithic
+                .subscription()
+                .map(|x| Message::Monolithic(x).into()),
+        }
     }
 }

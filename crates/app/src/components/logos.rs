@@ -23,6 +23,17 @@ pub fn excalibur_logo_2() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO_2, None).unwrap()
 }
 
+const ETHER_LOGO: &[u8] = include_bytes!("../../../../assets/logos/ether_logo.png");
+const USDC_LOGO: &[u8] = include_bytes!("../../../../assets/logos/usdc_logo.png");
+
+pub fn ether_logo() -> icon::Icon {
+    icon::from_file_data(ETHER_LOGO, None).unwrap()
+}
+
+pub fn usdc_logo() -> icon::Icon {
+    icon::from_file_data(USDC_LOGO, None).unwrap()
+}
+
 pub struct PhiLogo {
     pub start: Instant,
     pub rotation: f32,

@@ -123,7 +123,6 @@ impl controller::State for Sidebar {
                 Row::new()
                     .spacing(Sizes::Sm)
                     .align_items(alignment::Alignment::Center)
-                    .push(label(SYMBOL).title3().symbol().build())
                     .push(label(TITLE).title3().branding().build()),
             )
             .padding(Sizes::Lg)
