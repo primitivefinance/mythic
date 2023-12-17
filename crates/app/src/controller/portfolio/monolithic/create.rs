@@ -57,6 +57,7 @@ impl Form {
 
     pub fn view<Message>(
         &self,
+        state: &SubmitState,
         on_close: Option<Message>,
         submit: Option<Message>,
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
@@ -98,7 +99,7 @@ impl Form {
                         ],
                     ),
                     submit,
-                    self.state,
+                    state,
                 ),
                 FormView::chart_layout(
                     &self.chart,
@@ -266,7 +267,7 @@ impl FormView {
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
         review: impl Into<Element<'a, Message>>,
         submit: Option<Message>,
-        state: SubmitState,
+        state: &SubmitState,
     ) -> Container<'a, Message>
     where
         Message: 'a + Clone + Default,
@@ -433,7 +434,7 @@ impl FormView {
     /// Form submit button for creating the position.
     pub fn submit<'a, Message>(
         on_submit: Option<Message>,
-        state: SubmitState,
+        state: &SubmitState,
     ) -> Container<'a, Message>
     where
         Message: 'a + Clone,
@@ -453,7 +454,7 @@ impl FormView {
         )
         .tick_duration_ms(LOADING_INDICATOR_SPEED_MS);
 
-        match state {
+        match *state {
             SubmitState::Empty => {
                 button_content = button_content
                     .push(label(icon_to_char(Icon::ShieldShaded)).icon().build())
@@ -468,7 +469,7 @@ impl FormView {
             SubmitState::Confirmed => {
                 button_content = button_content
                     .push(label(icon_to_char(Icon::CheckAll)).icon().title2().build())
-                    .push(label("Continue").build());
+                    .push(label("Done - Continue").build());
             }
             SubmitState::Failed => {
                 button_background = ExcaliburColor::Button(system::ButtonColors::Error);
@@ -493,7 +494,11 @@ impl FormView {
                         .background(button_background)
                         .pressed()
                         .background(button_background)
-                        .build(button_content)
+                        .build(
+                            Container::new(button_content)
+                                .center_x()
+                                .width(Length::Fill),
+                        )
                         .padding(Padding {
                             top: Sizes::Md.into(),
                             bottom: Sizes::Md.into(),

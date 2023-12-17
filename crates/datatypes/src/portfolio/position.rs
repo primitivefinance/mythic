@@ -162,6 +162,19 @@ pub struct Position {
     pub layer: Option<PositionLayer>,
 }
 
+impl std::fmt::Display for Position {
+    // Format each position like Position { symbol, balance, weight }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{ symbol: {}, balance: {}, weight: {} }}",
+            self.asset.symbol,
+            self.balance.unwrap_or_default(),
+            self.weight.unwrap_or_default().value
+        )
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Default)]
 pub enum PositionLayer {
     #[default]
@@ -263,6 +276,21 @@ impl From<Position> for TokenData {
 /// Weight data type's arithmetic rules.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct Positions(pub Vec<Position>);
+
+impl std::fmt::Display for Positions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for position in &self.0 {
+            write!(
+                f,
+                "Position {{ symbol: {}, balance: {}, weight: {} }}\n",
+                position.asset.symbol,
+                position.balance.unwrap_or_default(),
+                position.weight.unwrap_or_default().value
+            );
+        }
+        Ok(())
+    }
+}
 
 impl From<Vec<Position>> for Positions {
     fn from(positions: Vec<Position>) -> Self {

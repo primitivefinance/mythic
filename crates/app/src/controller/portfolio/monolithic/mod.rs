@@ -68,6 +68,7 @@ pub struct Monolithic {
     create: create::Form,
     allocate: bool,
     view_position: Option<AlloyAddress>,
+    create_status: create::SubmitState,
 }
 
 impl Monolithic {
@@ -80,6 +81,7 @@ impl Monolithic {
             create: create::Form::new(),
             allocate: false,
             view_position: None,
+            create_status: create::SubmitState::Empty,
         }
     }
 
@@ -174,6 +176,7 @@ impl Monolithic {
             }
             FormMessage::Submit => {
                 self.create.pending();
+                self.create_status = create::SubmitState::Pending;
 
                 match self.handle_submit_allocate() {
                     Ok(command) => command,
@@ -244,10 +247,12 @@ impl State for Monolithic {
                 Ok(receipt) => {
                     tracing::info!("Receipt: {:?}", receipt);
                     self.create.confirmed();
+                    self.create_status = create::SubmitState::Confirmed;
                     Command::none()
                 }
                 Err(err) => {
                     tracing::error!("Error: {:?}", err);
+                    self.create_status = create::SubmitState::Failed;
                     self.create.failed();
                     Command::none()
                 }
@@ -285,6 +290,7 @@ impl State for Monolithic {
             content = content.push(
                 self.create
                     .view::<FormMessage>(
+                        &self.create_status,
                         Some(FormMessage::Close),
                         self.submit_ready(),
                         |x| FormMessage::Amount(x),

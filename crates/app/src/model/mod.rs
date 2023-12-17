@@ -189,7 +189,7 @@ impl Model {
             unallocated_position_y,
         ]);
         portfolio.positions = positions;
-        tracing::debug!("Updated portfolio positions: {:?}", portfolio.positions);
+        tracing::debug!("Updated portfolio positions: {}", portfolio.positions);
 
         self.user.update_portfolio(&portfolio)
     }

@@ -163,27 +163,26 @@ impl State for PortfolioRoot {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
+        // self.dashboard
+        // .subscription()
+        // .map(|x| Message::Dashboard(x).into()),
+
         // todo: fix the subscriptions!
         // need subscriptions to fetch new blocks, new price path, etc.
-        Subscription::batch(vec![
-            self.dashboard
+        Subscription::batch(vec![match self.page {
+            Page::Empty => Subscription::none(),
+            Page::Create => self
+                .create
+                .subscription()
+                .map(|x| Message::Create(x).into()),
+            Page::Dashboard => self
+                .dashboard
                 .subscription()
                 .map(|x| Message::Dashboard(x).into()),
-            match self.page {
-                Page::Empty => Subscription::none(),
-                Page::Create => self
-                    .create
-                    .subscription()
-                    .map(|x| Message::Create(x).into()),
-                Page::Dashboard => self
-                    .dashboard
-                    .subscription()
-                    .map(|x| Message::Dashboard(x).into()),
-                Page::Monolithic => self
-                    .monolithic
-                    .subscription()
-                    .map(|x| Message::Monolithic(x).into()),
-            },
-        ])
+            Page::Monolithic => self
+                .monolithic
+                .subscription()
+                .map(|x| Message::Monolithic(x).into()),
+        }])
     }
 }
