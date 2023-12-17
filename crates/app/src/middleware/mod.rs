@@ -6,8 +6,13 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use bindings::mock_erc20::MockERC20;
+use cfmm_math::trading_functions::rmm::{
+    compute_d1, compute_sigma_sqrt_tau, compute_value_function, compute_x_given_l_rust,
+    compute_y_given_x_rust,
+};
 use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
+use statrs::distribution::ContinuousCDF;
 
 pub mod alloyed;
 pub mod watch;
@@ -227,6 +232,40 @@ pub trait Protocol {
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition>;
 }
 
+/// L = Deposit $ / V(c)
+/// x = X(L)
+/// y = Y(x, L)
+pub fn get_deposits_given_price(
+    price: f64,
+    amount_dollars: f64,
+    strike_price_wad: f64,
+    sigma_percent_wad: f64,
+    tau_years_wad: f64,
+) -> (f64, f64, f64) {
+    let value_per =
+        compute_value_function(price, strike_price_wad, sigma_percent_wad, tau_years_wad);
+
+    let total_liquidity = amount_dollars / value_per;
+
+    let amount_x = compute_x_given_l_rust(
+        total_liquidity,
+        price,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    let amount_y = compute_y_given_x_rust(
+        amount_x,
+        total_liquidity,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    (amount_x, amount_y, total_liquidity)
+}
+
 #[async_trait::async_trait]
 impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     fn protocol(&self) -> Result<ProtocolClient<NetworkClient<Ws, LocalWallet>>> {
@@ -252,8 +291,14 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let client = self.anvil_client.clone().unwrap();
         let protocol = self.protocol()?;
 
-        let amount_x = amount_dollars / price;
-        let amount_y = amount_x * price;
+        let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
+            price,
+            amount_dollars,
+            strike_price_wad,
+            sigma_percent_wad,
+            tau_years_wad,
+        );
+
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
 
@@ -316,6 +361,24 @@ mod tests {
             .spawn();
 
         Ok(anvil)
+    }
+
+    #[test]
+    fn test_get_deposit_amounts() {
+        use tracing_subscriber;
+
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .init();
+
+        let strike = 1.0;
+        let sigma = 1.0;
+        let tau = 1.0;
+        let price = 1.0;
+
+        let dollars = 1.0;
+
+        let x = get_deposits_given_price(price, dollars, strike, sigma, tau);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

@@ -20,10 +20,14 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
+use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
 // todo: remove this in favor of alloy types when possible.
-use bindings::{dfmm::DFMM, log_normal::LogNormal};
+use bindings::{
+    dfmm::{InitFilter, DFMM},
+    log_normal::LogNormal,
+};
 use cfmm_math::trading_functions::rmm::{
     compute_l_given_x_rust, compute_price_given_x_rust, compute_x_given_l_rust,
     compute_x_given_price, compute_y_given_l_rust, compute_y_given_x_rust, liq_distribution,
@@ -120,6 +124,10 @@ pub struct RawDataModel<A, V> {
     // Info
     pub raw_last_chain_data_sync_timestamp: Option<DateTime<Utc>>,
     pub raw_last_chain_data_sync_block: Option<u64>,
+
+    // User historical transactions
+    pub raw_user_historical_transactions: Option<Vec<HistoricalTx>>,
+    pub raw_last_historical_transaction_sync_block: Option<u64>,
 }
 
 sol! {
@@ -147,6 +155,35 @@ sol! {
 // returns(uint internalPrice); function balanceOf(address account) external
 // view returns(uint liquidity); }
 // }
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub enum ProtocolActions {
+    #[default]
+    Empty,
+    CreatePosition,
+    Swap,
+}
+
+impl std::fmt::Display for ProtocolActions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match self {
+            ProtocolActions::Empty => "Empty".to_string(),
+            ProtocolActions::CreatePosition => "Create position".to_string(),
+            ProtocolActions::Swap => "Swap".to_string(),
+        };
+        write!(f, "{}", string)
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HistoricalTx {
+    pub tx_hash: TxHash,
+    pub block_number: u64,
+    pub timestamp: DateTime<Utc>,
+    pub action: ProtocolActions,
+    pub position_name: String,
+    pub market_value: f64,
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StrategyPosition {
@@ -192,6 +229,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
         self.update_last_sync_timestamp()?;
+        self.raw_last_historical_transaction_sync_block = Some(0);
 
         // Update state first.
         self.update_token_balances(client.clone()).await?;
@@ -214,6 +252,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.update_user_asset_value_series(client.clone()).await?;
         self.update_user_quote_value_series(client.clone()).await?;
 
+        // Update historical tx
+        // todo: this is dependent on the external price series!
+        // todo: how do we handle dependent values better?
+        if let Err(error) = self.update_historical_txs(client.clone()).await {
+            tracing::warn!("Historical tx update failed: {:?}", error);
+        }
+
         // Try to update the internal portfolio, which only works if a position exists.
         if let Err(error) = self.update_internal_price_series(client.clone()).await {
             tracing::warn!("Internal portfolio update failed: {:?}", error);
@@ -225,12 +270,156 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    pub async fn fetch_user_historical_tx(&self, client: Arc<Client>) -> Result<Vec<HistoricalTx>> {
+        let current_block = self.fetch_block_number(client.clone()).await?;
+        let last_block = self
+            .raw_last_historical_transaction_sync_block
+            .ok_or(Error::msg("Last historical chain data sync block not set"))?;
+
+        let user_address = self
+            .user_address
+            .ok_or(Error::msg("User address not set"))?;
+        let user_address = to_ethers_address(user_address);
+
+        let protocol_address = self
+            .raw_protocol_address
+            .ok_or(Error::msg("Protocol address not set"))?;
+        let protocol_address = to_ethers_address(protocol_address);
+
+        let protocol = DFMM::new(protocol_address, client.clone());
+        tracing::debug!("Fetching historical tx!");
+
+        let logs = protocol.event::<InitFilter>().query().await?;
+        tracing::debug!("Logs: {:?}", logs);
+
+        let create_pos_filter = protocol
+            .init_filter()
+            .filter
+            .from_block(last_block)
+            .to_block(current_block);
+
+        let raw_logs = client.get_logs(&create_pos_filter).await?;
+        let raw_logs = raw_logs
+            .into_iter()
+            .filter(|log| {
+                log.topics
+                    .get(1)
+                    .map(|topic| EthersAddress::from(topic.clone()))
+                    == Some(user_address)
+            })
+            .collect::<Vec<_>>();
+        tracing::debug!("Create pos raw logs: {:?}", raw_logs);
+
+        let mut historical_tx = vec![];
+
+        for raw_log in raw_logs {
+            let block_number = raw_log.block_number.unwrap().as_u64();
+            let block_id: BlockId = block_number.into();
+            let timestamp = client
+                .get_block(block_id)
+                .await?
+                .unwrap()
+                .timestamp
+                .as_u64();
+            let timestamp = timestamp as i64; // convert u64 to i64
+            let naive_datetime = chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0);
+            let datetime: DateTime<Utc> =
+                DateTime::from_naive_utc_and_offset(naive_datetime.unwrap(), Utc);
+            let tx_hash = raw_log.transaction_hash.unwrap();
+            let action = ProtocolActions::CreatePosition;
+
+            let parsed_log = protocol.decode_event::<InitFilter>(
+                "Init",
+                raw_log.topics.clone(),
+                raw_log.data.clone(),
+            )?;
+
+            let amount_x = EthersU256::from(parsed_log.xxxxxxx);
+            let amount_y = EthersU256::from(parsed_log.yyyyyy);
+
+            // Try getting the prices from the series
+            let external_x_price = self
+                .raw_external_spot_price_series
+                .as_ref()
+                .ok_or(Error::msg("External price series not set"))?
+                .iter()
+                .find(|(block, _)| *block == block_number)
+                .map(|(_, price)| price.clone())
+                .ok_or(Error::msg(format!(
+                    "Missing external price for historical tx at block {}",
+                    block_number
+                )))?;
+
+            // todo: need to add an external quote price series.
+            let external_y_price = ALLOY_WAD;
+
+            let amount_x = from_ethers_u256(amount_x);
+            let amount_y = from_ethers_u256(amount_y);
+
+            let amount_x = amount_x
+                .checked_mul(external_x_price)
+                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .checked_div(ALLOY_WAD)
+                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+            let amount_y = amount_y
+                .checked_mul(external_y_price)
+                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .checked_div(ALLOY_WAD)
+                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+            let amount_x = alloy_primitives::utils::format_ether(amount_x);
+            let amount_y = alloy_primitives::utils::format_ether(amount_y);
+
+            let amount_x = amount_x.parse::<f64>()?;
+            let amount_y = amount_y.parse::<f64>()?;
+
+            let market_value = amount_x + amount_y;
+
+            let token_x_symbol = self
+                .cached
+                .raw_asset_token_info
+                .as_ref()
+                .ok_or(Error::msg("Asset token info not set"))?
+                .symbol
+                .clone();
+
+            let token_y_symbol = self
+                .cached
+                .raw_quote_token_info
+                .as_ref()
+                .ok_or(Error::msg("Quote token info not set"))?
+                .symbol
+                .clone();
+
+            let position_name = format!("{} / {}", token_x_symbol, token_y_symbol);
+
+            historical_tx.push(HistoricalTx {
+                tx_hash,
+                block_number,
+                timestamp: datetime,
+                action,
+                position_name,
+                market_value,
+            });
+        }
+
+        Ok(historical_tx)
+    }
+
     pub async fn update_cached(&mut self, client: Arc<Client>) -> Result<()> {
         // Only update token info if cache is not set.
         if self.cached.raw_asset_token_info.is_none() || self.cached.raw_quote_token_info.is_none()
         {
             self.update_token_info(client.clone()).await?;
         }
+        Ok(())
+    }
+
+    pub async fn update_historical_txs(&mut self, client: Arc<Client>) -> Result<()> {
+        let historical_txs = self.fetch_user_historical_tx(client.clone()).await?;
+        self.raw_user_historical_transactions = Some(historical_txs);
+        self.raw_last_historical_transaction_sync_block = self.raw_last_chain_data_sync_block;
         Ok(())
     }
 
@@ -646,7 +835,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         if let Some(series) = &self.raw_external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= block_number {
+            if last_element.0 > block_number {
                 return Ok(());
             }
         }
@@ -660,6 +849,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         } else {
             self.raw_external_spot_price_series = Some(vec![(block_number, external_price)]);
         }
+
+        tracing::debug!(
+            "Added external price at block: {:?} {:?}",
+            block_number,
+            external_price
+        );
 
         Ok(())
     }

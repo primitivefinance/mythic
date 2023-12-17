@@ -14,21 +14,30 @@ use crate::{
         logos::{ether_logo, usdc_logo},
         system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburText},
     },
+    model::portfolio::HistoricalTx,
     view::portfolio_view::ValueToLabel,
 };
 
 #[derive(Debug, Clone, Default)]
 pub struct MonolithicPresenter {
     model: Model,
+    pub historical_txs: Vec<HistoricalTx>,
 }
 
 impl MonolithicPresenter {
     pub fn new(model: Model) -> Self {
-        Self { model }
+        Self {
+            model,
+            ..Default::default()
+        }
     }
 
     pub fn update(&mut self, model: Model) {
         self.model = model;
+    }
+
+    pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {
+        self.historical_txs = txs;
     }
 
     pub fn get_aum(&self) -> String {
@@ -127,6 +136,14 @@ impl MonolithicPresenter {
                 label("n/a").title3().quantitative(),
             )
         }
+    }
+
+    pub fn get_historical_txs(&self) -> Vec<HistoricalTx> {
+        self.model
+            .portfolio
+            .raw_user_historical_transactions
+            .clone()
+            .unwrap_or_default()
     }
 }
 

@@ -87,6 +87,19 @@ const GREEN: Color = Color::from_rgb(
     0x83 as f32 / 255.0,
 );
 
+const GREEN_BUTTON: Color = Color::from_rgb(
+    0x26 as f32 / 255.0,
+    0xAA as f32 / 255.0,
+    0x5B as f32 / 255.0,
+);
+
+const LIGHT_GREEN: Color = Color::from_rgba(
+    0x41 as f32 / 255.0,
+    0xE4 as f32 / 255.0,
+    0xB3 as f32 / 255.0,
+    0.2,
+);
+
 const RED: Color = Color::from_rgb(
     0xFF as f32 / 255.0,
     0x45 as f32 / 255.0,
@@ -147,9 +160,22 @@ pub enum ExcaliburColor {
     Primary,
     Success,
     Danger,
+    Mint,
+    Error,
+    Pending,
+    Button(ButtonColors),
     Label(LabelColors),
     Quantitative(QuantitativeColors),
     Custom(Color),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum ButtonColors {
+    #[default]
+    Primary,
+    Success,
+    Pending,
+    Error,
 }
 
 impl ExcaliburColor {
@@ -164,6 +190,15 @@ impl ExcaliburColor {
             ExcaliburColor::Primary => BLUE,
             ExcaliburColor::Success => GREEN,
             ExcaliburColor::Danger => RED,
+            ExcaliburColor::Mint => MINT,
+            ExcaliburColor::Error => RED,
+            ExcaliburColor::Pending => LIGHT_GREEN,
+            ExcaliburColor::Button(button_color) => match button_color {
+                ButtonColors::Primary => BLUE,
+                ButtonColors::Success => GREEN_BUTTON,
+                ButtonColors::Pending => LIGHT_GREEN,
+                ButtonColors::Error => AMBER,
+            },
             ExcaliburColor::Label(label_color) => match label_color {
                 LabelColors::Primary => PRIMARY_LABEL,
                 LabelColors::Secondary => SECONDARY_LABEL,
@@ -895,6 +930,21 @@ impl ExcaliburButton {
         self
     }
 
+    pub fn hovered(mut self) -> Self {
+        self.style.current_state = ButtonState::Hovered;
+        self
+    }
+
+    pub fn pressed(mut self) -> Self {
+        self.style.current_state = ButtonState::Pressed;
+        self
+    }
+
+    pub fn disabled(mut self) -> Self {
+        self.style.current_state = ButtonState::Disabled;
+        self
+    }
+
     /// Overrides the active button state's background color.
     pub fn background(mut self, color: ExcaliburColor) -> Self {
         self.style = self.style.background(Some(color.into()));
@@ -1101,6 +1151,11 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
     // Add a header to the table.
     pub fn header(mut self, header: &str) -> Self {
         self.headers.push(header.to_string());
+        self
+    }
+
+    pub fn headers(mut self, headers: Vec<impl ToString>) -> Self {
+        self.headers = headers.iter().map(ToString::to_string).collect();
         self
     }
 }

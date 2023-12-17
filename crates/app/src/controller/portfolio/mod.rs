@@ -112,6 +112,10 @@ impl State for PortfolioRoot {
 
                     Command::batch(commands)
                 }
+                Message::Monolithic(monolithic::Message::SyncModel(block)) => {
+                    Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
+                        .map(|x| Self::AppMessage::View(x))
+                }
                 Message::Dashboard(message) => self
                     .dashboard
                     .update(message)
