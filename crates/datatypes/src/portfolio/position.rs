@@ -158,6 +158,17 @@ pub struct Position {
     pub volatility: Option<f64>,
     /// Information about the position.
     pub information: Option<Information>,
+    /// Position's layer in the portfolio.
+    pub layer: Option<PositionLayer>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Default)]
+pub enum PositionLayer {
+    #[default]
+    RawBalance,
+    Liquidity,
+    Staked,
+    Collateral,
 }
 
 /// Carries information that can be used for synchronization, debugging, and
@@ -200,7 +211,13 @@ impl Position {
             weight,
             volatility,
             information: Some(Information::default()),
+            layer: None,
         }
+    }
+
+    pub fn layer(mut self, layer: PositionLayer) -> Self {
+        self.layer = Some(layer);
+        self
     }
 
     pub fn is_stale(&self) -> bool {

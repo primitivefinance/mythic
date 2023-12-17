@@ -88,7 +88,6 @@ impl Sidebar {
     /// Renders the inner column below the sidebar's header section.
     pub fn layout(&self) -> Element<'_, Self::ViewMessage> {
         let mut column = Column::new();
-        column = column.push(self.section("Apps".to_string()));
         column = column.push(self.page.view().map(|x| x.into()));
         column
             .spacing(Sizes::Xs)
@@ -158,8 +157,8 @@ impl controller::State for Sidebar {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Page {
-    #[default]
     Empty,
+    #[default]
     Portfolio,
     Settings,
     Exit,
@@ -212,16 +211,24 @@ impl Page {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::tabs(self) {
             let style = match selected {
-                true => route_button_style(SELECTED_CONTAINER_COLOR),
+                true => route_button_style(Color::TRANSPARENT)
+                    .hovered()
+                    .background(Some(Color::TRANSPARENT.into())),
                 false => route_button_style(Color::TRANSPARENT),
             };
+
+            let mut app = label(name).ui_bold();
+
+            if !selected {
+                app = app.secondary();
+            }
 
             column = column.push(
                 button(
                     Row::new()
-                        .push(Space::with_width(Length::Fixed(Sizes::Xs as u32 as f32)))
-                        .push(text(icon_to_char(icon)).font(ICON_FONT))
-                        .push(text(name))
+                        .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
+                        .push(label(icon_to_char(icon)).icon().build())
+                        .push(app.build())
                         .spacing(Sizes::Md),
                 )
                 .width(Length::Fill)

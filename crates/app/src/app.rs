@@ -158,11 +158,13 @@ impl App {
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
         let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
+        let mut sidebar = Sidebar::new();
+        sidebar.page = view::sidebar::Page::Portfolio;
         (
             Self {
                 client,
                 model,
-                windows: Windows::new(dashboard, Sidebar::new()),
+                windows: Windows::new(dashboard, sidebar),
                 app_clock: AppClock::new(),
             },
             Command::perform(async {}, |_| Message::Load),

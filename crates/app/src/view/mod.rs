@@ -132,7 +132,6 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .align_y(alignment::Vertical::Center)
         .width(Length::Fill)
         .height(Length::Fill)
-        .padding([16, 24, 16, 24])
         .style(ExcaliburContainer::default().middle_bottom().theme())
         .into()
 }
