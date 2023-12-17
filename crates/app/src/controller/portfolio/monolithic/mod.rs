@@ -1,15 +1,17 @@
 pub mod create;
 mod inventory;
 mod metrics;
+mod tx_history;
 mod view;
 
 use alloy_primitives::utils::format_ether;
 use datatypes::portfolio::coin::Coin;
-use iced::futures::TryFutureExt;
+use iced::{futures::TryFutureExt, subscription};
 
 use self::{
     create::LiquidityTypes,
     metrics::Metrics,
+    tx_history::TxHistory,
     view::{MonolithicPresenter, MonolithicView},
 };
 use super::{dashboard::stages::review::Times, *};
@@ -26,6 +28,8 @@ pub enum Message {
 
     // todo: do we need these on all pages?? maybe just reference the  model.
     UpdateDataModel(Result<Model, Arc<anyhow::Error>>),
+    // Trigger a re-sync
+    SyncModel(Block<ethers::types::H256>),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -80,10 +84,17 @@ impl Monolithic {
     }
 
     pub fn submit_ready(&self) -> Option<FormMessage> {
-        if self.create.amount.is_some() && self.create.liquidity.is_some() {
-            Some(FormMessage::Submit)
-        } else {
-            None
+        match self.create.state {
+            create::SubmitState::Pending => None,
+            create::SubmitState::Confirmed => Some(FormMessage::Close),
+            create::SubmitState::Failed => Some(FormMessage::Close),
+            _ => {
+                if self.create.amount.is_some() && self.create.liquidity.is_some() {
+                    Some(FormMessage::Submit)
+                } else {
+                    None
+                }
+            }
         }
     }
 
@@ -93,6 +104,10 @@ impl Monolithic {
 
         // Update presenter
         self.presenter.update(updated_model.clone());
+
+        // Re-cache historical txs.
+        let txs = self.presenter.get_historical_txs();
+        self.presenter.cache_historical_txs(txs);
 
         Command::none()
     }
@@ -158,7 +173,7 @@ impl Monolithic {
                 Command::none()
             }
             FormMessage::Submit => {
-                self.allocate = false;
+                self.create.pending();
 
                 match self.handle_submit_allocate() {
                     Ok(command) => command,
@@ -207,6 +222,7 @@ impl State for Monolithic {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
+            Self::AppMessage::SyncModel(block) => Command::none(),
             Self::AppMessage::UpdateDataModel(result) => match result {
                 Ok(updated_model) => self.handle_updated_model(updated_model),
                 Err(err) => {
@@ -227,10 +243,12 @@ impl State for Monolithic {
             Self::AppMessage::AllocateResult(result) => match result {
                 Ok(receipt) => {
                     tracing::info!("Receipt: {:?}", receipt);
+                    self.create.confirmed();
                     Command::none()
                 }
                 Err(err) => {
                     tracing::error!("Error: {:?}", err);
+                    self.create.failed();
                     Command::none()
                 }
             },
@@ -278,6 +296,12 @@ impl State for Monolithic {
             );
         }
 
+        content = content.push(TxHistory::layout(
+            "Portfolio",
+            "Transaction History",
+            TxHistory::table(&self.presenter.historical_txs),
+        ));
+
         scrollable(
             Container::new(content)
                 .max_height(5000.0)
@@ -287,6 +311,30 @@ impl State for Monolithic {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
+        if let Some(client) = self.client.clone() {
+            let provider = client.client().unwrap().clone();
+            return listen_to_blocks(provider);
+        }
+
         Subscription::none()
     }
+}
+
+pub fn listen_to_blocks(
+    provider: Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>,
+) -> Subscription<Message> {
+    struct Blocks;
+
+    subscription::channel(
+        std::any::TypeId::of::<Blocks>(),
+        0,
+        |mut output| async move {
+            let mut subscription = provider.subscribe_blocks().await.unwrap();
+            loop {
+                while let Some(block) = subscription.next().await {
+                    output.try_send(Message::SyncModel(block)).unwrap();
+                }
+            }
+        },
+    )
 }

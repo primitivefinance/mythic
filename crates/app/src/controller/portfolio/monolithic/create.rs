@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use datatypes::portfolio::coin::Coin;
 use iced::Padding;
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
@@ -5,7 +7,6 @@ use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 use super::{dashboard::stages::review::Times, *};
 use crate::{
     components::{
-        input::create_input_component,
         select::excalibur_select,
         system::{
             ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
@@ -13,8 +14,16 @@ use crate::{
         },
     },
     controller::portfolio::dashboard::stages::review::EnumList,
-    select::custom_pick_list,
 };
+
+#[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
+pub enum SubmitState {
+    #[default]
+    Empty,
+    Pending,
+    Confirmed,
+    Failed,
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct Form {
@@ -26,11 +35,24 @@ pub struct Form {
     pub duration: Option<Times>,
     pub end_price: Option<String>,
     pub liquidity: Option<LiquidityTypes>,
+    pub state: SubmitState,
 }
 
 impl Form {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn pending(&mut self) {
+        self.state = SubmitState::Pending;
+    }
+
+    pub fn confirmed(&mut self) {
+        self.state = SubmitState::Confirmed;
+    }
+
+    pub fn failed(&mut self) {
+        self.state = SubmitState::Failed;
     }
 
     pub fn view<Message>(
@@ -76,6 +98,7 @@ impl Form {
                         ],
                     ),
                     submit,
+                    self.state,
                 ),
                 FormView::chart_layout(
                     &self.chart,
@@ -243,6 +266,7 @@ impl FormView {
         on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
         review: impl Into<Element<'a, Message>>,
         submit: Option<Message>,
+        state: SubmitState,
     ) -> Container<'a, Message>
     where
         Message: 'a + Clone + Default,
@@ -260,7 +284,7 @@ impl FormView {
                         .spacing(Sizes::Sm)
                         .width(Length::FillPortion(3))
                         .push(Container::new(review.into()))
-                        .push(Self::submit(submit)),
+                        .push(Self::submit(submit, state)),
                 ),
         )
     }
@@ -407,10 +431,46 @@ impl FormView {
     }
 
     /// Form submit button for creating the position.
-    pub fn submit<'a, Message>(on_submit: Option<Message>) -> Container<'a, Message>
+    pub fn submit<'a, Message>(
+        on_submit: Option<Message>,
+        state: SubmitState,
+    ) -> Container<'a, Message>
     where
         Message: 'a + Clone,
     {
+        let mut on_submit = on_submit;
+        let mut button_background = ExcaliburColor::Primary;
+        let mut button_content = Row::new()
+            .spacing(Sizes::Sm)
+            .align_items(alignment::Alignment::Center);
+
+        match state {
+            SubmitState::Empty => {
+                button_content = button_content
+                    .push(label(icon_to_char(Icon::ShieldShaded)).icon().build())
+                    .push(label("Submit for Approval").build());
+            }
+            SubmitState::Pending => {
+                button_background = ExcaliburColor::Button(system::ButtonColors::Pending);
+                button_content = button_content
+                    .push(label(icon_to_char(Icon::Stopwatch)).icon().build())
+                    .push(label(format!("Pending{}", "...")).build());
+                on_submit = None;
+            }
+            SubmitState::Confirmed => {
+                button_background = ExcaliburColor::Button(system::ButtonColors::Success);
+                button_content = button_content
+                    .push(label(icon_to_char(Icon::Check2)).icon().build())
+                    .push(label("Confirmed").build());
+            }
+            SubmitState::Failed => {
+                button_background = ExcaliburColor::Button(system::ButtonColors::Error);
+                button_content = button_content
+                    .push(label(icon_to_char(Icon::X)).icon().build())
+                    .push(label("Failed").build());
+            }
+        }
+
         ExcaliburContainer::default().transparent().build(
             Column::new()
                 .spacing(Sizes::Md)
@@ -418,13 +478,15 @@ impl FormView {
                 .push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(
-                            Row::new()
-                                .spacing(Sizes::Sm)
-                                .align_items(alignment::Alignment::Center)
-                                .push(label(icon_to_char(Icon::ShieldShaded)).icon().build())
-                                .push(label("Submit for Approval").build()),
-                        )
+                        .active()
+                        .background(button_background)
+                        .hovered()
+                        .background(button_background)
+                        .disabled()
+                        .background(button_background)
+                        .pressed()
+                        .background(button_background)
+                        .build(button_content)
                         .padding(Padding {
                             top: Sizes::Md.into(),
                             bottom: Sizes::Md.into(),
