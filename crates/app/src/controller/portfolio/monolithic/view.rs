@@ -48,6 +48,7 @@ impl MonolithicPresenter {
         }
     }
 
+    // todo: position fetching and stuff from portfolio is not clean
     pub fn get_positions(&self) -> (Positions, Vec<String>) {
         let portfolio = self.model.user.portfolio.clone();
         let position_x = portfolio
@@ -55,8 +56,8 @@ impl MonolithicPresenter {
             .positions
             .0
             .iter()
-            .find(|x| x.asset.symbol == "X")
             .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
+            .find(|x| x.asset.symbol == "X")
             .cloned()
             .unwrap_or_default();
 
@@ -65,8 +66,8 @@ impl MonolithicPresenter {
             .positions
             .0
             .iter()
-            .find(|x| x.asset.symbol == "Y")
             .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
+            .find(|x| x.asset.symbol == "Y")
             .cloned()
             .unwrap_or_default();
 
@@ -90,8 +91,8 @@ impl MonolithicPresenter {
             .positions
             .0
             .iter()
-            .find(|x| x.asset.symbol == "X")
             .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
+            .find(|x| x.asset.symbol == "X")
             .cloned()
             .unwrap_or_default();
 
@@ -100,8 +101,8 @@ impl MonolithicPresenter {
             .positions
             .0
             .iter()
-            .find(|x| x.asset.symbol == "Y")
             .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
+            .find(|x| x.asset.symbol == "Y")
             .cloned()
             .unwrap_or_default();
 
