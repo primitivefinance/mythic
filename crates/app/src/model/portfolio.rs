@@ -101,6 +101,9 @@ pub struct RawDataModel<A, V> {
     // Values of tokens.
     pub raw_user_asset_value_series: Option<Vec<(u64, V)>>,
     pub raw_user_quote_value_series: Option<Vec<(u64, V)>>,
+    pub raw_unallocated_portfolio_value_series: Option<Vec<(u64, V)>>,
+    pub raw_protocol_asset_value_series: Option<Vec<(u64, V)>>,
+    pub raw_protocol_quote_value_series: Option<Vec<(u64, V)>>,
 
     // Prices
     pub raw_external_spot_price_series: Option<Vec<(u64, V)>>,
@@ -258,6 +261,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.update_user_asset_value_series(client.clone()).await?;
         self.update_user_quote_value_series(client.clone()).await?;
 
+        self.update_unallocated_portfolio_value_series(client.clone())
+            .await?;
+        self.update_protocol_asset_value_series(client.clone())
+            .await?;
+        self.update_protocol_quote_value_series(client.clone())
+            .await?;
+
         // Update historical tx
         // todo: this is dependent on the external price series!
         // todo: how do we handle dependent values better?
@@ -296,7 +306,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         tracing::debug!("Fetching historical tx!");
 
         let logs = protocol.event::<InitFilter>().query().await?;
-        tracing::debug!("Logs: {:?}", logs);
 
         let create_pos_filter = protocol
             .init_filter()
@@ -314,7 +323,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     == Some(user_address)
             })
             .collect::<Vec<_>>();
-        tracing::debug!("Create pos raw logs: {:?}", raw_logs);
 
         let mut historical_tx = vec![];
 
@@ -873,6 +881,35 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    async fn update_unallocated_portfolio_value_series(
+        &mut self,
+        client: Arc<Client>,
+    ) -> Result<()> {
+        // Check the current last sync block number, if its the same as the current one,
+        // continue. Else, refetch and update the data.
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        // Only update the series if the last element in the series is behind the
+        // current block number.
+        if let Some(series) = &self.raw_unallocated_portfolio_value_series {
+            let last_element = series.last().unwrap();
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let portfolio_value = self.derive_unallocated_position_value()?;
+
+        if let Some(series) = &mut self.raw_unallocated_portfolio_value_series {
+            series.push((block_number, portfolio_value));
+        } else {
+            self.raw_unallocated_portfolio_value_series =
+                Some(vec![(block_number, portfolio_value)]);
+        }
+
+        Ok(())
+    }
+
     async fn update_external_price_series(&mut self, client: Arc<Client>) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
@@ -961,6 +998,70 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             series.push((block_number, quote_value));
         } else {
             self.raw_user_quote_value_series = Some(vec![(block_number, quote_value)]);
+        }
+
+        Ok(())
+    }
+
+    async fn update_protocol_asset_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        if let Some(series) = &self.raw_protocol_asset_value_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let asset_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("External price not set"))?;
+        let asset_balance = self
+            .raw_protocol_asset_balance
+            .ok_or(Error::msg("Protocol asset balance not set"))?;
+
+        let asset_value = asset_balance
+            .checked_mul(asset_price)
+            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .checked_div(ALLOY_WAD)
+            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+        if let Some(series) = &mut self.raw_protocol_asset_value_series {
+            series.push((block_number, asset_value));
+        } else {
+            self.raw_protocol_asset_value_series = Some(vec![(block_number, asset_value)]);
+        }
+
+        Ok(())
+    }
+
+    async fn update_protocol_quote_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        if let Some(series) = &self.raw_protocol_quote_value_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let quote_price = self
+            .raw_external_quote_price
+            .ok_or(Error::msg("External quote price not set"))?;
+        let quote_balance = self
+            .raw_protocol_quote_balance
+            .ok_or(Error::msg("Protocol quote balance not set"))?;
+
+        let quote_value = quote_balance
+            .checked_mul(quote_price)
+            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .checked_div(ALLOY_WAD)
+            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+        if let Some(series) = &mut self.raw_protocol_quote_value_series {
+            series.push((block_number, quote_value));
+        } else {
+            self.raw_protocol_quote_value_series = Some(vec![(block_number, quote_value)]);
         }
 
         Ok(())
@@ -1280,6 +1381,53 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         result.1.legend = "Portfolio Value".to_string();
         result.1.color = plotters::style::full_palette::DEEPPURPLE_400;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    /// Gets the time series data for the unallocated portfolio value.
+    pub fn derive_unallocated_portfolio_value_series(
+        &self,
+    ) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_unallocated_portfolio_value_series
+            .as_ref()
+            .ok_or(Error::msg("Unallocated portfolio value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        result.1.legend = "Unallocated".to_string();
+        result.1.color = plotters::style::full_palette::LIGHTBLUE_A400;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    /// Gets the time series data for the protocol asset value series.
+    pub fn derive_protocol_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_protocol_asset_value_series
+            .as_ref()
+            .ok_or(Error::msg("Protocol asset value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        result.1.legend = "Protocol Asset".to_string();
+        result.1.color = plotters::style::full_palette::PURPLE_A700;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    /// Gets the time series data for the protocol quote value series.
+    pub fn derive_protocol_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_protocol_quote_value_series
+            .as_ref()
+            .ok_or(Error::msg("Protocol quote value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        result.1.legend = "Protocol Quote".to_string();
+        result.1.color = plotters::style::full_palette::PURPLE_A400;
         result.1.time_series = true;
 
         Ok(result)
