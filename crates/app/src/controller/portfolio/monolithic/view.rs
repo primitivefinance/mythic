@@ -40,6 +40,14 @@ impl MonolithicPresenter {
         self.historical_txs = txs;
     }
 
+    pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
+        let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
+        match data {
+            Some(data) => label(&format!("Timestamp: {:}", data)).caption().tertiary(),
+            None => label(&"Timestamp: N/A").caption().tertiary(),
+        }
+    }
+
     pub fn get_aum(&self) -> String {
         let aum = self.model.portfolio.derive_total_aum();
         match aum {

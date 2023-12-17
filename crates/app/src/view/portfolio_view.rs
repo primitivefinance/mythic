@@ -175,10 +175,43 @@ impl PortfolioPresenter {
             }
         };
 
+        let unallocated_value_series = self
+            .model
+            .portfolio
+            .derive_unallocated_portfolio_value_series();
+        let unallocated_value_series = match unallocated_value_series {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!("Failed to get unallocated value series: {:}", e);
+                return;
+            }
+        };
+
+        let protocol_quote_value_series = self.model.portfolio.derive_protocol_quote_value_series();
+        let protocol_quote_value_series = match protocol_quote_value_series {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!("Failed to get protocol quote value series: {:}", e);
+                return;
+            }
+        };
+
+        let protocol_asset_value_series = self.model.portfolio.derive_protocol_asset_value_series();
+        let protocol_asset_value_series = match protocol_asset_value_series {
+            Ok(data) => data,
+            Err(e) => {
+                tracing::error!("Failed to get protocol asset value series: {:}", e);
+                return;
+            }
+        };
+
         self.portfolio_value_series.override_series(vec![
             data.1,
             asset_value_series.1,
             quote_value_series.1,
+            unallocated_value_series.1,
+            protocol_quote_value_series.1,
+            protocol_asset_value_series.1,
         ]);
         self.portfolio_value_series.update_x_range(data.0.x_range);
         self.portfolio_value_series.update_y_range(data.0.y_range);

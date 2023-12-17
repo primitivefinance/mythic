@@ -9,13 +9,18 @@ use datatypes::portfolio::coin::Coin;
 use iced::{futures::TryFutureExt, subscription, Padding};
 
 use self::{
-    create::LiquidityTypes,
+    create::{FormView, LiquidityTypes},
     metrics::Metrics,
     tx_history::TxHistory,
     view::{MonolithicPresenter, MonolithicView},
 };
 use super::{dashboard::stages::review::Times, *};
-use crate::{middleware::Protocol, model::portfolio::AlloyAddress};
+use crate::{
+    components::system::{ExcaliburChart, ExcaliburContainer},
+    middleware::Protocol,
+    model::portfolio::AlloyAddress,
+    view::portfolio_view::PortfolioPresenter,
+};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {
@@ -65,6 +70,7 @@ pub struct Monolithic {
     client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
     model: Model,
     presenter: MonolithicPresenter,
+    chart_presenter: PortfolioPresenter,
     create: create::Form,
     allocate: bool,
     view_position: Option<AlloyAddress>,
@@ -74,10 +80,12 @@ pub struct Monolithic {
 impl Monolithic {
     pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         let presenter = MonolithicPresenter::new(model.clone());
+        let chart_presenter = PortfolioPresenter::default();
         Self {
             client,
             model,
             presenter,
+            chart_presenter,
             create: create::Form::new(),
             allocate: false,
             view_position: None,
@@ -106,6 +114,9 @@ impl Monolithic {
 
         // Update presenter
         self.presenter.update(updated_model.clone());
+
+        // Update charts
+        self.chart_presenter.update(updated_model.clone());
 
         // Re-cache historical txs.
         let txs = self.presenter.get_historical_txs();
@@ -284,6 +295,18 @@ impl State for Monolithic {
                 aum,
                 health,
             ));
+
+            content = content.push(ExcaliburContainer::default().build(FormView::chart_layout(
+                &self.chart_presenter.portfolio_value_series,
+                label("Portfolio Value").title2(),
+                self.presenter.get_last_sync_timestamp(),
+            )));
+
+            content = content.push(ExcaliburContainer::default().build(FormView::chart_layout(
+                &self.chart_presenter.portfolio_strategy_plot,
+                label("Strategy").title2(),
+                self.presenter.get_last_sync_timestamp(),
+            )));
         }
 
         if self.allocate {
