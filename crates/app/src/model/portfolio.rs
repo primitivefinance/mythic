@@ -195,6 +195,12 @@ pub struct StrategyPosition {
     pub quote_price: f64,
 }
 
+impl StrategyPosition {
+    pub fn compute_value(&self) -> Result<f64> {
+        Ok(self.balance_x * self.external_price + self.balance_y * self.quote_price)
+    }
+}
+
 impl RawDataModel<AlloyAddress, AlloyU256> {
     pub type Address = AlloyAddress;
     pub type Value = AlloyU256;
@@ -521,6 +527,43 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let converted_address = to_ethers_address(strategy_address);
         let strategy = LogNormal::new(converted_address, client.clone());
         Ok(strategy)
+    }
+
+    /// Gets the "unallocated position" balances.
+    pub fn get_unallocated_positions_info(&self) -> Result<StrategyPosition> {
+        let balance_x = self
+            .raw_user_asset_balance
+            .ok_or(Error::msg("User asset balance not set"))?;
+        let balance_y = self
+            .raw_user_quote_balance
+            .ok_or(Error::msg("User quote balance not set"))?;
+        let external_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("External spot price not set"))?;
+        let quote_price = self.raw_external_quote_price.ok_or(Error::msg(
+            "get_position_info: External quote price not set",
+        ))?;
+
+        let external_price = alloy_primitives::utils::format_ether(external_price);
+        let external_price = external_price.parse::<f64>()?;
+
+        let balance_x = alloy_primitives::utils::format_ether(balance_x);
+        let balance_x = balance_x.parse::<f64>()?;
+
+        let balance_y = alloy_primitives::utils::format_ether(balance_y);
+        let balance_y = balance_y.parse::<f64>()?;
+
+        let quote_price = alloy_primitives::utils::format_ether(quote_price);
+        let quote_price = quote_price.parse::<f64>()?;
+
+        Ok(StrategyPosition {
+            balance_x,
+            balance_y,
+            liquidity: 0.0,
+            external_price,
+            internal_price: 0.0,
+            quote_price,
+        })
     }
 
     /// Gets the balances and prices of the asset and quote tokens and formats
@@ -1041,6 +1084,32 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let portfolio_value = alloy_primitives::utils::parse_ether(&portfolio_value)?;
 
         Ok(portfolio_value)
+    }
+
+    /// Sum of external portfolio value (allocated positions) and unallocated
+    /// positions' value.
+    pub fn derive_total_aum(&self) -> Result<Self::Value> {
+        let external_portfolio_value = self.derive_external_portfolio_value()?;
+        let unallocated_position_value = self.derive_unallocated_position_value()?;
+
+        let total_aum = external_portfolio_value
+            .checked_add(unallocated_position_value)
+            .ok_or(anyhow!(
+                "Failed to add external portfolio value and unallocated position value: {} + {}",
+                external_portfolio_value,
+                unallocated_position_value
+            ))?;
+
+        Ok(total_aum)
+    }
+
+    /// Computes the value of the unallocated positions.
+    pub fn derive_unallocated_position_value(&self) -> Result<Self::Value> {
+        let unallocated_position = self.get_unallocated_positions_info()?;
+        let unallocated_position_value = unallocated_position.compute_value()?;
+        let unallocated_position_value =
+            alloy_primitives::utils::parse_ether(&format!("{}", unallocated_position_value))?;
+        Ok(unallocated_position_value)
     }
 
     /// Computes the portfolio value of the user's balances of tokens according

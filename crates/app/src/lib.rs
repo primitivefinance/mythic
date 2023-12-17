@@ -187,6 +187,7 @@ pub fn run(dev_mode: bool) -> iced::Result {
     settings.antialiasing = true;
     settings.exit_on_close_request = false;
     settings.id = Some("excalibur-app".to_string());
+    settings.window.size = (1280, 832);
     MVP::run(settings)
 }
 

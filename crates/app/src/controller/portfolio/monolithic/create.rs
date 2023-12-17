@@ -283,8 +283,8 @@ impl FormView {
                     Row::new()
                         .spacing(Sizes::Sm)
                         .width(Length::FillPortion(3))
-                        .push(Container::new(review.into()))
-                        .push(Self::submit(submit, state)),
+                        .push(Container::new(review.into()).width(Length::FillPortion(2)))
+                        .push(Self::submit(submit, state).width(Length::FillPortion(2))),
                 ),
         )
     }
@@ -444,6 +444,15 @@ impl FormView {
             .spacing(Sizes::Sm)
             .align_items(alignment::Alignment::Center);
 
+        let loading_indicator = iced_loading_indicator::Widget::new(
+            LOADING_INDICATOR_SIZE,
+            Some(iced_loading_indicator::Style::CustomColor(
+                iced::Color::from_rgb8(0xaa, 0xaa, 0xff),
+            )),
+            true,
+        )
+        .tick_duration_ms(LOADING_INDICATOR_SPEED_MS);
+
         match state {
             SubmitState::Empty => {
                 button_content = button_content
@@ -451,17 +460,15 @@ impl FormView {
                     .push(label("Submit for Approval").build());
             }
             SubmitState::Pending => {
-                button_background = ExcaliburColor::Button(system::ButtonColors::Pending);
                 button_content = button_content
-                    .push(label(icon_to_char(Icon::Stopwatch)).icon().build())
-                    .push(label(format!("Pending{}", "...")).build());
+                    .push(loading_indicator)
+                    .push(label("Pending...").secondary().build());
                 on_submit = None;
             }
             SubmitState::Confirmed => {
-                button_background = ExcaliburColor::Button(system::ButtonColors::Success);
                 button_content = button_content
-                    .push(label(icon_to_char(Icon::Check2)).icon().build())
-                    .push(label("Confirmed").build());
+                    .push(label(icon_to_char(Icon::CheckAll)).icon().title2().build())
+                    .push(label("Continue").build());
             }
             SubmitState::Failed => {
                 button_background = ExcaliburColor::Button(system::ButtonColors::Error);
@@ -694,3 +701,6 @@ impl FormView {
             )
     }
 }
+
+const LOADING_INDICATOR_SIZE: f32 = 16.0;
+const LOADING_INDICATOR_SPEED_MS: u64 = 85;

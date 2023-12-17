@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf};
 
 use chrono::Utc;
-use datatypes::portfolio::position::{Position, Positions};
+use datatypes::portfolio::position::{Position, PositionLayer, Positions};
 use iced::{
     widget::{image, Image, Space},
     window::Icon,
@@ -14,7 +14,7 @@ use crate::{
         logos::{ether_logo, usdc_logo},
         system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburText},
     },
-    model::portfolio::HistoricalTx,
+    model::portfolio::{AlloyU256, HistoricalTx},
     view::portfolio_view::ValueToLabel,
 };
 
@@ -41,7 +41,7 @@ impl MonolithicPresenter {
     }
 
     pub fn get_aum(&self) -> String {
-        let aum = self.model.portfolio.derive_internal_portfolio_value();
+        let aum = self.model.portfolio.derive_total_aum();
         match aum {
             Ok(data) => alloy_primitives::utils::format_ether(data),
             Err(_) => "N/A".to_string(),
@@ -56,6 +56,7 @@ impl MonolithicPresenter {
             .0
             .iter()
             .find(|x| x.asset.symbol == "X")
+            .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
             .cloned()
             .unwrap_or_default();
 
@@ -65,6 +66,42 @@ impl MonolithicPresenter {
             .0
             .iter()
             .find(|x| x.asset.symbol == "Y")
+            .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
+            .cloned()
+            .unwrap_or_default();
+
+        let current_dir = env::current_dir().unwrap();
+        let ether_logo_path =
+            PathBuf::from(current_dir.clone()).join("assets/logos/ether_logo.png");
+        let usdc_logo_path = PathBuf::from(current_dir.clone()).join("assets/logos/usdc_logo.png");
+
+        let logos = vec![
+            ether_logo_path.to_str().unwrap().to_string(),
+            usdc_logo_path.to_str().unwrap().to_string(),
+        ];
+
+        (vec![position_x, position_y].into(), logos)
+    }
+
+    pub fn get_unallocated_positions(&self) -> (Positions, Vec<String>) {
+        let portfolio = self.model.user.portfolio.clone();
+        let position_x = portfolio
+            .clone()
+            .positions
+            .0
+            .iter()
+            .find(|x| x.asset.symbol == "X")
+            .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
+            .cloned()
+            .unwrap_or_default();
+
+        let position_y = portfolio
+            .clone()
+            .positions
+            .0
+            .iter()
+            .find(|x| x.asset.symbol == "Y")
+            .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
             .cloned()
             .unwrap_or_default();
 
@@ -147,12 +184,15 @@ impl MonolithicPresenter {
     }
 }
 
+pub const M_WIDTH: f32 = 920.0;
+
 pub struct MonolithicView;
 
 impl MonolithicView {
     pub fn layout<'a, Message>(
         aum: impl ToString,
-        positions: Positions,
+        unallocated_positions: Positions,
+        allocated_positions: Positions,
         logos: Vec<String>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
@@ -167,7 +207,8 @@ impl MonolithicView {
                     .spacing(Sizes::Lg)
                     .push(Inventory::layout(
                         aum,
-                        positions,
+                        unallocated_positions,
+                        allocated_positions,
                         logos,
                         on_allocate,
                         on_select_position,

@@ -1,5 +1,8 @@
+use std::path::PathBuf;
+
 use datatypes::portfolio::position::{Position, Positions};
 use iced::{
+    advanced::svg,
     widget::{image, Image, Space},
     Padding,
 };
@@ -7,16 +10,19 @@ use iced_aw::graphics::icons::icon_to_char;
 
 use super::*;
 use crate::{
-    components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer},
+    components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, Typography},
     model::portfolio::AlloyAddress,
 };
+
+pub const INVENTORY_HEIGHT: f32 = 600.0;
 
 pub struct Inventory;
 
 impl Inventory {
     pub fn layout<'a, Message>(
         aum: impl ToString,
-        positions: Positions,
+        unallocated_positions: Positions,
+        allocated_positions: Positions,
         logos: Vec<String>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message,
@@ -24,8 +30,34 @@ impl Inventory {
     where
         Message: 'static + Clone + Default,
     {
-        let positions_row = Row::with_children(
-            positions
+        let current_dir = std::env::current_dir().unwrap();
+        let ether_logo_path =
+            PathBuf::from(current_dir.clone()).join("assets/logos/ethtokenicon.svg");
+        let usdc_logo_path = PathBuf::from(current_dir.clone()).join("assets/logos/usdcvector.svg");
+
+        let logos = vec![
+            ether_logo_path.to_str().unwrap().to_string(),
+            usdc_logo_path.to_str().unwrap().to_string(),
+        ];
+
+        let allocated_weight_sum = allocated_positions
+            .0
+            .iter()
+            .map(|x| x.weight.unwrap_or_default().value)
+            .sum::<f64>();
+
+        let unallocated_weight_sum = unallocated_positions
+            .0
+            .iter()
+            .map(|x| x.weight.unwrap_or_default().value)
+            .sum::<f64>();
+
+        let total_value = aum.to_string().parse::<f64>().unwrap_or_default();
+        let allocated_value = total_value * allocated_weight_sum;
+        let unallocated_value = total_value * unallocated_weight_sum;
+
+        let unallocated_positions = Row::with_children(
+            unallocated_positions
                 .0
                 .iter()
                 .enumerate()
@@ -34,7 +66,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            image(logos[i].clone()),
+                            iced::widget::svg(svg::Handle::from_path(logos[i].clone())),
                         )))
                         .on_press(on_select_position(x.asset.address.clone()).into())
                         .into()
@@ -44,7 +76,7 @@ impl Inventory {
         .spacing(Sizes::Lg);
 
         let allocated_positions = Row::with_children(
-            positions
+            allocated_positions
                 .0
                 .iter()
                 .enumerate()
@@ -53,7 +85,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            image(logos[i].clone()),
+                            iced::widget::svg(svg::Handle::from_path(logos[i].clone())),
                         )))
                         .on_press(on_select_position(x.asset.address.clone()).into())
                         .into()
@@ -74,19 +106,48 @@ impl Inventory {
                             .border_radius([0.0, 0.0, 8.0, 8.0].into())
                             .build(
                                 Column::new()
-                                    .spacing(Sizes::Md)
-                                    .push(label("Unallocated ($0.00M)").secondary().build())
-                                    .push(positions_row)
+                                    .spacing(Sizes::Sm)
+                                    .push(
+                                        Row::new()
+                                            .align_items(alignment::Alignment::Center)
+                                            .spacing(Sizes::Sm)
+                                            .push(label("Unallocated").secondary().build())
+                                            .push(
+                                                label(format!("{}", unallocated_value))
+                                                    .quantitative()
+                                                    .ui_bold()
+                                                    .secondary()
+                                                    .build(),
+                                            ),
+                                    )
+                                    .push(unallocated_positions)
                                     .push(Self::separator())
-                                    .push(label("Allocated ($0.00M)").secondary().build())
+                                    .push(
+                                        Row::new()
+                                            .align_items(alignment::Alignment::Center)
+                                            .spacing(Sizes::Sm)
+                                            .push(label("Allocated").secondary().build())
+                                            .push(
+                                                label(format!("{}", allocated_value))
+                                                    .quantitative()
+                                                    .ui_bold()
+                                                    .secondary()
+                                                    .build(),
+                                            ),
+                                    )
                                     .push(allocated_positions),
                             )
-                            .width(Length::Fill)
-                            .max_height(500.0),
+                            .width(Length::Fill),
                     )
-                    .push(Self::footer::<Message>("Start Allocate", on_allocate)),
+                    .push(Self::footer::<Message>("Create Position", on_allocate)),
             )
-            .padding(Sizes::Xl2)
+            .padding(Padding {
+                top: 28.0,
+                bottom: 28.0,
+                left: 48.0,
+                right: 48.0,
+            })
+            .max_height(INVENTORY_HEIGHT)
     }
 
     pub fn separator<'a, Message>() -> Container<'a, Message>
@@ -128,6 +189,7 @@ impl Inventory {
                                     .width(Length::FillPortion(1))
                                     .push(
                                         label(icon_to_char(iced_aw::Icon::Info))
+                                            .title1()
                                             .icon()
                                             .secondary()
                                             .build(),
@@ -161,8 +223,8 @@ impl Inventory {
                                     .padding(Padding {
                                         top: 12.0,
                                         bottom: 12.0,
-                                        left: 18.0,
-                                        right: 18.0,
+                                        left: 32.0,
+                                        right: 32.0,
                                     })
                                     .on_press_maybe(on_allocate),
                             )
@@ -171,14 +233,13 @@ impl Inventory {
                     .align_items(alignment::Alignment::End)
                     .width(Length::Fill),
             )
-            .padding(Sizes::Lg)
             .center_x()
             .width(Length::Fill)
     }
 
     /// Individual inventory cell for each position.
     pub fn position_layout<'a, Message>(
-        position_data: (Position, Image<image::Handle>),
+        position_data: (Position, iced::widget::Svg<iced::Renderer>),
     ) -> Container<'a, Message>
     where
         Message: 'a,
@@ -207,7 +268,7 @@ impl Inventory {
                 Column::new()
                     .spacing(Sizes::Sm)
                     .push(label(position.asset.name).secondary().build())
-                    .push(logo.height(Length::Fixed(48.0)))
+                    .push(Container::new(logo.width(Length::Fixed(48.0))).padding(1))
                     .push(position_data)
                     .align_items(alignment::Alignment::Center),
             )

@@ -1,8 +1,10 @@
+use iced::widget::Space;
+
 use super::*;
 use crate::{
     components::{
-        system::{ExcaliburContainer, ExcaliburTable},
-        tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder},
+        system::{ExcaliburColor, ExcaliburContainer, ExcaliburTable},
+        tables::{builder::TableBuilder, cells::CellBuilder},
     },
     model::portfolio::HistoricalTx,
 };
@@ -28,8 +30,22 @@ impl TxHistory {
                         .push(label(subtitle).secondary().build())
                         .push(label(title).title1().build()),
                 )
-                .push(table.into()),
+                .push(
+                    ExcaliburContainer::default()
+                        .light_border()
+                        .build(table.into()),
+                ),
         )
+    }
+
+    pub fn separator<'a, Message>() -> Container<'a, Message>
+    where
+        Message: 'a,
+    {
+        ExcaliburContainer::default()
+            .background(ExcaliburColor::Custom(GRAY_600))
+            .build(Space::new(Length::Fill, 1.0))
+            .width(Length::Fill)
     }
 
     pub fn table<'a, Message>(txs: &Vec<HistoricalTx>) -> TableBuilder<Message>
@@ -43,17 +59,32 @@ impl TxHistory {
                 CellBuilder::new().child(label(&tx.position_name).build()),
                 CellBuilder::new().child(label(&tx.action).build()),
                 CellBuilder::new().child(label(&tx.market_value).quantitative().build()),
-                CellBuilder::new().child(label("Success").build()),
+                CellBuilder::new().child(
+                    label(&tx.timestamp.format("%Y-%m-%d %H:%M:%S %Z"))
+                        .secondary()
+                        .caption()
+                        .build(),
+                ),
                 CellBuilder::new().child(label(&tx.tx_hash).secondary().caption().build()),
             ]);
+        }
+
+        // If the table is empty, add a placeholder row.
+        if cells.is_empty() {
+            cells.push(vec![CellBuilder::new().child(
+                label("No transactions to show")
+                    .secondary()
+                    .caption()
+                    .build(),
+            )]);
         }
 
         ExcaliburTable::new()
             .headers(vec![
                 "Position",
                 "Action",
-                "Market Value",
-                "Result",
+                "Value ($)",
+                "Timestamp",
                 "Tx hash",
             ])
             .build_custom(cells)

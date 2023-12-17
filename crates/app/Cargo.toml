@@ -25,6 +25,7 @@ iced = { version = "0.10.0", features = [
     "palette",
     "advanced",
     "canvas",
+    "svg",
 ] }
 iced_aw = { version = "0.7.0", default-features = false, features = [
     "menu",
@@ -35,6 +36,7 @@ iced_aw = { version = "0.7.0", default-features = false, features = [
 ] }
 plotters-backend = "0.3.5"
 plotters-iced = "0.9.0"
+iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicator.git" }
 
 # todo: take this out? its needed in form
 revm = { version = "=3.5.0", features = ["ethersdb", "std", "serde"] }

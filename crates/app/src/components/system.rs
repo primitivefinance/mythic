@@ -20,9 +20,9 @@ const BG1: Color = Color::from_rgb(
 );
 
 const BG2: Color = Color::from_rgb(
-    0x0D as f32 / 255.0,
-    0x0D as f32 / 255.0,
-    0x0D as f32 / 255.0,
+    0x0A as f32 / 255.0,
+    0x0A as f32 / 255.0,
+    0x0A as f32 / 255.0,
 );
 
 // not darker than BG1, but placed at the lowest level of the app.
@@ -1099,7 +1099,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
                     .headers(self.headers)
                     .header_row(
                         RowBuilder::new()
-                            .border_bottom(ExcaliburContainer::default().white_border().theme()),
+                            .border_bottom(ExcaliburContainer::default().light_border().theme()),
                     )
                     .rows(
                         cells

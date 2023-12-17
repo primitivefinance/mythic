@@ -1,12 +1,12 @@
 pub mod create;
 mod inventory;
 mod metrics;
-mod tx_history;
+pub mod tx_history;
 mod view;
 
 use alloy_primitives::utils::format_ether;
 use datatypes::portfolio::coin::Coin;
-use iced::{futures::TryFutureExt, subscription};
+use iced::{futures::TryFutureExt, subscription, Padding};
 
 use self::{
     create::LiquidityTypes,
@@ -256,11 +256,13 @@ impl State for Monolithic {
     }
 
     fn view(&self) -> Element<Self::ViewMessage> {
-        let (positions, logos) = self.presenter.get_positions();
+        let (allocated_positions, logos) = self.presenter.get_positions();
+        let (unallocated_positions, _) = self.presenter.get_unallocated_positions();
         let mut content = Column::new().spacing(Sizes::Xl);
         content = content.push(MonolithicView::layout(
             self.presenter.get_aum(),
-            positions,
+            unallocated_positions,
+            allocated_positions,
             logos,
             Some(Message::StartAllocate),
             |x| Message::SelectPosition(x),
@@ -297,15 +299,21 @@ impl State for Monolithic {
         }
 
         content = content.push(TxHistory::layout(
-            "Portfolio",
             "Transaction History",
+            "Portfolio",
             TxHistory::table(&self.presenter.historical_txs),
         ));
 
         scrollable(
             Container::new(content)
-                .max_height(5000.0)
-                .padding(Sizes::Xl),
+                .center_x()
+                .padding(Padding {
+                    top: Sizes::Xl.into(),
+                    bottom: Sizes::Xl.into(),
+                    left: Sizes::Xl2.into(),
+                    right: Sizes::Xl2.into(),
+                })
+                .max_height(5000.0),
         )
         .into()
     }
