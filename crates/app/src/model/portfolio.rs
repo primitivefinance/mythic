@@ -1089,6 +1089,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Sum of external portfolio value (allocated positions) and unallocated
     /// positions' value.
     pub fn derive_total_aum(&self) -> Result<Self::Value> {
+        // todo: this naming is confusing but the external portfolio value is the
+        // unallocated value.
         let external_portfolio_value = self.derive_external_portfolio_value()?;
         let unallocated_position_value = self.derive_unallocated_position_value()?;
 
@@ -1112,8 +1114,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(unallocated_position_value)
     }
 
-    /// Computes the portfolio value of the user's balances of tokens according
-    /// to their external prices.
+    /// Computes the portfolio value of the user's strategy deposits according
+    /// to an external price.
     pub fn derive_external_portfolio_value(&self) -> Result<Self::Value> {
         let asset_price_wad = self
             .raw_external_spot_price
@@ -1121,18 +1123,18 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let quote_price_wad = self
             .raw_external_quote_price
             .ok_or(Error::msg("External quote price not set"))?;
-        let quote_balance_wad = self
-            .raw_user_quote_balance
-            .ok_or(Error::msg("User quote balance not set"))?;
-        let asset_balance_wad = self
-            .raw_user_asset_balance
-            .ok_or(Error::msg("User asset balance not set"))?;
+        let quote_reserve_wad = self
+            .raw_quote_reserve
+            .ok_or(Error::msg("Reserve quote not set"))?;
+        let asset_reserve_wad = self
+            .raw_asset_reserve
+            .ok_or(Error::msg("Reserve asset not set"))?;
 
         Self::compute_portfolio_value_real(
             asset_price_wad,
             quote_price_wad,
-            quote_balance_wad,
-            asset_balance_wad,
+            quote_reserve_wad,
+            asset_reserve_wad,
         )
     }
 
