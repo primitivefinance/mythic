@@ -1347,6 +1347,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let min_y = last_value - last_value * 0.2;
         let max_y = last_value + last_value * 0.2;
 
+        let max_y = if max_y <= f32::EPSILON { 1.0 } else { max_y };
+
         let ranges = CartesianRanges {
             x_range: (first_block, first_block + 10.0),
             y_range: (min_y, max_y),

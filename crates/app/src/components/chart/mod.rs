@@ -276,11 +276,15 @@ pub struct ChartState {
     pub cartesian_position: Option<Point>,
     /// Whether the left click is down.
     pub cursor_left_click_down: bool,
+    /// The final position the left click released at.
+    pub final_left_click_position: Option<Point>,
     /// The initial position of the left click.
     pub initial_left_click_position: Option<Point>,
     /// If the original coords have been overwritten. This can only occur once
     /// right now.
     pub permanent_override: bool,
+    /// If the chart can be interacted with.
+    pub can_interact: bool,
 }
 
 impl Chart<Message> for CartesianChart {
@@ -294,6 +298,10 @@ impl Chart<Message> for CartesianChart {
         cursor: Cursor,
     ) -> iced::mouse::Interaction {
         if let Cursor::Available(point) = cursor {
+            if !_state.can_interact {
+                return iced::mouse::Interaction::default();
+            }
+
             if bounds.contains(point) {
                 return iced::mouse::Interaction::Crosshair;
             }
@@ -312,34 +320,17 @@ impl Chart<Message> for CartesianChart {
     ) -> (event::Status, Option<Message>) {
         if let Cursor::Available(point) = cursor {
             match event {
+                canvas::Event::Mouse(evt) if !bounds.contains(point) => {
+                    state.can_interact = false;
+                    if let (Event::WheelScrolled { .. }, false) = (evt, state.can_interact) {
+                        // Ignore WheelScrolled event
+                        return (event::Status::Ignored, None);
+                    }
+                }
                 canvas::Event::Mouse(evt) if bounds.contains(point) => {
-                    // If we scrolled the wheel, need to zoom the range in or out.
-                    if let Event::WheelScrolled { delta } = evt {
-                        let delta = match delta {
-                            iced::mouse::ScrollDelta::Lines { y, .. } => y,
-                            iced::mouse::ScrollDelta::Pixels { y, .. } => y,
-                        };
-
-                        let delta = -delta as f32;
-
-                        let x_range = state.range.x_range.1 - state.range.x_range.0;
-                        let y_range = state.range.y_range.1 - state.range.y_range.0;
-
-                        let x_range = x_range * delta * 0.1;
-                        let y_range = y_range * delta * 0.1;
-
-                        let x_range = (
-                            state.range.x_range.0 - x_range,
-                            state.range.x_range.1 + x_range,
-                        );
-                        let y_range = (
-                            state.range.y_range.0 - y_range,
-                            state.range.y_range.1 + y_range,
-                        );
-
-                        state.range = CartesianRanges { x_range, y_range };
-
-                        return (event::Status::Captured, None);
+                    if let (Event::WheelScrolled { .. }, false) = (evt, state.can_interact) {
+                        // Ignore WheelScrolled event
+                        return (event::Status::Ignored, None);
                     }
 
                     // Get the origin of the bounding rectangle. This is necessary because the
@@ -366,59 +357,98 @@ impl Chart<Message> for CartesianChart {
 
                     state.cartesian_position = Some(Point::new(p.x, p.y));
 
-                    if let Event::ButtonPressed(iced::mouse::Button::Left) = evt {
-                        // todo: grab canvas
+                    if state.can_interact {
+                        // If we scrolled the wheel, need to zoom the range in or out.
+                        if let Event::WheelScrolled { delta } = evt {
+                            let delta = match delta {
+                                iced::mouse::ScrollDelta::Lines { y, .. } => y,
+                                iced::mouse::ScrollDelta::Pixels { y, .. } => y,
+                            };
 
-                        // Set down.
-                        if !state.cursor_left_click_down {
-                            state.cursor_left_click_down = true;
-                            state.initial_left_click_position = Some(p);
-                            state.original_range = Some(state.range.clone());
+                            let delta = -delta as f32;
+
+                            let x_range = state.range.x_range.1 - state.range.x_range.0;
+                            let y_range = state.range.y_range.1 - state.range.y_range.0;
+
+                            let x_range = x_range * delta * 0.1;
+                            let y_range = y_range * delta * 0.1;
+
+                            let x_range = (
+                                state.range.x_range.0 - x_range,
+                                state.range.x_range.1 + x_range,
+                            );
+                            let y_range = (
+                                state.range.y_range.0 - y_range,
+                                state.range.y_range.1 + y_range,
+                            );
+
+                            state.range = CartesianRanges { x_range, y_range };
+
+                            return (event::Status::Captured, None);
                         }
 
-                        return (event::Status::Captured, None);
-                    }
+                        if let Event::ButtonPressed(iced::mouse::Button::Left) = evt {
+                            // todo: grab canvas
 
-                    if let Event::ButtonReleased(iced::mouse::Button::Left) = evt {
-                        // Set up.
+                            // Set down.
+                            if !state.cursor_left_click_down {
+                                state.cursor_left_click_down = true;
+                                state.initial_left_click_position = Some(p);
+                                state.original_range = Some(state.range.clone());
+                            }
+
+                            return (event::Status::Captured, None);
+                        }
+
+                        if let Event::ButtonReleased(iced::mouse::Button::Left) = evt {
+                            // Set up.
+                            if state.cursor_left_click_down {
+                                state.cursor_left_click_down = false;
+                                state.initial_left_click_position = None;
+                                state.final_left_click_position = Some(p);
+                            }
+
+                            return (event::Status::Captured, None);
+                        }
+
                         if state.cursor_left_click_down {
-                            state.cursor_left_click_down = false;
-                            state.initial_left_click_position = None;
-                        }
+                            // Compute the delta shift for the canvas.
+                            let delta_x = state.initial_left_click_position.unwrap().x
+                                - state.cartesian_position.unwrap().x;
+                            let delta_y = state.initial_left_click_position.unwrap().y
+                                - state.cartesian_position.unwrap().y;
 
-                        return (event::Status::Captured, None);
+                            // Convert the delta shift to cartesian coordinates.
+                            let original_range = state.original_range.clone().unwrap();
+                            let delta_x = delta_x / bounds.width
+                                * (original_range.x_range.1 - original_range.x_range.0);
+                            let delta_y = delta_y / bounds.height
+                                * (original_range.y_range.1 - original_range.y_range.0);
+
+                            // Compute the new canvas ranges based on the delta shift.
+                            let new_range = (
+                                (
+                                    original_range.x_range.0 + delta_x,
+                                    original_range.x_range.1 + delta_x,
+                                ),
+                                (
+                                    original_range.y_range.0 + delta_y,
+                                    original_range.y_range.1 + delta_y,
+                                ),
+                            );
+
+                            state.range = CartesianRanges {
+                                x_range: (new_range.0 .0, new_range.0 .1),
+                                y_range: (new_range.1 .0, new_range.1 .1),
+                            };
+                        }
                     }
 
-                    if state.cursor_left_click_down {
-                        // Compute the delta shift for the canvas.
-                        let delta_x = state.initial_left_click_position.unwrap().x
-                            - state.cartesian_position.unwrap().x;
-                        let delta_y = state.initial_left_click_position.unwrap().y
-                            - state.cartesian_position.unwrap().y;
+                    if let Event::ButtonPressed(iced::mouse::Button::Right) = evt {
+                        // Flip the can_interact flag.
+                        state.can_interact = !state.can_interact;
 
-                        // Convert the delta shift to cartesian coordinates.
-                        let original_range = state.original_range.clone().unwrap();
-                        let delta_x = delta_x / bounds.width
-                            * (original_range.x_range.1 - original_range.x_range.0);
-                        let delta_y = delta_y / bounds.height
-                            * (original_range.y_range.1 - original_range.y_range.0);
-
-                        // Compute the new canvas ranges based on the delta shift.
-                        let new_range = (
-                            (
-                                original_range.x_range.0 + delta_x,
-                                original_range.x_range.1 + delta_x,
-                            ),
-                            (
-                                original_range.y_range.0 + delta_y,
-                                original_range.y_range.1 + delta_y,
-                            ),
-                        );
-
-                        state.range = CartesianRanges {
-                            x_range: (new_range.0 .0, new_range.0 .1),
-                            y_range: (new_range.1 .0, new_range.1 .1),
-                        };
+                        return (event::Status::Captured, None);
                     }
 
                     return (
@@ -429,6 +459,9 @@ impl Chart<Message> for CartesianChart {
                 _ => {}
             }
         } else {
+            // Reset interaction state.
+            state.can_interact = false;
+
             // Reset the relative position to None if the cursor is not available.
             state.relative_position = None;
             state.cartesian_position = None;
@@ -456,6 +489,39 @@ impl Chart<Message> for CartesianChart {
             state.range = self.range.clone();
             state.original_range = Some(self.range.clone());
             state.permanent_override = true;
+        }
+
+        // If the chart is not being moved with left click, and the series
+        // has gone out of range, readjust the range to fit the series with some buffer.
+        // Only automatically adjust if the user has not set its position.
+        if !state.cursor_left_click_down
+            && !self.series.is_empty()
+            && state.final_left_click_position.is_none()
+        {
+            let x_range = self
+                .series
+                .iter()
+                .map(|s| s.lines.last().unwrap().x2)
+                .collect::<Vec<_>>();
+            let y_range = self
+                .series
+                .iter()
+                .map(|s| s.lines.last().unwrap().y2)
+                .collect::<Vec<_>>();
+
+            let x_range = (
+                x_range.iter().cloned().fold(0.0, f32::min),
+                x_range.iter().cloned().fold(0.0, f32::max),
+            );
+            let y_range = (
+                y_range.iter().cloned().fold(0.0, f32::min),
+                y_range.iter().cloned().fold(0.0, f32::max),
+            );
+
+            let x_range = (x_range.0 - x_range.0 * 0.1, x_range.1 + x_range.1 * 0.1);
+            let y_range = (y_range.0 - y_range.0 * 0.1, y_range.1 + y_range.1 * 0.1);
+
+            state.range = CartesianRanges { x_range, y_range };
         }
 
         (event::Status::Ignored, None)
@@ -631,6 +697,38 @@ impl Chart<Message> for CartesianChart {
                 self.border_color.filled(),
             ))
             .expect("Failed to plot lines");
+
+        // If can_interact is false, display some text to right click to unlock.
+
+        let center_coord = chart.as_coord_spec();
+        let coord_y = center_coord.y_spec();
+        let coord_x = center_coord.x_spec();
+        let upper_right = (coord_x.range().end, coord_y.range().end);
+
+        let user_guide = match state.can_interact {
+            true => "Right Click to Lock",
+            false => "Right Click to Interact",
+        };
+
+        chart
+            .draw_series(PointSeries::of_element(
+                vec![upper_right],
+                0,
+                ShapeStyle::from(self.label_text_style).filled(),
+                &|c: (f32, f32), _s, st| {
+                    return EmptyElement::at((c.0, c.1))
+                        + Rectangle::new(
+                            [(0, 0), (100, 100)],
+                            ShapeStyle::from(colors::TRANSPARENT),
+                        )
+                        + plotters::prelude::Text::new(
+                            user_guide,
+                            (-200, 30),
+                            ("sans-serif", 16.0).into_font().color(&self.border_color),
+                        );
+                },
+            ))
+            .expect("Failed to draw empty chart");
 
         // If there is no chart plots or series, return an empty chart with a "No data"
         // text element.
