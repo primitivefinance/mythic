@@ -205,18 +205,10 @@ impl PortfolioPresenter {
             }
         };
 
-        self.portfolio_value_series.override_series(vec![
-            data.1,
-            asset_value_series.1,
-            quote_value_series.1,
-            unallocated_value_series.1,
-            protocol_quote_value_series.1,
-            protocol_asset_value_series.1,
-        ]);
-        self.portfolio_value_series
-            .update_x_range(unallocated_value_series.0.x_range);
-        self.portfolio_value_series
-            .update_y_range(unallocated_value_series.0.y_range);
+        // todo: make series toggleable.
+        self.portfolio_value_series.override_series(vec![data.1]);
+        self.portfolio_value_series.update_x_range(data.0.x_range);
+        self.portfolio_value_series.update_y_range(data.0.y_range);
         // Only happens once.
         self.portfolio_value_series.override_ranges_flag(true);
     }

@@ -647,6 +647,7 @@ impl ExcaliburText {
         }
     }
 
+    /// todo: fix on macos
     pub fn ui_semibold(self) -> Self {
         Self {
             font: ExcaliburFonts::UISemibold,
@@ -654,6 +655,7 @@ impl ExcaliburText {
         }
     }
 
+    /// todo: fix on macos
     pub fn ui_bold(self) -> Self {
         Self {
             font: ExcaliburFonts::UIBold,

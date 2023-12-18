@@ -55,6 +55,7 @@ impl Inventory {
             unallocated_positions
                 .0
                 .iter()
+                .filter(|x| x.balance.unwrap_or_default() > 0.0)
                 .enumerate()
                 .map(|(i, x)| {
                     ExcaliburButton::new()
@@ -74,6 +75,7 @@ impl Inventory {
             allocated_positions
                 .0
                 .iter()
+                .filter(|x| x.balance.unwrap_or_default() > 0.0)
                 .enumerate()
                 .map(|(i, x)| {
                     ExcaliburButton::new()

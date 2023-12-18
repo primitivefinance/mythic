@@ -214,12 +214,10 @@ impl Page {
                 false => route_button_style(Color::TRANSPARENT),
             };
 
-            let mut app_name = label(name);
+            let mut app_name = label(name).title3();
 
             if !selected {
                 app_name = app_name.secondary();
-            } else {
-                app_name = app_name.ui_semibold();
             }
 
             column = column.push(
