@@ -1,7 +1,10 @@
 use std::{f32::consts::PI, time::Instant};
 
 use iced::{
-    widget::canvas::{path::arc, stroke, Cache, Path, Stroke},
+    widget::{
+        canvas::{path::arc, stroke, Cache, Path, Stroke},
+        svg,
+    },
     window::icon,
     Point, Rectangle,
 };
@@ -23,15 +26,15 @@ pub fn excalibur_logo_2() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO_2, None).unwrap()
 }
 
-const ETHER_LOGO: &[u8] = include_bytes!("../../../../assets/logos/ether_logo.png");
-const USDC_LOGO: &[u8] = include_bytes!("../../../../assets/logos/usdc_logo.png");
+const ETHER_LOGO: &[u8] = include_bytes!("../../../../assets/logos/ethtokenicon.svg");
+const USDC_LOGO: &[u8] = include_bytes!("../../../../assets/logos/usdcvector.svg");
 
-pub fn ether_logo() -> icon::Icon {
-    icon::from_file_data(ETHER_LOGO, None).unwrap()
+pub fn ether_logo() -> iced::widget::svg::Handle {
+    svg::Handle::from_memory(ETHER_LOGO)
 }
 
-pub fn usdc_logo() -> icon::Icon {
-    icon::from_file_data(USDC_LOGO, None).unwrap()
+pub fn usdc_logo() -> iced::widget::svg::Handle {
+    svg::Handle::from_memory(USDC_LOGO)
 }
 
 pub struct PhiLogo {

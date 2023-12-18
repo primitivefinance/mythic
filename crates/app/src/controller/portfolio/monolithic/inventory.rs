@@ -10,7 +10,10 @@ use iced_aw::graphics::icons::icon_to_char;
 
 use super::*;
 use crate::{
-    components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, Typography},
+    components::{
+        logos::{ether_logo, usdc_logo},
+        system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, Typography},
+    },
     model::portfolio::AlloyAddress,
 };
 
@@ -23,7 +26,7 @@ impl Inventory {
         aum: impl ToString,
         unallocated_positions: Positions,
         allocated_positions: Positions,
-        logos: Vec<String>,
+        logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message,
     ) -> Container<'a, Message>
@@ -31,14 +34,6 @@ impl Inventory {
         Message: 'static + Clone + Default,
     {
         let current_dir = std::env::current_dir().unwrap();
-        let ether_logo_path =
-            PathBuf::from(current_dir.clone()).join("assets/logos/ethtokenicon.svg");
-        let usdc_logo_path = PathBuf::from(current_dir.clone()).join("assets/logos/usdcvector.svg");
-
-        let logos = vec![
-            ether_logo_path.to_str().unwrap().to_string(),
-            usdc_logo_path.to_str().unwrap().to_string(),
-        ];
 
         let allocated_weight_sum = allocated_positions
             .0
@@ -66,7 +61,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            iced::widget::svg(svg::Handle::from_path(logos[i].clone())),
+                            iced::widget::svg(logos[i].clone()),
                         )))
                         .on_press(on_select_position(x.asset.address.clone()).into())
                         .into()
@@ -85,7 +80,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            iced::widget::svg(svg::Handle::from_path(logos[i].clone())),
+                            iced::widget::svg(logos[i].clone()),
                         )))
                         .on_press(on_select_position(x.asset.address.clone()).into())
                         .into()
