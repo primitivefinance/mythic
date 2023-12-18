@@ -195,7 +195,7 @@ impl Dashboard {
                         Column::new()
                             .align_items(alignment::Alignment::Start)
                             .push(
-                                Card::new(
+                                Card::build_container(
                                     label("Make adjustments to view the estimated results")
                                         .title3()
                                         .build(),

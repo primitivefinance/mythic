@@ -283,7 +283,7 @@ impl State for RpcManagement {
             .spacing(Sizes::Md)
             .push(label("Manage RPC Settings").title2().build())
             .push(actions)
-            .push(Card::new(self.rpc_table().build()).padding(Sizes::Sm));
+            .push(Card::build_container(self.rpc_table().build()).padding(Sizes::Sm));
 
         let mut lower_half = Column::new().spacing(Sizes::Md);
 
