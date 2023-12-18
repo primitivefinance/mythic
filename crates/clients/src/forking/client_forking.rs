@@ -241,7 +241,6 @@ impl Forker {
             let mut ethers_db = EthersDB::new(provider, Some(start_block)).unwrap();
 
             tracing::info!("fetching account info for {:?}", payload.target);
-            
 
             ethers_db
                 .basic(payload.target.to_fixed_bytes().into())
@@ -493,14 +492,11 @@ mod tests {
         tracing::info!("Counter address: {}", counter_address.clone());
 
         // VERY IMPORTANT
-        let handle = std::thread::spawn(move || {
-            
-            match battler.digest_config(counter_address) {
-                Ok(cached) => cached,
-                Err(e) => {
-                    tracing::error!("Error: {:?}", e);
-                    panic!("Error: {:?}", e);
-                }
+        let handle = std::thread::spawn(move || match battler.digest_config(counter_address) {
+            Ok(cached) => cached,
+            Err(e) => {
+                tracing::error!("Error: {:?}", e);
+                panic!("Error: {:?}", e);
             }
         });
 
@@ -560,15 +556,11 @@ mod tests {
         let battler = battler.with_block_number(3_u64);
 
         // re-digest
-        let handle = std::thread::spawn(move || {
-            
-
-            match battler.digest_config(counter_address) {
-                Ok(cached) => cached,
-                Err(e) => {
-                    tracing::error!("Error: {:?}", e);
-                    panic!("Error: {:?}", e);
-                }
+        let handle = std::thread::spawn(move || match battler.digest_config(counter_address) {
+            Ok(cached) => cached,
+            Err(e) => {
+                tracing::error!("Error: {:?}", e);
+                panic!("Error: {:?}", e);
             }
         });
 

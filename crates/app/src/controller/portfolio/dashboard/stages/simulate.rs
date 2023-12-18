@@ -217,7 +217,6 @@ impl State for Simulate {
                     Message::FetchResults,
                 ); */
             }
-
         }
 
         Command::none()

@@ -63,8 +63,7 @@ impl Scroll {
         &self,
         db: &CacheDB<EmptyDBTyped<Infallible>>,
     ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
-        let address: revm::primitives::Address =
-            self.payload.target.to_fixed_bytes().into();
+        let address: revm::primitives::Address = self.payload.target.to_fixed_bytes().into();
         let account = db.accounts.get(&address).unwrap();
         Ok(account.storage.clone())
     }
@@ -77,9 +76,7 @@ impl Scroll {
         account: Address,
     ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
         let storage = match &self.stages.before {
-            Some(storage) => {
-                self.try_storage(storage)?
-            }
+            Some(storage) => self.try_storage(storage)?,
             None => {
                 tracing::error!("No before storage found in scroll");
                 return Err(anyhow::anyhow!(
@@ -100,9 +97,7 @@ impl Scroll {
         account: Address,
     ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
         let storage = match &self.stages.after {
-            Some(storage) => {
-                self.try_storage(storage)?
-            }
+            Some(storage) => self.try_storage(storage)?,
             None => {
                 tracing::error!("No after storage found in scroll");
                 return Err(anyhow::anyhow!(
@@ -267,8 +262,6 @@ impl Scroll {
         let client = forker.client.clone().unwrap();
         let tx = client.send_transaction(payload, block).await?.await?;
         tracing::debug!("Executed transaction: {:?}", tx);
-
-        
 
         match tx {
             Some(tx) => {
@@ -440,7 +433,10 @@ impl UnsealedTransaction {
             // Return the first argument, which is the address of the recipient of the
             // transfer. And the from address, which is the caller.
 
-            let keys = vec![self.arguments[0].clone(), address_to_string(&self.from.unwrap())];
+            let keys = vec![
+                self.arguments[0].clone(),
+                address_to_string(&self.from.unwrap()),
+            ];
             let mapping_label = "balanceOf".to_string();
 
             mappings.insert(mapping_label, keys);

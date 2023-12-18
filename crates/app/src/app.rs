@@ -199,8 +199,7 @@ impl App {
 
                 // Propagate the model to the active screen.
                 // todo: remove side effects
-                self
-                    .windows
+                self.windows
                     .screen
                     .update(Message::ModelSyncResult(Ok(model)))
             }
@@ -619,7 +618,6 @@ async fn save_snapshot(
 mod tests {
 
     use criterion::Criterion;
-
 
     fn cache_update_bench(_c: &mut Criterion) {
         todo!("add benches for this")

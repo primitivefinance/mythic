@@ -462,9 +462,9 @@ impl ExcaliburText {
         } else {
             QuantitativeColors::Billions
         };
-        
+
         let value = format!("{:.2}%", percentage_value);
-        
+
         Self {
             value,
             color: ExcaliburColor::Quantitative(color),
@@ -1185,7 +1185,9 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
 pub struct Card;
 
 impl Card {
-    pub fn build_container<'a, Message>(element: impl Into<Element<'a, Message>>) -> Container<'a, Message>
+    pub fn build_container<'a, Message>(
+        element: impl Into<Element<'a, Message>>,
+    ) -> Container<'a, Message>
     where
         Message: 'a,
     {
@@ -1518,9 +1520,7 @@ where
                     None
                 }
             }
-            Self::Event::Submit => {
-                self.on_submit.as_ref().cloned()
-            }
+            Self::Event::Submit => self.on_submit.as_ref().cloned(),
         }
     }
 

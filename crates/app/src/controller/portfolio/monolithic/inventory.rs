@@ -1,15 +1,10 @@
 use datatypes::portfolio::position::{Position, Positions};
-use iced::{
-    advanced::svg,
-    widget::Space,
-    Padding,
-};
+use iced::{advanced::svg, widget::Space, Padding};
 use iced_aw::graphics::icons::icon_to_char;
 
 use super::*;
 use crate::{
-    components::
-        system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer},
+    components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer},
     model::portfolio::AlloyAddress,
 };
 
