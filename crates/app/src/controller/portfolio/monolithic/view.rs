@@ -22,18 +22,50 @@ use crate::{
 pub struct MonolithicPresenter {
     model: Model,
     pub historical_txs: Vec<HistoricalTx>,
+    pub cached_strategy_preview: ExcaliburChart,
 }
 
 impl MonolithicPresenter {
     pub fn new(model: Model) -> Self {
         Self {
             model,
+            cached_strategy_preview: ExcaliburChart::new(),
             ..Default::default()
         }
     }
 
     pub fn update(&mut self, model: Model) {
         self.model = model;
+    }
+
+    pub fn sync_strategy_preview(
+        &mut self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+    ) {
+        let strategy_preview = self.model.portfolio.derive_computed_strategy_plot(
+            strike_price,
+            volatility,
+            time_remaining,
+        );
+        let strategy_preview = match strategy_preview {
+            Ok(data) => data,
+            Err(_) => vec![],
+        };
+
+        let liq_dist = strategy_preview[1].clone();
+        let price_curve = strategy_preview[2].clone();
+
+        // Completely override chart state and start from a fresh context.
+        // This will make the chart "snap" to the new curve by updating its
+        let mut new_preview = ExcaliburChart::new()
+            .x_range(liq_dist.0.x_range)
+            .y_range(liq_dist.0.y_range);
+        new_preview.override_series(vec![liq_dist.1, price_curve.1]);
+        new_preview.override_ranges_flag(true);
+
+        self.cached_strategy_preview = new_preview;
     }
 
     pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {

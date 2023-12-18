@@ -35,6 +35,9 @@ pub enum Message {
     UpdateDataModel(Result<Model, Arc<anyhow::Error>>),
     // Trigger a re-sync
     SyncModel(Block<ethers::types::H256>),
+
+    // placeholder
+    Refresh,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -183,6 +186,7 @@ impl Monolithic {
             FormMessage::Empty => Command::none(),
             FormMessage::Close => {
                 self.allocate = false;
+                self.create.reset();
                 Command::none()
             }
             FormMessage::Submit => {
@@ -219,7 +223,22 @@ impl Monolithic {
             }
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
-                Command::none()
+
+                let external_price = self.model.portfolio.raw_external_spot_price.clone();
+                let external_price = match external_price {
+                    Some(x) => format_ether(x).parse::<f64>().unwrap(),
+                    None => return Command::none(),
+                };
+
+                // Sync the strategy preview chart.
+                let parameters = liquidity.to_parameters(external_price);
+                self.presenter.sync_strategy_preview(
+                    parameters.strike_price_wad,
+                    parameters.sigma_percent_wad,
+                    parameters.time_remaining_years_wad,
+                );
+
+                Command::perform(async {}, |_| Message::Refresh)
             }
         }
     }
@@ -236,6 +255,7 @@ impl State for Monolithic {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
+            Self::AppMessage::Refresh => Command::none(),
             Self::AppMessage::SyncModel(block) => Command::none(),
             Self::AppMessage::UpdateDataModel(result) => match result {
                 Ok(updated_model) => self.handle_updated_model(updated_model),
@@ -313,6 +333,7 @@ impl State for Monolithic {
             content = content.push(
                 self.create
                     .view::<FormMessage>(
+                        &self.presenter.cached_strategy_preview,
                         &self.create_status,
                         Some(FormMessage::Close),
                         self.submit_ready(),

@@ -242,7 +242,7 @@ impl CartesianChart {
 }
 
 /// Holds the x and y axis ranges for the chart.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct CartesianRanges {
     /// The x-axis range.
     pub x_range: (f32, f32),
@@ -318,6 +318,16 @@ impl Chart<Message> for CartesianChart {
         bounds: iced::Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Message>) {
+        // Occurs once when the override flag is set.
+        // This is because we only have mutable state, but reference to self.
+        // Which makes it awkward to update the ranges used by the graph from outside
+        // the graph's state context.
+        if self.override_ranges && !state.permanent_override {
+            state.range = self.range.clone();
+            state.original_range = Some(self.range.clone());
+            state.permanent_override = true;
+        }
+
         if let Cursor::Available(point) = cursor {
             match event {
                 canvas::Event::Mouse(evt) if !bounds.contains(point) => {
@@ -481,47 +491,47 @@ impl Chart<Message> for CartesianChart {
             state.original_range = Some(self.range.clone());
         }
 
-        // Occurs once when the override flag is set.
-        // This is because we only have mutable state, but reference to self.
-        // Which makes it awkward to update the ranges used by the graph from outside
-        // the graph's state context.
-        if self.override_ranges && !state.permanent_override {
-            state.range = self.range.clone();
-            state.original_range = Some(self.range.clone());
-            state.permanent_override = true;
-        }
+        // Check if the chart is zoomed at all by comparing the ranges to the original
+        // ranges.
+        let zoomed = state.range != state.original_range.clone().unwrap();
 
         // If the chart is not being moved with left click, and the series
         // has gone out of range, readjust the range to fit the series with some buffer.
         // Only automatically adjust if the user has not set its position.
         if !state.cursor_left_click_down
-            && !self.series.is_empty()
             && state.final_left_click_position.is_none()
+            && !zoomed
+            && !self.series.is_empty()
         {
-            let x_range = self
-                .series
+            let first_series = &self.series[0];
+            let x_values: Vec<f32> = first_series
+                .lines
                 .iter()
-                .map(|s| s.lines.last().unwrap().x2)
-                .collect::<Vec<_>>();
-            let y_range = self
-                .series
+                .map(|l| vec![l.x1, l.x2])
+                .flatten()
+                .collect();
+            let y_values: Vec<f32> = first_series
+                .lines
                 .iter()
-                .map(|s| s.lines.last().unwrap().y2)
-                .collect::<Vec<_>>();
+                .map(|l| vec![l.y1, l.y2])
+                .flatten()
+                .collect();
 
-            let x_range = (
-                x_range.iter().cloned().fold(0.0, f32::min),
-                x_range.iter().cloned().fold(0.0, f32::max),
-            );
-            let y_range = (
-                y_range.iter().cloned().fold(0.0, f32::min),
-                y_range.iter().cloned().fold(0.0, f32::max),
-            );
+            let max_x = x_values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
+            let max_y = y_values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
 
-            let x_range = (x_range.0 - x_range.0 * 0.1, x_range.1 + x_range.1 * 0.1);
-            let y_range = (y_range.0 - y_range.0 * 0.1, y_range.1 + y_range.1 * 0.1);
+            if max_x > state.range.x_range.1 || max_y > state.range.y_range.1 {
+                let x_range = (
+                    state.range.x_range.0,
+                    max_x + (max_x - state.range.x_range.0) * 0.1,
+                );
+                let y_range = (
+                    state.range.y_range.0,
+                    max_y + (max_y - state.range.y_range.0) * 0.1,
+                );
 
-            state.range = CartesianRanges { x_range, y_range };
+                state.range = CartesianRanges { x_range, y_range };
+            }
         }
 
         (event::Status::Ignored, None)

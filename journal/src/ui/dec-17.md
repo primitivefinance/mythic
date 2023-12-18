@@ -12,3 +12,4 @@
 - logging is bad + doesnt save to file.
 - dedicated bindings?
 - propagating model changes to child components.
+- Lots of behavior / side effects in the chart that needs to be thoroughly tested.

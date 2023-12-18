@@ -1314,11 +1314,11 @@ impl ExcaliburInputBuilder {
         Self::default()
     }
 
-    pub fn build<Message>(
+    pub fn build<'a, Message>(
         self,
         value: Option<String>,
-        on_change: impl Fn(Option<String>) -> Message + 'static,
-    ) -> ExcaliburInput<Message> {
+        on_change: impl Fn(Option<String>) -> Message + 'a,
+    ) -> ExcaliburInput<'a, Message> {
         ExcaliburInput::new(
             value,
             on_change,
@@ -1392,7 +1392,7 @@ pub enum InputEvent {
     Submit,
 }
 
-pub struct ExcaliburInput<Message> {
+pub struct ExcaliburInput<'a, Message> {
     placeholder: String,
     value: Option<String>,
     is_secure: bool,
@@ -1401,20 +1401,20 @@ pub struct ExcaliburInput<Message> {
     padding: Padding,
     size: Option<f32>,
     line_height: text::LineHeight,
-    on_input: Option<Box<dyn Fn(Option<String>) -> Message>>,
-    on_paste: Option<Box<dyn Fn(String) -> Message>>,
+    on_input: Option<Box<dyn Fn(Option<String>) -> Message + 'a>>,
+    on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     icon: Option<iced::widget::text_input::Icon<iced::Font>>,
     style: Option<Box<dyn Fn() -> <iced::Theme as iced::widget::text_input::StyleSheet>::Style>>,
 }
 
-impl<Message> ExcaliburInput<Message> {
+impl<'a, Message> ExcaliburInput<'a, Message> {
     pub fn new(
         value: Option<String>,
-        on_input: impl Fn(Option<String>) -> Message + 'static,
+        on_input: impl Fn(Option<String>) -> Message + 'a,
         padding: Option<Padding>,
         placeholder: Option<String>,
-        on_paste: Option<Box<dyn Fn(String) -> Message>>,
+        on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
         on_submit: Option<Message>,
         size: Option<f32>,
         font: Option<iced::Font>,
@@ -1453,7 +1453,7 @@ impl<Message> ExcaliburInput<Message> {
     }
 }
 
-impl<Message> Component<Message, iced::Renderer> for ExcaliburInput<Message>
+impl<'a, Message> Component<Message, iced::Renderer> for ExcaliburInput<'a, Message>
 where
     Message: Clone,
 {
@@ -1545,11 +1545,11 @@ where
     }
 }
 
-impl<'a, Event> From<ExcaliburInput<Event>> for Element<'a, Event, iced::Renderer>
+impl<'a, Event> From<ExcaliburInput<'a, Event>> for Element<'a, Event, iced::Renderer>
 where
     Event: 'a + Clone,
 {
-    fn from(config_input: ExcaliburInput<Event>) -> Self {
+    fn from(config_input: ExcaliburInput<'a, Event>) -> Self {
         component(config_input)
     }
 }
