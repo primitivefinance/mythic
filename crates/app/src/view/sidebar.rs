@@ -214,10 +214,12 @@ impl Page {
                 false => route_button_style(Color::TRANSPARENT),
             };
 
-            let mut app = label(name).ui_bold();
+            let mut app_name = label(name);
 
             if !selected {
-                app = app.secondary();
+                app_name = app_name.secondary();
+            } else {
+                app_name = app_name.ui_semibold();
             }
 
             column = column.push(
@@ -225,7 +227,7 @@ impl Page {
                     Row::new()
                         .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
                         .push(label(icon_to_char(icon)).icon().build())
-                        .push(app.build())
+                        .push(app_name.build())
                         .spacing(Sizes::Md),
                 )
                 .width(Length::Fill)

@@ -20,9 +20,34 @@
 What do I prioritize for tonight?
 
 - [x] Remove cargo nightly features
-- [ ] Pin dependencies
-- [ ] Font and asset loading on mac os?
+- [x] Pin dependencies
+- [x] Font and asset loading on mac os?
 - [ ] macos cant right click haha!!
 - [ ] Make traces cleaner, and potentially save to file?
 - [ ] Get some tests passing
 - [ ] Clippy
+
+# tagline
+
+What is Excalibur?
+
+Excalibur is a DeFi client. lame?
+
+DeFi is dangerous. Excalibur is your sword.
+
+DeFi is dangerous, bring Excalibur.
+
+DeFi is dangerous, equip Excalibur.
+
+You wouldn't download a blockchain. (haha)
+
+Equip Excalibur to your wallet and venture into the dark forest of DeFi.
+
+Excalibur is your best weapon in defense of the monsters of the dark forest.
+
+You wouldn't begin your DeFi adventure without a good weapon, would you?
+
+Too cute, this is serious business we are in!!
+
+"Excalibur: An alternative entrypoint to DeFi."
+
