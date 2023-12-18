@@ -4,7 +4,6 @@ use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use ethers::providers::Middleware;
 use revm::db::{CacheDB, EmptyDB};
 use serde::{Deserialize, Serialize};
-use tracing::debug;
 
 use super::*;
 use crate::{

@@ -83,8 +83,8 @@ impl ArbiterInstance {
 
     /// Consumes this instance, stopping the environment and returning the
     /// snapshot of its db.
-    pub fn stop(mut self) -> Result<()> {
-        let db = self.environment.stop()?;
+    pub fn stop(self) -> Result<()> {
+        self.environment.stop()?;
         Ok(())
     }
 
@@ -107,7 +107,7 @@ impl SnapshotDB {
         let accounts = db
             .accounts
             .iter()
-            .map(|(k, v)| (Address::from(k.clone().into_array()), v.info.clone()))
+            .map(|(k, v)| (Address::from(k.into_array()), v.info.clone()))
             .collect();
 
         let storage = db
@@ -117,10 +117,10 @@ impl SnapshotDB {
                 let storage = v
                     .storage
                     .iter()
-                    .map(|(k, v)| (k.clone(), v.clone()))
+                    .map(|(k, v)| (*k, *v))
                     .collect();
 
-                (Address::from(k.clone().into_array()), storage)
+                (Address::from(k.into_array()), storage)
             })
             .collect();
 
@@ -137,7 +137,7 @@ impl From<SnapshotDB> for CacheDB<EmptyDB> {
                 let db_account: DbAccount = v.clone().into();
 
                 (
-                    revm_primitives::Address::from(k.clone().into_array()),
+                    revm_primitives::Address::from(k.into_array()),
                     db_account.clone(),
                 )
             })
@@ -246,8 +246,7 @@ impl ArbiterInstanceManager {
 
     pub fn stop(&mut self, instances: Vec<ArbiterInstance>) {
         for instance in instances {
-            let db = instance.stop().unwrap();
-            // self.instances.push(db);
+            instance.stop().unwrap();
         }
     }
 
@@ -266,7 +265,7 @@ impl ArbiterInstanceManager {
 
 impl Serialize for ArbiterInstanceManager {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let saved_dbs: Vec<_> = self.instances.iter().map(|db| db.clone()).collect();
+        let saved_dbs: Vec<_> = self.instances.to_vec();
         let config = self.config_builder.clone();
         (saved_dbs, config).serialize(serializer)
     }
@@ -300,7 +299,8 @@ pub async fn run_parallel(
         let semaphore = Arc::new(Semaphore::new(1));
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<Error>));
         let mut builder = builder.clone();
-        let res = rt.block_on(async {
+        
+        rt.block_on(async {
             let mut instances = builder.build(scenario).await;
             let mut handles = vec![];
             let i = instances.len();
@@ -315,8 +315,7 @@ pub async fn run_parallel(
             let mut snapshots = vec![];
             for handle in handles {
                 let instance = handle.await.await??;
-                let snapshot = instance.stop()?;
-                snapshots.push(snapshot);
+                snapshots.push(instance.stop()?);
             }
 
             let mut errors = errors.lock().await;
@@ -325,8 +324,7 @@ pub async fn run_parallel(
             } else {
                 Ok(snapshots)
             }
-        });
-        res
+        })
     });
 
     Ok(slice)
@@ -339,7 +337,9 @@ async fn simulation_task(
 ) -> tokio::task::JoinHandle<Result<ArbiterInstance, Error>> {
     let errors_clone = errors.clone();
     let semaphore_clone = semaphore.clone();
-    let handle = tokio::spawn(async move {
+    
+
+    tokio::spawn(async move {
         let mut instance = instance;
         instance.init().await.unwrap();
 
@@ -373,9 +373,7 @@ async fn simulation_task(
         instance.exit().await.unwrap();
 
         Ok(instance)
-    });
-
-    handle
+    })
 }
 
 #[cfg(test)]
@@ -435,8 +433,7 @@ mod tests {
             .next()
             .unwrap()
             .client()
-            .address()
-            .clone();
+            .address();
         let address = block_admin_address;
         let account = client
             .apply_cheatcode(cheatcodes::Cheatcodes::Access {
@@ -451,6 +448,6 @@ mod tests {
         };
 
         assert_eq!(instance.config.agent_parameters.len(), 1);
-        assert_eq!(account.is_some(), true);
+        assert!(account.is_some());
     }
 }

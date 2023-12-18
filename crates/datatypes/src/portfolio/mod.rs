@@ -11,7 +11,7 @@ use position::{Position, Positions};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use self::{nwd::NWD, position::PositionError, weight::Weight};
+use self::{nwd::NWD, position::PositionError};
 use super::TokenData;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]

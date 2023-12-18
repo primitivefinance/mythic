@@ -198,7 +198,7 @@ impl Default for Information {
     fn default() -> Self {
         Self {
             last_sync: None,
-            time_to_stale: 300 as u64,
+            time_to_stale: 300u64,
         }
     }
 }
@@ -280,13 +280,13 @@ pub struct Positions(pub Vec<Position>);
 impl std::fmt::Display for Positions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for position in &self.0 {
-            write!(
+            writeln!(
                 f,
-                "Position {{ symbol: {}, balance: {}, weight: {} }}\n",
+                "Position {{ symbol: {}, balance: {}, weight: {} }}",
                 position.asset.symbol,
                 position.balance.unwrap_or_default(),
                 position.weight.unwrap_or_default().value
-            );
+            )?;
         }
         Ok(())
     }
@@ -315,7 +315,7 @@ impl Positions {
             .ok_or(PositionError::PositionDoesNotExist)?;
 
         // Clone the weight and replace it's value with the delta.
-        let mut weight = position.weight.unwrap_or_default().clone();
+        let mut weight = position.weight.unwrap_or_default();
         // Create an identical weight (id-wise) with the delta we want to apply in
         // absolute terms.
         weight.set_value(delta.abs())?;
@@ -347,6 +347,10 @@ impl Positions {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn weights(&self) -> Vec<f64> {

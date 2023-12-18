@@ -18,6 +18,10 @@ impl NWD {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn sum(&self) -> Weight {
         self.0.iter().fold(Weight::default(), |acc, x| acc + *x)
     }
@@ -45,7 +49,7 @@ impl NWD {
     pub fn adjust(&mut self, id: Uuid, delta: f64) -> Result<(), WeightError> {
         // Validate the delta is within valid bounds.
         let absolute = delta.abs();
-        if absolute < MIN_WEIGHT.value || absolute > MAX_WEIGHT.value {
+        if !(MIN_WEIGHT.value..=MAX_WEIGHT.value).contains(&absolute) {
             return Err(WeightError::InvalidWeight(absolute));
         }
 
@@ -179,7 +183,7 @@ mod tests {
     #[test]
     fn test_nwd_add() {
         let weight = Weight::new(0.5).unwrap();
-        let mut nwd = NWD(vec![weight.clone(), Weight::new(0.5).unwrap()]);
+        let mut nwd = NWD(vec![weight, Weight::new(0.5).unwrap()]);
         nwd.adjust(weight.id, 0.25).unwrap();
         assert_eq!(
             nwd,
@@ -190,7 +194,7 @@ mod tests {
     #[test]
     fn test_nwd_sub() {
         let weight = Weight::new(0.5).unwrap();
-        let mut nwd = NWD(vec![weight.clone(), Weight::new(0.5).unwrap()]);
+        let mut nwd = NWD(vec![weight, Weight::new(0.5).unwrap()]);
         nwd.adjust(weight.id, 0.25.neg()).unwrap();
         assert_eq!(
             nwd,
@@ -201,7 +205,7 @@ mod tests {
     #[test]
     fn test_nwd_add_weight() {
         let weight = Weight::new(0.5).unwrap();
-        let mut nwd = NWD(vec![weight.clone(), Weight::new(0.5).unwrap()]);
+        let mut nwd = NWD(vec![weight, Weight::new(0.5).unwrap()]);
         nwd += weight;
         assert_eq!(
             nwd,
@@ -212,7 +216,7 @@ mod tests {
     #[test]
     fn test_nwd_sub_weight() {
         let weight = Weight::new(0.5).unwrap();
-        let mut nwd = NWD(vec![weight.clone(), Weight::new(0.5).unwrap()]);
+        let mut nwd = NWD(vec![weight, Weight::new(0.5).unwrap()]);
         nwd -= weight;
         assert_eq!(
             nwd,
@@ -223,7 +227,7 @@ mod tests {
     #[test]
     fn test_nwd_add_additional_weight() {
         let weight = Weight::new(0.5).unwrap();
-        let mut nwd = NWD(vec![weight.clone(), Weight::new(0.5).unwrap()]);
+        let mut nwd = NWD(vec![weight, Weight::new(0.5).unwrap()]);
         nwd += 0.2;
         assert_eq!(
             nwd,
@@ -238,7 +242,7 @@ mod tests {
     #[test]
     fn test_nwd_sub_out_weight() {
         let weight = Weight::new(0.5).unwrap();
-        let mut nwd = NWD(vec![weight.clone(), Weight::new(0.5).unwrap()]);
+        let mut nwd = NWD(vec![weight, Weight::new(0.5).unwrap()]);
         nwd -= weight;
         assert_eq!(
             nwd,

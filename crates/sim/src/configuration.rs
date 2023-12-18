@@ -26,7 +26,7 @@ impl ConfigBuilder {
     pub fn add_configurable(&mut self, configurable: &dyn Configurable) {
         self.config
             .agent_parameters
-            .extend(configurable.configure().into_iter());
+            .extend(configurable.configure());
     }
 
     pub fn get(&self) -> SimulationConfig<Multiple> {
