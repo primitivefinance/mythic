@@ -214,7 +214,7 @@ impl Page {
                 false => route_button_style(Color::TRANSPARENT),
             };
 
-            let mut app_name = label(name).title3();
+            let mut app_name = label(name);
 
             if !selected {
                 app_name = app_name.secondary();

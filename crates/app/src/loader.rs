@@ -124,7 +124,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
-    let mut exc_client = ExcaliburMiddleware::setup(flags.dev_mode).await?;
+    let mut exc_client = ExcaliburMiddleware::setup(true).await?;
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
@@ -170,7 +170,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // 1. Get the "saved" addresses from the user's contact book.
     // 2. Sync the addresses to the exc_client.
     // 3. Sync the addresses to the model.
-    if flags.dev_mode && loaded_snapshot {
+    if loaded_snapshot {
         for name in CONTRACT_NAMES.iter() {
             if let Some(contracts) = model
                 .user
@@ -189,7 +189,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     }
 
     // If we are loading a fresh instance, deploy the contracts.
-    if flags.dev_mode && !loaded_snapshot {
+    if !loaded_snapshot {
         let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
         let sender = signer.address();
         let client = exc_client.client().unwrap().clone();
