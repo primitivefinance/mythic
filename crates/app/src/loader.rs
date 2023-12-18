@@ -41,6 +41,8 @@ pub enum Message {
     Connected,
     LoadingFailed,
     Ready(LoadResult),
+    BrandFontLoaded,
+    IconFontLoaded,
     Quit,
 }
 pub struct Loader {
@@ -342,6 +344,9 @@ pub async fn connect_to_server() -> anyhow::Result<()> {
     Ok(())
 }
 
+pub const DAGGER_SQUARE_FONT_BYTES: &[u8] =
+    include_bytes!("../../../assets/fonts/DAGGERSQUARE.otf");
+
 impl Loader {
     pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
         // Triggers the next step in the main application loop by emitting the Loaded
@@ -379,8 +384,17 @@ impl Loader {
                         return Message::LoadingFailed;
                     }
 
-                    Message::Loaded(flags)
+                    Message::IconFontLoaded
                 }),
+                font::load(DAGGER_SQUARE_FONT_BYTES).map(move |res| {
+                    if let Err(e) = res {
+                        tracing::error!("Failed to load icon font: {:?}", e);
+                        return Message::LoadingFailed;
+                    }
+
+                    Message::BrandFontLoaded
+                }),
+                Command::perform(async {}, move |_| Message::Loaded(flags)),
             ]),
         )
     }

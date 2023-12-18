@@ -3,7 +3,7 @@ use std::{env, path::PathBuf};
 use chrono::Utc;
 use datatypes::portfolio::position::{Position, PositionLayer, Positions};
 use iced::{
-    widget::{image, Image, Space},
+    widget::{image, svg, Image, Space},
     window::Icon,
 };
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info, ICON_FONT};
@@ -89,7 +89,7 @@ impl MonolithicPresenter {
     }
 
     // todo: position fetching and stuff from portfolio is not clean
-    pub fn get_positions(&self) -> (Positions, Vec<String>) {
+    pub fn get_positions(&self) -> (Positions, Vec<svg::Handle>) {
         let portfolio = self.model.user.portfolio.clone();
         let position_x = portfolio
             .clone()
@@ -111,15 +111,8 @@ impl MonolithicPresenter {
             .cloned()
             .unwrap_or_default();
 
-        let current_dir = env::current_dir().unwrap();
-        let ether_logo_path =
-            PathBuf::from(current_dir.clone()).join("assets/logos/ether_logo.png");
-        let usdc_logo_path = PathBuf::from(current_dir.clone()).join("assets/logos/usdc_logo.png");
-
-        let logos = vec![
-            ether_logo_path.to_str().unwrap().to_string(),
-            usdc_logo_path.to_str().unwrap().to_string(),
-        ];
+        // todo: get in a better way...
+        let logos = vec![ether_logo(), usdc_logo()];
 
         (vec![position_x, position_y].into(), logos)
     }
@@ -234,7 +227,7 @@ impl MonolithicView {
         aum: impl ToString,
         unallocated_positions: Positions,
         allocated_positions: Positions,
-        logos: Vec<String>,
+        logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
         on_input: impl Fn(Option<String>) -> Message + 'static,
