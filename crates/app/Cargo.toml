@@ -14,10 +14,7 @@ cfmm_math = { path = "../cfmm_math" }
 
 
 # deps
-chrono = "0.4.31"
-image = "0.24.7"
-lazy_static = "1.4.0"
-iced = { version = "0.10.0", features = [
+iced = { version = "=0.10.0", features = [
     "system",
     "tokio",
     "lazy",
@@ -27,24 +24,25 @@ iced = { version = "0.10.0", features = [
     "canvas",
     "svg",
 ] }
-iced_aw = { version = "0.7.0", default-features = false, features = [
+iced_aw = { version = "=0.7.0", default-features = false, features = [
     "menu",
     "icon_text",
     "icons",
     "spinner",
     "floating_element",
 ] }
-plotters-backend = "0.3.5"
-plotters-iced = "0.9.0"
-iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicator.git" }
-
-# todo: take this out? its needed in form
-revm = { version = "=3.5.0", features = ["ethersdb", "std", "serde"] }
-revm-primitives = { version = "1.3.0" }
+plotters-backend = "=0.3.5"
+plotters-iced = "=0.9.0"
+iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicator.git", rev = "a09296f" }
 
 
 # workspace crates
 sim.workspace = true
+
+# revm
+revm.workspace = true
+revm-primitives.workspace = true
+
 # alloy
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
@@ -60,6 +58,7 @@ alloy-signer.workspace = true
 reqwest.workspace = true
 
 # workspace deps
+chrono.workspace = true
 RustQuant.workspace = true
 arbiter-bindings.workspace = true
 bindings.workspace = true

@@ -19,4 +19,10 @@
 
 What do I prioritize for tonight?
 
-- [ ] Remove cargo nightly features.
+- [x] Remove cargo nightly features
+- [ ] Pin dependencies
+- [ ] Font and asset loading on mac os?
+- [ ] macos cant right click haha!!
+- [ ] Make traces cleaner, and potentially save to file?
+- [ ] Get some tests passing
+- [ ] Clippy
