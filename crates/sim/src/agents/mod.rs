@@ -2,7 +2,7 @@ pub mod base;
 pub mod pm;
 
 use base::{block_admin::*, price_changer::*, token_admin::*};
-use pm::{arbitrageur::*, liquidity_provider::*, submitter::*};
+use pm::{liquidity_provider::*, submitter::*};
 
 use super::{agent::Agent, *};
 

@@ -50,13 +50,17 @@ impl Coin {
     }
 }
 
+impl super::coin_list::CoinList {
+    pub fn new(tokens: Vec<Coin>) -> Self {
+        Self { tokens, ..Self::default() }
+    }
+}
+
 impl std::ops::Add for Coin {
     type Output = super::coin_list::CoinList;
 
     fn add(self, rhs: Self) -> Self::Output {
         let tokens = vec![self, rhs];
-        let mut coin_list = super::coin_list::CoinList::default();
-        coin_list.tokens = tokens;
-        coin_list
+        super::coin_list::CoinList::new(tokens)
     }
 }
