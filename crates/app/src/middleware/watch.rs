@@ -39,7 +39,6 @@ impl Watcher {
             tokio::select! {
                 _ = cloned_token.cancelled() => {
                     info!("Cancellation token triggered");
-                    return;
                 }
                 _ = async {
                     let mut set = tokio::task::JoinSet::new();

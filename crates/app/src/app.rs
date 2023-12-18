@@ -173,14 +173,11 @@ impl App {
 
     /// Loads the sidebar and the default screen. Called after new().
     pub fn load(&mut self) -> Command<Message> {
-        let mut cmds = Vec::new();
-
-        // Load the sidebar.
-        cmds.push(self.windows.sidebar.load().map(|x| x.into()));
-
-        // Load the current window.
-        cmds.push(self.windows.screen.load().map(|x| x.into()));
-
+        // Load the sidebar and the current window.
+        let cmds = vec![
+            self.windows.sidebar.load().map(|x| x.into()),
+            self.windows.screen.load().map(|x| x),
+        ];
         Command::batch(cmds)
     }
 
@@ -202,10 +199,10 @@ impl App {
 
                 // Propagate the model to the active screen.
                 // todo: remove side effects
-                return self
+                self
                     .windows
                     .screen
-                    .update(Message::ModelSyncResult(Ok(model)));
+                    .update(Message::ModelSyncResult(Ok(model)))
             }
             Message::ModelSyncResult(Err(e)) => {
                 tracing::error!(
@@ -227,7 +224,7 @@ impl App {
                     self.windows
                         .screen
                         .update(Message::View(view::Message::Root(msg)))
-                        .map(|x| x.into())
+                        .map(|x| x)
                 }
             },
 
@@ -264,12 +261,12 @@ impl App {
 
         // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
         // set the profile's anvil snapshot to the result.
-        if let Some(_) = self.client.anvil {
+        if self.client.anvil.is_some() {
             let cmd = Command::perform(
                 save_snapshot(self.client.clone()),
                 UserProfileMessage::SaveAnvilSnapshot,
             )
-            .map(|x| Message::UpdateUser(x));
+            .map(Message::UpdateUser);
             commands.push(cmd);
         }
 
@@ -502,7 +499,7 @@ impl AppClock {
             .unwrap_or(Duration::from_secs(0))
             .as_millis();
         let tbu = format!("dur:  {}ms", tbu_value);
-        label(&tbu)
+        label(tbu)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -520,7 +517,7 @@ impl AppClock {
     pub fn view_max<Message>(&self) -> Element<'_, Message> {
         let max_value = self.max_update_time().as_millis();
         let max = format!("max:  {}ms", max_value);
-        label(&max)
+        label(max)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -546,13 +543,13 @@ impl AppClock {
     pub fn view_min<Message>(&self) -> Element<'_, Message> {
         let min = self.min_update_time().as_millis();
         let min = format!("min:  {}ms", min);
-        label(&min).tertiary().caption2().into()
+        label(min).tertiary().caption2().into()
     }
 
     pub fn view_frequency<Message>(&self) -> Element<'_, Message> {
         let frequency_value = self.update_frequency(Duration::from_secs(30));
         let frequency = format!("freq:  {:.2}", frequency_value);
-        label(&frequency)
+        label(frequency)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -574,7 +571,7 @@ impl AppClock {
     pub fn view_average<Message>(&self) -> Element<'_, Message> {
         let average_value = self.average_cycle(Duration::from_secs(30)).as_millis();
         let average = format!("avg.:  {}ms", average_value);
-        label(&average)
+        label(average)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -600,7 +597,7 @@ impl AppClock {
     pub fn view<Message>(&self) -> Element<'_, Message> {
         let average = self.average_cycle(Duration::from_secs(30));
         let average = format!("update time/s:  {}ms", average.as_millis());
-        label(&average).tertiary().caption2().into()
+        label(average).tertiary().caption2().into()
     }
 }
 
@@ -621,11 +618,11 @@ async fn save_snapshot(
 #[cfg(test)]
 mod tests {
 
-    use criterion::{black_box, criterion_group, criterion_main, Criterion};
+    use criterion::Criterion;
 
-    use super::*;
 
-    fn cache_update_bench(c: &mut Criterion) {
+    fn cache_update_bench(_c: &mut Criterion) {
+        todo!("add benches for this")
         // let storage = Storage::default();
         // let chains = Chains::default();
         // let mut app = App::new(storage, chains, Streams::default(), None).0;

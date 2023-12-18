@@ -92,7 +92,8 @@ impl Dashboard {
     /// Since this happens in `load` instead of `new`, there's no lag when
     /// opening the page.
     pub fn new(
-        name: Option<String>,
+        // TODO: do we need name?
+        _name: Option<String>,
         client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
         model: Model,
     ) -> Self {
@@ -163,7 +164,7 @@ impl Dashboard {
             };
 
             //  Adjust the portfolio with using the weight delta.
-            let weight = position.weight.unwrap_or_default().clone();
+            let weight = position.weight.unwrap_or_default();
             portfolio.adjust(weight.id, delta).unwrap();
             adjusted = true;
         }
@@ -195,7 +196,7 @@ impl Dashboard {
                             .align_items(alignment::Alignment::Start)
                             .push(
                                 Card::new(
-                                    label(&"Make adjustments to view the estimated results")
+                                    label("Make adjustments to view the estimated results")
                                         .title3()
                                         .build(),
                                 )
@@ -292,22 +293,20 @@ impl State for Dashboard {
                     tracing::info!("Tick, updating price.");
                     let client = client.client().cloned().unwrap();
                     // for testing live price chart.
-                    let external_exchange = external_exchange.clone();
+                    let external_exchange = *external_exchange;
 
                     commands.push(Command::perform(
                         async move {
                             let next_price = next_price.unwrap_or_default();
                             let client = client.clone();
-                            let external_exchange = external_exchange.clone();
-                            // Call the set_price function on the external exchange.
                             let lex = LiquidExchange::new(
-                                to_ethers_address(external_exchange.clone()),
+                                to_ethers_address(external_exchange),
                                 client,
                             );
 
                             let current_price = lex.price().await?;
                             // make the new price a random price +/- 1% of current price.
-                            let random = (1.0 + (rand::random::<f64>() - 0.5) * 0.01);
+                            let random = 1.0 + (rand::random::<f64>() - 0.5) * 0.01;
                             let random = parse_ether(format!("{}", random).as_str()).unwrap();
                             let mut new_price = from_ethers_u256(current_price)
                                 .checked_mul(random)
@@ -323,7 +322,7 @@ impl State for Dashboard {
                                 lex.set_price(to_ethers_u256(new_price)).send().await?.await;
 
                             match result {
-                                Ok(tx) => {
+                                Ok(_tx) => {
                                     tracing::info!("Updated price");
                                     Ok(())
                                 }
@@ -366,9 +365,9 @@ impl State for Dashboard {
                             .0
                             .iter()
                             .enumerate()
-                            .map(|(pos_index, position)| {
+                            .flat_map(|(pos_index, position)| {
                                 let balance =
-                                    position.balance.clone().unwrap_or_default().to_string();
+                                    position.balance.unwrap_or_default().to_string();
                                 let market_value = position.market_value().clone().to_string();
 
                                 let balance_command = self
@@ -393,7 +392,6 @@ impl State for Dashboard {
 
                                 vec![balance_command, market_value_command]
                             })
-                            .flatten()
                             .collect::<Vec<Command<Message>>>();
                     }
 
@@ -413,7 +411,7 @@ impl State for Dashboard {
                 // If its an Execute::NewStrategyPosition message, then update the deposited
                 // portfolio.
                 if let stages::Message::Execute(stages::execute::Message::NewStrategyPosition(
-                    portfolio,
+                    _portfolio,
                 )) = stage.clone()
                 {
                     // todo: update current position table with new strategy
@@ -442,7 +440,7 @@ impl State for Dashboard {
     fn view(&self) -> Element<'_, Message> {
         let quadrant_1 = self.renderer.metrics_layout(
             &self.presenter.portfolio_strategy_plot,
-            label(&"Liquidity curve").headline().highlight(),
+            label("Liquidity curve").headline().highlight(),
             self.presenter.get_external_price(),
             self.presenter.get_external_portfolio_value(),
             self.presenter.get_internal_portfolio_value(),
@@ -452,9 +450,9 @@ impl State for Dashboard {
         );
         let quadrant_2 = self.renderer.chart_and_greet_layout(
                 &self.presenter.portfolio_value_series,
-                label(&"Good morning, Alex.").title3().highlight(),
-                label(&"Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.").body(),
-                label(&"Portfolio value / time").highlight().headline(),
+                label("Good morning, Alex.").title3().highlight(),
+                label("Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.").body(),
+                label("Portfolio value / time").highlight().headline(),
                 self.presenter.get_last_sync_timestamp()
             );
 
@@ -464,10 +462,10 @@ impl State for Dashboard {
 
         let quadrant_3 = ExcaliburContainer::default()
             .build(self.renderer.table_layout(
-                label(&"Positions").highlight(),
+                label("Positions").highlight(),
                 vec![ExcaliburButton::new()
                 .transparent()
-                .build(label(&"Refetch").caption().secondary().build())
+                .build(label("Refetch").caption().secondary().build())
                 .on_press(Message::Refetch).into()],
                 table_builder,
                 table_cells,

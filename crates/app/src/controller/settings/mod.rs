@@ -118,8 +118,8 @@ impl State for SettingsScreen {
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
-        match message {
-            Self::AppMessage::View(view::Message::Settings(message)) => match message {
+        if let Self::AppMessage::View(view::Message::Settings(message)) = message {
+            match message {
                 Message::Rpc(message) => match message {
                     rpc::Message::Delete => {
                         tracing::debug!("Deleting RPCs from profile.");
@@ -139,7 +139,7 @@ impl State for SettingsScreen {
                         }
 
                         commands.push(self.rpc.update(message).map(|x| Message::Rpc(x).into()));
-                        return Command::batch(commands);
+                        Command::batch(commands)
                     }
                     rpc::Message::Submit => {
                         let chain = self.rpc.get_chain_packet();
@@ -160,40 +160,40 @@ impl State for SettingsScreen {
                                 );
                                 commands
                                     .push(self.rpc.update(message).map(|x| Message::Rpc(x).into()));
-                                return Command::batch(commands);
+                                Command::batch(commands)
                             }
                             Err(e) => {
                                 tracing::error!("Failed to submit new RPC packet: {:?}", e);
 
-                                return Command::perform(async {}, move |_| {
+                                Command::perform(async {}, move |_| {
                                     view::Message::Settings(settings::Message::Rpc(
                                         settings::rpc::Message::Feedback(anyhow!(e).into()),
                                     ))
                                 })
-                                .map(|x| x.into());
+                                .map(|x| x.into())
                             }
                         }
                     }
-                    _ => return self.rpc.update(message).map(|x| Message::Rpc(x).into()),
+                    _ => self.rpc.update(message).map(|x| Message::Rpc(x).into()),
                 },
                 Message::Signers(message) => {
-                    return self
+                    self
                         .signers
                         .update(message)
                         .map(|x| Message::Signers(x).into())
                 }
                 Message::Contacts(message) => {
-                    return self
+                    self
                         .contacts
                         .update(message)
                         .map(|x| Message::Contacts(x).into())
                 }
-                Message::Route(page) => return self.switch_page(page).map(|x| x.into()),
-                _ => {}
-            },
-            _ => {}
+                Message::Route(page) => self.switch_page(page).map(|x| x.into()),
+                _ => Command::none(),
+            }
+        } else {
+            Command::none()
         }
-        Command::none()
     }
 
     fn view(&self) -> Element<'_, RootViewMessage> {

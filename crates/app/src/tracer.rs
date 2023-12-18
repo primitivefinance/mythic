@@ -556,7 +556,7 @@ mod tests {
         user_trace();
 
         // get the last item from the receiver channel and log it
-        while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
+        while let Ok(msg) = tracer.receiver.clone().lock().unwrap().try_recv() {
             // println the app event log if the data's hashmap has more than 2 items
             println!("Received message: {:?}", msg.data);
         }
@@ -576,7 +576,7 @@ mod tests {
         single_trace();
 
         // get the last item from the receiver channel and log it
-        while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
+        while let Ok(msg) = tracer.receiver.clone().lock().unwrap().try_recv() {
             println!("Received message: {:?}", msg.data);
         }
     }

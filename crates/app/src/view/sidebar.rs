@@ -75,7 +75,7 @@ impl Sidebar {
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
             .push(
                 Column::new()
-                    .push(label(&header).tertiary().build())
+                    .push(label(header).tertiary().build())
                     .align_items(alignment::Alignment::Center),
             )
             .padding(Sizes::Sm)
@@ -173,7 +173,6 @@ impl Page {
             Page::Portfolio => "Portfolio".to_string(),
             Page::Settings => "Settings".to_string(),
             Page::Exit => "Exit".to_string(),
-            _ => "Experimental".to_string(),
         }
     }
 
@@ -183,7 +182,6 @@ impl Page {
             Page::Portfolio => Icon::Wallet,
             Page::Settings => Icon::Gear,
             Page::Exit => Icon::X,
-            _ => Icon::Gear,
         }
     }
 
@@ -195,7 +193,7 @@ impl Page {
     }
 
     pub fn tabs(active: &Page) -> Vec<PageTab> {
-        let mut all = vec![
+        let all = vec![
             Page::Portfolio.tab(active),
             Page::Settings.tab(active),
             Page::Exit.tab(active),

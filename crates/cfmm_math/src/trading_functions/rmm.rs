@@ -324,10 +324,7 @@ pub fn compute_value_function(
 
     let n_d1 = normal.cdf(d1);
     let n_d2 = normal.cdf(d2);
-
-    let value = spot_price_float * (1.0 - n_d1) + strike_price_wad_float * n_d2;
-
-    value
+    spot_price_float * (1.0 - n_d1) + strike_price_wad_float * n_d2
 }
 
 /// P_x(x) = K e^(phi^-1(1 - x / L) sigma sqrt(t) - 1/2 sigma^2 t)

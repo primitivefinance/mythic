@@ -58,14 +58,14 @@ impl TxHistory {
             cells.push(vec![
                 CellBuilder::new().child(label(&tx.position_name).build()),
                 CellBuilder::new().child(label(&tx.action).build()),
-                CellBuilder::new().child(label(&tx.market_value).quantitative().build()),
+                CellBuilder::new().child(label(tx.market_value).quantitative().build()),
                 CellBuilder::new().child(
                     label(&tx.timestamp.format("%Y-%m-%d %H:%M:%S %Z"))
                         .secondary()
                         .caption()
                         .build(),
                 ),
-                CellBuilder::new().child(label(&tx.tx_hash).secondary().caption().build()),
+                CellBuilder::new().child(label(tx.tx_hash).secondary().caption().build()),
             ]);
         }
 

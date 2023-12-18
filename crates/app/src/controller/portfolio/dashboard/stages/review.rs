@@ -3,7 +3,7 @@
 use std::fmt::{self, Display};
 
 use super::*;
-use crate::components::system::{label, panel, Card};
+use crate::components::system::{label, panel};
 
 #[derive(Debug, Clone, Default)]
 pub enum FormMessage {
@@ -180,31 +180,28 @@ impl State for Review {
             .column_2_alignment(alignment::Alignment::Start)
             .spacing(Sizes::Md)
             .column_1(vec![
-                label(&"Strategy Parameters").build().into(),
+                label("Strategy Parameters").build().into(),
                 labeled_select(
                     "Adjust duration".to_string(),
                     Times::to_options(),
-                    self.form.duration.clone(),
+                    self.form.duration,
                     |x| FormMessage::Duration(Some(x)),
-                )
-                .into(),
+                ),
                 labeled_select(
                     "Choose pool fee".to_string(),
                     Fees::to_options(),
-                    self.form.fee.clone(),
+                    self.form.fee,
                     |x| FormMessage::Fee(Some(x)),
-                )
-                .into(),
+                ),
             ])
             .column_2(vec![
-                label(&"Execution Strategy").build().into(),
+                label("Execution Strategy").build().into(),
                 labeled_select(
                     "Choose rebalance rate".to_string(),
                     Strategies::to_options(),
-                    self.form.strategy.clone(),
+                    self.form.strategy,
                     |x| FormMessage::Strategy(Some(x)),
-                )
-                .into(),
+                ),
                 panel()
                     .background_iced(GRAY_500)
                     .border_radius(9.0.into())
@@ -240,7 +237,7 @@ pub enum Times {
 }
 
 impl Times {
-    pub fn to_seconds(&self) -> f64 {
+    pub fn to_seconds(self) -> f64 {
         self.to_value()
     }
 }
@@ -300,6 +297,7 @@ impl EnumList<f64> for Times {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[allow(clippy::enum_variant_names)]
 pub enum Fees {
     #[default]
     OneBps,

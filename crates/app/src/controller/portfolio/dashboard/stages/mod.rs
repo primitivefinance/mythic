@@ -6,11 +6,7 @@ pub mod prepare;
 pub mod review;
 pub mod simulate;
 
-use datatypes::TokenData;
-use ethers::utils::parse_ether;
 use sim::engine::ArbiterInstanceManager;
-
-use self::review::StrategyParameters;
 use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
@@ -128,23 +124,23 @@ impl Stages {
         match self.current.clone() {
             DashboardState::Empty => {
                 // todo: figure out what happens here?
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Prepare));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Prepare))
             }
             DashboardState::Prepare => {
                 // Route to the review stage.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Review));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Review))
             }
             DashboardState::Review => {
                 // Route to the simulate stage.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Simulate));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Simulate))
             }
             DashboardState::Simulate => {
                 // Route to the execute stage.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Execute));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Execute))
             }
             DashboardState::Execute => {
                 // Route back to the empty page.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Empty));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Empty))
             }
         }
     }
@@ -155,8 +151,8 @@ impl Stages {
             return Command::none();
         }
 
-        let portfolio = self.original.clone().unwrap();
-        let mut builder = ArbiterInstanceManager::new();
+        let _portfolio = self.original.clone().unwrap();
+        let builder = ArbiterInstanceManager::new();
 
         // // Compute the amount of steps given the time step size of 15 and the time
         // range provided by the user.
@@ -304,9 +300,9 @@ impl Stages {
         // .config_builder
         // .deposit_x(parse_ether(original_x_balance).unwrap());
 
-        return Command::perform(async {}, |_| {
+        Command::perform(async {}, |_| {
             Message::Simulate(simulate::Message::Armed(builder))
-        });
+        })
     }
 }
 
@@ -417,7 +413,7 @@ impl State for Stages {
                 return Command::batch(commands);
             }
             Message::Execute(message) => {
-                let should_execute = match &self.current {
+                let _should_execute = match &self.current {
                     DashboardState::Execute => {
                         matches!(message, execute::Message::Execute)
                     }
@@ -439,7 +435,7 @@ impl State for Stages {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let routes = Row::new()
+        let _routes = Row::new()
             .spacing(Sizes::Sm)
             .push(
                 tab_button(

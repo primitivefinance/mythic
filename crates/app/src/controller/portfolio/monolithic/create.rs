@@ -1,5 +1,3 @@
-use std::time::{Duration, Instant};
-
 use datatypes::portfolio::coin::Coin;
 use iced::Padding;
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
@@ -83,6 +81,7 @@ impl Form {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn view<'a, Message>(
         &'a self,
         preview_chart: &'a ExcaliburChart,
@@ -160,7 +159,7 @@ impl LiquidityTypes {
     }
 
     // todo: work on this!
-    pub fn to_parameters(&self, current_price: f64) -> LiquidityTemplateParameters {
+    pub fn to_parameters(self, current_price: f64) -> LiquidityTemplateParameters {
         match self {
             LiquidityTypes::Low => LiquidityTemplateParameters {
                 strike_price_wad: current_price * 1.5,
@@ -340,18 +339,19 @@ impl FormView {
 
     /// Layout of the strategy selections to choose from.
     /// todo: add a toggle to switch to advanced mode that lets you choose.
+    #[allow(clippy::too_many_arguments)]
     pub fn strategy_form<'a, Message>(
-        choice_assets: Vec<Coin>,
-        chosen_asset: Option<Coin>,
-        chosen_quote: Option<Coin>,
-        on_select_asset: impl Fn(Coin) -> Message + 'a,
-        on_select_quote: impl Fn(Coin) -> Message + 'a,
-        choice_duration: Vec<Times>,
-        chosen_duration: Option<Times>,
-        on_select_duration: impl Fn(Times) -> Message + 'a,
-        end_price: Option<String>,
-        on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
-        choice_liquidity: Vec<LiquidityTypes>,
+        _choice_assets: Vec<Coin>,
+        _chosen_asset: Option<Coin>,
+        _chosen_quote: Option<Coin>,
+        _on_select_asset: impl Fn(Coin) -> Message + 'a,
+        _on_select_quote: impl Fn(Coin) -> Message + 'a,
+        _choice_duration: Vec<Times>,
+        _chosen_duration: Option<Times>,
+        _on_select_duration: impl Fn(Times) -> Message + 'a,
+        _end_price: Option<String>,
+        _on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
+        _choice_liquidity: Vec<LiquidityTypes>,
         chosen_liquidity: Option<LiquidityTypes>,
         on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
     ) -> Container<'a, Message>

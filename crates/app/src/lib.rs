@@ -14,12 +14,12 @@
 //! - Switching to new controllers/screens/anything being rendered should
 //!   offload as much logic as possible from `new` to a dedicated `load`.
 //! - Add more rules!
-
+#![allow(dead_code)]
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
     theme::Palette,
-    widget::{button, container, scrollable, text, Column, Container, Row, Text},
+    widget::{button, container, scrollable, text, Column, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
@@ -158,7 +158,6 @@ impl Application for MVP {
                     .subscription()
                     .map(|msg| Message::Load(Box::new(msg))),
                 State::App(app) => app.subscription().map(|msg| Message::Update(Box::new(msg))),
-                _ => Subscription::none(),
             },
             iced::subscription::events_with(|event, _status| {
                 if matches!(
@@ -190,10 +189,10 @@ pub fn run(dev_mode: bool) -> iced::Result {
 
 pub fn custom_theme() -> iced::theme::Custom {
     iced::theme::Custom::new(Palette {
-        background: iced::Color::BLACK.into(),
-        primary: MINT_500.into(),
-        text: PRIMARY_COLOR.into(),
-        success: MINT_500.into(),
-        danger: RED_400.into(),
+        background: iced::Color::BLACK,
+        primary: MINT_500,
+        text: PRIMARY_COLOR,
+        success: MINT_500,
+        danger: RED_400,
     })
 }
