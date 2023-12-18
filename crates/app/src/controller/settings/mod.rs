@@ -62,8 +62,6 @@ pub struct SettingsScreen {
 }
 
 impl SettingsScreen {
-    pub type ViewMessage = RootViewMessage;
-
     pub fn new(user: UserProfile) -> Self {
         Self {
             active: Pages::default(),
@@ -73,7 +71,7 @@ impl SettingsScreen {
         }
     }
 
-    pub fn pages(&self) -> Vec<NavigationStep<Self::ViewMessage>> {
+    pub fn pages(&self) -> Vec<NavigationStep<RootViewMessage>> {
         vec![
             NavigationStep::new(
                 Icon::Clock,
@@ -198,7 +196,7 @@ impl State for SettingsScreen {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, RootViewMessage> {
         let nav = navigation_steps("All", self.pages()).width(Length::FillPortion(1));
         let mut content = Row::new().push(nav);
 

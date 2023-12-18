@@ -26,7 +26,7 @@ use crate::components::{
 pub enum Message {
     #[default]
     Empty,
-    Chart(chart::Message),
+    Chart(chart::ChartMessage),
 }
 
 impl From<Message> for view::Message {
@@ -75,7 +75,7 @@ impl State for ExperimentalScreen {
                 Self::ViewMessage::Experimental(message) => match message {
                     Message::Empty => {}
                     Message::Chart(message) => match message {
-                        chart::Message::MouseEvent(event, point) => {
+                        chart::ChartMessage::MouseEvent(event, point) => {
                             // tracing::info!("Mouse event: {:?} {:?}", event,
                             // point);
                         }

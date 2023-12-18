@@ -85,9 +85,6 @@ pub struct Dashboard {
 }
 
 impl Dashboard {
-    pub type AppMessage = Message;
-    pub type ViewMessage = Message;
-
     /// Try loading the portfolio from the name.
     /// Calling `new` needs to be really fast, or else the UI will lag.
     /// Therefore, we move as much logic as possible to the `load` function.
@@ -120,7 +117,7 @@ impl Dashboard {
         }
     }
 
-    pub fn handle_updated_model(&mut self, updated_model: Model) -> Command<Self::AppMessage> {
+    pub fn handle_updated_model(&mut self, updated_model: Model) -> Command<Message> {
         // Update the model
         self.model = updated_model.clone();
 
@@ -178,10 +175,10 @@ impl Dashboard {
         Some(portfolio)
     }
 
-    pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
+    pub fn render_staging_area(&self) -> Element<'_, Message> {
         match self.stage.current {
             DashboardState::Empty => {
-                let instruct: Element<'_, Self::AppMessage> = instructions(
+                let instruct: Element<'_, Message> = instructions(
                     vec![instruction_text(
                         "Change the position deltas in the table to start the portfolio adjustment process.".to_string(),
                     )],
@@ -227,7 +224,7 @@ impl State for Dashboard {
     type ViewMessage = Message;
 
     /// todo: how to handle different portfolio loads.
-    fn load(&self) -> Command<Self::AppMessage> {
+    fn load(&self) -> Command<Message> {
         let mut commands = vec![];
 
         // Populates the presenter's data to prepare for rendering.
@@ -243,10 +240,10 @@ impl State for Dashboard {
         Command::batch(commands)
     }
 
-    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Load(portfolio) => {
-                let mut commands: Vec<Command<Self::AppMessage>> = vec![];
+                let mut commands: Vec<Command<Message>> = vec![];
                 let portfolio = portfolio.unwrap_or_default();
 
                 // Store the portfolio in the staging area to reference it.
@@ -397,7 +394,7 @@ impl State for Dashboard {
                                 vec![balance_command, market_value_command]
                             })
                             .flatten()
-                            .collect::<Vec<Command<Self::AppMessage>>>();
+                            .collect::<Vec<Command<Message>>>();
                     }
 
                     commands.push(
@@ -442,7 +439,7 @@ impl State for Dashboard {
     }
 
     // Layout is a 2x2 quadrant grid
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Message> {
         let quadrant_1 = self.renderer.metrics_layout(
             &self.presenter.portfolio_strategy_plot,
             label(&"Liquidity curve").headline().highlight(),
@@ -503,7 +500,7 @@ impl State for Dashboard {
         .into()
     }
 
-    fn subscription(&self) -> Subscription<Self::AppMessage> {
+    fn subscription(&self) -> Subscription<Message> {
         let s1 = iced::time::every(std::time::Duration::from_secs(5)).map(|_| Message::Tick);
         Subscription::batch(vec![s1])
     }

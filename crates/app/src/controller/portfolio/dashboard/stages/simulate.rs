@@ -65,8 +65,6 @@ pub struct Simulate {
 }
 
 impl Simulate {
-    pub type ViewMessage = Message;
-
     pub fn new(builders: Vec<ArbiterInstanceManager>) -> Self {
         Self {
             builders,
@@ -75,7 +73,7 @@ impl Simulate {
     }
 
     /// Renders the `store` results.
-    pub fn render_simulation_outcome(&self) -> Element<'_, Self::ViewMessage> {
+    pub fn render_simulation_outcome(&self) -> Element<'_, Message> {
         let action = match self.armed {
             true => Message::Simulate,
             false => Message::Arm,
@@ -227,7 +225,7 @@ impl State for Simulate {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Message> {
         Container::new(self.render_simulation_outcome())
             .center_x()
             .into()

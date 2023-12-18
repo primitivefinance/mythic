@@ -189,13 +189,11 @@ pub fn coords_to_line_series(coords: Vec<(f32, f32)>) -> ChartLineSeries {
 }
 
 #[derive(Debug, Clone)]
-pub enum Message {
+pub enum ChartMessage {
     MouseEvent(iced::mouse::Event, iced::Point),
 }
 
 impl CartesianChart {
-    pub type Message = Message;
-
     /// Makes a completely fresh chart with no points or series.
     /// Default has a point and a line series.
     pub fn new() -> Self {
@@ -232,7 +230,7 @@ impl CartesianChart {
         self.points.extend(new_points);
     }
 
-    pub fn view(&self) -> Element<Self::Message> {
+    pub fn view(&self) -> Element<ChartMessage> {
         let chart = ChartWidget::new(self)
             .width(Length::Fill)
             .height(Length::Fill);
@@ -287,7 +285,7 @@ pub struct ChartState {
     pub can_interact: bool,
 }
 
-impl Chart<Message> for CartesianChart {
+impl Chart<ChartMessage> for CartesianChart {
     type State = ChartState;
 
     /// Renders a crosshair when in the chart area.
@@ -317,7 +315,7 @@ impl Chart<Message> for CartesianChart {
         event: canvas::Event,
         bounds: iced::Rectangle,
         cursor: Cursor,
-    ) -> (event::Status, Option<Message>) {
+    ) -> (event::Status, Option<ChartMessage>) {
         // Occurs once when the override flag is set.
         // This is because we only have mutable state, but reference to self.
         // Which makes it awkward to update the ranges used by the graph from outside
@@ -463,7 +461,7 @@ impl Chart<Message> for CartesianChart {
 
                     return (
                         event::Status::Captured,
-                        Some(Message::MouseEvent(evt, Point::new(p.x, p.y))),
+                        Some(ChartMessage::MouseEvent(evt, Point::new(p.x, p.y))),
                     );
                 }
                 _ => {}

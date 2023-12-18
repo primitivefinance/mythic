@@ -106,7 +106,7 @@ pub trait State {
     /// Implements the [`MessageWrapper`] trait, to allow children [`State`]
     /// components to be wrapped in the parent's message type.
     /// todo: type defaults are unstable right now...
-    type ViewMessage: MessageWrapperView = view::Message;
+    type ViewMessage: MessageWrapperView;
 
     /// Messages returned to be executed by commands.
     /// Defaults to the global Application Message.
@@ -116,7 +116,7 @@ pub trait State {
     /// Implements the [`MessageWrapper`] trait, to allow children [`State`]
     /// components to be wrapped in the parent's message type.
     /// todo: type defaults are unstable right now...
-    type AppMessage: MessageWrapper = app::Message;
+    type AppMessage: MessageWrapper;
 
     /// Renders the screen which can produce [`ViewMessage`]s.
     fn view(&self) -> Element<'_, Self::ViewMessage>;

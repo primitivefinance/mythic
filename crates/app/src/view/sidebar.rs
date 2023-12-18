@@ -69,10 +69,8 @@ impl Sidebar {
 }
 
 impl Sidebar {
-    pub type ViewMessage = view::Message;
-
     /// Renders a section header with a label.
-    pub fn section<'a>(&self, header: String) -> Row<'a, Self::ViewMessage> {
+    pub fn section<'a>(&self, header: String) -> Row<'a, view::Message> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
             .push(
@@ -86,7 +84,7 @@ impl Sidebar {
     }
 
     /// Renders the inner column below the sidebar's header section.
-    pub fn layout(&self) -> Element<'_, Self::ViewMessage> {
+    pub fn layout(&self) -> Element<'_, view::Message> {
         let mut column = Column::new();
         column = column.push(self.page.view().map(|x| x.into()));
         column
@@ -98,8 +96,9 @@ impl Sidebar {
 
 impl controller::State for Sidebar {
     type AppMessage = Route;
+    type ViewMessage = view::Message;
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Route) -> Command<Route> {
         self.state = message.clone();
 
         match message {
@@ -164,12 +163,10 @@ pub enum Page {
     Exit,
 }
 
+/// Icon, Name, Message, Selected
+pub type PageTab = (Icon, String, Route, bool);
+
 impl Page {
-    pub type Message = Route;
-
-    /// Icon, Name, Message, Selected
-    pub type PageTab = (Icon, String, Self::Message, bool);
-
     pub fn name(&self) -> String {
         match self {
             Page::Empty => "Select App".to_string(),
@@ -190,14 +187,14 @@ impl Page {
         }
     }
 
-    pub fn tab(&self, active: &Page) -> Self::PageTab {
+    pub fn tab(&self, active: &Page) -> PageTab {
         let name = self.name();
         let icon = self.icon();
 
-        (icon, name, Self::Message::Page(*self), *self == *active)
+        (icon, name, Route::Page(*self), *self == *active)
     }
 
-    pub fn tabs(active: &Page) -> Vec<Self::PageTab> {
+    pub fn tabs(active: &Page) -> Vec<PageTab> {
         let mut all = vec![
             Page::Portfolio.tab(active),
             Page::Settings.tab(active),
@@ -207,7 +204,7 @@ impl Page {
         all
     }
 
-    pub fn view<'a>(&self) -> Element<'a, Self::Message> {
+    pub fn view<'a>(&self) -> Element<'a, Route> {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::tabs(self) {
             let style = match selected {
@@ -254,8 +251,6 @@ pub struct Bookmarks {
 }
 
 impl Bookmarks {
-    pub type AppMessage = Route;
-
     // todo: this is hacky, but it works for now.
     pub const PORTFOLIO_URL: &'static str = "portfolio";
     pub const PORTFOLIO_EXTENSION: &'static str = ".portfolio.json";
@@ -268,7 +263,7 @@ impl Bookmarks {
         }
     }
 
-    pub fn bookmark_route(url: &String) -> Self::AppMessage {
+    pub fn bookmark_route(url: &String) -> Route {
         match url {
             x if x.contains(Self::PORTFOLIO_URL) => Route::Open(Location::Portfolio(
                 x.replace(Self::PORTFOLIO_EXTENSION, ""),
