@@ -36,6 +36,47 @@ $$
 $$
 We can determine a price in terms of just $x$ or just $y$ if need be.
 
+## Initializing Pool
+We need to initalize a pool from a given price $p$ and an amount of a token. We can also do it by specifying liquidity too.
+
+### Given x and price
+
+Noting that 
+$$
+y= \frac{w_y}{w_x}p x
+$$
+we can get
+$$
+\begin{equation}
+\boxed{L_X(x,S) = x\left(\frac{w_y}{w_x}S\right)^{w_y}}
+\end{equation}
+$$
+This is a linear function in $x$:
+$$
+L_X(x+a\delta_x) = L_X(x) + aL_X(\delta_X)
+$$
+We can get now the amount of $Y$ needed from $L$ and $x$ using the trading function and note:
+$$
+\boxed{y(x,L;w_x) = \left(\frac{L}{x^{w_x}}\right)^{1/w_y}}
+$$
+
+### Given y and price
+Noting that
+$$
+x = \frac{w_x}{w_y}\frac{1}{p}y
+$$
+we can get
+$$
+\begin{equation}
+\boxed{L_Y(y,S) = y\left(\frac{w_x}{w_y}\frac{1}{S}\right)^{w_x}}
+\end{equation}
+$$
+We can get now the amount of $X$ needed from $L$ and $y$ using the trading function and note:
+$$
+\boxed{x(y,L;w_y) = \left(\frac{L}{y^{w_y}}\right)^{1/w_x}}
+$$
+
+
 ## Swap 
 
 We require that the trading function remain invariant when a swap is applied, that is:
@@ -47,18 +88,7 @@ while also taking fees as a liquidity deposit (which will increase the liquidity
 ### Trade in $\Delta_X$ for $\Delta_Y$
 Suppose that we want to trade in $\Delta_X$ for $\Delta_Y$. 
 Then we have that we are really inputting $\gamma\Delta_X$ while raising $L\mapsto L+\delta_L$.
-This gives us a new invariant, noting that we can create
-Noting that 
-$$
-y= \frac{w_y}{w_x}p x
-$$
-$$
-\boxed{L_X(x,S) = x\left(\frac{w_y}{w_x}S\right)^{w_y}}
-$$
-$$
-L_X(x+a\delta_x) = L_X(x) + aL_X(\delta_X)
-$$
-which also tells us:
+From Equation (1) we get that:
 $$
 x = \frac{L}{\left(\frac{w_y}{w_x}S\right))^{w_y}}
 $$
@@ -71,13 +101,15 @@ so
 $$
 \boxed{\delta_{L_X} = \delta_X\left(\frac{w_y}{w_x}p\right)^{w_y}}
 $$
+TODO: CAN REWRITE THIS WITHOUT PRICE
+
 Hence we have for a swap with fees that (note $\Delta$ are what users input and receive):
 $$
 L+\delta_L = (x+\gamma \Delta_X)^{w_x}(y+\Delta_y)^{w_y}
 $$
 Then:
 $$
-\boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_{L_Y}}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y}
+\boxed{\Delta_Y(\Delta_X) = \left(\frac{L+\delta_{L_X}}{(x+\Delta_X)^{w_x}}\right)^{1/w_y}-y}
 $$
 
 ### Trade in $\Delta_Y$ for $\Delta_X$
@@ -96,7 +128,7 @@ $$
 
 Then
 $$
-\boxed{\Delta_X(\Delta_Y) = \left(\frac{L+\delta_{L_Y}}{(y+\gamma \Delta_Y)^{w_y}}\right)^{1/w_x}-x}
+\boxed{\Delta_X(\Delta_Y) = \left(\frac{L+\delta_{L_Y}}{(y+\Delta_Y)^{w_y}}\right)^{1/w_x}-x}
 $$
 
 
