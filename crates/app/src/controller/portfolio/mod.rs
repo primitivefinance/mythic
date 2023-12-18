@@ -130,16 +130,14 @@ impl State for PortfolioRoot {
             // This will "catch" the root update model message and propagate it down to the
             // dashboard. The result of this is that when model updates happen in the
             // root controller, they will also sync the dashboard's model.
-            Self::AppMessage::ModelSyncResult(model) => {
-                Command::batch(vec![
-                    self.dashboard
-                        .update(dashboard::Message::UpdateDataModel(model.clone()))
-                        .map(|x| Message::Dashboard(x).into()),
-                    self.monolithic
-                        .update(monolithic::Message::UpdateDataModel(model.clone()))
-                        .map(|x| Message::Monolithic(x).into()),
-                ])
-            }
+            Self::AppMessage::ModelSyncResult(model) => Command::batch(vec![
+                self.dashboard
+                    .update(dashboard::Message::UpdateDataModel(model.clone()))
+                    .map(|x| Message::Dashboard(x).into()),
+                self.monolithic
+                    .update(monolithic::Message::UpdateDataModel(model.clone()))
+                    .map(|x| Message::Monolithic(x).into()),
+            ]),
             _ => Command::none(),
         }
     }

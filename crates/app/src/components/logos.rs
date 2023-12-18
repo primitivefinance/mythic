@@ -58,7 +58,7 @@ impl<Message> iced::widget::canvas::Program<Message> for PhiLogo {
         _cursor: iced::mouse::Cursor,
     ) -> Vec<iced::widget::canvas::Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            // TODO: unused variable           
+            // TODO: unused variable
             let _palette = theme.palette();
 
             let center = frame.center();

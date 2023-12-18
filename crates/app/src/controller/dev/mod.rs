@@ -110,10 +110,8 @@ impl State for DeveloperScreen {
         if let app::Message::View(view::Message::Developer(msg)) = message {
             match msg {
                 Message::Create(message) => {
-                    let cmd: Command<Message> = self
-                        .create_screen
-                        .update(message)
-                        .map(Message::Create);
+                    let cmd: Command<Message> =
+                        self.create_screen.update(message).map(Message::Create);
                     return cmd.map(|x| x.into());
                 }
                 Message::OnChange(value) => {
@@ -137,16 +135,13 @@ impl State for DeveloperScreen {
                     asset.1.selected = !asset.1.selected;
                 }
                 Message::Dash(message) => {
-                    let cmd: Command<Message> = self
-                        .dash_screen
-                        .update(message)
-                        .map(Message::Dash);
+                    let cmd: Command<Message> = self.dash_screen.update(message).map(Message::Dash);
                     return cmd.map(|x| x.into());
                 }
                 _ => {}
             }
         }
-    
+
         Command::none()
     }
 

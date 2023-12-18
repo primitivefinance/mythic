@@ -191,9 +191,9 @@ impl AnvilClient {
     pub async fn snapshot(&self) -> String {
         // Create a provider to do an rpc call with.
         let url = self.anvil.endpoint();
-    
+
         let provider = Provider::<Http>::connect(&url).await;
-    
+
         let params: Vec<String> = vec![];
         provider
             .request("anvil_dumpState", params)

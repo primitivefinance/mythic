@@ -67,15 +67,13 @@ impl Form {
         self.error = None; // Reset error before validation
 
         match &self.amount {
-            Some(amount_str) => {
-                match amount_str.parse::<f64>() {
-                    Ok(amount) => {
-                        if amount < 0.0 {
-                            self.error = Some("Amount cannot be negative".into());
-                        }
-                    },
-                    Err(_) => self.error = Some("Amount is not a valid number".into()),
+            Some(amount_str) => match amount_str.parse::<f64>() {
+                Ok(amount) => {
+                    if amount < 0.0 {
+                        self.error = Some("Amount cannot be negative".into());
+                    }
                 }
+                Err(_) => self.error = Some("Amount is not a valid number".into()),
             },
             None => self.error = Some("Amount is not provided".into()),
         }
@@ -297,29 +295,29 @@ impl FormView {
     ) -> Container<'a, Message>
     where
         Message: 'a + Clone + Default,
-        {
-            let mut row = Row::new()
-                .width(Length::Fill)
-                .spacing(Sizes::Md)
-                .push(
-                    Self::deposit_input(deposit_amount, on_change_deposit)
-                        .width(Length::FillPortion(2)),
-                )
-                .push(
-                    Row::new()
-                        .spacing(Sizes::Sm)
-                        .width(Length::FillPortion(3))
-                        .push(Container::new(review.into()).width(Length::FillPortion(2)))
-                        .push(Self::submit(submit, state).width(Length::FillPortion(2))),
-                );
-        
-            // Add the error message to the row if it exists
-            if let Some(error_message) = error {
-                row = row.push(Text::new(error_message));
-            }
-        
-            ExcaliburContainer::default().transparent().build(row)
+    {
+        let mut row = Row::new()
+            .width(Length::Fill)
+            .spacing(Sizes::Md)
+            .push(
+                Self::deposit_input(deposit_amount, on_change_deposit)
+                    .width(Length::FillPortion(2)),
+            )
+            .push(
+                Row::new()
+                    .spacing(Sizes::Sm)
+                    .width(Length::FillPortion(3))
+                    .push(Container::new(review.into()).width(Length::FillPortion(2)))
+                    .push(Self::submit(submit, state).width(Length::FillPortion(2))),
+            );
+
+        // Add the error message to the row if it exists
+        if let Some(error_message) = error {
+            row = row.push(Text::new(error_message));
         }
+
+        ExcaliburContainer::default().transparent().build(row)
+    }
 
     /// Simple column of rows of review item elements.
     pub fn review_summary<'a, Message>(

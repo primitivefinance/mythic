@@ -6,7 +6,7 @@ use clients::protocol::ProtocolClient;
 use itertools::iproduct;
 use tracing::{debug, info, trace};
 
-use super::{*, bindings::dfmm::DFMM};
+use super::{bindings::dfmm::DFMM, *};
 
 #[derive(Debug, Clone)]
 pub struct VolatilityTargetingSubmitter {

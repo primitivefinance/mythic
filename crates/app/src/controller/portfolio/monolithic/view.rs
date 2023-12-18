@@ -1,8 +1,8 @@
-use std::env;
 use chrono::Utc;
 use datatypes::portfolio::position::{PositionLayer, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
+use std::env;
 
 use super::{inventory::Inventory, *};
 use crate::{
@@ -136,8 +136,7 @@ impl MonolithicPresenter {
             .unwrap_or_default();
 
         let current_dir = env::current_dir().unwrap();
-        let ether_logo_path =
-            current_dir.clone().join("assets/logos/ether_logo.png");
+        let ether_logo_path = current_dir.clone().join("assets/logos/ether_logo.png");
         let usdc_logo_path = current_dir.clone().join("assets/logos/usdc_logo.png");
 
         let logos = vec![
@@ -181,9 +180,7 @@ impl MonolithicPresenter {
                     let value = alloy_primitives::utils::format_ether(data);
                     match value.parse::<f64>() {
                         Ok(_) => label(value.to_string()).title1().percentage(),
-                        Err(_) => label("Failed to parse U256 as float.")
-                            .caption()
-                            .tertiary(),
+                        Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
                     }
                 }
                 Err(_) => label("N/A").title1().secondary(),

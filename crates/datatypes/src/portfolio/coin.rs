@@ -52,7 +52,10 @@ impl Coin {
 
 impl super::coin_list::CoinList {
     pub fn new(tokens: Vec<Coin>) -> Self {
-        Self { tokens, ..Self::default() }
+        Self {
+            tokens,
+            ..Self::default()
+        }
     }
 }
 
