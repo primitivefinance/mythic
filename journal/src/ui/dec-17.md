@@ -13,3 +13,10 @@
 - dedicated bindings?
 - propagating model changes to child components.
 - Lots of behavior / side effects in the chart that needs to be thoroughly tested.
+
+
+# tonight
+
+What do I prioritize for tonight?
+
+- [ ] Remove cargo nightly features.

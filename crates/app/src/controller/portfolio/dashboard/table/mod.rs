@@ -61,18 +61,16 @@ impl PositionDelta {
     }
 }
 
-impl PortfolioTable {
-    pub type AppMessage = Message;
+/// Closure for handling the form events.
+type FormEvent = Box<dyn Fn(Option<String>) -> Message>;
 
+impl PortfolioTable {
     pub fn new() -> Self {
         Self {
             form: DeltaForm::default(),
             original: Portfolio::default(),
         }
     }
-
-    /// Closure for handling the form events.
-    type FormEvent = Box<dyn Fn(Option<String>) -> Self::AppMessage>;
 
     /// Gets the edited form fields as deltas that can be rendered by the
     /// summary table.
@@ -103,12 +101,11 @@ impl PortfolioTable {
     /// - pos_index is the index of the position in the portfolio's positions.
     /// - target is the target value to be displayed in the first cell.
     /// Why this I make this closure stuff so complicated?
-    pub fn target_cell(&self, pos_index: usize, target: f64) -> Vec<CellBuilder<Self::AppMessage>> {
+    pub fn target_cell(&self, pos_index: usize, target: f64) -> Vec<CellBuilder<Message>> {
         // todo: support more targets
         let (value, on_change_msg) = (
             self.form.weight.get(&pos_index).cloned(),
-            Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into())
-                as Self::FormEvent,
+            Box::new(move |x| form::DeltaFormMessage::Weight(pos_index, x).into()) as FormEvent,
         );
 
         vec![
@@ -122,7 +119,7 @@ impl PortfolioTable {
         &'a self,
         position: &'a Position,
         pos_index: usize,
-    ) -> Vec<CellBuilder<Self::AppMessage>> {
+    ) -> Vec<CellBuilder<Message>> {
         self.target_cell(pos_index, position.weight.unwrap_or_default().into())
     }
 
@@ -131,7 +128,7 @@ impl PortfolioTable {
         &'a self,
         position: &'a Position,
         pos_index: usize,
-    ) -> Vec<CellBuilder<Self::AppMessage>> {
+    ) -> Vec<CellBuilder<Message>> {
         let price_current = position.cost.unwrap_or_default();
         let balance_current = position.balance.unwrap_or_default();
         let market_value_current = price_current * balance_current;
@@ -231,7 +228,7 @@ impl PortfolioTable {
         ]
     }
 
-    pub fn position_table(&self) -> TableBuilder<Self::AppMessage> {
+    pub fn position_table(&self) -> TableBuilder<Message> {
         TableBuilder::new()
             .padding_cell(Sizes::Md)
             .padding_cell_internal(Sizes::Xs)
@@ -268,21 +265,21 @@ impl State for PortfolioTable {
     type AppMessage = Message;
     type ViewMessage = Message;
 
-    fn update(&mut self, msg: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, msg: Message) -> Command<Message> {
         let mut cmd = Command::none();
 
         match msg {
-            Self::AppMessage::Load(portfolio) => {
+            Message::Load(portfolio) => {
                 tracing::debug!("Loading portfolio: {:?}", portfolio.name);
                 self.original = portfolio.clone();
             }
-            Self::AppMessage::DeltaForm(msg) => {
-                cmd = self.form.update(msg).map(Self::AppMessage::DeltaForm);
+            Message::DeltaForm(msg) => {
+                cmd = self.form.update(msg).map(Message::DeltaForm);
             }
-            Self::AppMessage::Clear => {
+            Message::Clear => {
                 self.form.clear();
             }
-            Self::AppMessage::Empty => {}
+            Message::Empty => {}
             _ => {}
         }
 

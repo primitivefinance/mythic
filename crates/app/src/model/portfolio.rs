@@ -205,9 +205,6 @@ impl StrategyPosition {
 }
 
 impl RawDataModel<AlloyAddress, AlloyU256> {
-    pub type Address = AlloyAddress;
-    pub type Value = AlloyU256;
-
     /// Creates a completely fresh model with no values set.
     pub fn new() -> Self {
         Self::default()
@@ -463,7 +460,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub async fn fetch_token_info(
         &self,
         client: Arc<Client>,
-        token_address: Self::Address,
+        token_address: AlloyAddress,
     ) -> Result<TokenInfo> {
         let converted_token_address = to_ethers_address(token_address);
 
@@ -649,8 +646,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub async fn fetch_balance(
         &self,
         client: Arc<Client>,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let converted_address = to_ethers_address(address);
         let balance = client.get_balance(converted_address, None).await?;
         let converted_balance = from_ethers_u256(balance);
@@ -664,9 +661,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub async fn fetch_balance_of(
         &self,
         client: Arc<Client>,
-        token_address: Self::Address,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        token_address: AlloyAddress,
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let converted_token_address = to_ethers_address(token_address);
 
         let payload = IERC20::balanceOfCall { account: address };
@@ -679,7 +676,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let balance = client.call(&tx, None).await?;
         let decoded: <IERC20::balanceOfCall as SolCall>::Return =
             IERC20::balanceOfCall::abi_decode_returns(&balance, false)?;
-        let decoded_balance: Self::Value = decoded.balance.into();
+        let decoded_balance: AlloyU256 = decoded.balance.into();
 
         Ok(decoded_balance)
     }
@@ -689,8 +686,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_user_asset_balance(
         &self,
         client: Arc<Client>,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
@@ -700,15 +697,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_user_quote_balance(
         &self,
         client: Arc<Client>,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
         self.fetch_balance_of(client, quote_token, address).await
     }
 
-    async fn fetch_protocol_asset_balance(&self, client: Arc<Client>) -> Result<Self::Value> {
+    async fn fetch_protocol_asset_balance(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
@@ -718,7 +715,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.fetch_balance_of(client, asset_token, protocol).await
     }
 
-    async fn fetch_protocol_quote_balance(&self, client: Arc<Client>) -> Result<Self::Value> {
+    async fn fetch_protocol_quote_balance(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
@@ -731,8 +728,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_external_price(
         &self,
         client: Arc<Client>,
-        token_address: Self::Address,
-    ) -> Result<Self::Value> {
+        token_address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let external_exchange = self
             .raw_external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
@@ -761,7 +758,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_reserves_and_liquidity(
         &self,
         client: Arc<Client>,
-    ) -> Result<(Self::Value, Self::Value, Self::Value)> {
+    ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let protocol = self
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
@@ -780,7 +777,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok((reserve_x, reserve_y, liquidity))
     }
 
-    async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<Self::Value> {
+    async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let protocol = self
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
@@ -801,7 +798,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_strategy_params(
         &self,
         client: Arc<Client>,
-    ) -> Result<(Self::Value, Self::Value, Self::Value)> {
+    ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let strategy = self
             .raw_strategy_address
             .ok_or(Error::msg("Strategy address not set"))?;
@@ -1189,7 +1186,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Sum of external portfolio value (allocated positions) and unallocated
     /// positions' value.
-    pub fn derive_total_aum(&self) -> Result<Self::Value> {
+    pub fn derive_total_aum(&self) -> Result<AlloyU256> {
         // todo: this naming is confusing but the external portfolio value is the
         // unallocated value.
         let external_portfolio_value = self.derive_external_portfolio_value()?;
@@ -1207,7 +1204,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the value of the unallocated positions.
-    pub fn derive_unallocated_position_value(&self) -> Result<Self::Value> {
+    pub fn derive_unallocated_position_value(&self) -> Result<AlloyU256> {
         let unallocated_position = self.get_unallocated_positions_info()?;
         let unallocated_position_value = unallocated_position.compute_value()?;
         let unallocated_position_value =
@@ -1217,7 +1214,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the portfolio value of the user's strategy deposits according
     /// to an external price.
-    pub fn derive_external_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_external_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
             .raw_external_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
@@ -1241,7 +1238,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the portfolio value of the user's deposits in a strategy
     /// according to the internal price.
-    pub fn derive_internal_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_internal_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
             .raw_internal_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
@@ -1269,7 +1266,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the theoretical portfolio value given the strategy parameters,
     /// external market price, and amount of liquidity.
-    pub fn derive_theoretical_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_theoretical_portfolio_value(&self) -> Result<AlloyU256> {
         let strike_price_wad = self
             .raw_strike_price_wad
             .ok_or(Error::msg("Strike price not set"))?;
@@ -1320,7 +1317,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the health of the user's portfolio.
-    pub fn derive_portfolio_health(&self) -> Result<Self::Value> {
+    pub fn derive_portfolio_health(&self) -> Result<AlloyU256> {
         let internal_portfolio_value_wad = self.derive_internal_portfolio_value()?;
         let theoretical_value_wad = self.derive_theoretical_portfolio_value()?;
 

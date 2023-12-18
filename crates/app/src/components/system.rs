@@ -1185,7 +1185,7 @@ impl ExcaliburChart {
         }
     }
 
-    pub fn build(&self) -> Element<'_, chart::Message> {
+    pub fn build(&self) -> Element<'_, chart::ChartMessage> {
         self.chart.view()
     }
 

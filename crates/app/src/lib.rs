@@ -15,9 +15,6 @@
 //!   offload as much logic as possible from `new` to a dedicated `load`.
 //! - Add more rules!
 
-#![feature(associated_type_defaults)]
-#![feature(inherent_associated_types)]
-
 use ethers::prelude::*;
 use iced::{
     alignment, executor,

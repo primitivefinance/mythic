@@ -102,8 +102,6 @@ pub struct Stages {
 }
 
 impl Stages {
-    pub type AppMessage = Message;
-
     pub fn new(dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>) -> Self {
         Self {
             original: None,
@@ -126,7 +124,7 @@ impl Stages {
         }
     }
 
-    pub fn step(&mut self) -> Command<Self::AppMessage> {
+    pub fn step(&mut self) -> Command<Message> {
         match self.current.clone() {
             DashboardState::Empty => {
                 // todo: figure out what happens here?
@@ -151,7 +149,7 @@ impl Stages {
         }
     }
 
-    pub fn arm_simulation(&mut self) -> Command<Self::AppMessage> {
+    pub fn arm_simulation(&mut self) -> Command<Message> {
         if self.original.is_none() {
             tracing::error!("Original portfolio is None. Bug!");
             return Command::none();
@@ -316,11 +314,11 @@ impl State for Stages {
     type AppMessage = Message;
     type ViewMessage = Message;
 
-    fn load(&self) -> Command<Self::AppMessage> {
+    fn load(&self) -> Command<Message> {
         Command::perform(async {}, |_| Message::Start(vec![]))
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Load(portfolio) => {
                 self.original = Some(portfolio.clone());
