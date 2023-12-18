@@ -31,7 +31,7 @@ use styles::*;
 
 use self::{
     select::custom_pick_list,
-    system::{label, panel, Card, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
+    system::{label, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
@@ -126,7 +126,7 @@ pub fn labeled_input<'a, Message>(
 where
     Message: 'static,
 {
-    let title = label(&text).secondary().build();
+    let title = label(text).secondary().build();
     // todo: use placeholder
     let input = create_input_component(value, on_change);
 
@@ -145,7 +145,7 @@ where
     T: ToString + Eq + 'static + Clone,
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    let title = label(&title).title3().build();
+    let title = label(title).title3().build();
 
     Column::new()
         .push(title)
@@ -160,7 +160,7 @@ where
 
 /// For use in the instructions container.
 pub fn instruction_text<'a>(value: String) -> Text<'a> {
-    label(&value).highlight().build()
+    label(value).highlight().build()
 }
 
 pub fn instructions_inner<'a, Message, T: Into<Element<'a, Message>>>(
@@ -218,7 +218,7 @@ where
         submit = submit.on_press(on_submit)
     }
 
-    let feedback = label(&feedback.unwrap_or("No feedback to report".to_string()))
+    let feedback = label(feedback.unwrap_or("No feedback to report".to_string()))
         .highlight()
         .caption2()
         .secondary()
@@ -360,8 +360,8 @@ pub fn key_value_row<'a, Message>(key: String, value: String) -> Row<'a, Message
 where
     Message: 'a,
 {
-    let key = label(&key).secondary().build();
-    let value = label(&value).build();
+    let key = label(key).secondary().build();
+    let value = label(value).build();
     let mut row = Row::new()
         .push(
             Column::new()
@@ -502,7 +502,7 @@ pub fn navigation_steps<'a, Message>(
 where
     Message: 'a + Clone + Default,
 {
-    let mut content = Column::new().push(label(&title).title3().build());
+    let mut content = Column::new().push(label(title).title3().build());
 
     for NavigationStep {
         icon,
