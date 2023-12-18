@@ -120,7 +120,7 @@ where
                         self.headers
                             .into_iter()
                             .map(|header| {
-                                CellBuilder::new().child(label(&header).secondary().build())
+                                CellBuilder::new().child(label(header).secondary().build())
                             })
                             .collect(),
                     )
@@ -140,7 +140,7 @@ where
                         self.headers
                             .into_iter()
                             .map(|header| {
-                                CellBuilder::new().child(label(&header).secondary().build())
+                                CellBuilder::new().child(label(header).secondary().build())
                             })
                             .collect(),
                     )

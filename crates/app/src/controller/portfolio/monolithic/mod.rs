@@ -139,7 +139,7 @@ impl Monolithic {
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
 
-                let asset_price = self.model.portfolio.raw_external_spot_price.clone();
+                let asset_price = self.model.portfolio.raw_external_spot_price;
                 let asset_price = match asset_price {
                     Some(x) => format_ether(x).parse::<f64>(),
                     None => return Err(anyhow::anyhow!("No asset price")),
@@ -149,7 +149,7 @@ impl Monolithic {
                     Err(_) => return Err(anyhow::anyhow!("Failed to parse")),
                 };
 
-                let parameters = self.create.liquidity.clone();
+                let parameters = self.create.liquidity;
                 let parameters: LiquidityTypes = match parameters {
                     Some(x) => x,
                     None => return Err(anyhow::anyhow!("No liquidity parameters")),
@@ -224,7 +224,7 @@ impl Monolithic {
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
 
-                let external_price = self.model.portfolio.raw_external_spot_price.clone();
+                let external_price = self.model.portfolio.raw_external_spot_price;
                 let external_price = match external_price {
                     Some(x) => format_ether(x).parse::<f64>().unwrap(),
                     None => return Command::none(),
@@ -256,7 +256,7 @@ impl State for Monolithic {
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::Refresh => Command::none(),
-            Self::AppMessage::SyncModel(block) => Command::none(),
+            Self::AppMessage::SyncModel(_block) => Command::none(),
             Self::AppMessage::UpdateDataModel(result) => match result {
                 Ok(updated_model) => self.handle_updated_model(updated_model),
                 Err(err) => {
@@ -301,7 +301,7 @@ impl State for Monolithic {
             allocated_positions,
             logos,
             Some(Message::StartAllocate),
-            |x| Message::SelectPosition(x),
+            Message::SelectPosition,
             |x| Message::Form(FormMessage::Amount(x)),
         ));
 
@@ -337,14 +337,14 @@ impl State for Monolithic {
                         &self.create_status,
                         Some(FormMessage::Close),
                         self.submit_ready(),
-                        |x| FormMessage::Amount(x),
-                        |x| FormMessage::Asset(x),
-                        |x| FormMessage::Quote(x),
-                        |x| FormMessage::Duration(x),
-                        |x| FormMessage::EndPrice(x),
-                        |x| FormMessage::Liquidity(x),
+                        FormMessage::Amount,
+                        FormMessage::Asset,
+                        FormMessage::Quote,
+                        FormMessage::Duration,
+                        FormMessage::EndPrice,
+                        FormMessage::Liquidity,
                     )
-                    .map(|x| Message::Form(x)),
+                    .map(Message::Form),
             );
         }
 

@@ -4,7 +4,6 @@
 
 use std::time::Instant;
 
-use alloy_primitives;
 use clients::{dev::DevClient, ledger::LedgerClient};
 use datatypes::portfolio::coin::Coin;
 use iced::{
@@ -326,7 +325,7 @@ pub async fn connect_ledger() -> Option<LedgerClient> {
     let ledger =
         LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
 
-    let ledger = match ledger {
+    match ledger {
         Ok(ledger) => Some(ledger),
         Err(e) => {
             tracing::warn!("Failed to connect to ledger: {:?}", e);
@@ -334,9 +333,7 @@ pub async fn connect_ledger() -> Option<LedgerClient> {
 
             None
         }
-    };
-
-    ledger
+    }
 }
 
 /// Placeholder function for any future async calls we might want to do.
@@ -351,8 +348,6 @@ impl Loader {
     pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
         // Triggers the next step in the main application loop by emitting the Loaded
         // message.
-        let flags = flags.clone();
-
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
 
@@ -435,11 +430,11 @@ impl Loader {
         let progress = (s_curve_result * 4.0) as usize;
 
         match progress {
-            0 => format!("Initiated loading procedure..."),
-            1 => format!("Starting sandbox environment..."),
-            2 => format!("Connected. Deploying contracts in sandbox..."),
-            3 => format!("Initializing sandbox state..."),
-            _ => format!("Launching Excalibur..."),
+            0 => "Initiated loading procedure...".to_string(),
+            1 => "Starting sandbox environment...".to_string(),
+            2 => "Connected. Deploying contracts in sandbox...".to_string(),
+            3 => "Initializing sandbox state...".to_string(),
+            _ => "Launching Excalibur...".to_string(),
         }
     }
 
@@ -455,13 +450,13 @@ impl Loader {
         container(
             container(
                 column![
-                    progress_bar(0.0..=1.0, s_curve((self.progress).into()))
+                    progress_bar(0.0..=1.0, s_curve(self.progress))
                         .style(CustomProgressBar::theme())
                         .height(Length::Fixed(Sizes::Md.into())),
                     Row::new()
                         .push(
                             Column::new()
-                                .push(label(&random_symbol).secondary().build())
+                                .push(label(random_symbol).secondary().build())
                                 .align_items(alignment::Alignment::Start)
                                 .width(Length::FillPortion(1)),
                         )

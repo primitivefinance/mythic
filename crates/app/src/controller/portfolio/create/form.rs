@@ -112,7 +112,7 @@ impl Form {
                 )
             })
             .collect();
-        let portfolio = Portfolio::new(
+        let _portfolio = Portfolio::new(
             self.name.clone().unwrap_or_default().to_lowercase(),
             self.ticker.clone().unwrap_or_default().to_uppercase(),
             assets,
@@ -236,7 +236,7 @@ impl State for Form {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label(&"Assets").secondary().build())
+                        .push(label("Assets").secondary().build())
                         .push(scrollable(table.build())),
                 ),
         )

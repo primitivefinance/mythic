@@ -8,13 +8,13 @@ use chrono::{DateTime, Utc};
 use datatypes::portfolio::position::Positions;
 
 use super::{
-    model::portfolio::{AlloyAddress, AlloyU256, RawDataModel},
+    model::portfolio::AlloyU256,
     *,
 };
 use crate::components::{
     double_labeled_data,
     system::{label, ExcaliburChart, ExcaliburTable, ExcaliburText},
-    tables::{builder::TableBuilder, cells::CellBuilder},
+    tables::cells::CellBuilder,
 };
 
 pub trait ValueToLabel<V> {
@@ -27,12 +27,12 @@ impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
             let value = alloy_primitives::utils::format_ether(*value);
             match value.parse::<f64>() {
                 Ok(_) => label(&value).quantitative().title1(),
-                Err(_) => label(&"Failed to parse U256 as float.")
+                Err(_) => label("Failed to parse U256 as float.")
                     .caption()
                     .tertiary(),
             }
         } else {
-            label(&"N/A").title1().secondary()
+            label("N/A").title1().secondary()
         }
     }
 }
@@ -43,12 +43,12 @@ impl ValueToLabel<Result<AlloyU256, anyhow::Error>> for Result<AlloyU256, anyhow
             let value = alloy_primitives::utils::format_ether(*value);
             match value.parse::<f64>() {
                 Ok(_) => label(&value).quantitative().title1(),
-                Err(_) => label(&"Failed to parse U256 as float.")
+                Err(_) => label("Failed to parse U256 as float.")
                     .caption()
                     .tertiary(),
             }
         } else {
-            label(&"N/A").title1().secondary()
+            label("N/A").title1().secondary()
         }
     }
 }
@@ -158,7 +158,8 @@ impl PortfolioPresenter {
         };
 
         let asset_value_series = self.model.portfolio.derive_asset_value_series();
-        let asset_value_series = match asset_value_series {
+        // TODO: unused variable.
+        let _asset_value_series = match asset_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get asset value series: {:}", e);
@@ -167,7 +168,8 @@ impl PortfolioPresenter {
         };
 
         let quote_value_series = self.model.portfolio.derive_quote_value_series();
-        let quote_value_series = match quote_value_series {
+        // TODO: unused variable.
+        let _quote_value_series = match quote_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get quote value series: {:}", e);
@@ -179,7 +181,8 @@ impl PortfolioPresenter {
             .model
             .portfolio
             .derive_unallocated_portfolio_value_series();
-        let unallocated_value_series = match unallocated_value_series {
+        // TODO: unused variable.
+        let _unallocated_value_series = match unallocated_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get unallocated value series: {:}", e);
@@ -188,7 +191,8 @@ impl PortfolioPresenter {
         };
 
         let protocol_quote_value_series = self.model.portfolio.derive_protocol_quote_value_series();
-        let protocol_quote_value_series = match protocol_quote_value_series {
+        // TODO: unused variable.
+        let _protocol_quote_value_series = match protocol_quote_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get protocol quote value series: {:}", e);
@@ -197,7 +201,8 @@ impl PortfolioPresenter {
         };
 
         let protocol_asset_value_series = self.model.portfolio.derive_protocol_asset_value_series();
-        let protocol_asset_value_series = match protocol_asset_value_series {
+        // TODO: unused variable.
+        let _protocol_asset_value_series = match protocol_asset_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get protocol asset value series: {:}", e);
@@ -242,13 +247,13 @@ impl PortfolioPresenter {
             Ok(data) => {
                 let value = alloy_primitives::utils::format_ether(data);
                 match value.parse::<f64>() {
-                    Ok(_) => label(&format!("{}", value)).title1().percentage(),
-                    Err(_) => label(&"Failed to parse U256 as float.")
+                    Ok(_) => label(value.to_string()).title1().percentage(),
+                    Err(_) => label("Failed to parse U256 as float.")
                         .caption()
                         .tertiary(),
                 }
             }
-            Err(_) => label(&"N/A").title1().secondary(),
+            Err(_) => label("N/A").title1().secondary(),
         }
     }
 
@@ -262,16 +267,16 @@ impl PortfolioPresenter {
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
         match data {
-            Some(data) => label(&format!("Timestamp: {:}", data)).caption().tertiary(),
-            None => label(&"Timestamp: N/A").caption().tertiary(),
+            Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
+            None => label("Timestamp: N/A").caption().tertiary(),
         }
     }
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         let data = self.model.portfolio.raw_last_chain_data_sync_block;
         match data {
-            Some(data) => label(&format!("Block: {:}", data)).caption().tertiary(),
-            None => label(&"Block: N/A").caption().tertiary(),
+            Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
+            None => label("Block: N/A").caption().tertiary(),
         }
     }
 
@@ -308,6 +313,7 @@ pub struct DataView;
 
 impl DataView {
     // Composed data elements.
+    #[allow(clippy::too_many_arguments)]
     pub fn metrics_layout<'a, Message>(
         &'a self,
         strategy_plot: &'a ExcaliburChart,
@@ -400,7 +406,7 @@ impl DataView {
             .push(user_greeting.build())
             .push(user_message.build())
             .push(
-                label(&format!("Date: {}", Utc::now().format("%Y-%m-%d")))
+                label(format!("Date: {}", Utc::now().format("%Y-%m-%d")))
                     .caption()
                     .tertiary()
                     .build(),
@@ -472,8 +478,8 @@ impl DataView {
     {
         double_labeled_data(
             data.build(),
-            label(&title).highlight().build(),
-            label(&caption).secondary().caption().build(),
+            label(title).highlight().build(),
+            label(caption).secondary().caption().build(),
         )
         .into()
     }

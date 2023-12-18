@@ -66,6 +66,7 @@ impl From<Cow<'_, str>> for Category {
 
 /// A user defined type for an address, not enforced or validated.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Class {
     #[default]
     EOA,

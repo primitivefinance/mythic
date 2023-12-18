@@ -59,12 +59,10 @@ impl Model {
         // 2. Fetches the now updated position info from the data model.
         // 3. Using the position info, derives the weights of the positions.
         // 4. Propagates updated position info to the user's saved portfolio data.
-        self.update_data_model(client).await.and_then(|_| {
+        self.update_data_model(client).await.map(|_| {
             if let Err(error) = self.update_portfolio_positions() {
                 tracing::warn!("Failed to update portfolio positions: {:?}", error);
             }
-
-            Ok(())
         })
     }
 
@@ -235,7 +233,7 @@ impl Saveable for Model {
         };
         // Don't overwrite existing profiles.
         if user_data_file.exists() {
-            return Ok(Self::load(Some(user_data_file))?);
+            return Self::load(Some(user_data_file));
         }
 
         let mut formatted_path = Self::file_name_ending();

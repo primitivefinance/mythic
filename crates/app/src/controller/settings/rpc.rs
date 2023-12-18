@@ -106,7 +106,7 @@ impl RpcManagement {
             }
         }
 
-        Err(anyhow::anyhow!("No form fields updated!").into())
+        Err(anyhow::anyhow!("No form fields updated!"))
     }
 
     pub fn view_rpcs(&self) -> Element<'_, Message> {
@@ -262,7 +262,7 @@ impl State for RpcManagement {
 
         let mut delete_button = ExcaliburButton::new()
             .danger()
-            .build(label(&"Delete RPCs").build())
+            .build(label("Delete RPCs").build())
             .padding(Sizes::Sm);
         if !self.selected_rpcs.is_empty() {
             delete_button = delete_button.on_press(Message::Delete);
@@ -273,7 +273,7 @@ impl State for RpcManagement {
             .push(
                 ExcaliburButton::new()
                     .primary()
-                    .build(label(&"Add RPC").build())
+                    .build(label("Add RPC").build())
                     .padding(Sizes::Sm)
                     .on_press(Message::AddRpc),
             )
@@ -281,7 +281,7 @@ impl State for RpcManagement {
 
         let upper_half = Column::new()
             .spacing(Sizes::Md)
-            .push(label(&"Manage RPC Settings").title2().build())
+            .push(label("Manage RPC Settings").title2().build())
             .push(actions)
             .push(Card::new(self.rpc_table().build()).padding(Sizes::Sm));
 
@@ -292,26 +292,26 @@ impl State for RpcManagement {
                 "Name".to_string(),
                 chain_packet.name.clone(),
                 "Choose a label".to_string(),
-                |x| Message::ChangeName(x),
+                Message::ChangeName,
             );
 
             let labeled_chain_id_input = labeled_input(
                 "Chain ID".to_string(),
                 chain_packet.chain_id.clone(),
                 "Choose a chain id".to_string(),
-                |x| Message::ChangeChainId(x),
+                Message::ChangeChainId,
             );
 
             let labeled_url_input = labeled_input(
                 "URL".to_string(),
                 chain_packet.url.clone(),
                 "Choose a url".to_string(),
-                |x| Message::ChangeUrl(x),
+                Message::ChangeUrl,
             );
 
             let submit_button = ExcaliburButton::new()
                 .primary()
-                .build(label(&"Add RPC to list").build())
+                .build(label("Add RPC to list").build())
                 .on_press(Message::Submit)
                 .width(Length::Fill)
                 .padding(Sizes::Md);
@@ -327,7 +327,7 @@ impl State for RpcManagement {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label(&"Instructions").build())
+                        .push(label("Instructions").build())
                         .push(submit_button)
                         .width(Length::FillPortion(2)),
                 );
@@ -340,8 +340,8 @@ impl State for RpcManagement {
         // if form error, push it as text.
         if let Some(feedback) = &self.form_feedback {
             let label = match feedback {
-                Feedback::Success(message) => label(&message.clone()).style(GREEN_400).build(),
-                Feedback::Error(message) => label(&message.clone()).style(RED_400).build(),
+                Feedback::Success(message) => label(message.clone()).style(GREEN_400).build(),
+                Feedback::Error(message) => label(message.clone()).style(RED_400).build(),
             };
 
             lower_half = lower_half.push(label);
