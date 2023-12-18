@@ -75,6 +75,13 @@ const BLUE: Color = Color::from_rgb(
     0xCC as f32 / 255.0,
 );
 
+const BLUE_DISABLED: Color = Color::from_rgba(
+    0x0E as f32 / 255.0,
+    0x44 as f32 / 255.0,
+    0xCC as f32 / 255.0,
+    0.5,
+);
+
 const MINT: Color = Color::from_rgb(
     0x5A as f32 / 255.0,
     0xFF as f32 / 255.0,
@@ -163,6 +170,7 @@ pub enum ExcaliburColor {
     Mint,
     Error,
     Pending,
+    PrimaryDisabled,
     Button(ButtonColors),
     Label(LabelColors),
     Quantitative(QuantitativeColors),
@@ -193,6 +201,7 @@ impl ExcaliburColor {
             ExcaliburColor::Mint => MINT,
             ExcaliburColor::Error => RED,
             ExcaliburColor::Pending => LIGHT_GREEN,
+            ExcaliburColor::PrimaryDisabled => BLUE_DISABLED,
             ExcaliburColor::Button(button_color) => match button_color {
                 ButtonColors::Primary => BLUE,
                 ButtonColors::Success => GREEN_BUTTON,
@@ -987,7 +996,7 @@ impl ExcaliburButton {
     pub fn primary(self) -> Self {
         let color = ExcaliburColor::Label(LabelColors::Primary).into();
         let border_radius = 3.0.into();
-        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled).into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled);
         let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
             .text_color(color)
             .border_radius(border_radius)
@@ -998,7 +1007,8 @@ impl ExcaliburButton {
             .text_color(color)
             .border_radius(border_radius)
             .disabled()
-            .text_color(disabled_color)
+            .background(Some(ExcaliburColor::PrimaryDisabled.into()))
+            .text_color(disabled_color.into())
             .border_radius(border_radius);
         Self { style }
     }

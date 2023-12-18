@@ -100,13 +100,9 @@ impl Form {
                 FormView::deposit_form(
                     self.amount.clone(),
                     on_change_deposit,
-                    FormView::review_summary(
-                        "Review",
-                        vec![
-                            Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
-                            Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
-                            Row::new().spacing(Sizes::Sm).push("Example").push("-10.00"),
-                        ],
+                    FormView::form_item(
+                        "Instructions",
+                        Column::new().padding(Sizes::Lg).push(label("Choose a strategy template and deposit amount, then submit the transaction to allocate.").secondary().footnote())
                     ),
                     submit,
                     state,
@@ -450,7 +446,6 @@ impl FormView {
         Message: 'a + Clone,
     {
         let mut on_submit = on_submit;
-        let mut button_background = ExcaliburColor::Primary;
         let mut button_content = Row::new()
             .spacing(Sizes::Sm)
             .align_items(alignment::Alignment::Center);
@@ -466,23 +461,30 @@ impl FormView {
 
         match *state {
             SubmitState::Empty => {
-                button_content = button_content
-                    .push(label(icon_to_char(Icon::ShieldShaded)).icon().build())
-                    .push(label("Submit for Approval").build());
+                let mut cta = label("Submit Transaction");
+                if on_submit.is_none() {
+                    cta = cta.secondary();
+                }
+
+                let mut icon = label(icon_to_char(Icon::ShieldShaded)).icon();
+                if on_submit.is_none() {
+                    icon = icon.secondary();
+                }
+
+                button_content = button_content.push(icon.build()).push(cta.build());
             }
             SubmitState::Pending => {
                 button_content = button_content
                     .push(loading_indicator)
-                    .push(label("Pending...").secondary().build());
+                    .push(label("Transaction pending...").secondary().build());
                 on_submit = None;
             }
             SubmitState::Confirmed => {
                 button_content = button_content
                     .push(label(icon_to_char(Icon::CheckAll)).icon().title2().build())
-                    .push(label("Done - Continue").build());
+                    .push(label("Success - continue").build());
             }
             SubmitState::Failed => {
-                button_background = ExcaliburColor::Button(system::ButtonColors::Error);
                 button_content = button_content
                     .push(label(icon_to_char(Icon::X)).icon().build())
                     .push(label("Failed").build());
@@ -496,19 +498,7 @@ impl FormView {
                 .push(
                     ExcaliburButton::new()
                         .primary()
-                        .active()
-                        .background(button_background)
-                        .hovered()
-                        .background(button_background)
-                        .disabled()
-                        .background(button_background)
-                        .pressed()
-                        .background(button_background)
-                        .build(
-                            Container::new(button_content)
-                                .center_x()
-                                .width(Length::Fill),
-                        )
+                        .build(button_content)
                         .padding(Padding {
                             top: Sizes::Md.into(),
                             bottom: Sizes::Md.into(),

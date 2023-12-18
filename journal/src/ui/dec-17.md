@@ -22,7 +22,7 @@ What do I prioritize for tonight?
 - [x] Remove cargo nightly features
 - [x] Pin dependencies
 - [x] Font and asset loading on mac os?
-- [ ] macos cant right click haha!!
+- [x] macos cant right click haha!! fixed with left click
 - [ ] Make traces cleaner, and potentially save to file?
 - [ ] Get some tests passing
 - [ ] Clippy
@@ -51,3 +51,7 @@ Too cute, this is serious business we are in!!
 
 "Excalibur: An alternative entrypoint to DeFi."
 
+
+# bugs
+
+found infinite zoom bug on macos when trying to scroll with trackpad while in interactive chart, need to limit the chart.
