@@ -180,8 +180,8 @@ impl PortfolioTable {
         };
 
         let float_epsilon = 0.0001;
-
-        let balance_color = if balance_label == "-" {
+        // todo: unused variables
+        let _balance_color = if balance_label == "-" {
             GRAY_800
         } else {
             match balance_delta {
@@ -191,8 +191,8 @@ impl PortfolioTable {
                 _ => GRAY_800,
             }
         };
-
-        let market_value_color = if market_value_label == "-" {
+        // todo: unused variables
+        let _market_value_color = if market_value_label == "-" {
             GRAY_800
         } else {
             match market_value_delta {
@@ -206,7 +206,7 @@ impl PortfolioTable {
         vec![
             CellBuilder::new().value(Some(position.asset.symbol.clone())),
             CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
-            CellBuilder::new().child(label(&price_label).secondary().build()),
+            CellBuilder::new().child(label(price_label).secondary().build()),
             CellBuilder::new().value(position.balance.map(|x| format!("{:.2}", x))),
             CellBuilder::new().child(label(&balance_label).secondary().build()),
             CellBuilder::new().value(position.cost.map(|x| format!("{:.2}", x))),
@@ -280,7 +280,6 @@ impl State for PortfolioTable {
                 self.form.clear();
             }
             Message::Empty => {}
-            _ => {}
         }
 
         cmd

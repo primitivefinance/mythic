@@ -43,9 +43,10 @@ pub struct PhiLogo {
     pub cache: Cache,
 }
 
+#[allow(clippy::excessive_precision)]
 pub const GOLDEN_RATIO: f32 = 1.61803398875;
 
-impl<'a, Message> iced::widget::canvas::Program<Message> for PhiLogo {
+impl<Message> iced::widget::canvas::Program<Message> for PhiLogo {
     type State = ();
 
     fn draw(
@@ -57,7 +58,8 @@ impl<'a, Message> iced::widget::canvas::Program<Message> for PhiLogo {
         _cursor: iced::mouse::Cursor,
     ) -> Vec<iced::widget::canvas::Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.palette();
+            // TODO: unused variable           
+            let _palette = theme.palette();
 
             let center = frame.center();
 
@@ -127,5 +129,24 @@ impl<'a, Message> iced::widget::canvas::Program<Message> for PhiLogo {
         });
 
         vec![geometry]
+    }
+
+    fn update(
+        &self,
+        _state: &mut Self::State,
+        _event: iced::widget::canvas::Event,
+        _bounds: Rectangle,
+        _cursor: iced::advanced::mouse::Cursor,
+    ) -> (iced::widget::canvas::event::Status, Option<Message>) {
+        (iced::widget::canvas::event::Status::Ignored, None)
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Self::State,
+        _bounds: Rectangle,
+        _cursor: iced::advanced::mouse::Cursor,
+    ) -> iced::advanced::mouse::Interaction {
+        iced::advanced::mouse::Interaction::default()
     }
 }
