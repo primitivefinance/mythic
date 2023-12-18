@@ -35,6 +35,7 @@ pub struct Form {
     pub end_price: Option<String>,
     pub liquidity: Option<LiquidityTypes>,
     pub state: SubmitState,
+    pub error: Option<String>,
 }
 
 impl Form {
@@ -62,6 +63,24 @@ impl Form {
 
     pub fn failed(&mut self) {
         self.state = SubmitState::Failed;
+    }
+
+    pub fn validate_amount(&mut self) {
+        self.error = None; // Reset error before validation
+
+        match &self.amount {
+            Some(amount_str) => {
+                match amount_str.parse::<f64>() {
+                    Ok(amount) => {
+                        if amount < 0.0 {
+                            self.error = Some("Amount cannot be negative".into());
+                        }
+                    },
+                    Err(_) => self.error = Some("Amount is not a valid number".into()),
+                }
+            },
+            None => self.error = Some("Amount is not provided".into()),
+        }
     }
 
     pub fn view<'a, Message>(
@@ -106,6 +125,7 @@ impl Form {
                     ),
                     submit,
                     state,
+                    &self.error
                 ),
                 FormView::chart_layout(
                     preview_chart,
@@ -274,12 +294,12 @@ impl FormView {
         review: impl Into<Element<'a, Message>>,
         submit: Option<Message>,
         state: &SubmitState,
+        error: &'a Option<String>,
     ) -> Container<'a, Message>
     where
         Message: 'a + Clone + Default,
-    {
-        ExcaliburContainer::default().transparent().build(
-            Row::new()
+        {
+            let mut row = Row::new()
                 .width(Length::Fill)
                 .spacing(Sizes::Md)
                 .push(
@@ -292,9 +312,15 @@ impl FormView {
                         .width(Length::FillPortion(3))
                         .push(Container::new(review.into()).width(Length::FillPortion(2)))
                         .push(Self::submit(submit, state).width(Length::FillPortion(2))),
-                ),
-        )
-    }
+                );
+        
+            // Add the error message to the row if it exists
+            if let Some(error_message) = error {
+                row = row.push(Text::new(error_message));
+            }
+        
+            ExcaliburContainer::default().transparent().build(row)
+        }
 
     /// Simple column of rows of review item elements.
     pub fn review_summary<'a, Message>(
