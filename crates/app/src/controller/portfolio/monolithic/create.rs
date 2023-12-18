@@ -27,7 +27,6 @@ pub enum SubmitState {
 
 #[derive(Debug, Clone, Default)]
 pub struct Form {
-    pub chart: ExcaliburChart,
     pub amount: Option<String>,
     pub coins: Vec<Coin>,
     pub chosen_asset: Option<Coin>,
@@ -43,6 +42,16 @@ impl Form {
         Self::default()
     }
 
+    pub fn reset(&mut self) {
+        self.amount = None;
+        self.chosen_asset = None;
+        self.chosen_quote = None;
+        self.duration = None;
+        self.end_price = None;
+        self.liquidity = None;
+        self.state = SubmitState::Empty;
+    }
+
     pub fn pending(&mut self) {
         self.state = SubmitState::Pending;
     }
@@ -55,20 +64,21 @@ impl Form {
         self.state = SubmitState::Failed;
     }
 
-    pub fn view<Message>(
-        &self,
+    pub fn view<'a, Message>(
+        &'a self,
+        preview_chart: &'a ExcaliburChart,
         state: &SubmitState,
         on_close: Option<Message>,
         submit: Option<Message>,
-        on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
-        on_select_asset: impl Fn(Coin) -> Message + 'static,
-        on_select_quote: impl Fn(Coin) -> Message + 'static,
-        on_select_duration: impl Fn(Times) -> Message + 'static,
-        on_change_end_price: impl Fn(Option<String>) -> Message + 'static,
-        on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'static,
+        on_change_deposit: impl Fn(Option<String>) -> Message + 'a,
+        on_select_asset: impl Fn(Coin) -> Message + 'a,
+        on_select_quote: impl Fn(Coin) -> Message + 'a,
+        on_select_duration: impl Fn(Times) -> Message + 'a,
+        on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
+        on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
     ) -> Element<'_, Message>
     where
-        Message: 'static + Default + Clone,
+        Message: 'a + Default + Clone,
     {
         FormView::layout(
             FormView::form_content(
@@ -102,7 +112,7 @@ impl Form {
                     state,
                 ),
                 FormView::chart_layout(
-                    &self.chart,
+                    preview_chart,
                     label("Strategy Preview").secondary(),
                     label("Synced").caption2().tertiary(),
                 ),
@@ -137,7 +147,7 @@ impl LiquidityTypes {
     pub fn to_parameters(&self, current_price: f64) -> LiquidityTemplateParameters {
         match self {
             LiquidityTypes::Low => LiquidityTemplateParameters {
-                strike_price_wad: current_price * 2.0,
+                strike_price_wad: current_price * 1.5,
                 sigma_percent_wad: 0.3,
                 time_remaining_years_wad: 1.0,
             },
@@ -264,7 +274,7 @@ impl FormView {
     /// Layout of the deposit input, review summary, and submit button.
     pub fn deposit_form<'a, Message>(
         deposit_amount: Option<String>,
-        on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
+        on_change_deposit: impl Fn(Option<String>) -> Message + 'a,
         review: impl Into<Element<'a, Message>>,
         submit: Option<Message>,
         state: &SubmitState,
@@ -312,19 +322,19 @@ impl FormView {
         choice_assets: Vec<Coin>,
         chosen_asset: Option<Coin>,
         chosen_quote: Option<Coin>,
-        on_select_asset: impl Fn(Coin) -> Message + 'static,
-        on_select_quote: impl Fn(Coin) -> Message + 'static,
+        on_select_asset: impl Fn(Coin) -> Message + 'a,
+        on_select_quote: impl Fn(Coin) -> Message + 'a,
         choice_duration: Vec<Times>,
         chosen_duration: Option<Times>,
-        on_select_duration: impl Fn(Times) -> Message + 'static,
+        on_select_duration: impl Fn(Times) -> Message + 'a,
         end_price: Option<String>,
-        on_change_end_price: impl Fn(Option<String>) -> Message + 'static,
+        on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
         choice_liquidity: Vec<LiquidityTypes>,
         chosen_liquidity: Option<LiquidityTypes>,
-        on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'static,
+        on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
     ) -> Container<'a, Message>
     where
-        Message: 'static + Default + Clone,
+        Message: 'a + Default + Clone,
     {
         ExcaliburContainer::default().transparent().build(
             Column::new().spacing(Sizes::Md).push(
@@ -514,7 +524,7 @@ impl FormView {
     /// Form input for the deposit amount.
     pub fn deposit_input<'a, Message>(
         deposit_amount: Option<String>,
-        on_change_deposit: impl Fn(Option<String>) -> Message + 'static,
+        on_change_deposit: impl Fn(Option<String>) -> Message + 'a,
     ) -> Container<'a, Message>
     where
         Message: 'a + Default + Clone,
@@ -566,7 +576,7 @@ impl FormView {
     pub fn duration_form<'a, Message>(
         choice_duration: Vec<Times>,
         chosen_duration: Option<Times>,
-        on_select_duration: impl Fn(Times) -> Message + 'static,
+        on_select_duration: impl Fn(Times) -> Message + 'a,
     ) -> Container<'a, Message>
     where
         Message: 'a + Default,
@@ -590,7 +600,7 @@ impl FormView {
     pub fn liquidity_type_form<'a, Message>(
         choice_liquidity: Vec<LiquidityTypes>,
         chosen_liquidity: Option<LiquidityTypes>,
-        on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'static,
+        on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
     ) -> Container<'a, Message>
     where
         Message: 'a + Default,
@@ -632,7 +642,7 @@ impl FormView {
 
     pub fn target_price_form<'a, Message>(
         target_price: Option<String>,
-        on_change_end_price: impl Fn(Option<String>) -> Message + 'static,
+        on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
     ) -> Container<'a, Message>
     where
         Message: 'a + Default + Clone,

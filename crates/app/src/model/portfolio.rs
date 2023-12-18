@@ -1602,6 +1602,114 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(points)
     }
 
+    /// Computes the plot of the trading function given strike price,
+    /// volatility, and time remaining.
+    /// Plots:
+    /// - Trading function
+    /// - Liquidity distribution
+    /// - Price curve
+    pub fn compute_strategy_plot(
+        &self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+    ) -> (Vec<(f64, f64)>, Vec<(f64, f64)>, Vec<(f64, f64)>) {
+        let mut curve_points = vec![];
+        let mut liq_dist_points = vec![];
+        let mut price_curve_points = vec![];
+
+        // Initial x != 0!!! be careful.
+        let mut x = f64::EPSILON;
+        let samples = 100.0;
+        let max = 1.0;
+        while x < max {
+            let y = compute_y_given_x_rust(x, 1.0, strike_price, volatility, time_remaining);
+            curve_points.push((x, y));
+
+            // This really impacts performance!! Like freezes the app.
+            let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
+            liq_dist_points.push((x, liq_dist));
+
+            let price =
+                compute_price_given_x_rust(x, 1.0, strike_price, volatility, time_remaining);
+            price_curve_points.push((x, price));
+
+            x += max / samples;
+        }
+
+        (curve_points, liq_dist_points, price_curve_points)
+    }
+
+    pub fn derive_computed_strategy_plot(
+        &self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+    ) -> Result<Vec<(CartesianRanges, ChartLineSeries)>> {
+        let (curve_points, liq_dist_points, price_curve_points) =
+            self.compute_strategy_plot(strike_price, volatility, time_remaining);
+
+        let max_x = 1.0; // total_liquidity;
+        let max_y = strike_price; // strike_price * total_liquidity;
+
+        // Min y and min x are both 0, so set their margin to a slightly negative
+        // proportion of the total range.
+        let min_x = -max_x * 0.1; // 10%
+        let min_y = -max_y * 0.1; // 10%
+
+        let converted_curve_points = curve_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut curve_series = coords_to_line_series(converted_curve_points);
+        curve_series.legend = "Log Normal".to_string();
+
+        let curve_ranges = CartesianRanges {
+            x_range: (min_x as f32, max_x as f32),
+            y_range: (min_y as f32, max_y as f32),
+        };
+
+        let converted_liq_dist_points = liq_dist_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut liq_dist_series = coords_to_line_series(converted_liq_dist_points);
+        liq_dist_series.legend = "Liq. Dist.".to_string();
+        liq_dist_series.color = plotters::style::full_palette::PURPLE_A400;
+
+        let max_y_dist = liq_dist_points
+            .iter()
+            .max_by(|(_, y1), (_, y2)| y1.partial_cmp(y2).unwrap())
+            .ok_or(Error::msg("Failed to get max y"))?
+            .1;
+
+        let liq_dist_ranges = CartesianRanges {
+            x_range: (min_x as f32, max_x as f32),
+            y_range: (min_y as f32, max_y_dist as f32),
+        };
+
+        let converted_price_points = price_curve_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut price_curve_series = coords_to_line_series(converted_price_points);
+        price_curve_series.legend = "Price".to_string();
+        price_curve_series.color = plotters::style::full_palette::GREEN_A400;
+
+        // Set the ranges.
+        let price_curve_ranges = CartesianRanges {
+            x_range: (min_x as f32, max_x as f32),
+            y_range: (min_y as f32, max_y as f32),
+        };
+
+        // Return it all!
+        Ok(vec![
+            (curve_ranges, curve_series),
+            (liq_dist_ranges, liq_dist_series),
+            (price_curve_ranges, price_curve_series),
+        ])
+    }
+
     /// Transforms the portfolio strategy into a plotted curve with the current
     /// portfolio composition as a point of interest.
     pub fn derive_portfolio_strategy_plot(
