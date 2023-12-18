@@ -74,9 +74,7 @@ impl SubAssign<Position> for Portfolio {
 
 impl From<Vec<Position>> for Portfolio {
     fn from(positions: Vec<Position>) -> Self {
-        let mut portfolio = Portfolio::default();
-        portfolio.positions = Positions::from(positions);
-        portfolio
+        Portfolio { positions: Positions::from(positions), ..Default::default() }
     }
 }
 
