@@ -224,7 +224,6 @@ impl ExcaliburColor {
                 QuantitativeColors::Billions => HIGHLIGHT,
             },
             ExcaliburColor::Custom(color) => *color,
-            _ => Color::WHITE,
         }
     }
 }
@@ -372,7 +371,7 @@ impl Default for ExcaliburText {
 }
 
 /// For constructing any text rendered in Excalibur.
-pub fn label<'a>(value: impl ToString) -> ExcaliburText {
+pub fn label(value: impl ToString) -> ExcaliburText {
     ExcaliburText::new(value)
 }
 
@@ -453,24 +452,19 @@ impl ExcaliburText {
     /// Formats the text based on percentage value.
     pub fn percentage(self) -> Self {
         let value = self.value.parse::<f64>().unwrap_or(0.0);
-        let mut color = QuantitativeColors::Hundreds;
-
         let percentage_value = value * 100.0;
-
-        let value = if percentage_value < 10.0 {
-            color = QuantitativeColors::Hundreds;
-            format!("{:.2}%", percentage_value)
+        let color = if percentage_value < 10.0 {
+            QuantitativeColors::Hundreds
         } else if percentage_value < 50.0 {
-            color = QuantitativeColors::Thousands;
-            format!("{:.2}%", percentage_value)
+            QuantitativeColors::Thousands
         } else if percentage_value < 95.0 {
-            color = QuantitativeColors::Millions;
-            format!("{:.2}%", percentage_value)
+            QuantitativeColors::Millions
         } else {
-            color = QuantitativeColors::Billions;
-            format!("{:.2}%", percentage_value)
+            QuantitativeColors::Billions
         };
-
+        
+        let value = format!("{:.2}%", percentage_value);
+        
         Self {
             value,
             color: ExcaliburColor::Quantitative(color),
@@ -882,7 +876,7 @@ impl ExcaliburContainer {
     }
 
     pub fn border_radius(mut self, size: BorderRadius) -> Self {
-        self.border_radius = size.into();
+        self.border_radius = size;
         self
     }
 
@@ -978,7 +972,7 @@ impl ExcaliburButton {
     }
 
     /// Overrides all button states with a border radius.
-    pub fn border_radius(mut self, border_radius: BorderRadius) -> Self {
+    pub fn border_radius(self, border_radius: BorderRadius) -> Self {
         let style = self
             .style
             .active()
@@ -1191,11 +1185,11 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
 pub struct Card;
 
 impl Card {
-    pub fn new<'a, Message>(element: impl Into<Element<'a, Message>>) -> Container<'a, Message>
+    pub fn build_container<'a, Message>(element: impl Into<Element<'a, Message>>) -> Container<'a, Message>
     where
         Message: 'a,
     {
-        panel().card().build(element).into()
+        panel().card().build(element)
     }
 }
 
@@ -1384,16 +1378,16 @@ impl ExcaliburInputBuilder {
     pub fn light_border(self) -> Self {
         self.style
             .active()
-            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_color(ExcaliburColor::Custom(GRAY_600))
             .border_width(1.0)
-            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
-            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight))
+            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary))
             .hovered()
-            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_color(ExcaliburColor::Custom(GRAY_600))
             .border_width(1.0)
-            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
-            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
-            .background(ExcaliburColor::Background4.into());
+            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight))
+            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary))
+            .background(ExcaliburColor::Background4);
 
         self
     }
@@ -1436,6 +1430,8 @@ pub struct ExcaliburInput<'a, Message> {
 }
 
 impl<'a, Message> ExcaliburInput<'a, Message> {
+    // TODO: this is a bit of a mess
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         value: Option<String>,
         on_input: impl Fn(Option<String>) -> Message + 'a,
@@ -1523,11 +1519,7 @@ where
                 }
             }
             Self::Event::Submit => {
-                if let Some(on_submit) = &self.on_submit {
-                    Some(on_submit.clone())
-                } else {
-                    None
-                }
+                self.on_submit.as_ref().cloned()
             }
         }
     }
@@ -1557,7 +1549,7 @@ where
         }
 
         if let Some(font) = &self.font {
-            input = input.font(font.clone());
+            input = input.font(*font);
         }
 
         if self.is_secure {
@@ -1736,19 +1728,19 @@ impl text_input::StyleSheet for CustomInputStyle {
     type Style = iced::Theme;
 
     fn active(&self, _style: &Self::Style) -> text_input::Appearance {
-        self.active.into()
+        self.active
     }
 
     fn focused(&self, _style: &Self::Style) -> text_input::Appearance {
-        self.focused.into()
+        self.focused
     }
 
     fn hovered(&self, _style: &Self::Style) -> text_input::Appearance {
-        self.hovered.into()
+        self.hovered
     }
 
     fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
-        self.disabled.into()
+        self.disabled
     }
 
     fn placeholder_color(&self, _style: &Self::Style) -> Color {

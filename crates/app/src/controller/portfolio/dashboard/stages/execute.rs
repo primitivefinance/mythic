@@ -226,7 +226,7 @@ impl State for Execute {
     }
 
     fn view(&self) -> Element<Self::ViewMessage> {
-        Card::new(
+        Card::build_container(
             Column::new()
                 .width(Length::Fill)
                 .push(
