@@ -14,8 +14,6 @@ use revm::{
 };
 use serde::{Deserialize, Serialize};
 
-use super::*;
-
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct Artifacts {
     #[serde(rename = "storageLayout")]

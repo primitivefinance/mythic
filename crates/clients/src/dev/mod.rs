@@ -51,7 +51,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
         // Mint an initial portfolio of 50/50.
         let initial_portfolio = 0.5;
-        let initial_portfolio_wad = ethers::utils::parse_ether(initial_portfolio).unwrap();
+        let _initial_portfolio_wad = ethers::utils::parse_ether(initial_portfolio).unwrap();
 
         token_x
             .mint(sender, ethers::utils::parse_ether(INITIAL_X_BALANCE)?)
@@ -132,7 +132,7 @@ impl<C: Middleware + 'static> DevClient<C> {
         self.token_x.mint(sender, amount_x_wad).send().await?;
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
-        Ok(self
+        self
             .protocol
             .initialize(
                 price,
@@ -141,7 +141,7 @@ impl<C: Middleware + 'static> DevClient<C> {
                 sigma_percent_wad,
                 tau_years_wad,
             )
-            .await?)
+            .await
     }
 
     pub async fn get_position(&self) -> Result<ProtocolPosition> {

@@ -33,7 +33,7 @@ use ethers::{
     utils::parse_ether,
 };
 
-use super::{forking::forking::*, *};
+use super::{forking::client_forking::*, *};
 
 #[derive(Default, Debug, Clone)]
 pub struct Stages {
@@ -64,7 +64,7 @@ impl Scroll {
         db: &CacheDB<EmptyDBTyped<Infallible>>,
     ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
         let address: revm::primitives::Address =
-            self.payload.target.clone().to_fixed_bytes().into();
+            self.payload.target.to_fixed_bytes().into();
         let account = db.accounts.get(&address).unwrap();
         Ok(account.storage.clone())
     }
@@ -78,8 +78,7 @@ impl Scroll {
     ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
         let storage = match &self.stages.before {
             Some(storage) => {
-                let storage = self.try_storage(storage)?;
-                storage
+                self.try_storage(storage)?
             }
             None => {
                 tracing::error!("No before storage found in scroll");
@@ -102,8 +101,7 @@ impl Scroll {
     ) -> anyhow::Result<StorageMap<StorageValue, StorageValue>, anyhow::Error> {
         let storage = match &self.stages.after {
             Some(storage) => {
-                let storage = self.try_storage(storage)?;
-                storage
+                self.try_storage(storage)?
             }
             None => {
                 tracing::error!("No after storage found in scroll");
@@ -124,7 +122,7 @@ impl Scroll {
         forker: &Forker,
         block: Option<u64>,
     ) -> anyhow::Result<CacheDB<EmptyDB>, anyhow::Error> {
-        let target = self.payload.target.clone();
+        let target = self.payload.target;
         let artifacts_path = self.payload.artifact.clone().to_str().unwrap().to_string();
         let ingest_payload = IngestPayload {
             target,
@@ -178,7 +176,7 @@ impl Scroll {
         tracing::warn!(
             "Balance of client with address 0x{:x} : {:?}",
             from_address,
-            Coin::new(self.payload.target.clone(), client.clone())
+            Coin::new(self.payload.target, client.clone())
                 .balance_of(from_address)
                 .call()
                 .await?
@@ -262,10 +260,7 @@ impl Scroll {
             return Err(anyhow::anyhow!("Transaction has not been simulated yet."));
         }
 
-        let block: Option<BlockId> = match block {
-            Some(block) => Some(BlockId::Number(block.into())),
-            None => None,
-        };
+        let block: Option<BlockId> = block.map(|block| BlockId::Number(block.into()));
 
         // Executes the transaction on the live client.
         let payload: TypedTransaction = self.payload.clone().try_into()?;
@@ -273,7 +268,9 @@ impl Scroll {
         let tx = client.send_transaction(payload, block).await?.await?;
         tracing::debug!("Executed transaction: {:?}", tx);
 
-        let res = match tx {
+        
+
+        match tx {
             Some(tx) => {
                 tracing::debug!("Executed receipt: {:?}", tx.clone());
                 self.live_outcome = Some(Outcome {
@@ -287,9 +284,7 @@ impl Scroll {
                 tracing::debug!("Executed transaction failed");
                 Err(anyhow::anyhow!("Executed transaction failed"))
             }
-        };
-
-        res
+        }
     }
 }
 
@@ -329,7 +324,7 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
 
         if let Some(method) = payload.method {
             let path = payload.artifact.clone().to_str().unwrap().to_string();
-            let file = File::open(&path).unwrap();
+            let file = File::open(path).unwrap();
             let reader = BufReader::new(file);
             let contract_abi: ContractAbi = serde_json::from_reader(reader).unwrap();
             let abi = contract_abi.abi;
@@ -375,7 +370,7 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
             return Err(anyhow::anyhow!("No method specified in payload."));
         }
 
-        let tx = TypedTransaction::Eip1559(req.into());
+        let tx = TypedTransaction::Eip1559(req);
 
         Ok(tx)
     }
@@ -445,10 +440,7 @@ impl UnsealedTransaction {
             // Return the first argument, which is the address of the recipient of the
             // transfer. And the from address, which is the caller.
 
-            let mut keys = vec![];
-            keys.push(self.arguments[0].clone());
-            keys.push(address_to_string(&self.from.clone().unwrap()));
-
+            let keys = vec![self.arguments[0].clone(), address_to_string(&self.from.unwrap())];
             let mapping_label = "balanceOf".to_string();
 
             mappings.insert(mapping_label, keys);
@@ -473,7 +465,7 @@ mod tests {
     use bindings::counter::Counter;
     use ethers::{prelude::*, utils::Anvil};
 
-    use super::{forking::*, scroll::*};
+    use super::scroll::*;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_scroll() -> anyhow::Result<(), anyhow::Error> {
