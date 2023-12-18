@@ -23,7 +23,6 @@
 // use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
-// todo: remove this in favor of alloy types when possible.
 use bindings::{
     dfmm::{InitFilter, DFMM},
     log_normal::LogNormal,
