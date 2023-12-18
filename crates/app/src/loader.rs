@@ -434,24 +434,23 @@ impl Loader {
         let s_curve_result = s_curve(self.progress);
         let progress = (s_curve_result * 4.0) as usize;
 
-        let random_index: usize = progress % CURRENCY_SYMBOLS.len();
-        let random_currency = CURRENCY_SYMBOLS[random_index].to_string();
-
         match progress {
-            0 => format!("{} Initiated loading procedure...", random_currency),
-            1 => format!("{} Starting sandbox environment...", random_currency),
-            2 => format!(
-                "{} Connected. Deploying contracts in sandbox...",
-                random_currency
-            ),
-            3 => format!("{} Initializing sandbox state...", random_currency),
-            _ => format!("{} Launching Excalibur...", random_currency),
+            0 => format!("Initiated loading procedure..."),
+            1 => format!("Starting sandbox environment..."),
+            2 => format!("Connected. Deploying contracts in sandbox..."),
+            3 => format!("Initializing sandbox state..."),
+            _ => format!("Launching Excalibur..."),
         }
     }
 
     pub fn view(&self) -> Element<Message> {
-        let random_index: usize = self.progress as usize % GREEK_SYMBOLS.len();
-        let random_greek = GREEK_SYMBOLS[random_index].to_string();
+        let all_symbols = GREEK_SYMBOLS
+            .iter()
+            .chain(CURRENCY_SYMBOLS.iter())
+            .collect::<Vec<_>>();
+
+        let random_index = self.progress as usize % all_symbols.len();
+        let random_symbol = all_symbols[random_index].to_string();
 
         container(
             container(
@@ -462,13 +461,13 @@ impl Loader {
                     Row::new()
                         .push(
                             Column::new()
-                                .push(label(&random_greek).highlight().build())
+                                .push(label(&random_symbol).secondary().build())
                                 .align_items(alignment::Alignment::Start)
                                 .width(Length::FillPortion(1)),
                         )
                         .push(
                             Column::new()
-                                .push(label(&self.feedback).highlight().build())
+                                .push(label(&self.feedback).secondary().build())
                                 .align_items(alignment::Alignment::End)
                                 .width(Length::FillPortion(3))
                         )
@@ -478,7 +477,7 @@ impl Loader {
                 ]
                 .padding(Sizes::Sm)
                 .align_items(alignment::Alignment::End)
-                .spacing(Sizes::Sm as u16),
+                .spacing(Sizes::Sm),
             )
             .max_width(ByteScale::Xl6 as u32 as f32),
         )

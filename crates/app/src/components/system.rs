@@ -298,6 +298,12 @@ impl From<Typography> for iced::Pixels {
 
 pub const SYMBOL_FONT: Font = Font::with_name("Yu Gothic");
 pub const UI_FONT: Font = Font::with_name("Yu Gothic UI");
+pub const UI_FONT_SEMIBOLD: Font = Font {
+    family: iced::font::Family::Name("Yu Gothic UI"),
+    weight: iced::font::Weight::Semibold,
+    stretch: iced::font::Stretch::Normal,
+    monospaced: false,
+};
 pub const UI_FONT_BOLD: Font = Font {
     family: iced::font::Family::Name("Yu Gothic UI"),
     weight: iced::font::Weight::Bold,
@@ -310,6 +316,7 @@ pub const BRAND_FONT: Font = Font::with_name("DAGGERSQUARE");
 pub enum ExcaliburFonts {
     #[default]
     UI,
+    UISemibold,
     UIBold,
     Branding,
     Symbol,
@@ -321,6 +328,7 @@ impl ExcaliburFonts {
     pub fn font(&self) -> Font {
         match self {
             ExcaliburFonts::UI => UI_FONT,
+            ExcaliburFonts::UISemibold => UI_FONT_SEMIBOLD,
             ExcaliburFonts::UIBold => UI_FONT_BOLD,
             ExcaliburFonts::Branding => BRAND_FONT,
             ExcaliburFonts::Symbol => SYMBOL_FONT,
@@ -635,6 +643,13 @@ impl ExcaliburText {
     pub fn ui(self) -> Self {
         Self {
             font: ExcaliburFonts::UI,
+            ..self
+        }
+    }
+
+    pub fn ui_semibold(self) -> Self {
+        Self {
+            font: ExcaliburFonts::UISemibold,
             ..self
         }
     }

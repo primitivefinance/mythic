@@ -2,7 +2,7 @@
 name = "excalibur"
 version = "0.2.0"
 edition = "2021"
-description = "A non-custodial asset management platform designed to securely streamline the onchain investment process"
+description = "Excalibur: An alternative entrypoint to DeFi."
 
 [[bin]]
 name = "excalibur"
@@ -128,19 +128,21 @@ path = "benches/ui_benchmarks.rs"
 
 [package.metadata.bundle]
 name = "Excalibur"
-identifier = "com.primitivefinance.excalibur"
-icon = ["assets/logos/excalibur_logo.png"]
-resources = ["path/to/resource1", "path/to/resource2"] # Paths to any resources your application needs
+identifier = "xyz.primitive.excalibur"
+short_description = "Excalibur: An alternative entrypoint to DeFi."
+long_description = "Excalibur: An alternative entrypoint to DeFi."
+resources = ["assets/"]
+icon = ["assets/logos/excalibur_logo_2.png"]
 
 # macOS specific
 category = "public.app-category.finance"
-copyright = "Copyright (c) 2024 Primitive Bits, Inc"
+copyright = "Copyright (c) 2024 Primitive Bits, Inc."
 minimum_system_version = "10.14"
+osx_url_schemes = ["xyz.primitive.excalibur"]
 
 # Windows specific
 product_name = "Excalibur"
-manufacturer = "Primitive Bits, Inc"
-upgrade_code = "INSERT-A-UNIQUE-GUID-HERE"
+manufacturer = "Primitive Bits, Inc."
 
 # Linux specific
 package_name = "excalibur"
