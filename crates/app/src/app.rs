@@ -152,7 +152,42 @@ pub struct App {
     pub app_clock: AppClock,
 }
 
+/// The main application structure.
+///
+/// This structure follows the Elm architecture, which is a pattern for architecting interactive programs.
+/// The Elm architecture has a few core parts: a model, an update function, and a view function.
+///
+/// The model is the single source of truth for our application. It is defined in the `model` field of this structure.
+///
+/// The [`App.update()`] function is where we make changes to our model. It takes the current model and a message, and produces a new model.
+/// This is done in the `update` method of this structure.
+///
+/// The [`App.view()`] function takes the current model and produces a description of what we want to see on screen.
+/// This is done in the `view` method of this structure.
+///
+/// The flow of information in the application goes as follows:
+/// 1. The user interacts with the view (e.g., clicking a button).
+/// 2. The view produces a message based on the user's interaction.
+/// 3. The message is sent to the update function.
+/// 4. The update function takes the current model and the message, and produces a new model.
+/// 5. The new model is sent to the view function, and the cycle repeats.
 impl App {
+    /// Creates a new instance of the App.
+    ///
+    /// This function initializes the application with the provided model and client.
+    /// It sets up the dashboard with the portfolio root and the sidebar with the portfolio page.
+    /// It also initializes the application clock.
+    ///
+    /// The function returns a tuple containing the newly created App and a Command to load the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The data model of the application.
+    /// * `client` - The client used for network connections.
+    ///
+    /// # Returns
+    ///
+    /// * `(Self, Command<Message>)` - A tuple containing the newly created App and a Command to load the application.
     pub fn new(
         model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
@@ -171,7 +206,8 @@ impl App {
         )
     }
 
-    /// Loads the sidebar and the default screen. Called after new().
+    /// This function is responsible for loading the sidebar and the default screen. 
+    /// It is called when a user starts the application, after the new() function.
     pub fn load(&mut self) -> Command<Message> {
         // Load the sidebar and the current window.
         let cmds = vec![
@@ -181,7 +217,22 @@ impl App {
         Command::batch(cmds)
     }
 
-    /// All view updates are forwarded to the Screen's update function.
+    /// Handles all updates to the application's state.
+    ///
+    /// This function is responsible for updating the application's state based on the provided message.
+    /// It first updates the application's clock, then handles the message in a variety of ways depending on its type.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message to handle. This can be a variety of types, each of which results in a different update to the application's state.
+    ///
+    /// # Returns
+    ///
+    /// * `Command<Message>` - A command that will be executed after the update. This can be a variety of types, each of which results in a different action being taken.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the `Message::ModelSyncResult` variant is used and the result is an error.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         // Handle the update clock first.
         self.app_clock.update();
@@ -198,7 +249,7 @@ impl App {
                 self.model = model.clone();
 
                 // Propagate the model to the active screen.
-                // todo: remove side effects
+                // todo: remove side effects, @alex what did you mean by this?
                 self.windows
                     .screen
                     .update(Message::ModelSyncResult(Ok(model)))
@@ -232,6 +283,15 @@ impl App {
         })
     }
 
+    /// Returns the view of the application.
+    ///
+    /// This function takes the current state of the application and produces a description of what we want to see on screen.
+    /// It uses the `app_layout` function from the `view` module to create a layout for the application.
+    /// The layout includes the application clock, the sidebar, and the current screen.
+    /// The function then maps the layout to a `Message::View` and returns it.
+    ///
+    /// # Returns
+    /// * `Element<Message>` - The view of the application.
     pub fn view(&self) -> Element<Message> {
         view::app_layout(
             &self.app_clock,
@@ -241,10 +301,26 @@ impl App {
         .map(Message::View)
     }
 
+    /// Returns the subscription of the current screen.
+    ///
+    /// This function retrieves the subscription of the current screen in the application window.
+    /// Subscriptions are a way to listen for external events that are not user interactions, like time passing or messages arriving from a server.
+    ///
+    /// # Returns
+    /// * `Subscription<Message>` - The subscription of the current screen.
     pub fn subscription(&self) -> Subscription<Message> {
         self.windows.screen.subscription()
     }
 
+    /// Exits the application.
+    ///
+    /// This function performs several operations before exiting the application:
+    /// 1. It saves the current profile to disk.
+    /// 2. It calls the exit function on the currently opened window.
+    /// 3. If the development client is active, it saves a snapshot of the anvil state to the profile.
+    ///
+    /// # Returns
+    /// * `Command<Message>` - A batch of commands to be executed during the exit process.
     pub fn exit(&mut self) -> Command<Message> {
         // Save the profile to disk.
         let result = self.model.save();
@@ -272,7 +348,14 @@ impl App {
         Command::batch(commands)
     }
 
-    /// Updates the model and returns its mutated state in a Result.
+    /// Synchronizes the application model with the client.
+    ///
+    /// This function checks if a client is available. If a client is available, it clones the current model and the client's provider.
+    /// It then asynchronously updates the model using the cloned provider and returns the updated model in a `Command`.
+    /// If no client is available, it logs a debug message and returns an empty `Command`.
+    ///
+    /// # Returns
+    /// * `Command<Message>` - A command containing the result of the model synchronization.
     fn sync_model(&mut self) -> Command<Message> {
         if let Some(client) = self.client.client().cloned() {
             let model = self.model.clone();
@@ -292,11 +375,23 @@ impl App {
         }
     }
 
-    #[allow(unused_assignments)]
+    /// Updates the user profile based on the provided message.
+    ///
+    /// This function handles various types of UserProfileMessage to update the user profile.
+    /// It can save an anvil snapshot, add or remove addresses, clear addresses, add or remove RPCs, and clear RPCs.
+    /// After updating the user profile, it saves the profile to disk and logs the result.
+    /// It then clones the user's RPCs and returns a Command to sync the RPCs.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The UserProfileMessage that specifies how to update the user profile.
+    ///
+    /// # Returns
+    ///
+    /// * `Command<Message>` - A command to sync the RPCs after updating the user profile.
+    // #[allow(unused_assignments)]
     fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
         let model = &mut self.model;
-
-        let mut cmd = Command::none();
         match message {
             UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
                 tracing::debug!("Saving anvil snapshot to profile");
@@ -352,13 +447,19 @@ impl App {
         }
 
         let rpcs = model.user.rpcs.clone();
-        cmd = Command::perform(async {}, move |_| {
+        Command::perform(async {}, move |_| {
             view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
-        })
-        .map(|x| x.into());
-        cmd
+        }).map(|x| x.into())
     }
 
+    /// This function is responsible for switching between different windows in the application.
+    /// It first creates an exit command for the current window and adds it to a command vector.
+    /// Then, it checks the route provided to navigate to the appropriate window.
+    /// If the route is a page, it updates the current page in the sidebar and creates a new screen
+    /// based on the page type (Empty, Portfolio, Settings, Exit).
+    /// If the route is not a page, it defaults to an empty screen.
+    /// After setting the new screen, it creates a load command for the new window and adds it to the command vector.
+    /// Finally, it batches all the commands in the vector and returns them.
     #[allow(unreachable_patterns)]
     fn switch_window(&mut self, navigate_to: &view::sidebar::Route) -> Command<Message> {
         let mut cmds = Vec::new();

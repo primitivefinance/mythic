@@ -73,8 +73,6 @@ fn main() -> Result<()> {
     if args.arbiter_core {
         filter.push_str(&format!(",arbiter_core={}", log_level));
     }
-    // TODO: handle this unused
-    let _env_filter = EnvFilter::new(filter);
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,
