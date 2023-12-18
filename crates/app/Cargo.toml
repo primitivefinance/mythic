@@ -34,7 +34,7 @@ iced_aw = { version = "=0.7.0", default-features = false, features = [
 plotters-backend = "=0.3.5"
 plotters-iced = "=0.9.0"
 iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicator.git", rev = "a09296f" }
-
+url = "2.2.2"
 
 # workspace crates
 sim.workspace = true

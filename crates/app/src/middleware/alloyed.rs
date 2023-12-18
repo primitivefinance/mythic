@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use alloy_networks::{Network, Receipt};
 use alloy_primitives::{Address, Bloom, Bytes, B256, U128, U256, U64, U8};
+
 use alloy_pubsub::PubSubFrontend;
 use alloy_rlp::{RlpDecodable, RlpEncodable};
 use alloy_rpc_client::{ClientBuilder, RpcClient};
@@ -139,16 +140,21 @@ impl ExcaliburMiddleware {
             .map_err(|e| anyhow!("failed to build client {}", e))
     }
 
+    // pub fn provider(url: &str) -> anyhow::Result<ExcProvider> {
+    //     Ok(ExcProvider::new(url).map_err(|e| anyhow!("failed to build provider {}", e))?)
+    // }
     pub fn provider(url: &str) -> anyhow::Result<ExcProvider> {
-        ExcProvider::new(url).map_err(|e| anyhow!("failed to build provider {}", e))
+        let url = url::Url::parse(url).map_err(|e| anyhow!("failed to parse url: {}", e))?;
+        let http = Http::new(url);
+        Ok(ExcProvider::new(http))
     }
 }
 
 #[cfg(test)]
 mod test {
     use alloy_primitives::{Bytes, U64};
-    use alloy_providers::Provider;
     use alloy_providers::{provider::ClientError, NetworkRpcClient};
+    use alloy_providers::{provider::TempProvider as _, Provider};
     use alloy_signer::LocalWallet;
     use alloy_signer::{Signer, SignerSync};
     use ethers::utils::AnvilInstance;

@@ -427,7 +427,7 @@ impl ExcaliburText {
     /// Return None in the classifier if you want to default to the original
     /// text.
     pub fn custom_format(self, classifier: impl FnOnce(f64) -> Option<ExcaliburColor>) -> Self {
-        let value = self.value.parse::<f64>().unwrap_or(0.0);
+        let value = self.value.parse::<f64>().unwrap();
         if let Some(color) = classifier(value) {
             Self { color, ..self }
         } else {
