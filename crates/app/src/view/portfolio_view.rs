@@ -7,10 +7,7 @@
 use chrono::{DateTime, Utc};
 use datatypes::portfolio::position::Positions;
 
-use super::{
-    model::portfolio::AlloyU256,
-    *,
-};
+use super::{model::portfolio::AlloyU256, *};
 use crate::components::{
     double_labeled_data,
     system::{label, ExcaliburChart, ExcaliburTable, ExcaliburText},
@@ -27,9 +24,7 @@ impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
             let value = alloy_primitives::utils::format_ether(*value);
             match value.parse::<f64>() {
                 Ok(_) => label(&value).quantitative().title1(),
-                Err(_) => label("Failed to parse U256 as float.")
-                    .caption()
-                    .tertiary(),
+                Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
             }
         } else {
             label("N/A").title1().secondary()
@@ -43,9 +38,7 @@ impl ValueToLabel<Result<AlloyU256, anyhow::Error>> for Result<AlloyU256, anyhow
             let value = alloy_primitives::utils::format_ether(*value);
             match value.parse::<f64>() {
                 Ok(_) => label(&value).quantitative().title1(),
-                Err(_) => label("Failed to parse U256 as float.")
-                    .caption()
-                    .tertiary(),
+                Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
             }
         } else {
             label("N/A").title1().secondary()
@@ -248,9 +241,7 @@ impl PortfolioPresenter {
                 let value = alloy_primitives::utils::format_ether(data);
                 match value.parse::<f64>() {
                     Ok(_) => label(value.to_string()).title1().percentage(),
-                    Err(_) => label("Failed to parse U256 as float.")
-                        .caption()
-                        .tertiary(),
+                    Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
                 }
             }
             Err(_) => label("N/A").title1().secondary(),

@@ -824,18 +824,13 @@ impl Chart<ChartMessage> for CartesianChart {
                 // Reversed because we are on cartesian grid!
                 let near_top = y >= bound_y_end - bound_y_end * 0.025;
                 let near_bottom = y <= bound_y + bound_y_end * 0.025; */
-                let boundaries = near_boundaries(
-                    x,
-                    y,
-                    (bound_x_start, bound_x),
-                    (bound_y, bound_y_end),
-                    0.05,
-                );
+                let boundaries =
+                    near_boundaries(x, y, (bound_x_start, bound_x), (bound_y, bound_y_end), 0.05);
                 let (near_left, near_right, near_top, near_bottom) = (
                     boundaries.left,
                     boundaries.right,
                     boundaries.top,
-                    boundaries.bottom
+                    boundaries.bottom,
                 );
 
                 let container_width = 50;
@@ -872,10 +867,10 @@ impl Chart<ChartMessage> for CartesianChart {
                     true => {
                         // Clamping the labels based on the position of the label container, which
                         // is clamped, on the x-axis.
-                            (
-                                label_container_coords[0].0 + container_width / 4,
-                                label_container_coords[0].1 + container_height / 4,
-                            )
+                        (
+                            label_container_coords[0].0 + container_width / 4,
+                            label_container_coords[0].1 + container_height / 4,
+                        )
                     }
                     false => {
                         // Clamp the labels based on the position of the label container, which
@@ -901,10 +896,7 @@ impl Chart<ChartMessage> for CartesianChart {
                     }
                 };
 
-                let rect = Rectangle::new(
-                    label_container_coords,
-                    container_style,
-                );
+                let rect = Rectangle::new(label_container_coords, container_style);
 
                 return EmptyElement::at((x, y))
                     + rect

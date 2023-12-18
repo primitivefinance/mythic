@@ -7,8 +7,7 @@ use arbiter_core::{
 };
 use bindings::mock_erc20::MockERC20;
 use cfmm_math::trading_functions::rmm::{
-    compute_value_function, compute_x_given_l_rust,
-    compute_y_given_x_rust,
+    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
 use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};

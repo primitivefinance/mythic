@@ -299,10 +299,8 @@ impl State for Dashboard {
                         async move {
                             let next_price = next_price.unwrap_or_default();
                             let client = client.clone();
-                            let lex = LiquidExchange::new(
-                                to_ethers_address(external_exchange),
-                                client,
-                            );
+                            let lex =
+                                LiquidExchange::new(to_ethers_address(external_exchange), client);
 
                             let current_price = lex.price().await?;
                             // make the new price a random price +/- 1% of current price.
@@ -366,8 +364,7 @@ impl State for Dashboard {
                             .iter()
                             .enumerate()
                             .flat_map(|(pos_index, position)| {
-                                let balance =
-                                    position.balance.unwrap_or_default().to_string();
+                                let balance = position.balance.unwrap_or_default().to_string();
                                 let market_value = position.market_value().clone().to_string();
 
                                 let balance_command = self

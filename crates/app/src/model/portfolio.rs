@@ -315,10 +315,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let raw_logs = raw_logs
             .into_iter()
             .filter(|log| {
-                log.topics
-                    .get(1)
-                    .map(|topic| EthersAddress::from(*topic))
-                    == Some(user_address)
+                log.topics.get(1).map(|topic| EthersAddress::from(*topic)) == Some(user_address)
             })
             .collect::<Vec<_>>();
 

@@ -176,18 +176,14 @@ impl State for SettingsScreen {
                     }
                     _ => self.rpc.update(message).map(|x| Message::Rpc(x).into()),
                 },
-                Message::Signers(message) => {
-                    self
-                        .signers
-                        .update(message)
-                        .map(|x| Message::Signers(x).into())
-                }
-                Message::Contacts(message) => {
-                    self
-                        .contacts
-                        .update(message)
-                        .map(|x| Message::Contacts(x).into())
-                }
+                Message::Signers(message) => self
+                    .signers
+                    .update(message)
+                    .map(|x| Message::Signers(x).into()),
+                Message::Contacts(message) => self
+                    .contacts
+                    .update(message)
+                    .map(|x| Message::Contacts(x).into()),
                 Message::Route(page) => self.switch_page(page).map(|x| x.into()),
                 _ => Command::none(),
             }

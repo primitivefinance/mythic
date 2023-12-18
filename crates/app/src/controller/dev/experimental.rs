@@ -61,14 +61,12 @@ impl State for ExperimentalScreen {
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::Empty => {}
-            Self::AppMessage::View(Self::ViewMessage::Experimental(message)) => {
-                match message {
-                    Message::Empty => {}
-                    Message::Chart(message) => {
-                        todo!("Handle chart message: {:?}", message)
-                    }
+            Self::AppMessage::View(Self::ViewMessage::Experimental(message)) => match message {
+                Message::Empty => {}
+                Message::Chart(message) => {
+                    todo!("Handle chart message: {:?}", message)
                 }
-            }
+            },
             _ => {}
         }
         Command::none()

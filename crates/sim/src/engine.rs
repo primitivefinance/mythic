@@ -114,11 +114,7 @@ impl SnapshotDB {
             .accounts
             .iter()
             .map(|(k, v)| {
-                let storage = v
-                    .storage
-                    .iter()
-                    .map(|(k, v)| (*k, *v))
-                    .collect();
+                let storage = v.storage.iter().map(|(k, v)| (*k, *v)).collect();
 
                 (Address::from(k.into_array()), storage)
             })
@@ -299,7 +295,7 @@ pub async fn run_parallel(
         let semaphore = Arc::new(Semaphore::new(1));
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<Error>));
         let mut builder = builder.clone();
-        
+
         rt.block_on(async {
             let mut instances = builder.build(scenario).await;
             let mut handles = vec![];
@@ -337,7 +333,6 @@ async fn simulation_task(
 ) -> tokio::task::JoinHandle<Result<ArbiterInstance, Error>> {
     let errors_clone = errors.clone();
     let semaphore_clone = semaphore.clone();
-    
 
     tokio::spawn(async move {
         let mut instance = instance;

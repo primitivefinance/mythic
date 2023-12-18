@@ -132,8 +132,7 @@ impl<C: Middleware + 'static> DevClient<C> {
         self.token_x.mint(sender, amount_x_wad).send().await?;
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
-        self
-            .protocol
+        self.protocol
             .initialize(
                 price,
                 amount_x,
