@@ -345,9 +345,14 @@ pub const DAGGER_SQUARE_FONT_BYTES: &[u8] =
     include_bytes!("../../../assets/fonts/DAGGERSQUARE.otf");
 
 impl Loader {
+    /// Creates a new Loader with the given flags and returns a tuple of the Loader and a Command.
+    /// The Command triggers the next step in the main application loop by emitting the Loaded message.
+    /// The Loader is initialized with a progress of 0.0, a feedback message of "Loading profile", and a logo.
+    /// The max_load_ticks is calculated as the product of max_load_seconds and ticks_per_s.
+    /// The function also attempts to connect to the server and load the icon and brand fonts.
+    /// If any of these operations fail, a LoadingFailed message is returned.
+    /// If all operations are successful, a tuple of the Loader and a Command is returned.
     pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
-        // Triggers the next step in the main application loop by emitting the Loaded
-        // message.
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
 

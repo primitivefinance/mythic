@@ -41,16 +41,27 @@ use loader::Loader;
 use model::Model;
 use styles::*;
 
+
+/// The MVP struct represents the Model-View-Presenter pattern used in this application.
+/// It contains the state of the application and a tracer for debugging.
+/// The state can be either the application itself or a loader.
+/// The MVP struct also implements the Application trait from the iced library.
+/// This is the outermost layer of the application.
 pub struct MVP {
     state: State,
     tracer: tracer::Tracer,
 }
-
+/// The `State` enum represents the current state of the application.
+/// It can be either `App` when the application is running or `Loader` when the application is loading.
+/// The state should only be in the loader state when the application is starting up in the beginning.
 enum State {
     App(App),
     Loader(Loader),
 }
 
+/// The `Message` enum represents the different types of messages that can be sent within the application.
+/// It can be either `Load` when the application is loading, `Update` when the application is updating,
+/// `Event` when an event occurs, `Quit` when the application is quitting, or `ForceQuit` when the application is forced to quit.
 #[derive(Debug)]
 pub enum Message {
     Load(Box<loader::Message>),
@@ -60,11 +71,19 @@ pub enum Message {
     ForceQuit,
 }
 
+/// The `Flags` struct represents the flags that can be passed to the application.
+/// It contains a single flag `dev_mode` which indicates whether the application is running in development mode.
 #[derive(Debug, Clone, Copy)]
 pub struct Flags {
     pub dev_mode: bool,
 }
 
+/// The `Application` trait implementation for the `MVP` struct.
+/// This trait provides the necessary types for the application to run.
+/// `Message` is the type of messages that can be sent within the application.
+/// `Theme` is the type of theme used in the application.
+/// `Executor` is the type of executor used to run the application.
+/// `Flags` is the type of flags that can be passed to the application.
 impl Application for MVP {
     type Message = Message;
     type Theme = Theme;
@@ -96,6 +115,22 @@ impl Application for MVP {
         }
     }
 
+    /// Updates the state of the application based on the incoming message.
+    ///
+    /// This function takes a mutable reference to the application and a message.
+    /// It updates the state of the application based on the message and returns a command.
+    ///
+    /// The function handles different types of messages including ForceQuit, Quit, Load, and Update.
+    /// It also handles the transition from the Loader state to the App state.
+    ///
+    /// # Arguments
+    ///
+    /// * `&mut self` - A mutable reference to the application.
+    /// * `message: Self::Message` - The incoming message.
+    ///
+    /// # Returns
+    ///
+    /// * `Command<Self::Message>` - The command to be executed after the state update.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match (&mut self.state, message) {
             (_, Message::ForceQuit) => window::close(),
