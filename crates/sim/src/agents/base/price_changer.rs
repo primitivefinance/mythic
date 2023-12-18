@@ -1,6 +1,6 @@
 use std::{
     collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
+    hash::Hasher,
     sync::Arc,
 };
 
@@ -125,7 +125,7 @@ impl PriceChanger {
                 )
                 .await?;
 
-            let trajectory = if let Some(seed) = parameters.seed {
+            let trajectory = if let Some(_seed) = parameters.seed {
                 let initial_price = parameters.initial_price;
                 let t_0 = parameters.t_0;
                 let t_n = parameters.t_n;
