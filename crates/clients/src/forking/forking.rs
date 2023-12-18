@@ -394,11 +394,9 @@ mod tests {
     use ethers::{prelude::*, utils::Anvil};
 
     use super::*;
-    use crate::tests::TEST_SUBSCRIBER;
 
     #[tokio::test]
     async fn test_spawn_ethers_db() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
         let battler = Forker::connect(None, None).await?;
         let ethers_db = battler.spawn_ethers_db()?;
 
@@ -407,8 +405,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_evolve() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
-
         // Start anvil in the background.
         let anvil = Anvil::default()
             .arg("--gas-limit")
@@ -478,7 +474,6 @@ mod tests {
     /// Is anvil in your user path?
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_digest_into_db() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
         let anvil = Anvil::default()
             .arg("--gas-limit")
             .arg("20000000")
@@ -520,7 +515,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_storage_mutation() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
         let anvil = Anvil::default()
             .arg("--gas-limit")
             .arg("20000000")

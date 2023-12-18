@@ -213,7 +213,7 @@ impl Scroll {
         let result = client
             .clone()
             .apply_cheatcode(cheatcodes::Cheatcodes::Access {
-                address: type_casted,
+                address: revm_primitives::Address::from(type_casted.to_fixed_bytes()),
             })
             .await?;
 
@@ -474,13 +474,9 @@ mod tests {
     use ethers::{prelude::*, utils::Anvil};
 
     use super::{forking::*, scroll::*};
-    use crate::tests::*;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_scroll() -> anyhow::Result<(), anyhow::Error> {
-        // Global tracing subscriber
-        let _ = *TEST_SUBSCRIBER;
-
         // Start anvil in the background.
         let anvil = Anvil::default()
             .arg("--gas-limit")

@@ -439,7 +439,9 @@ mod tests {
             .clone();
         let address = block_admin_address;
         let account = client
-            .apply_cheatcode(cheatcodes::Cheatcodes::Access { address })
+            .apply_cheatcode(cheatcodes::Cheatcodes::Access {
+                address: revm_primitives::Address::from(address.to_fixed_bytes()),
+            })
             .await
             .unwrap();
 

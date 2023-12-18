@@ -20,4 +20,4 @@ linked-hash-map.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
-tracing-test = "0.2.4"
+tracing-test = "=0.2.4"
