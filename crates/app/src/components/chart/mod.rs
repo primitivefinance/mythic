@@ -365,6 +365,13 @@ impl Chart<ChartMessage> for CartesianChart {
 
                     state.cartesian_position = Some(Point::new(p.x, p.y));
 
+                    if let Event::ButtonPressed(iced::mouse::Button::Left) = evt {
+                        // todo: handle support for macos
+                        if !state.can_interact {
+                            state.can_interact = true;
+                        }
+                    }
+
                     if state.can_interact {
                         // If we scrolled the wheel, need to zoom the range in or out.
                         if let Event::WheelScrolled { delta } = evt {
@@ -396,8 +403,6 @@ impl Chart<ChartMessage> for CartesianChart {
                         }
 
                         if let Event::ButtonPressed(iced::mouse::Button::Left) = evt {
-                            // todo: grab canvas
-
                             // Set down.
                             if !state.cursor_left_click_down {
                                 state.cursor_left_click_down = true;
@@ -411,6 +416,7 @@ impl Chart<ChartMessage> for CartesianChart {
                         if let Event::ButtonReleased(iced::mouse::Button::Left) = evt {
                             // Set up.
                             if state.cursor_left_click_down {
+                                state.can_interact = true;
                                 state.cursor_left_click_down = false;
                                 state.initial_left_click_position = None;
                                 state.final_left_click_position = Some(p);
@@ -714,8 +720,8 @@ impl Chart<ChartMessage> for CartesianChart {
         let upper_right = (coord_x.range().end, coord_y.range().end);
 
         let user_guide = match state.can_interact {
-            true => "Right Click to Lock",
-            false => "Right Click to Interact",
+            true => "Click to Lock",
+            false => "Click to Interact",
         };
 
         chart
