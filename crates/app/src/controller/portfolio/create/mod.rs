@@ -83,7 +83,6 @@ impl State for CreatePortfolio {
             Message::Form(message) => return self.form.update(message).map(|x| x.into()),
             Message::Submit => return self.form.submit().map(|x| x.into()),
             Message::Empty => {}
-            _ => {}
         }
 
         Command::none()
@@ -91,7 +90,7 @@ impl State for CreatePortfolio {
 
     fn view<'a>(&'a self) -> Element<'a, Self::ViewMessage> {
         let column_1: Vec<Element<'a, Self::ViewMessage>> = vec![
-            label(&"Create Portfolio").title2().build().into(),
+            label("Create Portfolio").title2().build().into(),
             self.form.view().map(|x| x.into()),
         ];
 
@@ -122,7 +121,7 @@ impl State for CreatePortfolio {
                 self.form.ticker.clone().unwrap_or("n/a".to_string()),
             )
             .into(),
-            instruct.map(|x| x.into()),
+            instruct.map(|x| x),
         ];
 
         Container::new(

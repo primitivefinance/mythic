@@ -1,19 +1,15 @@
-use std::path::PathBuf;
-
 use datatypes::portfolio::position::{Position, Positions};
 use iced::{
     advanced::svg,
-    widget::{image, Image, Space},
+    widget::Space,
     Padding,
 };
 use iced_aw::graphics::icons::icon_to_char;
 
 use super::*;
 use crate::{
-    components::{
-        logos::{ether_logo, usdc_logo},
-        system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, Typography},
-    },
+    components::
+        system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer},
     model::portfolio::AlloyAddress,
 };
 
@@ -33,7 +29,7 @@ impl Inventory {
     where
         Message: 'static + Clone + Default,
     {
-        let current_dir = std::env::current_dir().unwrap();
+        let _current_dir = std::env::current_dir().unwrap();
 
         let allocated_weight_sum = allocated_positions
             .0
@@ -64,7 +60,7 @@ impl Inventory {
                             x.clone(),
                             iced::widget::svg(logos[i].clone()),
                         )))
-                        .on_press(on_select_position(x.asset.address.clone()).into())
+                        .on_press(on_select_position(x.asset.address))
                         .into()
                 })
                 .collect::<Vec<_>>(),
@@ -84,7 +80,7 @@ impl Inventory {
                             x.clone(),
                             iced::widget::svg(logos[i].clone()),
                         )))
-                        .on_press(on_select_position(x.asset.address.clone()).into())
+                        .on_press(on_select_position(x.asset.address))
                         .into()
                 })
                 .collect::<Vec<_>>(),
@@ -247,13 +243,13 @@ impl Inventory {
             .spacing(Sizes::Sm)
             .align_items(alignment::Alignment::Center)
             .push(
-                label(&format!("{}", position.balance.unwrap_or_default()))
+                label(format!("{}", position.balance.unwrap_or_default()))
                     .quantitative()
                     .build(),
             )
             .push(label("/").secondary().build())
             .push(
-                label(&format!("{}", position.weight.unwrap_or_default()))
+                label(format!("{}", position.weight.unwrap_or_default()))
                     .percentage()
                     .billions()
                     .build(),

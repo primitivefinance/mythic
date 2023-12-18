@@ -193,7 +193,7 @@ where
         let cell_content = match self.child {
             Some(child) => Column::new().push(child).padding(internal_padding).into(),
             None => Column::new()
-                .push(label(&value.clone().unwrap_or_default()).build())
+                .push(label(value.clone().unwrap_or_default()).build())
                 .padding(internal_padding)
                 .into(),
         };

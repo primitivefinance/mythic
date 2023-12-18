@@ -20,7 +20,7 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
-use alloy_rpc_types::raw_log;
+// use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
 // todo: remove this in favor of alloy types when possible.
@@ -302,7 +302,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let protocol = DFMM::new(protocol_address, client.clone());
         tracing::debug!("Fetching historical tx!");
 
-        let logs = protocol.event::<InitFilter>().query().await?;
+        // TODO: unused logs
+        let _logs = protocol.event::<InitFilter>().query().await?;
 
         let create_pos_filter = protocol
             .init_filter()
@@ -316,7 +317,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .filter(|log| {
                 log.topics
                     .get(1)
-                    .map(|topic| EthersAddress::from(topic.clone()))
+                    .map(|topic| EthersAddress::from(*topic))
                     == Some(user_address)
             })
             .collect::<Vec<_>>();
@@ -355,7 +356,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 .ok_or(Error::msg("External price series not set"))?
                 .iter()
                 .find(|(block, _)| *block == block_number)
-                .map(|(_, price)| price.clone())
+                .map(|(_, price)| *price)
                 .ok_or(Error::msg(format!(
                     "Missing external price for historical tx at block {}",
                     block_number
@@ -676,7 +677,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let balance = client.call(&tx, None).await?;
         let decoded: <IERC20::balanceOfCall as SolCall>::Return =
             IERC20::balanceOfCall::abi_decode_returns(&balance, false)?;
-        let decoded_balance: AlloyU256 = decoded.balance.into();
+        let decoded_balance: AlloyU256 = decoded.balance;
 
         Ok(decoded_balance)
     }
@@ -728,7 +729,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_external_price(
         &self,
         client: Arc<Client>,
-        token_address: AlloyAddress,
+        // TODO: unused token address
+        _token_address: AlloyAddress,
     ) -> Result<AlloyU256> {
         let external_exchange = self
             .raw_external_exchange_address
@@ -759,7 +761,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<Client>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        let protocol = self
+        // TODO: unused protocol address
+        let _protocol = self
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         let protocol = self.protocol(client.clone()).await?;
@@ -778,7 +781,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
-        let protocol = self
+        // TODO: unused protocol address
+        let _protocol = self
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         let protocol = self.protocol(client.clone()).await?;
@@ -799,7 +803,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<Client>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        let strategy = self
+        // TODO: unused strategy address
+        let _strategy = self
             .raw_strategy_address
             .ok_or(Error::msg("Strategy address not set"))?;
         let strategy = self.strategy(client.clone()).await?;
@@ -833,7 +838,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
-        let quote_token = self
+        // TODO: unused quote token
+        let _quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
 
@@ -1332,7 +1338,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         for (block, value) in series {
             let block = *block as f32;
-            let value = alloy_primitives::utils::format_ether(value.clone());
+            let value = alloy_primitives::utils::format_ether(*value);
             let value = value.parse::<f32>()?;
             transformed.push((block, value));
         }
@@ -1359,9 +1365,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let mut transformed = Vec::new();
 
         for (x, y) in data {
-            let x = alloy_primitives::utils::format_ether(x.clone());
+            let x = alloy_primitives::utils::format_ether(*x);
             let x = x.parse::<f32>()?;
-            let y = alloy_primitives::utils::format_ether(y.clone());
+            let y = alloy_primitives::utils::format_ether(*y);
             let y = y.parse::<f32>()?;
             transformed.push((x, y));
         }
@@ -1605,11 +1611,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// - Trading function
     /// - Liquidity distribution
     /// - Price curve
+    #[allow(clippy::type_complexity)]
     pub fn compute_strategy_plot(
         &self,
         strike_price: f64,
         volatility: f64,
         time_remaining: f64,
+        // TODO: make a type allias for this
     ) -> (Vec<(f64, f64)>, Vec<(f64, f64)>, Vec<(f64, f64)>) {
         let mut curve_points = vec![];
         let mut liq_dist_points = vec![];
@@ -1916,7 +1924,8 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_balance_of() -> anyhow::Result<()> {
-        let (anvil, client) = setup().await?;
+        // TODO: unused anvil instance
+        let (_anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
         let token =
@@ -1932,7 +1941,7 @@ mod tests {
         println!("Minted tokens");
 
         // Now we can fetch the balance of the wallet.
-        let mut model = RawDataModel::<AlloyAddress, AlloyU256>::new();
+        let model = RawDataModel::<AlloyAddress, AlloyU256>::new();
 
         let converted_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());
@@ -1953,7 +1962,8 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_update_token_balances() -> anyhow::Result<()> {
-        let (anvil, client) = setup().await?;
+        // TODO: unused anvil instance
+        let (_anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
         let token =

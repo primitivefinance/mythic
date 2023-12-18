@@ -88,7 +88,7 @@ impl State for PortfolioRoot {
                 Message::SyncModel => Command::perform(async {}, |_| {
                     Self::ViewMessage::Root(view::RootMessage::ModelSyncRequest)
                 })
-                .map(|x| Self::AppMessage::View(x)),
+                .map(Self::AppMessage::View),
                 Message::Empty => Command::none(),
                 Message::Create(message) => self
                     .create
@@ -102,7 +102,7 @@ impl State for PortfolioRoot {
                         Command::perform(async {}, |_| {
                             view::Message::Portfolio(Message::SyncModel)
                         })
-                        .map(|x| Self::AppMessage::View(x)),
+                        .map(Self::AppMessage::View),
                     );
                     commands.push(
                         self.dashboard
@@ -112,9 +112,9 @@ impl State for PortfolioRoot {
 
                     Command::batch(commands)
                 }
-                Message::Monolithic(monolithic::Message::SyncModel(block)) => {
+                Message::Monolithic(monolithic::Message::SyncModel(_block)) => {
                     Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
-                        .map(|x| Self::AppMessage::View(x))
+                        .map(Self::AppMessage::View)
                 }
                 Message::Dashboard(message) => self
                     .dashboard
@@ -131,7 +131,7 @@ impl State for PortfolioRoot {
             // dashboard. The result of this is that when model updates happen in the
             // root controller, they will also sync the dashboard's model.
             Self::AppMessage::ModelSyncResult(model) => {
-                return Command::batch(vec![
+                Command::batch(vec![
                     self.dashboard
                         .update(dashboard::Message::UpdateDataModel(model.clone()))
                         .map(|x| Message::Dashboard(x).into()),
@@ -146,7 +146,7 @@ impl State for PortfolioRoot {
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let content = match self.page.clone() {
-            Page::Empty => Column::new().push(label(&"Select a page").build()).into(),
+            Page::Empty => Column::new().push(label("Select a page").build()).into(),
             Page::Create => self.create.view().map(|x| Message::Create(x).into()),
             Page::Dashboard => self.dashboard.view().map(|x| Message::Dashboard(x).into()),
             Page::Monolithic => self

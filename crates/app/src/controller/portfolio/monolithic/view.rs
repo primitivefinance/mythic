@@ -1,20 +1,16 @@
-use std::{env, path::PathBuf};
-
+use std::env;
 use chrono::Utc;
-use datatypes::portfolio::position::{Position, PositionLayer, Positions};
-use iced::{
-    widget::{image, svg, Image, Space},
-    window::Icon,
-};
-use iced_aw::{graphics::icons::icon_to_char, Icon::Info, ICON_FONT};
+use datatypes::portfolio::position::{PositionLayer, Positions};
+use iced::widget::{svg, Space};
+use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
 use super::{inventory::Inventory, *};
 use crate::{
     components::{
         logos::{ether_logo, usdc_logo},
-        system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburText},
+        system::{ExcaliburContainer, ExcaliburText},
     },
-    model::portfolio::{AlloyU256, HistoricalTx},
+    model::portfolio::HistoricalTx,
     view::portfolio_view::ValueToLabel,
 };
 
@@ -75,8 +71,8 @@ impl MonolithicPresenter {
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
         match data {
-            Some(data) => label(&format!("Timestamp: {:}", data)).caption().tertiary(),
-            None => label(&"Timestamp: N/A").caption().tertiary(),
+            Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
+            None => label("Timestamp: N/A").caption().tertiary(),
         }
     }
 
@@ -141,8 +137,8 @@ impl MonolithicPresenter {
 
         let current_dir = env::current_dir().unwrap();
         let ether_logo_path =
-            PathBuf::from(current_dir.clone()).join("assets/logos/ether_logo.png");
-        let usdc_logo_path = PathBuf::from(current_dir.clone()).join("assets/logos/usdc_logo.png");
+            current_dir.clone().join("assets/logos/ether_logo.png");
+        let usdc_logo_path = current_dir.clone().join("assets/logos/usdc_logo.png");
 
         let logos = vec![
             ether_logo_path.to_str().unwrap().to_string(),
@@ -184,13 +180,13 @@ impl MonolithicPresenter {
                 Ok(data) => {
                     let value = alloy_primitives::utils::format_ether(data);
                     match value.parse::<f64>() {
-                        Ok(_) => label(&format!("{}", value)).title1().percentage(),
-                        Err(_) => label(&"Failed to parse U256 as float.")
+                        Ok(_) => label(value.to_string()).title1().percentage(),
+                        Err(_) => label("Failed to parse U256 as float.")
                             .caption()
                             .tertiary(),
                     }
                 }
-                Err(_) => label(&"N/A").title1().secondary(),
+                Err(_) => label("N/A").title1().secondary(),
             };
 
             (
@@ -230,7 +226,8 @@ impl MonolithicView {
         logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
-        on_input: impl Fn(Option<String>) -> Message + 'static,
+        // TODO: do we need this?
+        _on_input: impl Fn(Option<String>) -> Message + 'static,
     ) -> Container<'a, Message>
     where
         Message: 'static + Default + Clone,
@@ -248,7 +245,7 @@ impl MonolithicView {
                         on_select_position,
                     ))
                     .push(
-                        label(&format!(
+                        label(format!(
                             "Timestamp: {}",
                             Utc::now().format("%Y-%m-%d %H:%M:%S")
                         ))
@@ -301,6 +298,7 @@ impl MonolithicView {
 
     /// Stacks three containers into a compact card with a max_height.
     /// Expects containers to be edited already except for border radius.
+    #[allow(clippy::too_many_arguments)]
     pub fn stacked_containers<'a, Message>(
         header: ExcaliburContainer,
         body: ExcaliburContainer,

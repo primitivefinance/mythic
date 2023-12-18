@@ -2,21 +2,13 @@ use std::fmt::Debug;
 
 use alloy_networks::{Network, Receipt};
 use alloy_primitives::{Address, Bloom, Bytes, B256, U128, U256, U64, U8};
-use alloy_providers::{Provider, ProviderBuilder};
 use alloy_pubsub::PubSubFrontend;
-use alloy_rlp::{Decodable, Encodable, RlpDecodable, RlpEncodable};
+use alloy_rlp::{RlpDecodable, RlpEncodable};
 use alloy_rpc_client::{ClientBuilder, RpcClient};
-use alloy_rpc_types::AccessList;
-use alloy_signer::LocalWallet;
 use alloy_transport_http::Http;
 use alloy_transport_ws::WsConnect;
 use anyhow::anyhow;
-use arbiter_core::middleware::RevmMiddleware;
-use ethers::{core::k256::ecdsa::SigningKey, utils::AnvilInstance};
 use reqwest::Client;
-use serde_json::Value;
-use tokio_util::sync::CancellationToken;
-use tracing::info;
 
 pub struct ExcNet;
 
@@ -75,8 +67,8 @@ pub struct ExcReceipt {
 
 impl Receipt for ExcReceipt {}
 
-#[rlp(trailing)]
 #[derive(Clone, Debug, RlpEncodable, RlpDecodable, serde::Serialize, serde::Deserialize)]
+#[rlp(trailing)]
 pub struct ExcTransaction {
     /// from address
     pub from: Option<Address>,
@@ -114,8 +106,8 @@ impl alloy_networks::Transaction for ExcTransaction {
 #[derive(Clone, Debug, RlpDecodable, RlpEncodable, serde::Serialize, serde::Deserialize)]
 pub struct MockError(pub String);
 
-#[rlp(trailing)]
 #[derive(Clone, Debug, RlpDecodable, RlpEncodable, serde::Serialize, serde::Deserialize)]
+#[rlp(trailing)]
 pub struct MockResponse {
     pub result: String,
     pub error: Option<MockError>,
@@ -148,17 +140,19 @@ impl ExcaliburMiddleware {
     }
 
     pub fn provider(url: &str) -> anyhow::Result<ExcProvider> {
-        Ok(ExcProvider::new(url).map_err(|e| anyhow!("failed to build provider {}", e))?)
+        ExcProvider::new(url).map_err(|e| anyhow!("failed to build provider {}", e))
     }
 }
 
 #[cfg(test)]
 mod test {
+    use alloy_signer::LocalWallet;
     use std::time::Duration;
-
-    use alloy_primitives::{Bytes, TxHash, U64};
+    use alloy_providers::Provider;
+    use alloy_primitives::{Bytes, U64};
     use alloy_providers::{provider::ClientError, NetworkRpcClient};
     use alloy_signer::{Signer, SignerSync};
+    use ethers::utils::AnvilInstance;
     use ethers::{
         middleware::{Middleware, MiddlewareBuilder},
         signers::{LocalWallet as EthersWallet, Signer as EthersSigner},
@@ -343,7 +337,8 @@ mod test {
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn excalibur_middleware_sign_msg() -> anyhow::Result<()> {
         let anvil = setup().await?;
-        let http_endpoint = anvil.endpoint();
+        // TODO: Do we need this?
+        let _http_endpoint = anvil.endpoint();
 
         let anvil_key = anvil.keys().first().expect("no keys in anvil").clone();
 

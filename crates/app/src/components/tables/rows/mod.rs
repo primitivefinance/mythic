@@ -145,7 +145,7 @@ where
             .spacing(self.spacing.unwrap_or_default())
             .padding(self.padding.unwrap_or_default());
 
-        if let (Some(border_bottom), false) = (self.border_bottom, self.is_last) {
+        if let (Some(_border_bottom), false) = (self.border_bottom, self.is_last) {
             row = Row::new()
                 .push(Column::new().push(row).push(TxHistory::separator()))
                 .align_items(alignment::Alignment::Center)

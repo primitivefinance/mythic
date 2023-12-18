@@ -7,12 +7,11 @@ use arbiter_core::{
 };
 use bindings::mock_erc20::MockERC20;
 use cfmm_math::trading_functions::rmm::{
-    compute_d1, compute_sigma_sqrt_tau, compute_value_function, compute_x_given_l_rust,
+    compute_value_function, compute_x_given_l_rust,
     compute_y_given_x_rust,
 };
 use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
-use statrs::distribution::ContinuousCDF;
 
 pub mod alloyed;
 pub mod watch;
@@ -96,11 +95,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
 
     /// Returns the address of the signer, if there is one.
     pub fn address(&self) -> Option<Address> {
-        if let Some(signer) = self.signer() {
-            Some(signer.address())
-        } else {
-            None
-        }
+        self.signer().map(|signer| signer.address())
     }
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
@@ -323,7 +318,8 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     }
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
-        let client = self.client().unwrap().clone();
+        // TODO: Unused client
+        let _client = self.client().unwrap().clone();
         let protocol = self.protocol()?;
         let (balance_x, balance_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
         let internal_price = protocol.get_internal_price().await?;
@@ -378,7 +374,8 @@ mod tests {
 
         let dollars = 1.0;
 
-        let x = get_deposits_given_price(price, dollars, strike, sigma, tau);
+        // TODO: Unused
+        let _x = get_deposits_given_price(price, dollars, strike, sigma, tau);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -423,7 +420,8 @@ mod tests {
         );
 
         // do the tx
-        let tx = client
+        // TODO: Unused
+        let _tx = client
             .anvil_client
             .clone()
             .unwrap()

@@ -1,8 +1,7 @@
-use std::{collections::BTreeMap, convert::Infallible};
+use std::collections::BTreeMap;
 
 use ethers::{abi::Token, utils::format_ether};
 use sim::engine::ArbiterInstance;
-use tracer::AppEventLayer;
 use uuid::Uuid;
 
 use super::*;
@@ -84,13 +83,13 @@ impl Simulate {
             false => "Arm Simulation".to_string(),
         };
 
-        let mut content = Column::new()
+        let content = Column::new()
             .spacing(Sizes::Xl)
-            .push(label(&"Simulation Results").title1().build())
+            .push(label("Simulation Results").title1().build())
             .push(
                 ExcaliburButton::new()
                     .primary()
-                    .build(label(&action_cta).build())
+                    .build(label(action_cta).build())
                     .on_press(action),
             );
 
@@ -112,7 +111,7 @@ impl Simulate {
 
 #[tracing::instrument(level = "trace", skip(m))]
 pub async fn sim_startup(m: InstanceManager) -> anyhow::Result<(), anyhow::Error> {
-    let locked = m.lock().await;
+    let _locked = m.lock().await;
 
     // for world in locked.worlds.iter() {
     // let mut world = world.lock().await;
@@ -219,7 +218,6 @@ impl State for Simulate {
                 ); */
             }
 
-            _ => {}
         }
 
         Command::none()

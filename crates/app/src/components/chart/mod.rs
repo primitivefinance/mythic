@@ -380,7 +380,7 @@ impl Chart<ChartMessage> for CartesianChart {
                                 iced::mouse::ScrollDelta::Pixels { y, .. } => y,
                             };
 
-                            let delta = -delta as f32;
+                            let delta = -delta;
 
                             let x_range = state.range.x_range.1 - state.range.x_range.0;
                             let y_range = state.range.y_range.1 - state.range.y_range.0;
@@ -511,14 +511,12 @@ impl Chart<ChartMessage> for CartesianChart {
             let x_values: Vec<f32> = first_series
                 .lines
                 .iter()
-                .map(|l| vec![l.x1, l.x2])
-                .flatten()
+                .flat_map(|l| vec![l.x1, l.x2])
                 .collect();
             let y_values: Vec<f32> = first_series
                 .lines
                 .iter()
-                .map(|l| vec![l.y1, l.y2])
-                .flatten()
+                .flat_map(|l| vec![l.y1, l.y2])
                 .collect();
 
             let max_x = x_values.iter().cloned().fold(f32::NEG_INFINITY, f32::max);
@@ -612,13 +610,13 @@ impl Chart<ChartMessage> for CartesianChart {
                                 5,
                                 ShapeStyle::from(line_series.color).filled(),
                                 &|c, _s, st| {
-                                    return EmptyElement::at(c)
+                                    EmptyElement::at(c)
                                         + Circle::new((0, 0), 5, st.filled())
                                         + Circle::new(
                                             (0, 0),
                                             2,
                                             ShapeStyle::from(&self.axis_mesh_style).filled(),
-                                        );
+                                        )
                                 },
                             ))
                             .expect("Failed to plot points");
@@ -706,8 +704,7 @@ impl Chart<ChartMessage> for CartesianChart {
                     (x_range.end, y_range.end),
                     (x_range.start, y_range.end),
                     (x_range.start, y_range.start),
-                ]
-                .into_iter(),
+                ],
                 self.border_color.filled(),
             ))
             .expect("Failed to plot lines");
@@ -729,7 +726,7 @@ impl Chart<ChartMessage> for CartesianChart {
                 vec![upper_right],
                 0,
                 ShapeStyle::from(self.label_text_style).filled(),
-                &|c: (f32, f32), _s, st| {
+                &|c: (f32, f32), _s, _st| {
                     return EmptyElement::at((c.0, c.1))
                         + Rectangle::new(
                             [(0, 0), (100, 100)],
@@ -752,7 +749,7 @@ impl Chart<ChartMessage> for CartesianChart {
                     vec![(0.5, 0.5)],
                     0,
                     ShapeStyle::from(self.label_text_style).filled(),
-                    &|c: (f32, f32), _s, st| {
+                    &|c: (f32, f32), _s, _st| {
                         return EmptyElement::at((c.0, c.1))
                             + Rectangle::new(
                                 [(0, 0), (100, 100)],
@@ -875,22 +872,10 @@ impl Chart<ChartMessage> for CartesianChart {
                     true => {
                         // Clamping the labels based on the position of the label container, which
                         // is clamped, on the x-axis.
-                        if near_left {
                             (
                                 label_container_coords[0].0 + container_width / 4,
                                 label_container_coords[0].1 + container_height / 4,
                             )
-                        } else if near_right {
-                            (
-                                label_container_coords[0].0 + container_width / 4,
-                                label_container_coords[0].1 + container_height / 4,
-                            )
-                        } else {
-                            (
-                                label_container_coords[0].0 + container_width / 4,
-                                label_container_coords[0].1 + container_height / 4,
-                            )
-                        }
                     }
                     false => {
                         // Clamp the labels based on the position of the label container, which
@@ -933,7 +918,7 @@ impl Chart<ChartMessage> for CartesianChart {
             // Draw a line through the y cursor position.
             chart
                 .draw_series(LineSeries::new(
-                    vec![(bound_x_start, translated.1), (bound_x, translated.1)].into_iter(),
+                    vec![(bound_x_start, translated.1), (bound_x, translated.1)],
                     self.y_cursor_line_style.filled(),
                 ))
                 .expect("Failed to plot lines");
@@ -941,7 +926,7 @@ impl Chart<ChartMessage> for CartesianChart {
             // Draw a line through the x cursor position.
             chart
                 .draw_series(LineSeries::new(
-                    vec![(translated.0, bound_y), (translated.0, bound_y_end)].into_iter(),
+                    vec![(translated.0, bound_y), (translated.0, bound_y_end)],
                     self.x_cursor_line_style.filled(),
                 ))
                 .expect("Failed to plot lines");
@@ -953,14 +938,14 @@ impl Chart<ChartMessage> for CartesianChart {
                     5,
                     ShapeStyle::from(self.y_label_container_style).filled(),
                     &|c, _s, st| {
-                        return dot_and_label(
+                        dot_and_label(
                             c.0,
                             c.1,
                             false,
                             st,
                             self.label_text_style,
                             self.label_font_size,
-                        );
+                        )
                     },
                 ))
                 .expect("Failed to plot points");
@@ -972,14 +957,14 @@ impl Chart<ChartMessage> for CartesianChart {
                     5,
                     ShapeStyle::from(self.x_label_container_style).filled(),
                     &|c, _s, st| {
-                        return dot_and_label(
+                        dot_and_label(
                             c.0,
                             c.1,
                             true,
                             st,
                             self.label_text_style,
                             self.label_font_size,
-                        );
+                        )
                     },
                 ))
                 .expect("Failed to plot points");
@@ -1049,7 +1034,7 @@ impl Chart<ChartMessage> for CartesianChart {
         // Draw the origin line on the x-axis.
         chart
             .draw_series(LineSeries::new(
-                vec![(x_range.start, 0.0), (x_range.end, 0.0)].into_iter(),
+                vec![(x_range.start, 0.0), (x_range.end, 0.0)],
                 self.origin_x_line_style.filled(),
             ))
             .expect("Failed to plot lines");
@@ -1057,7 +1042,7 @@ impl Chart<ChartMessage> for CartesianChart {
         // Draw the origin line on the y-axis.
         chart
             .draw_series(LineSeries::new(
-                vec![(0.0, y_range.start), (0.0, y_range.end)].into_iter(),
+                vec![(0.0, y_range.start), (0.0, y_range.end)],
                 self.origin_y_line_style.filled(),
             ))
             .expect("Failed to plot lines");
