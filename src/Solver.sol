@@ -151,14 +151,13 @@ contract Solver {
     }
 
     /// @dev Computes the internal price using this strategie's slot parameters.
-    function internalPrice(
-        uint256 reserveXWad,
-        uint256 totalLiquidity
-    ) public view returns (uint256 price) {
+    function internalPrice() public view returns (uint256 price) {
         Parameters memory params = StrategyLike(strategy).dynamicSlot();
+        (uint256 rx,, uint256 L) =
+            StrategyLike(strategy).getReservesAndLiquidity();
         price = computePrice(
-            reserveXWad,
-            totalLiquidity,
+            rx,
+            L,
             params.strikePriceWad,
             params.sigmaPercentWad,
             params.tauYearsWad

@@ -38,12 +38,17 @@ impl Arbitrageur {
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
         dfmm_address: Address,
+        solver_address: Address,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, "arbitrageur".into())?;
 
         // Create the protocol client.
-        let protocol_client = ProtocolClient::new(client.clone(), to_ethers_address(dfmm_address));
+        let protocol_client = ProtocolClient::new(
+            client.clone(),
+            to_ethers_address(dfmm_address),
+            to_ethers_address(solver_address),
+        );
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange =
@@ -54,6 +59,7 @@ impl Arbitrageur {
         let atomic_arbitrage = AtomicV2::deploy(
             client.clone(),
             (
+                protocol_client.solver.address(),
                 protocol_client.protocol.address(),
                 liquid_exchange.address(),
                 token_admin.arbx.address(),

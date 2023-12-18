@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use bindings::solver::Solver;
 use clients::protocol::ProtocolClient;
 use itertools::iproduct;
 use tracing::{debug, info, trace};
@@ -13,7 +14,6 @@ use crate::{bindings::dfmm::DFMM, *};
 pub struct VolatilityTargetingSubmitter {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
-    pub dfmm: DFMM<RevmMiddleware>,
     pub protocol_client: ProtocolClient,
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
@@ -32,10 +32,14 @@ impl Agent for VolatilityTargetingSubmitter {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         let asset_price =
             ethers::utils::format_ether(self.lex.price().call().await?).parse::<f64>()?;
-        let reserve_x =
-            ethers::utils::format_ether(self.dfmm.reserve_x_wad().call().await?).parse::<f64>()?;
-        let reserve_y =
-            ethers::utils::format_ether(self.dfmm.reserve_y_wad().call().await?).parse::<f64>()?;
+        let reserve_x = ethers::utils::format_ether(
+            self.protocol_client.protocol.reserve_x_wad().call().await?,
+        )
+        .parse::<f64>()?;
+        let reserve_y = ethers::utils::format_ether(
+            self.protocol_client.protocol.reserve_y_wad().call().await?,
+        )
+        .parse::<f64>()?;
         let portfolio_price = reserve_x * asset_price + reserve_y;
 
         if self.portfolio_prices.is_empty() {
@@ -86,12 +90,14 @@ impl VolatilityTargetingSubmitter {
             match params.specialty {
                 Specialty::VolatilityTargeting(parameters) => {
                     let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
-                    trace!("Deployed dfmm at address: {:?}", dfmm.address());
-                    let protocol_client = ProtocolClient::new(client.clone(), dfmm.address());
+                    let solver = Solver::deploy(client.clone(), dfmm.source().call().await?)?
+                        .send()
+                        .await?;
+                    let protocol_client =
+                        ProtocolClient::new(client.clone(), dfmm.address(), solver.address());
                     let strategist = VolatilityTargetingSubmitter {
                         client,
                         lex,
-                        dfmm,
                         protocol_client,
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,

@@ -104,8 +104,9 @@ contract AtomicV2 {
     event Profit(uint256 profit);
     event Loss(uint256 loss);
 
-    address public exchange;
     address public liquidExchange;
+    address public exchange;
+    address public solver;
     address public asset;
     address public quote;
 
@@ -120,11 +121,13 @@ contract AtomicV2 {
     uint256 public cumulativeProfit;
 
     constructor(
+        address solverAddress,
         address exchangeAddress,
         address liquidExchangeAddress,
         address assetAddress,
         address quoteAddress
     ) {
+        solver = solverAddress;
         exchange = exchangeAddress;
         liquidExchange = liquidExchangeAddress;
         asset = assetAddress;
@@ -213,7 +216,7 @@ contract AtomicV2 {
     ) public returns (int256, uint256) {
         uint256 price = LiquidExchange(liquidExchange).price();
         (bool valid, uint256 estimatedOut, uint256 estimatedPrice,) =
-            StrategyLike(exchange).simulateSwap(xForY, amountIn);
+            StrategyLike(solver).simulateSwap(xForY, amountIn);
         require(valid, "Invalid swap simulation");
 
         uint256 valueIn = xForY ? amountIn.mulWadUp(price) : amountIn;
@@ -346,7 +349,7 @@ contract AtomicV2 {
             uint256 estimatedOut,
             uint256 estimatedPrice,
             bytes memory payload
-        ) = StrategyLike(exchange).simulateSwap(swapXIn, amountIn);
+        ) = StrategyLike(solver).simulateSwap(swapXIn, amountIn);
 
         if (!valid) {
             revert SimulatedSwapFailure(
@@ -413,7 +416,7 @@ contract AtomicV2 {
             bytes memory payload
         )
     {
-        return StrategyLike(exchange).simulateSwap(swapXIn, amountIn);
+        return StrategyLike(solver).simulateSwap(swapXIn, amountIn);
     }
 
     function cdf(int256 input) public pure returns (int256 output) {
