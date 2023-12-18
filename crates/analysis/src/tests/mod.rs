@@ -5,7 +5,7 @@ use super::*;
 use crate::{
     reader::SimulationData,
     visualize::{
-        plots::{statistical::StatisticalPlot, PlotSettings},
+        plots::statistical::StatisticalPlot,
         Figure,
     },
 };
