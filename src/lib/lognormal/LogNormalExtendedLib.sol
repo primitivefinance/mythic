@@ -5,7 +5,7 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "./LogNormalLib.sol";
-import "./BisectionLib.sol";
+import "../BisectionLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -30,7 +30,7 @@ function computeYGivenL(
     int256 d2 = computeD2(S, params);
     int256 cdf = Gaussian.cdf(d2);
     uint256 unsignedCdf = toUint(cdf);
-    return params.strikePriceWad.mulWadUp(L).mulWadUp(unsignedCdf);
+    return params.strike.mulWadUp(L).mulWadUp(unsignedCdf);
 }
 
 /// @dev Computes reserves x given L(y, S).
@@ -51,7 +51,7 @@ function computeD1(
     Parameters memory params
 ) pure returns (int256 d1) {
     (uint256 K, uint256 sigma, uint256 tau) =
-        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad);
+        (params.strike, params.sigma, params.tau);
     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     int256 lnSDivK = computeLnSDivK(S, K);
     uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
@@ -67,7 +67,7 @@ function computeD2(
     Parameters memory params
 ) pure returns (int256 d2) {
     (uint256 K, uint256 sigma, uint256 tau) =
-        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad);
+        (params.strike, params.sigma, params.tau);
     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     int256 lnSDivK = computeLnSDivK(S, K);
     uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
@@ -78,35 +78,19 @@ function computeD2(
 /// @dev This is a pure anonymous function defined at the file level, which allows
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveYWad.
-function findRootY(
-    bytes memory data,
-    uint256 reserveYWad
-) pure returns (int256) {
-    (uint256 rx, uint256 liquidity,, Parameters memory params) =
+function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
+    (uint256 rx, uint256 L,, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    return tradingFunction({
-        reserveXWad: rx,
-        reserveYWad: reserveYWad,
-        totalLiquidity: liquidity,
-        params: params
-    });
+    return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
 /// @dev This is a pure anonymous function defined at the file level, which allows
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveXWad.
-function findRootX(
-    bytes memory data,
-    uint256 reserveXWad
-) pure returns (int256) {
-    (uint256 ry, uint256 liquidity,, Parameters memory params) =
+function findRootX(bytes memory data, uint256 rx) pure returns (int256) {
+    (uint256 ry, uint256 L,, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    return tradingFunction({
-        reserveXWad: reserveXWad,
-        reserveYWad: ry,
-        totalLiquidity: liquidity,
-        params: params
-    });
+    return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
 /// @dev This is a pure anonymous function defined at the file level, which allows
@@ -114,16 +98,11 @@ function findRootX(
 /// function as an argument to find the root of the trading function given the liquidity.
 function findRootLiquidity(
     bytes memory data,
-    uint256 liquidity
+    uint256 L
 ) pure returns (int256) {
     (uint256 rx, uint256 ry,, Parameters memory params) =
         abi.decode(data, (uint256, uint256, int256, Parameters));
-    return tradingFunction({
-        reserveXWad: rx,
-        reserveYWad: ry,
-        totalLiquidity: liquidity,
-        params: params
-    });
+    return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
 function computeInitialPoolData(
@@ -133,12 +112,8 @@ function computeInitialPoolData(
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 ry = computeYGivenL(L, initialPrice, params);
-    int256 swapConstant = tradingFunction({
-        reserveXWad: amountX,
-        reserveYWad: ry,
-        totalLiquidity: L,
-        params: params
-    });
+    int256 swapConstant =
+        tradingFunction({ rx: amountX, ry: ry, L: L, params: params });
     L = computeNextLiquidity(amountX, ry, swapConstant, L, params);
     return abi.encode(amountX, ry, L, params);
 }
@@ -154,7 +129,7 @@ function computeNextLiquidity(
     uint256 lower;
     uint256 upper;
     uint256 iters;
-    uint256 yOverK = reserveYWad.divWadDown(params.strikePriceWad);
+    uint256 yOverK = reserveYWad.divWadDown(params.strike);
 
     if (swapConstant < EPSILON && swapConstant > -(EPSILON)) {
         return currentLiquidity;
@@ -185,7 +160,7 @@ function computeNextRy(
     Parameters memory params
 ) pure returns (uint256 ry) {
     uint256 lower = 10;
-    uint256 upper = liquidity.mulWadUp(params.strikePriceWad) - 10;
+    uint256 upper = liquidity.mulWadUp(params.strike) - 10;
     ry = bisection(
         abi.encode(reserveXWad, liquidity, swapConstant, params),
         lower,

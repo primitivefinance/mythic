@@ -1,48 +1,9 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "solmate/tokens/ERC20.sol";
-import "solstat/Gaussian.sol";
-import "forge-std/console2.sol";
-import "./v3/BisectionLib.sol";
-import "./v3/LogNormalLib.sol";
+import "../lib/lognormal/LogNormalLib.sol";
 
-/// @dev Contract that holds the strategy parameterization and validation function.
-interface Source {
-    function init(bytes calldata data)
-        external
-        returns (
-            bool valid,
-            int256 swapConstantGrowth,
-            uint256 reserveXWad,
-            uint256 reserveYWad,
-            uint256 totalLiquidity
-        );
-
-    function validate(bytes calldata data)
-        external
-        view
-        returns (
-            bool valid,
-            int256 swapConstantGrowth,
-            int256 liquidityDelta,
-            uint256 reserveXWad,
-            uint256 reserveYWad,
-            uint256 totalLiquidity
-        );
-}
-
-/// @dev Contract that holds the reserve and liquidity state.
-interface Core {
-    function getReservesAndLiquidity()
-        external
-        view
-        returns (
-            uint256 reserveXWad,
-            uint256 reserveYWad,
-            uint256 totalLiquidity
-        );
-}
+import "../interfaces/ICore.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price
@@ -51,12 +12,12 @@ interface Core {
 ///
 /// Swaps are validated by the trading function:
 /// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
-contract LogNormal is Source {
+contract LogNormal {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
-    Core public core;
-    uint256 public swapFeePercentageWad;
+    ICore public core;
+    uint256 public swapFee;
     Parameters public __slot__;
 
     uint256 private lastSigma;
@@ -77,13 +38,10 @@ contract LogNormal is Source {
     uint256 private tauUpdatePerSecond;
     uint256 private tauUpdateEnd;
 
-    constructor(uint256 swapFeePercentageWad_) {
-        require(
-            swapFeePercentageWad_ < ONE,
-            "swap fee percentage must be less than 100%"
-        );
-        swapFeePercentageWad = swapFeePercentageWad_;
-        core = Core(msg.sender);
+    constructor(uint256 _swapFee) {
+        require(_swapFee < ONE, "swap fee percentage must be less than 100%");
+        swapFee = _swapFee;
+        core = ICore(msg.sender);
     }
 
     modifier onlyCore() {
@@ -98,7 +56,7 @@ contract LogNormal is Source {
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
     function dynamicSlot() public view returns (Parameters memory params) {
-        (params.strikePriceWad, params.sigmaPercentWad, params.tauYearsWad) =
+        (params.strike, params.sigma, params.tau) =
             (strikePrice(), sigma(), tau());
     }
 
@@ -113,18 +71,18 @@ contract LogNormal is Source {
     function _syncDynamicSlot() internal {
         Parameters memory params = staticSlot();
 
-        targetSigma = params.sigmaPercentWad;
-        lastSigma = params.sigmaPercentWad;
+        targetSigma = params.sigma;
+        lastSigma = params.sigma;
         sigmaUpdateEnd = block.timestamp;
         lastSigmaSync = block.timestamp;
 
-        targetStrike = params.strikePriceWad;
-        lastStrike = params.strikePriceWad;
+        targetStrike = params.strike;
+        lastStrike = params.strike;
         strikeUpdateEnd = block.timestamp;
         lastStrikeSync = block.timestamp;
 
-        targetTau = params.tauYearsWad;
-        lastTau = params.tauYearsWad;
+        targetTau = params.tau;
+        lastTau = params.tau;
         tauUpdateEnd = block.timestamp;
         lastTauSync = block.timestamp;
     }
@@ -137,12 +95,7 @@ contract LogNormal is Source {
     {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction({
-            reserveXWad: rx,
-            reserveYWad: ry,
-            totalLiquidity: L,
-            params: dynamicSlot()
-        });
+        return tradingFunction({ rx: rx, ry: ry, L: L, params: dynamicSlot() });
     }
 
     /// @dev Decodes and validates pool initialization parameters.
@@ -152,26 +105,22 @@ contract LogNormal is Source {
         onlyCore
         returns (
             bool valid,
-            int256 swapConstantGrowth,
-            uint256 reserveXWad,
-            uint256 reserveYWad,
-            uint256 totalLiquidity
+            int256 invariant,
+            uint256 rx,
+            uint256 ry,
+            uint256 L
         )
     {
-        (reserveXWad, reserveYWad, totalLiquidity, __slot__) =
+        (rx, ry, L, __slot__) =
             abi.decode(data, (uint256, uint256, uint256, Parameters));
 
         _syncDynamicSlot();
 
-        swapConstantGrowth = tradingFunction({
-            reserveXWad: reserveXWad,
-            reserveYWad: reserveYWad,
-            totalLiquidity: totalLiquidity,
-            params: dynamicSlot()
-        });
+        invariant =
+            tradingFunction({ rx: rx, ry: ry, L: L, params: dynamicSlot() });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
-        valid = -(EPSILON) < swapConstantGrowth && swapConstantGrowth < EPSILON;
+        valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
     /// @dev Reverts if the caller is not a contract with the Core interface.
@@ -181,66 +130,47 @@ contract LogNormal is Source {
         onlyCore
         returns (
             bool valid,
-            int256 swapConstantGrowth,
+            int256 invariant,
             int256 liquidityDelta,
-            uint256 adjustedReserveXWad,
-            uint256 adjustedReserveYWad,
-            uint256 adjustedLiquidity
+            uint256 nextRx,
+            uint256 nextRy,
+            uint256 nextL
         )
     {
-        (
-            uint256 originalReserveXWad,
-            uint256 originalReserveYWad,
-            uint256 originalLiquidity
-        ) = getReservesAndLiquidity();
+        (uint256 startRx, uint256 startRy, uint256 startL) =
+            getReservesAndLiquidity();
 
-        (adjustedReserveXWad, adjustedReserveYWad, adjustedLiquidity) =
-            abi.decode(data, (uint256, uint256, uint256));
+        (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
         // Rounding up is advantageous towards the protocol, to make sure swap fees
         // are fully paid for.
         uint256 minLiquidityDelta;
         uint256 amountIn;
         uint256 fees;
-        if (adjustedReserveXWad > originalReserveXWad) {
+        if (nextRx > startRx) {
+            amountIn = nextRx - startRx;
+            fees = amountIn.mulWadUp(swapFee);
+            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
+        } else if (nextRy > startRy) {
             // δl = δx * L / X, where δx = delta x * fee
-            amountIn = adjustedReserveXWad - originalReserveXWad;
-            fees = amountIn.mulWadUp(swapFeePercentageWad);
-            minLiquidityDelta +=
-                fees.mulWadUp(originalLiquidity).divWadUp(originalReserveXWad);
-        } else if (adjustedReserveYWad > originalReserveYWad) {
-            // δl = δx * L / X, where δx = delta x * fee
-            amountIn = adjustedReserveYWad - originalReserveYWad;
-            fees = amountIn.mulWadUp(swapFeePercentageWad);
-            minLiquidityDelta +=
-                fees.mulWadUp(originalLiquidity).divWadUp(originalReserveYWad);
+            amountIn = nextRy - startRy;
+            fees = amountIn.mulWadUp(swapFee);
+            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
         } else {
             // should never get here!
             revert("invalid swap: inputs x and y have the same sign!");
         }
 
-        liquidityDelta = int256(adjustedLiquidity) - int256(originalLiquidity);
+        liquidityDelta = int256(nextL) - int256(startL);
 
-        // swapConstantGrowth = tradingFunction({
-        //     reserveXWad: adjustedReserveXWad,
-        //     reserveYWad: adjustedReserveYWad,
-        //     totalLiquidity: adjustedLiquidity,
-        //     params: dynamicSlot()
-        // })
-        //     - tradingFunction({
-        //         reserveXWad: originalReserveXWad,
-        //         reserveYWad: originalReserveYWad,
-        //         totalLiquidity: originalLiquidity,
-        //         params: dynamicSlot()
-        //     });
-        // Valid should check that the trading function growth is >= expected fee growth.
-        // valid = swapConstantGrowth >= int256(ZERO)
-        //     && liquidityDelta >= int256(minLiquidityDelta);
+        invariant = tradingFunction({
+            rx: nextRx,
+            ry: nextRy,
+            L: nextL,
+            params: dynamicSlot()
+        });
 
-        bool validSwapConstant =
-            -(EPSILON) < swapConstantGrowth && swapConstantGrowth < EPSILON;
-        // valid = swapConstantGrowth >= int256(ZERO)
-        //     && liquidityDelta >= int256(minLiquidityDelta);
+        bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 

@@ -1,19 +1,13 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "solmate/tokens/ERC20.sol";
-import "solstat/Gaussian.sol";
-import "forge-std/console2.sol";
-import "./v3/BisectionLib.sol";
-import "./LogNormal.sol";
+import "./strategies/G3m.sol";
+import "./strategies/LogNormal.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
-contract DFMM is Core {
-    using FixedPointMathLib for uint256;
-    using FixedPointMathLib for int256;
-
-    address public source;
+contract DFMM {
+    address public strategy;
     bool public inited;
     uint256 public locked = 1;
     address public tokenX;
@@ -24,6 +18,7 @@ contract DFMM is Core {
     mapping(address account => uint256 balance) public balanceOf;
 
     constructor(
+        bool isLogNormal, // temp way to handle either lognorm or g3m
         address tokenX_,
         address tokenY_,
         uint256 swapFeePercentageWad
@@ -32,7 +27,11 @@ contract DFMM is Core {
         tokenY = tokenY_;
 
         // todo: can update later to allow for different sources.
-        source = address(new LogNormal(swapFeePercentageWad));
+        if (isLogNormal) {
+            strategy = address(new LogNormal(swapFeePercentageWad));
+        } else {
+            strategy = address(new G3m(swapFeePercentageWad));
+        }
     }
 
     error Invalid(bool negative, uint256 swapConstantGrowth);
@@ -79,7 +78,7 @@ contract DFMM is Core {
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = Source(source).init(data);
+        ) = IStrategy(strategy).init(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
@@ -102,7 +101,7 @@ contract DFMM is Core {
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = Source(source).validate(data);
+        ) = IStrategy(strategy).validate(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
@@ -121,7 +120,7 @@ contract DFMM is Core {
                 adjustedReserveYWad: YYYYYY
             });
 
-            address strategy = source;
+            address strategy = strategy;
             emit Swap(
                 msg.sender,
                 strategy,

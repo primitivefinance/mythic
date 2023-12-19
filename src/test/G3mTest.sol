@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../DFMM.sol";
-import "../solvers/LogNormalSolver.sol";
+import "../solvers/G3mSolver.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../Lex.sol";
@@ -26,8 +26,8 @@ contract LogNormalTest is Test {
 
         lex = new Lex(tokenX, tokenY, ONE);
 
-        dfmm = new DFMM(true, tokenX, tokenY, TEST_SWAP_FEE);
-        solver = new LogNormalSolver(address(dfmm.strategy()));
+        dfmm = new DFMM(false, tokenX, tokenY, TEST_SWAP_FEE);
+        solver = new G3mSolver(address(dfmm.strategy()));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
     }

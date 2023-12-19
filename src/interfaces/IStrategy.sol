@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 /// @dev Contract that holds the strategy parameterization and validation function.
-interface ISolver {
+interface IStrategy {
     function init(bytes calldata data)
         external
         returns (
@@ -24,20 +24,4 @@ interface ISolver {
             uint256 reserveYWad,
             uint256 totalLiquidity
         );
-
-    function internalPrice(
-        uint256 reserveXWad,
-        uint256 totalLiquidity
-    ) external view returns (uint256 price);
-
-    function getNextLiquidity(
-        uint256 reserveXWad,
-        uint256 reserveYWad,
-        uint256 totalLiquidity
-    ) external view returns (uint256);
-
-    function getParams()
-        external
-        view
-        returns (uint256 strikePrice, uint256 sigma, uint256 tau);
 }

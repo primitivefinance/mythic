@@ -3,7 +3,7 @@ pragma solidity ^0.8.14;
 import "forge-std/console2.sol";
 import "solstat/Gaussian.sol";
 import "solmate/utils/FixedPointMathLib.sol";
-import "./v3/BisectionLib.sol";
+import "./lib/BisectionLib.sol";
 
 interface LiquidExchange {
     function swap(address token, uint256 amount) external;
@@ -49,7 +49,7 @@ interface StrategySource {
             uint256 sigmaPercentWad,
             uint256 tauYearsWad
         );
-    function swapFeePercentageWad() external view returns (uint256);
+    function swapFee() external view returns (uint256);
 }
 
 interface TokenLike {

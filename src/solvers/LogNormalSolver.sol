@@ -4,13 +4,13 @@ pragma solidity ^0.8.13;
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
-import "./v3/BisectionLib.sol";
-import "./v3/LogNormalExtendedLib.sol";
+import "../lib/BisectionLib.sol";
+import "../lib/lognormal/LogNormalExtendedLib.sol";
 
 interface StrategyLike {
     function computeSwapConstant(bytes memory) external view returns (int256);
     function dynamicSlot() external view returns (Parameters memory);
-    function swapFeePercentageWad() external view returns (uint256);
+    function swapFee() external view returns (uint256);
     function getReservesAndLiquidity()
         external
         view
@@ -21,7 +21,7 @@ interface StrategyLike {
         returns (bool, int256, int256, uint256, uint256, uint256);
 }
 
-contract Solver {
+contract LogNormalSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
@@ -91,7 +91,7 @@ contract Solver {
 
         uint256 amountOut;
         {
-            uint256 swapFee = StrategyLike(strategy).swapFeePercentageWad();
+            uint256 swapFee = StrategyLike(strategy).swapFee();
             uint256 startComputedL = getNextLiquidity(
                 startReserves.rx, startReserves.ry, startReserves.L
             );
@@ -142,9 +142,9 @@ contract Solver {
             computePrice({
                 rx: endReserves.rx,
                 L: endReserves.L,
-                K: poolParams.strikePriceWad,
-                sigma: poolParams.sigmaPercentWad,
-                tau: poolParams.tauYearsWad
+                K: poolParams.strike,
+                sigma: poolParams.sigma,
+                tau: poolParams.tau
             }),
             swapData
         );
@@ -155,12 +155,6 @@ contract Solver {
         Parameters memory params = StrategyLike(strategy).dynamicSlot();
         (uint256 rx,, uint256 L) =
             StrategyLike(strategy).getReservesAndLiquidity();
-        price = computePrice(
-            rx,
-            L,
-            params.strikePriceWad,
-            params.sigmaPercentWad,
-            params.tauYearsWad
-        );
+        price = computePrice(rx, L, params.strike, params.sigma, params.tau);
     }
 }

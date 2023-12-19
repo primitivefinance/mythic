@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.13;
 
-import "solstat/Gaussian.sol";
-import "./LogNormalMathLib.sol";
-import "forge-std/console2.sol";
+import "./LogNormalMath.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
 /// @dev Parameterization of the Log Normal curve.
 struct Parameters {
-    uint256 strikePriceWad;
-    uint256 sigmaPercentWad;
-    uint256 tauYearsWad;
+    uint256 strike;
+    uint256 sigma;
+    uint256 tau;
 }
 
 /// @dev Structure to hold reserve information
@@ -23,26 +21,23 @@ struct Reserves {
 }
 
 function tradingFunction(
-    uint256 reserveXWad,
-    uint256 reserveYWad,
-    uint256 totalLiquidity,
+    uint256 rx,
+    uint256 ry,
+    uint256 L,
     Parameters memory params
 ) pure returns (int256) {
-    require(reserveXWad < totalLiquidity, "tradingFunction: invalid x");
+    require(rx < L, "tradingFunction: invalid x");
 
     int256 AAAAA;
     int256 BBBBB;
-    if (FixedPointMathLib.divWadDown(reserveXWad, totalLiquidity) >= ONE) {
+    if (FixedPointMathLib.divWadDown(rx, L) >= ONE) {
         AAAAA = int256(2 ** 255 - 1);
     } else {
-        AAAAA = Gaussian.ppf(
-            int256(FixedPointMathLib.divWadDown(reserveXWad, totalLiquidity))
-        );
+        AAAAA = Gaussian.ppf(int256(FixedPointMathLib.divWadDown(rx, L)));
     }
     if (
         FixedPointMathLib.divWadDown(
-            reserveYWad,
-            FixedPointMathLib.mulWadDown(params.strikePriceWad, totalLiquidity)
+            ry, FixedPointMathLib.mulWadDown(params.strike, L)
         ) >= ONE
     ) {
         BBBBB = int256(2 ** 255 - 1);
@@ -50,27 +45,20 @@ function tradingFunction(
         BBBBB = Gaussian.ppf(
             int256(
                 FixedPointMathLib.divWadDown(
-                    reserveYWad,
-                    FixedPointMathLib.mulWadDown(
-                        params.strikePriceWad, totalLiquidity
-                    )
+                    ry, FixedPointMathLib.mulWadDown(params.strike, L)
                 )
             )
         );
     }
 
-    int256 CCCCC =
-        int256(computeSigmaSqrtTau(params.sigmaPercentWad, params.tauYearsWad));
+    int256 CCCCC = int256(computeSigmaSqrtTau(params.sigma, params.tau));
 
     return AAAAA + BBBBB + CCCCC;
 }
 
-function computeHalfSigmaSquared(uint256 sigmaPercentWad)
-    pure
-    returns (uint256)
-{
-    int256 sigmaSquaredWad = int256(sigmaPercentWad).powWad(int256(TWO));
-    return HALF.mulWadDown(uint256(sigmaSquaredWad));
+function computeHalfSigmaSquared(uint256 sigma) pure returns (uint256) {
+    int256 sigmaSquaredWad = int256(sigma).powWad(int256(TWO));
+    return HALF.mulWadDown(uint256(sigma));
 }
 
 /// @dev Computes the approximated spot price given current reserves and liquidity.
