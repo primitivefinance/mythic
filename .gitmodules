@@ -2,3 +2,6 @@
 	path = lib/solstat
 	url = https://github.com/primitivefinance/solstat
 	branch = "update-forge-std"
+[submodule "lib/prb-math"]
+	path = lib/prb-math
+	url = https://github.com/PaulRBerg/prb-math
