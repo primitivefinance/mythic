@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 # crates
-abi = { path = "../abi" }
 datatypes = { path = "../datatypes" }
 clients = { path = "../clients" }
 cfmm_math = { path = "../cfmm_math" }
