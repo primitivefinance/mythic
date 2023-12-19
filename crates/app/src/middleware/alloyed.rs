@@ -157,8 +157,6 @@ mod test {
     use alloy_providers::{Provider, provider::TempProvider};
     use alloy_primitives::{Bytes, U64};
     use alloy_providers::{provider::ClientError, NetworkRpcClient};
-    use alloy_providers::{provider::TempProvider as _, Provider};
-    use alloy_signer::LocalWallet;
     use alloy_signer::{Signer, SignerSync};
     use ethers::utils::AnvilInstance;
     use ethers::{
@@ -168,7 +166,6 @@ mod test {
         utils::Anvil,
     };
     use sim::to_ethers_address;
-    use std::time::Duration;
 
     use super::*;
 
