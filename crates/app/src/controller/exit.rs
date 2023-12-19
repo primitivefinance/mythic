@@ -29,7 +29,6 @@ impl State for ExitScreen {
         Command::none()
     }
 
-    // todo: clean up the message piping in this...
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::Message::Root(message)) => match message {
