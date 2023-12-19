@@ -74,6 +74,15 @@ Excalibur only has a few underlying primitives that can be chosen from to constr
 
 Excalibur's fully vertical application design makes it easy to plug in more components of the Ethereum stack. In the future, Excalibur will be able to easily connect to local RETH nodes.
 
+## Documentation 
+
+if you have mdbook installed you can run 
+    
+    ```bash
+    mdbook serve
+    ```
+from the root of the repository to see our living documentation of our though processes and development. This is by no means proffesional or complete more so a compilation of the teams notes and journal throughout the development process.
+
 ## License
 todo: If we merge we will do appache 2.0
 
