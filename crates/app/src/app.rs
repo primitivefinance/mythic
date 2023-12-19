@@ -519,6 +519,7 @@ pub struct Update {
 }
 
 impl AppClock {
+    /// Constructor for AppClock.
     pub fn new() -> Self {
         Self {
             last_update: std::time::Instant::now(),
@@ -528,6 +529,9 @@ impl AppClock {
         }
     }
 
+    /// Updates the `AppClock` with the current time and duration since the last update.
+    /// It increments the total number of updates and adds the elapsed time to the total time.
+    /// It also pushes a new `Update` struct to the updates vector with the current time and elapsed duration.
     pub fn update(&mut self) {
         let now = std::time::Instant::now();
         let elapsed = now.duration_since(self.last_update);
@@ -541,6 +545,10 @@ impl AppClock {
         });
     }
 
+    /// This function calculates the average update cycle time within a given duration.
+    /// It filters the updates that happened within the window duration from the current time,
+    /// sums up their durations, and divides by the number of updates to get the average.
+    /// If there are no updates within the window duration, it returns a duration of 0 seconds.
     pub fn average_cycle(&self, window_duration: Duration) -> Duration {
         let now = std::time::Instant::now();
         let window_start = now - window_duration;
@@ -561,6 +569,9 @@ impl AppClock {
         total_time_in_window / updates_in_window.len() as u32
     }
 
+    /// This function calculates the maximum time taken for an update.
+    /// It iterates over all updates, finds the one with the longest duration, and returns that duration.
+    /// If there are no updates, it returns a duration of 0 seconds.
     pub fn max_update_time(&self) -> Duration {
         self.updates
             .iter()
@@ -569,6 +580,9 @@ impl AppClock {
             .unwrap_or(Duration::from_secs(0))
     }
 
+    /// This function calculates the minimum time taken for an update.
+    /// It iterates over all updates, finds the one with the smallest duration, and returns that duration.
+    /// If there are no updates, it returns a duration of 0 seconds.
     pub fn min_update_time(&self) -> Duration {
         self.updates
             .iter()
@@ -577,6 +591,8 @@ impl AppClock {
             .unwrap_or(Duration::from_secs(0))
     }
 
+    /// This function calculates the frequency of updates within a given duration.
+    /// It returns a floating point number representing the frequency of updates per second.
     pub fn update_frequency(&self, window_duration: Duration) -> f64 {
         let updates_in_window = self
             .updates
@@ -586,6 +602,9 @@ impl AppClock {
         updates_in_window as f64 / window_duration.as_secs_f64()
     }
 
+    /// This function calculates the time between the last two updates.
+    /// It returns an Option with the Duration of the time between updates.
+    /// If there are less than two updates, it returns None.
     pub fn time_between_updates(&self) -> Option<Duration> {
         self.updates
             .iter()
@@ -597,6 +616,10 @@ impl AppClock {
             .map(|window| window[0].time - window[1].time)
     }
 
+    /// `view_tbu` is a function that returns an Element displaying the time between updates (tbu) in milliseconds.
+    /// The label color changes based on the tbu:
+    /// - Red if the tbu is greater than 5,000 milliseconds.
+    /// - No color if the tbu is less than or equal to 5,000 milliseconds.
     pub fn view_tbu<Message>(&self) -> Element<'_, Message> {
         let tbu_value = self
             .time_between_updates()
@@ -618,6 +641,11 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the maximum update time in milliseconds.
+    /// The color of the label changes based on the maximum update time:
+    /// - Red if the maximum update time is greater than 10,000 milliseconds.
+    /// - Green if the maximum update time is less than 5,000 milliseconds.
+    /// - A mix of green and red if the maximum update time is between 5,000 and 10,000 milliseconds.
     pub fn view_max<Message>(&self) -> Element<'_, Message> {
         let max_value = self.max_update_time().as_millis();
         let max = format!("max:  {}ms", max_value);
@@ -644,12 +672,19 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the minimum update time in milliseconds.
     pub fn view_min<Message>(&self) -> Element<'_, Message> {
         let min = self.min_update_time().as_millis();
         let min = format!("min:  {}ms", min);
         label(min).tertiary().caption2().into()
     }
 
+    /// This function returns an Element that displays the update frequency.
+    /// The update frequency is calculated over a duration of 30 seconds.
+    /// The color of the label changes based on the update frequency:
+    /// - Red if the update frequency is greater than 10.0.
+    /// - Green if the update frequency is less than 2.0.
+    /// - No color if the update frequency is between 2.0 and 10.0.
     pub fn view_frequency<Message>(&self) -> Element<'_, Message> {
         let frequency_value = self.update_frequency(Duration::from_secs(30));
         let frequency = format!("freq:  {:.2}", frequency_value);
@@ -672,6 +707,12 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the average cycle duration in milliseconds.
+    /// The average cycle duration is calculated over a duration of 30 seconds.
+    /// The color of the label changes based on the average cycle duration:
+    /// - Red if the average cycle duration is greater than 2,500 milliseconds.
+    /// - Green if the average cycle duration is less than 1,000 milliseconds.
+    /// - A mix of green and red if the average cycle duration is between 1,000 and 2,500 milliseconds.
     pub fn view_average<Message>(&self) -> Element<'_, Message> {
         let average_value = self.average_cycle(Duration::from_secs(30)).as_millis();
         let average = format!("avg.:  {}ms", average_value);
@@ -698,6 +739,8 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the average update time in milliseconds.
+    /// The average update time is calculated over a duration of 30 seconds.
     pub fn view<Message>(&self) -> Element<'_, Message> {
         let average = self.average_cycle(Duration::from_secs(30));
         let average = format!("update time/s:  {}ms", average.as_millis());
@@ -705,17 +748,25 @@ impl AppClock {
     }
 }
 
+// AnvilSave is a struct that represents a snapshot of the Anvil state at a specific block number.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnvilSave {
+    // snapshot is a string representation of the Anvil state.
     pub snapshot: String,
+    // block_number is the block number at which the snapshot was taken.
     pub block_number: u64,
 }
 
+// save_snapshot is an asynchronous function that attempts to save a snapshot of the Anvil state.
+// It takes an Arc of ExcaliburMiddleware with Ws and LocalWallet as parameters.
+// It returns a Result of AnvilSave.
 #[tracing::instrument(skip(client))]
 async fn save_snapshot(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
 ) -> anyhow::Result<AnvilSave> {
+    // Log a debug message indicating that a snapshot save attempt is being made.
     tracing::debug!("Attempting to save anvil snapshot");
+    // Call the snapshot method on the client and await the result.
     client.snapshot().await
 }
 

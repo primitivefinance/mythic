@@ -120,7 +120,6 @@ impl State for Review {
                 FormMessage::Strategy(strategy) => {
                     self.form.strategy = strategy;
                 }
-                // Problem: We are triggering submit in a child component of this review component.
                 // However, we need to trigger some changes in the parent component of this review
                 // component. One solution is to catch this event being sent to the
                 // child in the propagation process. But that does not feel like the

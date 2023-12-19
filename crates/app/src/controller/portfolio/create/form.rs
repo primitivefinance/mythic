@@ -83,6 +83,7 @@ impl Form {
         data
     }
 
+    /// Submits the form and returns the command to be executed.
     pub fn submit(&mut self) -> Command<Message> {
         let assets = self
             .assets
@@ -112,7 +113,7 @@ impl Form {
                 )
             })
             .collect();
-        let _portfolio = Portfolio::new(
+        Portfolio::new(
             self.name.clone().unwrap_or_default().to_lowercase(),
             self.ticker.clone().unwrap_or_default().to_uppercase(),
             assets,

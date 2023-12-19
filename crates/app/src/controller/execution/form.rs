@@ -99,9 +99,8 @@ pub struct Fields {
 }
 
 impl Fields {
-    /// todo: leverage this validate more?
     pub fn validate(&self) -> bool {
-        self.to.is_some() && self.from.is_some() && self.target.is_some() && self.amount.is_some()
+        self.to.is_some() && self.from.is_some() && self.target.is_some() && self.amount > Some("0".to_string())
     }
 }
 

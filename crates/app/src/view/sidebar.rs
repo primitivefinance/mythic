@@ -1,4 +1,5 @@
 //! Renders a title, a list of route-able pages, and bookmarks.
+//! The sidebar is the main navigation for the app.
 
 use iced::{widget::Space, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
@@ -154,6 +155,7 @@ impl controller::State for Sidebar {
     }
 }
 
+/// Defines all the possible pages that can be routed to in the app.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Page {
     Empty,
@@ -167,6 +169,7 @@ pub enum Page {
 pub type PageTab = (Icon, String, Route, bool);
 
 impl Page {
+    /// Returns the name of the page.
     pub fn name(&self) -> String {
         match self {
             Page::Empty => "Select App".to_string(),
@@ -176,6 +179,7 @@ impl Page {
         }
     }
 
+    /// Returns the icon of the page.
     pub fn icon(&self) -> Icon {
         match self {
             Page::Empty => Icon::TerminalFill,
@@ -192,6 +196,7 @@ impl Page {
         (icon, name, Route::Page(*self), *self == *active)
     }
 
+
     pub fn tabs(active: &Page) -> Vec<PageTab> {
         let all = vec![
             Page::Portfolio.tab(active),
@@ -202,6 +207,11 @@ impl Page {
         all
     }
 
+    /// Generates the view for the sidebar navigation.
+    /// It creates a column of buttons, each representing a page in the application.
+    /// For each page, it creates a button with an icon, name, and a message that is sent when the button is pressed.
+    /// If the page is currently selected, the button is styled differently to indicate this.
+    /// The function returns an Element that can be displayed in the user interface.
     pub fn view<'a>(&self) -> Element<'a, Route> {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::tabs(self) {

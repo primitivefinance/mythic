@@ -86,6 +86,7 @@ impl PortfolioPresenter {
         }
     }
 
+    /// Updates the model and syncs the chart data to match the model.
     pub fn update(&mut self, model: Model) {
         self.model = model;
         self.sync_portfolio_value_series();
@@ -97,6 +98,7 @@ impl PortfolioPresenter {
         }
     }
 
+    /// Returns true if the static chart data is empty.
     pub fn static_needs_update(&self) -> bool {
         self.portfolio_strategy_plot.chart.series.is_empty()
     }
@@ -124,6 +126,7 @@ impl PortfolioPresenter {
 
     pub fn sync_portfolio_strategy_points(&mut self) {
         // Get the pois
+        // this does not update the model. it just gets the data from the model and turns it into a `ChartPoint` struct.
         let data = self.model.portfolio.derive_portfolio_strategy_points();
         let data = match data {
             Ok(data) => data,
@@ -131,7 +134,7 @@ impl PortfolioPresenter {
                 return;
             }
         };
-
+        // this updates the chart with the data from the model.
         self.portfolio_strategy_plot.override_points(data);
     }
 
@@ -151,8 +154,7 @@ impl PortfolioPresenter {
         };
 
         let asset_value_series = self.model.portfolio.derive_asset_value_series();
-        // TODO: unused variable.
-        let _asset_value_series = match asset_value_series {
+        match asset_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get asset value series: {:}", e);
@@ -161,8 +163,7 @@ impl PortfolioPresenter {
         };
 
         let quote_value_series = self.model.portfolio.derive_quote_value_series();
-        // TODO: unused variable.
-        let _quote_value_series = match quote_value_series {
+        match quote_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get quote value series: {:}", e);
@@ -174,8 +175,7 @@ impl PortfolioPresenter {
             .model
             .portfolio
             .derive_unallocated_portfolio_value_series();
-        // TODO: unused variable.
-        let _unallocated_value_series = match unallocated_value_series {
+        match unallocated_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get unallocated value series: {:}", e);
@@ -184,8 +184,7 @@ impl PortfolioPresenter {
         };
 
         let protocol_quote_value_series = self.model.portfolio.derive_protocol_quote_value_series();
-        // TODO: unused variable.
-        let _protocol_quote_value_series = match protocol_quote_value_series {
+        match protocol_quote_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get protocol quote value series: {:}", e);
@@ -194,8 +193,7 @@ impl PortfolioPresenter {
         };
 
         let protocol_asset_value_series = self.model.portfolio.derive_protocol_asset_value_series();
-        // TODO: unused variable.
-        let _protocol_asset_value_series = match protocol_asset_value_series {
+        match protocol_asset_value_series {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to get protocol asset value series: {:}", e);
@@ -303,7 +301,9 @@ impl PortfolioPresenter {
 pub struct DataView;
 
 impl DataView {
-    // Composed data elements.
+    /// Creates a layout for the portfolio metrics. It takes in various parameters such as
+    /// the strategy plot, strategy plot title, external price, external and internal AUM, portfolio health,
+    /// sync timestamp, and sync block. It returns a container with the portfolio metrics layout and chart layout.
     #[allow(clippy::too_many_arguments)]
     pub fn metrics_layout<'a, Message>(
         &'a self,
@@ -335,6 +335,9 @@ impl DataView {
             .padding(Sizes::Md)
     }
 
+    /// Creates a layout for the portfolio metrics. It takes in various parameters such as
+    /// the external price, external and internal AUM, portfolio health, and sync block. 
+    /// It returns a row with the portfolio metrics layout.
     pub fn portfolio_metrics_layout<'a, Message>(
         &'a self,
         external_price: ExcaliburText,
@@ -363,6 +366,9 @@ impl DataView {
             )
     }
 
+    /// Creates a layout that includes a live chart and a greeting message for the user.
+    /// It takes in various parameters such as the live chart, user greeting and message, chart title, and sync timestamp.
+    /// It returns a container with the layout.
     pub fn chart_and_greet_layout<'a, Message>(
         &'a self,
         live_chart: &'a ExcaliburChart,
@@ -384,6 +390,7 @@ impl DataView {
             .padding(Sizes::Md)
     }
 
+    /// Creates a layout that includes a greeting message for the user.
     pub fn user_message_layout<'a, Message>(
         &'a self,
         user_greeting: ExcaliburText,
@@ -404,6 +411,7 @@ impl DataView {
             )
     }
 
+    /// Creates a layout for the chart.
     pub fn chart_layout<'a, Message>(
         &'a self,
         chart: &'a ExcaliburChart,
@@ -420,6 +428,7 @@ impl DataView {
             .push(sync_timestamp.build())
     }
 
+    /// Creates a layout for the table.
     pub fn table_layout<'a, Message>(
         &'a self,
         table_title: ExcaliburText,
@@ -456,7 +465,6 @@ impl DataView {
     }
 
     // Individual data elements.
-
     /// Standard view for a single data element with a title and caption.
     pub fn data_title_caption<'a, Message>(
         &self,
@@ -537,6 +545,16 @@ impl DataView {
         table_builder.build_custom(cell_data).into()
     }
 
+    /// Responsible for creating a table builder for the positions.
+    /// It takes a `Positions` object as input and returns a tuple of `ExcaliburTable` and a 2D vector of `CellBuilder`.
+    /// The `ExcaliburTable` is a custom table object that allows for the creation of a table with custom headers and cell data.
+    /// The 2D vector of `CellBuilder` represents the cell data for each row in the table.
+    ///
+    /// The function iterates over each position in the `Positions` object and extracts the asset symbol, cost, balance, and weight.
+    /// If all these values are present, they are formatted as strings and added to the cell data.
+    ///
+    /// If no positions are present, an empty cell with a "No data" label is added to the cell data.
+    /// Finally, an `ExcaliburTable` is created with headers "Asset", "Price", "Balance", and "Weight", and the cell data is returned.
     pub fn get_positions_table_builder<Message>(
         &self,
         positions: Positions,
