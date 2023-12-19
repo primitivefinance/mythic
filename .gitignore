@@ -25,7 +25,6 @@ __pycache__
 *.pdf
 
 # notes
-journal/book/*
 book/*
 
 # ui

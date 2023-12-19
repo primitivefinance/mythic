@@ -53,14 +53,11 @@ impl<Message> iced::widget::canvas::Program<Message> for PhiLogo {
         &self,
         _state: &Self::State,
         renderer: &iced::Renderer,
-        theme: &iced::Theme,
+        _theme: &iced::Theme,
         bounds: Rectangle,
         _cursor: iced::mouse::Cursor,
     ) -> Vec<iced::widget::canvas::Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            // TODO: unused variable
-            let _palette = theme.palette();
-
             let center = frame.center();
 
             let circle_radius = frame.width().min(frame.height()) / (GOLDEN_RATIO * 5.0);
