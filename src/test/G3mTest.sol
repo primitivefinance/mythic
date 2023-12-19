@@ -7,11 +7,11 @@ import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../Lex.sol";
 
-contract LogNormalTest is Test {
+contract G3mTest is Test {
     using stdStorage for StdStorage;
 
     DFMM dfmm;
-    LogNormalSolver solver;
+    G3mSolver solver;
     address tokenX;
     address tokenY;
     Lex lex;
@@ -35,8 +35,8 @@ contract LogNormalTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        Parameters memory params =
-            Parameters({ strike: ONE, sigma: ONE, tau: ONE });
+        G3mParameters memory params =
+            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
         bytes memory initData =

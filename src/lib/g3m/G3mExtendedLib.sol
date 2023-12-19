@@ -13,7 +13,7 @@ using FixedPointMathLib for int256;
 function computeLGivenX(
     uint256 x,
     uint256 S,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256) {
     return x.mulWadUp(params.wy.divWadUp(params.wx * S));
 }
@@ -21,7 +21,7 @@ function computeLGivenX(
 function computeLGivenY(
     uint256 y,
     uint256 S,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256) {
     return y.mulWadUp(params.wx).divWadUp(params.wy * S);
 }
@@ -29,7 +29,7 @@ function computeLGivenY(
 function computeXGivenL(
     uint256 L,
     uint256 S,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256) {
     return params.wx.mulWadUp(L).divWadUp(params.wy * S);
 }
@@ -37,7 +37,7 @@ function computeXGivenL(
 function computeYGivenL(
     uint256 L,
     uint256 S,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256) {
     return params.wy.mulWadUp(L).divWadUp(params.wx * S);
 }
@@ -46,8 +46,8 @@ function computeYGivenL(
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveYWad.
 function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
-    (uint256 rx, uint256 L,, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 rx, uint256 L,, G3mParameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, G3mParameters));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -55,8 +55,8 @@ function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveXWad.
 function findRootX(bytes memory data, uint256 rx) pure returns (int256) {
-    (uint256 ry, uint256 L,, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 ry, uint256 L,, G3mParameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, G3mParameters));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -67,15 +67,15 @@ function findRootLiquidity(
     bytes memory data,
     uint256 L
 ) pure returns (int256) {
-    (uint256 rx, uint256 ry,, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 rx, uint256 ry,, G3mParameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, G3mParameters));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 ry = computeYGivenL(L, initialPrice, params);
@@ -91,7 +91,7 @@ function computeNextLiquidity(
     uint256 reserveYWad,
     int256 swapConstant,
     uint256 currentLiquidity,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256 L) {
     uint256 lower;
     uint256 upper;
@@ -123,7 +123,7 @@ function computeNextRy(
     uint256 reserveXWad,
     uint256 liquidity,
     int256 swapConstant,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256 ry) {
     uint256 lower = 10;
     uint256 upper = 1e27;
@@ -142,7 +142,7 @@ function computeNextRx(
     uint256 reserveYWad,
     uint256 liquidity,
     int256 swapConstant,
-    Parameters memory params
+    G3mParameters memory params
 ) pure returns (uint256 rx) {
     uint256 lower = 10;
     uint256 upper = 1e27; // max x = 1 - x / l, so l - x

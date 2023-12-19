@@ -4,17 +4,19 @@ pragma solidity ^0.8.13;
 import "../lib/g3m/G3mLib.sol";
 
 import "../interfaces/ICore.sol";
+import "../interfaces/IStrategy.sol";
+
 /**
  * @notice Geometric Mean Market Maker.
  */
 
-contract G3m {
+contract G3m is IStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
     ICore public core;
     uint256 public swapFee;
-    Parameters public __slot__;
+    G3mParameters public __slot__;
 
     uint256 private lastWeightX;
     uint256 private lastWeightXSync;
@@ -22,18 +24,24 @@ contract G3m {
     uint256 private weightXUpdateEnd;
     uint256 private weightXUpdatePerSecond;
 
+    constructor(uint256 _swapFee) {
+        require(_swapFee < ONE, "swap fee percentage must be less than 100%");
+        swapFee = _swapFee;
+        core = ICore(msg.sender);
+    }
+
     modifier onlyCore() {
         // require(msg.sender == address(core), "only core");
         _;
     }
 
     /// @dev Returns the original parameters that were used to initialize the pool.
-    function staticSlot() public view returns (Parameters memory) {
+    function staticSlot() public view returns (G3mParameters memory) {
         return __slot__;
     }
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot() public view returns (Parameters memory params) {
+    function dynamicSlot() public view returns (G3mParameters memory params) {
         (params.wx, params.wy) = (weightX(), weightY());
     }
 
@@ -46,7 +54,7 @@ contract G3m {
     }
 
     function _syncDynamicSlot() internal {
-        Parameters memory params = staticSlot();
+        G3mParameters memory params = staticSlot();
 
         targetWeightX = params.wx;
         lastWeightX = params.wx;
@@ -79,7 +87,9 @@ contract G3m {
         )
     {
         (rx, ry, L, __slot__) =
-            abi.decode(data, (uint256, uint256, uint256, Parameters));
+            abi.decode(data, (uint256, uint256, uint256, G3mParameters));
+
+        require(__slot__.wx + __slot__.wy == ONE, "Invalid weights");
 
         _syncDynamicSlot();
 

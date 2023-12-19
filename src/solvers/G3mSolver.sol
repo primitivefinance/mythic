@@ -9,7 +9,7 @@ import "../lib/g3m/G3mExtendedLib.sol";
 
 interface StrategyLike {
     function computeSwapConstant(bytes memory) external view returns (int256);
-    function dynamicSlot() external view returns (Parameters memory);
+    function dynamicSlot() external view returns (G3mParameters memory);
     function swapFee() external view returns (uint256);
     function getReservesAndLiquidity()
         external
@@ -21,7 +21,7 @@ interface StrategyLike {
         returns (bool, int256, int256, uint256, uint256, uint256);
 }
 
-contract LogNormalSolver {
+contract G3mSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
@@ -37,7 +37,7 @@ contract LogNormalSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        Parameters memory params
+        G3mParameters memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -87,7 +87,7 @@ contract LogNormalSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             StrategyLike(strategy).getReservesAndLiquidity();
-        Parameters memory poolParams = StrategyLike(strategy).dynamicSlot();
+        G3mParameters memory poolParams = StrategyLike(strategy).dynamicSlot();
 
         uint256 amountOut;
         {
@@ -146,7 +146,7 @@ contract LogNormalSolver {
 
     /// @dev Computes the internal price using this strategie's slot parameters.
     function internalPrice() public view returns (uint256 price) {
-        Parameters memory params = StrategyLike(strategy).dynamicSlot();
+        G3mParameters memory params = StrategyLike(strategy).dynamicSlot();
         (uint256 rx, uint256 ry,) =
             StrategyLike(strategy).getReservesAndLiquidity();
         price = computePrice(rx, ry, params);

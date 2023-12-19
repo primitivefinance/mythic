@@ -3,10 +3,11 @@ pragma solidity ^0.8.13;
 
 import "./strategies/G3m.sol";
 import "./strategies/LogNormal.sol";
+import "solmate/tokens/ERC20.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
-contract DFMM {
+contract DFMM is ICore {
     address public strategy;
     bool public inited;
     uint256 public locked = 1;

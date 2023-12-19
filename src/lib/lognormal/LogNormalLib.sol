@@ -7,24 +7,17 @@ using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
 /// @dev Parameterization of the Log Normal curve.
-struct Parameters {
+struct LogNormParameters {
     uint256 strike;
     uint256 sigma;
     uint256 tau;
-}
-
-/// @dev Structure to hold reserve information
-struct Reserves {
-    uint256 rx;
-    uint256 ry;
-    uint256 L;
 }
 
 function tradingFunction(
     uint256 rx,
     uint256 ry,
     uint256 L,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (int256) {
     require(rx < L, "tradingFunction: invalid x");
 

@@ -13,7 +13,7 @@ using FixedPointMathLib for int256;
 function computeLGivenX(
     uint256 rx,
     uint256 S,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (uint256 L) {
     int256 denominator = int256(ONE) - Gaussian.cdf(computeD1(S, params));
 
@@ -25,7 +25,7 @@ function computeLGivenX(
 function computeYGivenL(
     uint256 L,
     uint256 S,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (uint256) {
     int256 d2 = computeD2(S, params);
     int256 cdf = Gaussian.cdf(d2);
@@ -38,7 +38,7 @@ function computeYGivenL(
 function computeXGivenL(
     uint256 L,
     uint256 S,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (uint256) {
     int256 d1 = computeD1(S, params);
     int256 cdf = Gaussian.cdf(d1);
@@ -48,7 +48,7 @@ function computeXGivenL(
 
 function computeD1(
     uint256 S,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (int256 d1) {
     (uint256 K, uint256 sigma, uint256 tau) =
         (params.strike, params.sigma, params.tau);
@@ -60,11 +60,11 @@ function computeD1(
 }
 
 /// @param S The price of X in Y, in WAD units.
-/// @param params Parameters of the Log Normal distribution.
+/// @param params LogNormParameters of the Log Normal distribution.
 /// @return d2 = d1 - sigma * sqrt(tau), alternatively d2 = (ln(S/K) - tau * sigma^2 / 2) / (sigma * sqrt(tau))
 function computeD2(
     uint256 S,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (int256 d2) {
     (uint256 K, uint256 sigma, uint256 tau) =
         (params.strike, params.sigma, params.tau);
@@ -79,8 +79,8 @@ function computeD2(
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveYWad.
 function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
-    (uint256 rx, uint256 L,, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 rx, uint256 L,, LogNormParameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, LogNormParameters));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -88,8 +88,8 @@ function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveXWad.
 function findRootX(bytes memory data, uint256 rx) pure returns (int256) {
-    (uint256 ry, uint256 L,, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 ry, uint256 L,, LogNormParameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, LogNormParameters));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -100,15 +100,15 @@ function findRootLiquidity(
     bytes memory data,
     uint256 L
 ) pure returns (int256) {
-    (uint256 rx, uint256 ry,, Parameters memory params) =
-        abi.decode(data, (uint256, uint256, int256, Parameters));
+    (uint256 rx, uint256 ry,, LogNormParameters memory params) =
+        abi.decode(data, (uint256, uint256, int256, LogNormParameters));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 ry = computeYGivenL(L, initialPrice, params);
@@ -124,7 +124,7 @@ function computeNextLiquidity(
     uint256 reserveYWad,
     int256 swapConstant,
     uint256 currentLiquidity,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (uint256 L) {
     uint256 lower;
     uint256 upper;
@@ -157,7 +157,7 @@ function computeNextRy(
     uint256 reserveXWad,
     uint256 liquidity,
     int256 swapConstant,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (uint256 ry) {
     uint256 lower = 10;
     uint256 upper = liquidity.mulWadUp(params.strike) - 10;
@@ -176,7 +176,7 @@ function computeNextRx(
     uint256 reserveYWad,
     uint256 liquidity,
     int256 swapConstant,
-    Parameters memory params
+    LogNormParameters memory params
 ) pure returns (uint256 rx) {
     uint256 lower = 10;
     uint256 upper = liquidity - 10; // max x = 1 - x / l, so l - x

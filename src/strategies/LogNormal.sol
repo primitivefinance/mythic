@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "../lib/lognormal/LogNormalLib.sol";
 
 import "../interfaces/ICore.sol";
+import "../interfaces/IStrategy.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price
@@ -12,13 +13,13 @@ import "../interfaces/ICore.sol";
 ///
 /// Swaps are validated by the trading function:
 /// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
-contract LogNormal {
+contract LogNormal is IStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
     ICore public core;
     uint256 public swapFee;
-    Parameters public __slot__;
+    LogNormParameters public __slot__;
 
     uint256 private lastSigma;
     uint256 public targetSigma;
@@ -50,12 +51,16 @@ contract LogNormal {
     }
 
     /// @dev Returns the original parameters that were used to initialize the pool.
-    function staticSlot() public view returns (Parameters memory) {
+    function staticSlot() public view returns (LogNormParameters memory) {
         return __slot__;
     }
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot() public view returns (Parameters memory params) {
+    function dynamicSlot()
+        public
+        view
+        returns (LogNormParameters memory params)
+    {
         (params.strike, params.sigma, params.tau) =
             (strikePrice(), sigma(), tau());
     }
@@ -69,7 +74,7 @@ contract LogNormal {
     }
 
     function _syncDynamicSlot() internal {
-        Parameters memory params = staticSlot();
+        LogNormParameters memory params = staticSlot();
 
         targetSigma = params.sigma;
         lastSigma = params.sigma;
@@ -112,7 +117,7 @@ contract LogNormal {
         )
     {
         (rx, ry, L, __slot__) =
-            abi.decode(data, (uint256, uint256, uint256, Parameters));
+            abi.decode(data, (uint256, uint256, uint256, LogNormParameters));
 
         _syncDynamicSlot();
 
@@ -174,7 +179,7 @@ contract LogNormal {
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 
-    // ===== Parameters ===== //
+    // ===== LogNormParameters ===== //
 
     function sigma() public view returns (uint256) {
         if (block.timestamp >= sigmaUpdateEnd) {

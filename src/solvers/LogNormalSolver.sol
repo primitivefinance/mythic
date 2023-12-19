@@ -9,7 +9,7 @@ import "../lib/lognormal/LogNormalExtendedLib.sol";
 
 interface StrategyLike {
     function computeSwapConstant(bytes memory) external view returns (int256);
-    function dynamicSlot() external view returns (Parameters memory);
+    function dynamicSlot() external view returns (LogNormParameters memory);
     function swapFee() external view returns (uint256);
     function getReservesAndLiquidity()
         external
@@ -37,7 +37,7 @@ contract LogNormalSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        Parameters memory params
+        LogNormParameters memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -87,7 +87,8 @@ contract LogNormalSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             StrategyLike(strategy).getReservesAndLiquidity();
-        Parameters memory poolParams = StrategyLike(strategy).dynamicSlot();
+        LogNormParameters memory poolParams =
+            StrategyLike(strategy).dynamicSlot();
 
         uint256 amountOut;
         {
@@ -152,7 +153,7 @@ contract LogNormalSolver {
 
     /// @dev Computes the internal price using this strategie's slot parameters.
     function internalPrice() public view returns (uint256 price) {
-        Parameters memory params = StrategyLike(strategy).dynamicSlot();
+        LogNormParameters memory params = StrategyLike(strategy).dynamicSlot();
         (uint256 rx,, uint256 L) =
             StrategyLike(strategy).getReservesAndLiquidity();
         price = computePrice(rx, L, params.strike, params.sigma, params.tau);

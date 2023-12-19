@@ -1,18 +1,7 @@
 pragma solidity ^0.8.13;
 
 import "solstat/Gaussian.sol";
-
-/// @dev Taking the square root of a WAD value returns a value with units of 1E9.
-/// Multiplying the result by SQRT_WAD will normalize it back to WAD units.
-uint256 constant SQRT_WAD = 1e9;
-uint256 constant TWO = 2e18;
-uint256 constant HALF = 0.5e18;
-uint256 constant ONE = 1e18;
-uint256 constant INFINITY_IS_NOT_REAL = type(uint256).max;
-uint256 constant ZERO = 0;
-
-/// @dev the swap constant should never fall outside of range [-EPSILON, EPSILON]
-int256 constant EPSILON = 10;
+import "../StrategyLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;

@@ -35,8 +35,8 @@ contract LogNormalTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        Parameters memory params =
-            Parameters({ strike: ONE, sigma: ONE, tau: ONE });
+        LogNormParameters memory params =
+            LogNormParameters({ strike: ONE, sigma: ONE, tau: ONE });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
         bytes memory initData =
