@@ -12,7 +12,9 @@ use super::*;
 use crate::{
     components::{
         logos::{ether_logo, usdc_logo},
-        system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, Typography},
+        system::{
+            ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburTooltip, Typography,
+        },
     },
     model::portfolio::AlloyAddress,
 };
@@ -185,11 +187,9 @@ impl Inventory {
                                     .align_items(alignment::Alignment::End)
                                     .width(Length::FillPortion(1))
                                     .push(
-                                        label(icon_to_char(iced_aw::Icon::Info))
-                                            .title1()
-                                            .icon()
-                                            .secondary()
-                                            .build(),
+                                        ExcaliburTooltip::default().padding(Sizes::Sm).info().build(
+                                            "Your portfolio of allocated and unallocated positions, filtered by the default token list.",
+                                        )
                                     ),
                             ),
                     )

@@ -1,7 +1,7 @@
 //! Entire Excalibur component system.
 
 use iced::{
-    widget::{component, text_input, Component},
+    widget::{component, text_input, tooltip, Component},
     Font,
 };
 
@@ -347,6 +347,12 @@ impl ExcaliburFonts {
     }
 }
 
+impl From<ExcaliburFonts> for Font {
+    fn from(font: ExcaliburFonts) -> Self {
+        font.font()
+    }
+}
+
 /// For constructing any text rendered in Excalibur.
 #[derive(Debug, Clone)]
 pub struct ExcaliburText {
@@ -416,6 +422,21 @@ impl ExcaliburText {
             .size(self.size)
             .horizontal_alignment(self.horizontal_alignment)
             .vertical_alignment(self.vertical_alignment)
+    }
+
+    pub fn custom_typography(self, typography: Typography) -> Self {
+        Self {
+            size: typography,
+            ..self
+        }
+    }
+
+    pub fn custom_font(self, font: ExcaliburFonts) -> Self {
+        Self { font, ..self }
+    }
+
+    pub fn custom_color(self, color: ExcaliburColor) -> Self {
+        Self { color, ..self }
     }
 
     // Class
@@ -763,6 +784,7 @@ pub struct ExcaliburContainer {
     pub border_radius: BorderRadius,
     pub border_width: f32,
     pub border_color: ExcaliburColor,
+    pub text_color: ExcaliburColor,
 }
 
 impl Default for ExcaliburContainer {
@@ -772,6 +794,7 @@ impl Default for ExcaliburContainer {
             border_radius: Sizes::Sm.into(),
             border_width: 0.0,
             border_color: ExcaliburColor::Label(LabelColors::Quaternary),
+            text_color: ExcaliburColor::Label(LabelColors::Primary),
         }
     }
 }
@@ -802,6 +825,7 @@ impl ExcaliburContainer {
             border_radius: Sizes::Xs.into(),
             border_width: 0.0,
             border_color: ExcaliburColor::Custom(Color::WHITE),
+            text_color: ExcaliburColor::Custom(Color::WHITE),
         }
     }
 
@@ -866,6 +890,11 @@ impl ExcaliburContainer {
     /// Choose your own color!
     pub fn background_rgb(mut self, r: f32, g: f32, b: f32) -> Self {
         self.background = ExcaliburColor::Custom(iced::Color::from_rgb(r, g, b));
+        self
+    }
+
+    pub fn text_color(mut self, color: ExcaliburColor) -> Self {
+        self.text_color = color;
         self
     }
 
@@ -1765,5 +1794,186 @@ impl text_input::StyleSheet for CustomInputStyle {
 
     fn disabled_color(&self, _style: &Self::Style) -> Color {
         self.disabled_color
+    }
+}
+
+/// A customizable tooltip with Excalibur styling.
+///
+/// How to use this component:
+/// - Create a new or default tooltip.
+/// - Edit the text styling using the custom methods or templated methods like
+///   `caption`.
+/// - Edit the position of the tooltip using the `position` method.
+/// - Edit the element that is hovered over to display the tooltip using the
+///   `custom_content` method.
+/// - Use the template tooltips like `info`, which renders an info "i" as the
+///   element to hover over.
+/// - Build the tooltip using the `build` method.
+#[derive(Debug, Clone)]
+pub struct ExcaliburTooltip {
+    position: iced::widget::tooltip::Position,
+    padding: iced::Pixels,
+    gap: f32,
+    font: Option<iced::Font>,
+    text_size: Option<Typography>,
+    text_color: ExcaliburColor,
+    snap_in_viewport: bool,
+    /// Customize the element that is hovered over to display the tooltip.
+    custom_element: ExcaliburText,
+}
+
+impl Default for ExcaliburTooltip {
+    fn default() -> Self {
+        Self {
+            position: iced::widget::tooltip::Position::Top,
+            padding: 0.0.into(),
+            gap: 0.0,
+            font: None,
+            text_size: None,
+            text_color: ExcaliburColor::Label(LabelColors::Primary),
+            snap_in_viewport: true,
+            custom_element: label(icon_to_char(Icon::Info)).icon().secondary().caption(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl ExcaliburTooltip {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Uses the `self.custom_element` to build the tooltip. This must be set,
+    /// defaults to the [`Info`] Icon.
+    pub fn build<'a, Message>(
+        self,
+        tooltip_content: impl ToString,
+    ) -> iced::widget::Tooltip<'a, Message>
+    where
+        Message: 'a,
+    {
+        let custom = self.custom_element.clone();
+        self.build_custom(custom, tooltip_content)
+    }
+
+    pub fn build_custom<'a, Message>(
+        self,
+        element: impl Into<Element<'a, Message>>,
+        tooltip_content: impl ToString,
+    ) -> iced::widget::Tooltip<'a, Message>
+    where
+        Message: 'a,
+    {
+        let mut builder = tooltip(element, tooltip_content, self.position)
+            .padding(self.padding)
+            .gap(self.gap)
+            .snap_within_viewport(self.snap_in_viewport);
+
+        if let Some(font) = self.font {
+            builder = builder.font(font);
+        }
+
+        if let Some(text_size) = self.text_size {
+            builder = builder.size(text_size);
+        }
+
+        builder.style(
+            ExcaliburContainer::default()
+                .top()
+                .text_color(self.text_color)
+                .light_border()
+                .theme(),
+        )
+    }
+
+    pub fn position(mut self, position: iced::widget::tooltip::Position) -> Self {
+        self.position = position;
+        self
+    }
+
+    pub fn icon(mut self) -> Self {
+        self.font = Some(ExcaliburFonts::Icon.into());
+        self
+    }
+
+    pub fn branding(mut self) -> Self {
+        self.font = Some(ExcaliburFonts::Branding.into());
+        self
+    }
+
+    pub fn caption(mut self) -> Self {
+        self.text_size = Some(Typography::Caption.into());
+        self
+    }
+
+    pub fn caption2(mut self) -> Self {
+        self.text_size = Some(Typography::Caption2.into());
+        self
+    }
+
+    pub fn padding(mut self, padding: impl Into<iced::Pixels>) -> Self {
+        self.padding = padding.into();
+        self
+    }
+
+    pub fn top(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Top)
+    }
+
+    pub fn bottom(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Bottom)
+    }
+
+    pub fn left(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Left)
+    }
+
+    pub fn right(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Right)
+    }
+
+    pub fn text_color(mut self, color: impl Into<ExcaliburColor>) -> Self {
+        self.text_color = color.into();
+        self
+    }
+
+    pub fn secondary(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Secondary))
+    }
+
+    pub fn tertiary(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Tertiary))
+    }
+
+    pub fn quaternary(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Quaternary))
+    }
+
+    pub fn disabled(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Disabled))
+    }
+
+    pub fn highlight(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Highlight))
+    }
+
+    pub fn custom_content(mut self, element: ExcaliburText) -> Self {
+        self.custom_element = element;
+        self
+    }
+
+    // Template tooltips.
+    // Color must be specified prior to consuming the tooltip.
+    pub fn info(mut self) -> Self {
+        let mut element = label(icon_to_char(Icon::Info))
+            .icon()
+            .custom_color(self.text_color);
+
+        if let Some(size) = self.text_size {
+            element = element.custom_typography(size)
+        }
+
+        self.custom_element = element;
+        self
     }
 }
