@@ -6,7 +6,7 @@ pub mod utils;
 use std::{self};
 
 use arbiter_core::environment::builder::EnvironmentBuilder;
-use clients::{forking::forking::Forker, scroll::Scroll};
+use clients::{forking::client_forking::Forker, scroll::Scroll};
 use ethers::types::Address;
 use iced::{Command, Element, Subscription};
 use user::contacts::{self, ContactList};
@@ -17,7 +17,7 @@ use self::{
     utils::{empty_async, get_artifact_path},
 };
 use super::{
-    app::{Chains, Message, Storage},
+    app::{Chain, Message, Storage},
     view::{self},
     State, *,
 };
@@ -40,7 +40,6 @@ pub struct Execution {
     cache: Cache,
 }
 
-// maybe replace clones with refs?
 impl Execution {
     pub fn new(chains: Chains, storage: Storage) -> Self {
         let client = chains.get_signer(0, 0).map(|c| Some(c)).unwrap_or_default();
@@ -55,7 +54,6 @@ impl Execution {
 
         let contacts = storage.profile.contacts.clone();
 
-        // todo: this looks expensive...
         let untrusted = contacts.get_list(contacts::Category::Untrusted);
         let trusted = contacts.get_list(contacts::Category::Trusted);
         let contracts = contacts.get_class_list(contacts::Class::Contract);

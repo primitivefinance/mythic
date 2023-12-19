@@ -151,7 +151,6 @@ impl Stages {
             return Command::none();
         }
 
-        let _portfolio = self.original.clone().unwrap();
         let builder = ArbiterInstanceManager::new();
 
         // // Compute the amount of steps given the time step size of 15 and the time

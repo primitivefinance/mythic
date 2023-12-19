@@ -53,6 +53,8 @@ pub struct Loader {
     pub logo: PhiLogo,
 }
 
+/// This function attempts to load a user profile. If it fails, it creates a new default profile.
+/// It then logs the loaded profile's name and file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_profile() -> anyhow::Result<UserProfile> {
     let profile = UserProfile::load(None);
@@ -75,6 +77,8 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
     Ok(profile)
 }
 
+/// This function attempts to load user data into a model. If it fails, it creates a new default model.
+/// It then logs the loaded model's user name and file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_user_data() -> anyhow::Result<Model> {
     let model = Model::load(None);
@@ -97,6 +101,8 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     Ok(model)
 }
 
+/// This function loads a development client. It first logs the loading process, then creates a signer with the chain id of the client.
+/// It then gets the address of the signer and clones the client. It deploys the development client and returns it.
 #[tracing::instrument(skip(client), level = "trace")]
 pub async fn load_dev_client(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
@@ -113,6 +119,7 @@ pub async fn load_dev_client(
     Ok(dev_client)
 }
 
+/// Contracts that we start up the client with
 pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token_y", "lex"];
 
 /// Loads any async data or disk data into the application's state types.
@@ -320,6 +327,9 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     Ok((model, Arc::new(exc_client)))
 }
 
+/// Attempts to establish a new connection with the Ledger hardware wallet.
+/// If the connection is successful, it returns an instance of the LedgerClient.
+/// If the connection fails, it logs a warning, creates a new default ledger, and returns None.
 #[tracing::instrument(level = "debug")]
 pub async fn connect_ledger() -> Option<LedgerClient> {
     let ledger =
@@ -399,10 +409,15 @@ impl Loader {
         )
     }
 
+    /// Takes in the application flags and returns a command to load the application.
+    /// The loading process is performed asynchronously.
     fn load(&mut self, flags: super::Flags) -> Command<Message> {
         Command::perform(load_app(flags), Message::Ready)
     }
 
+    /// Updates the state of the loader based on the received message.
+    /// This function handles different types of messages and updates the loader's state accordingly.
+    /// For example, it updates the progress of the loading process, handles connection status, and initiates the loading process.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         self.logo.cache.clear();
 
@@ -430,6 +445,10 @@ impl Loader {
         }
     }
 
+    /// Returns a string that represents the current progress of the loading process.
+    /// The progress is represented by different stages of the loading process.
+    /// The stages are: "Initiated loading procedure...", "Starting sandbox environment...",
+    /// "Connected. Deploying contracts in sandbox...", "Initializing sandbox state...", and "Launching Excalibur...".
     pub fn get_progress_feedback(&self) -> String {
         let s_curve_result = s_curve(self.progress);
         let progress = (s_curve_result * 4.0) as usize;
@@ -443,6 +462,11 @@ impl Loader {
         }
     }
 
+    /// This function generates a view of the loading screen.
+    /// It displays a progress bar that updates based on the loading progress.
+    /// It also displays a random symbol from a collection of Greek and currency symbols.
+    /// The symbol changes with each update of the progress bar.
+    /// The function also displays a feedback message that corresponds to the current stage of the loading process.
     pub fn view(&self) -> Element<Message> {
         let all_symbols = GREEK_SYMBOLS
             .iter()
@@ -493,8 +517,8 @@ impl Loader {
         .into()
     }
 
+    // Every 25ms update the progress bar by 0.001.
     pub fn subscription(&self) -> Subscription<Message> {
-        // Every 25ms update the progress bar by 0.001.
         iced::time::every(std::time::Duration::from_millis(25)).map(|_| Message::Tick)
     }
 }

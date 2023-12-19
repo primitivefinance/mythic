@@ -61,7 +61,7 @@ impl PortfolioRoot {
         Self {
             page: Page::default(),
             create: create::CreatePortfolio::new(model.user.clone()),
-            dashboard: dashboard::Dashboard::new(None, client.clone(), model.clone()),
+            dashboard: dashboard::Dashboard::new(client.clone(), model.clone()),
             monolithic: monolithic::Monolithic::new(client.clone(), model.clone()),
             client,
         }

@@ -92,8 +92,6 @@ impl Dashboard {
     /// Since this happens in `load` instead of `new`, there's no lag when
     /// opening the page.
     pub fn new(
-        // TODO: do we need name?
-        _name: Option<String>,
         client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
         model: Model,
     ) -> Self {

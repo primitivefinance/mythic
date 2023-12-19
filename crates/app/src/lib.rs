@@ -90,15 +90,27 @@ impl Application for MVP {
     type Executor = executor::Default;
     type Flags = Flags;
 
+    /// Creates a new instance of the MVP struct.
+    ///
+    /// This function takes a Flags struct as an argument and returns a tuple containing an MVP struct and a Command.
+    /// The Flags struct contains a single flag `dev_mode` which indicates whether the application is running in development mode.
+    /// If the `dev_mode` flag is set, the "DEV_MODE" environment variable is also set to "true".
+    ///
+    /// The function initializes the application with the Loader state and a Load message.
+    ///
+    /// # Arguments
+    ///
+    /// * `flags: Flags` - The flags that can be passed to the application.
+    ///
+    /// # Returns
+    ///
+    /// * `(MVP, Command<Message>)` - A tuple containing an MVP struct and a Command.
     fn new(flags: Flags) -> (MVP, Command<Message>) {
         let tracer = tracer::setup_with_channel();
-
-        // Set the dev mode env variables based on the flag
         if flags.dev_mode {
             std::env::set_var("DEV_MODE", "true");
         }
 
-        // 1. Initialize application with the Loader state and Message::Load.
         let (loader, command) = Loader::new(flags);
         let state = State::Loader(loader);
 
@@ -108,6 +120,16 @@ impl Application for MVP {
         )
     }
 
+    /// Returns the title of the application.
+    ///
+    /// This function takes no arguments and returns a String.
+    /// The title of the application depends on the current state of the application.
+    /// If the application is in the Loader state, the title is "Loading Excalibur".
+    /// If the application is in the App state, the title is "Excalibur".
+    ///
+    /// # Returns
+    ///
+    /// * `String` - The title of the application.
     fn title(&self) -> String {
         match &self.state {
             State::Loader(_) => String::from("Loading Excalibur"),
@@ -178,7 +200,18 @@ impl Application for MVP {
         }
     }
 
-    // View gets called before `perform` gets called in `new`, by the way.
+    /// The `view` function is responsible for rendering the current state of the application.
+    /// It matches on the current state and calls the corresponding `view` function.
+    ///
+    /// If the current state is `Loader`, it calls the `view` function of the `Loader` struct.
+    /// The `Loader`'s `view` function returns an `Element` that is then mapped to a `Load` message.
+    ///
+    /// If the current state is `App`, it calls the `view` function of the `App` struct.
+    /// The `App`'s `view` function returns an `Element` that is then mapped to an `Update` message.
+    ///
+    /// # Returns
+    ///
+    /// * `Element<Self::Message>` - The `Element` to be rendered based on the current state.
     fn view(&self) -> Element<Self::Message> {
         match &self.state {
             State::Loader(loader) => loader.view().map(|msg| Message::Load(Box::new(msg))),
@@ -186,6 +219,20 @@ impl Application for MVP {
         }
     }
 
+    /// The `subscription` function is responsible for managing the subscriptions of the application.
+    /// It matches on the current state and calls the corresponding `subscription` function.
+    ///
+    /// If the current state is `Loader`, it calls the `subscription` function of the `Loader` struct.
+    /// The `Loader`'s `subscription` function returns a `Subscription` that is then mapped to a `Load` message.
+    ///
+    /// If the current state is `App`, it calls the `subscription` function of the `App` struct.
+    /// The `App`'s `subscription` function returns a `Subscription` that is then mapped to an `Update` message.
+    ///
+    /// Additionally, it listens for window close events and maps them to `Event` messages.
+    ///
+    /// # Returns
+    ///
+    /// * `Subscription<Self::Message>` - The `Subscription` to be used based on the current state.
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch(vec![
             match &self.state {
@@ -212,6 +259,25 @@ impl Application for MVP {
     }
 }
 
+/// Runs the Excalibur application
+///
+/// The function first creates a `Settings` object with the specified `dev_mode` using the `Settings::with_flags` function.
+/// It then sets various properties of the `Settings` object:
+/// - The window icon is set to the Excalibur logo.
+/// - Antialiasing is enabled for smoother graphics.
+/// - The application is set to not exit when a close request is received. This allows the application to handle the close request in its own way.
+/// - The id of the application is set to "excalibur-app". This is used by the operating system to identify the application.
+/// - The window size is set to 1280x832 pixels.
+///
+/// The function runs the application with the specified settings using the `MVP::run` function.
+///
+/// # Arguments
+///
+/// * `dev_mode` - A boolean indicating whether the application should run in development mode.
+///
+/// # Returns
+///
+/// * `iced::Result` - The result of running the application. If the application runs successfully, it returns `Ok(())`. If an error occurs, it returns `Err(e)` where `e` is the error.
 pub fn run(dev_mode: bool) -> iced::Result {
     let mut settings = Settings::with_flags(Flags { dev_mode });
     settings.window.icon = Some(logos::excalibur_logo_2());
@@ -222,6 +288,7 @@ pub fn run(dev_mode: bool) -> iced::Result {
     MVP::run(settings)
 }
 
+/// Returns a custom theme for the application.
 pub fn custom_theme() -> iced::theme::Custom {
     iced::theme::Custom::new(Palette {
         background: iced::Color::BLACK,

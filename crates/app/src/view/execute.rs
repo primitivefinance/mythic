@@ -3,15 +3,32 @@
 use datatypes::units::address_to_string;
 use iced::{widget::progress_bar, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
-use user::contacts::ContactList;
+use model::contacts::ContactList;
 
 use super::{
-    components::{button::route_button_style, tables::*},
+    components::button::route_button_style,
     execution::form::TransactionSteps,
-    screens::execution::{form::FormMessage, processing::StorageDiffs},
+    controller::execution::{form::FormMessage, processing::StorageDiffs},
     text, Column, Element, Message, *,
 };
 
+/// `execution_layout` is a function that creates a layout for the execution of transactions.
+///
+/// # Arguments
+///
+/// * `form` - A reference to the form object that contains the transaction details.
+/// * `from_list` - A reference to the list of contacts from which the transaction can be made.
+/// * `to_list` - A reference to the list of contacts to which the transaction can be made.
+/// * `target_list` - A reference to the list of contacts that can be targeted by the transaction.
+/// * `sim_results` - An optional parameter that contains the results of the simulation of the transaction.
+/// * `execute_results` - An optional parameter that contains the results of the execution of the transaction.
+///
+/// # Returns
+///
+/// This function returns an Element that represents the layout of the execution of transactions.
+///
+/// The layout is a column that contains the form view. The column fills the maximum window container space,
+/// has a spacing and padding of `Sizes::Xl`, and has a height and width that fill the available space.
 pub fn execution_layout<'a>(
     form: &execution::form::Form,
     from_list: &ContactList,
@@ -20,7 +37,6 @@ pub fn execution_layout<'a>(
     sim_results: Option<StorageDiffs>,
     execute_results: Option<StorageDiffs>,
 ) -> Element<'a, Message> {
-    // Fills the max window container space right now, which is pretty good.
     Column::new()
         .push(form.view(
             from_list,
