@@ -11,6 +11,8 @@ use crate::{
 
 pub mod portfolio_view;
 pub mod sidebar;
+// TODO: execution is not complete
+// pub mod execute;
 
 /// All controllers emit View messages. These get drilled down to the original
 /// controller that emitted them.

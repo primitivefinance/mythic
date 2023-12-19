@@ -177,6 +177,7 @@ mod test {
             .arg("--gas-limit")
             .arg("20000000")
             .chain_id(31337_u64)
+            .block_time(1u64)
             .spawn();
 
         Ok(anvil)
@@ -232,12 +233,7 @@ mod test {
             .gas(50_000)
             .chain_id(chain_id)
             .into();
-        // let mut tx = TypedTransaction::default();
-        // tx.set_to(to_ethers_address(alice_wallet.address()));
-        // tx.set_value(ethers::types::U256::from(100_u64));
-        // tx.set_from(to_ethers_address(wallet.address()));
-        // tx.set_nonce(ethers::types::U256::zero());
-        // tx.set_gas(ethers::types::U256::from(1_000_000_u64));
+
 
         let chain_id = ethers_wallet.chain_id();
         match tx.chain_id() {
