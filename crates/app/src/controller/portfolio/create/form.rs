@@ -118,9 +118,6 @@ impl Form {
             self.ticker.clone().unwrap_or_default().to_uppercase(),
             assets,
         );
-
-        // todo: save portfolio in user profile?
-
         Command::none()
     }
 
@@ -176,6 +173,7 @@ impl State for Form {
             }
             Message::AssetBalanceChanged(index, balance) => self.assets[index].balance = balance,
             Message::Submit => return self.submit().map(|x| x),
+            // should we save here instead?
         }
 
         Command::none()
