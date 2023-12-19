@@ -223,8 +223,6 @@ impl MonolithicView {
         logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
-        // TODO: do we need this?
-        _on_input: impl Fn(Option<String>) -> Message + 'static,
     ) -> Container<'a, Message>
     where
         Message: 'static + Default + Clone,

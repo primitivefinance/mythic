@@ -302,7 +302,6 @@ impl State for Monolithic {
             logos,
             Some(Message::StartAllocate),
             Message::SelectPosition,
-            |x| Message::Form(FormMessage::Amount(x)),
         ));
 
         if let Some(address) = self.view_position {

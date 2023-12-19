@@ -36,6 +36,7 @@ struct Args {
 
     #[clap(long, global = true)]
     /// The dev field indicates whether the application is running in development mode.
+    /// The dev flag will show metrics on performance in the UI that can be helpful for debugging.
     dev: bool,
 }
 

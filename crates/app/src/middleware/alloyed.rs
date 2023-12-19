@@ -174,7 +174,6 @@ mod test {
             .arg("--gas-limit")
             .arg("20000000")
             .chain_id(31337_u64)
-            .block_time(1u64)
             .spawn();
 
         Ok(anvil)
