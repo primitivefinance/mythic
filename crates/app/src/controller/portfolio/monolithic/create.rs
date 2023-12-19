@@ -10,7 +10,7 @@ use crate::{
         select::excalibur_select,
         system::{
             ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
-            ExcaliburInputBuilder, ExcaliburText,
+            ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
         },
     },
     controller::portfolio::dashboard::stages::review::EnumList,
@@ -420,12 +420,7 @@ impl FormView {
                                             left: Sizes::Md.into(),
                                             right: Sizes::Md.into(),
                                         })
-                                        .push(
-                                            label(icon_to_char(Icon::Info))
-                                                .caption()
-                                                .secondary()
-                                                .icon()
-                                                .build(),
+                                        .push(ExcaliburTooltip::new().caption().secondary().padding(Sizes::Sm).info().build( "Liquidity types affects the price range of the liquidity."),
                                         ),
                                 )
                                 .width(Length::Fill),
