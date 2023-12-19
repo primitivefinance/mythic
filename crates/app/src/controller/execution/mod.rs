@@ -100,13 +100,13 @@ impl Execution {
     /// Seals the unsealed transaction and begins the simulation process.
     #[tracing::instrument(skip(self))]
     fn handle_simulate(&mut self) -> Command<Message> {
-        // todo: fix this
-        let from = self.form.fields.from.clone();
-        let target = self.form.fields.target.clone().unwrap();
+        // todo: fix this Do you mean not deal with unwraps?
+        let from = self.form.fields.from.clone()?;
+        let target = self.form.fields.target.clone()?;
         let value = target.parse::<Address>().unwrap();
 
         // todo: why is this happening here?
-        self.processing.unsealed.from = Some(from.unwrap().parse::<Address>().unwrap());
+        self.processing.unsealed.from = Some(from.parse::<Address>().unwrap());
         self.processing.unsealed.target = value;
 
         let contact = self.storage.profile.contacts.find(&value);

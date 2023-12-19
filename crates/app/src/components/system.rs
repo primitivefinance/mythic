@@ -438,11 +438,8 @@ impl ExcaliburText {
 
     /// Formats the text based on float value.
     pub fn quantitative(self) -> Self {
-        // todo: this is probably very dangerous!
         let value = self.value.parse::<f64>().unwrap_or(0.0);
-
         let (value, color) = format_number(value);
-
         Self {
             value,
             color: ExcaliburColor::Quantitative(color),
