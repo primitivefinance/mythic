@@ -301,9 +301,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let protocol = DFMM::new(protocol_address, client.clone());
         tracing::debug!("Fetching historical tx!");
 
-        // TODO: unused logs
-        let _logs = protocol.event::<InitFilter>().query().await?;
-
         let create_pos_filter = protocol
             .init_filter()
             .filter
@@ -725,8 +722,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_external_price(
         &self,
         client: Arc<Client>,
-        // TODO: unused token address
-        _token_address: AlloyAddress,
     ) -> Result<AlloyU256> {
         let external_exchange = self
             .raw_external_exchange_address
@@ -757,10 +752,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<Client>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        // TODO: unused protocol address
-        let _protocol = self
-            .raw_protocol_address
-            .ok_or(Error::msg("Protocol address not set"))?;
         let protocol = self.protocol(client.clone()).await?;
         let result = protocol.get_reserves_and_liquidity().await;
         let (reserve_x, reserve_y, liquidity) = match result {
@@ -777,10 +768,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
-        // TODO: unused protocol address
-        let _protocol = self
-            .raw_protocol_address
-            .ok_or(Error::msg("Protocol address not set"))?;
         let protocol = self.protocol(client.clone()).await?;
         let internal_price = protocol.internal_price().await;
         let internal_price = match internal_price {
@@ -799,10 +786,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<Client>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        // TODO: unused strategy address
-        let _strategy = self
-            .raw_strategy_address
-            .ok_or(Error::msg("Strategy address not set"))?;
         let strategy = self.strategy(client.clone()).await?;
         let (strike_price, volatility, time_remaining) = strategy.get_params().await?;
         let strike_price = from_ethers_u256(strike_price);
@@ -830,17 +813,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    // TODO: Waylon fix this, essentially the price function in the lex just gives in terms of 1 but we should have it get both. 
     async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
-        let asset_token = self
-            .raw_asset_token
-            .ok_or(Error::msg("Asset token not set"))?;
-        // TODO: unused quote token
-        let _quote_token = self
-            .raw_quote_token
-            .ok_or(Error::msg("Quote token not set"))?;
-
         let asset_price = self
-            .fetch_external_price(client.clone(), asset_token)
+            .fetch_external_price(client.clone())
             .await?;
         // todo: fix
         let quote_price = ALLOY_WAD;

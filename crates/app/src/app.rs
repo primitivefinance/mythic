@@ -508,6 +508,10 @@ pub struct AppClock {
     pub updates: Vec<Update>,
 }
 
+/// The `Update` struct is used to track the time and duration of updates in the application.
+/// It contains two public fields: `time` and `duration`.
+/// `time` is a `std::time::Instant` that marks the time of the update.
+/// `duration` is a `std::time::Duration` that represents the duration of the update.
 #[derive(Debug)]
 pub struct Update {
     pub time: std::time::Instant,
