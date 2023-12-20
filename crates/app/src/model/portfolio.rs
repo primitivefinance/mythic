@@ -719,10 +719,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.fetch_balance_of(client, quote_token, protocol).await
     }
 
-    async fn fetch_external_price(
-        &self,
-        client: Arc<Client>,
-    ) -> Result<AlloyU256> {
+    async fn fetch_external_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let external_exchange = self
             .raw_external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
@@ -813,11 +810,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    // TODO: Waylon fix this, essentially the price function in the lex just gives in terms of 1 but we should have it get both. 
+    // TODO: Waylon fix this, essentially the price function in the lex just gives in terms of 1 but we should have it get both.
     async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
-        let asset_price = self
-            .fetch_external_price(client.clone())
-            .await?;
+        let asset_price = self.fetch_external_price(client.clone()).await?;
         // todo: fix
         let quote_price = ALLOY_WAD;
 

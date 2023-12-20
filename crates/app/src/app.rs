@@ -206,7 +206,7 @@ impl App {
         )
     }
 
-    /// This function is responsible for loading the sidebar and the default screen. 
+    /// This function is responsible for loading the sidebar and the default screen.
     /// It is called when a user starts the application, after the new() function.
     pub fn load(&mut self) -> Command<Message> {
         // Load the sidebar and the current window.
@@ -449,7 +449,8 @@ impl App {
         let rpcs = model.user.rpcs.clone();
         Command::perform(async {}, move |_| {
             view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
-        }).map(|x| x.into())
+        })
+        .map(|x| x.into())
     }
 
     /// This function is responsible for switching between different windows in the application.

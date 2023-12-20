@@ -196,7 +196,6 @@ impl Page {
         (icon, name, Route::Page(*self), *self == *active)
     }
 
-
     pub fn tabs(active: &Page) -> Vec<PageTab> {
         let all = vec![
             Page::Portfolio.tab(active),

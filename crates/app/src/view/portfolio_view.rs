@@ -336,7 +336,7 @@ impl DataView {
     }
 
     /// Creates a layout for the portfolio metrics. It takes in various parameters such as
-    /// the external price, external and internal AUM, portfolio health, and sync block. 
+    /// the external price, external and internal AUM, portfolio health, and sync block.
     /// It returns a row with the portfolio metrics layout.
     pub fn portfolio_metrics_layout<'a, Message>(
         &'a self,

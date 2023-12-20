@@ -41,7 +41,6 @@ use loader::Loader;
 use model::Model;
 use styles::*;
 
-
 /// The MVP struct represents the Model-View-Presenter pattern used in this application.
 /// It contains the state of the application and a tracer for debugging.
 /// The state can be either the application itself or a loader.

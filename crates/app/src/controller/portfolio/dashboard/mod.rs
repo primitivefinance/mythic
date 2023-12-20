@@ -92,10 +92,7 @@ impl Dashboard {
     /// In the load function, the presenter can be updated with the model.
     /// Since this happens in `load` instead of `new`, there's no lag when
     /// opening the page.
-    pub fn new(
-        client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
-        model: Model,
-    ) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         let presenter = PortfolioPresenter::default();
         let renderer = DataView;
 
@@ -237,12 +234,12 @@ impl State for Dashboard {
 
         // todo: does this even work for the children components?
 
-        //  AFAIK Child components can indirectly cause updates in parent components 
-        // through messages. When a child component generates a message (usually as a 
-        // result of user interaction), this message is propagated up to the parent component. 
+        //  AFAIK Child components can indirectly cause updates in parent components
+        // through messages. When a child component generates a message (usually as a
+        // result of user interaction), this message is propagated up to the parent component.
         // The parent component can then handle this message in its update method and change its state accordingly.
-        // it can indirectly cause the parent to change its own state by sending it a message. 
-        
+        // it can indirectly cause the parent to change its own state by sending it a message.
+
         // Loads the staging area, which enters the first stage.
         commands.push(self.stage.load().map(|x| x.into()));
 
