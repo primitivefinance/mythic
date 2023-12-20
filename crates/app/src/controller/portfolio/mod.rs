@@ -112,24 +112,6 @@ impl State for PortfolioRoot {
                     .create
                     .update(message)
                     .map(|x| Message::Create(x).into()),
-                Message::Dashboard(dashboard::Message::Refetch) => {
-                    let mut commands = vec![];
-
-                    // todo: very clunky way to push the sync model upstream...
-                    commands.push(
-                        Command::perform(async {}, |_| {
-                            view::Message::Portfolio(Message::SyncModel)
-                        })
-                        .map(Self::AppMessage::View),
-                    );
-                    commands.push(
-                        self.dashboard
-                            .update(dashboard::Message::Refetch)
-                            .map(|x| Message::Dashboard(x).into()),
-                    );
-
-                    Command::batch(commands)
-                }
                 Message::Monolithic(monolithic::Message::SyncModel(_block)) => {
                     Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
                         .map(Self::AppMessage::View)

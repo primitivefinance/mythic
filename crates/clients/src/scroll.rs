@@ -28,7 +28,6 @@ use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
 use bindings::{coin::Coin, erc20::TransferCall};
 use datatypes::units::address_to_string;
 use ethers::{
-    abi::Tokenize,
     types::{transaction::eip2718::TypedTransaction, Address},
     utils::parse_ether,
 };
