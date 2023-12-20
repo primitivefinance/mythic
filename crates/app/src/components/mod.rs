@@ -120,15 +120,14 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
 pub fn labeled_input<'a, Message>(
     text: String,
     value: Option<String>,
-    _placeholder: String,
+    placeholder: String,
     on_change: impl Fn(Option<String>) -> Message + 'static,
 ) -> Column<'a, Message>
 where
     Message: 'static,
 {
     let title = label(text).secondary().build();
-    // todo: use placeholder
-    let input = create_input_component(value, on_change);
+    let input = create_input_component(value, on_change, placeholder);
 
     Column::new().push(title).push(input).spacing(Sizes::Md)
 }
