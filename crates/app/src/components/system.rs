@@ -1892,12 +1892,12 @@ impl ExcaliburTooltip {
     }
 
     pub fn caption(mut self) -> Self {
-        self.text_size = Some(Typography::Caption.into());
+        self.text_size = Some(Typography::Caption);
         self
     }
 
     pub fn caption2(mut self) -> Self {
-        self.text_size = Some(Typography::Caption2.into());
+        self.text_size = Some(Typography::Caption2);
         self
     }
 
