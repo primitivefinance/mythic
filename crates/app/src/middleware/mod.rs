@@ -317,8 +317,6 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     }
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
-        // TODO: Unused client
-        let _client = self.client().unwrap().clone();
         let protocol = self.protocol()?;
         let (balance_x, balance_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
         let internal_price = protocol.get_internal_price().await?;
@@ -370,11 +368,7 @@ mod tests {
         let sigma = 1.0;
         let tau = 1.0;
         let price = 1.0;
-
         let dollars = 1.0;
-
-        // TODO: Unused
-        let _x = get_deposits_given_price(price, dollars, strike, sigma, tau);
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -417,16 +411,6 @@ mod tests {
             alice_address,
             ethers::types::U256::from(1_000_000_000_000_000_000u128),
         );
-
-        // do the tx
-        // TODO: Unused
-        let _tx = client
-            .anvil_client
-            .clone()
-            .unwrap()
-            .send_transaction(pay_tx, None)
-            .await?
-            .await?;
 
         let balance = client
             .client()

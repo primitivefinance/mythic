@@ -328,10 +328,6 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
                 _ => args,
             };
 
-            // todo: fix arg encoding so we can handle zero arg methods
-
-            let _tokenized = args.clone().into_tokens();
-
             if method.contains("transfer") {
                 let call = TransferCall {
                     to: args[0].clone().parse::<Address>().unwrap(),
@@ -347,18 +343,6 @@ impl TryFrom<UnsealedTransaction> for TypedTransaction {
 
                 req.data = Some(data);
             }
-
-            // todo: this is bad, fix!
-            // let tuple = if args.len() == 2 {
-            // Some((args[0].clone(), args[1].clone()))
-            // } else {
-            // None
-            // };
-            // let data = instance
-            // .encode(method.as_str(), tuple.unwrap_or(()))
-            // .unwrap();
-            //
-            // req.data = Some(data);
         } else {
             return Err(anyhow::anyhow!("No method specified in payload."));
         }
@@ -501,13 +485,10 @@ mod tests {
             .arguments(arguments)
             .seal();
 
-        // Update the forker with the desired block.
-        // todo: move this logic into simulate?
-        let block_number = 1_u64;
-        let forker = forker.with_block_number(block_number);
+        let forker = forker.with_block_number(1_u64);
 
         // Simulate the transaction.
-        scroll.simulate(&forker, None).await?;
+        scroll.simulate(&forker, Some(1_u64)).await?;
 
         // Execute the transaction.
         scroll.execute(&forker, None).await?;

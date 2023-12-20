@@ -32,6 +32,8 @@ pub enum Message {
     AllocateResult(anyhow::Result<Option<TransactionReceipt>, Arc<anyhow::Error>>),
 
     // todo: do we need these on all pages?? maybe just reference the  model.
+    // I think we should use this pattern called the translator pattern:
+    // https://medium.com/@alex.lew/the-translator-pattern-a-model-for-child-to-parent-communication-in-elm-f4bfaa1d3f98
     UpdateDataModel(Result<Model, Arc<anyhow::Error>>),
     // Trigger a re-sync
     SyncModel(Block<ethers::types::H256>),
