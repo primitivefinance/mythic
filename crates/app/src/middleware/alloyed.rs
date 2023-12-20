@@ -337,8 +337,6 @@ mod test {
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn excalibur_middleware_sign_msg() -> anyhow::Result<()> {
         let anvil = setup().await?;
-        // TODO: Do we need this?
-        let _http_endpoint = anvil.endpoint();
 
         let anvil_key = anvil.keys().first().expect("no keys in anvil").clone();
 

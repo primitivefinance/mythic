@@ -18,7 +18,6 @@ use serde::{Deserialize, Serialize};
 pub(crate) struct Artifacts {
     #[serde(rename = "storageLayout")]
     pub(crate) storage_layout: StorageLayout,
-    // TODO: Add more here if we need them.
 }
 
 #[derive(Debug, Deserialize, Serialize)]
