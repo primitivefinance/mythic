@@ -68,15 +68,21 @@ impl PortfolioRoot {
     }
     /// This generates a command that will sync the model with the view.
     /// Used as a helper function to clean up the update function before batching commands
-    fn sync_model_command(&self) -> Command<<controller::portfolio::PortfolioRoot as controller::State>::AppMessage> {
+    fn sync_model_command(
+        &self,
+    ) -> Command<<controller::portfolio::PortfolioRoot as controller::State>::AppMessage> {
         Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
             .map(<controller::portfolio::PortfolioRoot as controller::State>::AppMessage::View)
     }
     /// This generates a command that will refetch the model.
     /// Used as a helper function to clean up the update function before batching commands
-    fn refetch_command(&self) -> Command<<controller::portfolio::PortfolioRoot as controller::State>::AppMessage> {
-        Command::perform(async {}, |_| view::Message::Portfolio(Message::Dashboard(dashboard::Message::Refetch)))
-            .map(<controller::portfolio::PortfolioRoot as controller::State>::AppMessage::View)
+    fn refetch_command(
+        &self,
+    ) -> Command<<controller::portfolio::PortfolioRoot as controller::State>::AppMessage> {
+        Command::perform(async {}, |_| {
+            view::Message::Portfolio(Message::Dashboard(dashboard::Message::Refetch))
+        })
+        .map(<controller::portfolio::PortfolioRoot as controller::State>::AppMessage::View)
     }
 }
 
@@ -107,10 +113,7 @@ impl State for PortfolioRoot {
                     .update(message)
                     .map(|x| Message::Create(x).into()),
                 Message::Dashboard(dashboard::Message::Refetch) => {
-                    let commands = vec![
-                        self.sync_model_command(),
-                        self.refetch_command(),
-                    ];
+                    let commands = vec![self.sync_model_command(), self.refetch_command()];
 
                     Command::batch(commands)
                 }
@@ -163,7 +166,7 @@ impl State for PortfolioRoot {
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
-        // todo: fix the subscriptions! 
+        // todo: fix the subscriptions!
         // Need to understand how they are broken
         // need subscriptions to fetch new blocks, new price path, etc.
         Subscription::batch(vec![

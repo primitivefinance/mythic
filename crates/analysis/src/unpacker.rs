@@ -6,9 +6,9 @@ use tokio::{fs, sync::mpsc, task};
 use super::*;
 
 /// `BatchData` is a struct that holds the simulation data and any errors that occurred during the simulation.
-/// 
+///
 /// # Fields
-/// 
+///
 /// * `data` - A vector of `SimulationData` that holds the data from the simulation.
 /// * `errors` - A `Value` that holds any errors that occurred during the simulation.
 pub struct BatchData {
