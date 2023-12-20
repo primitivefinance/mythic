@@ -192,6 +192,7 @@ impl Model {
         self.user.update_portfolio(&portfolio)
     }
 
+    // this happens like a million times a second
     #[tracing::instrument(skip(self, client), level = "debug")]
     pub async fn update_data_model(&mut self, client: Arc<Provider<Ws>>) -> anyhow::Result<()> {
         tracing::info!(

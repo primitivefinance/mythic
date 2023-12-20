@@ -284,6 +284,7 @@ pub fn run(dev_mode: bool) -> iced::Result {
     settings.exit_on_close_request = false;
     settings.id = Some("excalibur-app".to_string());
     settings.window.size = (1280, 832);
+    // im kinda confused about this, what logic actually runs, i can't really follow form this point on
     MVP::run(settings)
 }
 

@@ -812,6 +812,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     // TODO: Waylon fix this, essentially the price function in the lex just gives in terms of 1 but we should have it get both.
     async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
+        // we would haave to do this in the `fetch_external_price` function
         let asset_price = self.fetch_external_price(client.clone()).await?;
         // todo: fix
         let quote_price = ALLOY_WAD;

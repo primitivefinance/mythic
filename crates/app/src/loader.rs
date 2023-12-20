@@ -81,6 +81,7 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
 /// It then logs the loaded model's user name and file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_user_data() -> anyhow::Result<Model> {
+    // first log we see on start up comes from here
     let model = Model::load(None);
     let model = match model {
         Ok(model) => model,
