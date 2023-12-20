@@ -6,6 +6,7 @@ import "../solvers/G3mSolver.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../Lex.sol";
+import "forge-std/console2.sol";
 
 contract G3mTest is Test {
     using stdStorage for StdStorage;
@@ -47,7 +48,7 @@ contract G3mTest is Test {
         _;
     }
 
-    function test_dfmm_swap_x_in() public basic {
+    function test_g3m_swap_x_in() public basic {
         uint256 amountIn = 0.1 ether;
         bool swapXIn = true;
 
@@ -60,7 +61,7 @@ contract G3mTest is Test {
         dfmm.swap(payload);
     }
 
-    function test_dfmm_swap_y_in() public basic {
+    function test_g3m_swap_y_in() public basic {
         uint256 amountIn = 0.1 ether;
         bool swapXIn = false;
 

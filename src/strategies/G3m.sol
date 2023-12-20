@@ -70,7 +70,7 @@ contract G3m is IStrategy {
     {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction({ rx: rx, ry: ry, L: L, params: dynamicSlot() });
+        return tradingFunction(rx, ry, L, dynamicSlot());
     }
 
     /// @dev Decodes and validates pool initialization parameters.
@@ -93,8 +93,7 @@ contract G3m is IStrategy {
 
         _syncDynamicSlot();
 
-        invariant =
-            tradingFunction({ rx: rx, ry: ry, L: L, params: dynamicSlot() });
+        invariant = tradingFunction(rx, ry, L, dynamicSlot());
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -136,12 +135,7 @@ contract G3m is IStrategy {
 
         liquidityDelta = int256(nextL) - int256(startL);
 
-        invariant = tradingFunction({
-            rx: nextRx,
-            ry: nextRy,
-            L: nextL,
-            params: dynamicSlot()
-        });
+        invariant = tradingFunction(nextRx, nextRy, nextL, dynamicSlot());
 
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
 

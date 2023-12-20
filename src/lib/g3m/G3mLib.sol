@@ -19,10 +19,10 @@ function tradingFunction(
     uint256 L,
     G3mParameters memory params
 ) pure returns (int256) {
-    int256 a = FixedPointMathLib.powWad(int256(rx), int256(params.wx));
-    int256 b = FixedPointMathLib.powWad(int256(ry), int256(params.wy));
+    uint256 a = uint256(int256(rx).powWad(int256(params.wx)));
+    uint256 b = uint256(int256(ry).powWad(int256(params.wy)));
 
-    return a + b - int256(L);
+    return int256(a.mulWadUp(b)) - int256(L);
 }
 
 /// @dev Computes the approximated spot price given current reserves and liquidity.

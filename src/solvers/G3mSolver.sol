@@ -44,38 +44,24 @@ contract G3mSolver {
 
     function getNextLiquidity(
         uint256 rx,
-        uint256 ry,
-        uint256 L
+        uint256 ry
     ) public view returns (uint256) {
-        bytes memory data = abi.encode(rx, ry, L);
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
-        return computeNextLiquidity(
-            rx, ry, swapConstant, L, StrategyLike(strategy).dynamicSlot()
-        );
+        return
+            computeNextLiquidity(rx, ry, StrategyLike(strategy).dynamicSlot());
     }
 
     function getNextReserveX(
         uint256 ry,
         uint256 L
     ) public view returns (uint256) {
-        (uint256 rx,,) = StrategyLike(strategy).getReservesAndLiquidity();
-        bytes memory data = abi.encode(rx, ry, L);
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
-        return computeNextRx(
-            ry, L, swapConstant, StrategyLike(strategy).dynamicSlot()
-        );
+        return computeNextRx(ry, L, StrategyLike(strategy).dynamicSlot());
     }
 
     function getNextReserveY(
         uint256 rx,
         uint256 L
     ) public view returns (uint256) {
-        (, uint256 ry,) = StrategyLike(strategy).getReservesAndLiquidity();
-        bytes memory data = abi.encode(rx, ry, L);
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
-        return computeNextRy(
-            rx, L, swapConstant, StrategyLike(strategy).dynamicSlot()
-        );
+        return computeNextRy(rx, L, StrategyLike(strategy).dynamicSlot());
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -88,24 +74,31 @@ contract G3mSolver {
         (startReserves.rx, startReserves.ry, startReserves.L) =
             StrategyLike(strategy).getReservesAndLiquidity();
         G3mParameters memory poolParams = StrategyLike(strategy).dynamicSlot();
+        console2.log("startRx", startReserves.rx);
+        console2.log("startRy", startReserves.ry);
+        console2.log("startL", startReserves.L);
 
         uint256 amountOut;
         {
             uint256 swapFee = StrategyLike(strategy).swapFee();
-            uint256 startComputedL = getNextLiquidity(
-                startReserves.rx, startReserves.ry, startReserves.L
-            );
+            uint256 startComputedL =
+                getNextLiquidity(startReserves.rx, startReserves.ry);
 
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(swapFee);
-                uint256 deltaL =
-                    fees.mulWadUp(startComputedL).divWadUp(startReserves.rx);
+                uint256 weightedPrice = uint256(
+                    int256(startReserves.ry.divWadUp(startReserves.rx)).powWad(
+                        int256(poolParams.wy)
+                    )
+                );
+                uint256 deltaL = fees.mulWadUp(weightedPrice);
                 deltaL += 1;
 
                 endReserves.rx = startReserves.rx + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.ry = getNextReserveY(endReserves.rx, endReserves.L);
+                console2.log("endRy", endReserves.rx);
                 endReserves.ry += 1;
 
                 require(
@@ -115,14 +108,19 @@ contract G3mSolver {
                 amountOut = startReserves.ry - endReserves.ry;
             } else {
                 uint256 fees = amountIn.mulWadUp(swapFee);
-                uint256 deltaL =
-                    fees.mulWadUp(startComputedL).divWadUp(startReserves.ry);
+                uint256 weightedPrice = uint256(
+                    int256(startReserves.rx.divWadUp(startReserves.ry)).powWad(
+                        int256(poolParams.wx)
+                    )
+                );
+                uint256 deltaL = fees.mulWadUp(weightedPrice);
                 deltaL += 1;
 
                 endReserves.ry = startReserves.ry + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.rx = getNextReserveX(endReserves.ry, endReserves.L);
+                console2.log("endRx", endReserves.rx);
                 endReserves.rx += 1;
 
                 require(
