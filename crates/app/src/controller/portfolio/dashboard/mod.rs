@@ -42,9 +42,6 @@ pub enum Message {
     UpdateDataView,
     /// A 1s subscription.
     Tick,
-    /// todo: remove
-    /// Why do we need to remove this?
-    Refetch,
 }
 
 impl MessageWrapperView for Message {
@@ -130,10 +127,10 @@ impl Dashboard {
         self.client.is_some()
     }
 
-    #[tracing::instrument(skip(self), level = "debug")]
-    pub fn update_data(&self) -> Command<Message> {
-        Command::perform(async {}, |_| Message::Refetch)
-    }
+    // #[tracing::instrument(skip(self), level = "debug")]
+    // pub fn update_data(&self) -> Command<Message> {
+    //     Command::perform(async {}, |_| Message::Refetch)
+    // }
 
     #[tracing::instrument(skip(self), level = "debug")]
     pub fn adjusted_portfolio_from_table(&self) -> Option<Portfolio> {
@@ -234,7 +231,7 @@ impl State for Dashboard {
 
         // todo: does this even work for the children components?
 
-        //  AFAIK Child components can indirectly cause updates in parent components
+        // AFAIK Child components can indirectly cause updates in parent components
         // through messages. When a child component generates a message (usually as a
         // result of user interaction), this message is propagated up to the parent component.
         // The parent component can then handle this message in its update method and change its state accordingly.
@@ -334,9 +331,6 @@ impl State for Dashboard {
                         |_| Message::Empty,
                     ));
                 }
-
-                commands.push(self.update_data());
-
                 return Command::batch(commands);
             }
             // todo: this might be a little slow, since it gets the adjusted portfolio.
@@ -415,15 +409,6 @@ impl State for Dashboard {
                     // todo: update current position table with new strategy
                     // position.
                 }
-
-                // Catch the FetchPositionResult and call update_data.
-                if let stages::Message::Execute(stages::execute::Message::FetchPositionResult(_)) =
-                    stage.clone()
-                {
-                    tracing::info!("Caught fetch position, updating data model.");
-                    commands.push(self.update_data());
-                }
-
                 commands.push(self.stage.update(stage).map(|x| x.into()));
 
                 return Command::batch(commands);
@@ -463,8 +448,7 @@ impl State for Dashboard {
                 label("Positions").highlight(),
                 vec![ExcaliburButton::new()
                 .transparent()
-                .build(label("Refetch").caption().secondary().build())
-                .on_press(Message::Refetch).into()], // TODO: since we want to remove the refetch should we remove this whole
+                .build(label("Refetch").caption().secondary().build()).into()],
                 table_builder,
                 table_cells,
                 self.presenter.get_last_sync_timestamp(),
