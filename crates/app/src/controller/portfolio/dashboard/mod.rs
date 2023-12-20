@@ -246,6 +246,7 @@ impl State for Dashboard {
         Command::batch(commands)
     }
 
+    // @alex going over this together would be helpful for me
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Load(portfolio) => {
