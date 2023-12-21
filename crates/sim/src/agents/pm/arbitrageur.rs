@@ -351,7 +351,7 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
@@ -391,8 +391,8 @@ impl Agent for Arbitrageur {
                     .get_reserves_and_liquidity()
                     .call()
                     .await?;
-                info!("arby_balance after: {:?}", arby_balance);
-                info!(
+                trace!("arby_balance after: {:?}", arby_balance);
+                trace!(
                     "reserve_x: {:?} reserve_y: {:?} liquidity: {:?}",
                     reserve_x, reserve_y, liquidity
                 );
@@ -405,7 +405,7 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
@@ -413,8 +413,8 @@ impl Agent for Arbitrageur {
 
                 let internal_price = self.protocol_client.get_internal_price().await?;
                 let internal_price = from_ethers_u256(internal_price);
-                info!("Price[LEX]: {:?}", format_ether(target_price));
-                info!("Price[DEX]: {:?}", format_ether(internal_price));
+                debug!("Price[LEX]: {:?}", format_ether(target_price));
+                debug!("Price[DEX]: {:?}", format_ether(internal_price));
                 debug!("=== End Loop ===");
             }
             Swap::None => {

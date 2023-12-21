@@ -47,7 +47,6 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
 
     // Run the sims, returning snapshot dbs to the manager's `instances`.
     let result = rt.block_on(async move {
-        let config = config;
         let mut manager = engine::ArbiterInstanceManager::new();
         manager.config_builder.config = config;
         let scenario = scenarios::DFMMScenario;
