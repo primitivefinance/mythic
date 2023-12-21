@@ -1,1 +1,0 @@
-# Dynamic Function Market Makers

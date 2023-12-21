@@ -13,6 +13,14 @@ Interacting with smart contracts that are deployed on Ethereum and other EVM blo
 ### Solution
 Excalibur is an Ethereum Application Client which vertically integrates all components of the EVM tech stack into one package. This enables end users to directly interface with even the lowest parts of the stack, e.g. Ethereum nodes. It also empowers existing capabilities to be more performant, for example, transaction simulation, fetching blockchain data, and transaction execution.
 
+### Journal
+You will need to `cargo install mdbook` and `cargo install mdbook-katex` to be able to render the journal properly.
+To see the journal you can run from the root directory:
+```bash
+mdbook serve journal
+```
+and visit `localhost:3000` in your browser.
+
 ## Dependencies
 - [Anvil](https://github.com/foundry-rs/foundry) is installed and available in `$PATH`.
 - [Forge](https://github.com/foundry-rs/foundry) is installed and available in `$PATH`.

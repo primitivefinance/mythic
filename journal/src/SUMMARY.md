@@ -1,11 +1,11 @@
 # Summary
 
 - [Usage](./usage.md)
-- [Trading Functions](./trading_functions/index.md)
-    - [Dynamic Function Market Makers](./trading_functions/dynamic_function_market_makers.md)
-    - [Geometric Mean](./trading_functions/geometric_mean.md)
-    - [Log Normal](./trading_functions/log_normal.md)
-    - [Linear](./trading_functions/linear.md)
+- [Dynamic Function Market Makers](./dynamic_function_market_makers/index.md)
+    - [Notation and Terminology](./dynamic_function_market_makers/notation_and_terminology.md)
+    - [Geometric Mean](./dynamic_function_market_makers/geometric_mean.md)
+    - [Log Normal](./dynamic_function_market_makers/log_normal.md)
+    - [Linear](./dynamic_function_market_makers/linear.md)
 - [Strategies](./strategies/index.md)
     - [Dollar Cost Averaging](./strategies/dollar_cost_averaging.md)
     - [Volatility Targeting](./strategies/volatility_targeting.md)
