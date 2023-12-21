@@ -53,8 +53,8 @@ pub struct Loader {
     pub logo: PhiLogo,
 }
 
-/// This function attempts to load a user profile. If it fails, it creates a new default profile.
-/// It then logs the loaded profile's name and file path.
+/// This function attempts to load a user profile. If it fails, it creates a new
+/// default profile. It then logs the loaded profile's name and file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_profile() -> anyhow::Result<UserProfile> {
     let profile = UserProfile::load(None);
@@ -77,8 +77,9 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
     Ok(profile)
 }
 
-/// This function attempts to load user data into a model. If it fails, it creates a new default model.
-/// It then logs the loaded model's user name and file path.
+/// This function attempts to load user data into a model. If it fails, it
+/// creates a new default model. It then logs the loaded model's user name and
+/// file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_user_data() -> anyhow::Result<Model> {
     // first log we see on start up comes from here
@@ -102,8 +103,10 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     Ok(model)
 }
 
-/// This function loads a development client. It first logs the loading process, then creates a signer with the chain id of the client.
-/// It then gets the address of the signer and clones the client. It deploys the development client and returns it.
+/// This function loads a development client. It first logs the loading process,
+/// then creates a signer with the chain id of the client. It then gets the
+/// address of the signer and clones the client. It deploys the development
+/// client and returns it.
 #[tracing::instrument(skip(client), level = "trace")]
 pub async fn load_dev_client(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
@@ -330,7 +333,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
 
 /// Attempts to establish a new connection with the Ledger hardware wallet.
 /// If the connection is successful, it returns an instance of the LedgerClient.
-/// If the connection fails, it logs a warning, creates a new default ledger, and returns None.
+/// If the connection fails, it logs a warning, creates a new default ledger,
+/// and returns None.
 #[tracing::instrument(level = "debug")]
 pub async fn connect_ledger() -> Option<LedgerClient> {
     let ledger =
@@ -356,13 +360,16 @@ pub const DAGGER_SQUARE_FONT_BYTES: &[u8] =
     include_bytes!("../../../assets/fonts/DAGGERSQUARE.otf");
 
 impl Loader {
-    /// Creates a new Loader with the given flags and returns a tuple of the Loader and a Command.
-    /// The Command triggers the next step in the main application loop by emitting the Loaded message.
-    /// The Loader is initialized with a progress of 0.0, a feedback message of "Loading profile", and a logo.
-    /// The max_load_ticks is calculated as the product of max_load_seconds and ticks_per_s.
-    /// The function also attempts to connect to the server and load the icon and brand fonts.
+    /// Creates a new Loader with the given flags and returns a tuple of the
+    /// Loader and a Command. The Command triggers the next step in the main
+    /// application loop by emitting the Loaded message. The Loader is
+    /// initialized with a progress of 0.0, a feedback message of "Loading
+    /// profile", and a logo. The max_load_ticks is calculated as the
+    /// product of max_load_seconds and ticks_per_s. The function also
+    /// attempts to connect to the server and load the icon and brand fonts.
     /// If any of these operations fail, a LoadingFailed message is returned.
-    /// If all operations are successful, a tuple of the Loader and a Command is returned.
+    /// If all operations are successful, a tuple of the Loader and a Command is
+    /// returned.
     pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
@@ -410,15 +417,17 @@ impl Loader {
         )
     }
 
-    /// Takes in the application flags and returns a command to load the application.
-    /// The loading process is performed asynchronously.
+    /// Takes in the application flags and returns a command to load the
+    /// application. The loading process is performed asynchronously.
     fn load(&mut self, flags: super::Flags) -> Command<Message> {
         Command::perform(load_app(flags), Message::Ready)
     }
 
     /// Updates the state of the loader based on the received message.
-    /// This function handles different types of messages and updates the loader's state accordingly.
-    /// For example, it updates the progress of the loading process, handles connection status, and initiates the loading process.
+    /// This function handles different types of messages and updates the
+    /// loader's state accordingly. For example, it updates the progress of
+    /// the loading process, handles connection status, and initiates the
+    /// loading process.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         self.logo.cache.clear();
 
@@ -446,10 +455,12 @@ impl Loader {
         }
     }
 
-    /// Returns a string that represents the current progress of the loading process.
-    /// The progress is represented by different stages of the loading process.
-    /// The stages are: "Initiated loading procedure...", "Starting sandbox environment...",
-    /// "Connected. Deploying contracts in sandbox...", "Initializing sandbox state...", and "Launching Excalibur...".
+    /// Returns a string that represents the current progress of the loading
+    /// process. The progress is represented by different stages of the
+    /// loading process. The stages are: "Initiated loading procedure...",
+    /// "Starting sandbox environment...", "Connected. Deploying contracts
+    /// in sandbox...", "Initializing sandbox state...", and "Launching
+    /// Excalibur...".
     pub fn get_progress_feedback(&self) -> String {
         let s_curve_result = s_curve(self.progress);
         let progress = (s_curve_result * 4.0) as usize;
@@ -465,9 +476,10 @@ impl Loader {
 
     /// This function generates a view of the loading screen.
     /// It displays a progress bar that updates based on the loading progress.
-    /// It also displays a random symbol from a collection of Greek and currency symbols.
-    /// The symbol changes with each update of the progress bar.
-    /// The function also displays a feedback message that corresponds to the current stage of the loading process.
+    /// It also displays a random symbol from a collection of Greek and currency
+    /// symbols. The symbol changes with each update of the progress bar.
+    /// The function also displays a feedback message that corresponds to the
+    /// current stage of the loading process.
     pub fn view(&self) -> Element<Message> {
         let all_symbols = GREEK_SYMBOLS
             .iter()

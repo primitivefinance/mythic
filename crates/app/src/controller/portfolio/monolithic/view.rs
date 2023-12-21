@@ -1,8 +1,9 @@
+use std::env;
+
 use chrono::Utc;
 use datatypes::portfolio::position::{PositionLayer, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
-use std::env;
 
 use super::{inventory::Inventory, *};
 use crate::{

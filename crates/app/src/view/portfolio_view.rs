@@ -126,7 +126,8 @@ impl PortfolioPresenter {
 
     pub fn sync_portfolio_strategy_points(&mut self) {
         // Get the pois
-        // this does not update the model. it just gets the data from the model and turns it into a `ChartPoint` struct.
+        // this does not update the model. it just gets the data from the model and
+        // turns it into a `ChartPoint` struct.
         let data = self.model.portfolio.derive_portfolio_strategy_points();
         let data = match data {
             Ok(data) => data,
@@ -301,9 +302,11 @@ impl PortfolioPresenter {
 pub struct DataView;
 
 impl DataView {
-    /// Creates a layout for the portfolio metrics. It takes in various parameters such as
-    /// the strategy plot, strategy plot title, external price, external and internal AUM, portfolio health,
-    /// sync timestamp, and sync block. It returns a container with the portfolio metrics layout and chart layout.
+    /// Creates a layout for the portfolio metrics. It takes in various
+    /// parameters such as the strategy plot, strategy plot title, external
+    /// price, external and internal AUM, portfolio health, sync timestamp,
+    /// and sync block. It returns a container with the portfolio metrics layout
+    /// and chart layout.
     #[allow(clippy::too_many_arguments)]
     pub fn metrics_layout<'a, Message>(
         &'a self,
@@ -335,9 +338,10 @@ impl DataView {
             .padding(Sizes::Md)
     }
 
-    /// Creates a layout for the portfolio metrics. It takes in various parameters such as
-    /// the external price, external and internal AUM, portfolio health, and sync block.
-    /// It returns a row with the portfolio metrics layout.
+    /// Creates a layout for the portfolio metrics. It takes in various
+    /// parameters such as the external price, external and internal AUM,
+    /// portfolio health, and sync block. It returns a row with the
+    /// portfolio metrics layout.
     pub fn portfolio_metrics_layout<'a, Message>(
         &'a self,
         external_price: ExcaliburText,
@@ -366,8 +370,9 @@ impl DataView {
             )
     }
 
-    /// Creates a layout that includes a live chart and a greeting message for the user.
-    /// It takes in various parameters such as the live chart, user greeting and message, chart title, and sync timestamp.
+    /// Creates a layout that includes a live chart and a greeting message for
+    /// the user. It takes in various parameters such as the live chart,
+    /// user greeting and message, chart title, and sync timestamp.
     /// It returns a container with the layout.
     pub fn chart_and_greet_layout<'a, Message>(
         &'a self,
@@ -546,15 +551,21 @@ impl DataView {
     }
 
     /// Responsible for creating a table builder for the positions.
-    /// It takes a `Positions` object as input and returns a tuple of `ExcaliburTable` and a 2D vector of `CellBuilder`.
-    /// The `ExcaliburTable` is a custom table object that allows for the creation of a table with custom headers and cell data.
-    /// The 2D vector of `CellBuilder` represents the cell data for each row in the table.
+    /// It takes a `Positions` object as input and returns a tuple of
+    /// `ExcaliburTable` and a 2D vector of `CellBuilder`.
+    /// The `ExcaliburTable` is a custom table object that allows for the
+    /// creation of a table with custom headers and cell data. The 2D vector
+    /// of `CellBuilder` represents the cell data for each row in the table.
     ///
-    /// The function iterates over each position in the `Positions` object and extracts the asset symbol, cost, balance, and weight.
-    /// If all these values are present, they are formatted as strings and added to the cell data.
+    /// The function iterates over each position in the `Positions` object and
+    /// extracts the asset symbol, cost, balance, and weight. If all these
+    /// values are present, they are formatted as strings and added to the cell
+    /// data.
     ///
-    /// If no positions are present, an empty cell with a "No data" label is added to the cell data.
-    /// Finally, an `ExcaliburTable` is created with headers "Asset", "Price", "Balance", and "Weight", and the cell data is returned.
+    /// If no positions are present, an empty cell with a "No data" label is
+    /// added to the cell data. Finally, an `ExcaliburTable` is created with
+    /// headers "Asset", "Price", "Balance", and "Weight", and the cell data is
+    /// returned.
     pub fn get_positions_table_builder<Message>(
         &self,
         positions: Positions,

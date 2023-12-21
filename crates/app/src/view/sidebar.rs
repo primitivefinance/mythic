@@ -207,10 +207,12 @@ impl Page {
     }
 
     /// Generates the view for the sidebar navigation.
-    /// It creates a column of buttons, each representing a page in the application.
-    /// For each page, it creates a button with an icon, name, and a message that is sent when the button is pressed.
-    /// If the page is currently selected, the button is styled differently to indicate this.
-    /// The function returns an Element that can be displayed in the user interface.
+    /// It creates a column of buttons, each representing a page in the
+    /// application. For each page, it creates a button with an icon, name,
+    /// and a message that is sent when the button is pressed. If the page
+    /// is currently selected, the button is styled differently to indicate
+    /// this. The function returns an Element that can be displayed in the
+    /// user interface.
     pub fn view<'a>(&self) -> Element<'a, Route> {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::tabs(self) {

@@ -6,8 +6,9 @@ pub mod prepare;
 pub mod review;
 pub mod simulate;
 
-use super::{table::PositionDelta, *};
 use sim::engine::ArbiterInstanceManager;
+
+use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
 /// Weird? It works.

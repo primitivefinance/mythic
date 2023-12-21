@@ -67,23 +67,24 @@ impl PortfolioRoot {
         }
     }
     // This generates a command that will sync the model with the view.
-    // Used as a helper function to clean up the update function before batching commands
-    // fn sync_model_command(
+    // Used as a helper function to clean up the update function before batching
+    // commands fn sync_model_command(
     //     &self,
-    // ) -> Command<<controller::portfolio::PortfolioRoot as controller::State>::AppMessage> {
-    //     Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
-    //         .map(<controller::portfolio::PortfolioRoot as controller::State>::AppMessage::View)
-    // }
+    // ) -> Command<<controller::portfolio::PortfolioRoot as
+    // controller::State>::AppMessage> {     Command::perform(async {}, |_|
+    // view::Message::Portfolio(Message::SyncModel))
+    //         .map(<controller::portfolio::PortfolioRoot as
+    // controller::State>::AppMessage::View) }
     // This generates a command that will refetch the model.
-    // Used as a helper function to clean up the update function before batching commands
-    // fn refetch_command(
+    // Used as a helper function to clean up the update function before batching
+    // commands fn refetch_command(
     //     &self,
-    // ) -> Command<<controller::portfolio::PortfolioRoot as controller::State>::AppMessage> {
-    //     Command::perform(async {}, |_| {
+    // ) -> Command<<controller::portfolio::PortfolioRoot as
+    // controller::State>::AppMessage> {     Command::perform(async {}, |_| {
     //         view::Message::Portfolio(Message::Dashboard(dashboard::Message::Refetch))
     //     })
-    //     .map(<controller::portfolio::PortfolioRoot as controller::State>::AppMessage::View)
-    // }
+    //     .map(<controller::portfolio::PortfolioRoot as
+    // controller::State>::AppMessage::View) }
 }
 
 impl From<PortfolioRoot> for Screen {

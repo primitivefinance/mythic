@@ -218,8 +218,8 @@ impl State for Dashboard {
     type ViewMessage = Message;
 
     /// todo: how to handle different portfolio loads.
-    /// I think we would have to make a different command for each portfolio load.
-    /// then we can implement an abstraction over that to put in here.
+    /// I think we would have to make a different command for each portfolio
+    /// load. then we can implement an abstraction over that to put in here.
     fn load(&self) -> Command<Message> {
         let mut commands = vec![];
 
@@ -233,9 +233,10 @@ impl State for Dashboard {
 
         // AFAIK Child components can indirectly cause updates in parent components
         // through messages. When a child component generates a message (usually as a
-        // result of user interaction), this message is propagated up to the parent component.
-        // The parent component can then handle this message in its update method and change its state accordingly.
-        // it can indirectly cause the parent to change its own state by sending it a message.
+        // result of user interaction), this message is propagated up to the parent
+        // component. The parent component can then handle this message in its
+        // update method and change its state accordingly. it can indirectly
+        // cause the parent to change its own state by sending it a message.
 
         // Loads the staging area, which enters the first stage.
         commands.push(self.stage.load().map(|x| x.into()));

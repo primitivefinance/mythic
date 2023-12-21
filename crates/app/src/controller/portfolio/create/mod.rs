@@ -72,7 +72,8 @@ impl State for CreatePortfolio {
 
                 // todo: fetch balance + price?
                 // this adds the loaded coins into the form's list.
-                // in order to do this, we need to fetch the balance and price for each coin which afaik both need to be sync.
+                // in order to do this, we need to fetch the balance and price for each coin
+                // which afaik both need to be sync.
                 for token in self.coinlist.tokens.iter().cloned() {
                     self.form
                         .add_asset(form::Asset::new(token, Some(format!("{}", 20.0))));

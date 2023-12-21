@@ -7,7 +7,8 @@ use dotenv::dotenv;
 #[clap(version = env!("CARGO_PKG_VERSION"))]
 #[clap(about = "Simulation driven development.", long_about = None)]
 #[clap(author)]
-/// The Args struct is used to parse and store the command-line arguments passed to the `Excalibur` tool.
+/// The Args struct is used to parse and store the command-line arguments passed
+/// to the `Excalibur` tool.
 struct Args {
     /// Defines the subcommand to execute.
     #[command(subcommand)]
@@ -20,7 +21,8 @@ struct Args {
     verbose: Option<u8>,
 
     #[clap(long, global = true)]
-    /// The simulation field indicates whether the simulation module should be ran.
+    /// The simulation field indicates whether the simulation module should be
+    /// ran.
     simulation: bool,
 
     #[clap(long, global = true)]
@@ -35,8 +37,9 @@ struct Args {
     arbiter_core: bool,
 
     #[clap(long, global = true)]
-    /// The dev field indicates whether the application is running in development mode.
-    /// The dev flag will show metrics on performance in the UI that can be helpful for debugging.
+    /// The dev field indicates whether the application is running in
+    /// development mode. The dev flag will show metrics on performance in
+    /// the UI that can be helpful for debugging.
     dev: bool,
 }
 
