@@ -40,7 +40,7 @@ contract Lex {
         _;
     }
 
-    event PriceChange(uint256 price);
+    event PriceChange(uint256 price, uint256 timestamp);
     event Swap(
         address tokenIn,
         address tokenOut,
@@ -52,7 +52,7 @@ contract Lex {
     // Admin only function to set the price of x in terms of y
     function setPrice(uint256 _price) public onlyAdmin {
         price = _price;
-        emit PriceChange(price);
+        emit PriceChange(price, block.timestamp);
     }
 
     function swap(address tokenIn, uint256 amountIn) public {

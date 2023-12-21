@@ -103,6 +103,7 @@ contract AtomicV2 {
 
     event Profit(uint256 profit);
     event Loss(uint256 loss);
+    event Price(uint256 price, uint256 timestamp);
 
     address public liquidExchange;
     address public exchange;
@@ -226,6 +227,8 @@ contract AtomicV2 {
     }
 
     function lower_exchange_price(uint256 input) external {
+        uint256 price = StrategyLike(solver).internalPrice();
+        emit Price(price, block.timestamp);
         // Arbitrageur Y -> AtomicV2
         _invoice(input);
 
@@ -258,6 +261,8 @@ contract AtomicV2 {
     }
 
     function raise_exchange_price(uint256 input) external {
+        uint256 price = StrategyLike(solver).internalPrice();
+        emit Price(price, block.timestamp);
         // Arbitrageur Y -> AtomicV2
         _invoice(input);
 

@@ -163,7 +163,7 @@ impl Arbitrageur {
             I256::from_raw(tau),
         );
         let gamma = I256::from_raw(ethers::utils::parse_ether("1")?)
-            - I256::from_raw(log_normal.swap_fee_percentage_wad().call().await?);
+            - I256::from_raw(log_normal.swap_fee().call().await?);
         let (rx, ry, liq) = self
             .protocol_client
             .protocol

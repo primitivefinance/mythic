@@ -8,7 +8,7 @@ use arbiter_core::middleware::RevmMiddleware;
 use bindings::{
     dfmm::DFMM,
     log_normal::LogNormal,
-    solver::{Parameters as PoolParams, Solver},
+    log_normal_solver::{LogNormParameters as PoolParams, LogNormalSolver},
 };
 use tracing::debug;
 
@@ -18,7 +18,7 @@ use super::*;
 pub struct ProtocolClient {
     pub client: Arc<RevmMiddleware>,
     pub protocol: DFMM<RevmMiddleware>,
-    pub solver: Solver<RevmMiddleware>,
+    pub solver: LogNormalSolver<RevmMiddleware>,
 }
 
 type F64Wad = f64;
@@ -30,7 +30,7 @@ impl ProtocolClient {
         solver_address: Address,
     ) -> Self {
         let protocol = DFMM::new(dfmm_address, client.clone());
-        let solver = Solver::new(solver_address, client.clone());
+        let solver = LogNormalSolver::new(solver_address, client.clone());
         Self {
             client,
             protocol,
@@ -40,14 +40,14 @@ impl ProtocolClient {
 
     #[tracing::instrument(skip(self), level = "trace")]
     pub async fn get_strategy(&self) -> Result<LogNormal<RevmMiddleware>> {
-        let strategy = LogNormal::new(self.protocol.source().call().await?, self.client.clone());
+        let strategy = LogNormal::new(self.protocol.strategy().call().await?, self.client.clone());
         Ok(strategy)
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_swap_fee(&self) -> Result<U256> {
         let strategy = self.get_strategy().await?;
-        let swap_fee = strategy.swap_fee_percentage_wad().call().await?;
+        let swap_fee = strategy.swap_fee().call().await?;
         Ok(swap_fee)
     }
 
@@ -83,9 +83,9 @@ impl ProtocolClient {
 
         // Format the parameters for the log-normal strategy.
         let params: PoolParams = PoolParams {
-            strike_price_wad: to_wad(strike_price_wad),
-            sigma_percent_wad: to_wad(sigma_percent_wad),
-            tau_years_wad: to_wad(tau_years_wad),
+            strike: to_wad(strike_price_wad),
+            sigma: to_wad(sigma_percent_wad),
+            tau: to_wad(tau_years_wad),
         };
 
         let init_reserve_x_wad = to_wad(init_reserve_x_wad);

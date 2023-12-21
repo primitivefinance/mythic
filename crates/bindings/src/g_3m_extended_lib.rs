@@ -1,4 +1,4 @@
-pub use log_normal_math_lib::*;
+pub use g_3m_extended_lib::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +9,7 @@ pub use log_normal_math_lib::*;
     dead_code,
     non_camel_case_types,
 )]
-pub mod log_normal_math_lib {
+pub mod g_3m_extended_lib {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
@@ -22,34 +22,34 @@ pub mod log_normal_math_lib {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static LOGNORMALMATHLIB_ABI: ::ethers::contract::Lazy<
-        ::ethers::core::abi::Abi,
-    > = ::ethers::contract::Lazy::new(__abi);
-    pub struct LogNormalMathLib<M>(::ethers::contract::Contract<M>);
-    impl<M> ::core::clone::Clone for LogNormalMathLib<M> {
+    pub static G3MEXTENDEDLIB_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+        __abi,
+    );
+    pub struct G3mExtendedLib<M>(::ethers::contract::Contract<M>);
+    impl<M> ::core::clone::Clone for G3mExtendedLib<M> {
         fn clone(&self) -> Self {
             Self(::core::clone::Clone::clone(&self.0))
         }
     }
-    impl<M> ::core::ops::Deref for LogNormalMathLib<M> {
+    impl<M> ::core::ops::Deref for G3mExtendedLib<M> {
         type Target = ::ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M> ::core::ops::DerefMut for LogNormalMathLib<M> {
+    impl<M> ::core::ops::DerefMut for G3mExtendedLib<M> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
-    impl<M> ::core::fmt::Debug for LogNormalMathLib<M> {
+    impl<M> ::core::fmt::Debug for G3mExtendedLib<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(LogNormalMathLib))
+            f.debug_tuple(::core::stringify!(G3mExtendedLib))
                 .field(&self.address())
                 .finish()
         }
     }
-    impl<M: ::ethers::providers::Middleware> LogNormalMathLib<M> {
+    impl<M: ::ethers::providers::Middleware> G3mExtendedLib<M> {
         /// Creates a new contract instance with the specified `ethers` client at
         /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
@@ -59,14 +59,14 @@ pub mod log_normal_math_lib {
             Self(
                 ::ethers::contract::Contract::new(
                     address.into(),
-                    LOGNORMALMATHLIB_ABI.clone(),
+                    G3MEXTENDEDLIB_ABI.clone(),
                     client,
                 ),
             )
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for LogNormalMathLib<M> {
+    for G3mExtendedLib<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }

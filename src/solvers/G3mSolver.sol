@@ -9,7 +9,10 @@ import "../lib/g3m/G3mExtendedLib.sol";
 
 interface StrategyLike {
     function computeSwapConstant(bytes memory) external view returns (int256);
-    function dynamicSlot() external view returns (G3mParameters memory);
+    function dynamicSlotInternal()
+        external
+        view
+        returns (G3mParameters memory);
     function swapFee() external view returns (uint256);
     function getReservesAndLiquidity()
         external
@@ -46,22 +49,25 @@ contract G3mSolver {
         uint256 rx,
         uint256 ry
     ) public view returns (uint256) {
-        return
-            computeNextLiquidity(rx, ry, StrategyLike(strategy).dynamicSlot());
+        return computeNextLiquidity(
+            rx, ry, StrategyLike(strategy).dynamicSlotInternal()
+        );
     }
 
     function getNextReserveX(
         uint256 ry,
         uint256 L
     ) public view returns (uint256) {
-        return computeNextRx(ry, L, StrategyLike(strategy).dynamicSlot());
+        return
+            computeNextRx(ry, L, StrategyLike(strategy).dynamicSlotInternal());
     }
 
     function getNextReserveY(
         uint256 rx,
         uint256 L
     ) public view returns (uint256) {
-        return computeNextRy(rx, L, StrategyLike(strategy).dynamicSlot());
+        return
+            computeNextRy(rx, L, StrategyLike(strategy).dynamicSlotInternal());
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -73,7 +79,8 @@ contract G3mSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             StrategyLike(strategy).getReservesAndLiquidity();
-        G3mParameters memory poolParams = StrategyLike(strategy).dynamicSlot();
+        G3mParameters memory poolParams =
+            StrategyLike(strategy).dynamicSlotInternal();
         console2.log("startRx", startReserves.rx);
         console2.log("startRy", startReserves.ry);
         console2.log("startL", startReserves.L);
@@ -144,7 +151,8 @@ contract G3mSolver {
 
     /// @dev Computes the internal price using this strategie's slot parameters.
     function internalPrice() public view returns (uint256 price) {
-        G3mParameters memory params = StrategyLike(strategy).dynamicSlot();
+        G3mParameters memory params =
+            StrategyLike(strategy).dynamicSlotInternal();
         (uint256 rx, uint256 ry,) =
             StrategyLike(strategy).getReservesAndLiquidity();
         price = computePrice(rx, ry, params);

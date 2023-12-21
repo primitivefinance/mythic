@@ -41,8 +41,16 @@ contract G3m is IStrategy {
     }
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot() public view returns (G3mParameters memory params) {
-        (params.wx, params.wy) = (weightX(), weightY());
+    function dynamicSlot() public view returns (bytes memory params) {
+        abi.encode(weightX(), weightY());
+    }
+
+    function dynamicSlotInternal()
+        public
+        view
+        returns (G3mParameters memory params)
+    {
+        abi.encode(weightX(), weightY());
     }
 
     function getReservesAndLiquidity()
@@ -70,7 +78,7 @@ contract G3m is IStrategy {
     {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction(rx, ry, L, dynamicSlot());
+        return tradingFunction(rx, ry, L, dynamicSlotInternal());
     }
 
     /// @dev Decodes and validates pool initialization parameters.
@@ -93,7 +101,7 @@ contract G3m is IStrategy {
 
         _syncDynamicSlot();
 
-        invariant = tradingFunction(rx, ry, L, dynamicSlot());
+        invariant = tradingFunction(rx, ry, L, dynamicSlotInternal());
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -135,7 +143,8 @@ contract G3m is IStrategy {
 
         liquidityDelta = int256(nextL) - int256(startL);
 
-        invariant = tradingFunction(nextRx, nextRy, nextL, dynamicSlot());
+        invariant =
+            tradingFunction(nextRx, nextRy, nextL, dynamicSlotInternal());
 
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
 

@@ -51,9 +51,9 @@ specialty.VolatilityTargeting.update_frequency.fixed = 75 # 1 update per 5 times
 # The target volatility
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 # The sensitivity factor of the vol differential 
-specialty.VolatilityTargeting.sensitivity.fixed = 0.0115
+specialty.VolatilityTargeting.sensitivity.fixed = 0.0
 # Max strike update
-specialty.VolatilityTargeting.max_strike_change.fixed = 0.06
+specialty.VolatilityTargeting.max_strike_change.fixed = 0.0
 
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]

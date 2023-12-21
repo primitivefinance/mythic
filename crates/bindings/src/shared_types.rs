@@ -1,4 +1,4 @@
-///`Parameters(uint256,uint256,uint256)`
+///`G3Mparameters(uint256,uint256)`
 #[derive(
     Clone,
     ::ethers::contract::EthAbiType,
@@ -11,8 +11,25 @@
     Eq,
     Hash
 )]
-pub struct Parameters {
-    pub strike_price_wad: ::ethers::core::types::U256,
-    pub sigma_percent_wad: ::ethers::core::types::U256,
-    pub tau_years_wad: ::ethers::core::types::U256,
+pub struct G3Mparameters {
+    pub wx: ::ethers::core::types::U256,
+    pub wy: ::ethers::core::types::U256,
+}
+///`LogNormParameters(uint256,uint256,uint256)`
+#[derive(
+    Clone,
+    ::ethers::contract::EthAbiType,
+    ::ethers::contract::EthAbiCodec,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash
+)]
+pub struct LogNormParameters {
+    pub strike: ::ethers::core::types::U256,
+    pub sigma: ::ethers::core::types::U256,
+    pub tau: ::ethers::core::types::U256,
 }

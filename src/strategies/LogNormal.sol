@@ -56,7 +56,11 @@ contract LogNormal is IStrategy {
     }
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot()
+    function dynamicSlot() public view returns (bytes memory params) {
+        return abi.encode(strikePrice(), sigma(), tau());
+    }
+
+    function dynamicSlotInternal()
         public
         view
         returns (LogNormParameters memory params)
@@ -100,7 +104,12 @@ contract LogNormal is IStrategy {
     {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction({ rx: rx, ry: ry, L: L, params: dynamicSlot() });
+        return tradingFunction({
+            rx: rx,
+            ry: ry,
+            L: L,
+            params: dynamicSlotInternal()
+        });
     }
 
     /// @dev Decodes and validates pool initialization parameters.
@@ -121,8 +130,12 @@ contract LogNormal is IStrategy {
 
         _syncDynamicSlot();
 
-        invariant =
-            tradingFunction({ rx: rx, ry: ry, L: L, params: dynamicSlot() });
+        invariant = tradingFunction({
+            rx: rx,
+            ry: ry,
+            L: L,
+            params: dynamicSlotInternal()
+        });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -172,7 +185,7 @@ contract LogNormal is IStrategy {
             rx: nextRx,
             ry: nextRy,
             L: nextL,
-            params: dynamicSlot()
+            params: dynamicSlotInternal()
         });
 
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;

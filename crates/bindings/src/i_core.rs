@@ -1,4 +1,4 @@
-pub use core::*;
+pub use i_core::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +9,7 @@ pub use core::*;
     dead_code,
     non_camel_case_types,
 )]
-pub mod core {
+pub mod i_core {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
@@ -65,32 +65,32 @@ pub mod core {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static CORE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+    pub static ICORE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
         __abi,
     );
-    pub struct Core<M>(::ethers::contract::Contract<M>);
-    impl<M> ::core::clone::Clone for Core<M> {
+    pub struct ICore<M>(::ethers::contract::Contract<M>);
+    impl<M> ::core::clone::Clone for ICore<M> {
         fn clone(&self) -> Self {
             Self(::core::clone::Clone::clone(&self.0))
         }
     }
-    impl<M> ::core::ops::Deref for Core<M> {
+    impl<M> ::core::ops::Deref for ICore<M> {
         type Target = ::ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M> ::core::ops::DerefMut for Core<M> {
+    impl<M> ::core::ops::DerefMut for ICore<M> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
-    impl<M> ::core::fmt::Debug for Core<M> {
+    impl<M> ::core::fmt::Debug for ICore<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(Core)).field(&self.address()).finish()
+            f.debug_tuple(::core::stringify!(ICore)).field(&self.address()).finish()
         }
     }
-    impl<M: ::ethers::providers::Middleware> Core<M> {
+    impl<M: ::ethers::providers::Middleware> ICore<M> {
         /// Creates a new contract instance with the specified `ethers` client at
         /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
@@ -100,7 +100,7 @@ pub mod core {
             Self(
                 ::ethers::contract::Contract::new(
                     address.into(),
-                    CORE_ABI.clone(),
+                    ICORE_ABI.clone(),
                     client,
                 ),
             )
@@ -122,7 +122,7 @@ pub mod core {
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for Core<M> {
+    for ICore<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }

@@ -18,6 +18,17 @@ contract DFMM is ICore {
     uint256 public totalLiquidity;
     mapping(address account => uint256 balance) public balanceOf;
 
+    event LogPoolStats(
+        uint256 rx,
+        uint256 ry,
+        uint256 L,
+        int256 invariant,
+        uint256 sigma,
+        uint256 strike,
+        uint256 tau,
+        uint256 timestamp
+    );
+
     constructor(
         bool isLogNormal, // temp way to handle either lognorm or g3m
         address tokenX_,
@@ -111,26 +122,39 @@ contract DFMM is ICore {
 
         {
             // Avoids stack too deep.
-            (
-                address inputToken,
-                address outputToken,
-                uint256 inputAmount,
-                uint256 outputAmount
-            ) = _settle({
-                adjustedReserveXWad: XXXXXXX,
-                adjustedReserveYWad: YYYYYY
-            });
+            // (
+            //     address inputToken,
+            //     address outputToken,
+            //     uint256 inputAmount,
+            //     uint256 outputAmount
+            // ) =
+            _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
 
-            address strategy = strategy;
-            emit Swap(
-                msg.sender,
-                strategy,
-                inputToken,
-                outputToken,
-                inputAmount,
-                outputAmount,
-                liquidityDelta
+            bytes memory strategyData = IStrategy(strategy).dynamicSlot();
+            (uint256 sigma, uint256 strike, uint256 tau) =
+                abi.decode(strategyData, (uint256, uint256, uint256));
+
+            emit LogPoolStats(
+                XXXXXXX,
+                YYYYYY,
+                LLLLLL,
+                swapConstantGrowth,
+                sigma,
+                strike,
+                tau,
+                block.timestamp
             );
+
+            // address strategy = strategy;
+            // emit Swap(
+            //     msg.sender,
+            //     strategy,
+            //     inputToken,
+            //     outputToken,
+            //     inputAmount,
+            //     outputAmount,
+            //     liquidityDelta
+            // );
         }
     }
 

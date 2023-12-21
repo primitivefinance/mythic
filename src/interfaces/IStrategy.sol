@@ -24,4 +24,6 @@ interface IStrategy {
             uint256 reserveYWad,
             uint256 totalLiquidity
         );
+
+    function dynamicSlot() external view returns (bytes memory data);
 }

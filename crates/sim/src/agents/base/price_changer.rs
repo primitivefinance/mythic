@@ -6,6 +6,7 @@ use std::{
 
 use alloy_primitives::utils::parse_ether;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use bindings::lex::Lex;
 use itertools::iproduct;
 use RustQuant::stochastics::{
     GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
@@ -22,7 +23,7 @@ pub struct PriceChanger {
     pub trajectory: Trajectories,
 
     /// The `LiquidExchange` contract with the admin `Client`.
-    pub liquid_exchange: LiquidExchange<RevmMiddleware>,
+    pub liquid_exchange: Lex<RevmMiddleware>,
 
     /// The index of the current price in the trajectory.
     pub index: usize,
@@ -106,7 +107,7 @@ impl PriceChanger {
 
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
-            let liquid_exchange = LiquidExchange::deploy(
+            let liquid_exchange = Lex::deploy(
                 client.clone(),
                 (
                     token_admin.arbx.address(),

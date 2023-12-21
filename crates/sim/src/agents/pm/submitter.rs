@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use bindings::solver::Solver;
+use bindings::log_normal_solver::LogNormalSolver;
 use clients::protocol::ProtocolClient;
 use itertools::iproduct;
 use tracing::{debug, info, trace};
@@ -78,21 +78,27 @@ impl VolatilityTargetingSubmitter {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let lex = LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
+        debug!("lex address: {}", lex.address());
 
         if let Some(AgentParameters::VolatilityTargetingSubmitter(params)) =
             config.agent_parameters.get(&label)
         {
             let args = (
+                true,
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
                 ethers::utils::parse_ether(params.fee.0 / 10_000.0)?,
             );
+            debug!("args: {:?}", args);
             match params.specialty {
                 Specialty::VolatilityTargeting(parameters) => {
                     let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
-                    let solver = Solver::deploy(client.clone(), dfmm.source().call().await?)?
-                        .send()
-                        .await?;
+                    debug!("dfmm address: {}", dfmm.address());
+                    let solver =
+                        LogNormalSolver::deploy(client.clone(), dfmm.strategy().call().await?)?
+                            .send()
+                            .await?;
+                    debug!("solver address: {}", solver.address());
                     let protocol_client =
                         ProtocolClient::new(client.clone(), dfmm.address(), solver.address());
                     let strategist = VolatilityTargetingSubmitter {
