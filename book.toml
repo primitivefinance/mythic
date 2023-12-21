@@ -2,7 +2,7 @@
 authors = ["Colin Roberts"]
 language = "en"
 multilingual = false
-src = "src"
+src = "journal/src"
 title = "journal"
 
 [preprocessor.katex]

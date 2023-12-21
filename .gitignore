@@ -26,6 +26,7 @@ __pycache__
 
 # notes
 journal/book/*
+book/*
 
 # ui
 *.svg
