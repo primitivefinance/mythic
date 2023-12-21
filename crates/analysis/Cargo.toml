@@ -21,3 +21,4 @@ tokio.workspace = true
 
 [dev-dependencies]
 tracing-test = "0.2.4"
+rayon = "1.5.1"

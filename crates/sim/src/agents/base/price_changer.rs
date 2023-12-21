@@ -238,9 +238,9 @@ impl StochasticProcess for PriceProcess<Single> {
                     .drift(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .drift(x, t),
         }
@@ -253,9 +253,9 @@ impl StochasticProcess for PriceProcess<Single> {
                     .diffusion(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .diffusion(x, t),
         }
@@ -267,9 +267,9 @@ impl StochasticProcess for PriceProcess<Single> {
                 GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0).jump(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .jump(x, t),
         }
