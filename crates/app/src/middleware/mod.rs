@@ -169,6 +169,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             let anvil_client = Arc::new(
                 Provider::<Ws>::connect(&anvil.ws_endpoint())
                     .await?
+                    .interval(std::time::Duration::from_millis(100))
                     .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
             );
             let signers = vec![signer];
