@@ -17,11 +17,11 @@ pub struct LedgerClient {
 }
 
 impl LedgerClient {
-    pub async fn new_connection(derivation: DerivationType) -> Self {
-        Self {
-            ledger: Ledger::init().await.unwrap(),
+    pub async fn new_connection(derivation: DerivationType) -> anyhow::Result<Self, anyhow::Error> {
+        Ok(Self {
+            ledger: Ledger::init().await?,
             derivation,
-        }
+        })
     }
 
     /// Get the account which corresponds to our derivation path
@@ -68,7 +68,6 @@ impl LedgerClient {
 
         tracing::debug!("Dispatching get_version");
         let answer = self.ledger.exchange(&command).await?;
-        // todo handle this unwrap
         let result = answer.data().unwrap();
         if result.len() < 4 {
             return Err(LedgerClienError::LedgerError(
@@ -204,7 +203,6 @@ impl LedgerClient {
             ));
         }
         let result = result.data().unwrap();
-        // todo handle this unwrap better
         if result.is_empty() {
             if self.get_opened_app().await? == "Ethereum" {
                 return Err(LedgerClienError::CommandError("Canceled".to_owned()));
@@ -243,7 +241,9 @@ mod tests {
     async fn ledger_tests() {
         // test connecting: this doesn't require that the user has the ethereum ledger
         // application open
-        let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0)).await;
+        let ledger = LedgerClient::new_connection(DerivationType::LedgerLive(0))
+            .await
+            .unwrap();
         println!("Connected to ledger");
 
         // after this all other commands require that the ethereum ledger application is

@@ -1,8 +1,4 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
+use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
 use alloy_primitives::utils::parse_ether;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
@@ -126,7 +122,7 @@ impl PriceChanger {
                 )
                 .await?;
 
-            let trajectory = if let Some(seed) = parameters.seed {
+            let trajectory = if let Some(_seed) = parameters.seed {
                 let initial_price = parameters.initial_price;
                 let t_0 = parameters.t_0;
                 let t_n = parameters.t_n;

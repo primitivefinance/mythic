@@ -29,7 +29,7 @@ use iced::{
 };
 
 use super::components::*;
-use crate::components::containers::BorderedContainer;
+use crate::components::system::ExcaliburContainer;
 
 pub mod input;
 pub mod select;
@@ -193,7 +193,7 @@ where
         let cell_content = match self.child {
             Some(child) => Column::new().push(child).padding(internal_padding).into(),
             None => Column::new()
-                .push(primary_label(value.clone().unwrap_or_default()))
+                .push(label(value.clone().unwrap_or_default()).build())
                 .padding(internal_padding)
                 .into(),
         };
@@ -250,6 +250,6 @@ where
     CellBuilder::new()
         .value(value)
         .on_change(on_change)
-        .style(BorderedContainer::theme)
+        .style(|| ExcaliburContainer::default().light_border().theme())
         .into()
 }

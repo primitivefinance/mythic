@@ -1,4 +1,5 @@
 use super::{cells::CellBuilder, rows::RowBuilder, *};
+use crate::components::system::{label, ExcaliburColor, ExcaliburContainer};
 
 pub struct ColumnBuilder<Message>
 where
@@ -12,6 +13,8 @@ where
     padding_row: Option<Sizes>,
     padding_cell: Option<Sizes>,
     padding_cell_internal: Option<Sizes>,
+    header_row: Option<RowBuilder<Message>>,
+    header_cell: Option<CellBuilder<Message>>,
 }
 
 impl<Message> Default for ColumnBuilder<Message>
@@ -37,11 +40,23 @@ where
             padding_row: None,
             padding_cell: None,
             padding_cell_internal: None,
+            header_row: None,
+            header_cell: None,
         }
     }
 
     pub fn headers(mut self, headers: Vec<String>) -> Self {
         self.headers = headers;
+        self
+    }
+
+    pub fn header_row(mut self, header_row: RowBuilder<Message>) -> Self {
+        self.header_row = Some(header_row);
+        self
+    }
+
+    pub fn header_cell(mut self, header_cell: CellBuilder<Message>) -> Self {
+        self.header_cell = Some(header_cell);
         self
     }
 
@@ -95,41 +110,73 @@ where
     pub fn build(self) -> Column<'static, Message> {
         let mut column = Column::new();
 
+        let mut inner_column = Column::new();
+
         // Add the headers first.
         if !self.headers.is_empty() {
-            let row: Row<'static, Message> = RowBuilder::new()
-                .cells(
-                    self.headers
-                        .into_iter()
-                        .map(|header| {
-                            CellBuilder::new()
-                                .child(label_item(header))
-                                .internal_padding(self.padding_cell_internal)
-                                .external_padding(self.padding_cell)
-                        })
-                        .collect(),
-                )
-                .spacing(self.spacing.unwrap_or_default())
-                .padding(self.padding_row.unwrap_or_default())
-                .into();
+            let row: Row<'static, Message> = match self.header_row {
+                Some(header_row) => header_row
+                    .cells(
+                        self.headers
+                            .into_iter()
+                            .map(|header| {
+                                CellBuilder::new().child(label(header).secondary().build())
+                            })
+                            .collect(),
+                    )
+                    .spacing(self.spacing_cell.unwrap_or_default())
+                    .padding(self.padding_row.unwrap_or_default())
+                    .padding_cell(self.padding_cell.unwrap_or_default())
+                    .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
+                    .into(),
+                None => RowBuilder::new()
+                    .style(|| {
+                        ExcaliburContainer::default()
+                            .background(ExcaliburColor::Background2)
+                            .theme()
+                    })
+                    .border_bottom(ExcaliburContainer::default().white_border().theme())
+                    .cells(
+                        self.headers
+                            .into_iter()
+                            .map(|header| {
+                                CellBuilder::new().child(label(header).secondary().build())
+                            })
+                            .collect(),
+                    )
+                    .spacing(self.spacing.unwrap_or_default())
+                    .padding(self.padding_row.unwrap_or_default())
+                    .padding(self.padding_row.unwrap_or_default())
+                    .padding_cell(self.padding_cell.unwrap_or_default())
+                    .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
+                    .into(),
+            };
+
             column = column.push(row);
         }
 
         // Specifies the spacing between cells in a row.
-        for row in self.rows {
+        let total_rows = self.rows.len();
+        for (i, row) in self.rows.into_iter().enumerate() {
             let row: Row<'static, Message> = row
                 .spacing(self.spacing_cell.unwrap_or_default())
                 .padding(self.padding_row.unwrap_or_default())
                 .padding_cell(self.padding_cell.unwrap_or_default())
                 .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
+                .last_row(i == total_rows - 1)
                 .into();
-            column = column.push(row);
+            inner_column = inner_column.push(row);
         }
+
+        column = column.push(
+            inner_column
+                .align_items(alignment::Alignment::Center)
+                .spacing(self.spacing.unwrap_or_default()),
+        );
 
         // Specifies spacing of rows.
         column
             .align_items(alignment::Alignment::Center)
-            .spacing(self.spacing.unwrap_or_default())
             .padding(self.padding.unwrap_or_default())
     }
 }

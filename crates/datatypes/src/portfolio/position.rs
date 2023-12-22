@@ -158,6 +158,30 @@ pub struct Position {
     pub volatility: Option<f64>,
     /// Information about the position.
     pub information: Option<Information>,
+    /// Position's layer in the portfolio.
+    pub layer: Option<PositionLayer>,
+}
+
+impl std::fmt::Display for Position {
+    // Format each position like Position { symbol, balance, weight }
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{ symbol: {}, balance: {}, weight: {} }}",
+            self.asset.symbol,
+            self.balance.unwrap_or_default(),
+            self.weight.unwrap_or_default().value
+        )
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, PartialOrd, Default)]
+pub enum PositionLayer {
+    #[default]
+    RawBalance,
+    Liquidity,
+    Staked,
+    Collateral,
 }
 
 /// Carries information that can be used for synchronization, debugging, and
@@ -174,7 +198,7 @@ impl Default for Information {
     fn default() -> Self {
         Self {
             last_sync: None,
-            time_to_stale: 300 as u64,
+            time_to_stale: 300u64,
         }
     }
 }
@@ -200,7 +224,13 @@ impl Position {
             weight,
             volatility,
             information: Some(Information::default()),
+            layer: None,
         }
+    }
+
+    pub fn layer(mut self, layer: PositionLayer) -> Self {
+        self.layer = Some(layer);
+        self
     }
 
     pub fn is_stale(&self) -> bool {
@@ -247,6 +277,21 @@ impl From<Position> for TokenData {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct Positions(pub Vec<Position>);
 
+impl std::fmt::Display for Positions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for position in &self.0 {
+            writeln!(
+                f,
+                "Position {{ symbol: {}, balance: {}, weight: {} }}",
+                position.asset.symbol,
+                position.balance.unwrap_or_default(),
+                position.weight.unwrap_or_default().value
+            )?;
+        }
+        Ok(())
+    }
+}
+
 impl From<Vec<Position>> for Positions {
     fn from(positions: Vec<Position>) -> Self {
         Self(positions)
@@ -270,7 +315,7 @@ impl Positions {
             .ok_or(PositionError::PositionDoesNotExist)?;
 
         // Clone the weight and replace it's value with the delta.
-        let mut weight = position.weight.unwrap_or_default().clone();
+        let mut weight = position.weight.unwrap_or_default();
         // Create an identical weight (id-wise) with the delta we want to apply in
         // absolute terms.
         weight.set_value(delta.abs())?;
@@ -302,6 +347,10 @@ impl Positions {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn weights(&self) -> Vec<f64> {

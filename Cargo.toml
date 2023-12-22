@@ -2,6 +2,7 @@
 name = "excalibur"
 version = "0.2.0"
 edition = "2021"
+description = "Excalibur: An alternative entrypoint to DeFi."
 
 [[bin]]
 name = "excalibur"
@@ -23,57 +24,79 @@ datatypes = { path = "./crates/datatypes", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter", branch = "experimental/close-with-db" }
-ethers = { version = "2.0.10", features = ["ws", "openssl", "rustls"] }
+arbiter-core = { version = "=0.9.1" }
+ethers = { version = "=2.0.10", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
 # ethereum types
 revm = { version = "=3.5.0", features = ["ethersdb", "std", "serde"] }
-revm-primitives = { version = "1.3.0" }
+revm-primitives = { version = "=1.3.0" }
 alloy-primitives = { version = "0.5.0", features = ["serde"] }
+alloy-sol-types = "0.5.2"
+alloy-providers = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
+alloy-networks = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-rpc-client = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61", features = [
+    "pubsub",
+    "ws",
+    "reqwest",
+] }
+alloy-rpc-types = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-transport-ws = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-transport-http = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-rlp = "0.3"
+alloy-pubsub = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-signer = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+
+
+reqwest = "=0.11.23"
+
 
 ## Config and parsing
-serde = "1.0.188"
-serde_json = "1.0.107"
-serde_with = { version = "3.4.0", features = ["chrono_0_4"] }
+serde = "=1.0.192"
+serde_json = "=1.0.108"
+serde_with = { version = "=3.4.0", features = ["chrono_0_4"] }
 config = "0.13.3"
 
 ## Async
-tokio = { version = "1.11.0", features = ["full"] }
-tokio-util = "0.7.10"
-async-trait = "0.1.73"
+tokio = { version = "=1.35.0", features = ["macros", "full"] }
+tokio-util = "=0.7.10"
+async-trait = "=0.1.75"
 
 ## Error and logs
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-tracing-futures = { version = "0.2.5", default-features = false }
-anyhow = "1.0.75"
-thiserror = "1.0.50"
+tracing = "=0.1.40"
+tracing-subscriber = { version = "=0.3.17", features = ["env-filter"] }
+tracing-futures = { version = "=0.2.5", default-features = false }
+anyhow = "=1.0.76"
+thiserror = "=1.0.50"
 
-itertools = "0.12.0"
-rand = "0.8.5"
-bytesize = "1.2.0"
-dotenv = "0.15.0"
-uuid = { version = "1.6.1", features = ["v4", "serde"] }
+itertools = "=0.12.0"
+rand = "=0.8.5"
+bytesize = "=1.2.0"
+dotenv = "=0.15.0"
+uuid = { version = "=1.6.1", features = ["v4", "serde"] }
 
 # Visualization
-plotters = "0.3.5"
+plotters = "=0.3.5"
 
 # math
-RustQuant = { version = "0.0.39", features = ["seedable"] }
-statrs = "0.16.0"
+RustQuant = { version = "=0.0.42", features = ["seedable"] }
+statrs = "=0.16.0"
+reikna = "=0.12.3"
+
 # Storage
-linked-hash-map = "0.5.6"
-directories-next = "2.0.0"
-criterion = "0.5.1"
+linked-hash-map = "=0.5.6"
+directories-next = "=2.0.0"
+criterion = "=0.5.1"
 
 # time
-chrono = { version = "0.4.31", features = ["serde"] }
+chrono = { version = "=0.4.31", features = ["serde"] }
 
 [dependencies]
 # main excalibur application
 app = { path = "./crates/app", version = "0.1.0" }
 sim = { path = "./crates/sim", version = "0.1.0" }
+
+clap = { version = "=4.4.6", features = ["derive"] }
 
 criterion.workspace = true
 cfmm_math.workspace = true
@@ -82,7 +105,7 @@ analysis.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 anyhow.workspace = true
-clap = { version = "4.4.6", features = ["derive"] }
+
 tracing-subscriber.workspace = true
 dotenv.workspace = true
 RustQuant.workspace = true
@@ -99,3 +122,25 @@ mdbook-katex = "0.5.8"
 name = "ui_benchmark"
 harness = false
 path = "benches/ui_benchmarks.rs"
+
+[package.metadata.bundle]
+name = "Excalibur"
+identifier = "xyz.primitive.excalibur"
+short_description = "Excalibur: An alternative entrypoint to DeFi."
+long_description = "Excalibur: An alternative entrypoint to DeFi."
+resources = ["assets/"]
+icon = ["assets/logos/excalibur_logo_2.png"]
+
+# macOS specific
+category = "public.app-category.finance"
+copyright = "Copyright (c) 2024 Primitive Bits, Inc."
+minimum_system_version = "10.14"
+osx_url_schemes = ["xyz.primitive.excalibur"]
+
+# Windows specific
+product_name = "Excalibur"
+manufacturer = "Primitive Bits, Inc."
+
+# Linux specific
+package_name = "excalibur"
+package_version = "0.1.0"

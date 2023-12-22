@@ -41,7 +41,7 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
 
     tracing_subscriber::fmt().with_max_level(log_level).init();
 
-    let config: SimulationConfig<Multiple> = import(path)?;
+    // let config: SimulationConfig<Multiple> = import(path)?;
     let rt = tokio::runtime::Builder::new_multi_thread().build().unwrap();
     let instant = std::time::Instant::now();
 

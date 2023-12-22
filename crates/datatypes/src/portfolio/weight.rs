@@ -288,7 +288,7 @@ impl Hash for Weight {
 
 impl PartialOrd for Weight {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.value.partial_cmp(&other.value)
+        Some(self.cmp(other))
     }
 }
 
@@ -366,7 +366,7 @@ mod tests {
     #[test]
     fn test_weight_add() {
         let weight = Weight::new(0.5).unwrap();
-        let weight2 = weight.clone();
+        let weight2 = weight;
         let weight3 = weight + weight2;
         assert_eq!(weight3.value, 1.0);
     }
@@ -393,7 +393,7 @@ mod tests {
     #[test]
     fn test_weight_sub() {
         let weight = Weight::new(0.5).unwrap();
-        let weight2 = weight.clone();
+        let weight2 = weight;
         let weight3 = weight - weight2;
         assert_eq!(weight3.value, 0.0);
     }

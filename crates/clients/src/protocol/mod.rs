@@ -1,7 +1,7 @@
 //! Dynamic Function Market Making Protocol Client
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use arbiter_core::middleware::RevmMiddleware;
@@ -15,20 +15,16 @@ use tracing::debug;
 use super::*;
 
 #[derive(Debug, Clone)]
-pub struct ProtocolClient {
-    pub client: Arc<RevmMiddleware>,
-    pub protocol: DFMM<RevmMiddleware>,
-    pub solver: LogNormalSolver<RevmMiddleware>,
+pub struct ProtocolClient<C> {
+    pub client: Arc<C>,
+    pub protocol: DFMM<C>,
+    pub solver: LogNormalSolver<C>,
 }
 
 type F64Wad = f64;
 
-impl ProtocolClient {
-    pub fn new(
-        client: Arc<RevmMiddleware>,
-        dfmm_address: Address,
-        solver_address: Address,
-    ) -> Self {
+impl<C: Middleware + 'static> ProtocolClient<C> {
+    pub fn new(client: Arc<C>, dfmm_address: Address, solver_address: Address) -> Self {
         let protocol = DFMM::new(dfmm_address, client.clone());
         let solver = LogNormalSolver::new(solver_address, client.clone());
         Self {
@@ -38,8 +34,36 @@ impl ProtocolClient {
         }
     }
 
+    pub async fn get_tokens(&self) -> Result<(Address, Address)> {
+        let tokens = (
+            self.protocol.token_x().call().await?,
+            self.protocol.token_y().call().await?,
+        );
+        Ok(tokens)
+    }
+
+    #[tracing::instrument(skip(client), level = "trace", ret)]
+    pub async fn deploy_protocol(
+        client: Arc<C>,
+        token_x: Address,
+        token_y: Address,
+        swap_fee_percent_wad: f64,
+    ) -> anyhow::Result<Self> {
+        let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
+        let args = (token_x, token_y, swap_fee_percent_wad);
+        let protocol = DFMM::deploy(client.clone(), args)?.send().await?;
+        let solver = LogNormalSolver::deploy(client.clone(), protocol.strategy().call().await?)?
+            .send()
+            .await?;
+        Ok(Self {
+            client,
+            protocol,
+            solver,
+        })
+    }
+
     #[tracing::instrument(skip(self), level = "trace")]
-    pub async fn get_strategy(&self) -> Result<LogNormal<RevmMiddleware>> {
+    pub async fn get_strategy(&self) -> Result<LogNormal<C>> {
         let strategy = LogNormal::new(self.protocol.strategy().call().await?, self.client.clone());
         Ok(strategy)
     }

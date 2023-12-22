@@ -4,7 +4,6 @@ use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use ethers::providers::Middleware;
 use revm::db::{CacheDB, EmptyDB};
 use serde::{Deserialize, Serialize};
-use tracing::debug;
 
 use super::*;
 use crate::{
@@ -45,14 +44,18 @@ impl BlockAdmin {
                     return Err(anyhow::anyhow!("No account found in db"));
                 }
 
-                let address = db.unwrap().accounts.into_keys().next().unwrap();
-                let ethers_address = ethers::types::Address::from(address.into_array());
+                todo!("Use db account instead of creating a new one")
 
-                RevmMiddleware::new_from_forked_eoa_with_label(
-                    environment,
-                    ethers_address,
-                    Some("block_admin"),
-                )?
+                // let address =
+                // db.unwrap().accounts.into_keys().next().unwrap();
+                // let ethers_address =
+                // ethers::types::Address::from(address.into_array());
+                //
+                // RevmMiddleware::new_from_forked_eoa_with_label(
+                // environment,
+                // ethers_address,
+                // Some("block_admin"),
+                // )?
             }
         };
 

@@ -1,4 +1,3 @@
-use alloy_primitives::Address;
 use arbiter_core::data_collection::EventLogger;
 use revm::db::{CacheDB, EmptyDB};
 

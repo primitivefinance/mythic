@@ -10,3 +10,5 @@ use_field_init_shorthand = true
 wrap_comments = true
 normalize_comments = true
 comment_width = 80
+
+ignore = ["crates/bindings/*"]
