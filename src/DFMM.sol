@@ -109,7 +109,7 @@ contract DFMM is ICore {
         balanceOf[msg.sender] = LLLLLL;
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
-        emit Init(msg.sender, source, XXXXXXX, YYYYYY, LLLLLL);
+        emit Init(msg.sender, strategy, XXXXXXX, YYYYYY, LLLLLL);
         return (XXXXXXX, YYYYYY, LLLLLL);
     }
 

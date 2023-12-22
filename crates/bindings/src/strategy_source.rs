@@ -7,7 +7,7 @@ pub use strategy_source::*;
     clippy::upper_case_acronyms,
     clippy::type_complexity,
     dead_code,
-    non_camel_case_types
+    non_camel_case_types,
 )]
 pub mod strategy_source {
     #[allow(deprecated)]
@@ -17,83 +17,105 @@ pub mod strategy_source {
             functions: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("dynamicSlot"),
-                    ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("dynamicSlot"),
-                        inputs: ::std::vec![],
-                        outputs: ::std::vec![
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("strikePriceWad"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("sigmaPercentWad"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("tauYearsWad"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                        ],
-                        constant: ::core::option::Option::None,
-                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                    },],
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("dynamicSlot"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("strikePriceWad"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sigmaPercentWad"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("tauYearsWad"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("staticSlot"),
-                    ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("staticSlot"),
-                        inputs: ::std::vec![],
-                        outputs: ::std::vec![
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("strikePriceWad"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("sigmaPercentWad"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                            ::ethers::core::abi::ethabi::Param {
-                                name: ::std::borrow::ToOwned::to_owned("tauYearsWad"),
-                                kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                                internal_type: ::core::option::Option::Some(
-                                    ::std::borrow::ToOwned::to_owned("uint256"),
-                                ),
-                            },
-                        ],
-                        constant: ::core::option::Option::None,
-                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                    },],
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("staticSlot"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("strikePriceWad"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sigmaPercentWad"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("tauYearsWad"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
                 ),
                 (
                     ::std::borrow::ToOwned::to_owned("swapFee"),
-                    ::std::vec![::ethers::core::abi::ethabi::Function {
-                        name: ::std::borrow::ToOwned::to_owned("swapFee"),
-                        inputs: ::std::vec![],
-                        outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
-                            name: ::std::string::String::new(),
-                            kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
-                            internal_type: ::core::option::Option::Some(
-                                ::std::borrow::ToOwned::to_owned("uint256"),
-                            ),
-                        },],
-                        constant: ::core::option::Option::None,
-                        state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                    },],
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("swapFee"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
                 ),
             ]),
             events: ::std::collections::BTreeMap::new(),
@@ -102,9 +124,10 @@ pub mod strategy_source {
             fallback: false,
         }
     }
-    /// The parsed JSON ABI of the contract.
-    pub static STRATEGYSOURCE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
-        ::ethers::contract::Lazy::new(__abi);
+    ///The parsed JSON ABI of the contract.
+    pub static STRATEGYSOURCE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+        __abi,
+    );
     pub struct StrategySource<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for StrategySource<M> {
         fn clone(&self) -> Self {
@@ -130,20 +153,21 @@ pub mod strategy_source {
         }
     }
     impl<M: ::ethers::providers::Middleware> StrategySource<M> {
-        /// Creates a new contract instance with the specified `ethers` client
-        /// at `address`. The contract derefs to a `ethers::Contract`
-        /// object.
+        /// Creates a new contract instance with the specified `ethers` client at
+        /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            Self(::ethers::contract::Contract::new(
-                address.into(),
-                STRATEGYSOURCE_ABI.clone(),
-                client,
-            ))
+            Self(
+                ::ethers::contract::Contract::new(
+                    address.into(),
+                    STRATEGYSOURCE_ABI.clone(),
+                    client,
+                ),
+            )
         }
-        /// Calls the contract's `dynamicSlot` (0xc1e0043b) function
+        ///Calls the contract's `dynamicSlot` (0xc1e0043b) function
         pub fn dynamic_slot(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -158,7 +182,7 @@ pub mod strategy_source {
                 .method_hash([193, 224, 4, 59], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `staticSlot` (0x2e2d7969) function
+        ///Calls the contract's `staticSlot` (0x2e2d7969) function
         pub fn static_slot(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -173,7 +197,7 @@ pub mod strategy_source {
                 .method_hash([46, 45, 121, 105], ())
                 .expect("method not found (this should never happen)")
         }
-        /// Calls the contract's `swapFee` (0x54cf2aeb) function
+        ///Calls the contract's `swapFee` (0x54cf2aeb) function
         pub fn swap_fee(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
@@ -183,14 +207,12 @@ pub mod strategy_source {
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-        for StrategySource<M>
-    {
+    for StrategySource<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
     }
-    /// Container type for all input parameters for the `dynamicSlot` function
-    /// with signature `dynamicSlot()` and selector `0xc1e0043b`
+    ///Container type for all input parameters for the `dynamicSlot` function with signature `dynamicSlot()` and selector `0xc1e0043b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -201,12 +223,11 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     #[ethcall(name = "dynamicSlot", abi = "dynamicSlot()")]
     pub struct DynamicSlotCall;
-    /// Container type for all input parameters for the `staticSlot` function
-    /// with signature `staticSlot()` and selector `0x2e2d7969`
+    ///Container type for all input parameters for the `staticSlot` function with signature `staticSlot()` and selector `0x2e2d7969`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -217,12 +238,11 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     #[ethcall(name = "staticSlot", abi = "staticSlot()")]
     pub struct StaticSlotCall;
-    /// Container type for all input parameters for the `swapFee` function with
-    /// signature `swapFee()` and selector `0x54cf2aeb`
+    ///Container type for all input parameters for the `swapFee` function with signature `swapFee()` and selector `0x54cf2aeb`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -233,11 +253,11 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     #[ethcall(name = "swapFee", abi = "swapFee()")]
     pub struct SwapFeeCall;
-    /// Container type for all of the contract's call
+    ///Container type for all of the contract's call
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -246,7 +266,7 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     pub enum StrategySourceCalls {
         DynamicSlot(DynamicSlotCall),
@@ -258,13 +278,19 @@ pub mod strategy_source {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) = <DynamicSlotCall as ::ethers::core::abi::AbiDecode>::decode(data) {
+            if let Ok(decoded) = <DynamicSlotCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
                 return Ok(Self::DynamicSlot(decoded));
             }
-            if let Ok(decoded) = <StaticSlotCall as ::ethers::core::abi::AbiDecode>::decode(data) {
+            if let Ok(decoded) = <StaticSlotCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
                 return Ok(Self::StaticSlot(decoded));
             }
-            if let Ok(decoded) = <SwapFeeCall as ::ethers::core::abi::AbiDecode>::decode(data) {
+            if let Ok(decoded) = <SwapFeeCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
                 return Ok(Self::SwapFee(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
@@ -273,8 +299,12 @@ pub mod strategy_source {
     impl ::ethers::core::abi::AbiEncode for StrategySourceCalls {
         fn encode(self) -> Vec<u8> {
             match self {
-                Self::DynamicSlot(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::StaticSlot(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::DynamicSlot(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::StaticSlot(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::SwapFee(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
@@ -303,8 +333,7 @@ pub mod strategy_source {
             Self::SwapFee(value)
         }
     }
-    /// Container type for all return fields from the `dynamicSlot` function
-    /// with signature `dynamicSlot()` and selector `0xc1e0043b`
+    ///Container type for all return fields from the `dynamicSlot` function with signature `dynamicSlot()` and selector `0xc1e0043b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -315,15 +344,14 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     pub struct DynamicSlotReturn {
         pub strike_price_wad: ::ethers::core::types::U256,
         pub sigma_percent_wad: ::ethers::core::types::U256,
         pub tau_years_wad: ::ethers::core::types::U256,
     }
-    /// Container type for all return fields from the `staticSlot` function with
-    /// signature `staticSlot()` and selector `0x2e2d7969`
+    ///Container type for all return fields from the `staticSlot` function with signature `staticSlot()` and selector `0x2e2d7969`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -334,15 +362,14 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     pub struct StaticSlotReturn {
         pub strike_price_wad: ::ethers::core::types::U256,
         pub sigma_percent_wad: ::ethers::core::types::U256,
         pub tau_years_wad: ::ethers::core::types::U256,
     }
-    /// Container type for all return fields from the `swapFee` function with
-    /// signature `swapFee()` and selector `0x54cf2aeb`
+    ///Container type for all return fields from the `swapFee` function with signature `swapFee()` and selector `0x54cf2aeb`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -353,7 +380,7 @@ pub mod strategy_source {
         Debug,
         PartialEq,
         Eq,
-        Hash,
+        Hash
     )]
     pub struct SwapFeeReturn(pub ::ethers::core::types::U256);
 }

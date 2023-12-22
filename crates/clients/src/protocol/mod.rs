@@ -14,11 +14,21 @@ use tracing::debug;
 
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProtocolClient<C> {
     pub client: Arc<C>,
     pub protocol: DFMM<C>,
     pub solver: LogNormalSolver<C>,
+}
+
+impl<C> Clone for ProtocolClient<C> {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            protocol: self.protocol.clone(),
+            solver: self.solver.clone(),
+        }
+    }
 }
 
 type F64Wad = f64;
