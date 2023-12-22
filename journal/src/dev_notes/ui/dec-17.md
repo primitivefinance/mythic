@@ -18,7 +18,7 @@
 # tonight
 
 What do I prioritize for tonight?
-```
+```ignore
 [x] Remove cargo nightly features
 [x] Pin dependencies
 [x] Font and asset loading on mac os?
