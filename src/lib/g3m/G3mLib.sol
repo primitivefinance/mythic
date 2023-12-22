@@ -35,3 +35,29 @@ function computePrice(
     uint256 d = rx.divWadDown(params.wx);
     price = n.divWadDown(d);
 }
+
+function computeSFunction(
+    uint256 t,
+    uint256 w0,
+    uint256 w1
+) pure returns (uint256) {
+    uint256 boop = uint256(
+        int256(
+            FixedPointMathLib.WAD.divWadUp(w0.mulWadUp(t) + w1)
+                - FixedPointMathLib.WAD
+        ).powWad(-2 ether)
+    );
+
+    return FixedPointMathLib.WAD
+        - (FixedPointMathLib.WAD.divWadUp(FixedPointMathLib.WAD + boop));
+}
+
+function computeISFunction(uint256 x) pure returns (uint256) {
+    uint256 boop = uint256(
+        int256(
+            FixedPointMathLib.WAD.divWadUp(FixedPointMathLib.WAD - x)
+                - FixedPointMathLib.WAD
+        ).powWad(-0.5 ether)
+    );
+    return FixedPointMathLib.WAD.divWadUp(FixedPointMathLib.WAD + boop);
+}
