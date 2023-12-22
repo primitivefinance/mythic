@@ -92,7 +92,7 @@ fn main() -> Result<()> {
         Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui) => app::run(args.dev)?,
-        None => Args::command().print_long_help()?,
+        None => app::run(args.dev)?,
     }
     Ok(())
 }
