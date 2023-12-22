@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{ArgAction, CommandFactory, Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use dotenv::dotenv;
 
 #[derive(Parser)]
