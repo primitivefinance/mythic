@@ -159,7 +159,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         if dev {
             let home_dir = std::env::var("HOME").unwrap_or_default();
             let binary_path = format!("{}/.foundry/bin/anvil", home_dir);
-            println!("binary path: {}", binary_path);
             let anvil = Anvil::default()
                 .arg("--gas-limit")
                 .arg("20000000")
