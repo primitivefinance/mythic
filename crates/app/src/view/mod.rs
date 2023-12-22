@@ -11,6 +11,8 @@ use crate::{
 
 pub mod portfolio_view;
 pub mod sidebar;
+// TODO: execution is not complete
+// pub mod execute;
 
 /// All controllers emit View messages. These get drilled down to the original
 /// controller that emitted them.
@@ -132,11 +134,6 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .align_y(alignment::Vertical::Center)
         .width(Length::Fill)
         .height(Length::Fill)
-        .padding([16, 24, 16, 24])
-        .style(
-            ExcaliburContainer::default()
-                .background(ExcaliburColor::Background1)
-                .theme(),
-        )
+        .style(ExcaliburContainer::default().middle_bottom().theme())
         .into()
 }

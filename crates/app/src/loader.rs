@@ -4,7 +4,6 @@
 
 use std::time::Instant;
 
-use alloy_primitives;
 use clients::{dev::DevClient, ledger::LedgerClient};
 use datatypes::portfolio::coin::Coin;
 use iced::{
@@ -41,6 +40,8 @@ pub enum Message {
     Connected,
     LoadingFailed,
     Ready(LoadResult),
+    BrandFontLoaded,
+    IconFontLoaded,
     Quit,
 }
 pub struct Loader {
@@ -52,6 +53,8 @@ pub struct Loader {
     pub logo: PhiLogo,
 }
 
+/// This function attempts to load a user profile. If it fails, it creates a new
+/// default profile. It then logs the loaded profile's name and file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_profile() -> anyhow::Result<UserProfile> {
     let profile = UserProfile::load(None);
@@ -74,8 +77,12 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
     Ok(profile)
 }
 
+/// This function attempts to load user data into a model. If it fails, it
+/// creates a new default model. It then logs the loaded model's user name and
+/// file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_user_data() -> anyhow::Result<Model> {
+    // first log we see on start up comes from here
     let model = Model::load(None);
     let model = match model {
         Ok(model) => model,
@@ -96,6 +103,10 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     Ok(model)
 }
 
+/// This function loads a development client. It first logs the loading process,
+/// then creates a signer with the chain id of the client. It then gets the
+/// address of the signer and clones the client. It deploys the development
+/// client and returns it.
 #[tracing::instrument(skip(client), level = "trace")]
 pub async fn load_dev_client(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
@@ -112,6 +123,7 @@ pub async fn load_dev_client(
     Ok(dev_client)
 }
 
+/// Contracts that we start up the client with
 pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token_y", "lex"];
 
 /// Loads any async data or disk data into the application's state types.
@@ -122,7 +134,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
-    let mut exc_client = ExcaliburMiddleware::setup(flags.dev_mode).await?;
+    let mut exc_client = ExcaliburMiddleware::setup(true).await?;
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
@@ -168,7 +180,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // 1. Get the "saved" addresses from the user's contact book.
     // 2. Sync the addresses to the exc_client.
     // 3. Sync the addresses to the model.
-    if flags.dev_mode && loaded_snapshot {
+    if loaded_snapshot {
         for name in CONTRACT_NAMES.iter() {
             if let Some(contracts) = model
                 .user
@@ -187,7 +199,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     }
 
     // If we are loading a fresh instance, deploy the contracts.
-    if flags.dev_mode && !loaded_snapshot {
+    if !loaded_snapshot {
         let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
         let sender = signer.address();
         let client = exc_client.client().unwrap().clone();
@@ -256,6 +268,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Untrusted,
         );
 
+        tracing::info!("Loaded contacts: {:?}", model.user.contacts);
+
         model.portfolio.setup(
             from_ethers_address(exc_client.address().unwrap()),
             from_ethers_address(lex),
@@ -282,7 +296,6 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 tags: vec!["mock".to_string()],
             };
             model.user.coins += coin;
-            model.save()?;
         }
 
         if coin_y.is_none() {
@@ -296,8 +309,9 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 tags: vec!["mock".to_string()],
             };
             model.user.coins += coin;
-            model.save()?;
         }
+
+        model.save()?;
     }
 
     // Add the default signer to the contacts book, if there is a signer.
@@ -311,17 +325,22 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             },
             contacts::Category::Trusted,
         );
+        model.save()?;
     }
 
     Ok((model, Arc::new(exc_client)))
 }
 
+/// Attempts to establish a new connection with the Ledger hardware wallet.
+/// If the connection is successful, it returns an instance of the LedgerClient.
+/// If the connection fails, it logs a warning, creates a new default ledger,
+/// and returns None.
 #[tracing::instrument(level = "debug")]
 pub async fn connect_ledger() -> Option<LedgerClient> {
     let ledger =
         LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
 
-    let ledger = match ledger {
+    match ledger {
         Ok(ledger) => Some(ledger),
         Err(e) => {
             tracing::warn!("Failed to connect to ledger: {:?}", e);
@@ -329,9 +348,7 @@ pub async fn connect_ledger() -> Option<LedgerClient> {
 
             None
         }
-    };
-
-    ledger
+    }
 }
 
 /// Placeholder function for any future async calls we might want to do.
@@ -339,12 +356,21 @@ pub async fn connect_to_server() -> anyhow::Result<()> {
     Ok(())
 }
 
-impl Loader {
-    pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
-        // Triggers the next step in the main application loop by emitting the Loaded
-        // message.
-        let flags = flags.clone();
+pub const DAGGER_SQUARE_FONT_BYTES: &[u8] =
+    include_bytes!("../../../assets/fonts/DAGGERSQUARE.otf");
 
+impl Loader {
+    /// Creates a new Loader with the given flags and returns a tuple of the
+    /// Loader and a Command. The Command triggers the next step in the main
+    /// application loop by emitting the Loaded message. The Loader is
+    /// initialized with a progress of 0.0, a feedback message of "Loading
+    /// profile", and a logo. The max_load_ticks is calculated as the
+    /// product of max_load_seconds and ticks_per_s. The function also
+    /// attempts to connect to the server and load the icon and brand fonts.
+    /// If any of these operations fail, a LoadingFailed message is returned.
+    /// If all operations are successful, a tuple of the Loader and a Command is
+    /// returned.
+    pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
 
@@ -376,16 +402,32 @@ impl Loader {
                         return Message::LoadingFailed;
                     }
 
-                    Message::Loaded(flags)
+                    Message::IconFontLoaded
                 }),
+                font::load(DAGGER_SQUARE_FONT_BYTES).map(move |res| {
+                    if let Err(e) = res {
+                        tracing::error!("Failed to load icon font: {:?}", e);
+                        return Message::LoadingFailed;
+                    }
+
+                    Message::BrandFontLoaded
+                }),
+                Command::perform(async {}, move |_| Message::Loaded(flags)),
             ]),
         )
     }
 
+    /// Takes in the application flags and returns a command to load the
+    /// application. The loading process is performed asynchronously.
     fn load(&mut self, flags: super::Flags) -> Command<Message> {
         Command::perform(load_app(flags), Message::Ready)
     }
 
+    /// Updates the state of the loader based on the received message.
+    /// This function handles different types of messages and updates the
+    /// loader's state accordingly. For example, it updates the progress of
+    /// the loading process, handles connection status, and initiates the
+    /// loading process.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         self.logo.cache.clear();
 
@@ -413,45 +455,56 @@ impl Loader {
         }
     }
 
+    /// Returns a string that represents the current progress of the loading
+    /// process. The progress is represented by different stages of the
+    /// loading process. The stages are: "Initiated loading procedure...",
+    /// "Starting sandbox environment...", "Connected. Deploying contracts
+    /// in sandbox...", "Initializing sandbox state...", and "Launching
+    /// Excalibur...".
     pub fn get_progress_feedback(&self) -> String {
         let s_curve_result = s_curve(self.progress);
         let progress = (s_curve_result * 4.0) as usize;
 
-        let random_index: usize = progress % CURRENCY_SYMBOLS.len();
-        let random_currency = CURRENCY_SYMBOLS[random_index].to_string();
-
         match progress {
-            0 => format!("{} Initiated loading procedure...", random_currency),
-            1 => format!("{} Starting sandbox environment...", random_currency),
-            2 => format!(
-                "{} Connected. Deploying contracts in sandbox...",
-                random_currency
-            ),
-            3 => format!("{} Initializing sandbox state...", random_currency),
-            _ => format!("{} Launching Excalibur...", random_currency),
+            0 => "Initiated loading procedure...".to_string(),
+            1 => "Starting sandbox environment...".to_string(),
+            2 => "Connected. Deploying contracts in sandbox...".to_string(),
+            3 => "Initializing sandbox state...".to_string(),
+            _ => "Launching Excalibur...".to_string(),
         }
     }
 
+    /// This function generates a view of the loading screen.
+    /// It displays a progress bar that updates based on the loading progress.
+    /// It also displays a random symbol from a collection of Greek and currency
+    /// symbols. The symbol changes with each update of the progress bar.
+    /// The function also displays a feedback message that corresponds to the
+    /// current stage of the loading process.
     pub fn view(&self) -> Element<Message> {
-        let random_index: usize = self.progress as usize % GREEK_SYMBOLS.len();
-        let random_greek = GREEK_SYMBOLS[random_index].to_string();
+        let all_symbols = GREEK_SYMBOLS
+            .iter()
+            .chain(CURRENCY_SYMBOLS.iter())
+            .collect::<Vec<_>>();
+
+        let random_index = self.progress as usize % all_symbols.len();
+        let random_symbol = all_symbols[random_index].to_string();
 
         container(
             container(
                 column![
-                    progress_bar(0.0..=1.0, s_curve((self.progress).into()))
+                    progress_bar(0.0..=1.0, s_curve(self.progress))
                         .style(CustomProgressBar::theme())
                         .height(Length::Fixed(Sizes::Md.into())),
                     Row::new()
                         .push(
                             Column::new()
-                                .push(label(&random_greek).highlight().build())
+                                .push(label(random_symbol).secondary().build())
                                 .align_items(alignment::Alignment::Start)
                                 .width(Length::FillPortion(1)),
                         )
                         .push(
                             Column::new()
-                                .push(label(&self.feedback).highlight().build())
+                                .push(label(&self.feedback).secondary().build())
                                 .align_items(alignment::Alignment::End)
                                 .width(Length::FillPortion(3))
                         )
@@ -461,7 +514,7 @@ impl Loader {
                 ]
                 .padding(Sizes::Sm)
                 .align_items(alignment::Alignment::End)
-                .spacing(Sizes::Sm as u16),
+                .spacing(Sizes::Sm),
             )
             .max_width(ByteScale::Xl6 as u32 as f32),
         )
@@ -477,8 +530,8 @@ impl Loader {
         .into()
     }
 
+    // Every 25ms update the progress bar by 0.001.
     pub fn subscription(&self) -> Subscription<Message> {
-        // Every 25ms update the progress bar by 0.001.
         iced::time::every(std::time::Duration::from_millis(25)).map(|_| Message::Tick)
     }
 }

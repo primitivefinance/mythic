@@ -1,6 +1,9 @@
 //! Entire Excalibur component system.
 
-use iced::Font;
+use iced::{
+    widget::{component, text_input, tooltip, Component},
+    Font,
+};
 
 use super::{
     chart::{
@@ -17,12 +20,19 @@ const BG1: Color = Color::from_rgb(
 );
 
 const BG2: Color = Color::from_rgb(
-    0x0D as f32 / 255.0,
-    0x0D as f32 / 255.0,
-    0x0D as f32 / 255.0,
+    0x0A as f32 / 255.0,
+    0x0A as f32 / 255.0,
+    0x0A as f32 / 255.0,
 );
 
+// not darker than BG1, but placed at the lowest level of the app.
 const BG3: Color = Color::from_rgb(
+    0x14 as f32 / 255.0,
+    0x14 as f32 / 255.0,
+    0x14 as f32 / 255.0,
+);
+
+const BG4: Color = Color::from_rgb(
     0x28 as f32 / 255.0,
     0x28 as f32 / 255.0,
     0x28 as f32 / 255.0,
@@ -65,6 +75,13 @@ const BLUE: Color = Color::from_rgb(
     0xCC as f32 / 255.0,
 );
 
+const BLUE_DISABLED: Color = Color::from_rgba(
+    0x0E as f32 / 255.0,
+    0x44 as f32 / 255.0,
+    0xCC as f32 / 255.0,
+    0.5,
+);
+
 const MINT: Color = Color::from_rgb(
     0x5A as f32 / 255.0,
     0xFF as f32 / 255.0,
@@ -75,6 +92,19 @@ const GREEN: Color = Color::from_rgb(
     0x30 as f32 / 255.0,
     0xFF as f32 / 255.0,
     0x83 as f32 / 255.0,
+);
+
+const GREEN_BUTTON: Color = Color::from_rgb(
+    0x26 as f32 / 255.0,
+    0xAA as f32 / 255.0,
+    0x5B as f32 / 255.0,
+);
+
+const LIGHT_GREEN: Color = Color::from_rgba(
+    0x41 as f32 / 255.0,
+    0xE4 as f32 / 255.0,
+    0xB3 as f32 / 255.0,
+    0.2,
 );
 
 const RED: Color = Color::from_rgb(
@@ -130,14 +160,30 @@ pub enum ExcaliburColor {
     Background1,
     Background2,
     Background3,
+    Background4,
+    Transparent,
     Card,
     #[default]
     Primary,
     Success,
     Danger,
+    Mint,
+    Error,
+    Pending,
+    PrimaryDisabled,
+    Button(ButtonColors),
     Label(LabelColors),
     Quantitative(QuantitativeColors),
     Custom(Color),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum ButtonColors {
+    #[default]
+    Primary,
+    Success,
+    Pending,
+    Error,
 }
 
 impl ExcaliburColor {
@@ -146,10 +192,22 @@ impl ExcaliburColor {
             ExcaliburColor::Background1 => BG1,
             ExcaliburColor::Background2 => BG2,
             ExcaliburColor::Background3 => BG3,
+            ExcaliburColor::Background4 => BG4,
+            ExcaliburColor::Transparent => Color::TRANSPARENT,
             ExcaliburColor::Card => CARD_BG,
             ExcaliburColor::Primary => BLUE,
             ExcaliburColor::Success => GREEN,
             ExcaliburColor::Danger => RED,
+            ExcaliburColor::Mint => MINT,
+            ExcaliburColor::Error => RED,
+            ExcaliburColor::Pending => LIGHT_GREEN,
+            ExcaliburColor::PrimaryDisabled => BLUE_DISABLED,
+            ExcaliburColor::Button(button_color) => match button_color {
+                ButtonColors::Primary => BLUE,
+                ButtonColors::Success => GREEN_BUTTON,
+                ButtonColors::Pending => LIGHT_GREEN,
+                ButtonColors::Error => AMBER,
+            },
             ExcaliburColor::Label(label_color) => match label_color {
                 LabelColors::Primary => PRIMARY_LABEL,
                 LabelColors::Secondary => SECONDARY_LABEL,
@@ -166,7 +224,6 @@ impl ExcaliburColor {
                 QuantitativeColors::Billions => HIGHLIGHT,
             },
             ExcaliburColor::Custom(color) => *color,
-            _ => Color::WHITE,
         }
     }
 }
@@ -174,6 +231,12 @@ impl ExcaliburColor {
 impl From<ExcaliburColor> for Color {
     fn from(color: ExcaliburColor) -> Self {
         color.color()
+    }
+}
+
+impl From<ExcaliburColor> for iced::Background {
+    fn from(color: ExcaliburColor) -> Self {
+        iced::Background::Color(color.color())
     }
 }
 
@@ -209,6 +272,22 @@ pub enum Typography {
     Caption2 = 10,
 }
 
+impl From<Typography> for f32 {
+    fn from(typography: Typography) -> Self {
+        match typography {
+            Typography::Title1 => 28.0,
+            Typography::Title2 => 24.0,
+            Typography::Title3 => 20.0,
+            Typography::Headline => 18.0,
+            Typography::Body => 16.0,
+            Typography::Subhead => 15.0,
+            Typography::Footnote => 14.0,
+            Typography::Caption => 12.0,
+            Typography::Caption2 => 10.0,
+        }
+    }
+}
+
 impl From<Typography> for iced::Pixels {
     fn from(typography: Typography) -> Self {
         match typography {
@@ -227,6 +306,12 @@ impl From<Typography> for iced::Pixels {
 
 pub const SYMBOL_FONT: Font = Font::with_name("Yu Gothic");
 pub const UI_FONT: Font = Font::with_name("Yu Gothic UI");
+pub const UI_FONT_SEMIBOLD: Font = Font {
+    family: iced::font::Family::Name("Yu Gothic UI"),
+    weight: iced::font::Weight::Semibold,
+    stretch: iced::font::Stretch::Normal,
+    monospaced: false,
+};
 pub const UI_FONT_BOLD: Font = Font {
     family: iced::font::Family::Name("Yu Gothic UI"),
     weight: iced::font::Weight::Bold,
@@ -239,9 +324,11 @@ pub const BRAND_FONT: Font = Font::with_name("DAGGERSQUARE");
 pub enum ExcaliburFonts {
     #[default]
     UI,
+    UISemibold,
     UIBold,
     Branding,
     Symbol,
+    Icon,
     Custom(iced::Font),
 }
 
@@ -249,11 +336,19 @@ impl ExcaliburFonts {
     pub fn font(&self) -> Font {
         match self {
             ExcaliburFonts::UI => UI_FONT,
+            ExcaliburFonts::UISemibold => UI_FONT_SEMIBOLD,
             ExcaliburFonts::UIBold => UI_FONT_BOLD,
             ExcaliburFonts::Branding => BRAND_FONT,
             ExcaliburFonts::Symbol => SYMBOL_FONT,
+            ExcaliburFonts::Icon => iced_aw::ICON_FONT,
             ExcaliburFonts::Custom(font) => *font,
         }
+    }
+}
+
+impl From<ExcaliburFonts> for Font {
+    fn from(font: ExcaliburFonts) -> Self {
+        font.font()
     }
 }
 
@@ -282,7 +377,7 @@ impl Default for ExcaliburText {
 }
 
 /// For constructing any text rendered in Excalibur.
-pub fn label<'a>(value: &str) -> ExcaliburText {
+pub fn label(value: impl ToString) -> ExcaliburText {
     ExcaliburText::new(value)
 }
 
@@ -311,7 +406,7 @@ pub fn format_number(num: f64) -> (String, QuantitativeColors) {
 
 impl ExcaliburText {
     /// For constructing any text rendered in Excalibur.
-    pub fn new(value: &str) -> Self {
+    pub fn new(value: impl ToString) -> Self {
         Self {
             value: value.to_string(),
             ..Default::default()
@@ -328,6 +423,21 @@ impl ExcaliburText {
             .vertical_alignment(self.vertical_alignment)
     }
 
+    pub fn custom_typography(self, typography: Typography) -> Self {
+        Self {
+            size: typography,
+            ..self
+        }
+    }
+
+    pub fn custom_font(self, font: ExcaliburFonts) -> Self {
+        Self { font, ..self }
+    }
+
+    pub fn custom_color(self, color: ExcaliburColor) -> Self {
+        Self { color, ..self }
+    }
+
     // Class
 
     /// Customizes the text parsed in as an f64 and processed through a
@@ -338,6 +448,8 @@ impl ExcaliburText {
     /// Return None in the classifier if you want to default to the original
     /// text.
     pub fn custom_format(self, classifier: impl FnOnce(f64) -> Option<ExcaliburColor>) -> Self {
+        // this fails when a user loads for the first time which should be okay to
+        // default to zero.
         let value = self.value.parse::<f64>().unwrap_or(0.0);
         if let Some(color) = classifier(value) {
             Self { color, ..self }
@@ -348,11 +460,8 @@ impl ExcaliburText {
 
     /// Formats the text based on float value.
     pub fn quantitative(self) -> Self {
-        // todo: this is probably very dangerous!
         let value = self.value.parse::<f64>().unwrap_or(0.0);
-
         let (value, color) = format_number(value);
-
         Self {
             value,
             color: ExcaliburColor::Quantitative(color),
@@ -363,23 +472,18 @@ impl ExcaliburText {
     /// Formats the text based on percentage value.
     pub fn percentage(self) -> Self {
         let value = self.value.parse::<f64>().unwrap_or(0.0);
-        let mut color = QuantitativeColors::Hundreds;
-
         let percentage_value = value * 100.0;
-
-        let value = if percentage_value < 10.0 {
-            color = QuantitativeColors::Hundreds;
-            format!("{:.2}%", percentage_value)
+        let color = if percentage_value < 10.0 {
+            QuantitativeColors::Hundreds
         } else if percentage_value < 50.0 {
-            color = QuantitativeColors::Thousands;
-            format!("{:.2}%", percentage_value)
+            QuantitativeColors::Thousands
         } else if percentage_value < 95.0 {
-            color = QuantitativeColors::Millions;
-            format!("{:.2}%", percentage_value)
+            QuantitativeColors::Millions
         } else {
-            color = QuantitativeColors::Billions;
-            format!("{:.2}%", percentage_value)
+            QuantitativeColors::Billions
         };
+
+        let value = format!("{:.2}%", percentage_value);
 
         Self {
             value,
@@ -566,6 +670,15 @@ impl ExcaliburText {
         }
     }
 
+    /// todo: fix on macos
+    pub fn ui_semibold(self) -> Self {
+        Self {
+            font: ExcaliburFonts::UISemibold,
+            ..self
+        }
+    }
+
+    /// todo: fix on macos
     pub fn ui_bold(self) -> Self {
         Self {
             font: ExcaliburFonts::UIBold,
@@ -583,6 +696,13 @@ impl ExcaliburText {
     pub fn branding(self) -> Self {
         Self {
             font: ExcaliburFonts::Branding,
+            ..self
+        }
+    }
+
+    pub fn icon(self) -> Self {
+        Self {
+            font: ExcaliburFonts::Icon,
             ..self
         }
     }
@@ -657,15 +777,17 @@ pub struct ExcaliburContainer {
     pub border_radius: BorderRadius,
     pub border_width: f32,
     pub border_color: ExcaliburColor,
+    pub text_color: ExcaliburColor,
 }
 
 impl Default for ExcaliburContainer {
     fn default() -> Self {
         Self {
-            background: ExcaliburColor::Background1,
+            background: ExcaliburColor::Transparent,
             border_radius: Sizes::Sm.into(),
             border_width: 0.0,
-            border_color: ExcaliburColor::Custom(Color::WHITE),
+            border_color: ExcaliburColor::Label(LabelColors::Quaternary),
+            text_color: ExcaliburColor::Label(LabelColors::Primary),
         }
     }
 }
@@ -696,6 +818,7 @@ impl ExcaliburContainer {
             border_radius: Sizes::Xs.into(),
             border_width: 0.0,
             border_color: ExcaliburColor::Custom(Color::WHITE),
+            text_color: ExcaliburColor::Custom(Color::WHITE),
         }
     }
 
@@ -721,15 +844,27 @@ impl ExcaliburContainer {
         self
     }
 
-    /// The layer between the bottom and top layers.
-    pub fn middle(mut self) -> Self {
+    /// The layer between the bottom and middle layer.
+    pub fn middle_bottom(mut self) -> Self {
         self.background = ExcaliburColor::Background2;
+        self
+    }
+
+    /// The layer between the middle and top layer.
+    pub fn middle_top(mut self) -> Self {
+        self.background = ExcaliburColor::Background3;
         self
     }
 
     /// The layer that is closest and therefore the lightest.
     pub fn top(mut self) -> Self {
-        self.background = ExcaliburColor::Background3;
+        self.background = ExcaliburColor::Background4;
+        self
+    }
+
+    /// Transparent background
+    pub fn transparent(mut self) -> Self {
+        self.background = ExcaliburColor::Transparent;
         self
     }
 
@@ -751,6 +886,11 @@ impl ExcaliburContainer {
         self
     }
 
+    pub fn text_color(mut self, color: ExcaliburColor) -> Self {
+        self.text_color = color;
+        self
+    }
+
     // Border radius
 
     pub fn sharp(mut self) -> Self {
@@ -764,7 +904,7 @@ impl ExcaliburContainer {
     }
 
     pub fn border_radius(mut self, size: BorderRadius) -> Self {
-        self.border_radius = size.into();
+        self.border_radius = size;
         self
     }
 
@@ -784,7 +924,7 @@ impl ExcaliburContainer {
 
     pub fn black_border(mut self) -> Self {
         self.border_color = ExcaliburColor::Custom(Color::BLACK);
-        self.border_width = 1.0;
+        self.border_width = 2.0;
         self
     }
 
@@ -833,10 +973,52 @@ impl ExcaliburButton {
         self
     }
 
+    pub fn active(mut self) -> Self {
+        self.style.current_state = ButtonState::Active;
+        self
+    }
+
+    pub fn hovered(mut self) -> Self {
+        self.style.current_state = ButtonState::Hovered;
+        self
+    }
+
+    pub fn pressed(mut self) -> Self {
+        self.style.current_state = ButtonState::Pressed;
+        self
+    }
+
+    pub fn disabled(mut self) -> Self {
+        self.style.current_state = ButtonState::Disabled;
+        self
+    }
+
+    /// Overrides the active button state's background color.
+    pub fn background(mut self, color: ExcaliburColor) -> Self {
+        self.style = self.style.background(Some(color.into()));
+        self
+    }
+
+    /// Overrides all button states with a border radius.
+    pub fn border_radius(self, border_radius: BorderRadius) -> Self {
+        let style = self
+            .style
+            .active()
+            .border_radius(border_radius)
+            .hovered()
+            .border_radius(border_radius)
+            .pressed()
+            .border_radius(border_radius)
+            .disabled()
+            .border_radius(border_radius);
+
+        Self { style }
+    }
+
     pub fn primary(self) -> Self {
         let color = ExcaliburColor::Label(LabelColors::Primary).into();
         let border_radius = 3.0.into();
-        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled).into();
+        let disabled_color = ExcaliburColor::Label(LabelColors::Disabled);
         let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
             .text_color(color)
             .border_radius(border_radius)
@@ -847,7 +1029,8 @@ impl ExcaliburButton {
             .text_color(color)
             .border_radius(border_radius)
             .disabled()
-            .text_color(disabled_color)
+            .background(Some(ExcaliburColor::PrimaryDisabled.into()))
+            .text_color(disabled_color.into())
             .border_radius(border_radius);
         Self { style }
     }
@@ -896,6 +1079,32 @@ impl ExcaliburButton {
             .border_radius(border_radius);
         Self { style }
     }
+
+    /// Button that can be pressed as a selection item.
+    pub fn selectable(self) -> Self {
+        let style = CustomButtonStyle::primary(&ExcaliburTheme::theme())
+            .background(Some(ExcaliburColor::Background3.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Primary).into())
+            .hovered()
+            .background(Some(ExcaliburColor::Background4.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Primary).into())
+            .pressed()
+            .background(Some(ExcaliburColor::Background2.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_600).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Primary).into())
+            .disabled()
+            .background(Some(ExcaliburColor::Background2.into()))
+            .border_color(ExcaliburColor::Custom(GRAY_500).into())
+            .border_width(1.0)
+            .text_color(ExcaliburColor::Label(LabelColors::Disabled).into());
+
+        Self { style }
+    }
 }
 
 /// Constructs a table using the table builder to be used across Excalibur.
@@ -939,7 +1148,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
                     .headers(self.headers)
                     .header_row(
                         RowBuilder::new()
-                            .border_bottom(ExcaliburContainer::default().white_border().theme()),
+                            .border_bottom(ExcaliburContainer::default().light_border().theme()),
                     )
                     .rows(
                         cells
@@ -993,17 +1202,24 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
         self.headers.push(header.to_string());
         self
     }
+
+    pub fn headers(mut self, headers: Vec<impl ToString>) -> Self {
+        self.headers = headers.iter().map(ToString::to_string).collect();
+        self
+    }
 }
 
 /// Simple template for a Card built from the Excalibur components.
 pub struct Card;
 
 impl Card {
-    pub fn new<'a, Message>(element: impl Into<Element<'a, Message>>) -> Container<'a, Message>
+    pub fn build_container<'a, Message>(
+        element: impl Into<Element<'a, Message>>,
+    ) -> Container<'a, Message>
     where
         Message: 'a,
     {
-        panel().card().build(element).into()
+        panel().card().build(element)
     }
 }
 
@@ -1020,7 +1236,7 @@ impl ExcaliburChart {
         }
     }
 
-    pub fn build(&self) -> Element<'_, chart::Message> {
+    pub fn build(&self) -> Element<'_, chart::ChartMessage> {
         self.chart.view()
     }
 
@@ -1115,6 +1331,640 @@ impl ExcaliburChart {
         self = self.x_range((-0.1, 1.0));
         self = self.y_range((-0.1, 1.0));
 
+        self
+    }
+}
+
+#[derive(Clone)]
+pub struct ExcaliburInputBuilder {
+    padding: Option<Padding>,
+    placeholder: Option<String>,
+    font: Option<iced::Font>,
+    size: Option<f32>,
+    icon: Option<iced::widget::text_input::Icon<iced::Font>>,
+    style: CustomInputStyle,
+    width: Length,
+}
+
+impl Default for ExcaliburInputBuilder {
+    fn default() -> Self {
+        Self {
+            padding: None,
+            placeholder: None,
+            font: None,
+            size: None,
+            icon: None,
+            style: CustomInputStyle::new(),
+            width: Length::Shrink,
+        }
+    }
+}
+
+impl ExcaliburInputBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn build<'a, Message>(
+        self,
+        value: Option<String>,
+        on_change: impl Fn(Option<String>) -> Message + 'a,
+    ) -> ExcaliburInput<'a, Message> {
+        ExcaliburInput::new(
+            value,
+            on_change,
+            self.padding,
+            self.placeholder,
+            None,
+            None,
+            self.size,
+            self.font,
+            self.icon,
+        )
+        .style(move || self.style.build())
+        .width(self.width)
+    }
+
+    pub fn size(mut self, size: Typography) -> Self {
+        self.size = Some(size.into());
+        self
+    }
+
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.padding = Some(padding);
+        self
+    }
+
+    pub fn placeholder(mut self, placeholder: String) -> Self {
+        self.placeholder = Some(placeholder);
+        self
+    }
+
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn light_border(self) -> Self {
+        self.style
+            .active()
+            .border_color(ExcaliburColor::Custom(GRAY_600))
+            .border_width(1.0)
+            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight))
+            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary))
+            .hovered()
+            .border_color(ExcaliburColor::Custom(GRAY_600))
+            .border_width(1.0)
+            .value_color(ExcaliburColor::Label(system::LabelColors::Highlight))
+            .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary))
+            .background(ExcaliburColor::Background4);
+
+        self
+    }
+
+    pub fn border_radius(self, radius: BorderRadius) -> Self {
+        self.style.active().border_radius(radius);
+        self.style.focused().border_radius(radius);
+        self.style.hovered().border_radius(radius);
+        self.style.disabled().border_radius(radius);
+        self
+    }
+
+    pub fn icon(mut self, icon: iced::widget::text_input::Icon<iced::Font>) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum InputEvent {
+    Change(String),
+    Paste(String),
+    Submit,
+}
+
+pub struct ExcaliburInput<'a, Message> {
+    placeholder: String,
+    value: Option<String>,
+    is_secure: bool,
+    font: Option<iced::Font>,
+    width: Length,
+    padding: Padding,
+    size: Option<f32>,
+    line_height: text::LineHeight,
+    on_input: Option<Box<dyn Fn(Option<String>) -> Message + 'a>>,
+    on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
+    on_submit: Option<Message>,
+    icon: Option<iced::widget::text_input::Icon<iced::Font>>,
+    style: Option<Box<dyn Fn() -> <iced::Theme as iced::widget::text_input::StyleSheet>::Style>>,
+}
+
+impl<'a, Message> ExcaliburInput<'a, Message> {
+    // TODO: this is a bit of a mess
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        value: Option<String>,
+        on_input: impl Fn(Option<String>) -> Message + 'a,
+        padding: Option<Padding>,
+        placeholder: Option<String>,
+        on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
+        on_submit: Option<Message>,
+        size: Option<f32>,
+        font: Option<iced::Font>,
+        icon: Option<iced::widget::text_input::Icon<iced::Font>>,
+    ) -> Self {
+        Self {
+            placeholder: placeholder.unwrap_or("".to_string()),
+            value,
+            is_secure: false,
+            font,
+            width: Length::Shrink,
+            padding: padding.unwrap_or(0.0.into()),
+            size,
+            line_height: text::LineHeight::from(1.0),
+            on_input: Some(Box::new(on_input)),
+            on_paste,
+            on_submit,
+            icon,
+            style: Some(Box::new(|| {
+                <iced::Theme as iced::widget::text_input::StyleSheet>::Style::default()
+            })),
+        }
+    }
+
+    pub fn style(
+        mut self,
+        style: impl Fn() -> <iced::Theme as iced::widget::text_input::StyleSheet>::Style + 'static,
+    ) -> Self {
+        self.style = Some(Box::new(style));
+        self
+    }
+
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
+        self
+    }
+}
+
+impl<'a, Message> Component<Message, iced::Renderer> for ExcaliburInput<'a, Message>
+where
+    Message: Clone,
+{
+    type State = ();
+    type Event = InputEvent;
+
+    fn update(&mut self, _state: &mut Self::State, event: Self::Event) -> Option<Message> {
+        match event {
+            Self::Event::Change(value) => {
+                self.value = Some(value.clone());
+
+                if let Some(on_input) = &self.on_input {
+                    if value.is_empty() {
+                        Some((on_input)(None))
+                    } else {
+                        let parsed_value = value.parse();
+                        match parsed_value {
+                            Ok(parsed_value) => Some((on_input)(Some(parsed_value))),
+                            Err(e) => {
+                                tracing::warn!("Error parsing input: {:?}", e);
+                                None
+                            }
+                        }
+                    }
+                } else {
+                    None
+                }
+            }
+            Self::Event::Paste(value) => {
+                self.value = Some(value.clone());
+
+                if let Some(on_paste) = &self.on_paste {
+                    if value.is_empty() {
+                        Some((on_paste)(value))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            Self::Event::Submit => self.on_submit.as_ref().cloned(),
+        }
+    }
+
+    fn view(&self, _state: &Self::State) -> Element<Self::Event, iced::Renderer> {
+        let mut input = text_input(
+            &self.placeholder,
+            &self
+                .value
+                .as_ref()
+                .map(|v| v.to_string())
+                .unwrap_or("".to_string()),
+        )
+        .on_input(Self::Event::Change)
+        .padding(self.padding)
+        .width(self.width)
+        .line_height(self.line_height)
+        .on_submit(Self::Event::Submit)
+        .on_paste(Self::Event::Paste);
+
+        if let Some(size) = self.size {
+            input = input.size(size);
+        }
+
+        if let Some(icon) = &self.icon {
+            input = input.icon(icon.clone());
+        }
+
+        if let Some(font) = &self.font {
+            input = input.font(*font);
+        }
+
+        if self.is_secure {
+            input = input.password();
+        }
+
+        if let Some(style) = &self.style {
+            input = input.style(style());
+        }
+
+        input.into()
+    }
+}
+
+impl<'a, Event> From<ExcaliburInput<'a, Event>> for Element<'a, Event, iced::Renderer>
+where
+    Event: 'a + Clone,
+{
+    fn from(config_input: ExcaliburInput<'a, Event>) -> Self {
+        component(config_input)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub enum InputState {
+    #[default]
+    Active,
+    Focused,
+    Hovered,
+    Disabled,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CustomInputStyle {
+    pub active: text_input::Appearance,
+    pub focused: text_input::Appearance,
+    pub hovered: text_input::Appearance,
+    pub disabled: text_input::Appearance,
+    pub current: InputState,
+    pub placeholder_color: Color,
+    pub value_color: Color,
+    pub disabled_color: Color,
+    pub selection_color: Color,
+}
+
+impl Default for CustomInputStyle {
+    fn default() -> Self {
+        let default = text_input::Appearance {
+            background: ExcaliburColor::Transparent.into(),
+            border_radius: 0.0.into(),
+            border_width: 0.0,
+            border_color: ExcaliburColor::Transparent.into(),
+            icon_color: ExcaliburColor::Label(LabelColors::Primary).into(),
+        };
+        Self {
+            active: default,
+            focused: default,
+            hovered: default,
+            disabled: default,
+            current: InputState::Active,
+            placeholder_color: ExcaliburColor::Label(LabelColors::Placeholder).into(),
+            value_color: ExcaliburColor::Label(LabelColors::Primary).into(),
+            disabled_color: ExcaliburColor::Label(LabelColors::Disabled).into(),
+            selection_color: ExcaliburColor::Label(LabelColors::Tertiary).into(),
+        }
+    }
+}
+
+impl CustomInputStyle {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    // Edit the different states
+
+    pub fn active(mut self) -> Self {
+        self.current = InputState::Active;
+        self
+    }
+
+    pub fn focused(mut self) -> Self {
+        self.current = InputState::Focused;
+        self
+    }
+
+    pub fn hovered(mut self) -> Self {
+        self.current = InputState::Hovered;
+        self
+    }
+
+    pub fn disabled(mut self) -> Self {
+        self.current = InputState::Disabled;
+        self
+    }
+
+    // Edit the colors of the text
+
+    pub fn placeholder_color(mut self, color: ExcaliburColor) -> Self {
+        self.placeholder_color = color.into();
+        self
+    }
+
+    pub fn value_color(mut self, color: ExcaliburColor) -> Self {
+        self.value_color = color.into();
+        self
+    }
+
+    pub fn disabled_color(mut self, color: ExcaliburColor) -> Self {
+        self.disabled_color = color.into();
+        self
+    }
+
+    pub fn selection_color(mut self, color: ExcaliburColor) -> Self {
+        self.selection_color = color.into();
+        self
+    }
+
+    // Edit the values of different states
+
+    pub fn background(mut self, color: ExcaliburColor) -> Self {
+        match self.current {
+            InputState::Active => self.active.background = color.into(),
+            InputState::Focused => self.focused.background = color.into(),
+            InputState::Hovered => self.hovered.background = color.into(),
+            InputState::Disabled => self.disabled.background = color.into(),
+        }
+        self
+    }
+
+    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+        match self.current {
+            InputState::Active => self.active.border_radius = radius,
+            InputState::Focused => self.focused.border_radius = radius,
+            InputState::Hovered => self.hovered.border_radius = radius,
+            InputState::Disabled => self.disabled.border_radius = radius,
+        }
+        self
+    }
+
+    pub fn border_width(mut self, width: f32) -> Self {
+        match self.current {
+            InputState::Active => self.active.border_width = width,
+            InputState::Focused => self.focused.border_width = width,
+            InputState::Hovered => self.hovered.border_width = width,
+            InputState::Disabled => self.disabled.border_width = width,
+        }
+        self
+    }
+
+    pub fn border_color(mut self, color: ExcaliburColor) -> Self {
+        match self.current {
+            InputState::Active => self.active.border_color = color.into(),
+            InputState::Focused => self.focused.border_color = color.into(),
+            InputState::Hovered => self.hovered.border_color = color.into(),
+            InputState::Disabled => self.disabled.border_color = color.into(),
+        }
+        self
+    }
+
+    pub fn icon_color(mut self, color: ExcaliburColor) -> Self {
+        match self.current {
+            InputState::Active => self.active.icon_color = color.into(),
+            InputState::Focused => self.focused.icon_color = color.into(),
+            InputState::Hovered => self.hovered.icon_color = color.into(),
+            InputState::Disabled => self.disabled.icon_color = color.into(),
+        }
+        self
+    }
+
+    pub fn build(&self) -> iced::theme::TextInput {
+        iced::theme::TextInput::Custom(Box::new(*self))
+    }
+}
+
+impl text_input::StyleSheet for CustomInputStyle {
+    type Style = iced::Theme;
+
+    fn active(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.active
+    }
+
+    fn focused(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.focused
+    }
+
+    fn hovered(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.hovered
+    }
+
+    fn disabled(&self, _style: &Self::Style) -> text_input::Appearance {
+        self.disabled
+    }
+
+    fn placeholder_color(&self, _style: &Self::Style) -> Color {
+        self.placeholder_color
+    }
+
+    fn value_color(&self, _style: &Self::Style) -> Color {
+        self.value_color
+    }
+
+    fn selection_color(&self, _style: &Self::Style) -> Color {
+        self.selection_color
+    }
+
+    fn disabled_color(&self, _style: &Self::Style) -> Color {
+        self.disabled_color
+    }
+}
+
+/// A customizable tooltip with Excalibur styling.
+///
+/// How to use this component:
+/// - Create a new or default tooltip.
+/// - Edit the text styling using the custom methods or templated methods like
+///   `caption`.
+/// - Edit the position of the tooltip using the `position` method.
+/// - Edit the element that is hovered over to display the tooltip using the
+///   `custom_content` method.
+/// - Use the template tooltips like `info`, which renders an info "i" as the
+///   element to hover over.
+/// - Build the tooltip using the `build` method.
+#[derive(Debug, Clone)]
+pub struct ExcaliburTooltip {
+    position: iced::widget::tooltip::Position,
+    padding: iced::Pixels,
+    gap: f32,
+    font: Option<iced::Font>,
+    text_size: Option<Typography>,
+    text_color: ExcaliburColor,
+    snap_in_viewport: bool,
+    /// Customize the element that is hovered over to display the tooltip.
+    custom_element: ExcaliburText,
+}
+
+impl Default for ExcaliburTooltip {
+    fn default() -> Self {
+        Self {
+            position: iced::widget::tooltip::Position::Top,
+            padding: 0.0.into(),
+            gap: 0.0,
+            font: None,
+            text_size: None,
+            text_color: ExcaliburColor::Label(LabelColors::Primary),
+            snap_in_viewport: true,
+            custom_element: label(icon_to_char(Icon::Info)).icon().secondary().caption(),
+        }
+    }
+}
+
+#[allow(dead_code)]
+impl ExcaliburTooltip {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Uses the `self.custom_element` to build the tooltip. This must be set,
+    /// defaults to the [`Info`] Icon.
+    pub fn build<'a, Message>(
+        self,
+        tooltip_content: impl ToString,
+    ) -> iced::widget::Tooltip<'a, Message>
+    where
+        Message: 'a,
+    {
+        let custom = self.custom_element.clone();
+        self.build_custom(custom, tooltip_content)
+    }
+
+    pub fn build_custom<'a, Message>(
+        self,
+        element: impl Into<Element<'a, Message>>,
+        tooltip_content: impl ToString,
+    ) -> iced::widget::Tooltip<'a, Message>
+    where
+        Message: 'a,
+    {
+        let mut builder = tooltip(element, tooltip_content, self.position)
+            .padding(self.padding)
+            .gap(self.gap)
+            .snap_within_viewport(self.snap_in_viewport);
+
+        if let Some(font) = self.font {
+            builder = builder.font(font);
+        }
+
+        if let Some(text_size) = self.text_size {
+            builder = builder.size(text_size);
+        }
+
+        builder.style(
+            ExcaliburContainer::default()
+                .top()
+                .text_color(self.text_color)
+                .light_border()
+                .theme(),
+        )
+    }
+
+    pub fn position(mut self, position: iced::widget::tooltip::Position) -> Self {
+        self.position = position;
+        self
+    }
+
+    pub fn icon(mut self) -> Self {
+        self.font = Some(ExcaliburFonts::Icon.into());
+        self
+    }
+
+    pub fn branding(mut self) -> Self {
+        self.font = Some(ExcaliburFonts::Branding.into());
+        self
+    }
+
+    pub fn caption(mut self) -> Self {
+        self.text_size = Some(Typography::Caption);
+        self
+    }
+
+    pub fn caption2(mut self) -> Self {
+        self.text_size = Some(Typography::Caption2);
+        self
+    }
+
+    pub fn padding(mut self, padding: impl Into<iced::Pixels>) -> Self {
+        self.padding = padding.into();
+        self
+    }
+
+    pub fn top(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Top)
+    }
+
+    pub fn bottom(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Bottom)
+    }
+
+    pub fn left(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Left)
+    }
+
+    pub fn right(self) -> Self {
+        self.position(iced::widget::tooltip::Position::Right)
+    }
+
+    pub fn text_color(mut self, color: impl Into<ExcaliburColor>) -> Self {
+        self.text_color = color.into();
+        self
+    }
+
+    pub fn secondary(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Secondary))
+    }
+
+    pub fn tertiary(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Tertiary))
+    }
+
+    pub fn quaternary(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Quaternary))
+    }
+
+    pub fn disabled(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Disabled))
+    }
+
+    pub fn highlight(self) -> Self {
+        self.text_color(ExcaliburColor::Label(LabelColors::Highlight))
+    }
+
+    pub fn custom_content(mut self, element: ExcaliburText) -> Self {
+        self.custom_element = element;
+        self
+    }
+
+    // Template tooltips.
+    // Color must be specified prior to consuming the tooltip.
+    pub fn info(mut self) -> Self {
+        let mut element = label(icon_to_char(Icon::Info))
+            .icon()
+            .custom_color(self.text_color);
+
+        if let Some(size) = self.text_size {
+            element = element.custom_typography(size)
+        }
+
+        self.custom_element = element;
         self
     }
 }

@@ -68,7 +68,6 @@ impl LedgerClient {
 
         tracing::debug!("Dispatching get_version");
         let answer = self.ledger.exchange(&command).await?;
-        // todo handle this unwrap
         let result = answer.data().unwrap();
         if result.len() < 4 {
             return Err(LedgerClienError::LedgerError(
@@ -204,7 +203,6 @@ impl LedgerClient {
             ));
         }
         let result = result.data().unwrap();
-        // todo handle this unwrap better
         if result.is_empty() {
             if self.get_opened_app().await? == "Ethereum" {
                 return Err(LedgerClienError::CommandError("Canceled".to_owned()));

@@ -2,21 +2,11 @@
 
 use iced::{
     widget::{Column, Container},
-    Command, Element, Length, Point,
+    Command, Element, Length,
 };
-use plotters::{
-    coord::Shift,
-    define_color,
-    prelude::ChartBuilder,
-    series::LineSeries,
-    style::{IntoTextStyle, RGBColor, TextStyle, RED},
-};
-use plotters_backend::DrawingBackend;
-use plotters_iced::{Chart, ChartWidget, DrawingArea, Renderer};
 
 use super::*;
 use crate::components::{
-    button::CustomButtonStyle,
     chart::CartesianChart,
     system::{label, ExcaliburButton, ExcaliburTable},
     tables::cells::CellBuilder,
@@ -26,7 +16,7 @@ use crate::components::{
 pub enum Message {
     #[default]
     Empty,
-    Chart(chart::Message),
+    Chart(chart::ChartMessage),
 }
 
 impl From<Message> for view::Message {
@@ -71,17 +61,11 @@ impl State for ExperimentalScreen {
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::Empty => {}
-            Self::AppMessage::View(message) => match message {
-                Self::ViewMessage::Experimental(message) => match message {
-                    Message::Empty => {}
-                    Message::Chart(message) => match message {
-                        chart::Message::MouseEvent(event, point) => {
-                            // tracing::info!("Mouse event: {:?} {:?}", event,
-                            // point);
-                        }
-                    },
-                },
-                _ => {}
+            Self::AppMessage::View(Self::ViewMessage::Experimental(message)) => match message {
+                Message::Empty => {}
+                Message::Chart(message) => {
+                    todo!("Handle chart message: {:?}", message)
+                }
             },
             _ => {}
         }
@@ -123,7 +107,7 @@ impl State for ExperimentalScreen {
             ],
         ];
 
-        let exp_table = ExcaliburTable::new()
+        let _exp_table = ExcaliburTable::new()
             .header("Asset")
             .header("Price")
             .header("Balance")
@@ -162,27 +146,27 @@ impl State for ExperimentalScreen {
             .push(
                 ExcaliburButton::new()
                     .primary()
-                    .build(label(&"New button").build())
+                    .build(label("New button").build())
                     .padding(Sizes::Md)
                     .on_press(Self::ViewMessage::Experimental(Message::Empty)),
             )
             .push(
                 ExcaliburButton::new()
                     .primary()
-                    .build(label(&"New button").build())
+                    .build(label("New button").build())
                     .padding(Sizes::Md),
             )
             .push(
                 ExcaliburButton::new()
                     .danger()
-                    .build(label(&"New button").build())
+                    .build(label("New button").build())
                     .padding(Sizes::Md)
                     .on_press(Self::ViewMessage::Experimental(Message::Empty)),
             )
             .push(
                 ExcaliburButton::new()
                     .transparent()
-                    .build(label(&"New button").build())
+                    .build(label("New button").build())
                     .padding(Sizes::Md)
                     .on_press(Self::ViewMessage::Experimental(Message::Empty)),
             );

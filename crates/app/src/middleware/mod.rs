@@ -6,6 +6,9 @@ use arbiter_core::{
     middleware::RevmMiddleware,
 };
 use bindings::mock_erc20::MockERC20;
+use cfmm_math::trading_functions::rmm::{
+    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
+};
 use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
 
@@ -91,11 +94,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
 
     /// Returns the address of the signer, if there is one.
     pub fn address(&self) -> Option<Address> {
-        if let Some(signer) = self.signer() {
-            Some(signer.address())
-        } else {
-            None
-        }
+        self.signer().map(|signer| signer.address())
     }
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
@@ -170,6 +169,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             let anvil_client = Arc::new(
                 Provider::<Ws>::connect(&anvil.ws_endpoint())
                     .await?
+                    .interval(std::time::Duration::from_millis(100))
                     .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
             );
             let signers = vec![signer];
@@ -227,11 +227,49 @@ pub trait Protocol {
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition>;
 }
 
+/// L = Deposit $ / V(c)
+/// x = X(L)
+/// y = Y(x, L)
+pub fn get_deposits_given_price(
+    price: f64,
+    amount_dollars: f64,
+    strike_price_wad: f64,
+    sigma_percent_wad: f64,
+    tau_years_wad: f64,
+) -> (f64, f64, f64) {
+    let value_per =
+        compute_value_function(price, strike_price_wad, sigma_percent_wad, tau_years_wad);
+
+    let total_liquidity = amount_dollars / value_per;
+
+    let amount_x = compute_x_given_l_rust(
+        total_liquidity,
+        price,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    let amount_y = compute_y_given_x_rust(
+        amount_x,
+        total_liquidity,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    (amount_x, amount_y, total_liquidity)
+}
+
 #[async_trait::async_trait]
 impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     fn protocol(&self) -> Result<ProtocolClient<NetworkClient<Ws, LocalWallet>>> {
         let client = self.client().unwrap().clone();
-        let address = self.contracts.get("protocol").unwrap().clone();
+        let address = self.contracts.get("protocol").cloned();
+        let address = match address {
+            Some(address) => address,
+            None => return Err(anyhow::anyhow!("No protocol address")),
+        };
         let protocol = ProtocolClient::new(client, address);
         Ok(protocol)
     }
@@ -248,8 +286,14 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let client = self.anvil_client.clone().unwrap();
         let protocol = self.protocol()?;
 
-        let amount_x = amount_dollars / price;
-        let amount_y = amount_x * price;
+        let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
+            price,
+            amount_dollars,
+            strike_price_wad,
+            sigma_percent_wad,
+            tau_years_wad,
+        );
+
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
 
@@ -274,7 +318,6 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     }
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
-        let client = self.client().unwrap().clone();
         let protocol = self.protocol()?;
         let (balance_x, balance_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
         let internal_price = protocol.get_internal_price().await?;
@@ -312,6 +355,21 @@ mod tests {
             .spawn();
 
         Ok(anvil)
+    }
+
+    #[test]
+    fn test_get_deposit_amounts() {
+        use tracing_subscriber;
+
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::TRACE)
+            .init();
+
+        let strike = 1.0;
+        let sigma = 1.0;
+        let tau = 1.0;
+        let price = 1.0;
+        let dollars = 1.0;
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -354,15 +412,6 @@ mod tests {
             alice_address,
             ethers::types::U256::from(1_000_000_000_000_000_000u128),
         );
-
-        // do the tx
-        let tx = client
-            .anvil_client
-            .clone()
-            .unwrap()
-            .send_transaction(pay_tx, None)
-            .await?
-            .await?;
 
         let balance = client
             .client()

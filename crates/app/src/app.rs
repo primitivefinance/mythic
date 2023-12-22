@@ -152,37 +152,102 @@ pub struct App {
     pub app_clock: AppClock,
 }
 
+/// The main application structure.
+///
+/// This structure follows the Elm architecture, which is a pattern for
+/// architecting interactive programs. The Elm architecture has a few core
+/// parts: a model, an update function, and a view function.
+///
+/// The model is the single source of truth for our application. It is defined
+/// in the `model` field of this structure.
+///
+/// The [`App.update()`] function is where we make changes to our model. It
+/// takes the current model and a message, and produces a new model.
+/// This is done in the `update` method of this structure.
+///
+/// The [`App.view()`] function takes the current model and produces a
+/// description of what we want to see on screen. This is done in the `view`
+/// method of this structure.
+///
+/// The flow of information in the application goes as follows:
+/// 1. The user interacts with the view (e.g., clicking a button).
+/// 2. The view produces a message based on the user's interaction.
+/// 3. The message is sent to the update function.
+/// 4. The update function takes the current model and the message, and produces
+///    a new model.
+/// 5. The new model is sent to the view function, and the cycle repeats.
 impl App {
+    /// Creates a new instance of the App.
+    ///
+    /// This function initializes the application with the provided model and
+    /// client. It sets up the dashboard with the portfolio root and the
+    /// sidebar with the portfolio page. It also initializes the application
+    /// clock.
+    ///
+    /// The function returns a tuple containing the newly created App and a
+    /// Command to load the application.
+    ///
+    /// # Arguments
+    ///
+    /// * `model` - The data model of the application.
+    /// * `client` - The client used for network connections.
+    ///
+    /// # Returns
+    ///
+    /// * `(Self, Command<Message>)` - A tuple containing the newly created App
+    ///   and a Command to load the application.
     pub fn new(
         model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<Message>) {
         let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
+        let mut sidebar = Sidebar::new();
+        sidebar.page = view::sidebar::Page::Portfolio;
         (
             Self {
                 client,
                 model,
-                windows: Windows::new(dashboard, Sidebar::new()),
+                windows: Windows::new(dashboard, sidebar),
                 app_clock: AppClock::new(),
             },
             Command::perform(async {}, |_| Message::Load),
         )
     }
 
-    /// Loads the sidebar and the default screen. Called after new().
+    /// This function is responsible for loading the sidebar and the default
+    /// screen. It is called when a user starts the application, after the
+    /// new() function.
     pub fn load(&mut self) -> Command<Message> {
-        let mut cmds = Vec::new();
-
-        // Load the sidebar.
-        cmds.push(self.windows.sidebar.load().map(|x| x.into()));
-
-        // Load the current window.
-        cmds.push(self.windows.screen.load().map(|x| x.into()));
-
+        // Load the sidebar and the current window.
+        let cmds = vec![
+            self.windows.sidebar.load().map(|x| x.into()),
+            self.windows.screen.load().map(|x| x),
+        ];
         Command::batch(cmds)
     }
 
-    /// All view updates are forwarded to the Screen's update function.
+    /// Handles all updates to the application's state.
+    ///
+    /// This function is responsible for updating the application's state based
+    /// on the provided message. It first updates the application's clock,
+    /// then handles the message in a variety of ways depending on its type.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The message to handle. This can be a variety of types,
+    ///   each of which results in a different update to the application's
+    ///   state.
+    ///
+    /// # Returns
+    ///
+    /// * `Command<Message>` - A command that will be executed after the update.
+    ///   This can be a variety of types, each of which results in a different
+    ///   action being taken.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the `Message::ModelSyncResult` variant is
+    /// used and the result is an error.
     pub fn update(&mut self, message: Message) -> Command<Message> {
         // Handle the update clock first.
         self.app_clock.update();
@@ -199,14 +264,16 @@ impl App {
                 self.model = model.clone();
 
                 // Propagate the model to the active screen.
-                // todo: remove side effects
-                return self
-                    .windows
+                // todo: remove side effects, @alex what did you mean by this?
+                self.windows
                     .screen
-                    .update(Message::ModelSyncResult(Ok(model)));
+                    .update(Message::ModelSyncResult(Ok(model)))
             }
             Message::ModelSyncResult(Err(e)) => {
-                tracing::warn!("Failed to sync model: {:?}", e);
+                tracing::error!(
+                    "Critical failure - sync model threw an error while updating: {:?}",
+                    e
+                );
                 Command::none()
             }
             Message::UpdateUser(msg) => self.update_user(msg),
@@ -222,7 +289,7 @@ impl App {
                     self.windows
                         .screen
                         .update(Message::View(view::Message::Root(msg)))
-                        .map(|x| x.into())
+                        .map(|x| x)
                 }
             },
 
@@ -231,6 +298,17 @@ impl App {
         })
     }
 
+    /// Returns the view of the application.
+    ///
+    /// This function takes the current state of the application and produces a
+    /// description of what we want to see on screen. It uses the
+    /// `app_layout` function from the `view` module to create a layout for the
+    /// application. The layout includes the application clock, the sidebar,
+    /// and the current screen. The function then maps the layout to a
+    /// `Message::View` and returns it.
+    ///
+    /// # Returns
+    /// * `Element<Message>` - The view of the application.
     pub fn view(&self) -> Element<Message> {
         view::app_layout(
             &self.app_clock,
@@ -240,10 +318,31 @@ impl App {
         .map(Message::View)
     }
 
+    /// Returns the subscription of the current screen.
+    ///
+    /// This function retrieves the subscription of the current screen in the
+    /// application window. Subscriptions are a way to listen for external
+    /// events that are not user interactions, like time passing or messages
+    /// arriving from a server.
+    ///
+    /// # Returns
+    /// * `Subscription<Message>` - The subscription of the current screen.
     pub fn subscription(&self) -> Subscription<Message> {
         self.windows.screen.subscription()
     }
 
+    /// Exits the application.
+    ///
+    /// This function performs several operations before exiting the
+    /// application:
+    /// 1. It saves the current profile to disk.
+    /// 2. It calls the exit function on the currently opened window.
+    /// 3. If the development client is active, it saves a snapshot of the anvil
+    ///    state to the profile.
+    ///
+    /// # Returns
+    /// * `Command<Message>` - A batch of commands to be executed during the
+    ///   exit process.
     pub fn exit(&mut self) -> Command<Message> {
         // Save the profile to disk.
         let result = self.model.save();
@@ -259,19 +358,29 @@ impl App {
 
         // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
         // set the profile's anvil snapshot to the result.
-        if let Some(_) = self.client.anvil {
+        if self.client.anvil.is_some() {
             let cmd = Command::perform(
                 save_snapshot(self.client.clone()),
                 UserProfileMessage::SaveAnvilSnapshot,
             )
-            .map(|x| Message::UpdateUser(x));
+            .map(Message::UpdateUser);
             commands.push(cmd);
         }
 
         Command::batch(commands)
     }
 
-    /// Updates the model and returns its mutated state in a Result.
+    /// Synchronizes the application model with the client.
+    ///
+    /// This function checks if a client is available. If a client is available,
+    /// it clones the current model and the client's provider.
+    /// It then asynchronously updates the model using the cloned provider and
+    /// returns the updated model in a `Command`. If no client is available,
+    /// it logs a debug message and returns an empty `Command`.
+    ///
+    /// # Returns
+    /// * `Command<Message>` - A command containing the result of the model
+    ///   synchronization.
     fn sync_model(&mut self) -> Command<Message> {
         if let Some(client) = self.client.client().cloned() {
             let model = self.model.clone();
@@ -291,11 +400,27 @@ impl App {
         }
     }
 
-    #[allow(unused_assignments)]
+    /// Updates the user profile based on the provided message.
+    ///
+    /// This function handles various types of UserProfileMessage to update the
+    /// user profile. It can save an anvil snapshot, add or remove
+    /// addresses, clear addresses, add or remove RPCs, and clear RPCs.
+    /// After updating the user profile, it saves the profile to disk and logs
+    /// the result. It then clones the user's RPCs and returns a Command to
+    /// sync the RPCs.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The UserProfileMessage that specifies how to update the
+    ///   user profile.
+    ///
+    /// # Returns
+    ///
+    /// * `Command<Message>` - A command to sync the RPCs after updating the
+    ///   user profile.
+    // #[allow(unused_assignments)]
     fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
         let model = &mut self.model;
-
-        let mut cmd = Command::none();
         match message {
             UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
                 tracing::debug!("Saving anvil snapshot to profile");
@@ -351,13 +476,22 @@ impl App {
         }
 
         let rpcs = model.user.rpcs.clone();
-        cmd = Command::perform(async {}, move |_| {
+        Command::perform(async {}, move |_| {
             view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
         })
-        .map(|x| x.into());
-        cmd
+        .map(|x| x.into())
     }
 
+    /// This function is responsible for switching between different windows in
+    /// the application. It first creates an exit command for the current
+    /// window and adds it to a command vector. Then, it checks the route
+    /// provided to navigate to the appropriate window. If the route is a
+    /// page, it updates the current page in the sidebar and creates a new
+    /// screen based on the page type (Empty, Portfolio, Settings, Exit).
+    /// If the route is not a page, it defaults to an empty screen.
+    /// After setting the new screen, it creates a load command for the new
+    /// window and adds it to the command vector. Finally, it batches all
+    /// the commands in the vector and returns them.
     #[allow(unreachable_patterns)]
     fn switch_window(&mut self, navigate_to: &view::sidebar::Route) -> Command<Message> {
         let mut cmds = Vec::new();
@@ -406,6 +540,11 @@ pub struct AppClock {
     pub updates: Vec<Update>,
 }
 
+/// The `Update` struct is used to track the time and duration of updates in the
+/// application. It contains two public fields: `time` and `duration`.
+/// `time` is a `std::time::Instant` that marks the time of the update.
+/// `duration` is a `std::time::Duration` that represents the duration of the
+/// update.
 #[derive(Debug)]
 pub struct Update {
     pub time: std::time::Instant,
@@ -413,6 +552,7 @@ pub struct Update {
 }
 
 impl AppClock {
+    /// Constructor for AppClock.
     pub fn new() -> Self {
         Self {
             last_update: std::time::Instant::now(),
@@ -422,6 +562,10 @@ impl AppClock {
         }
     }
 
+    /// Updates the `AppClock` with the current time and duration since the last
+    /// update. It increments the total number of updates and adds the
+    /// elapsed time to the total time. It also pushes a new `Update` struct
+    /// to the updates vector with the current time and elapsed duration.
     pub fn update(&mut self) {
         let now = std::time::Instant::now();
         let elapsed = now.duration_since(self.last_update);
@@ -435,6 +579,11 @@ impl AppClock {
         });
     }
 
+    /// This function calculates the average update cycle time within a given
+    /// duration. It filters the updates that happened within the window
+    /// duration from the current time, sums up their durations, and divides
+    /// by the number of updates to get the average. If there are no updates
+    /// within the window duration, it returns a duration of 0 seconds.
     pub fn average_cycle(&self, window_duration: Duration) -> Duration {
         let now = std::time::Instant::now();
         let window_start = now - window_duration;
@@ -455,6 +604,10 @@ impl AppClock {
         total_time_in_window / updates_in_window.len() as u32
     }
 
+    /// This function calculates the maximum time taken for an update.
+    /// It iterates over all updates, finds the one with the longest duration,
+    /// and returns that duration. If there are no updates, it returns a
+    /// duration of 0 seconds.
     pub fn max_update_time(&self) -> Duration {
         self.updates
             .iter()
@@ -463,6 +616,10 @@ impl AppClock {
             .unwrap_or(Duration::from_secs(0))
     }
 
+    /// This function calculates the minimum time taken for an update.
+    /// It iterates over all updates, finds the one with the smallest duration,
+    /// and returns that duration. If there are no updates, it returns a
+    /// duration of 0 seconds.
     pub fn min_update_time(&self) -> Duration {
         self.updates
             .iter()
@@ -471,6 +628,9 @@ impl AppClock {
             .unwrap_or(Duration::from_secs(0))
     }
 
+    /// This function calculates the frequency of updates within a given
+    /// duration. It returns a floating point number representing the
+    /// frequency of updates per second.
     pub fn update_frequency(&self, window_duration: Duration) -> f64 {
         let updates_in_window = self
             .updates
@@ -480,6 +640,9 @@ impl AppClock {
         updates_in_window as f64 / window_duration.as_secs_f64()
     }
 
+    /// This function calculates the time between the last two updates.
+    /// It returns an Option with the Duration of the time between updates.
+    /// If there are less than two updates, it returns None.
     pub fn time_between_updates(&self) -> Option<Duration> {
         self.updates
             .iter()
@@ -491,13 +654,18 @@ impl AppClock {
             .map(|window| window[0].time - window[1].time)
     }
 
+    /// `view_tbu` is a function that returns an Element displaying the time
+    /// between updates (tbu) in milliseconds. The label color changes based
+    /// on the tbu:
+    /// - Red if the tbu is greater than 5,000 milliseconds.
+    /// - No color if the tbu is less than or equal to 5,000 milliseconds.
     pub fn view_tbu<Message>(&self) -> Element<'_, Message> {
         let tbu_value = self
             .time_between_updates()
             .unwrap_or(Duration::from_secs(0))
             .as_millis();
         let tbu = format!("dur:  {}ms", tbu_value);
-        label(&tbu)
+        label(tbu)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -512,10 +680,17 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the maximum update time
+    /// in milliseconds. The color of the label changes based on the maximum
+    /// update time:
+    /// - Red if the maximum update time is greater than 10,000 milliseconds.
+    /// - Green if the maximum update time is less than 5,000 milliseconds.
+    /// - A mix of green and red if the maximum update time is between 5,000 and
+    ///   10,000 milliseconds.
     pub fn view_max<Message>(&self) -> Element<'_, Message> {
         let max_value = self.max_update_time().as_millis();
         let max = format!("max:  {}ms", max_value);
-        label(&max)
+        label(max)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -538,16 +713,24 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the minimum update time
+    /// in milliseconds.
     pub fn view_min<Message>(&self) -> Element<'_, Message> {
         let min = self.min_update_time().as_millis();
         let min = format!("min:  {}ms", min);
-        label(&min).tertiary().caption2().into()
+        label(min).tertiary().caption2().into()
     }
 
+    /// This function returns an Element that displays the update frequency.
+    /// The update frequency is calculated over a duration of 30 seconds.
+    /// The color of the label changes based on the update frequency:
+    /// - Red if the update frequency is greater than 10.0.
+    /// - Green if the update frequency is less than 2.0.
+    /// - No color if the update frequency is between 2.0 and 10.0.
     pub fn view_frequency<Message>(&self) -> Element<'_, Message> {
         let frequency_value = self.update_frequency(Duration::from_secs(30));
         let frequency = format!("freq:  {:.2}", frequency_value);
-        label(&frequency)
+        label(frequency)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -566,10 +749,18 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the average cycle
+    /// duration in milliseconds. The average cycle duration is calculated
+    /// over a duration of 30 seconds. The color of the label changes based
+    /// on the average cycle duration:
+    /// - Red if the average cycle duration is greater than 2,500 milliseconds.
+    /// - Green if the average cycle duration is less than 1,000 milliseconds.
+    /// - A mix of green and red if the average cycle duration is between 1,000
+    ///   and 2,500 milliseconds.
     pub fn view_average<Message>(&self) -> Element<'_, Message> {
         let average_value = self.average_cycle(Duration::from_secs(30)).as_millis();
         let average = format!("avg.:  {}ms", average_value);
-        label(&average)
+        label(average)
             .tertiary()
             .caption2()
             .custom_format(move |_| {
@@ -592,35 +783,46 @@ impl AppClock {
             .into()
     }
 
+    /// This function returns an Element that displays the average update time
+    /// in milliseconds. The average update time is calculated over a
+    /// duration of 30 seconds.
     pub fn view<Message>(&self) -> Element<'_, Message> {
         let average = self.average_cycle(Duration::from_secs(30));
         let average = format!("update time/s:  {}ms", average.as_millis());
-        label(&average).tertiary().caption2().into()
+        label(average).tertiary().caption2().into()
     }
 }
 
+// AnvilSave is a struct that represents a snapshot of the Anvil state at a
+// specific block number.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnvilSave {
+    // snapshot is a string representation of the Anvil state.
     pub snapshot: String,
+    // block_number is the block number at which the snapshot was taken.
     pub block_number: u64,
 }
 
+// save_snapshot is an asynchronous function that attempts to save a snapshot of
+// the Anvil state. It takes an Arc of ExcaliburMiddleware with Ws and
+// LocalWallet as parameters. It returns a Result of AnvilSave.
 #[tracing::instrument(skip(client))]
 async fn save_snapshot(
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
 ) -> anyhow::Result<AnvilSave> {
+    // Log a debug message indicating that a snapshot save attempt is being made.
     tracing::debug!("Attempting to save anvil snapshot");
+    // Call the snapshot method on the client and await the result.
     client.snapshot().await
 }
 
 #[cfg(test)]
 mod tests {
 
-    use criterion::{black_box, criterion_group, criterion_main, Criterion};
+    use criterion::Criterion;
 
-    use super::*;
-
-    fn cache_update_bench(c: &mut Criterion) {
+    fn cache_update_bench(_c: &mut Criterion) {
+        todo!("add benches for this")
         // let storage = Storage::default();
         // let chains = Chains::default();
         // let mut app = App::new(storage, chains, Streams::default(), None).0;

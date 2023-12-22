@@ -1,7 +1,7 @@
 //! Dynamic Function Market Making Protocol Client
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 // use arbiter_core::middleware::C;
@@ -171,7 +171,17 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             "Initializing DFMM with: [x: {:?}], [y: {:?}], [L: {:?}], [p: {:?}]",
             init_reserve_x_wad, init_reserve_y_wad, liquidity_root, init_price_wad
         );
-        let tx = self.protocol.init(payload).send().await?.await?;
+
+        // todo: awaiting for confirmations and the polling interval affects
+        // "responsiveness" speed for providing feedback to the user.
+        let tx = self
+            .protocol
+            .init(payload)
+            .send()
+            .await?
+            .confirmations(0)
+            .interval(Duration::from_millis(100))
+            .await?;
 
         Ok(tx)
     }

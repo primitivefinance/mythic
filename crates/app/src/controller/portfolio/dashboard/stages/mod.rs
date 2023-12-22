@@ -6,11 +6,8 @@ pub mod prepare;
 pub mod review;
 pub mod simulate;
 
-use datatypes::TokenData;
-use ethers::utils::parse_ether;
 use sim::engine::ArbiterInstanceManager;
 
-use self::review::StrategyParameters;
 use super::{table::PositionDelta, *};
 
 /// Stores the actual state of the stage in the enum variant argument.
@@ -102,8 +99,6 @@ pub struct Stages {
 }
 
 impl Stages {
-    pub type AppMessage = Message;
-
     pub fn new(dev_client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>) -> Self {
         Self {
             original: None,
@@ -126,39 +121,38 @@ impl Stages {
         }
     }
 
-    pub fn step(&mut self) -> Command<Self::AppMessage> {
+    pub fn step(&mut self) -> Command<Message> {
         match self.current.clone() {
             DashboardState::Empty => {
                 // todo: figure out what happens here?
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Prepare));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Prepare))
             }
             DashboardState::Prepare => {
                 // Route to the review stage.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Review));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Review))
             }
             DashboardState::Review => {
                 // Route to the simulate stage.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Simulate));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Simulate))
             }
             DashboardState::Simulate => {
                 // Route to the execute stage.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Execute));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Execute))
             }
             DashboardState::Execute => {
                 // Route back to the empty page.
-                return Command::perform(async {}, |_| Message::Route(DashboardState::Empty));
+                Command::perform(async {}, |_| Message::Route(DashboardState::Empty))
             }
         }
     }
 
-    pub fn arm_simulation(&mut self) -> Command<Self::AppMessage> {
+    pub fn arm_simulation(&mut self) -> Command<Message> {
         if self.original.is_none() {
             tracing::error!("Original portfolio is None. Bug!");
             return Command::none();
         }
 
-        let portfolio = self.original.clone().unwrap();
-        let mut builder = ArbiterInstanceManager::new();
+        let builder = ArbiterInstanceManager::new();
 
         // // Compute the amount of steps given the time step size of 15 and the time
         // range provided by the user.
@@ -306,9 +300,9 @@ impl Stages {
         // .config_builder
         // .deposit_x(parse_ether(original_x_balance).unwrap());
 
-        return Command::perform(async {}, |_| {
+        Command::perform(async {}, |_| {
             Message::Simulate(simulate::Message::Armed(builder))
-        });
+        })
     }
 }
 
@@ -316,24 +310,18 @@ impl State for Stages {
     type AppMessage = Message;
     type ViewMessage = Message;
 
-    fn load(&self) -> Command<Self::AppMessage> {
+    fn load(&self) -> Command<Message> {
         Command::perform(async {}, |_| Message::Start(vec![]))
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Load(portfolio) => {
-                tracing::debug!("Loading portfolio in staging area: {:?}", portfolio);
                 self.original = Some(portfolio.clone());
                 self.prepare = prepare::Prepare::new(portfolio.clone());
                 self.execute.original = Some(portfolio.clone());
             }
             Message::SetAdjusted(portfolio) => {
-                tracing::debug!(
-                    "Setting adjusted portfolio in staging area: {:?}",
-                    portfolio
-                );
-
                 // Sets the adjusted portfolio.
                 self.adjusted = portfolio.clone();
 
@@ -425,7 +413,7 @@ impl State for Stages {
                 return Command::batch(commands);
             }
             Message::Execute(message) => {
-                let should_execute = match &self.current {
+                let _should_execute = match &self.current {
                     DashboardState::Execute => {
                         matches!(message, execute::Message::Execute)
                     }
@@ -447,7 +435,7 @@ impl State for Stages {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let routes = Row::new()
+        let _routes = Row::new()
             .spacing(Sizes::Sm)
             .push(
                 tab_button(

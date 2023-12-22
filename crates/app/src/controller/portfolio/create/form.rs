@@ -54,11 +54,6 @@ impl Form {
         }
     }
 
-    // Message types!
-    // todo: why are these not used?
-    pub type AppMessage = Message;
-    pub type ViewMessage = form::Message;
-
     pub fn ready(&self) -> bool {
         self.name.is_some()
             && self.ticker.is_some()
@@ -88,7 +83,8 @@ impl Form {
         data
     }
 
-    pub fn submit(&mut self) -> Command<Self::AppMessage> {
+    /// Submits the form and returns the command to be executed.
+    pub fn submit(&mut self) -> Command<Message> {
         let assets = self
             .assets
             .iter()
@@ -117,14 +113,11 @@ impl Form {
                 )
             })
             .collect();
-        let portfolio = Portfolio::new(
+        Portfolio::new(
             self.name.clone().unwrap_or_default().to_lowercase(),
             self.ticker.clone().unwrap_or_default().to_uppercase(),
             assets,
         );
-
-        // todo: save portfolio in user profile?
-
         Command::none()
     }
 
@@ -137,23 +130,23 @@ impl Form {
         ]
     }
 
-    pub fn cell_builder(&self) -> CellBuilder<Self::AppMessage> {
+    pub fn cell_builder(&self) -> CellBuilder<Message> {
         CellBuilder::new()
     }
 
-    pub fn row_builder(&self) -> RowBuilder<Self::AppMessage> {
+    pub fn row_builder(&self) -> RowBuilder<Message> {
         RowBuilder::new()
     }
 
     /// Builds the columns with this form's headers.
-    pub fn column_builder(&self) -> ColumnBuilder<Self::AppMessage> {
+    pub fn column_builder(&self) -> ColumnBuilder<Message> {
         ColumnBuilder::new().headers(self.headers())
     }
 
     /// Styles the table builder with the following style:
     /// - Cells are padded internally and externally.
     /// - Spacing between the "stacked" rows is medium.
-    pub fn table_builder(&self) -> TableBuilder<Self::AppMessage> {
+    pub fn table_builder(&self) -> TableBuilder<Message> {
         TableBuilder::new()
             .padding_cell_internal(Sizes::Xs)
             .padding_cell(Sizes::Sm)
@@ -166,7 +159,7 @@ impl State for Form {
     type ViewMessage = form::Message;
     type AppMessage = Message;
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Empty => {}
             Message::NameChanged(name) => self.name = name,
@@ -180,6 +173,7 @@ impl State for Form {
             }
             Message::AssetBalanceChanged(index, balance) => self.assets[index].balance = balance,
             Message::Submit => return self.submit().map(|x| x),
+            // should we save here instead?
         }
 
         Command::none()
@@ -241,7 +235,7 @@ impl State for Form {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label(&"Assets").secondary().build())
+                        .push(label("Assets").secondary().build())
                         .push(scrollable(table.build())),
                 ),
         )

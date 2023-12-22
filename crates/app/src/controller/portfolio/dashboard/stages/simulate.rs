@@ -1,8 +1,7 @@
-use std::{collections::BTreeMap, convert::Infallible};
+use std::collections::BTreeMap;
 
 use ethers::{abi::Token, utils::format_ether};
 use sim::engine::ArbiterInstance;
-use tracer::AppEventLayer;
 use uuid::Uuid;
 
 use super::*;
@@ -65,8 +64,6 @@ pub struct Simulate {
 }
 
 impl Simulate {
-    pub type ViewMessage = Message;
-
     pub fn new(builders: Vec<ArbiterInstanceManager>) -> Self {
         Self {
             builders,
@@ -75,7 +72,7 @@ impl Simulate {
     }
 
     /// Renders the `store` results.
-    pub fn render_simulation_outcome(&self) -> Element<'_, Self::ViewMessage> {
+    pub fn render_simulation_outcome(&self) -> Element<'_, Message> {
         let action = match self.armed {
             true => Message::Simulate,
             false => Message::Arm,
@@ -86,13 +83,13 @@ impl Simulate {
             false => "Arm Simulation".to_string(),
         };
 
-        let mut content = Column::new()
+        let content = Column::new()
             .spacing(Sizes::Xl)
-            .push(label(&"Simulation Results").title1().build())
+            .push(label("Simulation Results").title1().build())
             .push(
                 ExcaliburButton::new()
                     .primary()
-                    .build(label(&action_cta).build())
+                    .build(label(action_cta).build())
                     .on_press(action),
             );
 
@@ -114,7 +111,7 @@ impl Simulate {
 
 #[tracing::instrument(level = "trace", skip(m))]
 pub async fn sim_startup(m: InstanceManager) -> anyhow::Result<(), anyhow::Error> {
-    let locked = m.lock().await;
+    let _locked = m.lock().await;
 
     // for world in locked.worlds.iter() {
     // let mut world = world.lock().await;
@@ -220,14 +217,12 @@ impl State for Simulate {
                     Message::FetchResults,
                 ); */
             }
-
-            _ => {}
         }
 
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Message> {
         Container::new(self.render_simulation_outcome())
             .center_x()
             .into()

@@ -42,8 +42,6 @@ pub enum Message {
     UpdateDataView,
     /// A 1s subscription.
     Tick,
-    /// todo: remove
-    Refetch,
 }
 
 impl MessageWrapperView for Message {
@@ -85,20 +83,13 @@ pub struct Dashboard {
 }
 
 impl Dashboard {
-    pub type AppMessage = Message;
-    pub type ViewMessage = Message;
-
     /// Try loading the portfolio from the name.
     /// Calling `new` needs to be really fast, or else the UI will lag.
     /// Therefore, we move as much logic as possible to the `load` function.
     /// In the load function, the presenter can be updated with the model.
     /// Since this happens in `load` instead of `new`, there's no lag when
     /// opening the page.
-    pub fn new(
-        name: Option<String>,
-        client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
-        model: Model,
-    ) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         let presenter = PortfolioPresenter::default();
         let renderer = DataView;
 
@@ -120,7 +111,7 @@ impl Dashboard {
         }
     }
 
-    pub fn handle_updated_model(&mut self, updated_model: Model) -> Command<Self::AppMessage> {
+    pub fn handle_updated_model(&mut self, updated_model: Model) -> Command<Message> {
         // Update the model
         self.model = updated_model.clone();
 
@@ -136,10 +127,10 @@ impl Dashboard {
         self.client.is_some()
     }
 
-    #[tracing::instrument(skip(self), level = "debug")]
-    pub fn update_data(&self) -> Command<Message> {
-        Command::perform(async {}, |_| Message::Refetch)
-    }
+    // #[tracing::instrument(skip(self), level = "debug")]
+    // pub fn update_data(&self) -> Command<Message> {
+    //     Command::perform(async {}, |_| Message::Refetch)
+    // }
 
     #[tracing::instrument(skip(self), level = "debug")]
     pub fn adjusted_portfolio_from_table(&self) -> Option<Portfolio> {
@@ -166,7 +157,7 @@ impl Dashboard {
             };
 
             //  Adjust the portfolio with using the weight delta.
-            let weight = position.weight.unwrap_or_default().clone();
+            let weight = position.weight.unwrap_or_default();
             portfolio.adjust(weight.id, delta).unwrap();
             adjusted = true;
         }
@@ -178,10 +169,10 @@ impl Dashboard {
         Some(portfolio)
     }
 
-    pub fn render_staging_area(&self) -> Element<'_, Self::AppMessage> {
+    pub fn render_staging_area(&self) -> Element<'_, Message> {
         match self.stage.current {
             DashboardState::Empty => {
-                let instruct: Element<'_, Self::AppMessage> = instructions(
+                let instruct: Element<'_, Message> = instructions(
                     vec![instruction_text(
                         "Change the position deltas in the table to start the portfolio adjustment process.".to_string(),
                     )],
@@ -197,8 +188,8 @@ impl Dashboard {
                         Column::new()
                             .align_items(alignment::Alignment::Start)
                             .push(
-                                Card::new(
-                                    label(&"Make adjustments to view the estimated results")
+                                Card::build_container(
+                                    label("Make adjustments to view the estimated results")
                                         .title3()
                                         .build(),
                                 )
@@ -227,7 +218,9 @@ impl State for Dashboard {
     type ViewMessage = Message;
 
     /// todo: how to handle different portfolio loads.
-    fn load(&self) -> Command<Self::AppMessage> {
+    /// I think we would have to make a different command for each portfolio
+    /// load. then we can implement an abstraction over that to put in here.
+    fn load(&self) -> Command<Message> {
         let mut commands = vec![];
 
         // Populates the presenter's data to prepare for rendering.
@@ -237,16 +230,25 @@ impl State for Dashboard {
         }));
 
         // todo: does this even work for the children components?
+
+        // AFAIK Child components can indirectly cause updates in parent components
+        // through messages. When a child component generates a message (usually as a
+        // result of user interaction), this message is propagated up to the parent
+        // component. The parent component can then handle this message in its
+        // update method and change its state accordingly. it can indirectly
+        // cause the parent to change its own state by sending it a message.
+
         // Loads the staging area, which enters the first stage.
         commands.push(self.stage.load().map(|x| x.into()));
 
         Command::batch(commands)
     }
 
-    fn update(&mut self, message: Message) -> Command<Self::AppMessage> {
+    // @alex going over this together would be helpful for me
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Load(portfolio) => {
-                let mut commands: Vec<Command<Self::AppMessage>> = vec![];
+                let mut commands: Vec<Command<Message>> = vec![];
                 let portfolio = portfolio.unwrap_or_default();
 
                 // Store the portfolio in the staging area to reference it.
@@ -269,11 +271,6 @@ impl State for Dashboard {
             Message::UpdateDataModel(Err(e)) => {
                 tracing::error!("Failed to update data model: {:?}", e);
             }
-            // Caught upstream to trigger a model sync!
-            // todo: this is not clear, side effect behavior is no good.
-            Message::Refetch => {
-                tracing::info!("Refetching model...");
-            }
             Message::Tick => {
                 let mut commands = vec![];
 
@@ -295,22 +292,18 @@ impl State for Dashboard {
                     tracing::info!("Tick, updating price.");
                     let client = client.client().cloned().unwrap();
                     // for testing live price chart.
-                    let external_exchange = external_exchange.clone();
+                    let external_exchange = *external_exchange;
 
                     commands.push(Command::perform(
                         async move {
                             let next_price = next_price.unwrap_or_default();
                             let client = client.clone();
-                            let external_exchange = external_exchange.clone();
-                            // Call the set_price function on the external exchange.
-                            let lex = LiquidExchange::new(
-                                to_ethers_address(external_exchange.clone()),
-                                client,
-                            );
+                            let lex =
+                                LiquidExchange::new(to_ethers_address(external_exchange), client);
 
                             let current_price = lex.price().await?;
                             // make the new price a random price +/- 1% of current price.
-                            let random = (1.0 + (rand::random::<f64>() - 0.5) * 0.01);
+                            let random = 1.0 + (rand::random::<f64>() - 0.5) * 0.01;
                             let random = parse_ether(format!("{}", random).as_str()).unwrap();
                             let mut new_price = from_ethers_u256(current_price)
                                 .checked_mul(random)
@@ -326,7 +319,7 @@ impl State for Dashboard {
                                 lex.set_price(to_ethers_u256(new_price)).send().await?.await;
 
                             match result {
-                                Ok(tx) => {
+                                Ok(_tx) => {
                                     tracing::info!("Updated price");
                                     Ok(())
                                 }
@@ -339,9 +332,6 @@ impl State for Dashboard {
                         |_| Message::Empty,
                     ));
                 }
-
-                commands.push(self.update_data());
-
                 return Command::batch(commands);
             }
             // todo: this might be a little slow, since it gets the adjusted portfolio.
@@ -369,9 +359,8 @@ impl State for Dashboard {
                             .0
                             .iter()
                             .enumerate()
-                            .map(|(pos_index, position)| {
-                                let balance =
-                                    position.balance.clone().unwrap_or_default().to_string();
+                            .flat_map(|(pos_index, position)| {
+                                let balance = position.balance.unwrap_or_default().to_string();
                                 let market_value = position.market_value().clone().to_string();
 
                                 let balance_command = self
@@ -396,8 +385,7 @@ impl State for Dashboard {
 
                                 vec![balance_command, market_value_command]
                             })
-                            .flatten()
-                            .collect::<Vec<Command<Self::AppMessage>>>();
+                            .collect::<Vec<Command<Message>>>();
                     }
 
                     commands.push(
@@ -416,21 +404,12 @@ impl State for Dashboard {
                 // If its an Execute::NewStrategyPosition message, then update the deposited
                 // portfolio.
                 if let stages::Message::Execute(stages::execute::Message::NewStrategyPosition(
-                    portfolio,
+                    _portfolio,
                 )) = stage.clone()
                 {
                     // todo: update current position table with new strategy
                     // position.
                 }
-
-                // Catch the FetchPositionResult and call update_data.
-                if let stages::Message::Execute(stages::execute::Message::FetchPositionResult(_)) =
-                    stage.clone()
-                {
-                    tracing::info!("Caught fetch position, updating data model.");
-                    commands.push(self.update_data());
-                }
-
                 commands.push(self.stage.update(stage).map(|x| x.into()));
 
                 return Command::batch(commands);
@@ -442,10 +421,10 @@ impl State for Dashboard {
     }
 
     // Layout is a 2x2 quadrant grid
-    fn view(&self) -> Element<'_, Self::ViewMessage> {
+    fn view(&self) -> Element<'_, Message> {
         let quadrant_1 = self.renderer.metrics_layout(
             &self.presenter.portfolio_strategy_plot,
-            label(&"Liquidity curve").headline().highlight(),
+            label("Liquidity curve").headline().highlight(),
             self.presenter.get_external_price(),
             self.presenter.get_external_portfolio_value(),
             self.presenter.get_internal_portfolio_value(),
@@ -455,9 +434,9 @@ impl State for Dashboard {
         );
         let quadrant_2 = self.renderer.chart_and_greet_layout(
                 &self.presenter.portfolio_value_series,
-                label(&"Good morning, Alex.").title3().highlight(),
-                label(&"Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.").body(),
-                label(&"Portfolio value / time").highlight().headline(),
+                label("Good morning, Alex.").title3().highlight(),
+                label("Your portfolio has maintained replication health since inception. Consider reviewing your portfolio liquidity distribution to maximize liquidity provision.").body(),
+                label("Portfolio value / time").highlight().headline(),
                 self.presenter.get_last_sync_timestamp()
             );
 
@@ -467,11 +446,10 @@ impl State for Dashboard {
 
         let quadrant_3 = ExcaliburContainer::default()
             .build(self.renderer.table_layout(
-                label(&"Positions").highlight(),
+                label("Positions").highlight(),
                 vec![ExcaliburButton::new()
                 .transparent()
-                .build(label(&"Refetch").caption().secondary().build())
-                .on_press(Message::Refetch).into()],
+                .build(label("Refetch").caption().secondary().build()).into()],
                 table_builder,
                 table_cells,
                 self.presenter.get_last_sync_timestamp(),
@@ -503,7 +481,7 @@ impl State for Dashboard {
         .into()
     }
 
-    fn subscription(&self) -> Subscription<Self::AppMessage> {
+    fn subscription(&self) -> Subscription<Message> {
         let s1 = iced::time::every(std::time::Duration::from_secs(5)).map(|_| Message::Tick);
         Subscription::batch(vec![s1])
     }

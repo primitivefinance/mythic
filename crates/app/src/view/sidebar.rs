@@ -1,4 +1,5 @@
 //! Renders a title, a list of route-able pages, and bookmarks.
+//! The sidebar is the main navigation for the app.
 
 use iced::{widget::Space, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
@@ -69,15 +70,13 @@ impl Sidebar {
 }
 
 impl Sidebar {
-    pub type ViewMessage = view::Message;
-
     /// Renders a section header with a label.
-    pub fn section<'a>(&self, header: String) -> Row<'a, Self::ViewMessage> {
+    pub fn section<'a>(&self, header: String) -> Row<'a, view::Message> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
             .push(
                 Column::new()
-                    .push(label(&header).tertiary().build())
+                    .push(label(header).tertiary().build())
                     .align_items(alignment::Alignment::Center),
             )
             .padding(Sizes::Sm)
@@ -86,9 +85,8 @@ impl Sidebar {
     }
 
     /// Renders the inner column below the sidebar's header section.
-    pub fn layout(&self) -> Element<'_, Self::ViewMessage> {
+    pub fn layout(&self) -> Element<'_, view::Message> {
         let mut column = Column::new();
-        column = column.push(self.section("Apps".to_string()));
         column = column.push(self.page.view().map(|x| x.into()));
         column
             .spacing(Sizes::Xs)
@@ -99,8 +97,9 @@ impl Sidebar {
 
 impl controller::State for Sidebar {
     type AppMessage = Route;
+    type ViewMessage = view::Message;
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Route) -> Command<Route> {
         self.state = message.clone();
 
         match message {
@@ -123,7 +122,6 @@ impl controller::State for Sidebar {
                 Row::new()
                     .spacing(Sizes::Sm)
                     .align_items(alignment::Alignment::Center)
-                    .push(label(SYMBOL).title3().symbol().build())
                     .push(label(TITLE).title3().branding().build()),
             )
             .padding(Sizes::Lg)
@@ -157,50 +155,49 @@ impl controller::State for Sidebar {
     }
 }
 
+/// Defines all the possible pages that can be routed to in the app.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Page {
-    #[default]
     Empty,
+    #[default]
     Portfolio,
     Settings,
     Exit,
 }
 
+/// Icon, Name, Message, Selected
+pub type PageTab = (Icon, String, Route, bool);
+
 impl Page {
-    pub type Message = Route;
-
-    /// Icon, Name, Message, Selected
-    pub type PageTab = (Icon, String, Self::Message, bool);
-
+    /// Returns the name of the page.
     pub fn name(&self) -> String {
         match self {
             Page::Empty => "Select App".to_string(),
             Page::Portfolio => "Portfolio".to_string(),
             Page::Settings => "Settings".to_string(),
             Page::Exit => "Exit".to_string(),
-            _ => "Experimental".to_string(),
         }
     }
 
+    /// Returns the icon of the page.
     pub fn icon(&self) -> Icon {
         match self {
             Page::Empty => Icon::TerminalFill,
             Page::Portfolio => Icon::Wallet,
             Page::Settings => Icon::Gear,
             Page::Exit => Icon::X,
-            _ => Icon::Gear,
         }
     }
 
-    pub fn tab(&self, active: &Page) -> Self::PageTab {
+    pub fn tab(&self, active: &Page) -> PageTab {
         let name = self.name();
         let icon = self.icon();
 
-        (icon, name, Self::Message::Page(*self), *self == *active)
+        (icon, name, Route::Page(*self), *self == *active)
     }
 
-    pub fn tabs(active: &Page) -> Vec<Self::PageTab> {
-        let mut all = vec![
+    pub fn tabs(active: &Page) -> Vec<PageTab> {
+        let all = vec![
             Page::Portfolio.tab(active),
             Page::Settings.tab(active),
             Page::Exit.tab(active),
@@ -209,20 +206,35 @@ impl Page {
         all
     }
 
-    pub fn view<'a>(&self) -> Element<'a, Self::Message> {
+    /// Generates the view for the sidebar navigation.
+    /// It creates a column of buttons, each representing a page in the
+    /// application. For each page, it creates a button with an icon, name,
+    /// and a message that is sent when the button is pressed. If the page
+    /// is currently selected, the button is styled differently to indicate
+    /// this. The function returns an Element that can be displayed in the
+    /// user interface.
+    pub fn view<'a>(&self) -> Element<'a, Route> {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::tabs(self) {
             let style = match selected {
-                true => route_button_style(SELECTED_CONTAINER_COLOR),
+                true => route_button_style(Color::TRANSPARENT)
+                    .hovered()
+                    .background(Some(Color::TRANSPARENT.into())),
                 false => route_button_style(Color::TRANSPARENT),
             };
+
+            let mut app_name = label(name);
+
+            if !selected {
+                app_name = app_name.secondary();
+            }
 
             column = column.push(
                 button(
                     Row::new()
-                        .push(Space::with_width(Length::Fixed(Sizes::Xs as u32 as f32)))
-                        .push(text(icon_to_char(icon)).font(ICON_FONT))
-                        .push(text(name))
+                        .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
+                        .push(label(icon_to_char(icon)).icon().build())
+                        .push(app_name.build())
                         .spacing(Sizes::Md),
                 )
                 .width(Length::Fill)
@@ -248,8 +260,6 @@ pub struct Bookmarks {
 }
 
 impl Bookmarks {
-    pub type AppMessage = Route;
-
     // todo: this is hacky, but it works for now.
     pub const PORTFOLIO_URL: &'static str = "portfolio";
     pub const PORTFOLIO_EXTENSION: &'static str = ".portfolio.json";
@@ -262,7 +272,7 @@ impl Bookmarks {
         }
     }
 
-    pub fn bookmark_route(url: &String) -> Self::AppMessage {
+    pub fn bookmark_route(url: &String) -> Route {
         match url {
             x if x.contains(Self::PORTFOLIO_URL) => Route::Open(Location::Portfolio(
                 x.replace(Self::PORTFOLIO_EXTENSION, ""),

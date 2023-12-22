@@ -69,7 +69,7 @@ impl Execute {
     pub fn view_tx_logs(&self) -> Container<'static, Message> {
         let mut content = Column::new()
             .spacing(Sizes::Lg)
-            .push(label(&"Transaction Receipt").build());
+            .push(label("Transaction Receipt").build());
 
         if let Some(tx_receipt) = &self.tx_receipt {
             let logs = tx_receipt.logs.clone();
@@ -89,7 +89,6 @@ impl Execute {
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
     }
 
     pub fn view_position(&self) -> Container<'static, Message> {
@@ -105,7 +104,6 @@ impl Execute {
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .into()
     }
 }
 
@@ -125,7 +123,7 @@ async fn execute_create_position(
 async fn fetch_protocol_position(
     dev_client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
 ) -> anyhow::Result<ProtocolPosition> {
-    let caller = dev_client.address().unwrap();
+    let _caller = dev_client.address().unwrap();
     let position = dev_client.get_position().await?;
     Ok(position)
 }
@@ -176,7 +174,7 @@ impl State for Execute {
                         // Use this information to build a new portfolio, and
                         // then emit a NewStrategyPosition message to have the
                         // portfolio dashboard update.
-                        if let Some(original) = &self.original {
+                        if let Some(_original) = &self.original {
                             // let portfolio = original.clone();
                             // let price_y_per_x = position
                             // .internal_price
@@ -224,20 +222,19 @@ impl State for Execute {
                 Command::none()
             }
             Message::Empty => Command::none(),
-            _ => Command::none(),
         }
     }
 
     fn view(&self) -> Element<Self::ViewMessage> {
-        Card::new(
+        Card::build_container(
             Column::new()
                 .width(Length::Fill)
                 .push(
                     Container::new(
                         Column::new()
-                            .push(label(&"Instructions").secondary().build())
+                            .push(label("Instructions").secondary().build())
                             .push(
-                                label(&"Create a position to get started.")
+                                label("Create a position to get started.")
                                     .billions()
                                     .build(),
                             )
@@ -253,7 +250,7 @@ impl State for Execute {
                         .build(
                             ExcaliburButton::new()
                                 .primary()
-                                .build(label(&"Create position").build())
+                                .build(label("Create position").build())
                                 .padding([8, 16, 8, 16])
                                 .on_press(Message::Execute),
                         )

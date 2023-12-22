@@ -4,10 +4,7 @@ use arbiter_bindings::bindings::liquid_exchange;
 use super::*;
 use crate::{
     reader::SimulationData,
-    visualize::{
-        plots::{statistical::StatisticalPlot, PlotSettings},
-        Figure,
-    },
+    visualize::{plots::statistical::StatisticalPlot, Figure},
 };
 
 #[test]

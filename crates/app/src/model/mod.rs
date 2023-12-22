@@ -9,7 +9,7 @@ use std::fs::File;
 
 use datatypes::portfolio::{
     coin::Coin,
-    position::{Position, Positions},
+    position::{Position, PositionLayer, Positions},
     weight::Weight,
 };
 use uuid::Uuid;
@@ -59,9 +59,10 @@ impl Model {
         // 2. Fetches the now updated position info from the data model.
         // 3. Using the position info, derives the weights of the positions.
         // 4. Propagates updated position info to the user's saved portfolio data.
-        self.update_data_model(client).await.and_then(|_| {
-            self.update_portfolio_positions()?;
-            Ok(())
+        self.update_data_model(client).await.map(|_| {
+            if let Err(error) = self.update_portfolio_positions() {
+                tracing::warn!("Failed to update portfolio positions: {:?}", error);
+            }
         })
     }
 
@@ -70,15 +71,49 @@ impl Model {
         // function.
         let pos_info = self.portfolio.get_position_info()?;
 
+        // Include unallocated balances in the portfolio as well.
+        let unallocated_pos_info = self.portfolio.get_unallocated_positions_info()?;
+
         // Clones the user's current portfolio to mutate it.
         let mut portfolio = self.user.portfolio.clone();
 
+        let total_balance_x = pos_info.balance_x + unallocated_pos_info.balance_x;
+        let total_balance_y = pos_info.balance_y + unallocated_pos_info.balance_y;
+
         // Based on the price of x and the balances, compute the weights of both.
         // todo: this code should be somewhere else, right?
-        let total_value = pos_info.balance_x * pos_info.external_price
-            + pos_info.balance_y * pos_info.quote_price;
+        let total_value =
+            total_balance_x * pos_info.external_price + total_balance_y * pos_info.quote_price;
+
         let position_x_weight = pos_info.balance_x * pos_info.external_price / total_value;
+        // If total_value is 0, there's no active positions!
+        if position_x_weight.is_nan() {
+            return Err(anyhow::anyhow!("Position X weight is NaN, 0 total value."));
+        }
+
         let position_y_weight = pos_info.balance_y / total_value;
+        // If total_value is 0, there's no active positions!
+        if position_y_weight.is_nan() {
+            return Err(anyhow::anyhow!("Position Y weight is NaN, 0 total value."));
+        }
+
+        let unallocated_x_weight =
+            unallocated_pos_info.balance_x * unallocated_pos_info.external_price / total_value;
+        // If total_value is 0, there's no active positions!
+        if unallocated_x_weight.is_nan() {
+            return Err(anyhow::anyhow!(
+                "Unallocated X weight is NaN, 0 total value."
+            ));
+        }
+
+        let unallocated_y_weight = unallocated_pos_info.balance_y / total_value;
+        // If total_value is 0, there's no active positions!
+        if unallocated_y_weight.is_nan() {
+            return Err(anyhow::anyhow!(
+                "Unallocated Y weight is NaN, 0 total value."
+            ));
+        }
+
         let position_x_weight = Weight {
             id: Uuid::new_v4(),
             value: position_x_weight,
@@ -88,32 +123,76 @@ impl Model {
             value: position_y_weight,
         };
 
+        let unallocated_x_weight = Weight {
+            id: Uuid::new_v4(),
+            value: unallocated_x_weight,
+        };
+        let unallocated_y_weight = Weight {
+            id: Uuid::new_v4(),
+            value: unallocated_y_weight,
+        };
+
+        tracing::info!(
+            "Updating portfolio positions: x: {}, y: {} x unallocated: {}, y unallocated: {}",
+            position_x_weight,
+            position_y_weight,
+            unallocated_x_weight,
+            unallocated_y_weight
+        );
+
         let coin_x: Coin = serde_json::from_str(COIN_X).expect("No x token");
         let coin_y: Coin = serde_json::from_str(COIN_Y).expect("No y token");
 
         let position_x = Position::new(
-            coin_x,
+            coin_x.clone(),
             Some(pos_info.external_price),
             Some(pos_info.balance_x),
             Some(position_x_weight),
             None,
-        );
+        )
+        .layer(PositionLayer::Liquidity);
 
         let position_y = Position::new(
-            coin_y,
+            coin_y.clone(),
             Some(pos_info.quote_price),
             Some(pos_info.balance_y),
             Some(position_y_weight),
             None,
-        );
+        )
+        .layer(PositionLayer::Liquidity);
+
+        let unallocated_position_x = Position::new(
+            coin_x,
+            Some(unallocated_pos_info.external_price),
+            Some(unallocated_pos_info.balance_x),
+            Some(unallocated_x_weight),
+            None,
+        )
+        .layer(PositionLayer::RawBalance);
+
+        let unallocated_position_y = Position::new(
+            coin_y,
+            Some(unallocated_pos_info.quote_price),
+            Some(unallocated_pos_info.balance_y),
+            Some(unallocated_y_weight),
+            None,
+        )
+        .layer(PositionLayer::RawBalance);
 
         // Workaround is to override the positions directly.
-        let positions = Positions::new(vec![position_x, position_y]);
+        let positions = Positions::new(vec![
+            position_x,
+            position_y,
+            unallocated_position_x,
+            unallocated_position_y,
+        ]);
         portfolio.positions = positions;
+        tracing::debug!("Updated portfolio positions: {}", portfolio.positions);
 
         self.user.update_portfolio(&portfolio)
     }
 
+    // this happens like a million times a second
     #[tracing::instrument(skip(self, client), level = "debug")]
     pub async fn update_data_model(&mut self, client: Arc<Provider<Ws>>) -> anyhow::Result<()> {
         tracing::info!(
@@ -155,7 +234,7 @@ impl Saveable for Model {
         };
         // Don't overwrite existing profiles.
         if user_data_file.exists() {
-            return Ok(Self::load(Some(user_data_file))?);
+            return Self::load(Some(user_data_file));
         }
 
         let mut formatted_path = Self::file_name_ending();

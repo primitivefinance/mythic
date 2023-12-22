@@ -241,7 +241,8 @@ impl Forker {
             let mut ethers_db = EthersDB::new(provider, Some(start_block)).unwrap();
 
             tracing::info!("fetching account info for {:?}", payload.target);
-            let info = ethers_db
+
+            ethers_db
                 .basic(payload.target.to_fixed_bytes().into())
                 .map_err(|_| {
                     anyhow!("Failed to fetch account info with
@@ -252,9 +253,7 @@ impl Forker {
                 .ok_or(anyhow!(
                     "Failed to fetch account info with EthersDB.".to_string(),
                 ))
-                .unwrap();
-
-            info
+                .unwrap()
         });
 
         let info = handle.join();
@@ -307,11 +306,11 @@ impl Forker {
         // Cache db has accounts which have storage, lets trace just those items.
         let cloned_db = loaded_db.as_ref().unwrap().clone();
         for account in cloned_db.accounts.iter() {
-            let account_db: DbAccount = account.1.clone().into();
+            let account_db: DbAccount = account.1.clone();
             tracing::info!("Account db storage: {:?}", account_db.storage);
         }
 
-        let _loaded_db = match loaded_db {
+        match loaded_db {
             Ok(loaded_db) => *db = loaded_db,
             Err(e) => {
                 tracing::error!("Error: {:?}", e);
@@ -394,21 +393,17 @@ mod tests {
     use ethers::{prelude::*, utils::Anvil};
 
     use super::*;
-    use crate::tests::TEST_SUBSCRIBER;
 
     #[tokio::test]
     async fn test_spawn_ethers_db() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
         let battler = Forker::connect(None, None).await?;
-        let ethers_db = battler.spawn_ethers_db()?;
+        let _ethers_db = battler.spawn_ethers_db()?;
 
         Ok(())
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_evolve() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
-
         // Start anvil in the background.
         let anvil = Anvil::default()
             .arg("--gas-limit")
@@ -478,7 +473,6 @@ mod tests {
     /// Is anvil in your user path?
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_digest_into_db() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
         let anvil = Anvil::default()
             .arg("--gas-limit")
             .arg("20000000")
@@ -498,15 +492,12 @@ mod tests {
         tracing::info!("Counter address: {}", counter_address.clone());
 
         // VERY IMPORTANT
-        let handle = std::thread::spawn(move || {
-            let cached = match battler.digest_config(counter_address) {
-                Ok(cached) => cached,
-                Err(e) => {
-                    tracing::error!("Error: {:?}", e);
-                    panic!("Error: {:?}", e);
-                }
-            };
-            cached
+        let handle = std::thread::spawn(move || match battler.digest_config(counter_address) {
+            Ok(cached) => cached,
+            Err(e) => {
+                tracing::error!("Error: {:?}", e);
+                panic!("Error: {:?}", e);
+            }
         });
 
         let mut cached = handle.join().unwrap();
@@ -520,7 +511,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_storage_mutation() -> anyhow::Result<(), anyhow::Error> {
-        let _ = *TEST_SUBSCRIBER;
         let anvil = Anvil::default()
             .arg("--gas-limit")
             .arg("20000000")
@@ -532,7 +522,7 @@ mod tests {
             anvil.chain_id()
         );
         let wallet: LocalWallet = anvil.keys().get(0).unwrap().clone().into();
-        let mut battler = Forker::connect(Some(anvil.endpoint()), Some(wallet)).await?;
+        let battler = Forker::connect(Some(anvil.endpoint()), Some(wallet)).await?;
 
         let client = battler.client.clone().unwrap();
         let counter = Counter::deploy(client.clone(), ())?.send().await?;
@@ -566,16 +556,12 @@ mod tests {
         let battler = battler.with_block_number(3_u64);
 
         // re-digest
-        let handle = std::thread::spawn(move || {
-            let cached = match battler.digest_config(counter_address) {
-                Ok(cached) => cached,
-                Err(e) => {
-                    tracing::error!("Error: {:?}", e);
-                    panic!("Error: {:?}", e);
-                }
-            };
-
-            cached
+        let handle = std::thread::spawn(move || match battler.digest_config(counter_address) {
+            Ok(cached) => cached,
+            Err(e) => {
+                tracing::error!("Error: {:?}", e);
+                panic!("Error: {:?}", e);
+            }
         });
 
         let mut cached = handle.join().unwrap();

@@ -195,12 +195,10 @@ impl AnvilClient {
         let provider = Provider::<Http>::connect(&url).await;
 
         let params: Vec<String> = vec![];
-        let snapshot = provider
+        provider
             .request("anvil_dumpState", params)
             .await
-            .expect("failed to get snapshot");
-
-        snapshot
+            .expect("failed to get snapshot")
     }
 }
 

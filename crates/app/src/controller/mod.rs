@@ -3,8 +3,7 @@
 //! Traits for implementing new application screens.
 //!
 //! Q: Why do we have a `ViewMessage` and an `AppMessage`?
-//! A: The `ViewMessage` implements `Clone` and the `AppMessage` does
-//! not.
+//! A: The `ViewMessage` implements `Clone` and the `AppMessage` does not.
 
 use super::*;
 
@@ -13,6 +12,8 @@ pub mod empty;
 pub mod exit;
 pub mod portfolio;
 pub mod settings;
+// TODO: execution is not complete
+// pub mod execution;
 
 /// All messages need to be wrapped in a message type that their parent
 /// supports, this trait enforces that.
@@ -106,7 +107,7 @@ pub trait State {
     /// Implements the [`MessageWrapper`] trait, to allow children [`State`]
     /// components to be wrapped in the parent's message type.
     /// todo: type defaults are unstable right now...
-    type ViewMessage: MessageWrapperView = view::Message;
+    type ViewMessage: MessageWrapperView;
 
     /// Messages returned to be executed by commands.
     /// Defaults to the global Application Message.
@@ -116,7 +117,7 @@ pub trait State {
     /// Implements the [`MessageWrapper`] trait, to allow children [`State`]
     /// components to be wrapped in the parent's message type.
     /// todo: type defaults are unstable right now...
-    type AppMessage: MessageWrapper = app::Message;
+    type AppMessage: MessageWrapper;
 
     /// Renders the screen which can produce [`ViewMessage`]s.
     fn view(&self) -> Element<'_, Self::ViewMessage>;

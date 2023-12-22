@@ -37,7 +37,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     #[tracing::instrument(skip(client), level = "trace")]
     pub async fn deploy(client: Arc<C>, sender: Address) -> Result<Self> {
-        tracing::trace!("Deploying token x and minting them to sender: {:?}", sender);
+        tracing::trace!("Deploying token x");
         let token_x_args = ("Token X".to_string(), "X".to_string(), 18_u8);
         let token_x = MockERC20::deploy(client.clone(), token_x_args)?
             .send()
@@ -49,15 +49,14 @@ impl<C: Middleware + 'static> DevClient<C> {
             .send()
             .await?;
 
-        // Mint an initial portfolio of 50/50.
-        let initial_portfolio = 0.5;
-        let initial_portfolio_wad = ethers::utils::parse_ether(initial_portfolio).unwrap();
-
+        tracing::trace!("Minting token x to sender: {}", sender);
         token_x
             .mint(sender, ethers::utils::parse_ether(INITIAL_X_BALANCE)?)
             .send()
             .await?
             .await?;
+
+        tracing::trace!("Minting token x to sender: {}", sender);
         token_y
             .mint(sender, ethers::utils::parse_ether(INITIAL_Y_BALANCE)?)
             .send()
@@ -65,7 +64,6 @@ impl<C: Middleware + 'static> DevClient<C> {
             .await?;
 
         let swap_fee_percent_wad = 0.003;
-
         tracing::trace!("Deploying protocol");
         let protocol = ProtocolClient::deploy_protocol(
             client.clone(),
@@ -98,7 +96,6 @@ impl<C: Middleware + 'static> DevClient<C> {
             .await?;
 
         let strategy = log_normal::LogNormal::new(protocol.protocol.source().call().await?, client);
-
         // Make sure to set the token y price to 1.0.
 
         Ok(Self {
@@ -132,8 +129,7 @@ impl<C: Middleware + 'static> DevClient<C> {
         self.token_x.mint(sender, amount_x_wad).send().await?;
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
-        Ok(self
-            .protocol
+        self.protocol
             .initialize(
                 price,
                 amount_x,
@@ -141,7 +137,7 @@ impl<C: Middleware + 'static> DevClient<C> {
                 sigma_percent_wad,
                 tau_years_wad,
             )
-            .await?)
+            .await
     }
 
     pub async fn get_position(&self) -> Result<ProtocolPosition> {

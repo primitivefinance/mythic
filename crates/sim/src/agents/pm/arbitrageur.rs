@@ -8,14 +8,11 @@ use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::L
 use arbiter_core::middleware::errors::RevmMiddlewareError;
 use clients::protocol::ProtocolClient;
 use ethers::abi::AbiDecode;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, info, trace, warn};
 
 use super::{
     agents::base::token_admin::TokenAdmin,
-    bindings::{
-        atomic_v2::{self, AtomicV2},
-        dfmm::DFMM,
-    },
+    bindings::atomic_v2::{self, AtomicV2},
     Environment, Result, RevmMiddleware, *,
 };
 
@@ -192,7 +189,7 @@ impl Arbitrageur {
                 {
                     warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
 
-                    let decoded_output = atomic_v2::FindingTradeError::decode(&output)?;
+                    let decoded_output = atomic_v2::FindingTradeError::decode(output)?;
                     info!("Execution revert: {:?}", decoded_output);
                 }
 
@@ -212,7 +209,7 @@ impl Arbitrageur {
             .await;
 
         let amount = match amount {
-            Ok((amount, profit)) => amount,
+            Ok((amount, _profit)) => amount,
             Err(e) => {
                 if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                     e.as_middleware_error().unwrap()

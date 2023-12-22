@@ -5,12 +5,47 @@ use tokio::{fs, sync::mpsc, task};
 
 use super::*;
 
+/// `BatchData` is a struct that holds the simulation data and any errors that
+/// occurred during the simulation.
+///
+/// # Fields
+///
+/// * `data` - A vector of `SimulationData` that holds the data from the
+///   simulation.
+/// * `errors` - A `Value` that holds any errors that occurred during the
+///   simulation.
 pub struct BatchData {
     pub data: Vec<SimulationData>,
     pub errors: Value,
 }
 
 impl BatchData {
+    /// Creates a new `BatchData` instance by reading data from a specified
+    /// directory.
+    ///
+    /// This function performs the following steps:
+    /// 1. It gets the current working directory and appends the provided
+    ///    directory path to it.
+    /// 2. It creates two unbounded channels, one for data and one for errors.
+    /// 3. It reads the directory and for each entry, it spawns a new task.
+    /// 4. Each task reads the file content. If the file is "errors.json", it
+    ///    sends the content to the errors channel. Otherwise, it creates a new
+    ///    `SimulationData` instance from the file and sends it to the data
+    ///    channel.
+    /// 5. After reading all entries, it drops the senders of the channels.
+    /// 6. It collects all received data and errors into vectors.
+    /// 7. Finally, it returns a new `BatchData` instance containing the
+    ///    collected data and errors.
+    ///
+    /// # Arguments
+    ///
+    /// * `dir` - A string slice that holds the name of the directory to read
+    ///   the data from.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - A new `BatchData` instance containing the read data and
+    ///   errors.
     pub async fn new(dir: &str) -> Self {
         let cwd = env::current_dir().unwrap();
         let path = cwd.join(dir);
@@ -58,19 +93,40 @@ impl BatchData {
         Self { data, errors }
     }
 
-    // TODO: All the cloning here is probably not optimal
+    /// Organizes the simulation data into a HashMap based on the volatility of
+    /// the price process.
+    ///
+    /// This function iterates over the simulation data and groups them based on
+    /// the volatility of the price process in the agent parameters. The
+    /// volatility value is used as the key in the HashMap. Each key in the
+    /// HashMap corresponds to a vector of SimulationData that share the same
+    /// volatility.
+    ///
+    /// # Steps
+    /// 1. Initialize an empty HashMap.
+    /// 2. Iterate over the simulation data.
+    /// 3. For each data, extract the agent parameters from the metadata.
+    /// 4. If the agent parameters correspond to a PriceChanger, extract the
+    ///    price process parameters.
+    /// 5. If the price process is a Geometric Brownian Motion (Gbm), use the
+    ///    volatility as the key in the HashMap.
+    /// 6. If the key already exists in the HashMap, append the data to the
+    ///    corresponding vector.
+    /// 7. If the key does not exist, insert a new entry in the HashMap with the
+    ///    key and a new vector containing the data.
+    /// 8. Return the HashMap.
+    ///
+    /// # Returns
+    /// * `HashMap<String, Vec<SimulationData>>` - A HashMap where each key is a
+    ///   volatility value and each value is a vector of SimulationData.
     pub fn organize_hard_coded(&self) -> HashMap<String, Vec<SimulationData>> {
         let mut map: HashMap<String, Vec<SimulationData>> = HashMap::new();
-        // Idea, stream in all the metadata and in a concurrent process build up a
-        // filtering for it so we can group them into different parameter settings.
         for data in self.data.iter() {
             let metadata = data.metadata.as_ref().unwrap();
             let agent_parameters = metadata.agent_parameters.get("price_changer").unwrap();
 
             if let AgentParameters::PriceChanger(params) = agent_parameters {
-                println!("{:?}", params);
                 if let PriceProcess::Gbm(params) = params.process {
-                    println!("{:?}", params);
                     let key = params.volatility.0.to_string();
                     if let Some(vec) = map.get_mut(&key) {
                         vec.push(data.clone());
@@ -81,8 +137,6 @@ impl BatchData {
             }
         }
         map
-        // TODO: Note the metadata is a simulation config so we can use it to
-        // filter over?
     }
 }
 
