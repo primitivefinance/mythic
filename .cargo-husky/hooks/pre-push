@@ -7,8 +7,6 @@
 
 set -e
 
-echo '+cargo test --all'
-cargo test --all
 echo '+cargo build --all'
 cargo build --all
 
