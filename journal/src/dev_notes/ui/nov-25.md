@@ -13,7 +13,7 @@ We start with the base "package" of components that make up every section of the
 - update() - A function to mutate the state of the component.
 
 
-This begins at the root [`iced: :Application`] all the way down to the last child. This happens recursively, so app -> update -> child -> update -> ...nth child.
+This begins at the root `iced: :Application` all the way down to the last child. This happens recursively, so app -> update -> child -> update -> ...nth child.
 
 In each child component, a Parent Message is defined for developers to easily understand its relationship in the context of its package. Then, the child's Message can implement `From<ChildMessage> for ParentMessage`. Implementing this allows the parent to "wrap" the message with its own message type, thereby completing the recursion.
 

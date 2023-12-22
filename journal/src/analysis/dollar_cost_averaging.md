@@ -2,7 +2,7 @@
 
 To analyze the DCA strategy we should consider the following approach.
 
-1. Define a weight changer agent that changes the weight of the DFMM curve over time as prescribed in [Dollar Cost Averaging](../strategies/dollar_cost_averaging.md).
+1. Define a weight changer agent that changes the weight of the DFMM curve over time as prescribed in [Dollar Cost Averaging](dollar_cost_averaging.md).
 2. Define a swapper agent to swap between $X$ and $Y$ at prescribed timeframes.
 
 We can compare the values of the portfolio held by an LP into the DCA strategy versus the swapper agent.

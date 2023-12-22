@@ -32,7 +32,7 @@ $$
 L \equiv \mathtt{liquidity}
 $$
 Note that $L$ has units of Token (this is what we want).
-Given the domain of $\Phi^{-1}$ we can see that $x\in[0,L]$ and $y\in[0,KL]$.
+Given the domain of $\Phi^{-1}$ we can see that $x\in\[0,L\]$ and $y\in\[0,KL\]$.
 As the pool's liquidity increases, the maximal amount of each reserve increases and both are scaled by the same factor (this is what we want).
 
 ## Useful Notation
