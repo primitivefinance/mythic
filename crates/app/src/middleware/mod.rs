@@ -157,10 +157,13 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
     /// provider to it.
     pub async fn setup(dev: bool) -> anyhow::Result<Self> {
         if dev {
+            let home_dir = std::env::var("HOME").unwrap_or_default();
+            let binary_path = format!("{}/.foundry/bin/anvil", home_dir);
             let anvil = Anvil::default()
                 .arg("--gas-limit")
                 .arg("20000000")
                 .chain_id(31337_u64)
+                .path(binary_path)
                 .spawn();
 
             let signer = LocalWallet::from(anvil.keys()[0].clone());
