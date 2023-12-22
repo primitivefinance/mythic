@@ -22,3 +22,7 @@ no-css = false
 include-src = false
 block-delimiter = { left = "$$", right = "$$" }
 inline-delimiter = { left = "$", right = "$" }
+
+[linkcheck]
+follow-web-links = false
+warning-policy = 'ignore'
