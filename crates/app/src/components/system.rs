@@ -1,5 +1,7 @@
 //! Entire Excalibur component system.
 
+use std::collections::HashMap;
+
 use iced::{
     widget::{component, text_input, tooltip, Component},
     Font,
@@ -8,7 +10,7 @@ use iced::{
 use super::{
     chart::{
         basic_liq_dist_curve, basic_log_normal_curve, coords_to_line_series, CartesianChart,
-        ChartLineSeries, ChartPoint,
+        ChartLineSeries, ChartPoint, HistogramChart,
     },
     *,
 };
@@ -1331,6 +1333,38 @@ impl ExcaliburChart {
         self = self.x_range((-0.1, 1.0));
         self = self.y_range((-0.1, 1.0));
 
+        self
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ExcaliburHistogram {
+    pub chart: HistogramChart,
+}
+
+impl ExcaliburHistogram {
+    pub fn new() -> Self {
+        Self {
+            chart: HistogramChart::default(),
+        }
+    }
+
+    pub fn build(&self) -> Element<'_, chart::ChartMessage> {
+        self.chart.view()
+    }
+
+    pub fn override_data(mut self, data: HashMap<u32, u32>) -> Self {
+        self.chart.data = data;
+        self
+    }
+
+    pub fn x_range(mut self, x_range: (f32, f32)) -> Self {
+        self.chart.range.x_range = x_range;
+        self
+    }
+
+    pub fn y_range(mut self, y_range: (f32, f32)) -> Self {
+        self.chart.range.y_range = y_range;
         self
     }
 }

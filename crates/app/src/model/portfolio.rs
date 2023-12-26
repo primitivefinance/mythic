@@ -20,6 +20,8 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
+use std::collections::HashMap;
+
 // use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
@@ -34,6 +36,7 @@ use cfmm_math::trading_functions::rmm::{
 };
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
+use plotters::series::Histogram;
 use serde::{Deserialize, Serialize};
 use sim::{from_ethers_u256, to_ethers_address};
 
@@ -1850,6 +1853,111 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         Ok(result)
     }
+
+    /// Computes liquidity distribution and returns histogram formatted data.
+    pub fn derive_liquidity_histogram(
+        &self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+    ) -> Result<HistogramData> {
+        let num_bins = 10u32;
+
+        // Organizes data into bins between 0 - 100.
+        let scalar = 100.0;
+        let min_bin = 0u32;
+        let max_bin = 100u32;
+        let bin_size = (max_bin - min_bin) / num_bins;
+
+        // Initialize the counts for each bin to 0
+        // let mut data: HashMap<u32, u32> = (0..num_bins).map(|i| (i, 0)).collect();
+
+        // Initial x != 0!!! be careful.
+        let mut x = f64::EPSILON;
+        let samples = num_bins as f64;
+        let max = 1.0;
+        let mut liq_dist_points = vec![];
+        // while x < max {
+        // This really impacts performance!! Like freezes the app.
+        // let liq_dist = liq_distribution(x, 1.0, strike_price, volatility,
+        // time_remaining); liq_dist_points.push((x, liq_dist));
+        //
+        // Set the count equal to the liq_dist for this bin.
+        // let bin = (x * scalar) as u32;
+        // let count = data
+        // .get_mut(&bin)
+        // .ok_or(anyhow!("Failed to get bin {} from data.", bin))?;
+        // count = (liq_dist * scalar).round() as u32;
+        //
+        // x += max / samples;
+        // }
+
+        // Initialize the counts for each bin to 0
+        // let mut data: HashMap<u32, u32> = (min_bin..=max_bin)
+        // .step_by(bin_size as usize)
+        // .map(|i| (i, 0))
+        // .collect();
+        //
+        // for bin in (min_bin..=max_bin).step_by(bin_size as usize) {
+        // let x = (bin as f64 / scalar)
+        // .max(f64::EPSILON)
+        // .min(1.0 - f64::EPSILON);
+        // let liq_dist = liq_distribution(x, 1.0, strike_price, volatility,
+        // time_remaining); liq_dist_points.push((x, liq_dist));
+        //
+        // Calculate the closest bin
+        // let closest_bin = ((x * scalar).round() as u32 / bin_size) * bin_size;
+        //
+        // let count = data
+        // .get_mut(&closest_bin)
+        // .ok_or(anyhow!("Failed to get bin {} from data.", bin))?;
+        // count = (liq_dist * scalar).round() as u32;
+        // }
+
+        // Initialize the counts for each bin to 0
+        let mut data: HashMap<u32, u32> = (0..num_bins).map(|i| (i, 0)).collect();
+
+        let mut max_count = 0;
+        for i in 0..num_bins {
+            let bin_start = min_bin + i * bin_size;
+            let bin_end = bin_start + bin_size;
+
+            let steps = (bin_end - bin_start) as usize;
+            for step in 0..steps {
+                let x = ((bin_start as f64 / scalar) + (step as f64 / scalar))
+                    .max(f64::EPSILON)
+                    .min(1.0 - f64::EPSILON);
+                let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
+                liq_dist_points.push((x, liq_dist));
+
+                let count = data
+                    .get_mut(&i)
+                    .ok_or(anyhow!("Failed to get bin {} from data.", i))?;
+                *count += (liq_dist * scalar).round() as u32;
+
+                if *count > max_count {
+                    max_count = *count;
+                }
+            }
+        }
+
+        Ok(HistogramData {
+            min_bin,
+            max_bin,
+            max_count,
+            bin_size,
+            data,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct HistogramData {
+    pub min_bin: u32,
+    pub max_bin: u32,
+    pub max_count: u32,
+    pub bin_size: u32,
+    pub data: HashMap<u32, u32>,
 }
 
 #[cfg(test)]
