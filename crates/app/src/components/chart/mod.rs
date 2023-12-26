@@ -3,6 +3,8 @@
 //! To accomplish that we need to update the plot as the x and y ranges change
 //! with the user's scrolling or dragging.
 
+use std::collections::HashMap;
+
 use cfmm_math::trading_functions::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
     event,
@@ -10,7 +12,11 @@ use iced::{
     widget::canvas::{self},
     Element, Length, Point,
 };
-use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
+use plotters::{
+    coord::ReverseCoordTranslate,
+    prelude::*,
+    style::{colors, full_palette::DEEPPURPLE_A400},
+};
 use plotters_iced::{Chart, ChartWidget};
 
 /// A point to plot on the chart.
@@ -1052,6 +1058,147 @@ impl Chart<ChartMessage> for CartesianChart {
             .margin(self.legend_margin)
             .draw()
             .expect("Failed to draw labels");
+    }
+}
+
+/// A chart that plots a histogram.
+#[derive(Debug, Clone, Default)]
+pub struct HistogramChart {
+    pub data: HashMap<u32, u32>,
+    pub axis_margin: [u32; 4],
+    pub range: CartesianRanges,
+    pub override_ranges: bool,
+    pub bar_color: RGBAColor,
+    /// The axis label text styling. todo: support beyond just color.
+    pub axis_text_style: RGBAColor,
+    /// The axis mesh styling. i.e. y = 0, x = 0.
+    pub axis_mesh_style: RGBAColor,
+    /// The mesh grid styling.
+    pub mesh_grid_style: RGBAColor,
+    /// Maximum quantity of labels on the y-axis.
+    pub y_labels: usize,
+    /// Maximum quantity of labels on the x-axis.
+    pub x_labels: usize,
+    /// Maximum amount of in between mesh lines between labels.
+    pub max_light_lines: usize,
+}
+
+impl HistogramChart {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+            axis_margin: [0, 0, 0, 0],
+            range: CartesianRanges::default(),
+            override_ranges: false,
+            bar_color: colors::full_palette::DEEPPURPLE_A400.mix(0.5),
+            axis_text_style: colors::full_palette::GREY_600.into(),
+            axis_mesh_style: colors::TRANSPARENT,
+            mesh_grid_style: RGBAColor(0x1c, 0x1c, 0x1c, 0.8),
+            y_labels: 5,
+            x_labels: 5,
+            max_light_lines: 5,
+        }
+    }
+
+    pub fn view(&self) -> Element<ChartMessage> {
+        let chart = ChartWidget::new(self)
+            .width(Length::Fill)
+            .height(Length::Fill);
+
+        chart.into()
+    }
+
+    pub fn with_axis_margin(mut self, axis_margin: [u32; 4]) -> Self {
+        self.axis_margin = axis_margin;
+        self
+    }
+}
+
+impl Chart<ChartMessage> for HistogramChart {
+    type State = ChartState;
+
+    /// Renders a crosshair when in the chart area.
+    fn mouse_interaction(
+        &self,
+        _state: &Self::State,
+        bounds: iced::Rectangle,
+        cursor: Cursor,
+    ) -> iced::mouse::Interaction {
+        if let Cursor::Available(point) = cursor {
+            if !_state.can_interact {
+                return iced::mouse::Interaction::default();
+            }
+
+            if bounds.contains(point) {
+                return iced::mouse::Interaction::Crosshair;
+            }
+        }
+
+        iced::mouse::Interaction::default()
+    }
+
+    /// Sets the [`State`] with the position of the cursor.
+    fn update(
+        &self,
+        state: &mut Self::State,
+        event: canvas::Event,
+        bounds: iced::Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<ChartMessage>) {
+        // Occurs once when the override flag is set.
+        // This is because we only have mutable state, but reference to self.
+        // Which makes it awkward to update the ranges used by the graph from outside
+        // the graph's state context.
+        if self.override_ranges && !state.permanent_override {
+            state.range = self.range.clone();
+            state.original_range = Some(self.range.clone());
+            state.permanent_override = true;
+        }
+
+        (event::Status::Ignored, None)
+    }
+
+    fn build_chart<DB: DrawingBackend>(&self, state: &Self::State, mut builder: ChartBuilder<DB>) {
+        // Calculate the minimum and maximum bins and counts
+        let min_bin = *self.data.keys().min().unwrap_or(&0);
+        let max_bin = *self.data.keys().max().unwrap_or(&100);
+
+        let min_count = *self.data.values().min().unwrap_or(&0) as f32;
+        let max_count = *self.data.values().max().unwrap_or(&100) as f32;
+
+        let num_bins = self.data.len();
+
+        // Create the initial chart with the builder using the component's
+        // CartesianRanges.
+        let mut chart = builder
+            .top_x_label_area_size(self.axis_margin[0])
+            .right_y_label_area_size(self.axis_margin[1])
+            .x_label_area_size(self.axis_margin[2])
+            .y_label_area_size(self.axis_margin[3])
+            .build_cartesian_2d((min_bin..max_bin).into_segmented(), min_count..max_count)
+            .expect("Failed to build chart");
+
+        // Draw the background mesh grid and axis labels.
+        chart
+            .configure_mesh()
+            .disable_x_mesh()
+            .label_style(&self.axis_text_style)
+            .axis_style(self.axis_mesh_style)
+            .light_line_style(self.mesh_grid_style)
+            .y_desc("Count")
+            .x_desc("Bucket")
+            .draw()
+            .expect("Failed to draw chart mesh");
+
+        let histogram_iter = self.data.iter().map(|(&bin, &count)| (bin, count as f32));
+
+        chart
+            .draw_series(
+                Histogram::vertical(&chart)
+                    .style(colors::full_palette::DEEPPURPLE_A400.mix(0.5).filled())
+                    .data(histogram_iter),
+            )
+            .unwrap();
     }
 }
 

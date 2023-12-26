@@ -1,4 +1,7 @@
-use std::env;
+use std::{
+    collections::{BTreeMap, HashMap},
+    env,
+};
 
 use chrono::Utc;
 use datatypes::portfolio::position::{PositionLayer, Positions};
@@ -9,7 +12,7 @@ use super::{inventory::Inventory, *};
 use crate::{
     components::{
         logos::{ether_logo, usdc_logo},
-        system::{ExcaliburContainer, ExcaliburText},
+        system::{ExcaliburContainer, ExcaliburHistogram, ExcaliburText},
     },
     model::portfolio::HistoricalTx,
     view::portfolio_view::ValueToLabel,
@@ -20,6 +23,7 @@ pub struct MonolithicPresenter {
     model: Model,
     pub historical_txs: Vec<HistoricalTx>,
     pub cached_strategy_preview: ExcaliburChart,
+    pub cached_strategy_histogram: ExcaliburHistogram,
 }
 
 impl MonolithicPresenter {
@@ -27,6 +31,7 @@ impl MonolithicPresenter {
         Self {
             model,
             cached_strategy_preview: ExcaliburChart::new(),
+            cached_strategy_histogram: ExcaliburHistogram::new(),
             ..Default::default()
         }
     }
@@ -59,10 +64,27 @@ impl MonolithicPresenter {
         let mut new_preview = ExcaliburChart::new()
             .x_range(liq_dist.0.x_range)
             .y_range(liq_dist.0.y_range);
-        new_preview.override_series(vec![liq_dist.1, price_curve.1]);
+        new_preview.override_series(vec![liq_dist.1.clone(), price_curve.1]);
         new_preview.override_ranges_flag(true);
 
         self.cached_strategy_preview = new_preview;
+
+        // histogram
+        let histogram_data = self
+            .model
+            .portfolio
+            .derive_liquidity_histogram(strike_price, volatility, time_remaining)
+            .expect("Failed to derive histogram data.");
+
+        println!("histogram data: {:?}", histogram_data);
+
+        let x_range = (0.0, histogram_data.max_bin as f32);
+        let y_range = (0.0, histogram_data.max_count as f32);
+
+        self.cached_strategy_histogram = ExcaliburHistogram::new()
+            .override_data(histogram_data.data)
+            .x_range(x_range)
+            .y_range(y_range);
     }
 
     pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {
