@@ -1877,42 +1877,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let samples = num_bins as f64;
         let max = 1.0;
         let mut liq_dist_points = vec![];
-        // while x < max {
-        // This really impacts performance!! Like freezes the app.
-        // let liq_dist = liq_distribution(x, 1.0, strike_price, volatility,
-        // time_remaining); liq_dist_points.push((x, liq_dist));
-        //
-        // Set the count equal to the liq_dist for this bin.
-        // let bin = (x * scalar) as u32;
-        // let count = data
-        // .get_mut(&bin)
-        // .ok_or(anyhow!("Failed to get bin {} from data.", bin))?;
-        // count = (liq_dist * scalar).round() as u32;
-        //
-        // x += max / samples;
-        // }
-
-        // Initialize the counts for each bin to 0
-        // let mut data: HashMap<u32, u32> = (min_bin..=max_bin)
-        // .step_by(bin_size as usize)
-        // .map(|i| (i, 0))
-        // .collect();
-        //
-        // for bin in (min_bin..=max_bin).step_by(bin_size as usize) {
-        // let x = (bin as f64 / scalar)
-        // .max(f64::EPSILON)
-        // .min(1.0 - f64::EPSILON);
-        // let liq_dist = liq_distribution(x, 1.0, strike_price, volatility,
-        // time_remaining); liq_dist_points.push((x, liq_dist));
-        //
-        // Calculate the closest bin
-        // let closest_bin = ((x * scalar).round() as u32 / bin_size) * bin_size;
-        //
-        // let count = data
-        // .get_mut(&closest_bin)
-        // .ok_or(anyhow!("Failed to get bin {} from data.", bin))?;
-        // count = (liq_dist * scalar).round() as u32;
-        // }
 
         // Initialize the counts for each bin to 0
         let mut data: HashMap<u32, u32> = (0..num_bins).map(|i| (i, 0)).collect();

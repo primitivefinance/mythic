@@ -1062,13 +1062,13 @@ impl Chart<ChartMessage> for CartesianChart {
 }
 
 /// A chart that plots a histogram.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct HistogramChart {
     pub data: HashMap<u32, u32>,
     pub axis_margin: [u32; 4],
     pub range: CartesianRanges,
     pub override_ranges: bool,
-    pub bar_color: RGBAColor,
+    pub bar_color: RGBColor,
     /// The axis label text styling. todo: support beyond just color.
     pub axis_text_style: RGBAColor,
     /// The axis mesh styling. i.e. y = 0, x = 0.
@@ -1081,23 +1081,38 @@ pub struct HistogramChart {
     pub x_labels: usize,
     /// Maximum amount of in between mesh lines between labels.
     pub max_light_lines: usize,
+    /// Chart border color.
+    pub border_color: RGBAColor,
+    /// Color of the label text.
+    pub label_text_style: RGBAColor,
+    /// Font size of the labe text.
+    pub label_font_size: f32,
 }
 
-impl HistogramChart {
-    pub fn new() -> Self {
+impl Default for HistogramChart {
+    fn default() -> Self {
         Self {
             data: HashMap::new(),
-            axis_margin: [0, 0, 0, 0],
+            axis_margin: [0, 80, 45, 0],
             range: CartesianRanges::default(),
             override_ranges: false,
-            bar_color: colors::full_palette::DEEPPURPLE_A400.mix(0.5),
+            bar_color: colors::full_palette::DEEPPURPLE_A400,
             axis_text_style: colors::full_palette::GREY_600.into(),
             axis_mesh_style: colors::TRANSPARENT,
             mesh_grid_style: RGBAColor(0x1c, 0x1c, 0x1c, 0.8),
             y_labels: 5,
             x_labels: 5,
-            max_light_lines: 5,
+            max_light_lines: 1,
+            border_color: colors::full_palette::GREY_800.into(),
+            label_text_style: colors::WHITE.into(),
+            label_font_size: 15.0,
         }
+    }
+}
+
+impl HistogramChart {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn view(&self) -> Element<ChartMessage> {
@@ -1166,8 +1181,6 @@ impl Chart<ChartMessage> for HistogramChart {
         let min_count = *self.data.values().min().unwrap_or(&0) as f32;
         let max_count = *self.data.values().max().unwrap_or(&100) as f32;
 
-        let num_bins = self.data.len();
-
         // Create the initial chart with the builder using the component's
         // CartesianRanges.
         let mut chart = builder
@@ -1185,17 +1198,34 @@ impl Chart<ChartMessage> for HistogramChart {
             .label_style(&self.axis_text_style)
             .axis_style(self.axis_mesh_style)
             .light_line_style(self.mesh_grid_style)
-            .y_desc("Count")
-            .x_desc("Bucket")
+            .max_light_lines(self.max_light_lines)
+            .y_labels(self.y_labels)
+            .y_desc("Liquidity")
+            .x_desc("Price")
             .draw()
             .expect("Failed to draw chart mesh");
+
+        // If there is no chart plots or series, return an empty chart with a "No data"
+        // text element.
+        if self.data.is_empty() {
+            let area = chart.plotting_area();
+            let text = Text::new(
+                "No data",
+                (SegmentValue::from(50u32), 50.0 as f32),
+                ("sans-serif", self.label_font_size)
+                    .into_font()
+                    .color(&self.border_color),
+            );
+            area.draw(&text).expect("Failed to draw text");
+            return;
+        }
 
         let histogram_iter = self.data.iter().map(|(&bin, &count)| (bin, count as f32));
 
         chart
             .draw_series(
                 Histogram::vertical(&chart)
-                    .style(colors::full_palette::DEEPPURPLE_A400.mix(0.5).filled())
+                    .style(self.bar_color.filled())
                     .data(histogram_iter),
             )
             .unwrap();
