@@ -10,12 +10,15 @@ import "../BisectionLib.sol";
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
+/// @dev Computes reserves L given rx, S.
+/// @return Ly(x, s) = K * L_x(x, S) * Gaussian.cdf[d2(S, K, sigma, tau)]
 function computeLGivenX(
     uint256 rx,
     uint256 S,
     LogNormParameters memory params
 ) pure returns (uint256 L) {
-    int256 denominator = int256(ONE) - Gaussian.cdf(computeD1(S, params));
+    int256 denominator =
+        int256(ONE) - Gaussian.cdf(computeD1({ S: S, params: params }));
 
     L = FixedPointMathLib.divWadUp(rx, uint256(denominator));
 }

@@ -26,6 +26,18 @@ pub struct Arbitrageur {
     pub atomic_arbitrage: AtomicV2<RevmMiddleware>,
 }
 
+pub struct ArbInputs {
+    pub i_wad: I256,
+    pub target_price_wad: I256,
+    pub strike: I256,
+    pub sigma: I256,
+    pub tau: I256,
+    pub gamma: I256,
+    pub rx: I256,
+    pub ry: I256,
+    pub liq: I256,
+}
+
 // gradient ascent until you find the max arb profit
 // implement the arb math
 // start with doing root finding for the gradient
@@ -125,19 +137,6 @@ impl Arbitrageur {
         info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
         info!("Price[DEX]: {:?}", format_ether(target_exchange_price_wad));
 
-        // let swap_fee_wad = self.protocol_client.get_swap_fee().await?;
-        // let swap_fee_wad = from_ethers_u256(swap_fee_wad);
-        // let gamma_wad = WAD - swap_fee_wad;
-        // let upper_arb_bound = WAD * target_exchange_price_wad / gamma_wad;
-        // let lower_arb_bound = target_exchange_price_wad * gamma_wad / WAD;
-        // debug!("SwapFee [DEX]  : {:?}", format_ether(swap_fee_wad));
-        // debug!("ArbBound[UPPER]: {:?}", format_ether(upper_arb_bound));
-        // debug!("ArbBound[LOWER]: {:?}", format_ether(lower_arb_bound));
-
-        // Check if we have an arbitrage opportunity by comparing against the bounds and
-        // current price.
-        // If these conditions are not satisfied, there cannot be a profitable
-        // arbitrage. See: [An Analysis of Uniswap Markets](https://arxiv.org/pdf/1911.03380.pdf) Eq. 3, for example.
         if liquid_exchange_price_wad > target_exchange_price_wad {
             // Raise the portfolio price by selling asset for quote
             Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
@@ -150,9 +149,7 @@ impl Arbitrageur {
         }
     }
 
-    pub async fn get_arb_inputs_as_i256(
-        &self,
-    ) -> Result<(I256, I256, I256, I256, I256, I256, I256, I256, I256)> {
+    pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
         let log_normal = self.protocol_client.get_strategy().await?;
         let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
@@ -171,7 +168,7 @@ impl Arbitrageur {
             .call()
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
-        Ok((
+        Ok(ArbInputs {
             i_wad,
             target_price_wad,
             strike,
@@ -181,12 +178,21 @@ impl Arbitrageur {
             rx,
             ry,
             liq,
-        ))
+        })
     }
 
     pub async fn get_dx(&self) -> Result<I256> {
-        let (i_wad, target_price_wad, strike, sigma, _tau, gamma, rx, _ry, liq) =
-            self.get_arb_inputs_as_i256().await?;
+        let ArbInputs {
+            i_wad,
+            target_price_wad,
+            strike,
+            sigma,
+            tau: _,
+            gamma,
+            rx,
+            ry: _,
+            liq,
+        } = self.get_arb_inputs_as_i256().await?;
 
         let log_p = self
             .atomic_arbitrage
@@ -203,8 +209,17 @@ impl Arbitrageur {
 
     // todo (matt): figure out why this returns u256::max sometimes
     pub async fn get_dy(&self) -> Result<I256> {
-        let (i_wad, target_price_wad, strike, sigma, _tau, gamma, _rx, ry, liq) =
-            self.get_arb_inputs_as_i256().await?;
+        let ArbInputs {
+            i_wad,
+            target_price_wad,
+            strike,
+            sigma,
+            tau: _,
+            gamma,
+            rx: _,
+            ry,
+            liq,
+        } = self.get_arb_inputs_as_i256().await?;
 
         let log_p = self
             .atomic_arbitrage
@@ -254,8 +269,6 @@ impl Arbitrageur {
         debug!("profit up: {profit_up}");
         debug!("profit down: {profit_down}");
         debug!("profit up minus profit down: {:?}", profit_up - profit_down);
-        // info!("profit up minus profit down over iwad: {(profit_up - profit_down) *
-        // i_wad / I256::from_raw(ethers::types::U256::from(2000))}");
 
         Ok((profit_up - profit_down) * i_wad / I256::from_raw(ethers::types::U256::from(200)))
     }
@@ -320,10 +333,6 @@ impl Agent for Arbitrageur {
                 );
                 let x_in = false;
                 let input = self.get_dy().await?.into_raw();
-
-                // let input = self
-                //     .compute_max_profit_trade(x_in, initial_guess_in)
-                //     .await?;
 
                 debug!("Optimal y input: {:?}", input);
 

@@ -130,13 +130,6 @@ contract DFMM is ICore {
         totalLiquidity = LLLLLL;
 
         {
-            // Avoids stack too deep.
-            // (
-            //     address inputToken,
-            //     address outputToken,
-            //     uint256 inputAmount,
-            //     uint256 outputAmount
-            // ) =
             _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
 
             bytes memory strategyData = IStrategy(strategy).dynamicSlot();
@@ -153,17 +146,6 @@ contract DFMM is ICore {
                 tau,
                 block.timestamp
             );
-
-            // address strategy = strategy;
-            // emit Swap(
-            //     msg.sender,
-            //     strategy,
-            //     inputToken,
-            //     outputToken,
-            //     inputAmount,
-            //     outputAmount,
-            //     liquidityDelta
-            // );
         }
     }
 

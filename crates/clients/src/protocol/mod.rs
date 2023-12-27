@@ -130,7 +130,14 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .get_init_payload(init_reserve_x_wad, init_price_wad, params.clone())
             .await?;
 
-        let tx = self.protocol.init(payload).send().await?.await?;
+        let tx = self
+            .protocol
+            .init(payload)
+            .send()
+            .await?
+            .confirmations(0)
+            .interval(Duration::from_millis(100))
+            .await?;
 
         Ok(tx)
     }
