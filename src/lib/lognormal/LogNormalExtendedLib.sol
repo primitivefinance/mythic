@@ -11,44 +11,53 @@ using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
 /// @dev Computes reserves L given rx, S.
-/// @return Ly(x, s) = K * L_x(x, S) * Gaussian.cdf[d2(S, K, sigma, tau)]
+/// @param rx The reserve of x.
+/// @param S The price of X in Y, in WAD units.
+/// @param params LogNormParameters of the Log Normal distribution.
+/// @return L The reserve L computed as L(x, s) = K * L_x(x, S) * Gaussian.cdf[d2(S, K, sigma, tau)]
 function computeLGivenX(
     uint256 rx,
     uint256 S,
     LogNormParameters memory params
 ) pure returns (uint256 L) {
-    int256 denominator =
-        int256(ONE) - Gaussian.cdf(computeD1({ S: S, params: params }));
+    int256 d1 = computeD1({ S: S, params: params });
+    int256 cdf = Gaussian.cdf(d1);
+    uint256 unsignedCdf = toUint(cdf);
 
-    L = FixedPointMathLib.divWadUp(rx, uint256(denominator));
+    L = rx.divWadUp(ONE - unsignedCdf);
 }
 
 /// @dev Computes reserves y given L(x, S).
-/// @return y(x, s) = K * L_x(x, S) * Gaussian.cdf[d2(S, K, sigma, tau)]
+/// @return ry The reserve y computed as y(x, s) = K * L_x(x, S) * cdf[d2(S, K, sigma, tau)]
 function computeYGivenL(
     uint256 L,
     uint256 S,
     LogNormParameters memory params
-) pure returns (uint256) {
+) pure returns (uint256 ry) {
     int256 d2 = computeD2(S, params);
     int256 cdf = Gaussian.cdf(d2);
     uint256 unsignedCdf = toUint(cdf);
-    return params.strike.mulWadUp(L).mulWadUp(unsignedCdf);
+
+    ry = params.strike.mulWadUp(L).mulWadUp(unsignedCdf);
 }
 
 /// @dev Computes reserves x given L(y, S).
-/// @return x(y, s) = L_y(y, S) * (WAD - Gaussian.cdf[d1(S, K, sigma, tau)])
+/// @return rx The reserve x computed as x(y, s) = L_y(y, S) * (WAD - cdf[d1(S, K, sigma, tau)])
 function computeXGivenL(
     uint256 L,
     uint256 S,
     LogNormParameters memory params
-) pure returns (uint256) {
+) pure returns (uint256 rx) {
     int256 d1 = computeD1(S, params);
     int256 cdf = Gaussian.cdf(d1);
     uint256 unsignedCdf = toUint(cdf);
-    return L.mulWadUp(ONE - unsignedCdf);
+    rx = L.mulWadUp(ONE - unsignedCdf);
 }
 
+/// @dev Computes the d1 parameter for the Black-Scholes formula.
+/// @param S The price of X in Y, in WAD units.
+/// @param params LogNormParameters of the Log Normal distribution.
+/// @return d1 = (ln(S/K) + tau * sigma^2 / 2) / (sigma * sqrt(tau))
 function computeD1(
     uint256 S,
     LogNormParameters memory params
@@ -57,11 +66,12 @@ function computeD1(
         (params.strike, params.sigma, params.tau);
     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     int256 lnSDivK = computeLnSDivK(S, K);
-    uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
+    uint256 halfSigmaPowTwoTau = computeHalfSigmaTauSquared(sigma, tau);
 
     d1 = (lnSDivK + int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);
 }
 
+/// @dev Computes the d2 parameter for the Black-Scholes formula.
 /// @param S The price of X in Y, in WAD units.
 /// @param params LogNormParameters of the Log Normal distribution.
 /// @return d2 = d1 - sigma * sqrt(tau), alternatively d2 = (ln(S/K) - tau * sigma^2 / 2) / (sigma * sqrt(tau))
@@ -73,7 +83,7 @@ function computeD2(
         (params.strike, params.sigma, params.tau);
     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
     int256 lnSDivK = computeLnSDivK(S, K);
-    uint256 halfSigmaPowTwoTau = computeHalfSigmaPower2Tau(sigma, tau);
+    uint256 halfSigmaPowTwoTau = computeHalfSigmaTauSquared(sigma, tau);
 
     d2 = (lnSDivK - int256(halfSigmaPowTwoTau)) * 1e18 / int256(sigmaSqrtTau);
 }
@@ -108,6 +118,7 @@ function findRootLiquidity(
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
+/// @dev Computes the trading function given an amountX and an initialPrice.
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
@@ -120,33 +131,33 @@ function computeInitialPoolData(
     L = computeNextLiquidity(amountX, ry, swapConstant, L, params);
     return abi.encode(amountX, ry, L, params);
 }
-/// @dev Finds the root of the swapConstant given the independent variable liquidity.
 
+/// @dev Finds the root of the swapConstant given the independent variables reserveXWad and reserveYWad.
 function computeNextLiquidity(
-    uint256 reserveXWad,
-    uint256 reserveYWad,
+    uint256 rx,
+    uint256 ry,
     int256 swapConstant,
-    uint256 currentLiquidity,
+    uint256 currentL,
     LogNormParameters memory params
-) pure returns (uint256 L) {
+) pure returns (uint256 nextL) {
     uint256 lower;
     uint256 upper;
     uint256 iters;
-    uint256 yOverK = reserveYWad.divWadDown(params.strike);
+    uint256 yOverK = ry.divWadDown(params.strike);
 
     if (swapConstant < EPSILON && swapConstant > -(EPSILON)) {
-        return currentLiquidity;
+        return currentL;
     } else if (swapConstant < 0) {
-        upper = currentLiquidity;
-        lower = reserveXWad > yOverK ? reserveXWad + 1 : yOverK + 1;
+        upper = currentL;
+        lower = rx > yOverK ? rx + 1 : yOverK + 1;
         iters = 128;
     } else {
         upper = 1e27;
-        lower = currentLiquidity;
+        lower = currentL;
         iters = 128;
     }
-    L = bisection(
-        abi.encode(reserveXWad, reserveYWad, swapConstant, params),
+    nextL = bisection(
+        abi.encode(rx, ry, swapConstant, params),
         lower,
         upper,
         uint256(EPSILON),
@@ -157,15 +168,15 @@ function computeNextLiquidity(
 
 /// @dev Finds the root of the swapConstant given the independent variable reserveXWad.
 function computeNextRy(
-    uint256 reserveXWad,
-    uint256 liquidity,
+    uint256 rx,
+    uint256 L,
     int256 swapConstant,
     LogNormParameters memory params
 ) pure returns (uint256 ry) {
     uint256 lower = 10;
-    uint256 upper = liquidity.mulWadUp(params.strike) - 10;
+    uint256 upper = L.mulWadUp(params.strike) - 10;
     ry = bisection(
-        abi.encode(reserveXWad, liquidity, swapConstant, params),
+        abi.encode(rx, L, swapConstant, params),
         lower,
         upper,
         uint256(EPSILON),
@@ -176,15 +187,15 @@ function computeNextRy(
 
 /// @dev Finds the root of the swapConstant given the independent variable reserveYWad.
 function computeNextRx(
-    uint256 reserveYWad,
-    uint256 liquidity,
+    uint256 ry,
+    uint256 L,
     int256 swapConstant,
     LogNormParameters memory params
 ) pure returns (uint256 rx) {
     uint256 lower = 10;
-    uint256 upper = liquidity - 10; // max x = 1 - x / l, so l - x
+    uint256 upper = L - 10; // max x = 1 - x / l, so l - x
     rx = bisection(
-        abi.encode(reserveYWad, liquidity, swapConstant, params),
+        abi.encode(ry, L, swapConstant, params),
         lower,
         upper,
         uint256(EPSILON),

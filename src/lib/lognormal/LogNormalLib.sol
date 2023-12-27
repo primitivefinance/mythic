@@ -51,7 +51,7 @@ function tradingFunction(
 
 function computeHalfSigmaSquared(uint256 sigma) pure returns (uint256) {
     int256 sigmaSquaredWad = int256(sigma).powWad(int256(TWO));
-    return HALF.mulWadDown(uint256(sigma));
+    return HALF.mulWadDown(uint256(sigmaSquaredWad));
 }
 
 /// @dev Computes the approximated spot price given current reserves and liquidity.
@@ -63,7 +63,7 @@ function computePrice(
     uint256 tau
 ) pure returns (uint256 price) {
     uint256 sigmaSqrtTau = computeSigmaSqrtTau(sigma, tau);
-    uint256 halfSigmaSquared = computeHalfSigmaSquared(sigma);
+    uint256 halfSigmaSquared = computeHalfSigmaTauSquared(sigma, tau);
     uint256 halfSigmaSquaredTau = halfSigmaSquared.mulWadDown(tau);
 
     // Gaussian.ppf has a range of [-inf, inf], so we need to make sure the input is in [0, 1].
@@ -83,7 +83,7 @@ function computePrice(
         - int256(halfSigmaSquaredTau);
 
     // This result cannot be negative!
-    int256 exp_result = FixedPointMathLib.expWad(exponent);
+    int256 exp_result = exponent.expWad();
     uint256 exp_result_uint = toUint(exp_result);
     price = K.mulWadUp(exp_result_uint);
 }

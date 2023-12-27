@@ -7,7 +7,7 @@ using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
 function computeLnSDivK(uint256 S, uint256 K) pure returns (int256 lnSDivK) {
-    lnSDivK = FixedPointMathLib.lnWad(int256(FixedPointMathLib.divWadUp(S, K)));
+    lnSDivK = int256(S.divWadUp(K)).lnWad();
 }
 
 function computeSigmaSqrtTau(
@@ -15,18 +15,17 @@ function computeSigmaSqrtTau(
     uint256 tau
 ) pure returns (uint256 sigmaSqrtTau) {
     uint256 sqrtTau = FixedPointMathLib.sqrt(tau) * 10 ** 9;
-    sigmaSqrtTau = FixedPointMathLib.mulWadDown(sigma, sqrtTau);
+    sigmaSqrtTau = sigma.mulWadDown(sqrtTau);
 }
 
-function computeHalfSigmaPower2Tau(
+function computeHalfSigmaTauSquared(
     uint256 sigma,
     uint256 tau
 ) pure returns (uint256 halfSigmaPower2Tau) {
-    uint256 innerTerm = FixedPointMathLib.mulWadDown(
-        uint256(FixedPointMathLib.powWad(int256(sigma), int256(TWO))), tau
-    );
+    uint256 innerTerm =
+        uint256(int256(sigma).powWad(int256(TWO))).mulWadDown(tau);
 
-    halfSigmaPower2Tau = FixedPointMathLib.mulWadDown(HALF, innerTerm);
+    halfSigmaPower2Tau = HALF.mulWadDown(innerTerm);
 }
 
 /// @dev Signed mul div, rounding up if the modulo quotient is non-zero.
