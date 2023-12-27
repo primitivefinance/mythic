@@ -20,5 +20,5 @@ linked-hash-map.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
-rayon = "1.5.1"
+rayon = "=1.5.1"
 tracing-test = "=0.2.4"
