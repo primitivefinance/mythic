@@ -76,15 +76,14 @@ impl MonolithicPresenter {
             .derive_liquidity_histogram(strike_price, volatility, time_remaining)
             .expect("Failed to derive histogram data.");
 
-        println!("histogram data: {:?}", histogram_data);
-
         let x_range = (0.0, histogram_data.max_bin as f32);
         let y_range = (0.0, histogram_data.max_count as f32);
 
         self.cached_strategy_histogram = ExcaliburHistogram::new()
             .override_data(histogram_data.data)
             .x_range(x_range)
-            .y_range(y_range);
+            .y_range(y_range)
+            .notable_bars(histogram_data.notable_bars);
     }
 
     pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {
