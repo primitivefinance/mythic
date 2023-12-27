@@ -161,8 +161,8 @@ impl LiquidityTypes {
     pub fn to_parameters(self, current_price: f64) -> LiquidityTemplateParameters {
         match self {
             LiquidityTypes::Low => LiquidityTemplateParameters {
-                strike_price_wad: current_price * 1.5,
-                sigma_percent_wad: 0.3,
+                strike_price_wad: current_price,
+                sigma_percent_wad: 0.7,
                 time_remaining_years_wad: 1.0,
             },
             LiquidityTypes::Med => LiquidityTemplateParameters {
@@ -171,7 +171,7 @@ impl LiquidityTypes {
                 time_remaining_years_wad: 1.0,
             },
             LiquidityTypes::High => LiquidityTemplateParameters {
-                strike_price_wad: current_price * 1.1,
+                strike_price_wad: current_price,
                 sigma_percent_wad: 1.3,
                 time_remaining_years_wad: 1.0,
             },

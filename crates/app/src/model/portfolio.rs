@@ -20,7 +20,7 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 // use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
@@ -1861,49 +1861,64 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         volatility: f64,
         time_remaining: f64,
     ) -> Result<HistogramData> {
-        let num_bins = 10u32;
+        let current_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("Spot price not set"))?;
+        let current_price = alloy_primitives::utils::format_ether(current_price);
+        let current_price = current_price.parse::<f64>()?;
 
-        // Organizes data into bins between 0 - 100.
-        let scalar = 100.0;
-        let min_bin = 0u32;
-        let max_bin = 100u32;
+        let min_price = f64::EPSILON;
+        let max_price = current_price * 2.0;
+
+        // Scale the x-axis "prices" to the histogram "bins".
+        let scalar = 100.0; // Define the scalar
+        let min_bin = (min_price * scalar).round() as u32;
+        let max_bin = (max_price * scalar).round() as u32;
+
+        // Define the number of bins to group the data by.
+        let num_bins = 25u32;
         let bin_size = (max_bin - min_bin) / num_bins;
 
-        // Initialize the counts for each bin to 0
-        // let mut data: HashMap<u32, u32> = (0..num_bins).map(|i| (i, 0)).collect();
-
-        // Initial x != 0!!! be careful.
-        let mut x = f64::EPSILON;
-        let samples = num_bins as f64;
-        let max = 1.0;
-        let mut liq_dist_points = vec![];
-
-        // Initialize the counts for each bin to 0
-        let mut data: HashMap<u32, u32> = (0..num_bins).map(|i| (i, 0)).collect();
-
         let mut max_count = 0;
-        for i in 0..num_bins {
-            let bin_start = min_bin + i * bin_size;
+        let mut data: BTreeMap<u32, u32> = BTreeMap::new();
+        let mut notable_bars: BTreeMap<u32, u32> = BTreeMap::new();
+
+        for bin_index in 0..num_bins {
+            let bin_start = min_bin + bin_index * bin_size;
             let bin_end = bin_start + bin_size;
 
-            let steps = (bin_end - bin_start) as usize;
-            for step in 0..steps {
-                let x = ((bin_start as f64 / scalar) + (step as f64 / scalar))
-                    .max(f64::EPSILON)
-                    .min(1.0 - f64::EPSILON);
-                let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
-                liq_dist_points.push((x, liq_dist));
+            // Calculate price for this bin
+            let price = ((bin_start + bin_end) as f64 / scalar) / 2.0;
+            let price_key = (price * scalar).round() as u32;
 
-                let count = data
-                    .get_mut(&i)
-                    .ok_or(anyhow!("Failed to get bin {} from data.", i))?;
-                *count += (liq_dist * scalar).round() as u32;
+            // Compute the x and liquidity distribution values at this given price.
+            let x = compute_x_given_price(price, 1.0, strike_price, volatility, time_remaining);
+            let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
 
-                if *count > max_count {
-                    max_count = *count;
-                }
+            // Collect the data into the histogram.
+            let count = data.entry(price_key).or_insert(0);
+            *count += (liq_dist * scalar).round() as u32;
+
+            // Keep a track of the highest count to bound the y-axis in the chart.
+            if *count > max_count {
+                max_count = *count;
             }
         }
+
+        // Find the closest bin to the current price, and use its value as a notable
+        // bar.
+        let mut closest_bin = 0;
+        let mut closest_bin_distance = f64::MAX;
+        for (bin, _) in &data {
+            let distance = (*bin as f64 / scalar - current_price).abs();
+            if distance < closest_bin_distance {
+                closest_bin_distance = distance;
+                closest_bin = *bin;
+            }
+        }
+
+        // Add the closest bin to the notable bars.
+        notable_bars.insert(closest_bin, *data.get(&closest_bin).unwrap());
 
         Ok(HistogramData {
             min_bin,
@@ -1911,6 +1926,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             max_count,
             bin_size,
             data,
+            notable_bars,
         })
     }
 }
@@ -1921,7 +1937,8 @@ pub struct HistogramData {
     pub max_bin: u32,
     pub max_count: u32,
     pub bin_size: u32,
-    pub data: HashMap<u32, u32>,
+    pub data: BTreeMap<u32, u32>,
+    pub notable_bars: BTreeMap<u32, u32>,
 }
 
 #[cfg(test)]

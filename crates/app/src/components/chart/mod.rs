@@ -3,7 +3,7 @@
 //! To accomplish that we need to update the plot as the x and y ranges change
 //! with the user's scrolling or dragging.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use cfmm_math::trading_functions::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
@@ -1064,10 +1064,18 @@ impl Chart<ChartMessage> for CartesianChart {
 /// A chart that plots a histogram.
 #[derive(Debug, Clone)]
 pub struct HistogramChart {
-    pub data: HashMap<u32, u32>,
+    /// The data to plot.
+    pub data: BTreeMap<u32, u32>,
+    /// Highlights these notable bars.
+    pub notable_bars: BTreeMap<u32, u32>,
+    /// Color of the highlighted bars.
+    pub notable_bar_color: RGBColor,
+    /// Label margins
     pub axis_margin: [u32; 4],
+    /// The x-axis and y-axis ranges of the chart.
     pub range: CartesianRanges,
     pub override_ranges: bool,
+    /// The bar color.
     pub bar_color: RGBColor,
     /// The axis label text styling. todo: support beyond just color.
     pub axis_text_style: RGBAColor,
@@ -1085,14 +1093,27 @@ pub struct HistogramChart {
     pub border_color: RGBAColor,
     /// Color of the label text.
     pub label_text_style: RGBAColor,
-    /// Font size of the labe text.
+    /// Font size of the label text.
     pub label_font_size: f32,
+    /// Background color of the legend.
+    pub legend_background_color: RGBAColor,
+    /// Legend margin
+    pub legend_margin: u32,
+    /// Legend text font size.
+    pub legend_font_size: f32,
+    /// todo: offer dynamic legend labels
+    pub legend_label: String,
+    /// todo: handle the scales better, but this is scaled because the x and y
+    /// values are unsigned integers.
+    pub histogram_scalar: u32,
 }
 
 impl Default for HistogramChart {
     fn default() -> Self {
         Self {
-            data: HashMap::new(),
+            data: BTreeMap::new(),
+            notable_bars: BTreeMap::new(),
+            notable_bar_color: colors::full_palette::PURPLE_A400,
             axis_margin: [0, 80, 45, 0],
             range: CartesianRanges::default(),
             override_ranges: false,
@@ -1106,6 +1127,11 @@ impl Default for HistogramChart {
             border_color: colors::full_palette::GREY_800.into(),
             label_text_style: colors::WHITE.into(),
             label_font_size: 15.0,
+            legend_background_color: colors::BLACK.into(),
+            legend_margin: 10,
+            legend_font_size: 10.0,
+            legend_label: "Price".to_string(),
+            histogram_scalar: 100u32,
         }
     }
 }
@@ -1199,8 +1225,18 @@ impl Chart<ChartMessage> for HistogramChart {
             .axis_style(self.axis_mesh_style)
             .light_line_style(self.mesh_grid_style)
             .max_light_lines(self.max_light_lines)
+            .x_label_formatter(&|x| match x {
+                plotters::prelude::SegmentValue::Exact(val) => {
+                    format!("{:.2}", (*val as f32) / self.histogram_scalar as f32)
+                }
+                plotters::prelude::SegmentValue::CenterOf(val) => {
+                    format!("{:.2}", (*val as f32) / self.histogram_scalar as f32)
+                }
+                _ => String::from(""),
+            })
+            .y_label_formatter(&|y| format!("{:.2}x", *y as f32 / self.histogram_scalar as f32))
             .y_labels(self.y_labels)
-            .y_desc("Liquidity")
+            .y_desc("Leverage")
             .x_desc("Price")
             .draw()
             .expect("Failed to draw chart mesh");
@@ -1229,6 +1265,47 @@ impl Chart<ChartMessage> for HistogramChart {
                     .data(histogram_iter),
             )
             .unwrap();
+
+        // Draw the notable bars, if any.
+        if !self.notable_bars.is_empty() {
+            let notable_iter = self
+                .notable_bars
+                .iter()
+                .map(|(&bin, &count)| (bin, count as f32));
+
+            let legend_color = self.notable_bar_color;
+
+            let notable_bar_bin = self.notable_bars.keys().next().unwrap_or(&0);
+            let notable_bar_bin_scaled = *notable_bar_bin as f32 / self.histogram_scalar as f32;
+            let notable_label = format!("{}: {}", self.legend_label, notable_bar_bin_scaled);
+
+            chart
+                .draw_series(
+                    Histogram::vertical(&chart)
+                        .style(self.notable_bar_color.filled())
+                        .data(notable_iter),
+                )
+                .expect("Could not draw notable bars on histogram chart.")
+                .label(notable_label)
+                .legend(move |(x, y)| {
+                    PathElement::new(
+                        vec![(x, y), (x + 20, y)],
+                        legend_color.filled().stroke_width(2),
+                    )
+                });
+        }
+
+        // Add the legend for the notable bars.
+        // Draw the labels on the chart.
+        chart
+            .configure_series_labels()
+            .background_style(self.legend_background_color.filled())
+            .border_style(colors::full_palette::BLACK)
+            .position(SeriesLabelPosition::UpperLeft)
+            .label_font(("sans-serif", self.legend_font_size, &self.label_text_style))
+            .margin(self.legend_margin)
+            .draw()
+            .expect("Failed to draw labels");
     }
 }
 

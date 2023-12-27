@@ -1,6 +1,6 @@
 //! Entire Excalibur component system.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use iced::{
     widget::{component, text_input, tooltip, Component},
@@ -1362,7 +1362,7 @@ impl ExcaliburHistogram {
         self.chart.view()
     }
 
-    pub fn override_data(mut self, data: HashMap<u32, u32>) -> Self {
+    pub fn override_data(mut self, data: BTreeMap<u32, u32>) -> Self {
         self.chart.data = data;
         self
     }
@@ -1374,6 +1374,11 @@ impl ExcaliburHistogram {
 
     pub fn y_range(mut self, y_range: (f32, f32)) -> Self {
         self.chart.range.y_range = y_range;
+        self
+    }
+
+    pub fn notable_bars(mut self, notable_bars: BTreeMap<u32, u32>) -> Self {
+        self.chart.notable_bars = notable_bars;
         self
     }
 }
