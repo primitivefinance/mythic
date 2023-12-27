@@ -83,7 +83,7 @@ impl ArbiterInstance {
 
     /// Consumes this instance, stopping the environment and returning the
     /// snapshot of its db.
-    pub fn stop(mut self) -> Result<SnapshotDB> {
+    pub fn stop(self) -> Result<SnapshotDB> {
         let db = self.environment.stop()?;
         Ok(Self::snapshot(&db.clone().unwrap()))
     }

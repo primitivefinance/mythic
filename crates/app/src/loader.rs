@@ -210,10 +210,12 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         let strategy = dev_client.protocol.get_strategy().await?.address();
         let token_x = dev_client.token_x.address();
         let token_y = dev_client.token_y.address();
+        let solver = dev_client.solver.address();
         let lex = dev_client.liquid_exchange.address();
 
         exc_client.add_contract("protocol", protocol);
         exc_client.add_contract("strategy", strategy);
+        exc_client.add_contract("solver", solver);
         exc_client.add_contract("token_x", token_x);
         exc_client.add_contract("token_y", token_y);
         exc_client.add_contract("lex", lex);
@@ -268,13 +270,25 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             contacts::Category::Untrusted,
         );
 
-        tracing::info!("Loaded contacts: {:?}", model.user.contacts);
+        model.user.contacts.add(
+            lex,
+            contacts::ContactValue {
+                label: "solver".to_string(),
+                class: contacts::Class::Contract,
+                ..Default::default()
+            },
+            contacts::Category::Untrusted,
+        );
 
+        tracing::info!("Loaded contacts: {:?}", model.user.contacts);
+        // TODO(matt): Create a shared type so that the order of the arguments isn't
+        // finicky
         model.portfolio.setup(
             from_ethers_address(exc_client.address().unwrap()),
             from_ethers_address(lex),
             from_ethers_address(protocol),
             from_ethers_address(strategy),
+            from_ethers_address(solver),
             from_ethers_address(token_x),
             from_ethers_address(token_y),
         );

@@ -17,11 +17,11 @@ pub mod rmm_analysis;
 fn read_in_and_plot_statistical() {
     let file1 = "src/tests/output/0.json";
     let data1 = SimulationData::new(file1).unwrap();
-    let values1 = data1.get_vectorized_events::<liquid_exchange::PriceChangeFilter>("lex");
+    let values1 = data1.get_vectorized_events::<lex::PriceChangeFilter>("lex");
 
     let file2 = "src/tests/output/1.json";
     let data2 = SimulationData::new(file2).unwrap();
-    let values2 = data2.get_vectorized_events::<liquid_exchange::PriceChangeFilter>("lex");
+    let values2 = data2.get_vectorized_events::<lex::PriceChangeFilter>("lex");
 
     let (x_data, y_data1): (Vec<f64>, Vec<f64>) = values1
         .iter()
