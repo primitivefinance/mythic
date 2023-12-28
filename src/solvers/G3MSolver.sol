@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
-import "forge-std/console2.sol";
 import "../lib/BisectionLib.sol";
 import "../lib/g3m/G3MExtendedLib.sol";
 
@@ -81,9 +80,6 @@ contract G3mSolver {
             StrategyLike(strategy).getReservesAndLiquidity();
         G3mParameters memory poolParams =
             StrategyLike(strategy).dynamicSlotInternal();
-        console2.log("startRx", startReserves.rx);
-        console2.log("startRy", startReserves.ry);
-        console2.log("startL", startReserves.L);
 
         uint256 amountOut;
         {
@@ -105,7 +101,6 @@ contract G3mSolver {
                 endReserves.L = startComputedL + deltaL;
 
                 endReserves.ry = getNextReserveY(endReserves.rx, endReserves.L);
-                console2.log("endRy", endReserves.rx);
                 endReserves.ry += 1;
 
                 require(
@@ -127,7 +122,6 @@ contract G3mSolver {
                 endReserves.L = startComputedL + deltaL;
 
                 endReserves.rx = getNextReserveX(endReserves.ry, endReserves.L);
-                console2.log("endRx", endReserves.rx);
                 endReserves.rx += 1;
 
                 require(

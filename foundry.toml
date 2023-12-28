@@ -3,7 +3,6 @@ remappings = [
     "solstat/=lib/solstat/src/",
     "forge-std/=lib/solstat/lib/forge-std/src/",
     "solmate/=lib/solstat/lib/solmate/src/",
-    "prb-math/=lib/prb-math/src/",
 ]
 solc_version = "0.8.19"
 bytecode_hash = "none"
