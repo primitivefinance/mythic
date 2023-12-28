@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use bindings::{log_normal, mock_erc20::MockERC20};
+use bindings::{log_normal::LogNormal, log_normal_solver::LogNormalSolver, mock_erc20::MockERC20};
 
 use super::{protocol::ProtocolClient, *};
 
@@ -16,7 +16,8 @@ pub const INITIAL_PRICE: f64 = 1.0;
 #[derive(Debug, Clone)]
 pub struct DevClient<C> {
     pub protocol: ProtocolClient<C>,
-    pub strategy: log_normal::LogNormal<C>,
+    pub strategy: LogNormal<C>,
+    pub solver: LogNormalSolver<C>,
     pub liquid_exchange: LiquidExchange<C>,
     pub token_x: MockERC20<C>,
     pub token_y: MockERC20<C>,
@@ -95,7 +96,12 @@ impl<C: Middleware + 'static> DevClient<C> {
             .send()
             .await?;
 
-        let strategy = log_normal::LogNormal::new(protocol.protocol.source().call().await?, client);
+        let solver =
+            LogNormalSolver::deploy(client.clone(), protocol.protocol.strategy().call().await?)?
+                .send()
+                .await?;
+
+        let strategy = LogNormal::new(protocol.protocol.strategy().call().await?, client);
         // Make sure to set the token y price to 1.0.
 
         Ok(Self {
@@ -103,11 +109,12 @@ impl<C: Middleware + 'static> DevClient<C> {
             token_x,
             token_y,
             strategy,
+            solver,
             liquid_exchange,
         })
     }
 
-    pub async fn get_strategy(&self) -> Result<log_normal::LogNormal<C>> {
+    pub async fn get_strategy(&self) -> Result<LogNormal<C>> {
         self.protocol.get_strategy().await
     }
 
@@ -141,7 +148,8 @@ impl<C: Middleware + 'static> DevClient<C> {
     }
 
     pub async fn get_position(&self) -> Result<ProtocolPosition> {
-        let (balance_x, balance_y, liquidity) = self.protocol.get_reserves_and_liquidity().await?;
+        let (balance_x, balance_y, liquidity) =
+            self.protocol.protocol.get_reserves_and_liquidity().await?;
         let internal_price = self.protocol.get_internal_price().await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);

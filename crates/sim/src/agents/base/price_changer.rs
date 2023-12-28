@@ -1,7 +1,7 @@
 use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
 use alloy_primitives::utils::parse_ether;
-use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use bindings::lex::Lex;
 use itertools::iproduct;
 use RustQuant::stochastics::{
     GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
@@ -18,7 +18,7 @@ pub struct PriceChanger {
     pub trajectory: Trajectories,
 
     /// The `LiquidExchange` contract with the admin `Client`.
-    pub liquid_exchange: LiquidExchange<RevmMiddleware>,
+    pub liquid_exchange: Lex<RevmMiddleware>,
 
     /// The index of the current price in the trajectory.
     pub index: usize,
@@ -102,7 +102,7 @@ impl PriceChanger {
 
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
-            let liquid_exchange = LiquidExchange::deploy(
+            let liquid_exchange = Lex::deploy(
                 client.clone(),
                 (
                     token_admin.arbx.address(),
@@ -233,9 +233,9 @@ impl StochasticProcess for PriceProcess<Single> {
                     .drift(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .drift(x, t),
         }
@@ -248,9 +248,9 @@ impl StochasticProcess for PriceProcess<Single> {
                     .diffusion(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .diffusion(x, t),
         }
@@ -262,9 +262,9 @@ impl StochasticProcess for PriceProcess<Single> {
                 GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0).jump(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .jump(x, t),
         }

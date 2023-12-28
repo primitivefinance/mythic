@@ -26,6 +26,7 @@ use anyhow::{anyhow, Error, Result};
 use bindings::{
     dfmm::{InitFilter, DFMM},
     log_normal::LogNormal,
+    log_normal_solver::LogNormalSolver,
 };
 use cfmm_math::trading_functions::rmm::{
     compute_l_given_x_rust, compute_price_given_x_rust, compute_x_given_l_rust,
@@ -88,6 +89,7 @@ pub struct RawDataModel<A, V> {
     pub raw_external_exchange_address: Option<A>,
     pub raw_protocol_address: Option<A>,
     pub raw_strategy_address: Option<A>,
+    pub raw_solver_address: Option<A>,
     pub raw_asset_token: Option<A>,
     pub raw_quote_token: Option<A>,
 
@@ -210,12 +212,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Sets up the model with the required addresses needed to fetch all the
     /// data in the model.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup(
         &mut self,
         user_address: AlloyAddress,
         external_exchange_address: AlloyAddress,
         protocol_address: AlloyAddress,
         strategy_address: AlloyAddress,
+        solver_address: AlloyAddress,
         asset_token: AlloyAddress,
         quote_token: AlloyAddress,
     ) {
@@ -223,6 +227,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.raw_external_exchange_address = Some(external_exchange_address);
         self.raw_protocol_address = Some(protocol_address);
         self.raw_strategy_address = Some(strategy_address);
+        self.raw_solver_address = Some(solver_address);
         self.raw_asset_token = Some(asset_token);
         self.raw_quote_token = Some(quote_token);
     }
@@ -527,6 +532,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(strategy)
     }
 
+    /// Gets the strategy contract instance given the model's strategy address.
+    pub async fn solver(&self, client: Arc<Client>) -> Result<LogNormalSolver<Client>> {
+        let solver_address = self
+            .raw_solver_address
+            .ok_or(Error::msg("Solver address not set"))?;
+        let converted_address = to_ethers_address(solver_address);
+        let solver = LogNormalSolver::new(converted_address, client.clone());
+        Ok(solver)
+    }
+
     /// Gets the "unallocated position" balances.
     pub fn get_unallocated_positions_info(&self) -> Result<StrategyPosition> {
         let balance_x = self
@@ -764,8 +779,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
-        let protocol = self.protocol(client.clone()).await?;
-        let internal_price = protocol.internal_price().await;
+        let solver = self.solver(client.clone()).await?;
+        let internal_price = solver.internal_price().await;
         let internal_price = match internal_price {
             Ok(internal_price) => internal_price,
             Err(error) => {

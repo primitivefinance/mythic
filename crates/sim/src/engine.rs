@@ -83,9 +83,9 @@ impl ArbiterInstance {
 
     /// Consumes this instance, stopping the environment and returning the
     /// snapshot of its db.
-    pub fn stop(self) -> Result<()> {
-        self.environment.stop()?;
-        Ok(())
+    pub fn stop(self) -> Result<SnapshotDB> {
+        let db = self.environment.stop()?;
+        Ok(Self::snapshot(&db.clone().unwrap()))
     }
 
     pub fn snapshot(db: &CacheDB<EmptyDB>) -> SnapshotDB {
@@ -242,14 +242,21 @@ impl ArbiterInstanceManager {
 
     pub fn stop(&mut self, instances: Vec<ArbiterInstance>) {
         for instance in instances {
-            instance.stop().unwrap();
+            let db = instance.stop().unwrap();
+            self.instances.push(db);
         }
     }
 
-    pub async fn run_parallel(&mut self, scenario: impl Scenario) -> Result<Vec<()>, Error> {
+    pub async fn run_parallel(
+        &mut self,
+        scenario: impl Scenario,
+    ) -> Result<Vec<SnapshotDB>, Error> {
+        let start_time = std::time::Instant::now();
         let result = run_parallel(self.clone(), scenario).await;
         let result = result?.join().unwrap().unwrap();
-        // self.instances = result.clone();
+        self.instances = result.clone();
+        let duration = start_time.elapsed();
+        tracing::warn!("Simulation tasks finished in {:?}", duration);
         Ok(result)
     }
 
@@ -283,7 +290,7 @@ impl<'de> Deserialize<'de> for ArbiterInstanceManager {
     }
 }
 
-type ParallelResult = std::thread::JoinHandle<Result<Vec<()>, Error>>;
+type ParallelResult = std::thread::JoinHandle<Result<Vec<SnapshotDB>, Error>>;
 
 pub async fn run_parallel(
     builder: ArbiterInstanceManager,
@@ -292,10 +299,10 @@ pub async fn run_parallel(
     tracing::info!("Running simulation tasks in separate thread.");
     let slice = std::thread::spawn(move || {
         let rt = Builder::new_multi_thread().build()?;
-        let semaphore = Arc::new(Semaphore::new(1));
+        let max_parallel = builder.config_builder.config.max_parallel;
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<Error>));
         let mut builder = builder.clone();
-
+        let semaphore = max_parallel.map(|max| Arc::new(Semaphore::new(max)));
         rt.block_on(async {
             let mut instances = builder.build(scenario).await;
             let mut handles = vec![];
@@ -305,13 +312,16 @@ pub async fn run_parallel(
                 let instance = instances.remove(0);
                 let errors_clone = errors.clone();
                 let semaphore_clone = semaphore.clone();
-                handles.push(simulation_task(instance, semaphore_clone, errors_clone));
+                handles.push(tokio::spawn(
+                    simulation_task(instance, semaphore_clone, errors_clone).await,
+                ));
             }
 
             let mut snapshots = vec![];
             for handle in handles {
-                let instance = handle.await.await??;
-                snapshots.push(instance.stop()?);
+                let instance = handle.await???;
+                let snapshot = instance.stop()?;
+                snapshots.push(snapshot);
             }
 
             let mut errors = errors.lock().await;
@@ -322,45 +332,68 @@ pub async fn run_parallel(
             }
         })
     });
-
     Ok(slice)
 }
 
 async fn simulation_task(
     instance: ArbiterInstance,
-    semaphore: Arc<Semaphore>,
+    semaphore: Option<Arc<Semaphore>>,
     errors: Arc<tokio::sync::Mutex<Vec<Error>>>,
 ) -> tokio::task::JoinHandle<Result<ArbiterInstance, Error>> {
     let errors_clone = errors.clone();
-    let semaphore_clone = semaphore.clone();
-
     tokio::spawn(async move {
         let mut instance = instance;
         instance.init().await.unwrap();
 
-        let permit = semaphore_clone.acquire().await.unwrap();
-        for i in 0..instance.steps {
-            let result: Result<(), Error> = instance.step().await;
+        warn!("Running simulation task.");
+        if let Some(semaphore) = &semaphore {
+            let permit = semaphore.acquire().await.unwrap();
+            for i in 0..instance.steps {
+                let result: Result<(), Error> = instance.step().await;
 
-            match result {
-                Err(e) => {
-                    tracing::error!(
-                        "Simulation got an error after calling `step` on step {} {:?}",
-                        i,
-                        e
-                    );
+                match result {
+                    Err(e) => {
+                        tracing::error!(
+                            "Simulation got an error after calling `step` on step {} {:?}",
+                            i,
+                            e
+                        );
 
-                    let mut errors_clone_lock = errors_clone.lock().await;
-                    errors_clone_lock.push(e);
+                        let mut errors_clone_lock = errors_clone.lock().await;
+                        errors_clone_lock.push(e);
 
-                    // Drop the permit when the simulation is done.
-                    drop(permit);
+                        // Drop the permit when the simulation is done.
+                        drop(permit);
 
-                    // Exits the simulation.
-                    break;
+                        // Exits the simulation.
+                        break;
+                    }
+                    Ok(_) => {
+                        // Continue running the simulation.
+                    }
                 }
-                Ok(_) => {
-                    // Continue running the simulation.
+            }
+        } else {
+            for i in 0..instance.steps {
+                let result: Result<(), Error> = instance.step().await;
+
+                match result {
+                    Err(e) => {
+                        tracing::error!(
+                            "Simulation got an error after calling `step` on step {} {:?}",
+                            i,
+                            e
+                        );
+
+                        let mut errors_clone_lock = errors_clone.lock().await;
+                        errors_clone_lock.push(e);
+
+                        // Exits the simulation.
+                        break;
+                    }
+                    Ok(_) => {
+                        // Continue running the simulation.
+                    }
                 }
             }
         }
@@ -428,12 +461,12 @@ mod tests {
             .next()
             .unwrap()
             .client()
-            .address();
-        let address = block_admin_address;
+            .address()
+            .clone();
+        let address =
+            revm_primitives::alloy_primitives::Address::from(block_admin_address.as_fixed_bytes());
         let account = client
-            .apply_cheatcode(cheatcodes::Cheatcodes::Access {
-                address: revm_primitives::Address::from(address.to_fixed_bytes()),
-            })
+            .apply_cheatcode(cheatcodes::Cheatcodes::Access { address })
             .await
             .unwrap();
 
@@ -443,6 +476,6 @@ mod tests {
         };
 
         assert_eq!(instance.config.agent_parameters.len(), 1);
-        assert!(account.is_some());
+        assert_eq!(account.is_some(), true);
     }
 }

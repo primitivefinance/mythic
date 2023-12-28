@@ -10,6 +10,7 @@ use std::{any::Any, path::Path};
 use ::config::ConfigError;
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
+use ethers::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use settings::{
@@ -17,6 +18,7 @@ use settings::{
     Parameterized, SimulationConfig,
 };
 use thiserror::Error;
+use tracing::{debug, error, info, trace, warn};
 
 pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
     let cwd = std::env::current_dir().unwrap();
@@ -43,9 +45,8 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
 
     // Run the sims, returning snapshot dbs to the manager's `instances`.
     let result = rt.block_on(async move {
-        let config = import(path)?;
         let mut manager = engine::ArbiterInstanceManager::new();
-        manager.config_builder.config = config;
+        manager.config_builder.config = import(path)?;
         let scenario = scenarios::DFMMScenario;
         manager.run_parallel(scenario).await
     })?;

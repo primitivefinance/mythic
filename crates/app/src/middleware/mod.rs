@@ -269,11 +269,10 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     fn protocol(&self) -> Result<ProtocolClient<NetworkClient<Ws, LocalWallet>>> {
         let client = self.client().unwrap().clone();
         let address = self.contracts.get("protocol").cloned();
-        let address = match address {
-            Some(address) => address,
-            None => return Err(anyhow::anyhow!("No protocol address")),
-        };
-        let protocol = ProtocolClient::new(client, address);
+        let solver = self.contracts.get("solver").cloned();
+        let address = address.ok_or_else(|| anyhow::anyhow!("No protocol address"))?;
+        let solver = solver.ok_or_else(|| anyhow::anyhow!("No solver address"))?;
+        let protocol = ProtocolClient::new(client, address, solver);
         Ok(protocol)
     }
 
@@ -322,7 +321,8 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
         let protocol = self.protocol()?;
-        let (balance_x, balance_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
+        let (balance_x, balance_y, liquidity) =
+            protocol.protocol.get_reserves_and_liquidity().await?;
         let internal_price = protocol.get_internal_price().await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);
