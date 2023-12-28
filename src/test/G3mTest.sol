@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../DFMM.sol";
-import "../solvers/G3mSolver.sol";
+import "../solvers/G3MSolver.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../Lex.sol";

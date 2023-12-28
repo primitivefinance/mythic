@@ -5,7 +5,7 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "../lib/BisectionLib.sol";
-import "../lib/g3m/G3mExtendedLib.sol";
+import "../lib/g3m/G3MExtendedLib.sol";
 
 interface StrategyLike {
     function computeSwapConstant(bytes memory) external view returns (int256);

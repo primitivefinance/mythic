@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../lib/g3m/G3mLib.sol";
+import "../lib/g3m/G3MLib.sol";
 
 import "../interfaces/ICore.sol";
 import "../interfaces/IStrategy.sol";
@@ -10,7 +10,7 @@ import "../interfaces/IStrategy.sol";
  * @notice Geometric Mean Market Maker.
  */
 
-contract G3m is IStrategy {
+contract G3M is IStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 

@@ -1,7 +1,7 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./strategies/G3m.sol";
+import "./strategies/G3M.sol";
 import "./strategies/LogNormal.sol";
 import "solmate/tokens/ERC20.sol";
 
@@ -42,7 +42,7 @@ contract DFMM is ICore {
         if (isLogNormal) {
             strategy = address(new LogNormal(swapFeePercentageWad));
         } else {
-            strategy = address(new G3m(swapFeePercentageWad));
+            strategy = address(new G3M(swapFeePercentageWad));
         }
     }
 

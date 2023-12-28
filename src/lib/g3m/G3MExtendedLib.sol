@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
-import "./G3mLib.sol";
+import "./G3MLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
