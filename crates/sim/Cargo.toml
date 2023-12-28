@@ -39,3 +39,6 @@ config.workspace = true
 RustQuant.workspace = true
 statrs.workspace = true
 linked-hash-map.workspace = true
+
+# Historical Data
+rust-gecko = { git = "https://github.com/0xJepsen/rust-gecko.git", branch = "main" }
