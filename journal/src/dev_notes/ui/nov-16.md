@@ -7,4 +7,4 @@
 ## Ethersdb
 - Problem: Ethersdb instantiation uses `block_on`. Breaks if within tokio runtime. Tests are inside tokio runtime!
 - Solution: Do `EthersDb::<basic>` inside a separate __non-tokio__ thread.
-- #[tokio::test(flavor = "multi_thread", worker_threads = 1)] is clutch.
+- `#[tokio::test(flavor = "multi_thread", worker_threads = 1)]` is clutch.

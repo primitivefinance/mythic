@@ -111,12 +111,16 @@ dotenv.workspace = true
 RustQuant.workspace = true
 statrs.workspace = true
 
-
 [dev-dependencies]
 # For book
 mdbook = "0.4.35"
 cargo-make = "0.37.2"
 mdbook-katex = "0.5.8"
+
+[dev-dependencies.cargo-husky]
+version = "1"
+default-features = false
+features = ["user-hooks"]
 
 [[bench]]
 name = "ui_benchmark"
