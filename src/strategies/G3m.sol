@@ -41,8 +41,8 @@ contract G3m is IStrategy {
     }
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot() public view returns (bytes memory params) {
-        abi.encode(weightX(), weightY());
+    function dynamicSlot() public view returns (bytes memory) {
+        return abi.encode(weightX(), weightY());
     }
 
     function dynamicSlotInternal()
@@ -50,7 +50,8 @@ contract G3m is IStrategy {
         view
         returns (G3mParameters memory params)
     {
-        abi.encode(weightX(), weightY());
+        params.wx = weightX();
+        params.wy = weightY();
     }
 
     function getReservesAndLiquidity()
