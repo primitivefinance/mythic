@@ -10,7 +10,6 @@ use std::{any::Any, path::Path};
 use ::config::ConfigError;
 use anyhow::{Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
-use bindings;
 use ethers::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -20,7 +19,6 @@ use settings::{
 };
 use thiserror::Error;
 use tracing::{debug, error, info, trace, warn};
-use tracing_subscriber;
 
 pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
     let cwd = std::env::current_dir().unwrap();

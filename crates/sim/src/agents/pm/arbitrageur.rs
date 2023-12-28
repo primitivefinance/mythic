@@ -137,15 +137,19 @@ impl Arbitrageur {
         info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
         info!("Price[DEX]: {:?}", format_ether(target_exchange_price_wad));
 
-        if liquid_exchange_price_wad > target_exchange_price_wad {
-            // Raise the portfolio price by selling asset for quote
-            Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
-        } else if liquid_exchange_price_wad < target_exchange_price_wad {
-            // Lower the exchange price by selling asset for quote
-            Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
-        } else {
-            // Prices are within the no-arbitrage bounds, so we don't have an arbitrage.
-            Ok(Swap::None)
+        match liquid_exchange_price_wad {
+            _ if liquid_exchange_price_wad > target_exchange_price_wad => {
+                // Raise the portfolio price by selling asset for quote
+                Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
+            }
+            _ if liquid_exchange_price_wad < target_exchange_price_wad => {
+                // Lower the exchange price by selling asset for quote
+                Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
+            }
+            _ => {
+                // Prices are within the no-arbitrage bounds, so we don't have an arbitrage.
+                Ok(Swap::None)
+            }
         }
     }
 

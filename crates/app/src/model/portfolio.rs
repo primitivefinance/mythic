@@ -212,6 +212,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Sets up the model with the required addresses needed to fetch all the
     /// data in the model.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup(
         &mut self,
         user_address: AlloyAddress,

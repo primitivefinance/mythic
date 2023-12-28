@@ -5,7 +5,7 @@ use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use bindings::log_normal_solver::LogNormalSolver;
 use clients::protocol::ProtocolClient;
 use itertools::iproduct;
-use tracing::{debug, info, trace};
+use tracing::{debug, info};
 
 use super::{bindings::dfmm::DFMM, *};
 

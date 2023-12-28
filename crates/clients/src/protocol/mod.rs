@@ -4,7 +4,6 @@
 use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
-use arbiter_core::middleware::RevmMiddleware;
 use bindings::{
     dfmm::DFMM,
     log_normal::LogNormal,

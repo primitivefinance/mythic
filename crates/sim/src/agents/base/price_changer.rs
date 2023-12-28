@@ -1,7 +1,6 @@
 use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
 use alloy_primitives::utils::parse_ether;
-use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use bindings::lex::Lex;
 use itertools::iproduct;
 use RustQuant::stochastics::{
