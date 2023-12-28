@@ -23,7 +23,7 @@ interface StrategyLike {
         returns (bool, int256, int256, uint256, uint256, uint256);
 }
 
-contract G3mSolver {
+contract G3MSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 

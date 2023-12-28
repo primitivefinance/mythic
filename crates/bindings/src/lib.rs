@@ -14,7 +14,7 @@ pub mod fixed_point_math_lib;
 pub mod g3m;
 pub mod g3m_extended_lib;
 pub mod g3m_lib;
-pub mod g_3m_solver;
+pub mod g3m_solver;
 pub mod gaussian;
 pub mod i_core;
 pub mod i_strategy;

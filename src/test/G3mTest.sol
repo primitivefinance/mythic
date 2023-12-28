@@ -12,7 +12,7 @@ contract G3mTest is Test {
     using stdStorage for StdStorage;
 
     DFMM dfmm;
-    G3mSolver solver;
+    G3MSolver solver;
     address tokenX;
     address tokenY;
     Lex lex;
@@ -28,7 +28,7 @@ contract G3mTest is Test {
         lex = new Lex(tokenX, tokenY, ONE);
 
         dfmm = new DFMM(false, tokenX, tokenY, TEST_SWAP_FEE);
-        solver = new G3mSolver(address(dfmm.strategy()));
+        solver = new G3MSolver(address(dfmm.strategy()));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
     }
