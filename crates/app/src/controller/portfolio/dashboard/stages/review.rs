@@ -83,6 +83,7 @@ pub struct Review {
 }
 
 impl Review {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self::default()
     }

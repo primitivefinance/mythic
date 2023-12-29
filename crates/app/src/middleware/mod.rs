@@ -349,7 +349,7 @@ mod tests {
     use ethers::utils::{format_ether, Anvil};
 
     use super::*;
-
+    #[allow(dead_code)]
     async fn setup() -> anyhow::Result<AnvilInstance> {
         let anvil = Anvil::default()
             .arg("--gas-limit")
@@ -358,21 +358,6 @@ mod tests {
             .spawn();
 
         Ok(anvil)
-    }
-
-    #[test]
-    fn test_get_deposit_amounts() {
-        use tracing_subscriber;
-
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .init();
-
-        let strike = 1.0;
-        let sigma = 1.0;
-        let tau = 1.0;
-        let price = 1.0;
-        let dollars = 1.0;
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -411,7 +396,7 @@ mod tests {
         println!("balance: {}", format_ether(balance));
         println!("alice balance: {}", format_ether(alice_balance));
 
-        let pay_tx = TransactionRequest::pay(
+        let _ = TransactionRequest::pay(
             alice_address,
             ethers::types::U256::from(1_000_000_000_000_000_000u128),
         );

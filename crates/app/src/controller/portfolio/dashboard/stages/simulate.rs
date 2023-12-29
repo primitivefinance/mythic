@@ -8,6 +8,7 @@ use super::*;
 use crate::components::system::{label, ExcaliburButton};
 
 type World = Arc<ArbiterInstance>;
+#[allow(dead_code)]
 type InstanceManager = Arc<tokio::sync::Mutex<ArbiterInstanceManager>>;
 
 #[derive(Debug, Clone, Default)]
@@ -54,16 +55,19 @@ pub struct WorldCache(pub BTreeMap<Uuid, WorldOutcome>);
 #[derive(Debug, Clone, Default)]
 pub struct Simulate {
     /// Simulation settings form.
+    #[allow(dead_code)]
     form: Form,
     /// Constructs the simulation instances and exposes configuration options.
     builders: Vec<ArbiterInstanceManager>,
     /// The worlds that have been simulated.
+    #[allow(dead_code)]
     cache: WorldCache,
     /// Whether the simulation has been armed.
     pub armed: bool,
 }
 
 impl Simulate {
+    #[allow(dead_code)]
     pub fn new(builders: Vec<ArbiterInstanceManager>) -> Self {
         Self {
             builders,
@@ -229,6 +233,7 @@ impl State for Simulate {
     }
 }
 
+#[allow(dead_code)]
 pub fn parse_token_int(value: Token) -> (bool, ethers::types::U256) {
     let mut signed = false;
     let value_int = value.clone().into_int();
@@ -247,6 +252,7 @@ pub fn parse_token_int(value: Token) -> (bool, ethers::types::U256) {
     (signed, value_uint)
 }
 
+#[allow(dead_code)]
 pub fn format_int_wad(signed: bool, value: ethers::types::U256) -> String {
     let formatted = format_ether(value).parse::<f64>().unwrap_or_default();
     let sign = if signed { "-" } else { "" };

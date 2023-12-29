@@ -64,7 +64,7 @@ impl CustomButtonStyle {
             current_state: Default::default(),
         }
     }
-
+    #[allow(dead_code)]
     pub fn secondary(theme: &iced::Theme) -> Self {
         Self {
             active: theme.active(&iced::theme::Button::Secondary),

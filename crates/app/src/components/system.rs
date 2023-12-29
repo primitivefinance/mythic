@@ -839,6 +839,7 @@ impl ExcaliburContainer {
     // Levels
 
     /// The layer that is furthest away and therefore the darkest.
+    #[allow(dead_code)]
     pub fn bottom(mut self) -> Self {
         self.background = ExcaliburColor::Background1;
         self
@@ -968,6 +969,7 @@ impl ExcaliburButton {
         self.style.as_custom()
     }
 
+    #[allow(dead_code)]
     pub fn style(mut self, style: CustomButtonStyle) -> Self {
         self.style = style;
         self
@@ -1127,7 +1129,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
             headers: vec![],
         }
     }
-
+    #[allow(dead_code)]
     pub fn build(self, cells: Vec<CellBuilder<Message>>) -> TableBuilder<Message> {
         TableBuilder::new()
             .padding_cell(Sizes::Md)
@@ -1241,7 +1243,7 @@ impl ExcaliburChart {
     }
 
     // Configuring the chart
-
+    #[allow(dead_code)]
     pub fn series_color(mut self, index: usize, color: ExcaliburColor) -> Self {
         // Convert the Excalibur color into a plotters RGBA color.
         let color = color.color();
@@ -1684,12 +1686,12 @@ impl CustomInputStyle {
         self.value_color = color.into();
         self
     }
-
+    #[allow(dead_code)]
     pub fn disabled_color(mut self, color: ExcaliburColor) -> Self {
         self.disabled_color = color.into();
         self
     }
-
+    #[allow(dead_code)]
     pub fn selection_color(mut self, color: ExcaliburColor) -> Self {
         self.selection_color = color.into();
         self

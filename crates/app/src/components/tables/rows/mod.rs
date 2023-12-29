@@ -2,6 +2,7 @@ use super::{cells::CellBuilder, *};
 use crate::controller::portfolio::monolithic::tx_history::TxHistory;
 
 /// Very basic table row with two cells, a label and text input.
+#[allow(dead_code)]
 pub fn dev_row<'a, Message>(
     value: Option<String>,
     on_change: impl Fn(Option<String>) -> Message + 'static,

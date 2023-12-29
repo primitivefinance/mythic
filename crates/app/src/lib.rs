@@ -14,7 +14,6 @@
 //! - Switching to new controllers/screens/anything being rendered should
 //!   offload as much logic as possible from `new` to a dedicated `load`.
 //! - Add more rules!
-#![allow(dead_code)]
 use ethers::prelude::*;
 use iced::{
     alignment, executor,
@@ -48,6 +47,7 @@ use styles::*;
 /// This is the outermost layer of the application.
 pub struct MVP {
     state: State,
+    #[allow(dead_code)]
     tracer: tracer::Tracer,
 }
 /// The `State` enum represents the current state of the application.

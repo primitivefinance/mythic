@@ -47,15 +47,19 @@ impl Default for CustomProgressBar {
 }
 
 impl CustomProgressBar {
+
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[allow(dead_code)]
     pub fn background(mut self, background: iced::Background) -> Self {
         self.background = background;
         self
     }
 
+    #[allow(dead_code)]
     pub fn bar(mut self, bar: iced::Background) -> Self {
         self.bar = bar;
         self

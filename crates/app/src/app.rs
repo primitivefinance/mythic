@@ -786,6 +786,7 @@ impl AppClock {
     /// This function returns an Element that displays the average update time
     /// in milliseconds. The average update time is calculated over a
     /// duration of 30 seconds.
+    #[allow(dead_code)]
     pub fn view<Message>(&self) -> Element<'_, Message> {
         let average = self.average_cycle(Duration::from_secs(30));
         let average = format!("update time/s:  {}ms", average.as_millis());

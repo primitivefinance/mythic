@@ -212,6 +212,7 @@ impl MonolithicPresenter {
     }
 }
 
+#[allow(dead_code)]
 pub const M_WIDTH: f32 = 920.0;
 
 pub struct MonolithicView;
@@ -257,6 +258,7 @@ impl MonolithicView {
     /// Single container with a header, tooltip icon, and body content.
     /// Body content fills the remaining space.
     /// Light gray border surrounds the container, with no background.
+    #[allow(dead_code)]
     pub fn item_layout<'a, Message>(
         title: impl ToString,
         element: impl Into<Element<'a, Message>>,

@@ -74,6 +74,7 @@ impl Default for PortfolioPresenter {
 }
 
 impl PortfolioPresenter {
+    #[allow(dead_code)]
     pub fn new(
         model: Model,
         portfolio_value_series: ExcaliburChart,
@@ -487,7 +488,7 @@ impl DataView {
         )
         .into()
     }
-
+    #[allow(dead_code)]
     pub fn internal_price<'a, Message>(
         &self,
         data: ExcaliburText,

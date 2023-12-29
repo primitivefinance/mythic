@@ -93,7 +93,7 @@ where
         .push(indicator.width(Length::Fixed(100.0)))
         .align_items(alignment::Alignment::Center)
 }
-
+#[allow(dead_code)]
 pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
     label: E,
     value: String,
@@ -380,6 +380,7 @@ where
     row
 }
 
+#[allow(dead_code)]
 pub fn space_between<'a, Message>(
     elem_1: Element<'a, Message>,
     elem_2: Element<'a, Message>,
@@ -435,6 +436,7 @@ where
         .push(caption)
 }
 
+#[allow(dead_code)]
 pub fn custom_icon_button<'a>(
     icon: icons::Icon,
     font_size: u16,
@@ -549,6 +551,7 @@ where
 }
 
 /// Divides content into four quadrants with centered alignment.
+#[allow(dead_code)]
 pub fn quadrant_container<'a, Message>(
     top_left: Element<'a, Message>,
     top_right: Element<'a, Message>,

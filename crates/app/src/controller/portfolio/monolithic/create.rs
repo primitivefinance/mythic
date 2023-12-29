@@ -63,6 +63,7 @@ impl Form {
         self.state = SubmitState::Failed;
     }
 
+    #[allow(dead_code)]
     pub fn validate_amount(&mut self) {
         self.error = None; // Reset error before validation
 
@@ -320,6 +321,7 @@ impl FormView {
     }
 
     /// Simple column of rows of review item elements.
+    #[allow(dead_code)]
     pub fn review_summary<'a, Message>(
         title: impl ToString,
         rows: Vec<impl Into<Element<'a, Message>>>,

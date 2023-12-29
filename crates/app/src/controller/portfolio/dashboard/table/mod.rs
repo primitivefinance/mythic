@@ -75,6 +75,7 @@ impl PortfolioTable {
     /// Gets the edited form fields as deltas that can be rendered by the
     /// summary table.
     /// todo: support more targets, price, and market value fields.
+    #[allow(dead_code)]
     pub fn get_form_deltas(&self) -> Vec<PositionDelta> {
         self.original
             .positions

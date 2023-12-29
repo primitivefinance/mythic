@@ -71,6 +71,7 @@ impl Form {
     }
 
     /// Formats the current form into a 2D table data vector.
+    #[allow(dead_code)]
     pub fn table_data(&self) -> Vec<Vec<String>> {
         let mut data = vec![];
         for asset in self.assets.iter().filter(|x| x.selected) {

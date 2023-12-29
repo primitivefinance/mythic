@@ -123,11 +123,15 @@ impl Network for ExcNet {
     type TransactionResponse = MockResponse;
 }
 
+#[allow(dead_code)]
 pub type ExcProvider = alloy_providers::provider::Provider<Http<Client>>;
 
+
+#[allow(dead_code)]
 pub struct ExcaliburMiddleware;
 
 impl ExcaliburMiddleware {
+    #[allow(dead_code)]
     pub async fn build(url: &str) -> anyhow::Result<RpcClient<PubSubFrontend>> {
         let ws = WsConnect {
             url: url.to_string(),
