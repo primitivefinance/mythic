@@ -42,7 +42,7 @@ pub const COIN_Y: &str = r#"{
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
-    pub portfolio: portfolio::RawDataModel<AlloyAddress, AlloyU256>,
+    pub portfolio: portfolio::DataModel<AlloyAddress, AlloyU256>,
     pub user: UserProfile,
 }
 
@@ -50,7 +50,7 @@ impl Model {
     pub fn new(user: UserProfile) -> Self {
         Self {
             user,
-            portfolio: portfolio::RawDataModel::new(),
+            portfolio: portfolio::DataModel::new(),
         }
     }
 
@@ -247,7 +247,7 @@ impl Saveable for Model {
 
         let value = Model {
             user: UserProfile::default(),
-            portfolio: portfolio::RawDataModel::new(),
+            portfolio: portfolio::DataModel::new(),
         };
 
         serde_json::to_writer_pretty(file, &value)?;

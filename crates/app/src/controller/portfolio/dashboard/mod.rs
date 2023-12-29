@@ -285,14 +285,14 @@ impl State for Dashboard {
                     }
                 };
 
-                if let (Some(external_exchange), Some(client)) = (
-                    &self.model.portfolio.raw_external_exchange_address,
+                if let (Some(lex), Some(client)) = (
+                    &self.model.portfolio.lex_address,
                     &self.client,
                 ) {
                     tracing::info!("Tick, updating price.");
                     let client = client.client().cloned().unwrap();
                     // for testing live price chart.
-                    let external_exchange = *external_exchange;
+                    let external_exchange = *lex;
 
                     commands.push(Command::perform(
                         async move {

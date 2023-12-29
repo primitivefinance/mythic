@@ -212,19 +212,19 @@ impl PortfolioPresenter {
     }
 
     pub fn get_block_number(&self) -> Option<u64> {
-        self.model.portfolio.raw_last_chain_data_sync_block
+        self.model.portfolio.latest_block
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
-        self.model.portfolio.raw_last_chain_data_sync_timestamp
+        self.model.portfolio.latest_timestamp
     }
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
-        self.model.portfolio.raw_internal_spot_price.to_label()
+        self.model.portfolio.internal_spot_price.to_label()
     }
 
     pub fn get_external_price(&self) -> ExcaliburText {
-        self.model.portfolio.raw_external_spot_price.to_label()
+        self.model.portfolio.external_spot_price.to_label()
     }
 
     pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
@@ -256,7 +256,7 @@ impl PortfolioPresenter {
     }
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
+        let data = self.model.portfolio.latest_timestamp;
         match data {
             Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
             None => label("Timestamp: N/A").caption().tertiary(),
@@ -264,7 +264,7 @@ impl PortfolioPresenter {
     }
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_block;
+        let data = self.model.portfolio.latest_block;
         match data {
             Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
             None => label("Block: N/A").caption().tertiary(),

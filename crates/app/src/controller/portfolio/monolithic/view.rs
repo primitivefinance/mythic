@@ -88,7 +88,7 @@ impl MonolithicPresenter {
     }
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
+        let data = self.model.portfolio.latest_timestamp;
         match data {
             Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
             None => label("Timestamp: N/A").caption().tertiary(),
@@ -182,8 +182,8 @@ impl MonolithicPresenter {
 
         if let Some(position) = position {
             let external_price = match position.asset.symbol.as_str() {
-                "X" => self.model.portfolio.raw_external_spot_price.to_label(),
-                "Y" => self.model.portfolio.raw_external_quote_price.to_label(),
+                "X" => self.model.portfolio.external_spot_price.to_label(),
+                "Y" => self.model.portfolio.external_quote_price.to_label(),
                 _ => label("n/a").title3().quantitative(),
             };
 
@@ -224,7 +224,7 @@ impl MonolithicPresenter {
     pub fn get_historical_txs(&self) -> Vec<HistoricalTx> {
         self.model
             .portfolio
-            .raw_user_historical_transactions
+            .user_historical_transactions
             .clone()
             .unwrap_or_default()
     }

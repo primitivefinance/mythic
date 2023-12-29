@@ -141,7 +141,7 @@ impl Monolithic {
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
 
-                let asset_price = self.model.portfolio.raw_external_spot_price;
+                let asset_price = self.model.portfolio.external_spot_price;
                 let asset_price = match asset_price {
                     Some(x) => format_ether(x).parse::<f64>(),
                     None => return Err(anyhow::anyhow!("No asset price")),
@@ -226,7 +226,7 @@ impl Monolithic {
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
 
-                let external_price = self.model.portfolio.raw_external_spot_price;
+                let external_price = self.model.portfolio.external_spot_price;
                 let external_price = match external_price {
                     Some(x) => format_ether(x).parse::<f64>().unwrap(),
                     None => return Command::none(),
