@@ -3,9 +3,8 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use arbiter_bindings::bindings::{liquid_exchange::LiquidExchange, arbiter_token::ArbiterToken};
+use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use bindings::{log_normal::LogNormal, log_normal_solver::LogNormalSolver};
-
 
 use super::{protocol::ProtocolClient, *};
 

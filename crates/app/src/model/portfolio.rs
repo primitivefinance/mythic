@@ -1854,11 +1854,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
 #[cfg(test)]
 mod tests {
+    use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
     use ethers::{
         prelude::*,
         utils::{Anvil, AnvilInstance},
     };
-    use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
     use sim::from_ethers_address;
 
     use super::{AlloyAddress, AlloyU256, *};

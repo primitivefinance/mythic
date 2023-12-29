@@ -1,11 +1,11 @@
 use std::{collections::HashMap, fmt};
 
 use anyhow::Result;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
