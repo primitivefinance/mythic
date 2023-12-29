@@ -25,7 +25,7 @@ impl Agent for LiquidityProvider {
     async fn init(&mut self) -> Result<()> {
         debug!("LiquidityProvider initializing pool on DFMM.");
         self.protocol_client
-            .initialize(
+            .initialize_pool(
                 self.init_x_wad,
                 self.init_price_wad,
                 self.init_strike_price_wad,
@@ -64,7 +64,7 @@ impl LiquidityProvider {
             .mint(
                 from_ethers_address(client.address()),
                 parse_ether("100")?,
-                parse_ether("100")?,
+                parse_ether("10_000_000")?,
             )
             .await?;
 

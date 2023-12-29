@@ -71,6 +71,8 @@ impl Scenario for DFMMScenario {
         let price_changer =
             PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
         let steps = price_changer.trajectory.paths[0].len() - 1;
+
+        println!("path: {:?}", price_changer.trajectory.paths[0]);
         let lex = from_ethers_address(price_changer.liquid_exchange.address());
         let lex_events = price_changer.liquid_exchange.events();
         agents.add(price_changer);

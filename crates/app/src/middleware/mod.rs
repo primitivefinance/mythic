@@ -309,9 +309,9 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         token_y.mint(sender, amount_y_wad).send().await?;
 
         Ok(protocol
-            .initialize(
-                price,
+            .initialize_pool(
                 amount_x,
+                price,
                 strike_price_wad,
                 sigma_percent_wad,
                 tau_years_wad,

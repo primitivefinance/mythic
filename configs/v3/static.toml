@@ -17,7 +17,7 @@ decimals = 18
 # Price process parameters
 [agent.price_changer.PriceChanger]
 # True is we want to use historical daily average price data
-backtest = false
+backtest = true 
 # The seed to use (optional)
 seed = 5
 # The number of steps in the process
@@ -63,10 +63,10 @@ specialty.VolatilityTargeting.max_strike_change.fixed = 0.0
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]
 # The amount of `token_x` to provide in ether
-x_liquidity.fixed = 1
+x_liquidity.fixed = 10
 # The initial price of the pair
-initial_price.fixed = 1.0
+initial_price.fixed = 2345.2607
 # inital parameters
-sigma.fixed = 1.0
+sigma.fixed = 2.0
 tau.fixed = 1.0
-strike_price.fixed = 1.0
+strike_price.fixed = 2300.0
