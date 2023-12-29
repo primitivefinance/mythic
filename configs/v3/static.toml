@@ -17,11 +17,11 @@ decimals = 18
 # Price process parameters
 [agent.price_changer.PriceChanger]
 # True is we want to use historical daily average price data
-backtest = true
+backtest = false
 # The seed to use (optional)
 seed = 5
 # The number of steps in the process
-num_steps = 5
+num_steps = 1000
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset

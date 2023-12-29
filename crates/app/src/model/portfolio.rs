@@ -1854,11 +1854,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
 #[cfg(test)]
 mod tests {
-    use bindings::mock_erc20::MockERC20;
     use ethers::{
         prelude::*,
         utils::{Anvil, AnvilInstance},
     };
+    use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
     use sim::from_ethers_address;
 
     use super::{AlloyAddress, AlloyU256, *};
@@ -1911,7 +1911,7 @@ mod tests {
 
         // Need to deploy a token and mint some to wallet!
         let token =
-            MockERC20::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
+            ArbiterToken::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
                 .send()
                 .await?;
 
@@ -1949,7 +1949,7 @@ mod tests {
 
         // Need to deploy a token and mint some to wallet!
         let token =
-            MockERC20::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
+            ArbiterToken::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
                 .send()
                 .await?;
 

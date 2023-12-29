@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn read_single_simulation() {
+pub fn read_single_simulation() {
     let file = "../../analysis/rmm/vol_targeting/static/0.json";
     let data = SimulationData::new(file).unwrap();
     let pool_stats = data.get_vectorized_events::<dfmm::LogPoolStatsFilter>("dfmm");
@@ -66,7 +66,7 @@ fn read_single_simulation() {
             .collect::<Vec<f64>>(),
     );
 
-    let mut figure = Figure::new("plot_figs", Some((2000, 2000)));
+    let mut figure = Figure::new("backtest_1000_days", Some((2000, 2000)));
 
     let plot_settings = PlotSettings::new()
         .title("Lex Prices")

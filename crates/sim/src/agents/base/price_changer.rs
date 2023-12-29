@@ -138,7 +138,7 @@ impl PriceChanger {
                     client,
                     trajectory,
                     liquid_exchange,
-                    index: 0,
+                    index: 1,
                 })
             } else {
                 let trajectory = if let Some(_seed) = parameters.seed {

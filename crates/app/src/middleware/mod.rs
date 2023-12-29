@@ -5,7 +5,7 @@ use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use bindings::mock_erc20::MockERC20;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
@@ -301,8 +301,8 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
 
         let (token_x, token_y) = protocol.get_tokens().await?;
         let (token_x, token_y) = (
-            MockERC20::new(token_x, client.clone()),
-            MockERC20::new(token_y, client.clone()),
+            ArbiterToken::new(token_x, client.clone()),
+            ArbiterToken::new(token_y, client.clone()),
         );
 
         token_x.mint(sender, amount_x_wad).send().await?;

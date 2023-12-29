@@ -3,8 +3,9 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use bindings::{log_normal::LogNormal, log_normal_solver::LogNormalSolver, mock_erc20::MockERC20};
+use arbiter_bindings::bindings::{liquid_exchange::LiquidExchange, arbiter_token::ArbiterToken};
+use bindings::{log_normal::LogNormal, log_normal_solver::LogNormalSolver};
+
 
 use super::{protocol::ProtocolClient, *};
 
@@ -19,8 +20,8 @@ pub struct DevClient<C> {
     pub strategy: LogNormal<C>,
     pub solver: LogNormalSolver<C>,
     pub liquid_exchange: LiquidExchange<C>,
-    pub token_x: MockERC20<C>,
-    pub token_y: MockERC20<C>,
+    pub token_x: ArbiterToken<C>,
+    pub token_y: ArbiterToken<C>,
 }
 
 impl<C: Middleware + 'static> DevClient<C> {
@@ -40,13 +41,13 @@ impl<C: Middleware + 'static> DevClient<C> {
     pub async fn deploy(client: Arc<C>, sender: Address) -> Result<Self> {
         tracing::trace!("Deploying token x");
         let token_x_args = ("Token X".to_string(), "X".to_string(), 18_u8);
-        let token_x = MockERC20::deploy(client.clone(), token_x_args)?
+        let token_x = ArbiterToken::deploy(client.clone(), token_x_args)?
             .send()
             .await?;
 
         tracing::trace!("Deploying token y");
         let token_y_args = ("Token Y".to_string(), "Y".to_string(), 18_u8);
-        let token_y = MockERC20::deploy(client.clone(), token_y_args)?
+        let token_y = ArbiterToken::deploy(client.clone(), token_y_args)?
             .send()
             .await?;
 
