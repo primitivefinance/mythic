@@ -460,6 +460,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    // TODO: clean this up, we probably dont need to get this from the client
     pub async fn fetch_token_info(
         &self,
         client: Arc<Client>,
