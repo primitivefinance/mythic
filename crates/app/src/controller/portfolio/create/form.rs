@@ -130,11 +130,11 @@ impl Form {
             "Select".to_string(),
         ]
     }
-
+    #[allow(dead_code)]
     pub fn cell_builder(&self) -> CellBuilder<Message> {
         CellBuilder::new()
     }
-
+    #[allow(dead_code)]
     pub fn row_builder(&self) -> RowBuilder<Message> {
         RowBuilder::new()
     }

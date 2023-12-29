@@ -218,14 +218,17 @@ impl CartesianChart {
         self.points = new_points;
     }
 
+    #[allow(dead_code)]
     pub fn extend_many_series(&mut self, new_series: Vec<ChartLineSeries>) {
         self.series.extend(new_series);
     }
-
+    
+    #[allow(dead_code)]
     pub fn point_of_interest(&mut self, new_point: ChartPoint) {
         self.points.push(new_point);
     }
 
+    #[allow(dead_code)]
     pub fn points_of_interest(&mut self, new_points: Vec<ChartPoint>) {
         self.points.extend(new_points);
     }

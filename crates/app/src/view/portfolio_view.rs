@@ -214,11 +214,11 @@ impl PortfolioPresenter {
     pub fn get_block_number(&self) -> Option<u64> {
         self.model.portfolio.raw_last_chain_data_sync_block
     }
-
+    #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
         self.model.portfolio.raw_last_chain_data_sync_timestamp
     }
-
+    #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
         self.model.portfolio.raw_internal_spot_price.to_label()
     }
@@ -542,7 +542,7 @@ impl DataView {
     {
         self.data_title_caption(data, "External AUM".to_string(), "USD".to_string())
     }
-
+    #[allow(dead_code)]
     pub fn get_positions_table<Message>(&self, positions: Positions) -> Element<'_, Message>
     where
         Message: 'static + Default + Clone,

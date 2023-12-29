@@ -63,7 +63,7 @@ impl CustomProgressBar {
         self.bar = bar;
         self
     }
-
+    #[allow(dead_code)]
     pub fn border_radius(mut self, border_radius: iced::BorderRadius) -> Self {
         self.border_radius = border_radius;
         self

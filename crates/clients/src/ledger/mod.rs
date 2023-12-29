@@ -181,7 +181,7 @@ impl LedgerClient {
     // EIP712 derived structs
     pub async fn sign_encoded_tx(
         &self,
-        encoded_tx: &Vec<u8>,
+        encoded_tx: &[u8],
     ) -> Result<Signature, LedgerClienError> {
         if encoded_tx.is_empty() {
             return Err(LedgerClienError::CommandError(

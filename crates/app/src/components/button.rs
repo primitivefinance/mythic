@@ -85,6 +85,7 @@ impl CustomButtonStyle {
         }
     }
 
+    #[allow(dead_code)]
     pub fn positive(theme: &iced::Theme) -> Self {
         Self {
             active: theme.active(&iced::theme::Button::Positive),
@@ -184,7 +185,8 @@ impl CustomButtonStyle {
         }
         self
     }
-
+    
+    #[allow(dead_code)]
     pub fn shadow_offset(mut self, offset: iced::Vector) -> Self {
         match self.current_state {
             ButtonState::Active => self.active.shadow_offset = offset,

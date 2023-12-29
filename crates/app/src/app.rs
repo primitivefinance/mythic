@@ -816,24 +816,3 @@ async fn save_snapshot(
     // Call the snapshot method on the client and await the result.
     client.snapshot().await
 }
-
-#[cfg(test)]
-mod tests {
-
-    use criterion::Criterion;
-
-    fn cache_update_bench(_c: &mut Criterion) {
-        todo!("add benches for this")
-        // let storage = Storage::default();
-        // let chains = Chains::default();
-        // let mut app = App::new(storage, chains, Streams::default(), None).0;
-        // c.bench_function("cache_update", |b| {
-        // b.iter(|| {
-        // app.cache_update(CacheMessage::AppEvent(AppEventLog::new(
-        // "test".to_string(),
-        // "test".to_string(),
-        // )))
-        // })
-        // });
-    }
-}

@@ -142,9 +142,7 @@ impl ExcaliburMiddleware {
             .map_err(|e| anyhow!("failed to build client {}", e))
     }
 
-    // pub fn provider(url: &str) -> anyhow::Result<ExcProvider> {
-    //     Ok(ExcProvider::new(url).map_err(|e| anyhow!("failed to build provider
-    // {}", e))?) }
+    #[allow(dead_code)]
     pub fn provider(url: &str) -> anyhow::Result<ExcProvider> {
         let url = url::Url::parse(url).map_err(|e| anyhow!("failed to parse url: {}", e))?;
         let http = Http::new(url);
