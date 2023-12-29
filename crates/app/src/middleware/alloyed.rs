@@ -126,7 +126,6 @@ impl Network for ExcNet {
 #[allow(dead_code)]
 pub type ExcProvider = alloy_providers::provider::Provider<Http<Client>>;
 
-
 #[allow(dead_code)]
 pub struct ExcaliburMiddleware;
 
