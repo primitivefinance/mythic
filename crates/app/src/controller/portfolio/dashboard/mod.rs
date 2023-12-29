@@ -428,7 +428,7 @@ impl State for Dashboard {
             self.presenter.get_internal_portfolio_value(),
             self.presenter.get_portfolio_health(),
             self.presenter.get_last_sync_timestamp(),
-            self.presenter.get_block_number(),
+            Some(self.presenter.get_block_number()),
         );
         let quadrant_2 = self.renderer.chart_and_greet_layout(
                 &self.presenter.portfolio_value_series,

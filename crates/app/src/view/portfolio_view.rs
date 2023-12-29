@@ -211,7 +211,7 @@ impl PortfolioPresenter {
         self.portfolio_value_series.override_ranges_flag(true);
     }
 
-    pub fn get_block_number(&self) -> Option<u64> {
+    pub fn get_block_number(&self) -> u64 {
         self.model.portfolio.latest_block
     }
     #[allow(dead_code)]
@@ -265,10 +265,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         let data = self.model.portfolio.latest_block;
-        match data {
-            Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
-            None => label("Block: N/A").caption().tertiary(),
-        }
+        label(format!("Block: {:}", data)).caption().tertiary()
     }
 
     pub fn get_positions(&self) -> Positions {
