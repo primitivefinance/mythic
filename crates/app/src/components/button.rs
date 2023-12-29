@@ -185,7 +185,7 @@ impl CustomButtonStyle {
         }
         self
     }
-    
+
     #[allow(dead_code)]
     pub fn shadow_offset(mut self, offset: iced::Vector) -> Self {
         match self.current_state {

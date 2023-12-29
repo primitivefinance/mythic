@@ -179,10 +179,7 @@ impl LedgerClient {
 
     // Helper function for signing either transaction data, personal messages or
     // EIP712 derived structs
-    pub async fn sign_encoded_tx(
-        &self,
-        encoded_tx: &[u8],
-    ) -> Result<Signature, LedgerClienError> {
+    pub async fn sign_encoded_tx(&self, encoded_tx: &[u8]) -> Result<Signature, LedgerClienError> {
         if encoded_tx.is_empty() {
             return Err(LedgerClienError::CommandError(
                 ("Payload is empty").to_string(),

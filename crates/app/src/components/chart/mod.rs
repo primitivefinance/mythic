@@ -222,7 +222,7 @@ impl CartesianChart {
     pub fn extend_many_series(&mut self, new_series: Vec<ChartLineSeries>) {
         self.series.extend(new_series);
     }
-    
+
     #[allow(dead_code)]
     pub fn point_of_interest(&mut self, new_point: ChartPoint) {
         self.points.push(new_point);
