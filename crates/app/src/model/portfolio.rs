@@ -237,14 +237,16 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Updates the ENTIRE model! Wow!
-    /// I have an idea to improve this that came to me after watching this video:
-    /// https://www.youtube.com/watch?v=MoKe4zvtNzA
-    /// we should seperate all the synce calls and non async calls, 
-    /// it seems to me we are maybe making redant calls to update the block when we don't need to
-    /// 
-    /// Goal, make all asyn calls first, then update and compute (user-preprocessing) local data
-    /// this means all await calls should be at the top of the function
-    /// and all the update and compute calls should be at the bottom
+    /// I have an idea to improve this that came to me after watching this
+    /// video: https://www.youtube.com/watch?v=MoKe4zvtNzA
+    /// we should seperate all the synce calls and non async calls,
+    /// it seems to me we are maybe making redant calls to update the block when
+    /// we don't need to
+    ///
+    /// Goal, make all asyn calls first, then update and compute
+    /// (user-preprocessing) local data this means all await calls should be
+    /// at the top of the function and all the update and compute calls
+    /// should be at the bottom
     pub async fn update(&mut self, client: Arc<Client>) -> Result<()> {
         // Update sync block + timestamp first, since the other update methods need it.
         // These updates must be successful.
@@ -299,8 +301,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     pub async fn fetch_user_historical_tx(&self, client: Arc<Client>) -> Result<Vec<HistoricalTx>> {
         let current_block = self.fetch_block_number(client.clone()).await?;
-        let last_block = self
-            .last_historical_transaction_sync_block;
+        let last_block = self.last_historical_transaction_sync_block;
         let user_address = self
             .user_address
             .ok_or(Error::msg("User address not set"))?;
@@ -854,9 +855,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_unallocated_portfolio_value_series(
-        &mut self,
-    ) -> Result<()> {
+    fn update_unallocated_portfolio_value_series(&mut self) -> Result<()> {
         if let Some(series) = &self.unallocated_portfolio_value_series {
             let last_element = series.last().unwrap();
             if last_element.0 >= self.latest_block {
@@ -869,7 +868,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
         if let Some(series) = &mut self.unallocated_portfolio_value_series {
             series.push((self.latest_block, portfolio_value));
         } else {
-            self.unallocated_portfolio_value_series = Some(vec![(self.latest_block, portfolio_value)]);
+            self.unallocated_portfolio_value_series =
+                Some(vec![(self.latest_block, portfolio_value)]);
         }
 
         Ok(())
