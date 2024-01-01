@@ -60,7 +60,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     ) -> anyhow::Result<Self> {
         let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
         let args = (token_x, token_y, swap_fee_percent_wad);
-        // okay so this failure is actually from the contract changes matt made last week to get the backtest to work
+        // okay so this failure is actually from the contract changes matt made last
+        // week to get the backtest to work
         let protocol = DFMM::deploy(client.clone(), args)?.send().await?;
         let solver = LogNormalSolver::deploy(client.clone(), protocol.strategy().call().await?)?
             .send()
