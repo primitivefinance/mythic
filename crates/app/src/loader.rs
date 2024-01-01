@@ -132,6 +132,7 @@ pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token
 #[tracing::instrument(level = "debug")]
 pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load the user's save or create a new one.
+
     let mut model = load_user_data()?;
 
     let mut exc_client = ExcaliburMiddleware::setup(true).await?;
@@ -210,6 +211,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         let sender = signer.address();
         let client = exc_client.client().unwrap().clone();
         let client = client.with_signer(signer);
+        tracing::debug!("Deploying contracts with sender: {:?}", sender);
+        // error comes from this line
         let dev_client = DevClient::deploy(client.into(), sender).await?;
 
         let protocol = dev_client.protocol.protocol.address();
