@@ -133,6 +133,7 @@ where
 }
 
 /// Column with a label and pick list field.
+#[allow(dead_code)]
 pub fn labeled_select<'a, Message, T>(
     title: String,
     options: impl Into<Cow<'a, [T]>>,
@@ -158,10 +159,12 @@ where
 }
 
 /// For use in the instructions container.
+#[allow(dead_code)]
 pub fn instruction_text<'a>(value: String) -> Text<'a> {
     label(value).highlight().build()
 }
 
+#[allow(dead_code)]
 pub fn instructions_inner<'a, Message, T: Into<Element<'a, Message>>>(
     instructions: Vec<T>,
 ) -> Column<'a, Message>
@@ -184,6 +187,7 @@ where
 /// in a card.
 /// note: Message must be `Clone` for the submit button to be converted to an
 /// Element.
+#[allow(dead_code)]
 pub fn instructions<'a, Message, T: Into<Element<'a, Message>>>(
     instructions: Vec<T>,
     action: Option<String>,
@@ -355,6 +359,7 @@ impl<'a, Message> From<DualColumn<'a, Message>> for Row<'a, Message> {
     }
 }
 
+#[allow(dead_code)]
 pub fn key_value_row<'a, Message>(key: String, value: String) -> Row<'a, Message>
 where
     Message: 'a,

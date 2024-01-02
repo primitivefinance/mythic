@@ -414,7 +414,7 @@ impl State for Monolithic {
 
             // Steps the price process forward.
             // todo: remove this in favor of a live price feed.
-            if let Some(_) = self.price_process.clone() {
+            if self.price_process.clone().is_some() {
                 let s1 = iced::time::every(std::time::Duration::from_secs(5))
                     .map(|_| Self::AppMessage::UpdatePriceProcess);
                 subscriptions.push(s1);

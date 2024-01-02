@@ -1172,6 +1172,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
             )
     }
 
+    #[allow(dead_code)]
     pub fn build_empty(self) -> TableBuilder<Message> {
         TableBuilder::new()
             .padding_cell(Sizes::Xl)

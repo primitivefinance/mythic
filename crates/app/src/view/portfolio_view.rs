@@ -73,6 +73,7 @@ impl Default for PortfolioPresenter {
     }
 }
 
+#[allow(dead_code)]
 impl PortfolioPresenter {
     #[allow(dead_code)]
     pub fn new(
@@ -302,6 +303,7 @@ impl PortfolioPresenter {
 #[derive(Debug, Clone, Default)]
 pub struct DataView;
 
+#[allow(dead_code)]
 impl DataView {
     /// Creates a layout for the portfolio metrics. It takes in various
     /// parameters such as the strategy plot, strategy plot title, external

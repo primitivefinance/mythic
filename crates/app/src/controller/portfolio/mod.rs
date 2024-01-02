@@ -5,10 +5,7 @@ pub mod monolithic;
 use iced::widget::Container;
 
 use super::*;
-use crate::{
-    app::RootMessage, components::system::label, middleware::ExcaliburMiddleware,
-    model::user::UserProfile,
-};
+use crate::{app::RootMessage, components::system::label, middleware::ExcaliburMiddleware};
 
 #[derive(Debug, Clone, Default)]
 pub enum Message {

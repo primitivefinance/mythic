@@ -25,6 +25,7 @@ use self::{builder::TableBuilder, columns::ColumnBuilder, rows::RowBuilder};
 use super::{system::ExcaliburContainer, *};
 
 /// Renders a simple dual column table with a label and value.
+#[allow(dead_code)]
 pub fn key_value_table<'a, Message>(
     headers: Vec<String>,
     data: Vec<(

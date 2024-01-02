@@ -906,6 +906,7 @@ pub enum Strategies {
     Exponential,
 }
 
+#[allow(dead_code)]
 impl Strategies {
     pub fn description(&self) -> String {
         match self {
