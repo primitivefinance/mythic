@@ -80,9 +80,9 @@ impl Scenario for DFMMScenario {
         // 2. Portfolio manager deploys a Dynamic Function MM & updates its parameters.
         let pm = VolatilityTargetingSubmitter::new(&environment, &config, "portfolio_manager", lex)
             .await?;
-        let market = from_ethers_address(pm.protocol_client.protocol.address());
+        let market = from_ethers_address(pm.protocol_client.dfmm.address());
         let solver = from_ethers_address(pm.protocol_client.solver.address());
-        let market_events = pm.protocol_client.protocol.events();
+        let market_events = pm.protocol_client.dfmm.events();
         agents.add(pm);
 
         // 3. Liquidity provider initializes the DFMM.

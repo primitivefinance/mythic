@@ -29,8 +29,7 @@ use crate::{
     model::user::Saveable,
 };
 
-type LoadResult =
-    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
+type LoadResult = (Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>);
 
 #[derive(Debug)]
 pub enum Message {
@@ -130,12 +129,12 @@ pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
-pub async fn load_app(flags: super::Flags) -> LoadResult {
+pub async fn load_app(flags: super::Flags) -> (Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>) {
     // Load the user's save or create a new one.
 
-    let mut model = load_user_data()?;
+    let mut model = load_user_data().unwrap();
 
-    let mut exc_client = ExcaliburMiddleware::setup(true).await?;
+    let mut exc_client = ExcaliburMiddleware::setup(true).await.unwrap();
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
@@ -207,10 +206,10 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         let client = client.with_signer(signer);
         tracing::debug!("Deploying contracts with sender: {:?}", sender);
         // error comes from this line
-        let dev_client = DevClient::deploy(client.into(), sender).await?;
+        let dev_client = DevClient::deploy(client.into(), sender).await.unwrap();
 
-        let protocol = dev_client.protocol.protocol.address();
-        let strategy = dev_client.protocol.get_strategy().await?.address();
+        let protocol = dev_client.protocol.dfmm.address();
+        let strategy = dev_client.protocol.get_strategy().await.unwrap().address();
         let token_x = dev_client.token_x.address();
         let token_y = dev_client.token_y.address();
         let solver = dev_client.solver.address();
@@ -328,7 +327,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             model.user.coins += coin;
         }
 
-        model.save()?;
+        model.save().unwrap();
     }
 
     // Add the default signer to the contacts book, if there is a signer.
@@ -342,10 +341,10 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             },
             contacts::Category::Trusted,
         );
-        model.save()?;
+        model.save().unwrap();
     }
 
-    Ok((model, Arc::new(exc_client)))
+    (model, Arc::new(exc_client))
 }
 
 /// Attempts to establish a new connection with the Ledger hardware wallet.
