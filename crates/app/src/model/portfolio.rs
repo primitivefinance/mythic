@@ -20,7 +20,7 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 // use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
@@ -36,7 +36,6 @@ use cfmm_math::trading_functions::rmm::{
 };
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
-use plotters::series::Histogram;
 use serde::{Deserialize, Serialize};
 use sim::{from_ethers_u256, to_ethers_address};
 
@@ -1909,7 +1908,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // bar.
         let mut closest_bin = 0;
         let mut closest_bin_distance = f64::MAX;
-        for (bin, _) in &data {
+        for bin in data.keys() {
             let distance = (*bin as f64 / scalar - current_price).abs();
             if distance < closest_bin_distance {
                 closest_bin_distance = distance;

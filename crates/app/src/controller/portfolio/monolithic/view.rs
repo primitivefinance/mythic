@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    env,
-};
+use std::env;
 
 use chrono::Utc;
 use datatypes::portfolio::position::{PositionLayer, Positions};
