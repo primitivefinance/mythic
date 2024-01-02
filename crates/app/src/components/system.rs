@@ -1354,7 +1354,7 @@ pub struct ExcaliburHistogram {
 impl ExcaliburHistogram {
     pub fn new() -> Self {
         Self {
-            chart: HistogramChart::default(),
+            chart: HistogramChart::new(),
         }
     }
 
