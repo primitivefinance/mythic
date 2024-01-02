@@ -16,7 +16,7 @@ use super::*;
 #[derive(Debug)]
 pub struct ProtocolClient<C> {
     pub client: Arc<C>,
-    pub protocol: DFMM<C>,
+    pub dfmm: DFMM<C>,
     pub solver: LogNormalSolver<C>,
 }
 
@@ -24,7 +24,7 @@ impl<C> Clone for ProtocolClient<C> {
     fn clone(&self) -> Self {
         Self {
             client: self.client.clone(),
-            protocol: self.protocol.clone(),
+            dfmm: self.dfmm.clone(),
             solver: self.solver.clone(),
         }
     }
@@ -34,19 +34,19 @@ type F64Wad = f64;
 
 impl<C: Middleware + 'static> ProtocolClient<C> {
     pub fn new(client: Arc<C>, dfmm_address: Address, solver_address: Address) -> Self {
-        let protocol = DFMM::new(dfmm_address, client.clone());
+        let dfmm = DFMM::new(dfmm_address, client.clone());
         let solver = LogNormalSolver::new(solver_address, client.clone());
         Self {
             client,
-            protocol,
+            dfmm,
             solver,
         }
     }
 
     pub async fn get_tokens(&self) -> Result<(Address, Address)> {
         let tokens = (
-            self.protocol.token_x().call().await?,
-            self.protocol.token_y().call().await?,
+            self.dfmm.token_x().call().await?,
+            self.dfmm.token_y().call().await?,
         );
         Ok(tokens)
     }
@@ -60,20 +60,24 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     ) -> anyhow::Result<Self> {
         let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
         let args = (true, token_x, token_y, swap_fee_percent_wad);
-        let protocol = DFMM::deploy(client.clone(), args)?.send().await?;
-        let solver = LogNormalSolver::deploy(client.clone(), protocol.strategy().call().await?)?
+        let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
+        tracing::info!("Deployed DFMM protocol at address: {}", dfmm.address());
+        let strategy = dfmm.strategy().call().await?;
+        tracing::info!("Deployed DFMM strategy at address: {}", strategy);
+
+        let solver = LogNormalSolver::deploy(client.clone(), strategy)?
             .send()
-            .await?;
+            .await.unwrap();
         Ok(Self {
             client,
-            protocol,
+            dfmm,
             solver,
         })
     }
 
     #[tracing::instrument(skip(self), level = "trace")]
     pub async fn get_strategy(&self) -> Result<LogNormal<C>> {
-        let strategy = LogNormal::new(self.protocol.strategy().call().await?, self.client.clone());
+        let strategy = LogNormal::new(self.dfmm.strategy().call().await?, self.client.clone());
         Ok(strategy)
     }
 
@@ -131,7 +135,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .await?;
 
         let tx = self
-            .protocol
+            .dfmm
             .init(payload)
             .send()
             .await?

@@ -322,7 +322,7 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
         let protocol = self.protocol()?;
         let (balance_x, balance_y, liquidity) =
-            protocol.protocol.get_reserves_and_liquidity().await?;
+            protocol.dfmm.get_reserves_and_liquidity().await?;
         let internal_price = protocol.get_internal_price().await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);

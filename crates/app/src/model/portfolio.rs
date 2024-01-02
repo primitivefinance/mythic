@@ -521,13 +521,13 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the protocol contract instance given the model's protocol address.
-    pub async fn protocol<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<DFMM<M>> {
-        let protocol_address = self
+    pub async fn dfmm(&self, client: Arc<Client>) -> Result<DFMM<Client>> {
+        let dfmm_address = self
             .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
-        let converted_address = to_ethers_address(protocol_address);
-        let protocol = DFMM::new(converted_address, client.clone());
-        Ok(protocol)
+        let converted_address = to_ethers_address(dfmm_address);
+        let dfmm = DFMM::new(converted_address, client.clone());
+        Ok(dfmm)
     }
 
     /// Gets the strategy contract instance given the model's strategy address.
@@ -800,14 +800,14 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(price)
     }
 
-    // Protocol state
+    // Dfmm state
 
     async fn fetch_reserves_and_liquidity<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        let protocol = self.protocol(client.clone()).await?;
-        let result = protocol.get_reserves_and_liquidity().await;
+        let dfmm = self.dfmm(client.clone()).await?;
+        let result = dfmm.get_reserves_and_liquidity().await;
         let (reserve_x, reserve_y, liquidity) = match result {
             Ok(result) => result,
             Err(error) => {
@@ -1260,7 +1260,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     /// to an external price.
     pub fn derive_external_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
-            .external_spot_price
+            .external_spot_price // price is none here
             .ok_or(Error::msg("Internal spot price not set"))?;
         let quote_price_wad = self
             .external_quote_price

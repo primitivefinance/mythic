@@ -72,7 +72,7 @@ impl Arbitrageur {
             client.clone(),
             (
                 protocol_client.solver.address(),
-                protocol_client.protocol.address(),
+                protocol_client.dfmm.address(),
                 liquid_exchange.address(),
                 token_admin.arbx.address(),
                 token_admin.arby.address(),
@@ -167,7 +167,7 @@ impl Arbitrageur {
             - I256::from_raw(log_normal.swap_fee().call().await?);
         let (rx, ry, liq) = self
             .protocol_client
-            .protocol
+            .dfmm
             .get_reserves_and_liquidity()
             .call()
             .await?;
@@ -347,7 +347,7 @@ impl Agent for Arbitrageur {
                 debug!("arby_balance after: {:?}", arby_balance);
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
-                    .protocol
+                    .dfmm
                     .get_reserves_and_liquidity()
                     .call()
                     .await?;
@@ -400,7 +400,7 @@ impl Agent for Arbitrageur {
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
-                    .protocol
+                    .dfmm
                     .get_reserves_and_liquidity()
                     .call()
                     .await?;

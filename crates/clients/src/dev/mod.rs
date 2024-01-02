@@ -77,12 +77,12 @@ impl<C: Middleware + 'static> DevClient<C> {
 
         tracing::trace!("Approving tokens");
         token_x
-            .approve(protocol.protocol.address(), ethers::types::U256::MAX)
+            .approve(protocol.dfmm.address(), ethers::types::U256::MAX)
             .send()
             .await?
             .await?;
         token_y
-            .approve(protocol.protocol.address(), ethers::types::U256::MAX)
+            .approve(protocol.dfmm.address(), ethers::types::U256::MAX)
             .send()
             .await?
             .await?;
@@ -98,11 +98,11 @@ impl<C: Middleware + 'static> DevClient<C> {
             .await?;
 
         let solver =
-            LogNormalSolver::deploy(client.clone(), protocol.protocol.strategy().call().await?)?
+            LogNormalSolver::deploy(client.clone(), protocol.dfmm.strategy().call().await?)?
                 .send()
                 .await?;
 
-        let strategy = LogNormal::new(protocol.protocol.strategy().call().await?, client);
+        let strategy = LogNormal::new(protocol.dfmm.strategy().call().await?, client);
         // Make sure to set the token y price to 1.0.
 
         Ok(Self {
@@ -150,7 +150,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     pub async fn get_position(&self) -> Result<ProtocolPosition> {
         let (balance_x, balance_y, liquidity) =
-            self.protocol.protocol.get_reserves_and_liquidity().await?;
+            self.protocol.dfmm.get_reserves_and_liquidity().await?;
         let internal_price = self.protocol.get_internal_price().await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);

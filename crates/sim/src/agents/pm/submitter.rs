@@ -32,11 +32,11 @@ impl Agent for VolatilityTargetingSubmitter {
         let asset_price =
             ethers::utils::format_ether(self.lex.price().call().await?).parse::<f64>()?;
         let reserve_x = ethers::utils::format_ether(
-            self.protocol_client.protocol.reserve_x_wad().call().await?,
+            self.protocol_client.dfmm.reserve_x_wad().call().await?,
         )
         .parse::<f64>()?;
         let reserve_y = ethers::utils::format_ether(
-            self.protocol_client.protocol.reserve_y_wad().call().await?,
+            self.protocol_client.dfmm.reserve_y_wad().call().await?,
         )
         .parse::<f64>()?;
         let portfolio_price = reserve_x * asset_price + reserve_y;
