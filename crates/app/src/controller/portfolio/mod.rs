@@ -1,9 +1,5 @@
-//! Controller for managing
-//! 1. Dashboard controller
-//! 2. Create portfolio controller
+//! Controller for managing the portfolio view.
 
-pub mod create;
-pub mod dashboard;
 pub mod monolithic;
 
 use iced::widget::Container;
@@ -18,8 +14,6 @@ use crate::{
 pub enum Message {
     #[default]
     Empty,
-    Create(create::Message),
-    Dashboard(dashboard::Message),
     Monolithic(monolithic::Message),
     SyncModel,
 }
@@ -28,10 +22,6 @@ pub enum Message {
 pub enum Page {
     #[allow(dead_code)]
     Empty,
-    #[allow(dead_code)]
-    Create,
-    #[allow(dead_code)]
-    Dashboard,
     #[default]
     Monolithic,
 }
@@ -53,8 +43,6 @@ impl From<Message> for view::Message {
 /// pushing them to the root controller.
 pub struct PortfolioRoot {
     pub page: Page,
-    pub create: create::CreatePortfolio,
-    pub dashboard: dashboard::Dashboard,
     pub monolithic: monolithic::Monolithic,
     pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
 }
@@ -63,31 +51,10 @@ impl PortfolioRoot {
     pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         Self {
             page: Page::default(),
-            create: create::CreatePortfolio::new(model.user.clone()),
-            dashboard: dashboard::Dashboard::new(client.clone(), model.clone()),
             monolithic: monolithic::Monolithic::new(client.clone(), model.clone()),
             client,
         }
     }
-    // This generates a command that will sync the model with the view.
-    // Used as a helper function to clean up the update function before batching
-    // commands fn sync_model_command(
-    //     &self,
-    // ) -> Command<<controller::portfolio::PortfolioRoot as
-    // controller::State>::AppMessage> {     Command::perform(async {}, |_|
-    // view::Message::Portfolio(Message::SyncModel))
-    //         .map(<controller::portfolio::PortfolioRoot as
-    // controller::State>::AppMessage::View) }
-    // This generates a command that will refetch the model.
-    // Used as a helper function to clean up the update function before batching
-    // commands fn refetch_command(
-    //     &self,
-    // ) -> Command<<controller::portfolio::PortfolioRoot as
-    // controller::State>::AppMessage> {     Command::perform(async {}, |_| {
-    //         view::Message::Portfolio(Message::Dashboard(dashboard::Message::Refetch))
-    //     })
-    //     .map(<controller::portfolio::PortfolioRoot as
-    // controller::State>::AppMessage::View) }
 }
 
 impl From<PortfolioRoot> for Screen {
@@ -100,10 +67,6 @@ impl State for PortfolioRoot {
     type AppMessage = app::Message;
     type ViewMessage = view::Message;
 
-    fn load(&self) -> Command<Self::AppMessage> {
-        self.dashboard.load().map(|x| Message::Dashboard(x).into())
-    }
-
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::Message::Portfolio(message)) => match message {
@@ -112,18 +75,10 @@ impl State for PortfolioRoot {
                 })
                 .map(Self::AppMessage::View),
                 Message::Empty => Command::none(),
-                Message::Create(message) => self
-                    .create
-                    .update(message)
-                    .map(|x| Message::Create(x).into()),
                 Message::Monolithic(monolithic::Message::SyncModel(_block)) => {
                     Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
                         .map(Self::AppMessage::View)
                 }
-                Message::Dashboard(message) => self
-                    .dashboard
-                    .update(message)
-                    .map(|x| Message::Dashboard(x).into()),
                 Message::Monolithic(message) => self
                     .monolithic
                     .update(message)
@@ -133,14 +88,10 @@ impl State for PortfolioRoot {
             // This will "catch" the root update model message and propagate it down to the
             // dashboard. The result of this is that when model updates happen in the
             // root controller, they will also sync the dashboard's model.
-            Self::AppMessage::ModelSyncResult(model) => Command::batch(vec![
-                self.dashboard
-                    .update(dashboard::Message::UpdateDataModel(model.clone()))
-                    .map(|x| Message::Dashboard(x).into()),
-                self.monolithic
-                    .update(monolithic::Message::UpdateDataModel(model.clone()))
-                    .map(|x| Message::Monolithic(x).into()),
-            ]),
+            Self::AppMessage::ModelSyncResult(model) => Command::batch(vec![self
+                .monolithic
+                .update(monolithic::Message::UpdateDataModel(model.clone()))
+                .map(|x| Message::Monolithic(x).into())]),
             _ => Command::none(),
         }
     }
@@ -148,8 +99,6 @@ impl State for PortfolioRoot {
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let content = match self.page.clone() {
             Page::Empty => Column::new().push(label("Select a page").build()).into(),
-            Page::Create => self.create.view().map(|x| Message::Create(x).into()),
-            Page::Dashboard => self.dashboard.view().map(|x| Message::Dashboard(x).into()),
             Page::Monolithic => self
                 .monolithic
                 .view()
@@ -167,25 +116,12 @@ impl State for PortfolioRoot {
         // todo: fix the subscriptions!
         // Need to understand how they are broken
         // need subscriptions to fetch new blocks, new price path, etc.
-        Subscription::batch(vec![
-            self.dashboard
+        Subscription::batch(vec![match self.page {
+            Page::Monolithic => self
+                .monolithic
                 .subscription()
-                .map(|x| Message::Dashboard(x).into()),
-            match self.page {
-                Page::Empty => Subscription::none(),
-                Page::Create => self
-                    .create
-                    .subscription()
-                    .map(|x| Message::Create(x).into()),
-                Page::Dashboard => self
-                    .dashboard
-                    .subscription()
-                    .map(|x| Message::Dashboard(x).into()),
-                Page::Monolithic => self
-                    .monolithic
-                    .subscription()
-                    .map(|x| Message::Monolithic(x).into()),
-            },
-        ])
+                .map(|x| Message::Monolithic(x).into()),
+            _ => Subscription::none(),
+        }])
     }
 }

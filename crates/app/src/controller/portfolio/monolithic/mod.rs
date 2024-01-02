@@ -5,20 +5,23 @@ pub mod tx_history;
 mod view;
 
 use alloy_primitives::utils::format_ether;
+use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use datatypes::portfolio::coin::Coin;
 use iced::{futures::TryFutureExt, subscription, Padding};
+use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
+use RustQuant::stochastics::{GeometricBrownianMotion, StochasticProcess, Trajectories};
 
 use self::{
-    create::{FormView, LiquidityTypes},
+    create::{FormView, LiquidityTypes, Times},
     metrics::Metrics,
     tx_history::TxHistory,
     view::{MonolithicPresenter, MonolithicView},
 };
-use super::{dashboard::stages::review::Times, *};
+use super::*;
 use crate::{
     components::system::{ExcaliburChart, ExcaliburContainer},
     middleware::Protocol,
-    model::portfolio::AlloyAddress,
+    model::portfolio::{AlloyAddress, ALLOY_WAD},
     view::portfolio_view::PortfolioPresenter,
 };
 
@@ -40,6 +43,9 @@ pub enum Message {
 
     // placeholder
     Refresh,
+
+    // Updates the price process, temp, todo: replace with real price.
+    UpdatePriceProcess,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -80,12 +86,22 @@ pub struct Monolithic {
     allocate: bool,
     view_position: Option<AlloyAddress>,
     create_status: create::SubmitState,
+    price_process: Option<PriceProcess>,
 }
 
 impl Monolithic {
     pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         let presenter = MonolithicPresenter::new(model.clone());
         let chart_presenter = PortfolioPresenter::default();
+
+        // todo: integrate a live price process instead of this one!
+        let process = Some(PriceProcess {
+            trajectories: GeometricBrownianMotion::new(0.05, 0.9)
+                .euler_maruyama(1.0, 0.0, 1.0, 1000, 1, false),
+            step: 0,
+            max_steps: 1000,
+        });
+
         Self {
             client,
             model,
@@ -95,6 +111,7 @@ impl Monolithic {
             allocate: false,
             view_position: None,
             create_status: create::SubmitState::Empty,
+            price_process: process,
         }
     }
 
@@ -290,6 +307,24 @@ impl State for Monolithic {
                     Command::none()
                 }
             },
+            Self::AppMessage::UpdatePriceProcess => {
+                if let (Some(_), Some(exchange)) = (
+                    self.price_process.clone(),
+                    self.model.portfolio.raw_external_exchange_address,
+                ) {
+                    // Step the price process.
+                    self.price_process.as_mut().unwrap().step += 1;
+
+                    // Update the price of the exchange based on the new step.
+                    return price_process_update_after_step(
+                        self.price_process.clone().unwrap(),
+                        exchange,
+                        self.client.clone().unwrap(),
+                    );
+                }
+
+                Command::none()
+            }
         }
     }
 
@@ -372,13 +407,28 @@ impl State for Monolithic {
     fn subscription(&self) -> Subscription<Self::AppMessage> {
         if let Some(client) = self.client.clone() {
             let provider = client.client().unwrap().clone();
-            return listen_to_blocks(provider);
+            let mut subscriptions: Vec<Subscription<Message>> = vec![];
+
+            // Fetches the most recent block and updates the model.
+            subscriptions.push(listen_to_blocks(provider));
+
+            // Steps the price process forward.
+            // todo: remove this in favor of a live price feed.
+            if let Some(_) = self.price_process.clone() {
+                let s1 = iced::time::every(std::time::Duration::from_secs(5))
+                    .map(|_| Self::AppMessage::UpdatePriceProcess);
+                subscriptions.push(s1);
+            }
+
+            return Subscription::batch(subscriptions);
         }
 
         Subscription::none()
     }
 }
 
+/// Fetches the most recent block and updates the model with the state in the
+/// new block.
 pub fn listen_to_blocks(
     provider: Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>,
 ) -> Subscription<Message> {
@@ -395,5 +445,93 @@ pub fn listen_to_blocks(
                 }
             }
         },
+    )
+}
+
+/// For testing the UI with a "live" price.
+pub struct PriceProcess {
+    pub trajectories: Trajectories,
+    pub step: usize,
+    pub max_steps: usize,
+}
+
+impl Clone for PriceProcess {
+    fn clone(&self) -> Self {
+        let times: Vec<f64> = self.trajectories.times.clone();
+        let paths: Vec<Vec<f64>> = self.trajectories.paths.clone();
+        Self {
+            trajectories: Trajectories { times, paths },
+            step: self.step,
+            max_steps: self.max_steps,
+        }
+    }
+}
+
+impl std::fmt::Debug for PriceProcess {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PriceProcess")
+            .field("trajectories", &self.trajectories.paths)
+            .field("step", &self.step)
+            .field("max_steps", &self.max_steps)
+            .finish()
+    }
+}
+
+/// This function will step the price process forward and update the price of
+/// the liquid exchange in the development environment. We should eventually
+/// replace this with a live price feed.
+///
+/// note: expects price process step to be incremented before calling this.
+fn price_process_update_after_step(
+    process: PriceProcess,
+    exchange: AlloyAddress,
+    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+) -> Command<Message> {
+    let mut next_price = None;
+
+    if process.step < process.max_steps {
+        let price = process.trajectories.paths[0].get(process.step).cloned();
+        if let Some(price) = price {
+            next_price = Some(price);
+        }
+    }
+
+    let client = client.client().cloned().unwrap();
+
+    Command::perform(
+        async move {
+            let next_price = next_price.unwrap_or_default();
+            let client = client.clone();
+            let lex = LiquidExchange::new(to_ethers_address(exchange), client);
+
+            let current_price = lex.price().await?;
+            // make the new price a random price +/- 1% of current price.
+            let random = 1.0 + (rand::random::<f64>() - 0.5) * 0.01;
+            let random =
+                alloy_primitives::utils::parse_ether(format!("{}", random).as_str()).unwrap();
+            let mut new_price = from_ethers_u256(current_price)
+                .checked_mul(random)
+                .unwrap()
+                .checked_div(ALLOY_WAD)
+                .unwrap();
+
+            if next_price > 0.0 {
+                new_price = alloy_primitives::utils::parse_ether(&format!("{}", next_price))?;
+            }
+
+            let result = lex.set_price(to_ethers_u256(new_price)).send().await?.await;
+
+            match result {
+                Ok(_tx) => {
+                    tracing::info!("Updated price");
+                    Ok(())
+                }
+                Err(e) => {
+                    tracing::error!("Failed to set price: {:?}", e);
+                    Err(anyhow::Error::from(e))
+                }
+            }
+        },
+        |_| Message::Empty,
     )
 }

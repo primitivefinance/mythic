@@ -1,17 +1,16 @@
+use std::fmt::{self, Display};
+
 use datatypes::portfolio::coin::Coin;
 use iced::Padding;
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
-use super::{dashboard::stages::review::Times, *};
-use crate::{
-    components::{
-        select::excalibur_select,
-        system::{
-            ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
-            ExcaliburHistogram, ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
-        },
+use super::*;
+use crate::components::{
+    select::excalibur_select,
+    system::{
+        ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburHistogram,
+        ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
     },
-    controller::portfolio::dashboard::stages::review::EnumList,
 };
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
@@ -759,3 +758,199 @@ impl FormView {
 
 const LOADING_INDICATOR_SIZE: f32 = 16.0;
 const LOADING_INDICATOR_SPEED_MS: u64 = 85;
+
+pub trait EnumList<T> {
+    fn to_options() -> Vec<Self>
+    where
+        Self: Sized;
+    fn to_list() -> Vec<String>;
+    fn to_value(&self) -> T;
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+pub enum Times {
+    Now,
+    OneHour,
+    TwelveHour,
+    OneDay,
+    OneWeek,
+    TwoWeeks,
+    OneMonth,
+}
+
+impl Times {
+    pub fn to_seconds(self) -> f64 {
+        self.to_value()
+    }
+}
+
+impl Display for Times {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Times::Now => write!(f, "Now"),
+            Times::OneHour => write!(f, "1 hour"),
+            Times::TwelveHour => write!(f, "12 hours"),
+            Times::OneDay => write!(f, "1 day"),
+            Times::OneWeek => write!(f, "1 week"),
+            Times::TwoWeeks => write!(f, "2 weeks"),
+            Times::OneMonth => write!(f, "1 month"),
+        }
+    }
+}
+
+impl EnumList<f64> for Times {
+    fn to_options() -> Vec<Times> {
+        vec![
+            Times::Now,
+            Times::OneHour,
+            Times::TwelveHour,
+            Times::OneDay,
+            Times::OneWeek,
+            Times::TwoWeeks,
+            Times::OneMonth,
+        ]
+    }
+
+    fn to_list() -> Vec<String> {
+        vec![
+            Times::Now.to_string(),
+            Times::OneHour.to_string(),
+            Times::TwelveHour.to_string(),
+            Times::OneDay.to_string(),
+            Times::OneWeek.to_string(),
+            Times::TwoWeeks.to_string(),
+            Times::OneMonth.to_string(),
+        ]
+    }
+
+    fn to_value(&self) -> f64 {
+        match self {
+            Times::Now => 0.0,
+            Times::OneHour => chrono::Duration::hours(1).num_seconds() as f64,
+
+            Times::TwelveHour => chrono::Duration::hours(12).num_seconds() as f64,
+            Times::OneDay => chrono::Duration::days(1).num_seconds() as f64,
+
+            Times::OneWeek => chrono::Duration::weeks(1).num_seconds() as f64,
+            Times::TwoWeeks => chrono::Duration::weeks(2).num_seconds() as f64,
+            Times::OneMonth => chrono::Duration::weeks(4).num_seconds() as f64, // Approximation
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+#[allow(clippy::enum_variant_names)]
+pub enum Fees {
+    #[default]
+    OneBps,
+    ThreeBps,
+    TenBps,
+    ThirtyBps,
+    FiftyBps,
+    OneHundredBps,
+}
+
+impl Display for Fees {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Fees::OneBps => write!(f, "0.01%"),
+            Fees::ThreeBps => write!(f, "0.03%"),
+            Fees::TenBps => write!(f, "0.10%"),
+            Fees::ThirtyBps => write!(f, "0.30%"),
+            Fees::FiftyBps => write!(f, "0.50%"),
+            Fees::OneHundredBps => write!(f, "1.00%"),
+        }
+    }
+}
+
+impl EnumList<f64> for Fees {
+    fn to_options() -> Vec<Fees> {
+        vec![
+            Fees::OneBps,
+            Fees::ThreeBps,
+            Fees::TenBps,
+            Fees::ThirtyBps,
+            Fees::FiftyBps,
+            Fees::OneHundredBps,
+        ]
+    }
+
+    fn to_list() -> Vec<String> {
+        vec![
+            Fees::OneBps.to_string(),
+            Fees::ThreeBps.to_string(),
+            Fees::TenBps.to_string(),
+            Fees::ThirtyBps.to_string(),
+            Fees::FiftyBps.to_string(),
+            Fees::OneHundredBps.to_string(),
+        ]
+    }
+
+    fn to_value(&self) -> f64 {
+        match self {
+            Fees::OneBps => 0.0001,
+            Fees::ThreeBps => 0.0003,
+            Fees::TenBps => 0.001,
+            Fees::ThirtyBps => 0.003,
+            Fees::FiftyBps => 0.005,
+            Fees::OneHundredBps => 0.01,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Default)]
+pub enum Strategies {
+    #[default]
+    Linear,
+    SCurve,
+    Exponential,
+}
+
+impl Strategies {
+    pub fn description(&self) -> String {
+        match self {
+            Strategies::Linear => {
+                "Changes the portfolio weights by the same amounts over time.".to_string()
+            }
+            Strategies::SCurve => {
+                "Changes the portfolio weights slowly at first, then quickly, then slowly again."
+                    .to_string()
+            }
+            Strategies::Exponential => {
+                "Accelerates the portfolio weight changes until completion.".to_string()
+            }
+        }
+    }
+}
+
+impl Display for Strategies {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Strategies::Linear => write!(f, "Linear"),
+            Strategies::SCurve => write!(f, "S-Curve"),
+            Strategies::Exponential => write!(f, "Exponential"),
+        }
+    }
+}
+
+impl EnumList<Strategies> for Strategies {
+    fn to_options() -> Vec<Strategies> {
+        vec![
+            Strategies::Linear,
+            Strategies::SCurve,
+            Strategies::Exponential,
+        ]
+    }
+
+    fn to_list() -> Vec<String> {
+        vec![
+            Strategies::Linear.to_string(),
+            Strategies::SCurve.to_string(),
+            Strategies::Exponential.to_string(),
+        ]
+    }
+
+    fn to_value(&self) -> Strategies {
+        *self
+    }
+}
