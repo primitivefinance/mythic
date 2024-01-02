@@ -55,6 +55,7 @@ impl Execute {
     }
 
     /// Returns an instructions element to guide the user.
+    #[allow(dead_code)]
     pub fn guide(&self) -> Container<'static, super::Message> {
         instructions(
             vec![instruction_text(
@@ -65,7 +66,7 @@ impl Execute {
             self.on_submit.clone(),
         )
     }
-
+    #[allow(dead_code)]
     pub fn view_tx_logs(&self) -> Container<'static, Message> {
         let mut content = Column::new()
             .spacing(Sizes::Lg)
@@ -90,7 +91,7 @@ impl Execute {
             .width(Length::Fill)
             .height(Length::Fill)
     }
-
+    #[allow(dead_code)]
     pub fn view_position(&self) -> Container<'static, Message> {
         let mut content = Column::new()
             .spacing(Sizes::Lg)

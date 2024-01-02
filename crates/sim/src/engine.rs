@@ -461,8 +461,7 @@ mod tests {
             .next()
             .unwrap()
             .client()
-            .address()
-            .clone();
+            .address();
         let address =
             revm_primitives::alloy_primitives::Address::from(block_admin_address.as_fixed_bytes());
         let account = client
@@ -476,6 +475,6 @@ mod tests {
         };
 
         assert_eq!(instance.config.agent_parameters.len(), 1);
-        assert_eq!(account.is_some(), true);
+        assert!(account.is_some());
     }
 }

@@ -109,6 +109,7 @@ impl RpcManagement {
         Err(anyhow::anyhow!("No form fields updated!"))
     }
 
+    #[allow(dead_code)]
     pub fn view_rpcs(&self) -> Element<'_, Message> {
         let mut content = Column::new();
 

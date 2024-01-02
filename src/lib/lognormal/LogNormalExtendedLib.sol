@@ -150,11 +150,11 @@ function computeNextLiquidity(
     } else if (swapConstant < 0) {
         upper = currentL;
         lower = rx > yOverK ? rx + 1 : yOverK + 1;
-        iters = 128;
+        iters = 256;
     } else {
         upper = 1e27;
         lower = currentL;
-        iters = 128;
+        iters = 256;
     }
     nextL = bisection(
         abi.encode(rx, ry, swapConstant, params),
@@ -171,10 +171,11 @@ function computeNextRy(
     uint256 rx,
     uint256 L,
     int256 swapConstant,
+    uint256 currentRy,
     LogNormParameters memory params
 ) pure returns (uint256 ry) {
-    uint256 lower = 10;
-    uint256 upper = L.mulWadUp(params.strike) - 10;
+    uint256 lower = currentRy.mulDivDown(50, 100);
+    uint256 upper = currentRy; // Can use `currentRy` as upper because function is monotonic and this is only invoked if swapping x in --> must satisfy currentRy > nextRy
     ry = bisection(
         abi.encode(rx, L, swapConstant, params),
         lower,
@@ -190,10 +191,11 @@ function computeNextRx(
     uint256 ry,
     uint256 L,
     int256 swapConstant,
+    uint256 currentRx,
     LogNormParameters memory params
 ) pure returns (uint256 rx) {
-    uint256 lower = 10;
-    uint256 upper = L - 10; // max x = 1 - x / l, so l - x
+    uint256 lower = currentRx.mulDivDown(50, 100);
+    uint256 upper = currentRx; // can use `currentRx` as upper because function is monotonic and this is only invoked if swapping y in --> must satisfy currentRx > nextRx
     rx = bisection(
         abi.encode(ry, L, swapConstant, params),
         lower,

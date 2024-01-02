@@ -7,6 +7,7 @@ use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 use super::{components::button::*, *};
 use crate::components::system::label;
 
+#[allow(dead_code)]
 const SYMBOL: &str = "φ";
 const TITLE: &str = "Excalibur";
 
@@ -71,6 +72,7 @@ impl Sidebar {
 
 impl Sidebar {
     /// Renders a section header with a label.
+    #[allow(dead_code)]
     pub fn section<'a>(&self, header: String) -> Row<'a, view::Message> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))

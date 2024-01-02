@@ -71,6 +71,8 @@ impl Agent for PriceChanger {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PriceChangerParameters<P: Parameterized> {
+    /// To backtest (true) or not (false)
+    pub backtest: bool,
     /// The initial price of the asset.
     pub initial_price: P,
     /// The start time of the process.
@@ -99,7 +101,6 @@ impl PriceChanger {
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
-
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
             let liquid_exchange = Lex::deploy(
@@ -120,43 +121,63 @@ impl PriceChanger {
                     parse_ether(1_000_000_u64.to_string().as_str()).unwrap(),
                 )
                 .await?;
-
-            let trajectory = if let Some(_seed) = parameters.seed {
-                let initial_price = parameters.initial_price;
-                let t_0 = parameters.t_0;
-                let t_n = parameters.t_n;
-                let n_steps = parameters.num_steps;
-                if let Some(seed) = parameters.seed {
-                    parameters.process.seedable_euler_maruyama(
-                        initial_price.0,
-                        t_0.0,
-                        t_n.0,
-                        n_steps,
-                        1,
-                        false,
-                        seed,
-                    )
-                } else {
-                    parameters.process.euler_maruyama(
-                        initial_price.0,
-                        t_0.0,
-                        t_n.0,
-                        n_steps,
-                        1,
-                        false,
-                    )
+            if parameters.backtest {
+                debug!("Backtesting price changer");
+                // TODO Cache this somewhere
+                let mut prices = get_historical_daily_prices(parameters.num_steps).await?;
+                prices.reverse();
+                let mut times = vec![];
+                let mut time = 0.0;
+                for _ in &prices {
+                    time += 1.0;
+                    times.push(time);
                 }
+                let paths = vec![prices.clone()];
+                let trajectory = Trajectories { times, paths };
+                Ok(Self {
+                    client,
+                    trajectory,
+                    liquid_exchange,
+                    index: 1,
+                })
             } else {
-                return Err(anyhow::anyhow!("No parameters found for price changer"));
-            };
+                let trajectory = if let Some(_seed) = parameters.seed {
+                    let initial_price = parameters.initial_price;
+                    let t_0 = parameters.t_0;
+                    let t_n = parameters.t_n;
+                    let n_steps = parameters.num_steps;
+                    if let Some(seed) = parameters.seed {
+                        parameters.process.seedable_euler_maruyama(
+                            initial_price.0,
+                            t_0.0,
+                            t_n.0,
+                            n_steps,
+                            1,
+                            false,
+                            seed,
+                        )
+                    } else {
+                        parameters.process.euler_maruyama(
+                            initial_price.0,
+                            t_0.0,
+                            t_n.0,
+                            n_steps,
+                            1,
+                            false,
+                        )
+                    }
+                } else {
+                    return Err(anyhow::anyhow!("No parameters found for price changer"));
+                };
 
-            Ok(Self {
-                client,
-                trajectory,
-                liquid_exchange,
-                index: 1, /* start after the initial price since it is already set on contract
-                           * deployment */
-            })
+                Ok(Self {
+                    client,
+                    trajectory,
+                    liquid_exchange,
+                    index: 1, /* start after the initial price since it is already set on
+                               * contract deployment */
+                })
+            }
         } else {
             Err(anyhow::anyhow!("No parameters found for price changer"))
         }
@@ -197,6 +218,7 @@ impl From<PriceChangerParameters<Multiple>> for Vec<PriceChangerParameters<Singl
                     for tn in t_n.clone() {
                         for process in process.clone() {
                             result.push(PriceChangerParameters {
+                                backtest: item.backtest,
                                 process,
                                 initial_price: Single(initial_price),
                                 t_0: Single(t0),

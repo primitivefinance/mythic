@@ -110,7 +110,7 @@ impl Stages {
             execute: execute::Execute::new(dev_client, None),
         }
     }
-
+    #[allow(dead_code)]
     pub fn guide(&self) -> Container<'static, Message> {
         match self.current {
             DashboardState::Empty => Container::new(Column::new()),

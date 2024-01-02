@@ -22,7 +22,7 @@ contract LogNormalTest is Test {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
         MockERC20(tokenX).mint(address(this), 100e18);
-        MockERC20(tokenY).mint(address(this), 100e18);
+        MockERC20(tokenY).mint(address(this), 100000e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
 
@@ -30,6 +30,20 @@ contract LogNormalTest is Test {
         solver = new LogNormalSolver(address(dfmm.strategy()));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
+    }
+
+    modifier realisticEth() {
+        vm.warp(0);
+        LogNormParameters memory params =
+            LogNormParameters({ strike: ONE * 2300, sigma: ONE, tau: ONE });
+        uint256 init_p = ONE * 2345;
+        uint256 init_x = ONE * 10;
+        bytes memory initData =
+            solver.getInitialPoolData(init_x, init_p, params);
+
+        dfmm.init(initData);
+
+        _;
     }
 
     /// @dev Initializes a basic pool in dfmm.
@@ -113,5 +127,18 @@ contract LogNormalTest is Test {
         uint256 postSwapInternalPrice = solver.internalPrice();
 
         assertLt(postSwapInternalPrice, internalPrice);
+    }
+
+    function test_swap_eth_backtest() public realisticEth {
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = true;
+
+        // Try doing simulate swap to see if we get a similar result.
+        (bool valid,,, bytes memory payload) =
+            solver.simulateSwap(swapXIn, amountIn);
+
+        assertEq(valid, true);
+
+        dfmm.swap(payload);
     }
 }

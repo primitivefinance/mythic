@@ -171,11 +171,11 @@ impl Adjustment {
     pub fn new(original: Position, adjusted: Position) -> Self {
         Self { original, adjusted }
     }
-
+    #[allow(dead_code)]
     pub fn get_balance_delta(&self) -> f64 {
         self.adjusted.balance.unwrap_or(0.0) - self.original.balance.unwrap_or(0.0)
     }
-
+    #[allow(dead_code)]
     pub fn get_cost_delta(&self) -> f64 {
         self.adjusted.cost.unwrap_or(0.0) - self.original.cost.unwrap_or(0.0)
     }

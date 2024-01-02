@@ -839,6 +839,7 @@ impl ExcaliburContainer {
     // Levels
 
     /// The layer that is furthest away and therefore the darkest.
+    #[allow(dead_code)]
     pub fn bottom(mut self) -> Self {
         self.background = ExcaliburColor::Background1;
         self
@@ -881,6 +882,7 @@ impl ExcaliburContainer {
     }
 
     /// Choose your own color!
+    #[allow(dead_code)]
     pub fn background_rgb(mut self, r: f32, g: f32, b: f32) -> Self {
         self.background = ExcaliburColor::Custom(iced::Color::from_rgb(r, g, b));
         self
@@ -892,7 +894,7 @@ impl ExcaliburContainer {
     }
 
     // Border radius
-
+    #[allow(dead_code)]
     pub fn sharp(mut self) -> Self {
         self.border_radius = 0.0.into();
         self
@@ -909,7 +911,7 @@ impl ExcaliburContainer {
     }
 
     // Border
-
+    #[allow(dead_code)]
     pub fn border(mut self, color: ExcaliburColor, width: f32) -> Self {
         self.border_color = color;
         self.border_width = width;
@@ -921,7 +923,7 @@ impl ExcaliburContainer {
         self.border_width = 1.0;
         self
     }
-
+    #[allow(dead_code)]
     pub fn black_border(mut self) -> Self {
         self.border_color = ExcaliburColor::Custom(Color::BLACK);
         self.border_width = 2.0;
@@ -968,6 +970,7 @@ impl ExcaliburButton {
         self.style.as_custom()
     }
 
+    #[allow(dead_code)]
     pub fn style(mut self, style: CustomButtonStyle) -> Self {
         self.style = style;
         self
@@ -977,17 +980,18 @@ impl ExcaliburButton {
         self.style.current_state = ButtonState::Active;
         self
     }
-
+    #[allow(dead_code)]
     pub fn hovered(mut self) -> Self {
         self.style.current_state = ButtonState::Hovered;
         self
     }
-
+    #[allow(dead_code)]
     pub fn pressed(mut self) -> Self {
         self.style.current_state = ButtonState::Pressed;
         self
     }
-
+    // do we need disabled button state?
+    #[allow(dead_code)]
     pub fn disabled(mut self) -> Self {
         self.style.current_state = ButtonState::Disabled;
         self
@@ -1127,7 +1131,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
             headers: vec![],
         }
     }
-
+    #[allow(dead_code)]
     pub fn build(self, cells: Vec<CellBuilder<Message>>) -> TableBuilder<Message> {
         TableBuilder::new()
             .padding_cell(Sizes::Md)
@@ -1241,7 +1245,7 @@ impl ExcaliburChart {
     }
 
     // Configuring the chart
-
+    #[allow(dead_code)]
     pub fn series_color(mut self, index: usize, color: ExcaliburColor) -> Self {
         // Convert the Excalibur color into a plotters RGBA color.
         let color = color.color();
@@ -1256,6 +1260,7 @@ impl ExcaliburChart {
     }
 
     /// Add a series to the chart.
+    #[allow(dead_code)]
     pub fn series(mut self, series: ChartLineSeries) -> Self {
         self.chart.series(series);
         self
@@ -1271,6 +1276,7 @@ impl ExcaliburChart {
     }
 
     /// Add multiple series to the chart.
+    #[allow(dead_code)]
     pub fn many_series(mut self, new_series: Vec<ChartLineSeries>) -> Self {
         self.chart.extend_many_series(new_series);
         self
@@ -1287,12 +1293,14 @@ impl ExcaliburChart {
     }
 
     /// Add a point of interest to the chart.
+    #[allow(dead_code)]
     pub fn point_of_interest(mut self, point_of_interest: ChartPoint) -> Self {
         self.chart.point_of_interest(point_of_interest);
         self
     }
 
     /// Add multiple points of interest to the chart.
+    #[allow(dead_code)]
     pub fn points_of_interest(mut self, points_of_interest: Vec<ChartPoint>) -> Self {
         self.chart.points_of_interest(points_of_interest);
         self
@@ -1315,6 +1323,7 @@ impl ExcaliburChart {
     }
 
     // Chart templates
+    #[allow(dead_code)]
     pub fn rmm_trading_fn(mut self) -> Self {
         let log_normal_plot = basic_log_normal_curve();
         let mut series = coords_to_line_series(log_normal_plot);
@@ -1684,12 +1693,12 @@ impl CustomInputStyle {
         self.value_color = color.into();
         self
     }
-
+    #[allow(dead_code)]
     pub fn disabled_color(mut self, color: ExcaliburColor) -> Self {
         self.disabled_color = color.into();
         self
     }
-
+    #[allow(dead_code)]
     pub fn selection_color(mut self, color: ExcaliburColor) -> Self {
         self.selection_color = color.into();
         self
@@ -1736,7 +1745,7 @@ impl CustomInputStyle {
         }
         self
     }
-
+    #[allow(dead_code)]
     pub fn icon_color(mut self, color: ExcaliburColor) -> Self {
         match self.current {
             InputState::Active => self.active.icon_color = color.into(),

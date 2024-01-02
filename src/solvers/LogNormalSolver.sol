@@ -69,7 +69,11 @@ contract LogNormalSolver {
         bytes memory data = abi.encode(rx, ry, L);
         int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
         return computeNextRx(
-            ry, L, swapConstant, StrategyLike(strategy).dynamicSlotInternal()
+            ry,
+            L,
+            swapConstant,
+            rx,
+            StrategyLike(strategy).dynamicSlotInternal()
         );
     }
 
@@ -81,7 +85,11 @@ contract LogNormalSolver {
         bytes memory data = abi.encode(rx, ry, L);
         int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
         return computeNextRy(
-            rx, L, swapConstant, StrategyLike(strategy).dynamicSlotInternal()
+            rx,
+            L,
+            swapConstant,
+            ry,
+            StrategyLike(strategy).dynamicSlotInternal()
         );
     }
 

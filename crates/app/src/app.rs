@@ -786,6 +786,7 @@ impl AppClock {
     /// This function returns an Element that displays the average update time
     /// in milliseconds. The average update time is calculated over a
     /// duration of 30 seconds.
+    #[allow(dead_code)]
     pub fn view<Message>(&self) -> Element<'_, Message> {
         let average = self.average_cycle(Duration::from_secs(30));
         let average = format!("update time/s:  {}ms", average.as_millis());
@@ -814,25 +815,4 @@ async fn save_snapshot(
     tracing::debug!("Attempting to save anvil snapshot");
     // Call the snapshot method on the client and await the result.
     client.snapshot().await
-}
-
-#[cfg(test)]
-mod tests {
-
-    use criterion::Criterion;
-
-    fn cache_update_bench(_c: &mut Criterion) {
-        todo!("add benches for this")
-        // let storage = Storage::default();
-        // let chains = Chains::default();
-        // let mut app = App::new(storage, chains, Streams::default(), None).0;
-        // c.bench_function("cache_update", |b| {
-        // b.iter(|| {
-        // app.cache_update(CacheMessage::AppEvent(AppEventLog::new(
-        // "test".to_string(),
-        // "test".to_string(),
-        // )))
-        // })
-        // });
-    }
 }

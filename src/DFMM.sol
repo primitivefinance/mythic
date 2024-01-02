@@ -118,7 +118,7 @@ contract DFMM is ICore {
         (
             bool valid,
             int256 swapConstantGrowth,
-            int256 liquidityDelta,
+            int256 liquidityDelta, // this is unused, should we remove it?
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
@@ -132,20 +132,20 @@ contract DFMM is ICore {
         {
             _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
 
-            // bytes memory strategyData = IStrategy(strategy).dynamicSlot();
-            // (uint256 strike, uint256 sigma, uint256 tau) =
-            //     abi.decode(strategyData, (uint256, uint256, uint256));
+            bytes memory strategyData = IStrategy(strategy).dynamicSlot();
+            (uint256 strike, uint256 sigma, uint256 tau) =
+                abi.decode(strategyData, (uint256, uint256, uint256));
 
-            // emit LogPoolStats(
-            //     XXXXXXX,
-            //     YYYYYY,
-            //     LLLLLL,
-            //     swapConstantGrowth,
-            //     sigma,
-            //     strike,
-            //     tau,
-            //     block.timestamp
-            // );
+            emit LogPoolStats(
+                XXXXXXX,
+                YYYYYY,
+                LLLLLL,
+                swapConstantGrowth,
+                sigma,
+                strike,
+                tau,
+                block.timestamp
+            );
         }
     }
 

@@ -1,11 +1,11 @@
 use std::{collections::HashMap, fmt};
 
 use anyhow::Result;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use bindings::mock_erc20::MockERC20;
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
@@ -301,17 +301,17 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
 
         let (token_x, token_y) = protocol.get_tokens().await?;
         let (token_x, token_y) = (
-            MockERC20::new(token_x, client.clone()),
-            MockERC20::new(token_y, client.clone()),
+            ArbiterToken::new(token_x, client.clone()),
+            ArbiterToken::new(token_y, client.clone()),
         );
 
         token_x.mint(sender, amount_x_wad).send().await?;
         token_y.mint(sender, amount_y_wad).send().await?;
 
         Ok(protocol
-            .initialize(
-                price,
+            .initialize_pool(
                 amount_x,
+                price,
                 strike_price_wad,
                 sigma_percent_wad,
                 tau_years_wad,
@@ -349,7 +349,7 @@ mod tests {
     use ethers::utils::{format_ether, Anvil};
 
     use super::*;
-
+    #[allow(dead_code)]
     async fn setup() -> anyhow::Result<AnvilInstance> {
         let anvil = Anvil::default()
             .arg("--gas-limit")
@@ -358,21 +358,6 @@ mod tests {
             .spawn();
 
         Ok(anvil)
-    }
-
-    #[test]
-    fn test_get_deposit_amounts() {
-        use tracing_subscriber;
-
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .init();
-
-        let strike = 1.0;
-        let sigma = 1.0;
-        let tau = 1.0;
-        let price = 1.0;
-        let dollars = 1.0;
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -411,7 +396,7 @@ mod tests {
         println!("balance: {}", format_ether(balance));
         println!("alice balance: {}", format_ether(alice_balance));
 
-        let pay_tx = TransactionRequest::pay(
+        let _ = TransactionRequest::pay(
             alice_address,
             ethers::types::U256::from(1_000_000_000_000_000_000u128),
         );

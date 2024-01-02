@@ -30,6 +30,7 @@ pub fn get_config_dir() -> PathBuf {
     })
 }
 
+#[allow(dead_code)]
 pub fn get_data_dir() -> PathBuf {
     check_in_executable_dir().unwrap_or_else(|| {
         let dir = directories_next::ProjectDirs::from(QUALIFIER, ORGANIZATION, APPLICATION)

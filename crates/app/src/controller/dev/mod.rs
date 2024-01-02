@@ -36,6 +36,7 @@ impl From<DeveloperScreen> for Screen {
 }
 
 impl DeveloperScreen {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let assets = vec![
             Asset {

@@ -26,8 +26,11 @@ pub enum Message {
 
 #[derive(Debug, Clone, Default)]
 pub enum Page {
+    #[allow(dead_code)]
     Empty,
+    #[allow(dead_code)]
     Create,
+    #[allow(dead_code)]
     Dashboard,
     #[default]
     Monolithic,

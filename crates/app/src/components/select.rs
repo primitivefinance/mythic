@@ -25,7 +25,7 @@ where
         )
         .placeholder(placeholder.unwrap_or("Select an option".to_string()))
 }
-
+#[allow(dead_code)]
 pub fn excalibur_select<'a, Message, T>(
     options: impl Into<Cow<'a, [T]>>,
     selected: Option<T>,

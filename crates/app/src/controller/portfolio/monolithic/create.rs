@@ -63,6 +63,7 @@ impl Form {
         self.state = SubmitState::Failed;
     }
 
+    #[allow(dead_code)]
     pub fn validate_amount(&mut self) {
         self.error = None; // Reset error before validation
 
@@ -320,6 +321,7 @@ impl FormView {
     }
 
     /// Simple column of rows of review item elements.
+    #[allow(dead_code)]
     pub fn review_summary<'a, Message>(
         title: impl ToString,
         rows: Vec<impl Into<Element<'a, Message>>>,
@@ -582,6 +584,7 @@ impl FormView {
         )
     }
 
+    #[allow(dead_code)]
     pub fn duration_form<'a, Message>(
         choice_duration: Vec<Times>,
         chosen_duration: Option<Times>,
@@ -606,6 +609,7 @@ impl FormView {
         )
     }
 
+    #[allow(dead_code)]
     pub fn liquidity_type_form<'a, Message>(
         choice_liquidity: Vec<LiquidityTypes>,
         chosen_liquidity: Option<LiquidityTypes>,
@@ -649,6 +653,7 @@ impl FormView {
         )
     }
 
+    #[allow(dead_code)]
     pub fn target_price_form<'a, Message>(
         target_price: Option<String>,
         on_change_end_price: impl Fn(Option<String>) -> Message + 'a,

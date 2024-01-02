@@ -13,6 +13,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
+    #[allow(dead_code)]
     pub async fn new<D: EthEvent + Debug + 'static, P: PubsubClient + 'static>(
         client: Arc<Provider<P>>,
         block: impl Into<BlockNumber>,

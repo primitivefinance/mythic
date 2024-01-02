@@ -203,7 +203,7 @@ impl CartesianChart {
             ..Default::default()
         }
     }
-
+    #[allow(dead_code)]
     pub fn series(&mut self, new_series: ChartLineSeries) {
         self.series.push(new_series);
     }
@@ -218,14 +218,17 @@ impl CartesianChart {
         self.points = new_points;
     }
 
+    #[allow(dead_code)]
     pub fn extend_many_series(&mut self, new_series: Vec<ChartLineSeries>) {
         self.series.extend(new_series);
     }
 
+    #[allow(dead_code)]
     pub fn point_of_interest(&mut self, new_point: ChartPoint) {
         self.points.push(new_point);
     }
 
+    #[allow(dead_code)]
     pub fn points_of_interest(&mut self, new_points: Vec<ChartPoint>) {
         self.points.extend(new_points);
     }
@@ -1091,7 +1094,7 @@ fn near_boundaries(
         left,
     }
 }
-
+#[allow(dead_code)]
 pub fn basic_log_normal_curve() -> Vec<(f32, f32)> {
     let x_min = 0.0;
     let x_max = 1.0;
@@ -1113,6 +1116,7 @@ pub fn basic_log_normal_curve() -> Vec<(f32, f32)> {
 }
 
 /// Plot the points of the basic normal liq distribution.
+#[allow(dead_code)]
 pub fn basic_liq_dist_curve() -> Vec<(f32, f32)> {
     let x_min = 0.01;
     let x_max = 1.0;

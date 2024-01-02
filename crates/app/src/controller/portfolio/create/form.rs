@@ -71,6 +71,7 @@ impl Form {
     }
 
     /// Formats the current form into a 2D table data vector.
+    #[allow(dead_code)]
     pub fn table_data(&self) -> Vec<Vec<String>> {
         let mut data = vec![];
         for asset in self.assets.iter().filter(|x| x.selected) {
@@ -129,11 +130,11 @@ impl Form {
             "Select".to_string(),
         ]
     }
-
+    #[allow(dead_code)]
     pub fn cell_builder(&self) -> CellBuilder<Message> {
         CellBuilder::new()
     }
-
+    #[allow(dead_code)]
     pub fn row_builder(&self) -> RowBuilder<Message> {
         RowBuilder::new()
     }

@@ -88,12 +88,12 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     pub async fn get_init_payload(
         &self,
         init_reserve_x_wad: U256,
-        init_liquidity_wad: U256,
+        init_price_wad: U256,
         init_params: PoolParams,
     ) -> Result<ethers::types::Bytes> {
         let init_data = self
             .solver
-            .get_initial_pool_data(init_reserve_x_wad, init_liquidity_wad, init_params)
+            .get_initial_pool_data(init_reserve_x_wad, init_price_wad, init_params)
             .call()
             .await?;
         Ok(init_data)
@@ -104,10 +104,10 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 
     #[tracing::instrument(skip(self), level = "debug")]
-    pub async fn initialize(
+    pub async fn initialize_pool(
         &self,
-        init_price_wad: F64Wad,
         init_reserve_x_wad: F64Wad,
+        init_price_wad: F64Wad,
         strike_price_wad: F64Wad,
         sigma_percent_wad: F64Wad,
         tau_years_wad: F64Wad,
@@ -120,6 +120,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             sigma: to_wad(sigma_percent_wad),
             tau: to_wad(tau_years_wad),
         };
+        println!("reserve x wad: {}", init_reserve_x_wad);
 
         let init_reserve_x_wad = to_wad(init_reserve_x_wad);
         let init_price_wad = to_wad(init_price_wad);
