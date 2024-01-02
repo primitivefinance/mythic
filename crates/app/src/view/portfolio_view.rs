@@ -18,16 +18,12 @@ pub trait ValueToLabel<V> {
     fn to_label(&self) -> ExcaliburText;
 }
 
-impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
+impl ValueToLabel<Option<AlloyU256>> for AlloyU256 {
     fn to_label(&self) -> ExcaliburText {
-        if let Some(value) = self {
-            let value = alloy_primitives::utils::format_ether(*value);
-            match value.parse::<f64>() {
-                Ok(_) => label(&value).quantitative().title1(),
-                Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
-            }
-        } else {
-            label("N/A").title1().secondary()
+        let value = alloy_primitives::utils::format_ether(*self);
+        match value.parse::<f64>() {
+            Ok(_) => label(&value).quantitative().title1(),
+            Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
         }
     }
 }
@@ -215,7 +211,7 @@ impl PortfolioPresenter {
         self.model.portfolio.latest_block
     }
     #[allow(dead_code)]
-    pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
+    pub fn get_block_timestamp(&self) -> DateTime<Utc> {
         self.model.portfolio.latest_timestamp
     }
     #[allow(dead_code)]
@@ -257,10 +253,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         let data = self.model.portfolio.latest_timestamp;
-        match data {
-            Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
-            None => label("Timestamp: N/A").caption().tertiary(),
-        }
+        label(format!("Timestamp: {:}", data)).caption().tertiary()
     }
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {

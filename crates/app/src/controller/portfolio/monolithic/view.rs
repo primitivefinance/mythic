@@ -89,10 +89,7 @@ impl MonolithicPresenter {
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         let data = self.model.portfolio.latest_timestamp;
-        match data {
-            Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
-            None => label("Timestamp: N/A").caption().tertiary(),
-        }
+        label(format!("Timestamp: {:}", data)).caption().tertiary()
     }
 
     pub fn get_aum(&self) -> String {

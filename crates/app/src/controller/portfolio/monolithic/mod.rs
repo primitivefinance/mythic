@@ -141,11 +141,9 @@ impl Monolithic {
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
 
-                let asset_price = self.model.portfolio.external_spot_price;
-                let asset_price = match asset_price {
-                    Some(x) => format_ether(x).parse::<f64>(),
-                    None => return Err(anyhow::anyhow!("No asset price")),
-                };
+                let asset_price =
+                    format_ether(self.model.portfolio.external_spot_price).parse::<f64>();
+
                 let asset_price = match asset_price {
                     Ok(x) => x,
                     Err(_) => return Err(anyhow::anyhow!("Failed to parse")),
@@ -226,11 +224,9 @@ impl Monolithic {
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
 
-                let external_price = self.model.portfolio.external_spot_price;
-                let external_price = match external_price {
-                    Some(x) => format_ether(x).parse::<f64>().unwrap(),
-                    None => return Command::none(),
-                };
+                let external_price = format_ether(self.model.portfolio.external_spot_price)
+                    .parse::<f64>()
+                    .unwrap();
 
                 // Sync the strategy preview chart.
                 let parameters = liquidity.to_parameters(external_price);
