@@ -1,6 +1,6 @@
 //! Entire Excalibur component system.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use iced::{
     widget::{component, text_input, tooltip, Component},

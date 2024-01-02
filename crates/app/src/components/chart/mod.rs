@@ -3,7 +3,7 @@
 //! To accomplish that we need to update the plot as the x and y ranges change
 //! with the user's scrolling or dragging.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 use cfmm_math::trading_functions::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
@@ -12,11 +12,7 @@ use iced::{
     widget::canvas::{self},
     Element, Length, Point,
 };
-use plotters::{
-    coord::ReverseCoordTranslate,
-    prelude::*,
-    style::{colors, full_palette::DEEPPURPLE_A400},
-};
+use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
 use plotters_iced::{Chart, ChartWidget};
 
 /// A point to plot on the chart.
@@ -1179,9 +1175,9 @@ impl Chart<ChartMessage> for HistogramChart {
     fn update(
         &self,
         state: &mut Self::State,
-        event: canvas::Event,
-        bounds: iced::Rectangle,
-        cursor: Cursor,
+        _event: canvas::Event,
+        _bounds: iced::Rectangle,
+        _cursor: Cursor,
     ) -> (event::Status, Option<ChartMessage>) {
         // Occurs once when the override flag is set.
         // This is because we only have mutable state, but reference to self.
@@ -1196,7 +1192,7 @@ impl Chart<ChartMessage> for HistogramChart {
         (event::Status::Ignored, None)
     }
 
-    fn build_chart<DB: DrawingBackend>(&self, state: &Self::State, mut builder: ChartBuilder<DB>) {
+    fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
         // Calculate the minimum and maximum bins and counts
         let min_bin = *self.data.keys().min().unwrap_or(&0);
         let max_bin = *self.data.keys().max().unwrap_or(&100);
@@ -1231,7 +1227,7 @@ impl Chart<ChartMessage> for HistogramChart {
                 }
                 _ => String::from(""),
             })
-            .y_label_formatter(&|y| format!("{:.2}x", *y as f32 / self.histogram_scalar as f32))
+            .y_label_formatter(&|y| format!("{:.2}x", *y / self.histogram_scalar as f32))
             .y_labels(self.y_labels)
             .y_desc("Leverage")
             .x_desc("Price")
@@ -1244,7 +1240,7 @@ impl Chart<ChartMessage> for HistogramChart {
             let area = chart.plotting_area();
             let text = Text::new(
                 "No data",
-                (SegmentValue::from(50u32), 50.0 as f32),
+                (SegmentValue::from(50u32), 50.0_f32),
                 ("sans-serif", self.label_font_size)
                     .into_font()
                     .color(&self.border_color),
