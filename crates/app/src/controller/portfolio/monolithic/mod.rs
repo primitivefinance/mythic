@@ -334,7 +334,7 @@ impl State for Monolithic {
             content = content.push(
                 self.create
                     .view::<FormMessage>(
-                        &self.presenter.cached_strategy_preview,
+                        &self.presenter.cached_strategy_histogram,
                         &self.create_status,
                         Some(FormMessage::Close),
                         self.submit_ready(),

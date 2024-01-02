@@ -279,7 +279,7 @@ pub fn liq_distribution(
 }
 
 /// P_x(x) = K e^(phi^-1(1 - x / L) sigma sqrt(t) - 1/2 sigma^2 t)
-/// x(P_x) = L * (1 - phi((ln(P_x / K) + 1/2 sigma^2 t) / sigma sqrt(t)))
+/// x(P_x) = L * (1 - phi( [ln(P_x / K) + 1/2 sigma^2 t] / sigma sqrt(t) ))
 #[tracing::instrument(level = "trace")]
 pub fn compute_x_given_price(
     spot_price_float: f64,

@@ -8,7 +8,7 @@ use crate::{
         select::excalibur_select,
         system::{
             ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer,
-            ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
+            ExcaliburHistogram, ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
         },
     },
     controller::portfolio::dashboard::stages::review::EnumList,
@@ -83,7 +83,7 @@ impl Form {
     #[allow(clippy::too_many_arguments)]
     pub fn view<'a, Message>(
         &'a self,
-        preview_chart: &'a ExcaliburChart,
+        preview_chart: &'a ExcaliburHistogram,
         state: &SubmitState,
         on_close: Option<Message>,
         submit: Option<Message>,
@@ -125,7 +125,7 @@ impl Form {
                     state,
                     &self.error
                 ),
-                FormView::chart_layout(
+                FormView::chart_layout_histogram(
                     preview_chart,
                     label("Strategy Preview").secondary(),
                     label("Synced").caption2().tertiary(),
@@ -161,8 +161,8 @@ impl LiquidityTypes {
     pub fn to_parameters(self, current_price: f64) -> LiquidityTemplateParameters {
         match self {
             LiquidityTypes::Low => LiquidityTemplateParameters {
-                strike_price_wad: current_price * 1.5,
-                sigma_percent_wad: 0.3,
+                strike_price_wad: current_price,
+                sigma_percent_wad: 0.7,
                 time_remaining_years_wad: 1.0,
             },
             LiquidityTypes::Med => LiquidityTemplateParameters {
@@ -171,7 +171,7 @@ impl LiquidityTypes {
                 time_remaining_years_wad: 1.0,
             },
             LiquidityTypes::High => LiquidityTemplateParameters {
-                strike_price_wad: current_price * 1.1,
+                strike_price_wad: current_price,
                 sigma_percent_wad: 1.3,
                 time_remaining_years_wad: 1.0,
             },
@@ -707,6 +707,32 @@ impl FormView {
     /// Layout of the chart.
     pub fn chart_layout<'a, Message>(
         chart: &'a ExcaliburChart,
+        chart_title: ExcaliburText,
+        sync_timestamp: ExcaliburText,
+    ) -> Column<'a, Message>
+    where
+        Message: 'a + Default,
+    {
+        Column::new()
+            .spacing(Sizes::Md)
+            .push(
+                Row::new()
+                    .align_items(alignment::Alignment::Center)
+                    .spacing(Sizes::Md)
+                    .push(chart_title.build())
+                    .push(sync_timestamp.build()),
+            )
+            .push(
+                ExcaliburContainer::default()
+                    .build(chart.build().map(|_| Message::default()))
+                    .width(Length::Fill)
+                    .height(350.0),
+            )
+    }
+
+    /// Layout of the chart.
+    pub fn chart_layout_histogram<'a, Message>(
+        chart: &'a ExcaliburHistogram,
         chart_title: ExcaliburText,
         sync_timestamp: ExcaliburText,
     ) -> Column<'a, Message>

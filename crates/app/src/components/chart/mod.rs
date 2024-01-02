@@ -3,6 +3,8 @@
 //! To accomplish that we need to update the plot as the x and y ranges change
 //! with the user's scrolling or dragging.
 
+use std::collections::BTreeMap;
+
 use cfmm_math::trading_functions::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
     event,
@@ -1042,6 +1044,254 @@ impl Chart<ChartMessage> for CartesianChart {
             ))
             .expect("Failed to plot lines");
 
+        // Draw the labels on the chart.
+        chart
+            .configure_series_labels()
+            .background_style(self.legend_background_color.filled())
+            .border_style(colors::full_palette::BLACK)
+            .position(SeriesLabelPosition::UpperLeft)
+            .label_font(("sans-serif", self.legend_font_size, &self.label_text_style))
+            .margin(self.legend_margin)
+            .draw()
+            .expect("Failed to draw labels");
+    }
+}
+
+/// A chart that plots a histogram.
+#[derive(Debug, Clone)]
+pub struct HistogramChart {
+    /// The data to plot.
+    pub data: BTreeMap<u32, u32>,
+    /// Highlights these notable bars.
+    pub notable_bars: BTreeMap<u32, u32>,
+    /// Color of the highlighted bars.
+    pub notable_bar_color: RGBColor,
+    /// Label margins
+    pub axis_margin: [u32; 4],
+    /// The x-axis and y-axis ranges of the chart.
+    pub range: CartesianRanges,
+    pub override_ranges: bool,
+    /// The bar color.
+    pub bar_color: RGBColor,
+    /// The axis label text styling. todo: support beyond just color.
+    pub axis_text_style: RGBAColor,
+    /// The axis mesh styling. i.e. y = 0, x = 0.
+    pub axis_mesh_style: RGBAColor,
+    /// The mesh grid styling.
+    pub mesh_grid_style: RGBAColor,
+    /// Maximum quantity of labels on the y-axis.
+    pub y_labels: usize,
+    /// Maximum quantity of labels on the x-axis.
+    pub x_labels: usize,
+    /// Maximum amount of in between mesh lines between labels.
+    pub max_light_lines: usize,
+    /// Chart border color.
+    pub border_color: RGBAColor,
+    /// Color of the label text.
+    pub label_text_style: RGBAColor,
+    /// Font size of the label text.
+    pub label_font_size: f32,
+    /// Background color of the legend.
+    pub legend_background_color: RGBAColor,
+    /// Legend margin
+    pub legend_margin: u32,
+    /// Legend text font size.
+    pub legend_font_size: f32,
+    /// todo: offer dynamic legend labels
+    pub legend_label: String,
+    /// todo: handle the scales better, but this is scaled because the x and y
+    /// values are unsigned integers.
+    pub histogram_scalar: u32,
+}
+
+impl Default for HistogramChart {
+    fn default() -> Self {
+        Self {
+            data: BTreeMap::new(),
+            notable_bars: BTreeMap::new(),
+            notable_bar_color: colors::full_palette::PURPLE_A400,
+            axis_margin: [0, 80, 45, 0],
+            range: CartesianRanges::default(),
+            override_ranges: false,
+            bar_color: colors::full_palette::DEEPPURPLE_A400,
+            axis_text_style: colors::full_palette::GREY_600.into(),
+            axis_mesh_style: colors::TRANSPARENT,
+            mesh_grid_style: RGBAColor(0x1c, 0x1c, 0x1c, 0.8),
+            y_labels: 5,
+            x_labels: 5,
+            max_light_lines: 1,
+            border_color: colors::full_palette::GREY_800.into(),
+            label_text_style: colors::WHITE.into(),
+            label_font_size: 15.0,
+            legend_background_color: colors::BLACK.into(),
+            legend_margin: 10,
+            legend_font_size: 10.0,
+            legend_label: "Price".to_string(),
+            histogram_scalar: 100u32,
+        }
+    }
+}
+
+impl HistogramChart {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn view(&self) -> Element<ChartMessage> {
+        let chart = ChartWidget::new(self)
+            .width(Length::Fill)
+            .height(Length::Fill);
+
+        chart.into()
+    }
+
+    pub fn with_axis_margin(mut self, axis_margin: [u32; 4]) -> Self {
+        self.axis_margin = axis_margin;
+        self
+    }
+}
+
+impl Chart<ChartMessage> for HistogramChart {
+    type State = ChartState;
+
+    /// Renders a crosshair when in the chart area.
+    fn mouse_interaction(
+        &self,
+        _state: &Self::State,
+        bounds: iced::Rectangle,
+        cursor: Cursor,
+    ) -> iced::mouse::Interaction {
+        if let Cursor::Available(point) = cursor {
+            if !_state.can_interact {
+                return iced::mouse::Interaction::default();
+            }
+
+            if bounds.contains(point) {
+                return iced::mouse::Interaction::Crosshair;
+            }
+        }
+
+        iced::mouse::Interaction::default()
+    }
+
+    /// Sets the [`State`] with the position of the cursor.
+    fn update(
+        &self,
+        state: &mut Self::State,
+        _event: canvas::Event,
+        _bounds: iced::Rectangle,
+        _cursor: Cursor,
+    ) -> (event::Status, Option<ChartMessage>) {
+        // Occurs once when the override flag is set.
+        // This is because we only have mutable state, but reference to self.
+        // Which makes it awkward to update the ranges used by the graph from outside
+        // the graph's state context.
+        if self.override_ranges && !state.permanent_override {
+            state.range = self.range.clone();
+            state.original_range = Some(self.range.clone());
+            state.permanent_override = true;
+        }
+
+        (event::Status::Ignored, None)
+    }
+
+    fn build_chart<DB: DrawingBackend>(&self, _state: &Self::State, mut builder: ChartBuilder<DB>) {
+        // Calculate the minimum and maximum bins and counts
+        let min_bin = *self.data.keys().min().unwrap_or(&0);
+        let max_bin = *self.data.keys().max().unwrap_or(&100);
+
+        let min_count = *self.data.values().min().unwrap_or(&0) as f32;
+        let max_count = *self.data.values().max().unwrap_or(&100) as f32;
+
+        // Create the initial chart with the builder using the component's
+        // CartesianRanges.
+        let mut chart = builder
+            .top_x_label_area_size(self.axis_margin[0])
+            .right_y_label_area_size(self.axis_margin[1])
+            .x_label_area_size(self.axis_margin[2])
+            .y_label_area_size(self.axis_margin[3])
+            .build_cartesian_2d((min_bin..max_bin).into_segmented(), min_count..max_count)
+            .expect("Failed to build chart");
+
+        // Draw the background mesh grid and axis labels.
+        chart
+            .configure_mesh()
+            .disable_x_mesh()
+            .label_style(&self.axis_text_style)
+            .axis_style(self.axis_mesh_style)
+            .light_line_style(self.mesh_grid_style)
+            .max_light_lines(self.max_light_lines)
+            .x_label_formatter(&|x| match x {
+                plotters::prelude::SegmentValue::Exact(val) => {
+                    format!("{:.2}", (*val as f32) / self.histogram_scalar as f32)
+                }
+                plotters::prelude::SegmentValue::CenterOf(val) => {
+                    format!("{:.2}", (*val as f32) / self.histogram_scalar as f32)
+                }
+                _ => String::from(""),
+            })
+            .y_label_formatter(&|y| format!("{:.2}x", *y / self.histogram_scalar as f32))
+            .y_labels(self.y_labels)
+            .y_desc("Leverage")
+            .x_desc("Price")
+            .draw()
+            .expect("Failed to draw chart mesh");
+
+        // If there is no chart plots or series, return an empty chart with a "No data"
+        // text element.
+        if self.data.is_empty() {
+            let area = chart.plotting_area();
+            let text = Text::new(
+                "No data",
+                (SegmentValue::from(50u32), 50.0_f32),
+                ("sans-serif", self.label_font_size)
+                    .into_font()
+                    .color(&self.border_color),
+            );
+            area.draw(&text).expect("Failed to draw text");
+            return;
+        }
+
+        let histogram_iter = self.data.iter().map(|(&bin, &count)| (bin, count as f32));
+
+        chart
+            .draw_series(
+                Histogram::vertical(&chart)
+                    .style(self.bar_color.filled())
+                    .data(histogram_iter),
+            )
+            .unwrap();
+
+        // Draw the notable bars, if any.
+        if !self.notable_bars.is_empty() {
+            let notable_iter = self
+                .notable_bars
+                .iter()
+                .map(|(&bin, &count)| (bin, count as f32));
+
+            let legend_color = self.notable_bar_color;
+
+            let notable_bar_bin = self.notable_bars.keys().next().unwrap_or(&0);
+            let notable_bar_bin_scaled = *notable_bar_bin as f32 / self.histogram_scalar as f32;
+            let notable_label = format!("{}: {}", self.legend_label, notable_bar_bin_scaled);
+
+            chart
+                .draw_series(
+                    Histogram::vertical(&chart)
+                        .style(self.notable_bar_color.filled())
+                        .data(notable_iter),
+                )
+                .expect("Could not draw notable bars on histogram chart.")
+                .label(notable_label)
+                .legend(move |(x, y)| {
+                    PathElement::new(
+                        vec![(x, y), (x + 20, y)],
+                        legend_color.filled().stroke_width(2),
+                    )
+                });
+        }
+
+        // Add the legend for the notable bars.
         // Draw the labels on the chart.
         chart
             .configure_series_labels()
