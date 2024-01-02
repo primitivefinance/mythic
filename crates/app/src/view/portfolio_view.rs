@@ -18,16 +18,12 @@ pub trait ValueToLabel<V> {
     fn to_label(&self) -> ExcaliburText;
 }
 
-impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
+impl ValueToLabel<Option<AlloyU256>> for AlloyU256 {
     fn to_label(&self) -> ExcaliburText {
-        if let Some(value) = self {
-            let value = alloy_primitives::utils::format_ether(*value);
-            match value.parse::<f64>() {
-                Ok(_) => label(&value).quantitative().title1(),
-                Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
-            }
-        } else {
-            label("N/A").title1().secondary()
+        let value = alloy_primitives::utils::format_ether(*self);
+        match value.parse::<f64>() {
+            Ok(_) => label(&value).quantitative().title1(),
+            Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
         }
     }
 }
@@ -223,20 +219,20 @@ impl PortfolioPresenter {
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
         self.model
             .get_current()
-            .and_then(|x| x.latest_timestamp)
+            .and_then(|x| Some(x.latest_timestamp))
     }
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
         self.model
             .get_current()
-            .and_then(|x| x.internal_spot_price)
+            .and_then(|x| Some(x.internal_spot_price))
             .to_label()
     }
 
     pub fn get_external_price(&self) -> ExcaliburText {
         self.model
             .get_current()
-            .and_then(|x| x.external_spot_price)
+            .and_then(|x| Some(x.external_spot_price))
             .to_label()
     }
 

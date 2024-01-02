@@ -266,6 +266,7 @@ impl Saveable for Model {
     }
 
     /// Creates a new user save.
+    // This is where the bug is
     fn create_new(name: Option<String>) -> anyhow::Result<Self, anyhow::Error> {
         // Check the org directory exists, if not, create it.
         if !Self::org_dir().exists() {

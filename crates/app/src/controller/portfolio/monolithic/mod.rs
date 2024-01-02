@@ -158,6 +158,7 @@ impl Monolithic {
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
 
+<<<<<<< HEAD
                 if self.model.get_current().is_none() {
                     return Err(anyhow::anyhow!(
                         "Data model is not connected to any network."
@@ -170,6 +171,11 @@ impl Monolithic {
                     Some(x) => format_ether(x).parse::<f64>(),
                     None => return Err(anyhow::anyhow!("No asset price")),
                 };
+=======
+                let asset_price =
+                    format_ether(self.model.portfolio.external_spot_price).parse::<f64>();
+
+>>>>>>> 10fac4f (model improvements)
                 let asset_price = match asset_price {
                     Ok(x) => x,
                     Err(_) => return Err(anyhow::anyhow!("Failed to parse")),
@@ -256,6 +262,7 @@ impl Monolithic {
                         None => return Command::none(),
                     };
 
+<<<<<<< HEAD
                     // Sync the strategy preview chart.
                     let parameters = liquidity.to_parameters(external_price);
                     self.presenter.sync_strategy_preview(
@@ -263,6 +270,11 @@ impl Monolithic {
                         parameters.sigma_percent_wad,
                         parameters.time_remaining_years_wad,
                     );
+=======
+                let external_price = format_ether(self.model.portfolio.external_spot_price)
+                    .parse::<f64>()
+                    .unwrap();
+>>>>>>> 10fac4f (model improvements)
 
                     Command::perform(async {}, |_| Message::Refresh)
                 } else {

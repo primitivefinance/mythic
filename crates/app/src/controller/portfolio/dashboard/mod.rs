@@ -285,8 +285,7 @@ impl State for Dashboard {
                     }
                 };
 
-                if let (Some(lex), Some(client)) = (&self.model.portfolio.lex_address, &self.client)
-                {
+                if let (lex, Some(client)) = (&self.model.portfolio.lex_address, &self.client) {
                     tracing::info!("Tick, updating price.");
                     let client = client.client().cloned().unwrap();
                     // for testing live price chart.

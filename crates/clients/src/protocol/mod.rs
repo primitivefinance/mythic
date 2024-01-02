@@ -67,7 +67,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
         let solver = LogNormalSolver::deploy(client.clone(), strategy)?
             .send()
-            .await.unwrap();
+            .await
+            .unwrap();
         Ok(Self {
             client,
             dfmm,

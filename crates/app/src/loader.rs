@@ -63,7 +63,7 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
             tracing::warn!("Failed to load profile: {:?}", e);
             tracing::info!("Creating a new default profile.");
 
-            UserProfile::create_new(None)?
+            UserProfile::create_new(None).unwrap()
         }
     };
 
@@ -129,7 +129,9 @@ pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
-pub async fn load_app(flags: super::Flags) -> (Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>) {
+pub async fn load_app(
+    flags: super::Flags,
+) -> (Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>) {
     // Load the user's save or create a new one.
 
     let mut model = load_user_data().unwrap();
