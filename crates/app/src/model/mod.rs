@@ -216,7 +216,7 @@ impl Saveable for Model {
 
     /// Creates a new user save.
     // This is where the bug is
-    fn create_new(name: Option<String>) -> anyhow::Result<Self, anyhow::Error> {
+    fn create_new(name: Option<String>) -> Self {
         // Check the org directory exists, if not, create it.
         if !Self::org_dir().exists() {
             println!("Creating org directory: {:?}", Self::org_dir());
@@ -228,14 +228,14 @@ impl Saveable for Model {
             println!("Creating app directory: {:?}", Self::app_dir());
             std::fs::create_dir(Self::app_dir()).expect("Failed to create app directory.");
         }
-
+        println!("name: {:?}", name);
         let user_data_file = match name.clone() {
             Some(name) => Self::file_path_with_name(name),
             None => Self::path(),
         };
         // Don't overwrite existing profiles.
         if user_data_file.exists() {
-            return Self::load(Some(user_data_file));
+            return Self::load(Some(user_data_file)).unwrap();
         }
 
         let mut formatted_path = Self::file_name_ending();
@@ -244,15 +244,15 @@ impl Saveable for Model {
         }
 
         let profile_path = Self::dir().join(formatted_path);
-        let file = File::create(profile_path)?;
+        let file = File::create(profile_path).unwrap();
 
         let value = Model {
             user: UserProfile::default(),
             portfolio: portfolio::DataModel::new(),
         };
 
-        serde_json::to_writer_pretty(file, &value)?;
+        serde_json::to_writer_pretty(file, &value).unwrap();
 
-        Ok(value)
+        value
     }
 }
