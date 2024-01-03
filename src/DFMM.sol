@@ -103,7 +103,12 @@ contract DFMM is ICore {
         if (!valid) {
             revert Invalid(invariant < 0, abs(invariant));
         }
-
+        if (
+            balanceOf[msg.sender] != 0 && feeGrowth != feeGrowthLast[msg.sender]
+        ) {
+            uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
+            balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
+        }
         uint256 deltaX = rx - reserveXWad;
         uint256 deltaY = ry - reserveYWad;
         uint256 deltaL = L - totalLiquidity;
@@ -126,6 +131,14 @@ contract DFMM is ICore {
             IStrategy(strategy).validateAllocationOrDeallocation(data);
         if (!valid) {
             revert Invalid(invariant < 0, abs(invariant));
+        }
+
+        if (
+            balanceOf[msg.sender] != 0 && feeGrowth != feeGrowthLast[msg.sender]
+        ) {
+            uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
+            balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
+            console2.log("in here");
         }
 
         uint256 deltaX = reserveXWad - rx;
@@ -163,6 +176,7 @@ contract DFMM is ICore {
         totalLiquidity = LLLLLL;
         balanceOf[msg.sender] = LLLLLL;
         feeGrowth = 1 ether;
+        feeGrowthLast[msg.sender] = feeGrowth;
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
         emit Init(msg.sender, strategy, XXXXXXX, YYYYYY, LLLLLL);
