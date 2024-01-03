@@ -131,11 +131,11 @@ pub struct DataModel<A, V> {
 
     // Info
     pub latest_timestamp: Option<DateTime<Utc>>,
-    pub latest_block: Option<u64>,
+    pub latest_block: u64,
 
     // User historical transactions
     pub user_historical_transactions: Option<Vec<HistoricalTx>>,
-    pub last_historical_transaction_sync_block: Option<u64>,
+    pub last_historical_transaction_sync_block: u64,
 }
 
 sol! {
@@ -244,13 +244,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
+
         // Update sync block + timestamp first, since the other update methods need it.
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
         self.update_last_sync_timestamp()?;
-
-        // what is going on here?
-        self.last_historical_transaction_sync_block = Some(0);
 
         // Update state first.
         self.update_token_balances(client.clone()).await?;
@@ -267,19 +265,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
         // Update prices.
         self.update_external_prices(client.clone()).await?;
 
-        // Update series data.
-        self.update_portfolio_value_series(client.clone()).await?;
-        self.update_external_price_series(client.clone()).await?;
-        self.update_user_asset_value_series(client.clone()).await?;
-        self.update_user_quote_value_series(client.clone()).await?;
-
-        self.update_unallocated_portfolio_value_series(client.clone())
-            .await?;
-        self.update_protocol_asset_value_series(client.clone())
-            .await?;
-        self.update_protocol_quote_value_series(client.clone())
-            .await?;
-
         // Update historical tx
         // todo: this is dependent on the external price series!
         // todo: how do we handle dependent values better?
@@ -295,6 +280,19 @@ impl DataModel<AlloyAddress, AlloyU256> {
         // Finally update cached data, which will only update if conditions are met.
         self.update_cached(client.clone()).await?;
 
+        // Update series data.
+        self.update_series()?;
+        Ok(())
+    }
+
+    pub fn update_series(&mut self) -> Result<()> {
+        self.update_portfolio_value_series()?;
+        self.update_external_price_series()?;
+        self.update_user_asset_value_series()?;
+        self.update_user_quote_value_series()?;
+        self.update_unallocated_portfolio_value_series()?;
+        self.update_protocol_asset_value_series()?;
+        self.update_protocol_quote_value_series()?;
         Ok(())
     }
 
@@ -307,9 +305,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     {
         let current_block = self.fetch_block_number(client.clone()).await?;
         let last_block = self
-            .last_historical_transaction_sync_block
-            .ok_or(Error::msg("Last historical chain data sync block not set"))?;
-
+            .last_historical_transaction_sync_block;
         let user_address = self
             .user_address
             .ok_or(Error::msg("User address not set"))?;
@@ -684,8 +680,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         &mut self,
         client: Arc<M>,
     ) -> Result<()> {
-        let block_number = self.fetch_block_number(client.clone()).await?;
-        self.latest_block = Some(block_number);
+        self.latest_block = self.fetch_block_number(client.clone()).await?;
         Ok(())
     }
 
@@ -891,7 +886,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<()> {
         let internal_price = self.fetch_internal_price(client.clone()).await?;
-
         self.internal_spot_price = Some(internal_price);
 
         Ok(())
@@ -918,24 +912,15 @@ impl DataModel<AlloyAddress, AlloyU256> {
     /// if the current block number is greater than the last block number.
     /// todo: might need to separate the series subscriptions so they don't
     /// throw errors and block the main upate.
-    async fn update_portfolio_value_series<M: Middleware + 'static>(
+    fn update_portfolio_value_series(
         &mut self,
-        client: Arc<M>,
     ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
     {
-        // Check the current last sync block number, if its the same as the current one,
-        // continue. Else, refetch and update the data.
-        // maybe we cache the latest block number before we
-        // update everything so we only do it once per update model
-        let block_number = self.fetch_block_number(client.clone()).await?;
-
         // Only update the series if the last element in the series is behind the
         // current block number.
         if let Some(series) = &self.portfolio_values_series {
             let last_element = series.last().unwrap();
-            if last_element.0 >= block_number {
+            if last_element.0 >= self.latest_block {
                 return Ok(());
             }
         }
@@ -943,30 +928,24 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let portfolio_value = self.derive_external_portfolio_value()?;
 
         if let Some(series) = &mut self.portfolio_values_series {
-            series.push((block_number, portfolio_value));
+            series.push((self.latest_block, portfolio_value));
         } else {
-            self.portfolio_values_series = Some(vec![(block_number, portfolio_value)]);
+            self.portfolio_values_series = Some(vec![(self.latest_block, portfolio_value)]);
         }
 
         Ok(())
     }
 
-    async fn update_unallocated_portfolio_value_series<M: Middleware + 'static>(
+    fn update_unallocated_portfolio_value_series(
         &mut self,
-        client: Arc<M>,
     ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
     {
-        // Check the current last sync block number, if its the same as the current one,
-        // continue. Else, refetch and update the data.
-        let block_number = self.fetch_block_number(client.clone()).await?;
 
         // Only update the series if the last element in the series is behind the
         // current block number.
         if let Some(series) = &self.unallocated_portfolio_value_series {
             let last_element = series.last().unwrap();
-            if last_element.0 >= block_number {
+            if last_element.0 >= self.latest_block {
                 return Ok(());
             }
         }
@@ -974,26 +953,22 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let portfolio_value = self.derive_unallocated_position_value()?;
 
         if let Some(series) = &mut self.unallocated_portfolio_value_series {
-            series.push((block_number, portfolio_value));
+            series.push((self.latest_block, portfolio_value));
         } else {
-            self.unallocated_portfolio_value_series = Some(vec![(block_number, portfolio_value)]);
+            self.unallocated_portfolio_value_series = Some(vec![(self.latest_block, portfolio_value)]);
         }
 
         Ok(())
     }
 
-    async fn update_external_price_series<M: Middleware + 'static>(
+    fn update_external_price_series(
         &mut self,
-        client: Arc<M>,
     ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 > block_number {
+            if last_element.0 > self.latest_block {
                 return Ok(());
             }
         }
@@ -1003,32 +978,28 @@ impl DataModel<AlloyAddress, AlloyU256> {
             .ok_or(Error::msg("External price not set"))?;
 
         if let Some(series) = &mut self.external_spot_price_series {
-            series.push((block_number, external_price));
+            series.push((self.latest_block, external_price));
         } else {
-            self.external_spot_price_series = Some(vec![(block_number, external_price)]);
+            self.external_spot_price_series = Some(vec![(self.latest_block, external_price)]);
         }
 
         tracing::debug!(
             "Added external price at block: {:?} {:?}",
-            block_number,
+            self.latest_block,
             external_price
         );
 
         Ok(())
     }
 
-    async fn update_user_asset_value_series<M: Middleware + 'static>(
+    fn update_user_asset_value_series(
         &mut self,
-        client: Arc<M>,
     ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
-    {
-        let block_number = self.fetch_block_number(client.clone()).await?;
 
+    {
         if let Some(series) = &self.user_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= block_number {
+            if last_element.0 >= self.latest_block {
                 return Ok(());
             }
         }
@@ -1047,26 +1018,21 @@ impl DataModel<AlloyAddress, AlloyU256> {
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         if let Some(series) = &mut self.user_asset_value_series {
-            series.push((block_number, asset_value));
+            series.push((self.latest_block, asset_value));
         } else {
-            self.user_asset_value_series = Some(vec![(block_number, asset_value)]);
+            self.user_asset_value_series = Some(vec![(self.latest_block, asset_value)]);
         }
 
         Ok(())
     }
 
-    async fn update_user_quote_value_series<M: Middleware + 'static>(
+    fn update_user_quote_value_series(
         &mut self,
-        client: Arc<M>,
     ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let block_number = self.fetch_block_number(client.clone()).await?;
-
         if let Some(series) = &self.user_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= block_number {
+            if last_element.0 >= self.latest_block {
                 return Ok(());
             }
         }
@@ -1085,26 +1051,20 @@ impl DataModel<AlloyAddress, AlloyU256> {
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         if let Some(series) = &mut self.user_quote_value_series {
-            series.push((block_number, quote_value));
+            series.push((self.latest_block, quote_value));
         } else {
-            self.user_quote_value_series = Some(vec![(block_number, quote_value)]);
+            self.user_quote_value_series = Some(vec![(self.latest_block, quote_value)]);
         }
 
         Ok(())
     }
 
-    async fn update_protocol_asset_value_series<M: Middleware + 'static>(
-        &mut self,
-        client: Arc<M>,
-    ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
+    fn update_protocol_asset_value_series(
+        &mut self) -> Result<()>
     {
-        let block_number = self.fetch_block_number(client.clone()).await?;
-
         if let Some(series) = &self.protocol_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= block_number {
+            if last_element.0 >= self.latest_block {
                 return Ok(());
             }
         }
@@ -1123,26 +1083,19 @@ impl DataModel<AlloyAddress, AlloyU256> {
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         if let Some(series) = &mut self.protocol_asset_value_series {
-            series.push((block_number, asset_value));
+            series.push((self.latest_block, asset_value));
         } else {
-            self.protocol_asset_value_series = Some(vec![(block_number, asset_value)]);
+            self.protocol_asset_value_series = Some(vec![(self.latest_block, asset_value)]);
         }
 
         Ok(())
     }
 
-    async fn update_protocol_quote_value_series<M: Middleware + 'static>(
-        &mut self,
-        client: Arc<M>,
-    ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
-    {
-        let block_number = self.fetch_block_number(client.clone()).await?;
-
+    fn update_protocol_quote_value_series(
+        &mut self) -> Result<()> {
         if let Some(series) = &self.protocol_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= block_number {
+            if last_element.0 >= self.latest_block {
                 return Ok(());
             }
         }
@@ -1161,9 +1114,9 @@ impl DataModel<AlloyAddress, AlloyU256> {
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         if let Some(series) = &mut self.protocol_quote_value_series {
-            series.push((block_number, quote_value));
+            series.push((self.latest_block, quote_value));
         } else {
-            self.protocol_quote_value_series = Some(vec![(block_number, quote_value)]);
+            self.protocol_quote_value_series = Some(vec![(self.latest_block, quote_value)]);
         }
 
         Ok(())

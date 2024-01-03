@@ -218,7 +218,7 @@ impl PortfolioPresenter {
     pub fn get_block_number(&self) -> Option<u64> {
         self.model
             .get_current()
-            .and_then(|x| x.latest_block)
+            .and_then(|x| Some(x.latest_block))
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
@@ -290,10 +290,7 @@ impl PortfolioPresenter {
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
             let data = connected_model.latest_block;
-            match data {
-                Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
-                None => label("Block: N/A").caption().tertiary(),
-            }
+            label(format!("Block: {:}", data)).caption().tertiary()
         } else {
             label("Block: N/A").caption().tertiary()
         }
