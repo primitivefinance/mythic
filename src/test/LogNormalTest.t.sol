@@ -141,4 +141,36 @@ contract LogNormalTest is Test {
 
         dfmm.swap(payload);
     }
+
+    function test_allocate_liquidity_given_x() public basic {
+        uint256 amountX = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.allocateGivenX(amountX);
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.allocate(data);
+    }
+
+    function test_deallocate_liquidity_given_x() public basic {
+        uint256 amountX = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.deallocateGivenX(amountX);
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.deallocate(data);
+    }
+
+    function test_allocate_liquidity_given_y() public basic {
+        uint256 amountY = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.allocateGivenY(amountY);
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.allocate(data);
+    }
+
+    function test_deallocate_liquidity_given_y() public basic {
+        uint256 amountY = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.deallocateGivenY(amountY);
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.deallocate(data);
+    }
 }

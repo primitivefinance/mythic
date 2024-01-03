@@ -25,5 +25,16 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
+    function validateAllocationOrDeallocation(bytes calldata data)
+        external
+        view
+        returns (
+            bool valid,
+            int256 invariant,
+            uint256 rx,
+            uint256 ry,
+            uint256 L
+        );
+
     function dynamicSlot() external view returns (bytes memory data);
 }

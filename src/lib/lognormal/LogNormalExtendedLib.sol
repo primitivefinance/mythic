@@ -126,17 +126,41 @@ function computeInitialPoolData(
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 ry = computeYGivenL(L, initialPrice, params);
-    int256 swapConstant =
+    int256 invariant =
         tradingFunction({ rx: amountX, ry: ry, L: L, params: params });
-    L = computeNextLiquidity(amountX, ry, swapConstant, L, params);
+    L = computeNextLiquidity(amountX, ry, invariant, L, params);
     return abi.encode(amountX, ry, L, params);
 }
 
-/// @dev Finds the root of the swapConstant given the independent variables reserveXWad and reserveYWad.
+function computeAllocationGivenX(
+    bool add,
+    uint256 amountX,
+    uint256 rx,
+    uint256 L
+) pure returns (uint256 nextRx, uint256 nextL) {
+    uint256 liquidityPerRx = L.divWadUp(rx);
+    uint256 deltaL = amountX.mulWadUp(liquidityPerRx);
+    nextRx = add ? rx + amountX : rx - amountX;
+    nextL = add ? L + deltaL : L - deltaL;
+}
+
+function computeAllocationGivenY(
+    bool add,
+    uint256 amountY,
+    uint256 ry,
+    uint256 L
+) pure returns (uint256 nextRy, uint256 nextL) {
+    uint256 liquidityPerRy = L.divWadUp(ry);
+    uint256 deltaL = amountY.mulWadUp(liquidityPerRy);
+    nextRy = add ? ry + amountY : ry - amountY;
+    nextL = add ? L + deltaL : L - deltaL;
+}
+
+/// @dev Finds the root of the invariant given the independent variables reserveXWad and reserveYWad.
 function computeNextLiquidity(
     uint256 rx,
     uint256 ry,
-    int256 swapConstant,
+    int256 invariant,
     uint256 currentL,
     LogNormParameters memory params
 ) pure returns (uint256 nextL) {
@@ -145,9 +169,9 @@ function computeNextLiquidity(
     uint256 iters;
     uint256 yOverK = ry.divWadDown(params.strike);
 
-    if (swapConstant < EPSILON && swapConstant > -(EPSILON)) {
+    if (invariant < EPSILON && invariant > -(EPSILON)) {
         return currentL;
-    } else if (swapConstant < 0) {
+    } else if (invariant < 0) {
         upper = currentL;
         lower = rx > yOverK ? rx + 1 : yOverK + 1;
         iters = 256;
@@ -157,7 +181,7 @@ function computeNextLiquidity(
         iters = 256;
     }
     nextL = bisection(
-        abi.encode(rx, ry, swapConstant, params),
+        abi.encode(rx, ry, invariant, params),
         lower,
         upper,
         uint256(EPSILON),
@@ -166,18 +190,25 @@ function computeNextLiquidity(
     );
 }
 
-/// @dev Finds the root of the swapConstant given the independent variable reserveXWad.
+/// @dev Finds the root of the invariant given the independent variable reserveXWad.
 function computeNextRy(
     uint256 rx,
     uint256 L,
-    int256 swapConstant,
+    int256 invariant,
     uint256 currentRy,
     LogNormParameters memory params
 ) pure returns (uint256 ry) {
-    uint256 lower = currentRy.mulDivDown(50, 100);
-    uint256 upper = currentRy; // Can use `currentRy` as upper because function is monotonic and this is only invoked if swapping x in --> must satisfy currentRy > nextRy
+    uint256 upper;
+    uint256 lower;
+    if (invariant < 0) {
+        lower = currentRy;
+        upper = currentRy.mulDivUp(150, 100);
+    } else {
+        lower = currentRy.mulDivDown(50, 100);
+        upper = currentRy; // Can use `currentRy` as upper because function is monotonic and this is only invoked if swapping x in --> must satisfy currentRy > nextRy
+    }
     ry = bisection(
-        abi.encode(rx, L, swapConstant, params),
+        abi.encode(rx, L, invariant, params),
         lower,
         upper,
         uint256(EPSILON),
@@ -186,18 +217,25 @@ function computeNextRy(
     );
 }
 
-/// @dev Finds the root of the swapConstant given the independent variable reserveYWad.
+/// @dev Finds the root of the invariant given the independent variable reserveYWad.
 function computeNextRx(
     uint256 ry,
     uint256 L,
-    int256 swapConstant,
+    int256 invariant,
     uint256 currentRx,
     LogNormParameters memory params
 ) pure returns (uint256 rx) {
-    uint256 lower = currentRx.mulDivDown(50, 100);
-    uint256 upper = currentRx; // can use `currentRx` as upper because function is monotonic and this is only invoked if swapping y in --> must satisfy currentRx > nextRx
+    uint256 upper;
+    uint256 lower;
+    if (invariant < 0) {
+        lower = currentRx;
+        upper = currentRx.mulDivUp(150, 100);
+    } else {
+        lower = currentRx.mulDivDown(50, 100);
+        upper = currentRx; // can use `currentRx` as upper because function is monotonic and this is only invoked if swapping y in --> must satisfy currentRx > nextRx
+    }
     rx = bisection(
-        abi.encode(ry, L, swapConstant, params),
+        abi.encode(ry, L, invariant, params),
         lower,
         upper,
         uint256(EPSILON),
