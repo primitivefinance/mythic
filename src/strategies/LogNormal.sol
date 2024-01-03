@@ -141,6 +141,30 @@ contract LogNormal is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
+    function validateAllocationOrDeallocation(bytes calldata data)
+        public
+        view
+        onlyCore
+        returns (
+            bool valid,
+            int256 invariant,
+            uint256 rx,
+            uint256 ry,
+            uint256 L
+        )
+    {
+        (rx, ry, L) = abi.decode(data, (uint256, uint256, uint256));
+
+        invariant = tradingFunction({
+            rx: rx,
+            ry: ry,
+            L: L,
+            params: dynamicSlotInternal()
+        });
+
+        valid = -(EPSILON) < invariant && invariant < EPSILON;
+    }
+
     /// @dev Reverts if the caller is not a contract with the Core interface.
     function validate(bytes memory data)
         public
