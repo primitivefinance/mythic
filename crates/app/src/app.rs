@@ -47,10 +47,7 @@ use super::{
 };
 use crate::{
     components::system::{label, ExcaliburColor},
-    controller::{
-        dev::experimental::ExperimentalScreen, portfolio::PortfolioRoot, settings::SettingsScreen,
-        State,
-    },
+    controller::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
     middleware::ExcaliburMiddleware,
     model::{
         contacts::{self, ContactValue},
@@ -125,7 +122,7 @@ pub struct Windows {
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: ExperimentalScreen::new().into(),
+            screen: EmptyScreen::new().into(),
             sidebar: Sidebar::new(),
         }
     }

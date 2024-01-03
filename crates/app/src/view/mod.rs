@@ -31,9 +31,9 @@ pub enum Message {
     // Children controllers emit their own messages that they expect to get back and process on
     // their own.
     Portfolio(portfolio::Message),
+
+    // Settings view for global application settings.
     Settings(settings::Message),
-    Developer(dev::Message),
-    Experimental(dev::experimental::Message),
 }
 
 #[derive(Debug, Clone, Default)]

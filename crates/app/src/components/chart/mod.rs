@@ -1145,6 +1145,7 @@ impl HistogramChart {
         chart.into()
     }
 
+    #[allow(dead_code)]
     pub fn with_axis_margin(mut self, axis_margin: [u32; 4]) -> Self {
         self.axis_margin = axis_margin;
         self
