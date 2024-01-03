@@ -264,7 +264,9 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     pub fn update_series(&mut self) -> Result<()> {
-        self.update_internal_price_series()?;
+        if let Err(error) = self.update_internal_price_series() {
+            tracing::warn!("Internal price series update failed: {:?}", error);
+        }
         self.update_portfolio_value_series()?;
         self.update_external_price_series()?;
         self.update_user_asset_value_series()?;
