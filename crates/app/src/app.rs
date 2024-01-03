@@ -136,7 +136,7 @@ impl Windows {
 
 /// Storage for the entire application.
 /// This should hold the most important pieces of data that many children
-/// components will need.
+/// components will need
 pub struct App {
     /// Connection to networks.
     pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,

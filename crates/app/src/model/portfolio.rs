@@ -235,7 +235,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
         // Update sync block + timestamp first, since the other update methods need it.
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
-        self.update_last_sync_timestamp()?;
 
         // Update state first.
         self.update_token_balances(client.clone()).await?;
@@ -597,6 +596,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<()> {
         self.latest_block = self.fetch_block_number(client.clone()).await?;
+        self.update_last_sync_timestamp()?;
         Ok(())
     }
 
