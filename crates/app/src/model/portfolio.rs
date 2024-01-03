@@ -248,7 +248,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
         self.update_last_sync_timestamp()?;
-        
+
         // what is going on here?
         self.last_historical_transaction_sync_block = Some(0);
 
@@ -439,8 +439,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         // Only update token info if cache is not set.
-        if self.cached.asset_token_info.is_none() || self.cached.quote_token_info.is_none()
-        {
+        if self.cached.asset_token_info.is_none() || self.cached.quote_token_info.is_none() {
             self.update_token_info(client.clone()).await?;
         }
         Ok(())
@@ -467,17 +466,13 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let quote_token_info = self.cached.quote_token_info.clone();
 
         if asset_token_info.is_none() {
-            let asset_token = self
-                .asset_token
-                .ok_or(Error::msg("Asset token not set"))?;
+            let asset_token = self.asset_token.ok_or(Error::msg("Asset token not set"))?;
             let asset_token_info = self.fetch_token_info(client.clone(), asset_token).await?;
             self.cached.asset_token_info = Some(asset_token_info);
         }
 
         if quote_token_info.is_none() {
-            let quote_token = self
-                .quote_token
-                .ok_or(Error::msg("Quote token not set"))?;
+            let quote_token = self.quote_token.ok_or(Error::msg("Quote token not set"))?;
             let quote_token_info = self.fetch_token_info(client.clone(), quote_token).await?;
             self.cached.quote_token_info = Some(quote_token_info);
         }
@@ -617,7 +612,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the balances and prices of the asset and quote tokens and formats
     /// them into floats.
-    /// Question: do we need these to be options? if not we don't have to do any error handling here
+    /// Question: do we need these to be options? if not we don't have to do any
+    /// error handling here
     pub fn get_position_info(&self) -> Result<StrategyPosition> {
         let balance_x = self
             .asset_reserve
@@ -931,7 +927,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     {
         // Check the current last sync block number, if its the same as the current one,
         // continue. Else, refetch and update the data.
-        // maybe we cache the latest block number before we 
+        // maybe we cache the latest block number before we
         // update everything so we only do it once per update model
         let block_number = self.fetch_block_number(client.clone()).await?;
 
@@ -980,8 +976,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         if let Some(series) = &mut self.unallocated_portfolio_value_series {
             series.push((block_number, portfolio_value));
         } else {
-            self.unallocated_portfolio_value_series =
-                Some(vec![(block_number, portfolio_value)]);
+            self.unallocated_portfolio_value_series = Some(vec![(block_number, portfolio_value)]);
         }
 
         Ok(())
