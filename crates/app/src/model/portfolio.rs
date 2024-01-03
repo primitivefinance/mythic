@@ -148,21 +148,6 @@ sol! {
     }
 }
 
-// // todo: use this in the future.
-// sol! {
-// interface Strategy {
-// function getParams() external view returns(uint strikePrice, uint volatility,
-// uint timeRemaining); }
-// }
-//
-// sol! {
-// interface Protocol {
-// function getReservesAndLiquidity() external view returns(uint reserveX, uint
-// reserveY, uint liquidity); function getInternalPrice() external view
-// returns(uint internalPrice); function balanceOf(address account) external
-// view returns(uint liquidity); }
-// }
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum ProtocolActions {
     #[default]

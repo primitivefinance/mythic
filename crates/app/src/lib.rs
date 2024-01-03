@@ -191,6 +191,7 @@ impl Application for MVP {
                     command.map(|msg| Message::Update(Box::new(msg)))
                 }
                 loader::Message::Ready(Err(error_message)) => {
+                    // Erroring here on start up
                     tracing::error!("Failed to load app: {}", error_message);
                     Command::none()
                 }
