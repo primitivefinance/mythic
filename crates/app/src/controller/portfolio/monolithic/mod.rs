@@ -330,6 +330,7 @@ impl State for Monolithic {
                 }
             },
             Self::AppMessage::UpdatePriceProcess => {
+<<<<<<< HEAD
                 if let (Some(_), Some(exchange)) = (
                     self.price_process.clone(),
                     self.model
@@ -339,16 +340,17 @@ impl State for Monolithic {
                 ) {
                     // Step the price process.
                     self.price_process.as_mut().unwrap().step += 1;
+=======
+                // Step the price process.
+                self.price_process.as_mut().unwrap().step += 1;
+>>>>>>> 362f655 (update series now no longer async)
 
-                    // Update the price of the exchange based on the new step.
-                    return price_process_update_after_step(
-                        self.price_process.clone().unwrap(),
-                        exchange,
-                        self.client.clone().unwrap(),
-                    );
-                }
-
-                Command::none()
+                // Update the price of the exchange based on the new step.
+                price_process_update_after_step(
+                    self.price_process.clone().unwrap(),
+                    self.model.portfolio.lex_address,
+                    self.client.clone().unwrap(),
+                )
             }
         }
     }

@@ -36,8 +36,6 @@ use cfmm_math::trading_functions::rmm::{
 };
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
-use iced::widget::canvas::path::lyon_path::geom::euclid::default;
-// use iced::widget::canvas::path::lyon_path::geom::euclid::default;
 use serde::{Deserialize, Serialize};
 use sim::{from_ethers_u256, to_ethers_address};
 
@@ -253,14 +251,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
         // Update historical tx
         // todo: this is dependent on the external price series!
-        // todo: how do we handle dependent values better?
         if let Err(error) = self.update_historical_txs(client.clone()).await {
             tracing::warn!("Historical tx update failed: {:?}", error);
-        }
-
-        // Try to update the internal portfolio, which only works if a position exists.
-        if let Err(error) = self.update_internal_price_series(client.clone()).await {
-            tracing::warn!("Internal portfolio update failed: {:?}", error);
         }
 
         // Finally update cached data, which will only update if conditions are met.
@@ -272,6 +264,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     pub fn update_series(&mut self) -> Result<()> {
+        self.update_internal_price_series()?;
         self.update_portfolio_value_series()?;
         self.update_external_price_series()?;
         self.update_user_asset_value_series()?;
@@ -967,7 +960,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_internal_price_series(&mut self, client: Arc<Client>) -> Result<()> {
+    fn update_internal_price_series(&mut self) -> Result<()> {
         let default = (0u64, self.internal_spot_price);
         let last_element = self.internal_spot_price_series.last().unwrap_or(&default);
         if last_element.0 >= self.latest_block {
