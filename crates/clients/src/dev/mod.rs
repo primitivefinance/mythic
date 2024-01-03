@@ -93,15 +93,12 @@ impl<C: Middleware + 'static> DevClient<C> {
             ethers::utils::parse_ether(INITIAL_PRICE)?,
         );
 
+        tracing::trace!("Deploying liquid exchange");
         let liquid_exchange = LiquidExchange::deploy(client.clone(), lex_args)?
             .send()
             .await?;
 
-        let solver =
-            LogNormalSolver::deploy(client.clone(), protocol.dfmm.strategy().call().await?)?
-                .send()
-                .await?;
-
+        let solver = LogNormalSolver::new(protocol.solver.address(), client.clone());
         let strategy = LogNormal::new(protocol.dfmm.strategy().call().await?, client);
         // Make sure to set the token y price to 1.0.
 

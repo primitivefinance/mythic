@@ -20,7 +20,7 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
-use std::collections::BTreeMap;
+use std::{cmp::Ordering, collections::BTreeMap};
 
 // use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
@@ -36,6 +36,8 @@ use cfmm_math::trading_functions::rmm::{
 };
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
+use iced::widget::canvas::path::lyon_path::geom::euclid::default;
+// use iced::widget::canvas::path::lyon_path::geom::euclid::default;
 use serde::{Deserialize, Serialize};
 use sim::{from_ethers_u256, to_ethers_address};
 
@@ -366,11 +368,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
                 .checked_div(ALLOY_WAD)
                 .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-            let amount_x = alloy_primitives::utils::format_ether(amount_x);
-            let amount_y = alloy_primitives::utils::format_ether(amount_y);
-
-            let amount_x = amount_x.parse::<f64>()?;
-            let amount_y = amount_y.parse::<f64>()?;
+            let amount_x = Self::format_and_parse(amount_x)?;
+            let amount_y = Self::format_and_parse(amount_y)?;
 
             let market_value = amount_x + amount_y;
 
@@ -540,15 +539,16 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the "unallocated position" balances.
+    pub fn format_and_parse(value: AlloyU256) -> Result<f64> {
+        let formatted = alloy_primitives::utils::format_ether(value);
+        formatted.parse::<f64>().map_err(|e| e.into())
+    }
+
     pub fn get_unallocated_positions_info(&self) -> Result<StrategyPosition> {
-        let external_price = alloy_primitives::utils::format_ether(self.external_spot_price);
-        let external_price = external_price.parse::<f64>()?;
-        let balance_x = alloy_primitives::utils::format_ether(self.user_asset_balance);
-        let balance_x = balance_x.parse::<f64>()?;
-        let balance_y = alloy_primitives::utils::format_ether(self.user_quote_balance);
-        let balance_y = balance_y.parse::<f64>()?;
-        let quote_price = alloy_primitives::utils::format_ether(self.external_quote_price);
-        let quote_price = quote_price.parse::<f64>()?;
+        let external_price = Self::format_and_parse(self.external_spot_price)?;
+        let balance_x = Self::format_and_parse(self.user_asset_balance)?;
+        let balance_y = Self::format_and_parse(self.user_quote_balance)?;
+        let quote_price = Self::format_and_parse(self.external_quote_price)?;
 
         Ok(StrategyPosition {
             balance_x,
@@ -565,31 +565,12 @@ impl DataModel<AlloyAddress, AlloyU256> {
     /// Question: do we need these to be options? if not we don't have to do any
     /// error handling here
     pub fn get_position_info(&self) -> Result<StrategyPosition> {
-        let balance_x = self.asset_reserve;
-        let balance_y = self.quote_reserve;
-        let internal_price = self.internal_spot_price;
-
-        let liquidity = self.total_liquidity;
-        let quote_price = self.external_quote_price;
-        let external_price = self.external_spot_price;
-
-        let external_price = alloy_primitives::utils::format_ether(external_price);
-        let external_price = external_price.parse::<f64>()?;
-
-        let balance_x = alloy_primitives::utils::format_ether(balance_x);
-        let balance_x = balance_x.parse::<f64>()?;
-
-        let balance_y = alloy_primitives::utils::format_ether(balance_y);
-        let balance_y = balance_y.parse::<f64>()?;
-
-        let internal_price = alloy_primitives::utils::format_ether(internal_price);
-        let internal_price = internal_price.parse::<f64>()?;
-
-        let liquidity = alloy_primitives::utils::format_ether(liquidity);
-        let liquidity = liquidity.parse::<f64>()?;
-
-        let quote_price = alloy_primitives::utils::format_ether(quote_price);
-        let quote_price = quote_price.parse::<f64>()?;
+        let external_price = Self::format_and_parse(self.external_spot_price)?;
+        let balance_x = Self::format_and_parse(self.asset_reserve)?;
+        let balance_y = Self::format_and_parse(self.quote_reserve)?;
+        let internal_price = Self::format_and_parse(self.internal_spot_price)?;
+        let liquidity = Self::format_and_parse(self.total_liquidity)?;
+        let quote_price = Self::format_and_parse(self.external_quote_price)?;
 
         Ok(StrategyPosition {
             balance_x,
@@ -649,18 +630,13 @@ impl DataModel<AlloyAddress, AlloyU256> {
     {
         let converted_token_address = to_ethers_address(token_address);
 
-        let payload = IERC20::balanceOfCall { account: address };
-        let payload = ethers::types::Bytes::from(payload.abi_encode());
-
-        let mut tx = TypedTransaction::default();
-        tx.set_to(converted_token_address).set_data(payload);
-
+        let token = arbiter_bindings::bindings::arbiter_token::ArbiterToken::new(
+            converted_token_address,
+            client.clone(),
+        );
         // Send the call to the token contract.
-        let balance = client.call(&tx, None).await?;
-        let decoded: <IERC20::balanceOfCall as SolCall>::Return =
-            IERC20::balanceOfCall::abi_decode_returns(&balance, false)?;
-        let decoded_balance: AlloyU256 = decoded.balance;
-
+        let balance = token.balance_of(address).await?;
+        let decoded_balance: AlloyU256 = balance;
         Ok(decoded_balance)
     }
 
@@ -723,7 +699,12 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let protocol = self
             .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
-        self.fetch_balance_of(client, quote_token, protocol).await
+        self.fetch_balance_of(client, quote_token, protocol).await;
+        let token =
+            bindings::arbiter_token::ArbiterToken::new(converted_token_address, client.clone());
+        let balance = token.balance_of(converted_token_address).await?;
+        let alloy = from_ethers_u256(balance);
+        Ok(alloy)
     }
 
     async fn fetch_external_price<M: Middleware + 'static>(
@@ -752,7 +733,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     // Dfmm state
-
     async fn fetch_reserves_and_liquidity<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -836,7 +816,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let asset_price = self.fetch_external_price(client.clone()).await?;
         // only support usd numerier for now
         let quote_price = ALLOY_WAD;
-
         self.external_spot_price = asset_price;
         self.external_quote_price = quote_price;
 
@@ -848,8 +827,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
     fn update_portfolio_value_series(&mut self) -> Result<()> {
         // Only update the series if the last element in the series is behind the
         // current block number.
-        let binding = (0u64, self.derive_external_portfolio_value());
-        let last_element = self.portfolio_values_series.last().unwrap_or(&binding);
+        let default = (0u64, self.derive_external_portfolio_value());
+        let last_element = self.portfolio_values_series.last().unwrap_or(&default);
         if last_element.0 >= self.latest_block {
             return Ok(());
         }
@@ -861,7 +840,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     fn update_unallocated_portfolio_value_series(&mut self) -> Result<()> {
-        let last_element = &self.unallocated_portfolio_value_series.last().unwrap();
+        let default = (0u64, self.derive_unallocated_position_value()?);
+        let last_element = &self
+            .unallocated_portfolio_value_series
+            .last()
+            .unwrap_or(&default);
         if last_element.0 >= self.latest_block {
             return Ok(());
         }
@@ -875,7 +858,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
         &mut self,
     ) -> Result<()>
     {
-
         if let Some(series) = &self.external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 > self.latest_block {
@@ -931,11 +913,9 @@ impl DataModel<AlloyAddress, AlloyU256> {
             }
         }
 
-        let quote_price = self.external_quote_price;
-        let quote_balance = self.user_quote_balance;
-
-        let quote_value = quote_balance
-            .checked_mul(quote_price)
+        let quote_value = self
+            .user_quote_balance
+            .checked_mul(self.external_quote_price)
             .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
@@ -955,12 +935,9 @@ impl DataModel<AlloyAddress, AlloyU256> {
                 return Ok(());
             }
         }
-
-        let asset_price = self.external_spot_price;
-        let asset_balance = self.protocol_asset_balance;
-
-        let asset_value = asset_balance
-            .checked_mul(asset_price)
+        let asset_value = self
+            .protocol_asset_balance
+            .checked_mul(self.external_spot_price)
             .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
@@ -978,7 +955,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
                 return Ok(());
             }
         }
-
         let quote_value = self
             .protocol_quote_balance
             .checked_mul(self.external_quote_price)
@@ -991,46 +967,39 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_internal_price_series<M: Middleware + 'static>(
-        &mut self,
-        client: Arc<M>,
-    ) -> Result<()>
-    where
-        <M as ethers::providers::Middleware>::Error: 'static,
-    {
-        let block_number = self.fetch_block_number(client.clone()).await?;
-
-        let last_element = self
-            .internal_spot_price_series
-            .last()
-            .ok_or(Error::msg("Last element not set"))?;
-        if last_element.0 >= block_number {
+    async fn update_internal_price_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let default = (0u64, self.internal_spot_price);
+        let last_element = self.internal_spot_price_series.last().unwrap_or(&default);
+        if last_element.0 >= self.latest_block {
             return Ok(());
         }
 
         let internal_price = self.internal_spot_price;
 
         self.internal_spot_price_series
-            .push((block_number, internal_price));
+            .push((self.latest_block, internal_price));
 
         Ok(())
     }
 
-    async fn update_token_balances<M: Middleware + 'static>(
-        &mut self,
-        client: Arc<M>,
-    ) -> Result<()> {
-        let user_address = self
-            .user_address
-            .ok_or(Error::msg("User address not set"))?;
+    async fn update_token_balances(&mut self, client: Arc<Client>) -> Result<()> {
+        let default = (0u64, self.user_asset_balance);
+        let last_element = self.user_asset_value_series.last().unwrap_or(&default);
+        if last_element.0 >= self.latest_block {
+            return Ok(());
+        }
         let user_asset_balance = self
-            .fetch_user_asset_balance(client.clone(), self.user_address)
+            .fetch_balance_of(client.clone(), self.asset_token, self.user_address)
             .await?;
         let user_quote_balance = self
-            .fetch_user_quote_balance(client.clone(), self.user_address)
+            .fetch_balance_of(client.clone(), self.quote_token, self.user_address)
             .await?;
-        let protocol_asset_balance = self.fetch_protocol_asset_balance(client.clone()).await?;
-        let protocol_quote_balance = self.fetch_protocol_quote_balance(client.clone()).await?;
+        let protocol_asset_balance = self
+            .fetch_balance_of(client.clone(), self.asset_token, self.protocol_address)
+            .await?;
+        let protocol_quote_balance = self
+            .fetch_balance_of(client, self.quote_token, self.protocol_address)
+            .await?;
 
         self.user_asset_balance = user_asset_balance;
         self.user_quote_balance = user_quote_balance;
@@ -1094,18 +1063,12 @@ impl DataModel<AlloyAddress, AlloyU256> {
         volatility_percent_wad: AlloyU256,
         time_remaining_years_wad: AlloyU256,
     ) -> Result<AlloyU256> {
-        let quote_price = alloy_primitives::utils::format_ether(quote_price_wad);
-        let quote_price = quote_price.parse::<f64>()?;
-        let price = alloy_primitives::utils::format_ether(asset_price_wad);
-        let price = price.parse::<f64>()?;
-        let liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
-        let liquidity = liquidity.parse::<f64>()?;
-        let strike_price = alloy_primitives::utils::format_ether(strike_price_wad);
-        let strike_price = strike_price.parse::<f64>()?;
-        let volatility = alloy_primitives::utils::format_ether(volatility_percent_wad);
-        let volatility = volatility.parse::<f64>()?;
-        let time_remaining = alloy_primitives::utils::format_ether(time_remaining_years_wad);
-        let time_remaining = time_remaining.parse::<f64>()?;
+        let quote_price = Self::format_and_parse(quote_price_wad)?;
+        let price = Self::format_and_parse(asset_price_wad)?;
+        let liquidity = Self::format_and_parse(total_liquidity_wad)?;
+        let strike_price = Self::format_and_parse(strike_price_wad)?;
+        let volatility = Self::format_and_parse(volatility_percent_wad)?;
+        let time_remaining = Self::format_and_parse(time_remaining_years_wad)?;
 
         // Get x given price, then l given x, then y given l.
         let x = compute_x_given_l_rust(liquidity, price, strike_price, volatility, time_remaining);
@@ -1226,21 +1189,26 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let mut transformed = Vec::new();
 
         if series.is_empty() {
-            return Err(anyhow!("Series is empty"));
+            return Ok((
+                CartesianRanges {
+                    x_range: (0.0, 1.0),
+                    y_range: (0.0, 1.0),
+                },
+                ChartLineSeries::default(),
+            ));
         }
 
         for (block, value) in series {
             let block = *block as f32;
-            let value = alloy_primitives::utils::format_ether(*value);
-            let value = value.parse::<f32>()?;
+            let value = Self::format_and_parse(*value)?;
             transformed.push((block, value));
         }
         // Get the ranges, which should be within 20% of the last value.
         let first_block = transformed.first().unwrap().0;
         let last_value = transformed.last().unwrap().1;
 
-        let min_y = last_value - last_value * 0.2;
-        let max_y = last_value + last_value * 0.2;
+        let min_y = (last_value - last_value * 0.2) as f32;
+        let max_y = (last_value + last_value * 0.2) as f32;
 
         let max_y = if max_y <= f32::EPSILON { 1.0 } else { max_y };
 
@@ -1248,6 +1216,10 @@ impl DataModel<AlloyAddress, AlloyU256> {
             x_range: (first_block, first_block + 10.0),
             y_range: (min_y, max_y),
         };
+        let transformed: Vec<(_, f32)> = transformed
+            .into_iter()
+            .map(|(x, y)| (x, y as f32))
+            .collect();
 
         Ok((ranges, coords_to_line_series(transformed)))
     }
@@ -1257,10 +1229,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let mut transformed = Vec::new();
 
         for (x, y) in data {
-            let x = alloy_primitives::utils::format_ether(*x);
-            let x = x.parse::<f32>()?;
-            let y = alloy_primitives::utils::format_ether(*y);
-            let y = y.parse::<f32>()?;
+            let x = Self::format_and_parse(*x)? as f32;
+            let y = Self::format_and_parse(*y)? as f32;
             transformed.push((x, y));
         }
 
@@ -1270,8 +1240,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     /// Transforms the portfolio value series into a chart series that can be
     /// plotted by the view logic.
     pub fn derive_portfolio_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let series = self.portfolio_values_series.as_ref();
-        let mut result = Self::transform_series_over_block_number(series)?;
+        let mut result = Self::transform_series_over_block_number(&self.portfolio_values_series)?;
 
         result.1.legend = "Portfolio Value".to_string();
         result.1.color = plotters::style::full_palette::DEEPPURPLE_400;
@@ -1320,18 +1289,9 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the points of interest on the strategy plot.
     pub fn derive_portfolio_strategy_points(&self) -> Result<Vec<ChartPoint>> {
-        let asset_reserve_wad = self.asset_reserve;
-        let quote_reserve_wad = self.quote_reserve;
-
-        let asset_reserve = alloy_primitives::utils::format_ether(asset_reserve_wad);
-        let asset_reserve = asset_reserve.parse::<f64>()?;
-
-        let quote_reserve = alloy_primitives::utils::format_ether(quote_reserve_wad);
-        let quote_reserve = quote_reserve.parse::<f64>()?;
-
-        let total_liquidity_wad = self.total_liquidity;
-        let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
-        let total_liquidity = total_liquidity.parse::<f64>()?;
+        let asset_reserve = Self::format_and_parse(self.asset_reserve)?;
+        let quote_reserve = Self::format_and_parse(self.quote_reserve)?;
+        let total_liquidity = Self::format_and_parse(self.total_liquidity)?;
 
         // todo: handle better!
         if total_liquidity == 0.0 {
@@ -1344,18 +1304,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
         );
 
         // Compute the theoretical reserves by using the price to find the x and y.
-        let spot_price_float = alloy_primitives::utils::format_ether(self.external_spot_price);
-        let spot_price_float = spot_price_float.parse::<f64>()?;
+        let spot_price_float = Self::format_and_parse(self.external_spot_price)?;
+        let strike_price_wad_float = Self::format_and_parse(self.strike_price_wad)?;
 
-        let strike_price_wad_float = alloy_primitives::utils::format_ether(self.strike_price_wad);
-        let strike_price_wad_float = strike_price_wad_float.parse::<f64>()?;
-
-        let sigma_percent_wad_float = alloy_primitives::utils::format_ether(self.volatility_wad);
-        let sigma_percent_wad_float = sigma_percent_wad_float.parse::<f64>()?;
-
-        let time_to_expiry_years_wad_float =
-            alloy_primitives::utils::format_ether(self.time_remaining_wad);
-        let time_to_expiry_years_wad_float = time_to_expiry_years_wad_float.parse::<f64>()?;
+        let sigma_percent_wad_float = Self::format_and_parse(self.volatility_wad)?;
+        let time_to_expiry_years_wad_float = Self::format_and_parse(self.time_remaining_wad)?;
 
         let mut points: Vec<ChartPoint> = vec![];
 
@@ -1524,6 +1477,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let min_x = -max_x * 0.1; // 10%
         let min_y = -max_y * 0.1; // 10%
 
+        // to f32
         let converted_curve_points = curve_points
             .iter()
             .map(|(x, y)| (*x as f32, *y as f32))
@@ -1536,17 +1490,19 @@ impl DataModel<AlloyAddress, AlloyU256> {
             y_range: (min_y as f32, max_y as f32),
         };
 
+        // to f32
         let converted_liq_dist_points = liq_dist_points
             .iter()
             .map(|(x, y)| (*x as f32, *y as f32))
             .collect();
+
         let mut liq_dist_series = coords_to_line_series(converted_liq_dist_points);
         liq_dist_series.legend = "Liq. Dist.".to_string();
         liq_dist_series.color = plotters::style::full_palette::PURPLE_A400;
 
         let max_y_dist = liq_dist_points
             .iter()
-            .max_by(|(_, y1), (_, y2)| y1.partial_cmp(y2).unwrap())
+            .max_by(|(_, y1), (_, y2)| y1.partial_cmp(y2).unwrap_or(Ordering::Equal))
             .ok_or(Error::msg("Failed to get max y"))?
             .1;
 
@@ -1582,19 +1538,10 @@ impl DataModel<AlloyAddress, AlloyU256> {
     pub fn derive_portfolio_strategy_plot(
         &self,
     ) -> Result<(CartesianRanges, Vec<ChartLineSeries>)> {
-        // Convert these to float types.
-        let strike_price = alloy_primitives::utils::format_ether(self.strike_price_wad);
-        let strike_price = strike_price.parse::<f64>()?;
-
-        let volatility = alloy_primitives::utils::format_ether(self.volatility_wad);
-        let volatility = volatility.parse::<f64>()?;
-
-        let time_remaining = alloy_primitives::utils::format_ether(self.time_remaining_wad);
-        let time_remaining = time_remaining.parse::<f64>()?;
-
-        let total_liquidity = alloy_primitives::utils::format_ether(self.total_liquidity);
-        let total_liquidity = total_liquidity.parse::<f64>()?;
-
+        let strike_price = Self::format_and_parse(self.strike_price_wad)?;
+        let volatility = Self::format_and_parse(self.volatility_wad)?;
+        let time_remaining = Self::format_and_parse(self.time_remaining_wad)?;
+        let total_liquidity = Self::format_and_parse(self.total_liquidity)?;
         if total_liquidity == 0.0 {
             return Err(anyhow!("Total liquidity is 0"));
         }
@@ -1713,9 +1660,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         volatility: f64,
         time_remaining: f64,
     ) -> Result<HistogramData> {
-        let current_price = self.external_spot_price;
-        let current_price = alloy_primitives::utils::format_ether(current_price);
-        let current_price = current_price.parse::<f64>()?;
+        let current_price = Self::format_and_parse(self.external_spot_price)?;
 
         let min_price = f64::EPSILON;
         let max_price = current_price * 2.0;

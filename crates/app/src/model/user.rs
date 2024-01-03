@@ -58,7 +58,7 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
 
     /// Creates a new instance of this type and writes it to disk with `name`.
     /// todo: be careful about overwriting.
-    fn create_new(name: Option<String>) -> Result<Self>;
+    fn create_new(name: Option<String>) -> Self;
 
     /// Gets the directory which stores the project's application and config
     /// data.
@@ -148,7 +148,7 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
         if !path.exists() {
             // return Err(anyhow::anyhow!("Could not find file at path: {:?}", path));
             tracing::trace!("Creating new instance of {}.", Self::SUFFIX);
-            let instance = Self::create_new(None)?;
+            let instance = Self::create_new(None);
             instance.save()?;
             return Ok(instance);
         }
@@ -156,7 +156,8 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
         tracing::trace!("Loading {} at path: {:?}", Self::SUFFIX, path);
         let file = File::open(path)?;
 
-        let instance = serde_json::from_reader(file)?;
+        // this is failing
+        let instance = serde_json::from_reader(file).unwrap();
 
         Ok(instance)
     }
@@ -189,7 +190,7 @@ impl Saveable for UserProfile {
     }
 
     /// Creates a basic profile.
-    fn create_new(name: Option<String>) -> anyhow::Result<Self, anyhow::Error> {
+    fn create_new(name: Option<String>) -> Self {
         // Check the org directory exists, if not, create it.
         if !Self::org_dir().exists() {
             println!("Creating org directory: {:?}", Self::org_dir());
@@ -208,7 +209,7 @@ impl Saveable for UserProfile {
         };
         // Don't overwrite existing profiles.
         if profile_file.exists() {
-            return Self::load(Some(profile_file));
+            return Self::load(Some(profile_file)).unwrap();
         }
 
         let mut formatted_path = Self::file_name_ending();
@@ -217,7 +218,7 @@ impl Saveable for UserProfile {
         }
 
         let profile_path = Self::dir().join(formatted_path);
-        let file = File::create(profile_path)?;
+        let file = File::create(profile_path).unwrap();
 
         let value = UserProfile {
             contacts: Contacts::new(),
@@ -228,9 +229,9 @@ impl Saveable for UserProfile {
             anvil_snapshot: None,
         };
 
-        serde_json::to_writer_pretty(file, &value)?;
+        serde_json::to_writer_pretty(file, &value).unwrap();
 
-        Ok(value)
+        value
     }
 }
 
@@ -243,13 +244,12 @@ mod tests {
     #[test]
     fn test_profile_create_new() {
         let result = UserProfile::create_new(Some("test2".to_string()));
-        assert!(result.is_ok());
-        assert!(Path::new(&result.unwrap().file_path()).exists());
+        assert!(Path::new(&result.file_path()).exists());
     }
 
     #[test]
     fn test_profile_load() {
-        let profile = UserProfile::create_new(Some("test".to_string())).unwrap();
+        let profile = UserProfile::create_new(Some("test".to_string()));
         let path_of = profile.file_path();
         let loaded_profile = UserProfile::load(Some(path_of));
         assert!(loaded_profile.is_ok());
@@ -257,7 +257,7 @@ mod tests {
 
     #[test]
     fn test_profile_save() {
-        let profile = UserProfile::create_new(Some("test".to_string())).unwrap();
+        let profile = UserProfile::create_new(Some("test".to_string()));
         let save_result = profile.save();
         assert!(save_result.is_ok());
     }

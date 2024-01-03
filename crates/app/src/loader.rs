@@ -63,7 +63,7 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
             tracing::warn!("Failed to load profile: {:?}", e);
             tracing::info!("Creating a new default profile.");
 
-            UserProfile::create_new(None).unwrap()
+            UserProfile::create_new(None)
         }
     };
 
@@ -89,7 +89,7 @@ pub fn load_user_data() -> anyhow::Result<Model> {
             tracing::warn!("Failed to load model: {:?}", e);
             tracing::info!("Creating a new default model.");
 
-            Model::create_new(None)?
+            Model::create_new(None)
         }
     };
 
