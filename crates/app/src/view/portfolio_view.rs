@@ -217,8 +217,7 @@ impl PortfolioPresenter {
 
     pub fn get_block_number(&self) -> Option<u64> {
         self.model
-            .get_current()
-            .and_then(|x| Some(x.latest_block))
+            .get_current().map(|x| x.latest_block)
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {

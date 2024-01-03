@@ -304,8 +304,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let current_block = self.fetch_block_number(client.clone()).await?;
-        let last_block = self
-            .last_historical_transaction_sync_block;
+        let last_block = self.last_historical_transaction_sync_block;
         let user_address = self
             .user_address
             .ok_or(Error::msg("User address not set"))?;
@@ -910,12 +909,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Checks the current block number and updates the portfolio value series
     /// if the current block number is greater than the last block number.
-    /// todo: might need to separate the series subscriptions so they don't
-    /// throw errors and block the main upate.
-    fn update_portfolio_value_series(
-        &mut self,
-    ) -> Result<()>
-    {
+    fn update_portfolio_value_series(&mut self) -> Result<()> {
         // Only update the series if the last element in the series is behind the
         // current block number.
         if let Some(series) = &self.portfolio_values_series {
@@ -936,13 +930,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_unallocated_portfolio_value_series(
-        &mut self,
-    ) -> Result<()>
-    {
-
-        // Only update the series if the last element in the series is behind the
-        // current block number.
+    fn update_unallocated_portfolio_value_series(&mut self) -> Result<()> {
         if let Some(series) = &self.unallocated_portfolio_value_series {
             let last_element = series.last().unwrap();
             if last_element.0 >= self.latest_block {
@@ -955,7 +943,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
         if let Some(series) = &mut self.unallocated_portfolio_value_series {
             series.push((self.latest_block, portfolio_value));
         } else {
-            self.unallocated_portfolio_value_series = Some(vec![(self.latest_block, portfolio_value)]);
+            self.unallocated_portfolio_value_series =
+                Some(vec![(self.latest_block, portfolio_value)]);
         }
 
         Ok(())
