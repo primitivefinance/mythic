@@ -288,8 +288,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.latest_block;
-            label(format!("Block: {:}", data)).caption().tertiary()
+            label(format!("Block: {:}", connected_model.latest_block)).caption().tertiary()
         } else {
             label("Block: N/A").caption().tertiary()
         }
