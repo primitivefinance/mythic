@@ -51,24 +51,24 @@ pub type AlloyU256 = alloy_primitives::U256;
 
 pub const ALLOY_WAD: AlloyU256 = AlloyU256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
 
-pub enum RawDataModelError {
+pub enum DataModelError {
     CheckedMul,
     CheckedDiv,
 }
 
-impl From<RawDataModelError> for Error {
-    fn from(error: RawDataModelError) -> Self {
+impl From<DataModelError> for Error {
+    fn from(error: DataModelError) -> Self {
         match error {
-            RawDataModelError::CheckedMul => Error::msg("Checked mul error"),
-            RawDataModelError::CheckedDiv => Error::msg("Checked div error"),
+            DataModelError::CheckedMul => Error::msg("Checked mul error"),
+            DataModelError::CheckedDiv => Error::msg("Checked div error"),
         }
     }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Cached {
-    pub raw_asset_token_info: Option<TokenInfo>,
-    pub raw_quote_token_info: Option<TokenInfo>,
+    pub asset_token_info: Option<TokenInfo>,
+    pub quote_token_info: Option<TokenInfo>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -80,7 +80,7 @@ pub struct TokenInfo {
 
 /// The model!
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct RawDataModel<A, V> {
+pub struct DataModel<A, V> {
     pub chain_id: Option<u64>,
 
     // Cached data is updated only once.
@@ -88,52 +88,54 @@ pub struct RawDataModel<A, V> {
 
     // Must set these addresses.
     pub user_address: Option<A>,
-    pub raw_external_exchange_address: Option<A>,
-    pub raw_protocol_address: Option<A>,
-    pub raw_strategy_address: Option<A>,
-    pub raw_solver_address: Option<A>,
-    pub raw_asset_token: Option<A>,
-    pub raw_quote_token: Option<A>,
+    pub lex_address: Option<A>,
+    pub protocol_address: Option<A>,
+    pub strategy_address: Option<A>,
+    pub solver_address: Option<A>,
+    pub asset_token: Option<A>,
+    pub quote_token: Option<A>,
 
     // Balances of tokens.
-    pub raw_user_asset_balance: Option<V>,
-    pub raw_user_quote_balance: Option<V>,
-    pub raw_protocol_asset_balance: Option<V>,
-    pub raw_protocol_quote_balance: Option<V>,
+    pub user_asset_balance: Option<V>,
+    pub user_quote_balance: Option<V>,
+    pub protocol_asset_balance: Option<V>,
+    pub protocol_quote_balance: Option<V>,
 
     // Values of tokens.
-    pub raw_user_asset_value_series: Option<Vec<(u64, V)>>,
-    pub raw_user_quote_value_series: Option<Vec<(u64, V)>>,
-    pub raw_unallocated_portfolio_value_series: Option<Vec<(u64, V)>>,
-    pub raw_protocol_asset_value_series: Option<Vec<(u64, V)>>,
-    pub raw_protocol_quote_value_series: Option<Vec<(u64, V)>>,
+    pub user_asset_value_series: Option<Vec<(u64, V)>>,
+    pub user_quote_value_series: Option<Vec<(u64, V)>>,
+    pub unallocated_portfolio_value_series: Option<Vec<(u64, V)>>,
+    pub protocol_asset_value_series: Option<Vec<(u64, V)>>,
+    pub protocol_quote_value_series: Option<Vec<(u64, V)>>,
 
     // Prices
-    pub raw_external_spot_price_series: Option<Vec<(u64, V)>>,
-    pub raw_external_spot_price: Option<V>,
-    pub raw_external_quote_price: Option<V>,
+    pub external_spot_price_series: Option<Vec<(u64, V)>>,
+    // seems redundant to have both a series and a single value of the series.
+    // What do you think about maybe just having two series one for each market
+    pub external_spot_price: Option<V>,
+    pub external_quote_price: Option<V>,
 
     // Protocol state
-    pub raw_asset_reserve: Option<V>,
-    pub raw_quote_reserve: Option<V>,
-    pub raw_total_liquidity: Option<V>,
-    pub raw_user_total_liquidity: Option<V>,
-    pub raw_internal_spot_price: Option<V>,
-    pub raw_internal_spot_price_series: Option<Vec<(u64, V)>>,
+    pub asset_reserve: Option<V>,
+    pub quote_reserve: Option<V>,
+    pub total_liquidity: Option<V>,
+    pub user_total_liquidity: Option<V>,
+    pub internal_spot_price: Option<V>,
+    pub internal_spot_price_series: Option<Vec<(u64, V)>>,
 
     // Strategy state
-    pub raw_strike_price_wad: Option<V>,
-    pub raw_time_remaining_wad: Option<V>,
-    pub raw_volatility_wad: Option<V>,
-    pub raw_portfolio_values_series: Option<Vec<(u64, V)>>,
+    pub strike_price_wad: Option<V>,
+    pub time_remaining_wad: Option<V>,
+    pub volatility_wad: Option<V>,
+    pub portfolio_values_series: Option<Vec<(u64, V)>>,
 
     // Info
-    pub raw_last_chain_data_sync_timestamp: Option<DateTime<Utc>>,
-    pub raw_last_chain_data_sync_block: Option<u64>,
+    pub latest_timestamp: Option<DateTime<Utc>>,
+    pub latest_block: Option<u64>,
 
     // User historical transactions
-    pub raw_user_historical_transactions: Option<Vec<HistoricalTx>>,
-    pub raw_last_historical_transaction_sync_block: Option<u64>,
+    pub user_historical_transactions: Option<Vec<HistoricalTx>>,
+    pub last_historical_transaction_sync_block: Option<u64>,
 }
 
 sol! {
@@ -206,7 +208,7 @@ impl StrategyPosition {
     }
 }
 
-impl RawDataModel<AlloyAddress, AlloyU256> {
+impl DataModel<AlloyAddress, AlloyU256> {
     /// Creates a completely fresh model with no values set.
     pub fn new(chain_id: u64) -> Self {
         Self {
@@ -221,7 +223,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn setup(
         &mut self,
         user_address: AlloyAddress,
-        external_exchange_address: AlloyAddress,
+        lex_address: AlloyAddress,
         protocol_address: AlloyAddress,
         strategy_address: AlloyAddress,
         solver_address: AlloyAddress,
@@ -229,12 +231,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         quote_token: AlloyAddress,
     ) {
         self.user_address = Some(user_address);
-        self.raw_external_exchange_address = Some(external_exchange_address);
-        self.raw_protocol_address = Some(protocol_address);
-        self.raw_strategy_address = Some(strategy_address);
-        self.raw_solver_address = Some(solver_address);
-        self.raw_asset_token = Some(asset_token);
-        self.raw_quote_token = Some(quote_token);
+        self.lex_address = Some(lex_address);
+        self.protocol_address = Some(protocol_address);
+        self.strategy_address = Some(strategy_address);
+        self.solver_address = Some(solver_address);
+        self.asset_token = Some(asset_token);
+        self.quote_token = Some(quote_token);
     }
 
     /// Updates the ENTIRE model! Wow!
@@ -246,7 +248,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
         self.update_last_sync_timestamp()?;
-        self.raw_last_historical_transaction_sync_block = Some(0);
+        
+        // what is going on here?
+        self.last_historical_transaction_sync_block = Some(0);
 
         // Update state first.
         self.update_token_balances(client.clone()).await?;
@@ -303,7 +307,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let current_block = self.fetch_block_number(client.clone()).await?;
         let last_block = self
-            .raw_last_historical_transaction_sync_block
+            .last_historical_transaction_sync_block
             .ok_or(Error::msg("Last historical chain data sync block not set"))?;
 
         let user_address = self
@@ -312,7 +316,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let user_address = to_ethers_address(user_address);
 
         let protocol_address = self
-            .raw_protocol_address
+            .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         let protocol_address = to_ethers_address(protocol_address);
 
@@ -325,8 +329,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .from_block(last_block)
             .to_block(current_block);
 
-        let raw_logs = client.get_logs(&create_pos_filter).await?;
-        let raw_logs = raw_logs
+        let logs = client.get_logs(&create_pos_filter).await?;
+        let filtered_logs = logs
             .into_iter()
             .filter(|log| {
                 log.topics.get(1).map(|topic| EthersAddress::from(*topic)) == Some(user_address)
@@ -335,8 +339,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let mut historical_tx = vec![];
 
-        for raw_log in raw_logs {
-            let block_number = raw_log.block_number.unwrap().as_u64();
+        for log in filtered_logs {
+            let block_number = log.block_number.unwrap().as_u64();
             let block_id: BlockId = block_number.into();
             let timestamp = client
                 .get_block(block_id)
@@ -348,13 +352,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             let naive_datetime = chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0);
             let datetime: DateTime<Utc> =
                 DateTime::from_naive_utc_and_offset(naive_datetime.unwrap(), Utc);
-            let tx_hash = raw_log.transaction_hash.unwrap();
+            let tx_hash = log.transaction_hash.unwrap();
             let action = ProtocolActions::CreatePosition;
 
             let parsed_log = protocol.decode_event::<InitFilter>(
                 "Init",
-                raw_log.topics.clone(),
-                raw_log.data.clone(),
+                log.topics.clone(),
+                log.data.clone(),
             )?;
 
             let amount_x = EthersU256::from(parsed_log.xxxxxxx);
@@ -362,7 +366,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
             // Try getting the prices from the series
             let external_x_price = self
-                .raw_external_spot_price_series
+                .external_spot_price_series
                 .as_ref()
                 .ok_or(Error::msg("External price series not set"))?
                 .iter()
@@ -373,7 +377,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     block_number
                 )))?;
 
-            // todo: need to add an external quote price series.
+            // only support usd numeraire for now
             let external_y_price = ALLOY_WAD;
 
             let amount_x = from_ethers_u256(amount_x);
@@ -381,15 +385,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
             let amount_x = amount_x
                 .checked_mul(external_x_price)
-                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .ok_or(anyhow!(DataModelError::CheckedMul))?
                 .checked_div(ALLOY_WAD)
-                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
             let amount_y = amount_y
                 .checked_mul(external_y_price)
-                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .ok_or(anyhow!(DataModelError::CheckedMul))?
                 .checked_div(ALLOY_WAD)
-                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
             let amount_x = alloy_primitives::utils::format_ether(amount_x);
             let amount_y = alloy_primitives::utils::format_ether(amount_y);
@@ -401,7 +405,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
             let token_x_symbol = self
                 .cached
-                .raw_asset_token_info
+                .asset_token_info
                 .as_ref()
                 .ok_or(Error::msg("Asset token info not set"))?
                 .symbol
@@ -409,7 +413,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
             let token_y_symbol = self
                 .cached
-                .raw_quote_token_info
+                .quote_token_info
                 .as_ref()
                 .ok_or(Error::msg("Quote token info not set"))?
                 .symbol
@@ -435,7 +439,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         // Only update token info if cache is not set.
-        if self.cached.raw_asset_token_info.is_none() || self.cached.raw_quote_token_info.is_none()
+        if self.cached.asset_token_info.is_none() || self.cached.quote_token_info.is_none()
         {
             self.update_token_info(client.clone()).await?;
         }
@@ -450,8 +454,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let historical_txs = self.fetch_user_historical_tx(client.clone()).await?;
-        self.raw_user_historical_transactions = Some(historical_txs);
-        self.raw_last_historical_transaction_sync_block = self.raw_last_chain_data_sync_block;
+        self.user_historical_transactions = Some(historical_txs);
+        self.last_historical_transaction_sync_block = self.latest_block;
         Ok(())
     }
 
@@ -459,23 +463,23 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let asset_token_info = self.cached.raw_asset_token_info.clone();
-        let quote_token_info = self.cached.raw_quote_token_info.clone();
+        let asset_token_info = self.cached.asset_token_info.clone();
+        let quote_token_info = self.cached.quote_token_info.clone();
 
         if asset_token_info.is_none() {
             let asset_token = self
-                .raw_asset_token
+                .asset_token
                 .ok_or(Error::msg("Asset token not set"))?;
             let asset_token_info = self.fetch_token_info(client.clone(), asset_token).await?;
-            self.cached.raw_asset_token_info = Some(asset_token_info);
+            self.cached.asset_token_info = Some(asset_token_info);
         }
 
         if quote_token_info.is_none() {
             let quote_token = self
-                .raw_quote_token
+                .quote_token
                 .ok_or(Error::msg("Quote token not set"))?;
             let quote_token_info = self.fetch_token_info(client.clone(), quote_token).await?;
-            self.cached.raw_quote_token_info = Some(quote_token_info);
+            self.cached.quote_token_info = Some(quote_token_info);
         }
 
         Ok(())
@@ -536,7 +540,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     pub fn update_last_sync_timestamp(&mut self) -> Result<()> {
         let timestamp = Utc::now();
-        self.raw_last_chain_data_sync_timestamp = Some(timestamp);
+        self.latest_timestamp = Some(timestamp);
 
         Ok(())
     }
@@ -544,7 +548,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the protocol contract instance given the model's protocol address.
     pub async fn protocol<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<DFMM<M>> {
         let protocol_address = self
-            .raw_protocol_address
+            .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         let converted_address = to_ethers_address(protocol_address);
         let protocol = DFMM::new(converted_address, client.clone());
@@ -554,7 +558,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the strategy contract instance given the model's strategy address.
     pub async fn strategy<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<LogNormal<M>> {
         let strategy_address = self
-            .raw_strategy_address
+            .strategy_address
             .ok_or(Error::msg("Strategy address not set"))?;
         let converted_address = to_ethers_address(strategy_address);
         let strategy = LogNormal::new(converted_address, client.clone());
@@ -567,7 +571,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<LogNormalSolver<M>> {
         let solver_address = self
-            .raw_solver_address
+            .solver_address
             .ok_or(Error::msg("Solver address not set"))?;
         let converted_address = to_ethers_address(solver_address);
         let solver = LogNormalSolver::new(converted_address, client.clone());
@@ -577,15 +581,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the "unallocated position" balances.
     pub fn get_unallocated_positions_info(&self) -> Result<StrategyPosition> {
         let balance_x = self
-            .raw_user_asset_balance
+            .user_asset_balance
             .ok_or(Error::msg("User asset balance not set"))?;
         let balance_y = self
-            .raw_user_quote_balance
+            .user_quote_balance
             .ok_or(Error::msg("User quote balance not set"))?;
         let external_price = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("External spot price not set"))?;
-        let quote_price = self.raw_external_quote_price.ok_or(Error::msg(
+        let quote_price = self.external_quote_price.ok_or(Error::msg(
             "get_position_info: External quote price not set",
         ))?;
 
@@ -613,15 +617,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the balances and prices of the asset and quote tokens and formats
     /// them into floats.
+    /// Question: do we need these to be options? if not we don't have to do any error handling here
     pub fn get_position_info(&self) -> Result<StrategyPosition> {
         let balance_x = self
-            .raw_asset_reserve
+            .asset_reserve
             .ok_or(Error::msg("get_position_info: Asset reserve not set"))?;
         let balance_y = self
-            .raw_quote_reserve
+            .quote_reserve
             .ok_or(Error::msg("get_position_info: Quote reserve not set"))?;
         let internal_price = self
-            .raw_internal_spot_price
+            .internal_spot_price
             .ok_or(Error::msg("get_position_info: Internal spot price not set"));
         let internal_price = match internal_price {
             Ok(internal_price) => internal_price,
@@ -632,13 +637,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             }
         };
         let liquidity = self
-            .raw_total_liquidity
+            .total_liquidity
             .ok_or(Error::msg("get_position_info: Total liquidity not set"))?;
-        let quote_price = self.raw_external_quote_price.ok_or(Error::msg(
+        let quote_price = self.external_quote_price.ok_or(Error::msg(
             "get_position_info: External quote price not set",
         ))?;
         let external_price = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("get_position_info: External spot price not set"))?;
 
         let external_price = alloy_primitives::utils::format_ether(external_price);
@@ -684,7 +689,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
-        self.raw_last_chain_data_sync_block = Some(block_number);
+        self.latest_block = Some(block_number);
         Ok(())
     }
 
@@ -744,7 +749,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let asset_token = self
-            .raw_asset_token
+            .asset_token
             .ok_or(Error::msg("Asset token not set"))?;
         self.fetch_balance_of(client, asset_token, address).await
     }
@@ -758,7 +763,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let quote_token = self
-            .raw_quote_token
+            .quote_token
             .ok_or(Error::msg("Quote token not set"))?;
         self.fetch_balance_of(client, quote_token, address).await
     }
@@ -771,10 +776,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let asset_token = self
-            .raw_asset_token
+            .asset_token
             .ok_or(Error::msg("Asset token not set"))?;
         let protocol = self
-            .raw_protocol_address
+            .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         self.fetch_balance_of(client, asset_token, protocol).await
     }
@@ -787,10 +792,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let quote_token = self
-            .raw_quote_token
+            .quote_token
             .ok_or(Error::msg("Quote token not set"))?;
         let protocol = self
-            .raw_protocol_address
+            .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
         self.fetch_balance_of(client, quote_token, protocol).await
     }
@@ -799,14 +804,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<M>,
     ) -> Result<AlloyU256> {
-        let external_exchange = self
-            .raw_external_exchange_address
+        let lex = self
+            .lex_address
             .ok_or(Error::msg("External exchange address not set"))?;
 
-        // todo: replace
-
         let lex = arbiter_bindings::bindings::liquid_exchange::LiquidExchange::new(
-            to_ethers_address(external_exchange),
+            to_ethers_address(lex),
             client.clone(),
         );
         let price = lex.price().await;
@@ -880,9 +883,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let (reserve_x, reserve_y, liquidity) =
             self.fetch_reserves_and_liquidity(client.clone()).await?;
 
-        self.raw_asset_reserve = Some(reserve_x);
-        self.raw_quote_reserve = Some(reserve_y);
-        self.raw_total_liquidity = Some(liquidity);
+        self.asset_reserve = Some(reserve_x);
+        self.quote_reserve = Some(reserve_y);
+        self.total_liquidity = Some(liquidity);
 
         Ok(())
     }
@@ -893,7 +896,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     ) -> Result<()> {
         let internal_price = self.fetch_internal_price(client.clone()).await?;
 
-        self.raw_internal_spot_price = Some(internal_price);
+        self.internal_spot_price = Some(internal_price);
 
         Ok(())
     }
@@ -906,10 +909,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // of 1 but we should have it get both. we would haave to do this in the
         // `fetch_external_price` function
         let asset_price = self.fetch_external_price(client.clone()).await?;
+        // only support usd numerier for now
         let quote_price = ALLOY_WAD;
 
-        self.raw_external_spot_price = Some(asset_price);
-        self.raw_external_quote_price = Some(quote_price);
+        self.external_spot_price = Some(asset_price);
+        self.external_quote_price = Some(quote_price);
 
         Ok(())
     }
@@ -927,11 +931,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         // Check the current last sync block number, if its the same as the current one,
         // continue. Else, refetch and update the data.
+        // maybe we cache the latest block number before we 
+        // update everything so we only do it once per update model
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         // Only update the series if the last element in the series is behind the
         // current block number.
-        if let Some(series) = &self.raw_portfolio_values_series {
+        if let Some(series) = &self.portfolio_values_series {
             let last_element = series.last().unwrap();
             if last_element.0 >= block_number {
                 return Ok(());
@@ -940,10 +946,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let portfolio_value = self.derive_external_portfolio_value()?;
 
-        if let Some(series) = &mut self.raw_portfolio_values_series {
+        if let Some(series) = &mut self.portfolio_values_series {
             series.push((block_number, portfolio_value));
         } else {
-            self.raw_portfolio_values_series = Some(vec![(block_number, portfolio_value)]);
+            self.portfolio_values_series = Some(vec![(block_number, portfolio_value)]);
         }
 
         Ok(())
@@ -962,7 +968,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // Only update the series if the last element in the series is behind the
         // current block number.
-        if let Some(series) = &self.raw_unallocated_portfolio_value_series {
+        if let Some(series) = &self.unallocated_portfolio_value_series {
             let last_element = series.last().unwrap();
             if last_element.0 >= block_number {
                 return Ok(());
@@ -971,10 +977,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let portfolio_value = self.derive_unallocated_position_value()?;
 
-        if let Some(series) = &mut self.raw_unallocated_portfolio_value_series {
+        if let Some(series) = &mut self.unallocated_portfolio_value_series {
             series.push((block_number, portfolio_value));
         } else {
-            self.raw_unallocated_portfolio_value_series =
+            self.unallocated_portfolio_value_series =
                 Some(vec![(block_number, portfolio_value)]);
         }
 
@@ -990,7 +996,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
-        if let Some(series) = &self.raw_external_spot_price_series {
+        if let Some(series) = &self.external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 > block_number {
                 return Ok(());
@@ -998,13 +1004,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         let external_price = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("External price not set"))?;
 
-        if let Some(series) = &mut self.raw_external_spot_price_series {
+        if let Some(series) = &mut self.external_spot_price_series {
             series.push((block_number, external_price));
         } else {
-            self.raw_external_spot_price_series = Some(vec![(block_number, external_price)]);
+            self.external_spot_price_series = Some(vec![(block_number, external_price)]);
         }
 
         tracing::debug!(
@@ -1025,7 +1031,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
-        if let Some(series) = &self.raw_user_asset_value_series {
+        if let Some(series) = &self.user_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= block_number {
                 return Ok(());
@@ -1033,22 +1039,22 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         let asset_price = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("External price not set"))?;
         let asset_balance = self
-            .raw_user_asset_balance
+            .user_asset_balance
             .ok_or(Error::msg("User asset balance not set"))?;
 
         let asset_value = asset_balance
             .checked_mul(asset_price)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-        if let Some(series) = &mut self.raw_user_asset_value_series {
+        if let Some(series) = &mut self.user_asset_value_series {
             series.push((block_number, asset_value));
         } else {
-            self.raw_user_asset_value_series = Some(vec![(block_number, asset_value)]);
+            self.user_asset_value_series = Some(vec![(block_number, asset_value)]);
         }
 
         Ok(())
@@ -1063,7 +1069,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
-        if let Some(series) = &self.raw_user_quote_value_series {
+        if let Some(series) = &self.user_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= block_number {
                 return Ok(());
@@ -1071,22 +1077,22 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         let quote_price = self
-            .raw_external_quote_price
+            .external_quote_price
             .ok_or(Error::msg("External quote price not set"))?;
         let quote_balance = self
-            .raw_user_quote_balance
+            .user_quote_balance
             .ok_or(Error::msg("User quote balance not set"))?;
 
         let quote_value = quote_balance
             .checked_mul(quote_price)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-        if let Some(series) = &mut self.raw_user_quote_value_series {
+        if let Some(series) = &mut self.user_quote_value_series {
             series.push((block_number, quote_value));
         } else {
-            self.raw_user_quote_value_series = Some(vec![(block_number, quote_value)]);
+            self.user_quote_value_series = Some(vec![(block_number, quote_value)]);
         }
 
         Ok(())
@@ -1101,7 +1107,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
-        if let Some(series) = &self.raw_protocol_asset_value_series {
+        if let Some(series) = &self.protocol_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= block_number {
                 return Ok(());
@@ -1109,22 +1115,22 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         let asset_price = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("External price not set"))?;
         let asset_balance = self
-            .raw_protocol_asset_balance
+            .protocol_asset_balance
             .ok_or(Error::msg("Protocol asset balance not set"))?;
 
         let asset_value = asset_balance
             .checked_mul(asset_price)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-        if let Some(series) = &mut self.raw_protocol_asset_value_series {
+        if let Some(series) = &mut self.protocol_asset_value_series {
             series.push((block_number, asset_value));
         } else {
-            self.raw_protocol_asset_value_series = Some(vec![(block_number, asset_value)]);
+            self.protocol_asset_value_series = Some(vec![(block_number, asset_value)]);
         }
 
         Ok(())
@@ -1139,7 +1145,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
-        if let Some(series) = &self.raw_protocol_quote_value_series {
+        if let Some(series) = &self.protocol_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= block_number {
                 return Ok(());
@@ -1147,22 +1153,22 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         let quote_price = self
-            .raw_external_quote_price
+            .external_quote_price
             .ok_or(Error::msg("External quote price not set"))?;
         let quote_balance = self
-            .raw_protocol_quote_balance
+            .protocol_quote_balance
             .ok_or(Error::msg("Protocol quote balance not set"))?;
 
         let quote_value = quote_balance
             .checked_mul(quote_price)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-        if let Some(series) = &mut self.raw_protocol_quote_value_series {
+        if let Some(series) = &mut self.protocol_quote_value_series {
             series.push((block_number, quote_value));
         } else {
-            self.raw_protocol_quote_value_series = Some(vec![(block_number, quote_value)]);
+            self.protocol_quote_value_series = Some(vec![(block_number, quote_value)]);
         }
 
         Ok(())
@@ -1177,7 +1183,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
-        if let Some(series) = &self.raw_internal_spot_price_series {
+        if let Some(series) = &self.internal_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= block_number {
                 return Ok(());
@@ -1185,13 +1191,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         }
 
         let internal_price = self
-            .raw_internal_spot_price
+            .internal_spot_price
             .ok_or(Error::msg("Internal price not set"))?;
 
-        if let Some(series) = &mut self.raw_internal_spot_price_series {
+        if let Some(series) = &mut self.internal_spot_price_series {
             series.push((block_number, internal_price));
         } else {
-            self.raw_internal_spot_price_series = Some(vec![(block_number, internal_price)]);
+            self.internal_spot_price_series = Some(vec![(block_number, internal_price)]);
         }
 
         Ok(())
@@ -1213,10 +1219,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let protocol_asset_balance = self.fetch_protocol_asset_balance(client.clone()).await?;
         let protocol_quote_balance = self.fetch_protocol_quote_balance(client.clone()).await?;
 
-        self.raw_user_asset_balance = Some(user_asset_balance);
-        self.raw_user_quote_balance = Some(user_quote_balance);
-        self.raw_protocol_asset_balance = Some(protocol_asset_balance);
-        self.raw_protocol_quote_balance = Some(protocol_quote_balance);
+        self.user_asset_balance = Some(user_asset_balance);
+        self.user_quote_balance = Some(user_quote_balance);
+        self.protocol_asset_balance = Some(protocol_asset_balance);
+        self.protocol_quote_balance = Some(protocol_quote_balance);
 
         Ok(())
     }
@@ -1228,9 +1234,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let (strike_price, volatility, time_remaining) =
             self.fetch_strategy_params(client.clone()).await?;
 
-        self.raw_strike_price_wad = Some(strike_price);
-        self.raw_volatility_wad = Some(volatility);
-        self.raw_time_remaining_wad = Some(time_remaining);
+        self.strike_price_wad = Some(strike_price);
+        self.volatility_wad = Some(volatility);
+        self.time_remaining_wad = Some(time_remaining);
 
         Ok(())
     }
@@ -1247,15 +1253,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     ) -> Result<AlloyU256> {
         let asset_value = asset_balance_wad
             .checked_mul(asset_price_wad)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         let quote_value = quote_balance_wad
             .checked_mul(quote_price_wad)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         let portfolio_value = asset_value.checked_add(quote_value).ok_or(anyhow!(
             "Failed to add asset value and quote value: {} + {}",
@@ -1332,16 +1338,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// to an external price.
     pub fn derive_external_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
         let quote_price_wad = self
-            .raw_external_quote_price
+            .external_quote_price
             .ok_or(Error::msg("External quote price not set"))?;
         let quote_reserve_wad = self
-            .raw_quote_reserve
+            .quote_reserve
             .ok_or(Error::msg("Reserve quote not set"))?;
         let asset_reserve_wad = self
-            .raw_asset_reserve
+            .asset_reserve
             .ok_or(Error::msg("Reserve asset not set"))?;
 
         Self::compute_portfolio_value_real(
@@ -1356,20 +1362,20 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// according to the internal price.
     pub fn derive_internal_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
-            .raw_internal_spot_price
+            .internal_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
         // todo: external quote price is for pegged assets, so maybe in the future we
         // can update this to a pool that has the tokens.
         let quote_price_wad = self
-            .raw_external_quote_price
+            .external_quote_price
             .ok_or(Error::msg("Internal spot price not set"))?;
 
         // todo: using the global reserves of the market for now.
         let quote_balance_wad = self
-            .raw_quote_reserve
+            .quote_reserve
             .ok_or(Error::msg("Quote reserve not set"))?;
         let asset_balance_wad = self
-            .raw_asset_reserve
+            .asset_reserve
             .ok_or(Error::msg("Asset reserve not set"))?;
 
         Self::compute_portfolio_value_real(
@@ -1384,27 +1390,27 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// external market price, and amount of liquidity.
     pub fn derive_theoretical_portfolio_value(&self) -> Result<AlloyU256> {
         let strike_price_wad = self
-            .raw_strike_price_wad
+            .strike_price_wad
             .ok_or(Error::msg("Strike price not set"))?;
 
         let volatility_wad = self
-            .raw_volatility_wad
+            .volatility_wad
             .ok_or(Error::msg("Volatility not set"))?;
 
         let time_remaining_wad = self
-            .raw_time_remaining_wad
+            .time_remaining_wad
             .ok_or(Error::msg("Time remaining not set"))?;
 
         let asset_price_wad = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("Asset price not set"))?;
 
         let quote_price_wad = self
-            .raw_external_quote_price
+            .external_quote_price
             .ok_or(Error::msg("Quote price not set"))?;
 
         let total_liquidity_wad = self
-            .raw_total_liquidity
+            .total_liquidity
             .ok_or(Error::msg("Total liquidity not set"))?;
 
         Self::compute_portfolio_value_theoretical(
@@ -1425,9 +1431,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     ) -> Result<AlloyU256> {
         let health = internal_portfolio_value_wad
             .checked_mul(ALLOY_WAD)
-            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(theoretical_value_wad)
-            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
         Ok(health)
     }
@@ -1489,7 +1495,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// plotted by the view logic.
     pub fn derive_portfolio_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
-            .raw_portfolio_values_series
+            .portfolio_values_series
             .as_ref()
             .ok_or(Error::msg("Portfolio value series not set"))?;
         let mut result = Self::transform_series_over_block_number(series)?;
@@ -1506,7 +1512,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
     ) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
-            .raw_unallocated_portfolio_value_series
+            .unallocated_portfolio_value_series
             .as_ref()
             .ok_or(Error::msg("Unallocated portfolio value series not set"))?;
         let mut result = Self::transform_series_over_block_number(series)?;
@@ -1521,7 +1527,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the time series data for the protocol asset value series.
     pub fn derive_protocol_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
-            .raw_protocol_asset_value_series
+            .protocol_asset_value_series
             .as_ref()
             .ok_or(Error::msg("Protocol asset value series not set"))?;
         let mut result = Self::transform_series_over_block_number(series)?;
@@ -1536,7 +1542,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the time series data for the protocol quote value series.
     pub fn derive_protocol_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
-            .raw_protocol_quote_value_series
+            .protocol_quote_value_series
             .as_ref()
             .ok_or(Error::msg("Protocol quote value series not set"))?;
         let mut result = Self::transform_series_over_block_number(series)?;
@@ -1551,10 +1557,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the points of interest on the strategy plot.
     pub fn derive_portfolio_strategy_points(&self) -> Result<Vec<ChartPoint>> {
         let asset_reserve_wad = self
-            .raw_asset_reserve
+            .asset_reserve
             .ok_or(Error::msg("Asset reserve not set"))?;
         let quote_reserve_wad = self
-            .raw_quote_reserve
+            .quote_reserve
             .ok_or(Error::msg("Quote reserve not set"))?;
 
         let asset_reserve = alloy_primitives::utils::format_ether(asset_reserve_wad);
@@ -1564,7 +1570,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let quote_reserve = quote_reserve.parse::<f64>()?;
 
         let total_liquidity_wad = self
-            .raw_total_liquidity
+            .total_liquidity
             .ok_or(Error::msg("Total liquidity not set"))?;
         let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
         let total_liquidity = total_liquidity.parse::<f64>()?;
@@ -1581,25 +1587,25 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // Compute the theoretical reserves by using the price to find the x and y.
         let spot_price_wad = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("Spot price not set"))?;
         let spot_price_float = alloy_primitives::utils::format_ether(spot_price_wad);
         let spot_price_float = spot_price_float.parse::<f64>()?;
 
         let strike_price_wad = self
-            .raw_strike_price_wad
+            .strike_price_wad
             .ok_or(Error::msg("Strike price not set"))?;
         let strike_price_wad_float = alloy_primitives::utils::format_ether(strike_price_wad);
         let strike_price_wad_float = strike_price_wad_float.parse::<f64>()?;
 
         let sigma_percent_wad = self
-            .raw_volatility_wad
+            .volatility_wad
             .ok_or(Error::msg("Volatility not set"))?;
         let sigma_percent_wad_float = alloy_primitives::utils::format_ether(sigma_percent_wad);
         let sigma_percent_wad_float = sigma_percent_wad_float.parse::<f64>()?;
 
         let time_to_expiry_years_wad = self
-            .raw_time_remaining_wad
+            .time_remaining_wad
             .ok_or(Error::msg("Time remaining not set"))?;
         let time_to_expiry_years_wad_float =
             alloy_primitives::utils::format_ether(time_to_expiry_years_wad);
@@ -1832,19 +1838,19 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     ) -> Result<(CartesianRanges, Vec<ChartLineSeries>)> {
         // Get the current strategy parameters, reserves, and liquidity.
         let strike_price_wad = self
-            .raw_strike_price_wad
+            .strike_price_wad
             .ok_or(Error::msg("Strike price not set"))?;
 
         let volatility_wad = self
-            .raw_volatility_wad
+            .volatility_wad
             .ok_or(Error::msg("Volatility not set"))?;
 
         let time_remaining_wad = self
-            .raw_time_remaining_wad
+            .time_remaining_wad
             .ok_or(Error::msg("Time remaining not set"))?;
 
         let total_liquidity_wad = self
-            .raw_total_liquidity
+            .total_liquidity
             .ok_or(Error::msg("Total liquidity not set"))?;
 
         // Convert these to float types.
@@ -1941,12 +1947,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     pub fn derive_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
-            .raw_user_asset_value_series
+            .user_asset_value_series
             .as_ref()
             .ok_or(Error::msg("User asset value series not set"))?;
         let mut result = Self::transform_series_over_block_number(series)?;
 
-        let asset_name = if let Some(asset_token_info) = &self.cached.raw_asset_token_info {
+        let asset_name = if let Some(asset_token_info) = &self.cached.asset_token_info {
             &asset_token_info.symbol
         } else {
             "Asset"
@@ -1961,12 +1967,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     pub fn derive_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
         let series = self
-            .raw_user_quote_value_series
+            .user_quote_value_series
             .as_ref()
             .ok_or(Error::msg("User quote value series not set"))?;
         let mut result = Self::transform_series_over_block_number(series)?;
 
-        let quote_name = if let Some(quote_token_info) = &self.cached.raw_quote_token_info {
+        let quote_name = if let Some(quote_token_info) = &self.cached.quote_token_info {
             &quote_token_info.symbol
         } else {
             "Quote"
@@ -1987,7 +1993,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         time_remaining: f64,
     ) -> Result<HistogramData> {
         let current_price = self
-            .raw_external_spot_price
+            .external_spot_price
             .ok_or(Error::msg("Spot price not set"))?;
         let current_price = alloy_primitives::utils::format_ether(current_price);
         let current_price = current_price.parse::<f64>()?;
@@ -2120,7 +2126,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_balance_of() -> anyhow::Result<()> {
-        // TODO: unused anvil instance
         let (anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
@@ -2139,7 +2144,7 @@ mod tests {
         let chain_id = anvil.chain_id();
 
         // Now we can fetch the balance of the wallet.
-        let model = RawDataModel::<AlloyAddress, AlloyU256>::new(chain_id);
+        let model = DataModel::<AlloyAddress, AlloyU256>::new(chain_id);
 
         let converted_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());
@@ -2160,7 +2165,6 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_update_token_balances() -> anyhow::Result<()> {
-        // TODO: unused anvil instance
         let (anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
@@ -2179,7 +2183,7 @@ mod tests {
         let chain_id = anvil.chain_id();
 
         // Now we can fetch the balance of the wallet.
-        let mut model = RawDataModel::<AlloyAddress, AlloyU256>::new(chain_id);
+        let mut model = DataModel::<AlloyAddress, AlloyU256>::new(chain_id);
 
         let converted_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());
@@ -2199,19 +2203,19 @@ mod tests {
         let converted_user_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());
         model.user_address = Some(converted_user_address);
-        model.raw_asset_token = Some(converted_token_address);
-        model.raw_quote_token = Some(converted_token_address);
-        model.raw_protocol_address = Some(AlloyAddress::ZERO);
-        model.raw_strategy_address = Some(AlloyAddress::ZERO);
+        model.asset_token = Some(converted_token_address);
+        model.quote_token = Some(converted_token_address);
+        model.protocol_address = Some(AlloyAddress::ZERO);
+        model.strategy_address = Some(AlloyAddress::ZERO);
 
         model
             .update_token_balances(client.provider().clone().into())
             .await?;
 
         // Log the new balance.
-        println!("User asset balance: {:?}", model.raw_user_asset_balance);
+        println!("User asset balance: {:?}", model.user_asset_balance);
 
-        assert_eq!(model.raw_user_asset_balance.unwrap(), balance);
+        assert_eq!(model.user_asset_balance.unwrap(), balance);
 
         Ok(())
     }

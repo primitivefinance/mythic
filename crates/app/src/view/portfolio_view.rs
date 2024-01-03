@@ -218,26 +218,26 @@ impl PortfolioPresenter {
     pub fn get_block_number(&self) -> Option<u64> {
         self.model
             .get_current()
-            .and_then(|x| x.raw_last_chain_data_sync_block)
+            .and_then(|x| x.latest_block)
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
         self.model
             .get_current()
-            .and_then(|x| x.raw_last_chain_data_sync_timestamp)
+            .and_then(|x| x.latest_timestamp)
     }
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
         self.model
             .get_current()
-            .and_then(|x| x.raw_internal_spot_price)
+            .and_then(|x| x.internal_spot_price)
             .to_label()
     }
 
     pub fn get_external_price(&self) -> ExcaliburText {
         self.model
             .get_current()
-            .and_then(|x| x.raw_external_spot_price)
+            .and_then(|x| x.external_spot_price)
             .to_label()
     }
 
@@ -277,7 +277,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.raw_last_chain_data_sync_timestamp;
+            let data = connected_model.latest_timestamp;
             match data {
                 Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
                 None => label("Timestamp: N/A").caption().tertiary(),
@@ -289,7 +289,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.raw_last_chain_data_sync_block;
+            let data = connected_model.latest_block;
             match data {
                 Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
                 None => label("Block: N/A").caption().tertiary(),

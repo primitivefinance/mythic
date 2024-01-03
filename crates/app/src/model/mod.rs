@@ -16,7 +16,7 @@ use datatypes::portfolio::{
 use uuid::Uuid;
 
 use self::{
-    portfolio::{AlloyAddress, AlloyU256, RawDataModel},
+    portfolio::{AlloyAddress, AlloyU256, DataModel},
     user::{Saveable, UserProfile},
 };
 use super::*;
@@ -43,7 +43,7 @@ pub const COIN_Y: &str = r#"{
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
-    pub networks: HashMap<ChainId, RawDataModel<AlloyAddress, AlloyU256>>,
+    pub networks: HashMap<ChainId, DataModel<AlloyAddress, AlloyU256>>,
     pub user: UserProfile,
     pub current: Option<ChainId>,
 }
@@ -59,14 +59,14 @@ impl Model {
 
     /// Gets the model of the currently connected network, connected via
     /// `connect_to_network`.
-    pub fn get_current(&self) -> Option<&RawDataModel<AlloyAddress, AlloyU256>> {
+    pub fn get_current(&self) -> Option<&DataModel<AlloyAddress, AlloyU256>> {
         self.current
             .and_then(|chain_id| self.networks.get(&chain_id))
     }
 
     /// Gets the mutable model of the currently connected network, connected via
     /// `connect_to_network`.
-    pub fn get_current_mut(&mut self) -> Option<&mut RawDataModel<AlloyAddress, AlloyU256>> {
+    pub fn get_current_mut(&mut self) -> Option<&mut DataModel<AlloyAddress, AlloyU256>> {
         self.current
             .and_then(move |chain_id| self.networks.get_mut(&chain_id))
     }
@@ -78,7 +78,7 @@ impl Model {
         client: Arc<M>,
     ) -> anyhow::Result<()> {
         let chain_id = client.get_chainid().await?;
-        let network = RawDataModel::new(chain_id.as_u64());
+        let network = DataModel::new(chain_id.as_u64());
         self.networks.insert(chain_id.as_u64(), network);
         self.current = Some(chain_id.as_u64());
         Ok(())

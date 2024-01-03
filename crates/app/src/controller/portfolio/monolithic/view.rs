@@ -2,7 +2,7 @@ use std::env;
 
 use chrono::Utc;
 use datatypes::portfolio::position::{PositionLayer, Positions};
-use iced::widget::{svg, Space};
+use iced::{widget::{svg, Space}, advanced::widget::Id};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
 use super::{inventory::Inventory, *};
@@ -96,7 +96,8 @@ impl MonolithicPresenter {
             .model
             .get_current()
             .unwrap()
-            .raw_last_chain_data_sync_timestamp;
+            .latest_timestamp;
+
         match data {
             Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
             None => label("Timestamp: N/A").caption().tertiary(),
@@ -192,10 +193,12 @@ impl MonolithicPresenter {
             .find(|x| x.asset.address == address)
             .cloned();
 
+        // if let Some(id) = self.model.current {}
+
         if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
             let external_price = match position.asset.symbol.as_str() {
-                "X" => connected_model.raw_external_spot_price.to_label(),
-                "Y" => connected_model.raw_external_quote_price.to_label(),
+                "X" => connected_model.external_spot_price.to_label(),
+                "Y" => connected_model.external_quote_price.to_label(),
                 _ => label("n/a").title3().quantitative(),
             };
 
@@ -237,7 +240,7 @@ impl MonolithicPresenter {
         self.model
             .get_current()
             .unwrap()
-            .raw_user_historical_transactions
+            .user_historical_transactions
             .clone()
             .unwrap_or_default()
     }

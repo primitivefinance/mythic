@@ -165,7 +165,7 @@ impl Monolithic {
                 }
 
                 // Does not panic because it's caught in the above if statement.
-                let asset_price = self.model.get_current().unwrap().raw_external_spot_price;
+                let asset_price = self.model.get_current().unwrap().external_spot_price;
                 let asset_price = match asset_price {
                     Some(x) => format_ether(x).parse::<f64>(),
                     None => return Err(anyhow::anyhow!("No asset price")),
@@ -249,9 +249,8 @@ impl Monolithic {
             }
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
-
                 if let Some(connected_model) = self.model.get_current() {
-                    let external_price = connected_model.raw_external_spot_price;
+                    let external_price = connected_model.external_spot_price;
                     let external_price = match external_price {
                         Some(x) => format_ether(x).parse::<f64>().unwrap(),
                         None => return Command::none(),
@@ -323,7 +322,7 @@ impl State for Monolithic {
                     self.price_process.clone(),
                     self.model
                         .get_current()
-                        .map(|x| x.raw_external_exchange_address)
+                        .map(|x| x.lex_address)
                         .unwrap_or_else(|| None),
                 ) {
                     // Step the price process.
