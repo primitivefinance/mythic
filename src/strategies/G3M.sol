@@ -108,7 +108,7 @@ contract G3M is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
-    function validateAllocationOrDeallocation(bytes calldata data)
+    function validateAllocateOrDeallocate(bytes calldata data)
         public
         view
         onlyCore
@@ -133,7 +133,7 @@ contract G3M is IStrategy {
     }
 
     /// @dev Reverts if the caller is not a contract with the Core interface.
-    function validate(bytes memory data)
+    function validateSwap(bytes memory data)
         public
         view
         onlyCore

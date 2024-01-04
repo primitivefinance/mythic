@@ -68,7 +68,7 @@ contract DFMM is ICore {
         returns (uint256, uint256, uint256)
     {
         (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-            IStrategy(strategy).validateAllocationOrDeallocation(data);
+            IStrategy(strategy).validateAllocateOrDeallocate(data);
         if (!valid) {
             revert Invalid(invariant < 0, abs(invariant));
         }
@@ -99,7 +99,7 @@ contract DFMM is ICore {
         returns (uint256, uint256, uint256)
     {
         (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-            IStrategy(strategy).validateAllocationOrDeallocation(data);
+            IStrategy(strategy).validateAllocateOrDeallocate(data);
         if (!valid) {
             revert Invalid(invariant < 0, abs(invariant));
         }
@@ -165,7 +165,7 @@ contract DFMM is ICore {
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = IStrategy(strategy).validate(data);
+        ) = IStrategy(strategy).validateSwap(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }

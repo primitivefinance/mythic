@@ -116,7 +116,7 @@ contract MultiDFMM is IMultiCore {
         bytes calldata data
     ) internal returns (uint256 deltaX, uint256 deltaY, uint256 deltaL) {
         (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-        IStrategy(pools[poolId].strategy).validateAllocationOrDeallocation(data);
+            IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(data);
 
         if (!valid) {
             revert Invalid(invariant < 0, abs(invariant));
@@ -190,7 +190,7 @@ contract MultiDFMM is IMultiCore {
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = IStrategy(pools[poolId].strategy).validate(data);
+        ) = IStrategy(pools[poolId].strategy).validateSwap(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
