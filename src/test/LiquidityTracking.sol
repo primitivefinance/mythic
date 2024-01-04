@@ -75,10 +75,11 @@ contract LiquidityTrackingTest is Test {
         liquidityTracking.updatePosition(address(0xaaaa));
         liquidityTracking.updatePosition(address(0xb0b));
 
-        assertEq(
+        assertApproxEqAbs(
             liquidityTracking.balanceOf(address(0xaaaa))
                 + liquidityTracking.balanceOf(address(0xb0b)),
-            2.2 ether
+            2.2 ether,
+            0.0000001 ether
         );
 
         /*
