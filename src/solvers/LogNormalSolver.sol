@@ -37,6 +37,18 @@ contract LogNormalSolver {
         strategy = _strategy;
     }
 
+    function getPoolParams() public view returns (LogNormParameters memory) {
+        return StrategyLike(strategy).dynamicSlotInternal();
+    }
+
+    function getReservesAndLiquidity()
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return StrategyLike(strategy).getReservesAndLiquidity();
+    }
+
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
@@ -45,52 +57,82 @@ contract LogNormalSolver {
         return computeInitialPoolData(rx, S, params);
     }
 
+    function allocateGivenX(uint256 amountX)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (uint256 rx,, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRx, uint256 nextL) =
+            computeAllocationGivenX(true, amountX, rx, L);
+        uint256 nextRy = getNextReserveY(nextRx, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
+    function allocateGivenY(uint256 amountY)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (, uint256 ry, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRy, uint256 nextL) =
+            computeAllocationGivenX(true, amountY, ry, L);
+        uint256 nextRx = getNextReserveX(nextRy, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
+    function deallocateGivenX(uint256 amountX)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (uint256 rx,, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRx, uint256 nextL) =
+            computeAllocationGivenX(false, amountX, rx, L);
+        uint256 nextRy = getNextReserveY(nextRx, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
+    function deallocateGivenY(uint256 amountY)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (, uint256 ry, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRy, uint256 nextL) =
+            computeAllocationGivenX(false, amountY, ry, L);
+        uint256 nextRx = getNextReserveX(nextRy, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
     function getNextLiquidity(
         uint256 rx,
         uint256 ry,
         uint256 L
     ) public view returns (uint256) {
         bytes memory data = abi.encode(rx, ry, L);
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
-        return computeNextLiquidity(
-            rx,
-            ry,
-            swapConstant,
-            L,
-            StrategyLike(strategy).dynamicSlotInternal()
-        );
+        int256 invariant = StrategyLike(strategy).computeSwapConstant(data);
+        return computeNextLiquidity(rx, ry, invariant, L, getPoolParams());
     }
 
     function getNextReserveX(
         uint256 ry,
         uint256 L
     ) public view returns (uint256) {
-        (uint256 rx,,) = StrategyLike(strategy).getReservesAndLiquidity();
+        (uint256 rx,,) = getReservesAndLiquidity();
         bytes memory data = abi.encode(rx, ry, L);
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
-        return computeNextRx(
-            ry,
-            L,
-            swapConstant,
-            rx,
-            StrategyLike(strategy).dynamicSlotInternal()
-        );
+        int256 invariant = StrategyLike(strategy).computeSwapConstant(data);
+        return computeNextRx(ry, L, invariant, rx, getPoolParams());
     }
 
     function getNextReserveY(
         uint256 rx,
         uint256 L
     ) public view returns (uint256) {
-        (, uint256 ry,) = StrategyLike(strategy).getReservesAndLiquidity();
+        (, uint256 ry,) = getReservesAndLiquidity();
         bytes memory data = abi.encode(rx, ry, L);
-        int256 swapConstant = StrategyLike(strategy).computeSwapConstant(data);
-        return computeNextRy(
-            rx,
-            L,
-            swapConstant,
-            ry,
-            StrategyLike(strategy).dynamicSlotInternal()
-        );
+        int256 invariant = StrategyLike(strategy).computeSwapConstant(data);
+        return computeNextRy(rx, L, invariant, ry, getPoolParams());
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -101,9 +143,8 @@ contract LogNormalSolver {
         Reserves memory startReserves;
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
-            StrategyLike(strategy).getReservesAndLiquidity();
-        LogNormParameters memory poolParams =
-            StrategyLike(strategy).dynamicSlotInternal();
+            getReservesAndLiquidity();
+        LogNormParameters memory poolParams = getPoolParams();
 
         uint256 amountOut;
         {
@@ -168,10 +209,8 @@ contract LogNormalSolver {
 
     /// @dev Computes the internal price using this strategie's slot parameters.
     function internalPrice() public view returns (uint256 price) {
-        LogNormParameters memory params =
-            StrategyLike(strategy).dynamicSlotInternal();
-        (uint256 rx,, uint256 L) =
-            StrategyLike(strategy).getReservesAndLiquidity();
+        LogNormParameters memory params = getPoolParams();
+        (uint256 rx,, uint256 L) = getReservesAndLiquidity();
         price = computePrice(rx, L, params.strike, params.sigma, params.tau);
     }
 }

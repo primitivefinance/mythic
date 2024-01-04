@@ -8,6 +8,9 @@ import "solmate/tokens/ERC20.sol";
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
 contract DFMM is ICore {
+    using FixedPointMathLib for uint256;
+    using FixedPointMathLib for int256;
+
     address public strategy;
     bool public inited;
     uint256 public locked = 1;
@@ -16,7 +19,11 @@ contract DFMM is ICore {
     uint256 public reserveXWad;
     uint256 public reserveYWad;
     uint256 public totalLiquidity;
+
+    uint256 public feeGrowth;
+
     mapping(address account => uint256 balance) public balanceOf;
+    mapping(address account => uint256 balance) public feeGrowthLast;
 
     event LogPoolStats(
         uint256 rx,
@@ -86,6 +93,67 @@ contract DFMM is ICore {
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
+    function allocate(bytes calldata data)
+        public
+        lock
+        returns (uint256, uint256, uint256)
+    {
+        (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
+            IStrategy(strategy).validateAllocationOrDeallocation(data);
+        if (!valid) {
+            revert Invalid(invariant < 0, abs(invariant));
+        }
+        if (
+            balanceOf[msg.sender] != 0 && feeGrowth != feeGrowthLast[msg.sender]
+        ) {
+            uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
+            balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
+        }
+        uint256 deltaX = rx - reserveXWad;
+        uint256 deltaY = ry - reserveYWad;
+        uint256 deltaL = L - totalLiquidity;
+        reserveXWad = rx;
+        reserveYWad = ry;
+        totalLiquidity = L;
+        balanceOf[msg.sender] += deltaL;
+        feeGrowthLast[msg.sender] = feeGrowth;
+        ERC20(tokenX).transferFrom(msg.sender, address(this), deltaX);
+        ERC20(tokenY).transferFrom(msg.sender, address(this), deltaY);
+        return (reserveXWad, reserveYWad, totalLiquidity);
+    }
+
+    function deallocate(bytes calldata data)
+        public
+        lock
+        returns (uint256, uint256, uint256)
+    {
+        (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
+            IStrategy(strategy).validateAllocationOrDeallocation(data);
+        if (!valid) {
+            revert Invalid(invariant < 0, abs(invariant));
+        }
+
+        if (
+            balanceOf[msg.sender] != 0 && feeGrowth != feeGrowthLast[msg.sender]
+        ) {
+            uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
+            balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
+            console2.log("in here");
+        }
+
+        uint256 deltaX = reserveXWad - rx;
+        uint256 deltaY = reserveYWad - ry;
+        uint256 deltaL = totalLiquidity - L;
+        reserveXWad = rx;
+        reserveYWad = ry;
+        totalLiquidity = L;
+        balanceOf[msg.sender] -= deltaL;
+        feeGrowthLast[msg.sender] = feeGrowth;
+        ERC20(tokenX).transfer(msg.sender, deltaX);
+        ERC20(tokenY).transfer(msg.sender, deltaY);
+        return (reserveXWad, reserveYWad, totalLiquidity);
+    }
+
     /// @param data The data to be passed to the source strategy contract for pool initialization & validation.
     function init(bytes calldata data)
         public
@@ -107,6 +175,8 @@ contract DFMM is ICore {
         reserveYWad = YYYYYY;
         totalLiquidity = LLLLLL;
         balanceOf[msg.sender] = LLLLLL;
+        feeGrowth = 1 ether;
+        feeGrowthLast[msg.sender] = feeGrowth;
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
         emit Init(msg.sender, strategy, XXXXXXX, YYYYYY, LLLLLL);
@@ -127,25 +197,28 @@ contract DFMM is ICore {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
+        uint256 preLiquidity = totalLiquidity;
         totalLiquidity = LLLLLL;
+        uint256 growth = totalLiquidity.divWadDown(preLiquidity);
+        feeGrowth = feeGrowth.mulWadDown(growth);
 
         {
             _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
 
-            bytes memory strategyData = IStrategy(strategy).dynamicSlot();
-            (uint256 strike, uint256 sigma, uint256 tau) =
-                abi.decode(strategyData, (uint256, uint256, uint256));
+            // bytes memory strategyData = IStrategy(strategy).dynamicSlot();
+            // (uint256 strike, uint256 sigma, uint256 tau) =
+            //     abi.decode(strategyData, (uint256, uint256, uint256));
 
-            emit LogPoolStats(
-                XXXXXXX,
-                YYYYYY,
-                LLLLLL,
-                swapConstantGrowth,
-                sigma,
-                strike,
-                tau,
-                block.timestamp
-            );
+            // emit LogPoolStats(
+            //     XXXXXXX,
+            //     YYYYYY,
+            //     LLLLLL,
+            //     swapConstantGrowth,
+            //     sigma,
+            //     strike,
+            //     tau,
+            //     block.timestamp
+            // );
         }
     }
 
@@ -205,6 +278,3 @@ contract DFMM is ICore {
         );
     }
 }
-
-// move pure functions to solver
-// pass solver address into core functions in strategy
