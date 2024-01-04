@@ -1,4 +1,4 @@
-// SPDX-LICENSE-Identifier: MIT
+/// SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import "./strategies/G3M.sol";
@@ -25,17 +25,6 @@ contract DFMM is ICore {
     mapping(address account => uint256 balance) public balanceOf;
     mapping(address account => uint256 balance) public feeGrowthLast;
 
-    event LogPoolStats(
-        uint256 rx,
-        uint256 ry,
-        uint256 L,
-        int256 invariant,
-        uint256 sigma,
-        uint256 strike,
-        uint256 tau,
-        uint256 timestamp
-    );
-
     constructor(
         bool isLogNormal, // temp way to handle either lognorm or g3m
         address tokenX_,
@@ -53,28 +42,8 @@ contract DFMM is ICore {
         }
     }
 
-    error Invalid(bool negative, uint256 swapConstantGrowth);
-
-    event Init(
-        address indexed swapper,
-        address indexed strategy,
-        uint256 XXXXXXX,
-        uint256 YYYYYY,
-        uint256 LLLLLL
-    );
-
-    event Swap(
-        address indexed swapper,
-        address source,
-        address indexed tokenIn,
-        address indexed tokenOut,
-        uint256 amountIn,
-        uint256 amountOut,
-        int256 liquidityDelta
-    );
-
     modifier initialized() {
-        require(inited, "not initialized");
+        if (!inited) revert NotInitialized();
         _;
     }
 
@@ -119,6 +88,8 @@ contract DFMM is ICore {
         feeGrowthLast[msg.sender] = feeGrowth;
         ERC20(tokenX).transferFrom(msg.sender, address(this), deltaX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), deltaY);
+
+        emit Allocate(deltaX, deltaY, deltaL);
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
@@ -151,6 +122,8 @@ contract DFMM is ICore {
         feeGrowthLast[msg.sender] = feeGrowth;
         ERC20(tokenX).transfer(msg.sender, deltaX);
         ERC20(tokenY).transfer(msg.sender, deltaY);
+
+        emit Deallocate(deltaX, deltaY, deltaL);
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
@@ -202,24 +175,7 @@ contract DFMM is ICore {
         uint256 growth = totalLiquidity.divWadDown(preLiquidity);
         feeGrowth = feeGrowth.mulWadDown(growth);
 
-        {
-            _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
-
-            // bytes memory strategyData = IStrategy(strategy).dynamicSlot();
-            // (uint256 strike, uint256 sigma, uint256 tau) =
-            //     abi.decode(strategyData, (uint256, uint256, uint256));
-
-            // emit LogPoolStats(
-            //     XXXXXXX,
-            //     YYYYYY,
-            //     LLLLLL,
-            //     swapConstantGrowth,
-            //     sigma,
-            //     strike,
-            //     tau,
-            //     block.timestamp
-            // );
-        }
+        _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.
