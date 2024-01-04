@@ -17,7 +17,7 @@ interface StrategyLike {
         external
         view
         returns (uint256, uint256, uint256);
-    function validate(bytes calldata)
+    function validateSwap(bytes calldata)
         external
         view
         returns (bool, int256, int256, uint256, uint256, uint256);
@@ -190,7 +190,7 @@ contract G3MSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-        (bool valid,,,,,) = StrategyLike(strategy).validate(swapData);
+        (bool valid,,,,,) = StrategyLike(strategy).validateSwap(swapData);
         return (
             valid,
             amountOut,
