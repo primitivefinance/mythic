@@ -115,4 +115,52 @@ contract G3mTest is Test {
 
         assertLt(postSwapInternalPrice, internalPrice);
     }
+
+    function test_allocate_liquidity_given_x() public basic {
+        uint256 amountX = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.allocateGivenX(amountX);
+
+        uint256 preBalance = dfmm.balanceOf(address(this));
+        uint256 preTotalLiquidity = dfmm.totalLiquidity();
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.allocate(data);
+
+        uint256 deltaTotalLiquidity = dfmm.totalLiquidity() - preTotalLiquidity;
+        assertEq(
+            preBalance + deltaTotalLiquidity, dfmm.balanceOf(address(this))
+        );
+    }
+
+    function test_deallocate_liquidity_given_x() public basic {
+        uint256 amountX = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.deallocateGivenX(amountX);
+
+        uint256 preBalance = dfmm.balanceOf(address(this));
+        uint256 preTotalLiquidity = dfmm.totalLiquidity();
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.deallocate(data);
+
+        uint256 deltaTotalLiquidity = preTotalLiquidity - dfmm.totalLiquidity();
+        assertEq(
+            preBalance - deltaTotalLiquidity, dfmm.balanceOf(address(this))
+        );
+    }
+
+    function test_allocate_liquidity_given_y() public basic {
+        uint256 amountY = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.allocateGivenY(amountY);
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.allocate(data);
+    }
+
+    function test_deallocate_liquidity_given_y() public basic {
+        uint256 amountY = 0.1 ether;
+        (uint256 rx, uint256 ry, uint256 L) = solver.deallocateGivenY(amountY);
+
+        bytes memory data = abi.encode(rx, ry, L);
+        dfmm.deallocate(data);
+    }
 }
