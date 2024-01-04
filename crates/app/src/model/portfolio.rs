@@ -51,8 +51,6 @@ pub type AlloyU256 = alloy_primitives::U256;
 
 pub const ALLOY_WAD: AlloyU256 = AlloyU256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
 
-type Client = Provider<Ws>;
-
 pub enum RawDataModelError {
     CheckedMul,
     CheckedDiv,
@@ -235,7 +233,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Updates the ENTIRE model! Wow!
-    pub async fn update(&mut self, client: Arc<Client>) -> Result<()> {
+    pub async fn update<M: Middleware + 'static>(&mut self, client: Arc<M>) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         // Update sync block + timestamp first, since the other update methods need it.
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
@@ -288,7 +289,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    pub async fn fetch_user_historical_tx(&self, client: Arc<Client>) -> Result<Vec<HistoricalTx>> {
+    pub async fn fetch_user_historical_tx<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+    ) -> Result<Vec<HistoricalTx>>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let current_block = self.fetch_block_number(client.clone()).await?;
         let last_block = self
             .raw_last_historical_transaction_sync_block
@@ -418,7 +425,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(historical_tx)
     }
 
-    pub async fn update_cached(&mut self, client: Arc<Client>) -> Result<()> {
+    pub async fn update_cached<M: Middleware + 'static>(&mut self, client: Arc<M>) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         // Only update token info if cache is not set.
         if self.cached.raw_asset_token_info.is_none() || self.cached.raw_quote_token_info.is_none()
         {
@@ -427,14 +437,23 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    pub async fn update_historical_txs(&mut self, client: Arc<Client>) -> Result<()> {
+    pub async fn update_historical_txs<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let historical_txs = self.fetch_user_historical_tx(client.clone()).await?;
         self.raw_user_historical_transactions = Some(historical_txs);
         self.raw_last_historical_transaction_sync_block = self.raw_last_chain_data_sync_block;
         Ok(())
     }
 
-    pub async fn update_token_info(&mut self, client: Arc<Client>) -> Result<()> {
+    pub async fn update_token_info<M: Middleware + 'static>(&mut self, client: Arc<M>) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let asset_token_info = self.cached.raw_asset_token_info.clone();
         let quote_token_info = self.cached.raw_quote_token_info.clone();
 
@@ -457,11 +476,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    pub async fn fetch_token_info(
+    pub async fn fetch_token_info<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
         token_address: AlloyAddress,
-    ) -> Result<TokenInfo> {
+    ) -> Result<TokenInfo>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let converted_token_address = to_ethers_address(token_address);
 
         let payload = IERC20::nameCall {};
@@ -515,7 +537,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the protocol contract instance given the model's protocol address.
-    pub async fn protocol(&self, client: Arc<Client>) -> Result<DFMM<Client>> {
+    pub async fn protocol<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<DFMM<M>> {
         let protocol_address = self
             .raw_protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
@@ -525,7 +547,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the strategy contract instance given the model's strategy address.
-    pub async fn strategy(&self, client: Arc<Client>) -> Result<LogNormal<Client>> {
+    pub async fn strategy<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<LogNormal<M>> {
         let strategy_address = self
             .raw_strategy_address
             .ok_or(Error::msg("Strategy address not set"))?;
@@ -535,7 +557,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the strategy contract instance given the model's strategy address.
-    pub async fn solver(&self, client: Arc<Client>) -> Result<LogNormalSolver<Client>> {
+    pub async fn solver<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+    ) -> Result<LogNormalSolver<M>> {
         let solver_address = self
             .raw_solver_address
             .ok_or(Error::msg("Solver address not set"))?;
@@ -641,23 +666,32 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     // Provider
 
-    pub async fn fetch_block_number(&self, client: Arc<Client>) -> Result<u64> {
+    pub async fn fetch_block_number<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<u64>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = client.get_block_number().await?;
         Ok(block_number.as_u64())
     }
 
-    pub async fn update_last_sync_block(&mut self, client: Arc<Client>) -> Result<()> {
+    pub async fn update_last_sync_block<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
         self.raw_last_chain_data_sync_block = Some(block_number);
         Ok(())
     }
 
     /// Fetches the ether balance of an address.
-    pub async fn fetch_balance(
+    pub async fn fetch_balance<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
         address: AlloyAddress,
-    ) -> Result<AlloyU256> {
+    ) -> Result<AlloyU256>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let converted_address = to_ethers_address(address);
         let balance = client.get_balance(converted_address, None).await?;
         let converted_balance = from_ethers_u256(balance);
@@ -668,12 +702,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Fetches the balance of tokens of a given address for a given token.
     #[tracing::instrument(skip(client), level = "trace")]
-    pub async fn fetch_balance_of(
+    pub async fn fetch_balance_of<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
         token_address: AlloyAddress,
         address: AlloyAddress,
-    ) -> Result<AlloyU256> {
+    ) -> Result<AlloyU256>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let converted_token_address = to_ethers_address(token_address);
 
         let payload = IERC20::balanceOfCall { account: address };
@@ -693,29 +730,41 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     // Token balances
 
-    async fn fetch_user_asset_balance(
+    async fn fetch_user_asset_balance<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
         address: AlloyAddress,
-    ) -> Result<AlloyU256> {
+    ) -> Result<AlloyU256>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
         self.fetch_balance_of(client, asset_token, address).await
     }
 
-    async fn fetch_user_quote_balance(
+    async fn fetch_user_quote_balance<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
         address: AlloyAddress,
-    ) -> Result<AlloyU256> {
+    ) -> Result<AlloyU256>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
         self.fetch_balance_of(client, quote_token, address).await
     }
 
-    async fn fetch_protocol_asset_balance(&self, client: Arc<Client>) -> Result<AlloyU256> {
+    async fn fetch_protocol_asset_balance<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+    ) -> Result<AlloyU256>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
@@ -725,7 +774,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.fetch_balance_of(client, asset_token, protocol).await
     }
 
-    async fn fetch_protocol_quote_balance(&self, client: Arc<Client>) -> Result<AlloyU256> {
+    async fn fetch_protocol_quote_balance<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+    ) -> Result<AlloyU256>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
@@ -735,7 +790,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.fetch_balance_of(client, quote_token, protocol).await
     }
 
-    async fn fetch_external_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
+    async fn fetch_external_price<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+    ) -> Result<AlloyU256> {
         let external_exchange = self
             .raw_external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
@@ -761,9 +819,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     // Protocol state
 
-    async fn fetch_reserves_and_liquidity(
+    async fn fetch_reserves_and_liquidity<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let protocol = self.protocol(client.clone()).await?;
         let result = protocol.get_reserves_and_liquidity().await;
@@ -780,7 +838,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok((reserve_x, reserve_y, liquidity))
     }
 
-    async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
+    async fn fetch_internal_price<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+    ) -> Result<AlloyU256> {
         let solver = self.solver(client.clone()).await?;
         let internal_price = solver.internal_price().await;
         let internal_price = match internal_price {
@@ -795,9 +856,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(internal_price)
     }
 
-    async fn fetch_strategy_params(
+    async fn fetch_strategy_params<M: Middleware + 'static>(
         &self,
-        client: Arc<Client>,
+        client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let strategy = self.strategy(client.clone()).await?;
         let (strike_price, volatility, time_remaining) = strategy.get_params().await?;
@@ -807,7 +868,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok((strike_price, volatility, time_remaining))
     }
 
-    async fn update_reserves_and_liquidity(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_reserves_and_liquidity<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
         let (reserve_x, reserve_y, liquidity) =
             self.fetch_reserves_and_liquidity(client.clone()).await?;
 
@@ -818,7 +882,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_internal_price(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_internal_price<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
         let internal_price = self.fetch_internal_price(client.clone()).await?;
 
         self.raw_internal_spot_price = Some(internal_price);
@@ -826,7 +893,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_external_prices<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
         // TODO: fix this, essentially the price function in the lex just gives in terms
         // of 1 but we should have it get both. we would haave to do this in the
         // `fetch_external_price` function
@@ -843,7 +913,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// if the current block number is greater than the last block number.
     /// todo: might need to separate the series subscriptions so they don't
     /// throw errors and block the main upate.
-    async fn update_portfolio_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_portfolio_value_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         // Check the current last sync block number, if its the same as the current one,
         // continue. Else, refetch and update the data.
         let block_number = self.fetch_block_number(client.clone()).await?;
@@ -868,10 +944,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_unallocated_portfolio_value_series(
+    async fn update_unallocated_portfolio_value_series<M: Middleware + 'static>(
         &mut self,
-        client: Arc<Client>,
-    ) -> Result<()> {
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         // Check the current last sync block number, if its the same as the current one,
         // continue. Else, refetch and update the data.
         let block_number = self.fetch_block_number(client.clone()).await?;
@@ -897,7 +976,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_external_price_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_external_price_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_external_spot_price_series {
@@ -926,7 +1011,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_user_asset_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_user_asset_value_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_user_asset_value_series {
@@ -958,7 +1049,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_user_quote_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_user_quote_value_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_user_quote_value_series {
@@ -990,7 +1087,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_protocol_asset_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_protocol_asset_value_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_protocol_asset_value_series {
@@ -1022,7 +1125,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_protocol_quote_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_protocol_quote_value_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_protocol_quote_value_series {
@@ -1054,7 +1163,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_internal_price_series(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_internal_price_series<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_internal_spot_price_series {
@@ -1077,7 +1192,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_token_balances(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_token_balances<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
         let user_address = self
             .user_address
             .ok_or(Error::msg("User address not set"))?;
@@ -1098,7 +1216,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    async fn update_strategy_state(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_strategy_state<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
         let (strike_price, volatility, time_remaining) =
             self.fetch_strategy_params(client.clone()).await?;
 
