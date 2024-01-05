@@ -1,4 +1,4 @@
-pub use i_strategy::*;
+pub use i_multi_strategy::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +9,7 @@ pub use i_strategy::*;
     dead_code,
     non_camel_case_types,
 )]
-pub mod i_strategy {
+pub mod i_multi_strategy {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
@@ -51,6 +51,15 @@ pub mod i_strategy {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("init"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -118,6 +127,15 @@ pub mod i_strategy {
                             ),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
                                     internal_type: ::core::option::Option::Some(
@@ -179,6 +197,15 @@ pub mod i_strategy {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("validateSwap"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -252,32 +279,34 @@ pub mod i_strategy {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static ISTRATEGY_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+    pub static IMULTISTRATEGY_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
         __abi,
     );
-    pub struct IStrategy<M>(::ethers::contract::Contract<M>);
-    impl<M> ::core::clone::Clone for IStrategy<M> {
+    pub struct IMultiStrategy<M>(::ethers::contract::Contract<M>);
+    impl<M> ::core::clone::Clone for IMultiStrategy<M> {
         fn clone(&self) -> Self {
             Self(::core::clone::Clone::clone(&self.0))
         }
     }
-    impl<M> ::core::ops::Deref for IStrategy<M> {
+    impl<M> ::core::ops::Deref for IMultiStrategy<M> {
         type Target = ::ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M> ::core::ops::DerefMut for IStrategy<M> {
+    impl<M> ::core::ops::DerefMut for IMultiStrategy<M> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
-    impl<M> ::core::fmt::Debug for IStrategy<M> {
+    impl<M> ::core::fmt::Debug for IMultiStrategy<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(IStrategy)).field(&self.address()).finish()
+            f.debug_tuple(::core::stringify!(IMultiStrategy))
+                .field(&self.address())
+                .finish()
         }
     }
-    impl<M: ::ethers::providers::Middleware> IStrategy<M> {
+    impl<M: ::ethers::providers::Middleware> IMultiStrategy<M> {
         /// Creates a new contract instance with the specified `ethers` client at
         /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
@@ -287,7 +316,7 @@ pub mod i_strategy {
             Self(
                 ::ethers::contract::Contract::new(
                     address.into(),
-                    ISTRATEGY_ABI.clone(),
+                    IMULTISTRATEGY_ABI.clone(),
                     client,
                 ),
             )
@@ -304,9 +333,10 @@ pub mod i_strategy {
                 .method_hash([164, 212, 122, 94], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `init` (0x4ddf47d4) function
+        ///Calls the contract's `init` (0x9f83137b) function
         pub fn init(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -319,12 +349,13 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([77, 223, 71, 212], data)
+                .method_hash([159, 131, 19, 123], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateAllocateOrDeallocate` (0x90fad756) function
+        ///Calls the contract's `validateAllocateOrDeallocate` (0x8e2dd400) function
         pub fn validate_allocate_or_deallocate(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -337,12 +368,13 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([144, 250, 215, 86], data)
+                .method_hash([142, 45, 212, 0], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateSwap` (0xb2b2e7dd) function
+        ///Calls the contract's `validateSwap` (0x3214890f) function
         pub fn validate_swap(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -356,12 +388,12 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([178, 178, 231, 221], data)
+                .method_hash([50, 20, 137, 15], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for IStrategy<M> {
+    for IMultiStrategy<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
@@ -383,7 +415,7 @@ pub mod i_strategy {
     pub struct DynamicSlotCall {
         pub pool_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
+    ///Container type for all input parameters for the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -396,11 +428,12 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "init", abi = "init(bytes)")]
+    #[ethcall(name = "init", abi = "init(uint256,bytes)")]
     pub struct InitCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(bytes)` and selector `0x90fad756`
+    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -415,12 +448,13 @@ pub mod i_strategy {
     )]
     #[ethcall(
         name = "validateAllocateOrDeallocate",
-        abi = "validateAllocateOrDeallocate(bytes)"
+        abi = "validateAllocateOrDeallocate(uint256,bytes)"
     )]
     pub struct ValidateAllocateOrDeallocateCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(bytes)` and selector `0xb2b2e7dd`
+    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -433,8 +467,9 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "validateSwap", abi = "validateSwap(bytes)")]
+    #[ethcall(name = "validateSwap", abi = "validateSwap(uint256,bytes)")]
     pub struct ValidateSwapCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
     ///Container type for all of the contract's call
@@ -448,13 +483,13 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    pub enum IStrategyCalls {
+    pub enum IMultiStrategyCalls {
         DynamicSlot(DynamicSlotCall),
         Init(InitCall),
         ValidateAllocateOrDeallocate(ValidateAllocateOrDeallocateCall),
         ValidateSwap(ValidateSwapCall),
     }
-    impl ::ethers::core::abi::AbiDecode for IStrategyCalls {
+    impl ::ethers::core::abi::AbiDecode for IMultiStrategyCalls {
         fn decode(
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
@@ -482,7 +517,7 @@ pub mod i_strategy {
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
-    impl ::ethers::core::abi::AbiEncode for IStrategyCalls {
+    impl ::ethers::core::abi::AbiEncode for IMultiStrategyCalls {
         fn encode(self) -> Vec<u8> {
             match self {
                 Self::DynamicSlot(element) => {
@@ -498,7 +533,7 @@ pub mod i_strategy {
             }
         }
     }
-    impl ::core::fmt::Display for IStrategyCalls {
+    impl ::core::fmt::Display for IMultiStrategyCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::DynamicSlot(element) => ::core::fmt::Display::fmt(element, f),
@@ -510,22 +545,23 @@ pub mod i_strategy {
             }
         }
     }
-    impl ::core::convert::From<DynamicSlotCall> for IStrategyCalls {
+    impl ::core::convert::From<DynamicSlotCall> for IMultiStrategyCalls {
         fn from(value: DynamicSlotCall) -> Self {
             Self::DynamicSlot(value)
         }
     }
-    impl ::core::convert::From<InitCall> for IStrategyCalls {
+    impl ::core::convert::From<InitCall> for IMultiStrategyCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
         }
     }
-    impl ::core::convert::From<ValidateAllocateOrDeallocateCall> for IStrategyCalls {
+    impl ::core::convert::From<ValidateAllocateOrDeallocateCall>
+    for IMultiStrategyCalls {
         fn from(value: ValidateAllocateOrDeallocateCall) -> Self {
             Self::ValidateAllocateOrDeallocate(value)
         }
     }
-    impl ::core::convert::From<ValidateSwapCall> for IStrategyCalls {
+    impl ::core::convert::From<ValidateSwapCall> for IMultiStrategyCalls {
         fn from(value: ValidateSwapCall) -> Self {
             Self::ValidateSwap(value)
         }
@@ -546,7 +582,7 @@ pub mod i_strategy {
     pub struct DynamicSlotReturn {
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all return fields from the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
+    ///Container type for all return fields from the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -566,7 +602,7 @@ pub mod i_strategy {
         pub reserve_y_wad: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(bytes)` and selector `0x90fad756`
+    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -586,7 +622,7 @@ pub mod i_strategy {
         pub ry: ::ethers::core::types::U256,
         pub l: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(bytes)` and selector `0xb2b2e7dd`
+    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

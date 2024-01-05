@@ -81,7 +81,7 @@ impl Scenario for DFMMScenario {
         let pm = VolatilityTargetingSubmitter::new(&environment, &config, "portfolio_manager", lex)
             .await?;
         let market = from_ethers_address(pm.protocol_client.protocol.address());
-        let solver = from_ethers_address(pm.protocol_client.solver.address());
+        let solver = from_ethers_address(pm.protocol_client.ln_solver.address());
         let market_events = pm.protocol_client.protocol.events();
         agents.add(pm);
 

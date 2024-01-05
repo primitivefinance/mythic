@@ -96,12 +96,11 @@ impl<C: Middleware + 'static> DevClient<C> {
             .send()
             .await?;
 
-        let solver =
-            LogNormalSolver::deploy(client.clone(), protocol.protocol.strategy().call().await?)?
-                .send()
-                .await?;
+        let solver = LogNormalSolver::deploy(client.clone(), protocol.ln_strategy.address())?
+            .send()
+            .await?;
 
-        let strategy = LogNormal::new(protocol.protocol.strategy().call().await?, client);
+        let strategy = LogNormal::new(protocol.ln_strategy.address(), client);
         // Make sure to set the token y price to 1.0.
 
         Ok(Self {
@@ -112,10 +111,6 @@ impl<C: Middleware + 'static> DevClient<C> {
             solver,
             liquid_exchange,
         })
-    }
-
-    pub async fn get_strategy(&self) -> Result<LogNormal<C>> {
-        self.protocol.get_strategy().await
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
@@ -137,7 +132,7 @@ impl<C: Middleware + 'static> DevClient<C> {
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
         self.protocol
-            .initialize_pool(
+            .initialize_ln_pool(
                 amount_x,
                 price,
                 strike_price_wad,
@@ -147,10 +142,13 @@ impl<C: Middleware + 'static> DevClient<C> {
             .await
     }
 
-    pub async fn get_position(&self) -> Result<ProtocolPosition> {
-        let (balance_x, balance_y, liquidity) =
-            self.protocol.protocol.get_reserves_and_liquidity().await?;
-        let internal_price = self.protocol.get_internal_price().await?;
+    pub async fn get_position(&self, pool_id: U256) -> Result<ProtocolPosition> {
+        let (balance_x, balance_y, liquidity) = self
+            .protocol
+            .protocol
+            .get_reserves_and_liquidity(pool_id)
+            .await?;
+        let internal_price = self.protocol.get_ln_internal_price(pool_id).await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);
         let liquidity = ethers::utils::format_ether(liquidity);
