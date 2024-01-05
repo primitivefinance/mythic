@@ -2,9 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "../lib/lognormal/LogNormalLib.sol";
+import "forge-std/console2.sol";
 
-import "../interfaces/ICore.sol";
-import "../interfaces/IStrategy.sol";
+import "../interfaces/IMultiCore.sol";
+import "../interfaces/IMultiStrategy.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price
@@ -13,36 +14,47 @@ import "../interfaces/IStrategy.sol";
 ///
 /// Swaps are validated by the trading function:
 /// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
-contract LogNormal is IStrategy {
+struct Sigma {
+    uint256 target;
+    uint256 last;
+    uint256 updateEnd;
+    uint256 updatePerSecond;
+    uint256 lastSync;
+}
+
+struct Strike {
+    uint256 target;
+    uint256 last;
+    uint256 updateEnd;
+    uint256 updatePerSecond;
+    uint256 lastSync;
+}
+
+struct Tau {
+    uint256 target;
+    uint256 last;
+    uint256 updateEnd;
+    uint256 updatePerSecond;
+    uint256 lastSync;
+}
+
+contract LogNormal is IMultiStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
-    ICore public core;
+    IMultiCore public core;
     uint256 public swapFee;
-    LogNormParameters public __slot__;
 
-    uint256 private lastSigma;
-    uint256 public targetSigma;
-    uint256 private lastSigmaSync;
-    uint256 private sigmaUpdatePerSecond;
-    uint256 private sigmaUpdateEnd;
+    mapping(uint256 => LogNormParameters) public slots;
 
-    uint256 private lastStrike;
-    uint256 public targetStrike;
-    uint256 private lastStrikeSync;
-    uint256 private strikeUpdatePerSecond;
-    uint256 private strikeUpdateEnd;
+    mapping(uint256 => Sigma) public sigmas;
+    mapping(uint256 => Strike) public strikes;
+    mapping(uint256 => Tau) public taus;
 
-    uint256 private lastTau;
-    uint256 private targetTau;
-    uint256 private lastTauSync;
-    uint256 private tauUpdatePerSecond;
-    uint256 private tauUpdateEnd;
-
-    constructor(uint256 _swapFee) {
+    constructor(address _core, uint256 _swapFee) {
         require(_swapFee < ONE, "swap fee percentage must be less than 100%");
         swapFee = _swapFee;
-        core = ICore(msg.sender);
+        core = IMultiCore(_core);
     }
 
     modifier onlyCore() {
@@ -51,70 +63,88 @@ contract LogNormal is IStrategy {
     }
 
     /// @dev Returns the original parameters that were used to initialize the pool.
-    function staticSlot() public view returns (LogNormParameters memory) {
-        return __slot__;
+    function staticSlot(uint256 poolId)
+        public
+        view
+        returns (LogNormParameters memory)
+    {
+        return slots[poolId];
     }
 
     /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot() public view returns (bytes memory params) {
-        return abi.encode(strikePrice(), sigma(), tau());
+    function dynamicSlot(uint256 poolId)
+        public
+        view
+        returns (bytes memory params)
+    {
+        return abi.encode(strikePrice(poolId), sigma(poolId), tau(poolId));
     }
 
-    function dynamicSlotInternal()
+    function dynamicSlotInternal(uint256 poolId)
         public
         view
         returns (LogNormParameters memory params)
     {
         (params.strike, params.sigma, params.tau) =
-            (strikePrice(), sigma(), tau());
+            (strikePrice(poolId), sigma(poolId), tau(poolId));
     }
 
-    function getReservesAndLiquidity()
+    function getReservesAndLiquidity(uint256 poolId)
         public
         view
         returns (uint256, uint256, uint256)
     {
-        return core.getReservesAndLiquidity();
+        return core.getReservesAndLiquidity(poolId);
     }
 
-    function _syncDynamicSlot() internal {
-        LogNormParameters memory params = staticSlot();
+    function _syncDynamicSlot(uint256 poolId) internal {
+        LogNormParameters memory params = slots[poolId];
 
-        targetSigma = params.sigma;
-        lastSigma = params.sigma;
-        sigmaUpdateEnd = block.timestamp;
-        lastSigmaSync = block.timestamp;
+        Sigma memory newSigma;
+        Strike memory newStrike;
+        Tau memory newTau;
 
-        targetStrike = params.strike;
-        lastStrike = params.strike;
-        strikeUpdateEnd = block.timestamp;
-        lastStrikeSync = block.timestamp;
+        newSigma.target = params.sigma;
+        newSigma.last = params.sigma;
+        newSigma.updateEnd = block.timestamp;
+        newSigma.lastSync = block.timestamp;
 
-        targetTau = params.tau;
-        lastTau = params.tau;
-        tauUpdateEnd = block.timestamp;
-        lastTauSync = block.timestamp;
+        newStrike.target = params.strike;
+        newStrike.last = params.strike;
+        newStrike.updateEnd = block.timestamp;
+        newStrike.lastSync = block.timestamp;
+
+        newTau.target = params.tau;
+        newTau.last = params.tau;
+        newTau.updateEnd = block.timestamp;
+        newTau.lastSync = block.timestamp;
+
+        sigmas[poolId] = newSigma;
+        strikes[poolId] = newStrike;
+        taus[poolId] = newTau;
     }
 
     /// @dev Computes the result of the tradingFunction().
-    function computeSwapConstant(bytes memory data)
-        public
-        view
-        returns (int256)
-    {
+    function computeSwapConstant(
+        uint256 poolId,
+        bytes memory data
+    ) public view returns (int256) {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction({
             rx: rx,
             ry: ry,
             L: L,
-            params: dynamicSlotInternal()
+            params: dynamicSlotInternal(poolId)
         });
     }
 
     /// @dev Decodes and validates pool initialization parameters.
     /// Sets the `slot` state variable.
-    function init(bytes calldata data)
+    function init(
+        uint256 poolId,
+        bytes calldata data
+    )
         public
         onlyCore
         returns (
@@ -125,23 +155,26 @@ contract LogNormal is IStrategy {
             uint256 L
         )
     {
-        (rx, ry, L, __slot__) =
+        (rx, ry, L, slots[poolId]) =
             abi.decode(data, (uint256, uint256, uint256, LogNormParameters));
 
-        _syncDynamicSlot();
+        _syncDynamicSlot(poolId);
 
         invariant = tradingFunction({
             rx: rx,
             ry: ry,
             L: L,
-            params: dynamicSlotInternal()
+            params: dynamicSlotInternal(poolId)
         });
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
-    function validateAllocateOrDeallocate(bytes calldata data)
+    function validateAllocateOrDeallocate(
+        uint256 poolId,
+        bytes calldata data
+    )
         public
         view
         onlyCore
@@ -159,14 +192,17 @@ contract LogNormal is IStrategy {
             rx: rx,
             ry: ry,
             L: L,
-            params: dynamicSlotInternal()
+            params: dynamicSlotInternal(poolId)
         });
 
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
     /// @dev Reverts if the caller is not a contract with the Core interface.
-    function validateSwap(bytes memory data)
+    function validateSwap(
+        uint256 poolId,
+        bytes memory data
+    )
         public
         view
         onlyCore
@@ -180,7 +216,7 @@ contract LogNormal is IStrategy {
         )
     {
         (uint256 startRx, uint256 startRy, uint256 startL) =
-            getReservesAndLiquidity();
+            getReservesAndLiquidity(poolId);
 
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
@@ -205,11 +241,13 @@ contract LogNormal is IStrategy {
 
         liquidityDelta = int256(nextL) - int256(startL);
 
+        LogNormParameters memory params = dynamicSlotInternal(poolId);
+
         invariant = tradingFunction({
             rx: nextRx,
             ry: nextRy,
             L: nextL,
-            params: dynamicSlotInternal()
+            params: params
         });
 
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
@@ -218,55 +256,70 @@ contract LogNormal is IStrategy {
 
     // ===== LogNormParameters ===== //
 
-    function sigma() public view returns (uint256) {
-        if (block.timestamp >= sigmaUpdateEnd) {
-            return targetSigma;
+    function sigma(uint256 poolId) public view returns (uint256) {
+        Sigma memory _sigma = sigmas[poolId];
+        if (block.timestamp >= _sigma.updateEnd) {
+            return _sigma.target;
         }
 
-        return lastSigma > targetSigma
-            ? lastSigma - (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond
-            : lastSigma + (block.timestamp - lastSigmaSync) * sigmaUpdatePerSecond;
+        return _sigma.last > _sigma.target
+            ? _sigma.last
+                - (block.timestamp - _sigma.lastSync) * _sigma.updatePerSecond
+            : _sigma.last
+                + (block.timestamp - _sigma.lastSync) * _sigma.updatePerSecond;
     }
 
-    function strikePrice() public view returns (uint256) {
-        if (block.timestamp >= strikeUpdateEnd) {
-            return targetStrike;
+    function strikePrice(uint256 poolId) public view returns (uint256) {
+        Strike memory strike = strikes[poolId];
+        if (block.timestamp >= strike.updateEnd) {
+            return strike.target;
         }
 
-        return lastStrike > targetStrike
-            ? lastStrike
-                - (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond
-            : lastStrike
-                + (block.timestamp - lastStrikeSync) * strikeUpdatePerSecond;
+        return strike.last > strike.target
+            ? strike.last
+                - (block.timestamp - strike.lastSync) * strike.updatePerSecond
+            : strike.last
+                + (block.timestamp - strike.lastSync) * strike.updatePerSecond;
     }
 
-    function tau() public view returns (uint256) {
-        if (block.timestamp >= tauUpdateEnd) {
-            return targetTau;
+    function tau(uint256 poolId) public view returns (uint256) {
+        Tau memory _tau = taus[poolId];
+        if (block.timestamp >= _tau.updateEnd) {
+            return _tau.target;
         }
 
-        return lastTau > targetTau
-            ? lastTau - (block.timestamp - lastTauSync) * tauUpdatePerSecond
-            : lastTau + (block.timestamp - lastTauSync) * tauUpdatePerSecond;
+        return _tau.last > _tau.target
+            ? _tau.last - (block.timestamp - _tau.lastSync) * _tau.updatePerSecond
+            : _tau.last + (block.timestamp - _tau.lastSync) * _tau.updatePerSecond;
     }
 
-    function getParams() public view returns (uint256, uint256, uint256) {
-        return (strikePrice(), sigma(), tau());
+    function getParams(uint256 poolId)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return (strikePrice(poolId), sigma(poolId), tau(poolId));
     }
 
-    function _syncSigma() private {
-        lastSigma = sigma();
-        lastSigmaSync = block.timestamp;
+    function _syncSigma(uint256 poolId) private {
+        Sigma memory newSigma = sigmas[poolId];
+        newSigma.last = sigma(poolId);
+        newSigma.lastSync = block.timestamp;
+        sigmas[poolId] = newSigma;
     }
 
-    function _syncStrike() private {
-        lastStrike = strikePrice();
-        lastStrikeSync = block.timestamp;
+    function _syncStrike(uint256 poolId) private {
+        Strike memory newStrike = strikes[poolId];
+        newStrike.last = strikePrice(poolId);
+        newStrike.lastSync = block.timestamp;
+        strikes[poolId] = newStrike;
     }
 
-    function _syncTau() private {
-        lastTau = tau();
-        lastTauSync = block.timestamp;
+    function _syncTau(uint256 poolId) private {
+        Tau memory newTau = taus[poolId];
+        newTau.last = tau(poolId);
+        newTau.lastSync = block.timestamp;
+        taus[poolId] = newTau;
     }
 
     event SetSigma(
@@ -277,28 +330,32 @@ contract LogNormal is IStrategy {
     );
 
     function setSigma(
+        uint256 poolId,
         uint256 newTargetSigma,
         uint256 newSigmaUpdateEnd
     ) external {
         require(newSigmaUpdateEnd > block.timestamp, "Update end passed");
 
-        _syncSigma();
+        _syncSigma(poolId);
 
-        uint256 sigmaDelta = lastSigma > newTargetSigma
-            ? lastSigma - newTargetSigma
-            : newTargetSigma - lastSigma;
+        Sigma memory _sigma = sigmas[poolId];
 
-        sigmaUpdatePerSecond =
+        uint256 sigmaDelta = _sigma.last > newTargetSigma
+            ? _sigma.last - newTargetSigma
+            : newTargetSigma - _sigma.last;
+
+        _sigma.updatePerSecond =
             sigmaDelta / (newSigmaUpdateEnd - block.timestamp);
-        targetSigma = newTargetSigma;
-        sigmaUpdateEnd = newSigmaUpdateEnd;
+        _sigma.target = newTargetSigma;
+        _sigma.updateEnd = newSigmaUpdateEnd;
+        sigmas[poolId] = _sigma;
         emit SetSigma(
-            targetSigma,
-            lastSigma,
-            sigmaUpdateEnd,
-            targetSigma > lastSigma
-                ? targetSigma - lastSigma
-                : lastSigma - targetSigma
+            _sigma.target,
+            _sigma.last,
+            _sigma.updateEnd,
+            _sigma.target > _sigma.last
+                ? _sigma.target - _sigma.last
+                : _sigma.last - _sigma.target
         );
     }
 
@@ -310,28 +367,32 @@ contract LogNormal is IStrategy {
     );
 
     function setStrikePrice(
+        uint256 poolId,
         uint256 newTargetStrike,
         uint256 newStrikeUpdateEnd
     ) external {
         require(newStrikeUpdateEnd > block.timestamp, "Update end passed");
 
-        _syncStrike();
+        _syncStrike(poolId);
 
-        uint256 strikeDelta = lastStrike > newTargetStrike
-            ? lastStrike - newTargetStrike
-            : newTargetStrike - lastStrike;
+        Strike memory strike = strikes[poolId];
 
-        strikeUpdatePerSecond =
+        uint256 strikeDelta = strike.last > newTargetStrike
+            ? strike.last - newTargetStrike
+            : newTargetStrike - strike.last;
+
+        strike.updatePerSecond =
             strikeDelta / (newStrikeUpdateEnd - block.timestamp);
-        targetStrike = newTargetStrike;
-        strikeUpdateEnd = newStrikeUpdateEnd;
+        strike.target = newTargetStrike;
+        strike.updateEnd = newStrikeUpdateEnd;
+        strikes[poolId] = strike;
         emit SetStrikePrice(
-            targetStrike,
-            lastStrike,
-            strikeUpdateEnd,
-            targetStrike > lastStrike
-                ? targetStrike - lastStrike
-                : lastStrike - targetStrike
+            strike.target,
+            strike.last,
+            strike.updateEnd,
+            strike.target > strike.last
+                ? strike.target - strike.last
+                : strike.last - strike.target
         );
     }
 
@@ -339,23 +400,32 @@ contract LogNormal is IStrategy {
         uint256 targetTau, uint256 lastTau, uint256 tauUpdateEnd, uint256 delta
     );
 
-    function setTau(uint256 newTargetTau, uint256 newTauUpdateEnd) external {
+    function setTau(
+        uint256 poolId,
+        uint256 newTargetTau,
+        uint256 newTauUpdateEnd
+    ) external {
         require(newTauUpdateEnd > block.timestamp, "Update end passed");
 
-        _syncTau();
+        _syncTau(poolId);
 
-        uint256 tauDelta = lastTau > newTargetTau
-            ? lastTau - newTargetTau
-            : newTargetTau - lastTau;
+        Tau memory _tau = taus[poolId];
 
-        tauUpdatePerSecond = tauDelta / (newTauUpdateEnd - block.timestamp);
-        targetTau = newTargetTau;
-        tauUpdateEnd = newTauUpdateEnd;
+        uint256 tauDelta = _tau.last > newTargetTau
+            ? _tau.last - newTargetTau
+            : newTargetTau - _tau.last;
+
+        _tau.updatePerSecond = tauDelta / (newTauUpdateEnd - block.timestamp);
+        _tau.target = newTargetTau;
+        _tau.updateEnd = newTauUpdateEnd;
+        taus[poolId] = _tau;
         emit SetTau(
-            targetTau,
-            lastTau,
-            tauUpdateEnd,
-            targetTau > lastTau ? targetTau - lastTau : lastTau - targetTau
+            _tau.target,
+            _tau.last,
+            _tau.updateEnd,
+            _tau.target > _tau.last
+                ? _tau.target - _tau.last
+                : _tau.last - _tau.target
         );
     }
 }

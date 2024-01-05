@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "./strategies/G3M.sol";
 import "./strategies/LogNormal.sol";
+import "./interfaces/IStrategy.sol";
+import "./interfaces/ICore.sol";
 import "solmate/tokens/ERC20.sol";
 
 /// @title DFMM
@@ -36,9 +38,10 @@ contract DFMM is ICore {
 
         // todo: can update later to allow for different sources.
         if (isLogNormal) {
-            strategy = address(new LogNormal(swapFeePercentageWad));
+            strategy =
+                address(new LogNormal(address(this), swapFeePercentageWad));
         } else {
-            strategy = address(new G3M(swapFeePercentageWad));
+            strategy = address(new G3M(address(this), swapFeePercentageWad));
         }
     }
 
