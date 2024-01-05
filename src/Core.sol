@@ -7,13 +7,24 @@ import "solmate/utils/SafeTransferLib.sol";
 import "./interfaces/IStrategy.sol";
 
 interface NewCore {
+    // Errors
+
     error AlreadyInitialized();
     error NotInitialized();
     error Locked();
-
     error Invalid(bool negative, int256 swapConstantGrowth);
 
-    event Init(address account, uint256 x, uint256 y, uint256 L);
+    error InvalidSwapInputTransfer();
+    error InvalidSwapOutputTransfer();
+
+    // Events
+
+    event Init(
+        address account,
+        uint256 reserveX,
+        uint256 reserveY,
+        uint256 totalLiquidity
+    );
 
     event Allocate(
         address indexed account, uint256 deltaX, uint256 deltaY, uint256 deltaL
@@ -22,6 +33,17 @@ interface NewCore {
     event Deallocate(
         address indexed account, uint256 deltaX, uint256 deltaY, uint256 deltaL
     );
+
+    event Swap(
+        address indexed account,
+        bool isSwapXForY,
+        uint256 inputAmount,
+        uint256 outputAmount
+    );
+
+    // Getters
+
+    // Setters
 }
 
 contract Core is NewCore {
@@ -33,11 +55,11 @@ contract Core is NewCore {
 
     bool public inited;
 
-    uint256 public reserveXWad;
-    uint256 public reserveYWad;
+    uint256 public reserveX;
+    uint256 public reserveY;
     uint256 public totalLiquidity;
-    uint256 public feeGrowth = 1 ether;
-    uint256 public swapFeePercentageWad;
+    uint256 public feeGrowth = FixedPointMathLib.WAD;
+    uint256 public swapFee;
 
     mapping(address account => uint256 balance) public balanceOf;
     mapping(address account => uint256 lastFeeGrowth) public lastFeeGrowthOf;
@@ -60,12 +82,12 @@ contract Core is NewCore {
         address strategy_,
         address tokenX_,
         address tokenY_,
-        uint256 swapFeePercentageWad_
+        uint256 swapFee_
     ) {
         strategy = strategy_;
         tokenX = tokenX_;
         tokenY = tokenY_;
-        swapFeePercentageWad = swapFeePercentageWad_;
+        swapFee = swapFee_;
     }
 
     function init(bytes calldata data)
@@ -75,32 +97,39 @@ contract Core is NewCore {
     {
         if (inited) revert AlreadyInitialized();
 
-        (bool valid, int256 swapConstantGrowth, uint256 x, uint256 y, uint256 L)
-        = IStrategy(strategy).init(data);
+        (
+            bool valid,
+            int256 swapConstantGrowth,
+            uint256 initialReserveX,
+            uint256 initialReserveY,
+            uint256 initialTotalLiquidity
+        ) = IStrategy(strategy).init(data);
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, swapConstantGrowth);
         }
 
         inited = true;
-        reserveXWad = x;
-        reserveYWad = y;
-        totalLiquidity = L;
+        reserveX = initialReserveX;
+        reserveY = initialReserveY;
+        totalLiquidity = initialTotalLiquidity;
 
-        balanceOf[msg.sender] = L;
+        balanceOf[msg.sender] = initialTotalLiquidity;
         lastFeeGrowthOf[msg.sender] = feeGrowth;
 
         SafeTransferLib.safeTransferFrom(
-            ERC20(tokenX), msg.sender, address(this), x
+            ERC20(tokenX), msg.sender, address(this), initialTotalLiquidity
         );
 
         SafeTransferLib.safeTransferFrom(
-            ERC20(tokenY), msg.sender, address(this), y
+            ERC20(tokenY), msg.sender, address(this), initialReserveY
         );
 
-        emit Init(msg.sender, x, y, L);
+        emit Init(
+            msg.sender, initialReserveX, initialReserveY, initialTotalLiquidity
+        );
 
-        return (x, y, L);
+        return (initialReserveX, initialReserveY, initialTotalLiquidity);
     }
 
     function allocate(bytes calldata data)
@@ -120,7 +149,6 @@ contract Core is NewCore {
         SafeTransferLib.safeTransferFrom(
             ERC20(tokenX), msg.sender, address(this), deltaX
         );
-
         SafeTransferLib.safeTransferFrom(
             ERC20(tokenY), msg.sender, address(this), deltaY
         );
@@ -144,29 +172,65 @@ contract Core is NewCore {
         lastFeeGrowthOf[msg.sender] = feeGrowth;
 
         SafeTransferLib.safeTransfer(ERC20(tokenX), msg.sender, deltaX);
-
         SafeTransferLib.safeTransfer(ERC20(tokenY), msg.sender, deltaY);
 
         emit Deallocate(msg.sender, deltaX, deltaY, deltaL);
         return (deltaX, deltaY, deltaL);
     }
 
+    function swap(bytes calldata data) public lock initialized {
+        (
+            bool valid,
+            int256 swapConstantGrowth,
+            int256 deltaLiquidity,
+            uint256 adjustedReserveX,
+            uint256 adjustedReserveY,
+            uint256 adjustedTotalLiquidity
+        ) = IStrategy(strategy).validateSwap(data);
+
+        if (!valid) {
+            revert Invalid(swapConstantGrowth < 0, swapConstantGrowth);
+        }
+
+        uint256 preLiquidity = totalLiquidity;
+        totalLiquidity = adjustedTotalLiquidity;
+
+        uint256 growth = totalLiquidity.divWadDown(preLiquidity);
+        feeGrowth = feeGrowth.mulWadDown(growth);
+
+        (bool isSwapXForY, uint256 inputAmount, uint256 outputAmount) =
+            _settle(adjustedReserveX, adjustedReserveY);
+
+        emit Swap(msg.sender, isSwapXForY, inputAmount, outputAmount);
+    }
+
     function _updatePool(
         bool isAllocate,
         bytes calldata data
     ) private returns (uint256, uint256, uint256) {
-        (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-            IStrategy(strategy).validateAllocateOrDeallocate(data);
+        (
+            bool valid,
+            int256 invariant,
+            uint256 adjustedReserveX,
+            uint256 adjustedReserveY,
+            uint256 adjustedTotalLiquidity
+        ) = IStrategy(strategy).validateAllocateOrDeallocate(data);
 
         if (!valid) revert Invalid(invariant < 0, invariant);
 
-        uint256 deltaX = isAllocate ? rx - reserveXWad : reserveXWad - rx;
-        uint256 deltaY = isAllocate ? ry - reserveYWad : reserveYWad - ry;
-        uint256 deltaL = isAllocate ? L - totalLiquidity : totalLiquidity - L;
+        uint256 deltaX = isAllocate
+            ? adjustedReserveX - reserveX
+            : reserveX - adjustedReserveX;
+        uint256 deltaY = isAllocate
+            ? adjustedReserveY - reserveY
+            : reserveY - adjustedReserveY;
+        uint256 deltaL = isAllocate
+            ? adjustedTotalLiquidity - totalLiquidity
+            : totalLiquidity - adjustedTotalLiquidity;
 
-        reserveXWad = rx;
-        reserveYWad = ry;
-        totalLiquidity = L;
+        reserveX = adjustedReserveX;
+        reserveY = adjustedReserveY;
+        totalLiquidity = adjustedTotalLiquidity;
 
         return (deltaX, deltaY, deltaL);
     }
@@ -179,5 +243,58 @@ contract Core is NewCore {
             uint256 growth = feeGrowth.mulWadDown(lastFeeGrowthOf[msg.sender]);
             balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
         }
+    }
+
+    function _settle(
+        uint256 adjustedReserveX,
+        uint256 adjustedReserveY
+    ) private returns (bool, uint256, uint256) {
+        (uint256 originalReserveXWad, uint256 originalReserveYWad) =
+            (reserveX, reserveY);
+
+        bool isSwapXForY = adjustedReserveX > reserveX;
+
+        address inputToken = isSwapXForY ? tokenX : tokenY;
+        address outputToken = isSwapXForY ? tokenY : tokenX;
+        uint256 inputAmount = isSwapXForY
+            ? adjustedReserveX - originalReserveXWad
+            : adjustedReserveY - originalReserveYWad;
+        uint256 outputAmount = isSwapXForY
+            ? originalReserveYWad - adjustedReserveY
+            : originalReserveXWad - adjustedReserveX;
+
+        // TODO: Improve these lines, using custom errors would be nice but the
+        // syntax might get a bit ugly.
+        if (isSwapXForY) {
+            require(originalReserveYWad > adjustedReserveY, "invalid swap");
+        } else {
+            require(originalReserveXWad > adjustedReserveX, "invalid swap");
+        }
+
+        reserveX = adjustedReserveX;
+        reserveY = adjustedReserveY;
+
+        uint256 preInputBalance = ERC20(inputToken).balanceOf(address(this));
+        uint256 preOutputBalance = ERC20(outputToken).balanceOf(address(this));
+
+        SafeTransferLib.safeTransferFrom(
+            ERC20(inputToken), msg.sender, address(this), inputAmount
+        );
+        SafeTransferLib.safeTransfer(
+            ERC20(outputToken), msg.sender, outputAmount
+        );
+
+        uint256 postInputBalance = ERC20(inputToken).balanceOf(address(this));
+        uint256 postOutputBalance = ERC20(outputToken).balanceOf(address(this));
+
+        if (postInputBalance < preInputBalance + inputAmount) {
+            revert InvalidSwapInputTransfer();
+        }
+
+        if (postOutputBalance < preOutputBalance - outputAmount) {
+            revert InvalidSwapOutputTransfer();
+        }
+
+        return (isSwapXForY, inputAmount, outputAmount);
     }
 }
