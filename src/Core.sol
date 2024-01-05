@@ -6,13 +6,28 @@ import "solmate/utils/FixedPointMathLib.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "./interfaces/IStrategy.sol";
 
+error Min();
+
+function abs(int256 input) pure returns (uint256 output) {
+    if (input == type(int256).min) revert Min();
+    if (input < 0) {
+        assembly {
+            output := add(not(input), 1)
+        }
+    } else {
+        assembly {
+            output := input
+        }
+    }
+}
+
 interface NewCore {
     // Errors
 
     error AlreadyInitialized();
     error NotInitialized();
     error Locked();
-    error Invalid(bool negative, int256 swapConstantGrowth);
+    error Invalid(bool negative, uint256 swapConstantGrowth);
 
     error InvalidSwapInputTransfer();
     error InvalidSwapOutputTransfer();
@@ -106,7 +121,7 @@ contract Core is NewCore {
         ) = IStrategy(strategy).init(data);
 
         if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, swapConstantGrowth);
+            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
         inited = true;
@@ -189,7 +204,7 @@ contract Core is NewCore {
         ) = IStrategy(strategy).validateSwap(data);
 
         if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, swapConstantGrowth);
+            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
         uint256 preLiquidity = totalLiquidity;
@@ -216,7 +231,7 @@ contract Core is NewCore {
             uint256 adjustedTotalLiquidity
         ) = IStrategy(strategy).validateAllocateOrDeallocate(data);
 
-        if (!valid) revert Invalid(invariant < 0, invariant);
+        if (!valid) revert Invalid(invariant < 0, abs(invariant));
 
         uint256 deltaX = isAllocate
             ? adjustedReserveX - reserveX
