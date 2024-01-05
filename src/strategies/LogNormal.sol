@@ -7,6 +7,13 @@ import "forge-std/console2.sol";
 import "../interfaces/IMultiCore.sol";
 import "../interfaces/IMultiStrategy.sol";
 
+/// @notice Log Normal has three variable parameters:
+/// K - strike price
+/// sigma - volatility
+/// tau - time to expiry
+///
+/// Swaps are validated by the trading function:
+/// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
 struct Sigma {
     uint256 target;
     uint256 last;
@@ -31,13 +38,6 @@ struct Tau {
     uint256 lastSync;
 }
 
-/// @notice Log Normal has three variable parameters:
-/// K - strike price
-/// sigma - volatility
-/// tau - time to expiry
-///
-/// Swaps are validated by the trading function:
-/// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
 contract LogNormal is IMultiStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;

@@ -7,26 +7,7 @@ import "forge-std/console2.sol";
 import "../lib/BisectionLib.sol";
 import "../lib/lognormal/LogNormalExtendedLib.sol";
 import "../interfaces/IMultiCore.sol";
-
-interface StrategyLike {
-    function computeSwapConstant(
-        uint256 poolId,
-        bytes memory
-    ) external view returns (int256);
-    function dynamicSlotInternal(uint256 poolId)
-        external
-        view
-        returns (LogNormParameters memory);
-    function swapFee() external view returns (uint256);
-    function getReservesAndLiquidity(uint256 poolId)
-        external
-        view
-        returns (uint256, uint256, uint256);
-    function validateSwap(
-        uint256 poolId,
-        bytes calldata
-    ) external view returns (bool, int256, int256, uint256, uint256, uint256);
-}
+import "../interfaces/IStrategyLike.sol";
 
 contract LogNormalSolver is IParams {
     using FixedPointMathLib for uint256;
@@ -46,7 +27,7 @@ contract LogNormalSolver is IParams {
         view
         returns (LogNormParameters memory)
     {
-        return StrategyLike(strategy).dynamicSlotInternal(poolId);
+        return LogNormalStrategyLike(strategy).dynamicSlotInternal(poolId);
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -54,7 +35,7 @@ contract LogNormalSolver is IParams {
         view
         returns (uint256, uint256, uint256)
     {
-        return StrategyLike(strategy).getReservesAndLiquidity(poolId);
+        return IStrategyLike(strategy).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
@@ -117,7 +98,7 @@ contract LogNormalSolver is IParams {
     ) public view returns (uint256) {
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant =
-            StrategyLike(strategy).computeSwapConstant(poolId, data);
+            IStrategyLike(strategy).computeSwapConstant(poolId, data);
         return computeNextLiquidity(rx, ry, invariant, L, getPoolParams(poolId));
     }
 
@@ -129,7 +110,7 @@ contract LogNormalSolver is IParams {
         (uint256 rx,,) = getReservesAndLiquidity(poolId);
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant =
-            StrategyLike(strategy).computeSwapConstant(poolId, data);
+            IStrategyLike(strategy).computeSwapConstant(poolId, data);
         return computeNextRx(ry, L, invariant, rx, getPoolParams(poolId));
     }
 
@@ -141,7 +122,7 @@ contract LogNormalSolver is IParams {
         (, uint256 ry,) = getReservesAndLiquidity(poolId);
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant =
-            StrategyLike(strategy).computeSwapConstant(poolId, data);
+            IStrategyLike(strategy).computeSwapConstant(poolId, data);
         return computeNextRy(rx, L, invariant, ry, getPoolParams(poolId));
     }
 
@@ -159,7 +140,7 @@ contract LogNormalSolver is IParams {
 
         uint256 amountOut;
         {
-            uint256 swapFee = StrategyLike(strategy).swapFee();
+            uint256 swapFee = IStrategyLike(strategy).swapFee();
             uint256 startComputedL = getNextLiquidity(
                 poolId, startReserves.rx, startReserves.ry, startReserves.L
             );
@@ -206,7 +187,7 @@ contract LogNormalSolver is IParams {
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
         (bool valid,,,,,) =
-            StrategyLike(strategy).validateSwap(poolId, swapData);
+            IStrategyLike(strategy).validateSwap(poolId, swapData);
         return (
             valid,
             amountOut,
