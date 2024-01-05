@@ -50,6 +50,10 @@ contract MultiDFMM is IMultiCore {
         return pools.length;
     }
 
+    function getPool(uint256 poolId) public view returns (Pool memory) {
+        return pools[poolId];
+    }
+
     function getReservesAndLiquidity(uint256 poolId)
         public
         view

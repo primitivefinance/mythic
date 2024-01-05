@@ -125,13 +125,12 @@ contract LogNormal is IMultiStrategy {
     }
 
     /// @dev Computes the result of the tradingFunction().
-    function computeSwapConstant(bytes memory data)
-        public
-        view
-        returns (int256)
-    {
-        (uint256 poolId, uint256 rx, uint256 ry, uint256 L) =
-            abi.decode(data, (uint256, uint256, uint256, uint256));
+    function computeSwapConstant(
+        uint256 poolId,
+        bytes memory data
+    ) public view returns (int256) {
+        (uint256 rx, uint256 ry, uint256 L) =
+            abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction({
             rx: rx,
             ry: ry,
