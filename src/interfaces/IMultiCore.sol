@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 /// @dev Contract that holds the reserve and liquidity state.
-interface ICore {
+interface IMultiCore {
     error NotInitialized();
 
     error Invalid(bool negative, uint256 swapConstantGrowth);
@@ -42,19 +42,29 @@ interface ICore {
 
     event Deallocate(uint256 x, uint256 y, uint256 l);
 
-    function init(bytes calldata data)
+    struct InitParams {
+        address strategy;
+        address tokenX;
+        address tokenY;
+        uint256 swapFeePercentageWad;
+        bytes data;
+    }
+
+    function init(InitParams calldata params)
         external
         returns (uint256, uint256, uint256);
 
-    function allocate(bytes calldata data)
-        external
-        returns (uint256, uint256, uint256);
+    function allocate(
+        uint256 poolId,
+        bytes calldata data
+    ) external returns (uint256, uint256, uint256);
 
-    function deallocate(bytes calldata data)
-        external
-        returns (uint256, uint256, uint256);
+    function deallocate(
+        uint256 poolId,
+        bytes calldata data
+    ) external returns (uint256, uint256, uint256);
 
-    function getReservesAndLiquidity()
+    function getReservesAndLiquidity(uint256 poolId)
         external
         view
         returns (
