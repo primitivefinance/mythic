@@ -57,4 +57,39 @@ contract Core is NewCore {
         tokenY = tokenY_;
         swapFeePercentageWad = swapFeePercentageWad_;
     }
+
+    function init(bytes calldata data)
+        public
+        lock
+        returns (uint256, uint256, uint256)
+    {
+        if (inited) revert AlreadyInitialized();
+
+        (bool valid, int256 swapConstantGrowth, uint256 x, uint256 y, uint256 L)
+        = IStrategy(strategy).init(data);
+
+        if (!valid) {
+            revert Invalid(swapConstantGrowth < 0, swapConstantGrowth);
+        }
+
+        inited = true;
+        reserveXWad = x;
+        reserveYWad = y;
+        totalLiquidity = L;
+
+        balanceOf[msg.sender] = L;
+        lastFeeGrowthOf[msg.sender] = feeGrowth;
+
+        SafeTransferLib.safeTransferFrom(
+            ERC20(tokenX), msg.sender, address(this), x
+        );
+
+        SafeTransferLib.safeTransferFrom(
+            ERC20(tokenY), msg.sender, address(this), y
+        );
+
+        emit Init(msg.sender, x, y, L);
+
+        return (x, y, L);
+    }
 }
