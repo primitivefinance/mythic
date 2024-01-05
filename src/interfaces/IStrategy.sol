@@ -13,7 +13,7 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
-    function validate(bytes calldata data)
+    function validateSwap(bytes calldata data)
         external
         view
         returns (
@@ -25,7 +25,7 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
-    function validateAllocationOrDeallocation(bytes calldata data)
+    function validateAllocateOrDeallocate(bytes calldata data)
         external
         view
         returns (

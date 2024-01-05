@@ -17,7 +17,7 @@ interface StrategyLike {
         external
         view
         returns (uint256, uint256, uint256);
-    function validate(bytes calldata)
+    function validateSwap(bytes calldata)
         external
         view
         returns (bool, int256, int256, uint256, uint256, uint256);
@@ -36,12 +36,68 @@ contract G3MSolver {
         strategy = _strategy;
     }
 
+    function getReservesAndLiquidity()
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return StrategyLike(strategy).getReservesAndLiquidity();
+    }
+
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
         G3mParameters memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
+    }
+
+    function allocateGivenX(uint256 amountX)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (uint256 rx,, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRx, uint256 nextL) =
+            computeAllocationGivenX(true, amountX, rx, L);
+        uint256 nextRy = getNextReserveY(nextRx, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
+    function allocateGivenY(uint256 amountY)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (, uint256 ry, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRy, uint256 nextL) =
+            computeAllocationGivenX(true, amountY, ry, L);
+        uint256 nextRx = getNextReserveX(nextRy, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
+    function deallocateGivenX(uint256 amountX)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (uint256 rx,, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRx, uint256 nextL) =
+            computeAllocationGivenX(false, amountX, rx, L);
+        uint256 nextRy = getNextReserveY(nextRx, nextL);
+        return (nextRx, nextRy, nextL);
+    }
+
+    function deallocateGivenY(uint256 amountY)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        (, uint256 ry, uint256 L) = getReservesAndLiquidity();
+        (uint256 nextRy, uint256 nextL) =
+            computeAllocationGivenX(false, amountY, ry, L);
+        uint256 nextRx = getNextReserveX(nextRy, nextL);
+        return (nextRx, nextRy, nextL);
     }
 
     function getNextLiquidity(
@@ -134,7 +190,7 @@ contract G3MSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-        (bool valid,,,,,) = StrategyLike(strategy).validate(swapData);
+        (bool valid,,,,,) = StrategyLike(strategy).validateSwap(swapData);
         return (
             valid,
             amountOut,
