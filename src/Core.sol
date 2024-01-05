@@ -24,6 +24,8 @@ function abs(int256 input) pure returns (uint256 output) {
 interface NewCore {
     // Errors
 
+    error InvalidTokens();
+
     /// @dev Thrown when the pool has already been initialized.
     error AlreadyInitialized();
 
@@ -148,9 +150,11 @@ contract Core is NewCore {
         address tokenY_,
         uint256 swapFee_
     ) {
-        strategy = strategy_;
+        if (tokenX_ == tokenY_) revert InvalidTokens();
+
         tokenX = tokenX_;
         tokenY = tokenY_;
+        strategy = strategy_;
         swapFee = swapFee_;
     }
 
