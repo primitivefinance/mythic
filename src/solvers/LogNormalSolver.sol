@@ -6,6 +6,7 @@ import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "../lib/BisectionLib.sol";
 import "../lib/lognormal/LogNormalExtendedLib.sol";
+import "../interfaces/IMultiCore.sol";
 
 interface StrategyLike {
     function computeSwapConstant(bytes memory) external view returns (int256);
@@ -24,7 +25,7 @@ interface StrategyLike {
         returns (bool, int256, int256, uint256, uint256, uint256);
 }
 
-contract LogNormalSolver {
+contract LogNormalSolver is IParams {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 

@@ -6,6 +6,7 @@ import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "./LogNormalLib.sol";
 import "../BisectionLib.sol";
+import "../../interfaces/IMultiCore.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;

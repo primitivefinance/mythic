@@ -5,6 +5,7 @@ import "./strategies/G3M.sol";
 import "./strategies/LogNormal.sol";
 import "solmate/tokens/ERC20.sol";
 import "./interfaces/IMultiCore.sol";
+import "./interfaces/IMultiStrategy.sol";
 
 struct Pool {
     bool inited;
@@ -45,6 +46,10 @@ contract MultiDFMM is IMultiCore {
         locked = 1;
     }
 
+    function nonce() public view returns (uint256) {
+        return pools.length;
+    }
+
     function getReservesAndLiquidity(uint256 poolId)
         public
         view
@@ -68,7 +73,7 @@ contract MultiDFMM is IMultiCore {
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = IStrategy(params.strategy).init(params.data);
+        ) = IMultiStrategy(params.strategy).init(nonce(), params.data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
@@ -116,7 +121,9 @@ contract MultiDFMM is IMultiCore {
         bytes calldata data
     ) internal returns (uint256 deltaX, uint256 deltaY, uint256 deltaL) {
         (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-            IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(data);
+        IMultiStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
+            poolId, data
+        );
 
         if (!valid) {
             revert Invalid(invariant < 0, abs(invariant));
@@ -186,11 +193,11 @@ contract MultiDFMM is IMultiCore {
         (
             bool valid,
             int256 swapConstantGrowth,
-            int256 liquidityDelta, // this is unused, should we remove it?
+            ,
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = IStrategy(pools[poolId].strategy).validateSwap(data);
+        ) = IMultiStrategy(pools[poolId].strategy).validateSwap(poolId, data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }

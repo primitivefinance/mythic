@@ -1,8 +1,10 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "./IParams.sol";
+
 /// @dev Contract that holds the reserve and liquidity state.
-interface IMultiCore {
+interface IMultiCore is IParams {
     error NotInitialized();
 
     error Invalid(bool negative, uint256 swapConstantGrowth);
@@ -41,14 +43,6 @@ interface IMultiCore {
     event Allocate(uint256 x, uint256 y, uint256 l);
 
     event Deallocate(uint256 x, uint256 y, uint256 l);
-
-    struct InitParams {
-        address strategy;
-        address tokenX;
-        address tokenY;
-        uint256 swapFeePercentageWad;
-        bytes data;
-    }
 
     function init(InitParams calldata params)
         external

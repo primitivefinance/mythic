@@ -2,8 +2,11 @@
 pragma solidity ^0.8.13;
 
 /// @dev Contract that holds the strategy parameterization and validation function.
-interface IStrategy {
-    function init(bytes calldata data)
+interface IMultiStrategy {
+    function init(
+        uint256 poolId,
+        bytes calldata data
+    )
         external
         returns (
             bool valid,
@@ -13,7 +16,10 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
-    function validateSwap(bytes calldata data)
+    function validateSwap(
+        uint256 poolId,
+        bytes calldata data
+    )
         external
         view
         returns (
@@ -25,7 +31,10 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
-    function validateAllocateOrDeallocate(bytes calldata data)
+    function validateAllocateOrDeallocate(
+        uint256 poolId,
+        bytes calldata data
+    )
         external
         view
         returns (
