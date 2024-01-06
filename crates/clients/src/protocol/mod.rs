@@ -46,39 +46,8 @@ impl<C> Clone for ProtocolClient<C> {
 type F64Wad = f64;
 
 impl<C: Middleware + 'static> ProtocolClient<C> {
-    pub fn new(
-        client: Arc<C>,
-        dfmm_address: Address,
-        ln_strategy_address: Address,
-        ln_solver_address: Address,
-        g_strategy_address: Address,
-        g_solver_address: Address,
-        token_x: Address,
-        token_y: Address,
-    ) -> Self {
-        let protocol = MultiDFMM::new(dfmm_address, client.clone());
-        let ln_solver = LogNormalSolver::new(ln_solver_address, client.clone());
-        let g_solver = G3MSolver::new(g_solver_address, client.clone());
-        let ln_strategy = LogNormal::new(ln_strategy_address, client.clone());
-        let g_strategy = G3M::new(g_strategy_address, client.clone());
-        Self {
-            client,
-            protocol,
-            ln_strategy,
-            ln_solver,
-            g_strategy,
-            g_solver,
-            token_x,
-            token_y,
-        }
-    }
-
-    pub async fn get_tokens(&self) -> Result<(Address, Address)> {
-        Ok((self.token_x, self.token_y))
-    }
-
     #[tracing::instrument(skip(client), level = "trace", ret)]
-    pub async fn deploy_protocol(
+    pub async fn new(
         client: Arc<C>,
         token_x: Address,
         token_y: Address,
@@ -109,6 +78,10 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             token_x,
             token_y,
         })
+    }
+
+    pub async fn get_tokens(&self) -> Result<(Address, Address)> {
+        Ok((self.token_x, self.token_y))
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]

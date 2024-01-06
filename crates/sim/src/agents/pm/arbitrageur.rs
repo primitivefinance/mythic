@@ -49,18 +49,12 @@ impl Arbitrageur {
         environment: &Environment,
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
-        dfmm_address: Address,
-        solver_address: Address,
+        protocol_client: ProtocolClient<RevmMiddleware>,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, "arbitrageur".into())?;
 
-        // Create the protocol client.
-        let protocol_client = ProtocolClient::new(
-            client.clone(),
-            to_ethers_address(dfmm_address),
-            to_ethers_address(solver_address),
-        );
+        protocol_client.client = client.clone();
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange =
@@ -168,7 +162,7 @@ impl Arbitrageur {
         let (rx, ry, liq) = self
             .protocol_client
             .protocol
-            .get_reserves_and_liquidity()
+            .get_reserves_and_liquidity(U256::from(0))
             .call()
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
@@ -348,7 +342,7 @@ impl Agent for Arbitrageur {
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
                     .protocol
-                    .get_reserves_and_liquidity()
+                    .get_reserves_and_liquidity(U256::from(0))
                     .call()
                     .await?;
                 debug!(
@@ -401,7 +395,7 @@ impl Agent for Arbitrageur {
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
                     .protocol
-                    .get_reserves_and_liquidity()
+                    .get_reserves_and_liquidity(U256::from(0))
                     .call()
                     .await?;
                 trace!("arby_balance after: {:?}", arby_balance);

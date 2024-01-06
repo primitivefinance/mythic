@@ -51,9 +51,7 @@ impl LiquidityProvider {
         environment: &Environment,
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
-        token_admin: &TokenAdmin,
-        market: Address,
-        solver: Address,
+        protocol_client: ProtocolClient<RevmMiddleware>,
     ) -> Result<Self> {
         let label = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
@@ -78,13 +76,7 @@ impl LiquidityProvider {
         if let Some(AgentParameters::LiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
         {
-            let protocol_client = ProtocolClient::new(
-                client.clone(),
-                to_ethers_address(market),
-                to_ethers_address(solver),
-            );
-
-            // todo: right now we init pool with params, that can be updated obviously...
+            protocol_client.client = client.clone();
 
             Ok(Self {
                 client,
