@@ -94,7 +94,7 @@ contract DFMM is ICore {
         ERC20(tokenX).transferFrom(msg.sender, address(this), deltaX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), deltaY);
 
-        emit Allocate(deltaX, deltaY, deltaL);
+        emit Allocate(msg.sender, deltaX, deltaY, deltaL);
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
@@ -128,7 +128,7 @@ contract DFMM is ICore {
         ERC20(tokenX).transfer(msg.sender, deltaX);
         ERC20(tokenY).transfer(msg.sender, deltaY);
 
-        emit Deallocate(deltaX, deltaY, deltaL);
+        emit Deallocate(msg.sender, deltaX, deltaY, deltaL);
         return (reserveXWad, reserveYWad, totalLiquidity);
     }
 
@@ -157,7 +157,7 @@ contract DFMM is ICore {
         feeGrowthLast[msg.sender] = feeGrowth;
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
-        emit Init(msg.sender, strategy, XXXXXXX, YYYYYY, LLLLLL);
+        emit Init(msg.sender, XXXXXXX, YYYYYY, LLLLLL);
         return (XXXXXXX, YYYYYY, LLLLLL);
     }
 
