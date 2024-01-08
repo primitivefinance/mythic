@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../DFMM.sol";
-import "../solvers/LogNormalSolver.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../Lex.sol";
+
+import "../../strategies/LogNormal/LogNormalSolver.sol";
+import "../../DFMM.sol";
+import "../helpers/Lex.sol";
 
 contract LogNormalTest is Test {
     using stdStorage for StdStorage;

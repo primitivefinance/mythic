@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../DFMM.sol";
-import "../solvers/G3MSolver.sol";
-import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../Lex.sol";
-import "forge-std/console2.sol";
+import "forge-std/Test.sol";
+
+import "../../strategies/G3M/G3MSolver.sol";
+import "../../DFMM.sol";
+import "../helpers/Lex.sol";
 
 contract G3mTest is Test {
     using stdStorage for StdStorage;

@@ -1,8 +1,8 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/console2.sol";
 import "solmate/utils/FixedPointMathLib.sol";
-import "../StrategyLib.sol";
+import "../../lib/StrategyLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;

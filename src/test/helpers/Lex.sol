@@ -7,6 +7,7 @@ pragma solidity ^0.8.17;
 
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/FixedPointMathLib.sol";
+
 import "./ArbiterToken.sol";
 
 /**

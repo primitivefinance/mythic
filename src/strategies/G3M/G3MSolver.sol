@@ -3,8 +3,9 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
-import "../lib/g3m/G3MExtendedLib.sol";
-import "../interfaces/IStrategyLike.sol";
+
+import "./G3MExtendedLib.sol";
+import "../../interfaces/IStrategyLike.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;

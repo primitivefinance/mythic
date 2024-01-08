@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
-import "forge-std/console2.sol";
+
 import "./LogNormalLib.sol";
-import "../BisectionLib.sol";
+import "./BisectionLib.sol";
 import "../../interfaces/IMultiCore.sol";
 
 using FixedPointMathLib for uint256;
