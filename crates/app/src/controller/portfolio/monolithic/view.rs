@@ -43,44 +43,44 @@ impl MonolithicPresenter {
         volatility: f64,
         time_remaining: f64,
     ) {
-        let strategy_preview = self.model.portfolio.derive_computed_strategy_plot(
-            strike_price,
-            volatility,
-            time_remaining,
-        );
-        let strategy_preview = match strategy_preview {
-            Ok(data) => data,
-            Err(_) => vec![],
-        };
+        if let Some(connected_model) = self.model.get_current() {
+            let strategy_preview = connected_model.derive_computed_strategy_plot(
+                strike_price,
+                volatility,
+                time_remaining,
+            );
+            let strategy_preview = match strategy_preview {
+                Ok(data) => data,
+                Err(_) => vec![],
+            };
 
-        let liq_dist = strategy_preview[1].clone();
-        let price_curve = strategy_preview[2].clone();
+            let liq_dist = strategy_preview[1].clone();
+            let price_curve = strategy_preview[2].clone();
 
-        // Completely override chart state and start from a fresh context.
-        // This will make the chart "snap" to the new curve by updating its
-        let mut new_preview = ExcaliburChart::new()
-            .x_range(liq_dist.0.x_range)
-            .y_range(liq_dist.0.y_range);
-        new_preview.override_series(vec![liq_dist.1.clone(), price_curve.1]);
-        new_preview.override_ranges_flag(true);
+            // Completely override chart state and start from a fresh context.
+            // This will make the chart "snap" to the new curve by updating its
+            let mut new_preview = ExcaliburChart::new()
+                .x_range(liq_dist.0.x_range)
+                .y_range(liq_dist.0.y_range);
+            new_preview.override_series(vec![liq_dist.1.clone(), price_curve.1]);
+            new_preview.override_ranges_flag(true);
 
-        self.cached_strategy_preview = new_preview;
+            self.cached_strategy_preview = new_preview;
 
-        // histogram
-        let histogram_data = self
-            .model
-            .portfolio
-            .derive_liquidity_histogram(strike_price, volatility, time_remaining)
-            .expect("Failed to derive histogram data.");
+            // histogram
+            let histogram_data = connected_model
+                .derive_liquidity_histogram(strike_price, volatility, time_remaining)
+                .expect("Failed to derive histogram data.");
 
-        let x_range = (0.0, histogram_data.max_bin as f32);
-        let y_range = (0.0, histogram_data.max_count as f32);
+            let x_range = (0.0, histogram_data.max_bin as f32);
+            let y_range = (0.0, histogram_data.max_count as f32);
 
-        self.cached_strategy_histogram = ExcaliburHistogram::new()
-            .override_data(histogram_data.data)
-            .x_range(x_range)
-            .y_range(y_range)
-            .notable_bars(histogram_data.notable_bars);
+            self.cached_strategy_histogram = ExcaliburHistogram::new()
+                .override_data(histogram_data.data)
+                .x_range(x_range)
+                .y_range(y_range)
+                .notable_bars(histogram_data.notable_bars);
+        }
     }
 
     pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {
@@ -88,7 +88,15 @@ impl MonolithicPresenter {
     }
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
+        if self.model.get_current().is_none() {
+            return label("Timestamp: N/A").caption().tertiary();
+        }
+
+        let data = self
+            .model
+            .get_current()
+            .unwrap()
+            .raw_last_chain_data_sync_timestamp;
         match data {
             Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
             None => label("Timestamp: N/A").caption().tertiary(),
@@ -96,7 +104,11 @@ impl MonolithicPresenter {
     }
 
     pub fn get_aum(&self) -> String {
-        let aum = self.model.portfolio.derive_total_aum();
+        if self.model.get_current().is_none() {
+            return "N/A".to_string();
+        }
+
+        let aum = self.model.get_current().unwrap().derive_total_aum();
         match aum {
             Ok(data) => alloy_primitives::utils::format_ether(data),
             Err(_) => "N/A".to_string(),
@@ -180,20 +192,16 @@ impl MonolithicPresenter {
             .find(|x| x.asset.address == address)
             .cloned();
 
-        if let Some(position) = position {
+        if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
             let external_price = match position.asset.symbol.as_str() {
-                "X" => self.model.portfolio.raw_external_spot_price.to_label(),
-                "Y" => self.model.portfolio.raw_external_quote_price.to_label(),
+                "X" => connected_model.raw_external_spot_price.to_label(),
+                "Y" => connected_model.raw_external_quote_price.to_label(),
                 _ => label("n/a").title3().quantitative(),
             };
 
-            let aum = self
-                .model
-                .portfolio
-                .derive_internal_portfolio_value()
-                .to_label();
+            let aum = connected_model.derive_internal_portfolio_value().to_label();
 
-            let health = self.model.portfolio.derive_portfolio_health();
+            let health = connected_model.derive_portfolio_health();
             let health = match health {
                 Ok(data) => {
                     let value = alloy_primitives::utils::format_ether(data);
@@ -222,8 +230,13 @@ impl MonolithicPresenter {
     }
 
     pub fn get_historical_txs(&self) -> Vec<HistoricalTx> {
+        if self.model.get_current().is_none() {
+            return vec![];
+        }
+
         self.model
-            .portfolio
+            .get_current()
+            .unwrap()
             .raw_user_historical_transactions
             .clone()
             .unwrap_or_default()

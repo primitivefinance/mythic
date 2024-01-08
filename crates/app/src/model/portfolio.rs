@@ -81,6 +81,8 @@ pub struct TokenInfo {
 /// The model!
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RawDataModel<A, V> {
+    pub chain_id: Option<u64>,
+
     // Cached data is updated only once.
     pub cached: Cached,
 
@@ -206,8 +208,11 @@ impl StrategyPosition {
 
 impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Creates a completely fresh model with no values set.
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(chain_id: u64) -> Self {
+        Self {
+            chain_id: Some(chain_id),
+            ..Default::default()
+        }
     }
 
     /// Sets up the model with the required addresses needed to fetch all the
@@ -2116,7 +2121,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_balance_of() -> anyhow::Result<()> {
         // TODO: unused anvil instance
-        let (_anvil, client) = setup().await?;
+        let (anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
         let token =
@@ -2131,8 +2136,10 @@ mod tests {
         token.mint(sender, 100.into()).send().await?;
         println!("Minted tokens");
 
+        let chain_id = anvil.chain_id();
+
         // Now we can fetch the balance of the wallet.
-        let model = RawDataModel::<AlloyAddress, AlloyU256>::new();
+        let model = RawDataModel::<AlloyAddress, AlloyU256>::new(chain_id);
 
         let converted_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());
@@ -2154,7 +2161,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_update_token_balances() -> anyhow::Result<()> {
         // TODO: unused anvil instance
-        let (_anvil, client) = setup().await?;
+        let (anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
         let token =
@@ -2169,8 +2176,10 @@ mod tests {
         token.mint(sender, 100.into()).send().await?;
         println!("Minted tokens");
 
+        let chain_id = anvil.chain_id();
+
         // Now we can fetch the balance of the wallet.
-        let mut model = RawDataModel::<AlloyAddress, AlloyU256>::new();
+        let mut model = RawDataModel::<AlloyAddress, AlloyU256>::new(chain_id);
 
         let converted_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());

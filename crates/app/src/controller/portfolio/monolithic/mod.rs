@@ -158,7 +158,14 @@ impl Monolithic {
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
 
-                let asset_price = self.model.portfolio.raw_external_spot_price;
+                if self.model.get_current().is_none() {
+                    return Err(anyhow::anyhow!(
+                        "Data model is not connected to any network."
+                    ));
+                }
+
+                // Does not panic because it's caught in the above if statement.
+                let asset_price = self.model.get_current().unwrap().raw_external_spot_price;
                 let asset_price = match asset_price {
                     Some(x) => format_ether(x).parse::<f64>(),
                     None => return Err(anyhow::anyhow!("No asset price")),
@@ -243,21 +250,25 @@ impl Monolithic {
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
 
-                let external_price = self.model.portfolio.raw_external_spot_price;
-                let external_price = match external_price {
-                    Some(x) => format_ether(x).parse::<f64>().unwrap(),
-                    None => return Command::none(),
-                };
+                if let Some(connected_model) = self.model.get_current() {
+                    let external_price = connected_model.raw_external_spot_price;
+                    let external_price = match external_price {
+                        Some(x) => format_ether(x).parse::<f64>().unwrap(),
+                        None => return Command::none(),
+                    };
 
-                // Sync the strategy preview chart.
-                let parameters = liquidity.to_parameters(external_price);
-                self.presenter.sync_strategy_preview(
-                    parameters.strike_price_wad,
-                    parameters.sigma_percent_wad,
-                    parameters.time_remaining_years_wad,
-                );
+                    // Sync the strategy preview chart.
+                    let parameters = liquidity.to_parameters(external_price);
+                    self.presenter.sync_strategy_preview(
+                        parameters.strike_price_wad,
+                        parameters.sigma_percent_wad,
+                        parameters.time_remaining_years_wad,
+                    );
 
-                Command::perform(async {}, |_| Message::Refresh)
+                    Command::perform(async {}, |_| Message::Refresh)
+                } else {
+                    Command::none()
+                }
             }
         }
     }
@@ -310,7 +321,10 @@ impl State for Monolithic {
             Self::AppMessage::UpdatePriceProcess => {
                 if let (Some(_), Some(exchange)) = (
                     self.price_process.clone(),
-                    self.model.portfolio.raw_external_exchange_address,
+                    self.model
+                        .get_current()
+                        .map(|x| x.raw_external_exchange_address)
+                        .unwrap_or_else(|| None),
                 ) {
                     // Step the price process.
                     self.price_process.as_mut().unwrap().step += 1;

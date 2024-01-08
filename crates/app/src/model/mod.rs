@@ -5,8 +5,9 @@ pub mod portfolio;
 pub mod rpcs;
 pub mod user;
 
-use std::fs::File;
+use std::{collections::HashMap, fs::File};
 
+use alloy_primitives::ChainId;
 use datatypes::portfolio::{
     coin::Coin,
     position::{Position, PositionLayer, Positions},
@@ -15,7 +16,7 @@ use datatypes::portfolio::{
 use uuid::Uuid;
 
 use self::{
-    portfolio::{AlloyAddress, AlloyU256},
+    portfolio::{AlloyAddress, AlloyU256, RawDataModel},
     user::{Saveable, UserProfile},
 };
 use super::*;
@@ -42,16 +43,45 @@ pub const COIN_Y: &str = r#"{
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
-    pub portfolio: portfolio::RawDataModel<AlloyAddress, AlloyU256>,
+    pub networks: HashMap<ChainId, RawDataModel<AlloyAddress, AlloyU256>>,
     pub user: UserProfile,
+    pub current: Option<ChainId>,
 }
 
 impl Model {
     pub fn new(user: UserProfile) -> Self {
         Self {
             user,
-            portfolio: portfolio::RawDataModel::new(),
+            networks: HashMap::new(),
+            current: None,
         }
+    }
+
+    /// Gets the model of the currently connected network, connected via
+    /// `connect_to_network`.
+    pub fn get_current(&self) -> Option<&RawDataModel<AlloyAddress, AlloyU256>> {
+        self.current
+            .and_then(|chain_id| self.networks.get(&chain_id))
+    }
+
+    /// Gets the mutable model of the currently connected network, connected via
+    /// `connect_to_network`.
+    pub fn get_current_mut(&mut self) -> Option<&mut RawDataModel<AlloyAddress, AlloyU256>> {
+        self.current
+            .and_then(move |chain_id| self.networks.get_mut(&chain_id))
+    }
+
+    /// Sets the current network to the given chain id and instantiates a new
+    /// data model for it.
+    pub async fn connect_to_network<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> anyhow::Result<()> {
+        let chain_id = client.get_chainid().await?;
+        let network = RawDataModel::new(chain_id.as_u64());
+        self.networks.insert(chain_id.as_u64(), network);
+        self.current = Some(chain_id.as_u64());
+        Ok(())
     }
 
     pub async fn update<M: Middleware + 'static>(&mut self, client: Arc<M>) -> anyhow::Result<()> {
@@ -66,13 +96,21 @@ impl Model {
         })
     }
 
+    /// Returns early with an `Ok` result if the model is not connected to a
+    /// network.
     pub fn update_portfolio_positions(&mut self) -> anyhow::Result<()> {
+        if self.current.is_none() {
+            return Ok(());
+        }
+
+        let portfolio = self.networks.get_mut(&self.current.unwrap()).unwrap();
+
         // Gets the current position info. This should be updated prior to calling this
         // function.
-        let pos_info = self.portfolio.get_position_info()?;
+        let pos_info = portfolio.get_position_info()?;
 
         // Include unallocated balances in the portfolio as well.
-        let unallocated_pos_info = self.portfolio.get_unallocated_positions_info()?;
+        let unallocated_pos_info = portfolio.get_unallocated_positions_info()?;
 
         // Clones the user's current portfolio to mutate it.
         let mut portfolio = self.user.portfolio.clone();
@@ -192,7 +230,8 @@ impl Model {
         self.user.update_portfolio(&portfolio)
     }
 
-    // this happens like a million times a second
+    /// Updates the currently connected model with the latest data from the
+    /// connected network.
     #[tracing::instrument(skip(self, client), level = "debug")]
     pub async fn update_data_model<M: Middleware + 'static>(
         &mut self,
@@ -202,7 +241,16 @@ impl Model {
             "Updating model at block: {}",
             client.get_block_number().await?
         );
-        self.portfolio.update(client).await
+
+        let chain_id = client.get_chainid().await?;
+
+        self.networks
+            .get_mut(&chain_id.as_u64())
+            .unwrap()
+            .update(client)
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -250,7 +298,8 @@ impl Saveable for Model {
 
         let value = Model {
             user: UserProfile::default(),
-            portfolio: portfolio::RawDataModel::new(),
+            networks: HashMap::new(),
+            current: None,
         };
 
         serde_json::to_writer_pretty(file, &value)?;
