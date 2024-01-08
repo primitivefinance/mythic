@@ -6,6 +6,7 @@ import "solstat/Gaussian.sol";
 import "forge-std/console2.sol";
 import "./LogNormalLib.sol";
 import "../BisectionLib.sol";
+import "../../interfaces/IMultiCore.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -130,30 +131,6 @@ function computeInitialPoolData(
         tradingFunction({ rx: amountX, ry: ry, L: L, params: params });
     L = computeNextLiquidity(amountX, ry, invariant, L, params);
     return abi.encode(amountX, ry, L, params);
-}
-
-function computeAllocationGivenX(
-    bool add,
-    uint256 amountX,
-    uint256 rx,
-    uint256 L
-) pure returns (uint256 nextRx, uint256 nextL) {
-    uint256 liquidityPerRx = L.divWadUp(rx);
-    uint256 deltaL = amountX.mulWadUp(liquidityPerRx);
-    nextRx = add ? rx + amountX : rx - amountX;
-    nextL = add ? L + deltaL : L - deltaL;
-}
-
-function computeAllocationGivenY(
-    bool add,
-    uint256 amountY,
-    uint256 ry,
-    uint256 L
-) pure returns (uint256 nextRy, uint256 nextL) {
-    uint256 liquidityPerRy = L.divWadUp(ry);
-    uint256 deltaL = amountY.mulWadUp(liquidityPerRy);
-    nextRy = add ? ry + amountY : ry - amountY;
-    nextL = add ? L + deltaL : L - deltaL;
 }
 
 /// @dev Finds the root of the invariant given the independent variables reserveXWad and reserveYWad.
