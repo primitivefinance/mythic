@@ -17,7 +17,7 @@ decimals = 18
 # Price process parameters
 [agent.price_changer.PriceChanger]
 # True is we want to use historical daily average price data
-backtest = true 
+backtest = false 
 # The seed to use (optional)
 seed = 5
 # The number of steps in the process
@@ -32,14 +32,14 @@ t_0.fixed = 0.0
 t_n.fixed = 1.0
 ## Parameters for the type of process to use.
 # # The drift for GBM
-# process.GBM.drift.fixed = 0.0
+process.GBM.drift.fixed = 0.0
 # # The volatility for GBM
-# process.GBM.volatility.fixed = 0.1
-process.OU.mean.fixed = 1.0
+process.GBM.volatility.fixed = 0.1
+# process.OU.mean.fixed = 1.0
 # The volatility for GBM
-process.OU.volatility.fixed = 0.1
+#process.OU.volatility.fixed = 0.1
 # The mean reversion rate for OU
-process.OU.theta.fixed = 10
+#process.OU.theta.fixed = 10
 
 # Rmm portfolio manager params 
 [agent.portfolio_manager.VolatilityTargetingSubmitter]
@@ -65,8 +65,8 @@ specialty.VolatilityTargeting.max_strike_change.fixed = 0.0
 # The amount of `token_x` to provide in ether
 x_liquidity.fixed = 10
 # The initial price of the pair
-initial_price.fixed = 2345.2607
+initial_price.fixed = 1.0
 # inital parameters
-sigma.fixed = 2.0
+sigma.fixed = 1.0
 tau.fixed = 1.0
-strike_price.fixed = 2300.0
+strike_price.fixed = 1.0

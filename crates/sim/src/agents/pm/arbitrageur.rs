@@ -248,7 +248,7 @@ impl Arbitrageur {
     ) -> Result<ethers::types::U256, Error> {
         let (computed_amount_in, computed_profit, _expected_price) = self
             .atomic_arbitrage
-            .search_max_arb_profit(initial_guess_in, x_in)
+            .search_max_arb_profit(ethers::types::U256::from(0), initial_guess_in, x_in)
             .call()
             .await?;
         debug!("computed amount in: {:?}", computed_amount_in);
@@ -287,7 +287,7 @@ impl Arbitrageur {
     ) -> Result<I256> {
         let (valid, amount_out, _price, _payload) = self
             .atomic_arbitrage
-            .simulate_swap(x_in, amount_in)
+            .simulate_swap(ethers::types::U256::from(0), x_in, amount_in)
             .call()
             .await?;
         if !valid {
@@ -342,7 +342,9 @@ impl Agent for Arbitrageur {
 
                 debug!("Optimal y input: {:?}", input);
 
-                let tx = self.atomic_arbitrage.raise_exchange_price(input);
+                let tx = self
+                    .atomic_arbitrage
+                    .raise_exchange_price(ethers::types::U256::from(0), input);
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
@@ -398,7 +400,9 @@ impl Agent for Arbitrageur {
 
                 debug!("Optimal x input: {:?}", input);
 
-                let tx = self.atomic_arbitrage.lower_exchange_price(input);
+                let tx = self
+                    .atomic_arbitrage
+                    .lower_exchange_price(ethers::types::U256::from(0), input);
                 let output = tx.send().await;
 
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
