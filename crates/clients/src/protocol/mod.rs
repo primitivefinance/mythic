@@ -1,9 +1,10 @@
 //! Dynamic Function Market Making Protocol Client
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use bindings::{
     g3m::G3M,
     g3m_solver::G3MSolver,
@@ -28,6 +29,65 @@ pub struct ProtocolClient<C> {
     pub token_y: Address,
 }
 
+pub struct ProtocolClientBuilder<C> {
+    pub client: Arc<C>,
+    pub protocol: Option<MultiDFMM<C>>,
+    pub ln_strategy: Option<LogNormal<C>>,
+    pub ln_solver: Option<LogNormalSolver<C>>,
+    pub g_strategy: Option<G3M<C>>,
+    pub g_solver: Option<G3MSolver<C>>,
+    pub token_x: Option<Address>,
+    pub token_y: Option<Address>,
+}
+
+impl<C: Middleware + 'static> ProtocolClientBuilder<C> {
+    pub fn protocol(mut self, protocol: Address) -> Self {
+        self.protocol = Some(MultiDFMM::new(protocol, self.client.clone()));
+        self
+    }
+
+    pub fn ln_strategy(mut self, ln_strategy: Address) -> Self {
+        self.ln_strategy = Some(LogNormal::new(ln_strategy, self.client.clone()));
+        self
+    }
+
+    pub fn ln_solver(mut self, ln_solver: Address) -> Self {
+        self.ln_solver = Some(LogNormalSolver::new(ln_solver, self.client.clone()));
+        self
+    }
+
+    pub fn g_strategy(mut self, g_strategy: Address) -> Self {
+        self.g_strategy = Some(G3M::new(g_strategy, self.client.clone()));
+        self
+    }
+
+    pub fn g_solver(mut self, g_solver: Address) -> Self {
+        self.g_solver = Some(G3MSolver::new(g_solver, self.client.clone()));
+        self
+    }
+
+    pub fn build(self) -> Result<ProtocolClient<C>> {
+        let protocol = self.protocol.unwrap();
+        let ln_strategy = self.ln_strategy.unwrap();
+        let ln_solver = self.ln_solver.unwrap();
+        let g_strategy = self.g_strategy.unwrap();
+        let g_solver = self.g_solver.unwrap();
+        let token_x = self.token_x.unwrap();
+        let token_y = self.token_y.unwrap();
+
+        Ok(ProtocolClient {
+            client: self.client,
+            protocol,
+            ln_strategy,
+            ln_solver,
+            g_strategy,
+            g_solver,
+            token_x,
+            token_y,
+        })
+    }
+}
+
 impl<C> Clone for ProtocolClient<C> {
     fn clone(&self) -> Self {
         Self {
@@ -37,8 +97,8 @@ impl<C> Clone for ProtocolClient<C> {
             ln_solver: self.ln_solver.clone(),
             g_strategy: self.g_strategy.clone(),
             g_solver: self.g_solver.clone(),
-            token_x: self.token_x,
-            token_y: self.token_y,
+            token_x: self.token_x.clone(),
+            token_y: self.token_y.clone(),
         }
     }
 }
@@ -46,7 +106,20 @@ impl<C> Clone for ProtocolClient<C> {
 type F64Wad = f64;
 
 impl<C: Middleware + 'static> ProtocolClient<C> {
-    #[tracing::instrument(skip(client), level = "trace", ret)]
+    pub fn builder(client: Arc<C>) -> ProtocolClientBuilder<C> {
+        ProtocolClientBuilder {
+            client,
+            protocol: None,
+            ln_strategy: None,
+            ln_solver: None,
+            g_strategy: None,
+            g_solver: None,
+            token_x: None,
+            token_y: None,
+        }
+    }
+
+    #[tracing::instrument(level = "trace", ret)]
     pub async fn new(
         client: Arc<C>,
         token_x: Address,
@@ -54,20 +127,25 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         swap_fee_percent_wad: f64,
     ) -> anyhow::Result<Self> {
         let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
+
         let protocol = MultiDFMM::deploy(client.clone(), ())?.send().await?;
         let ln_strategy =
             LogNormal::deploy(client.clone(), (protocol.address(), swap_fee_percent_wad))?
                 .send()
                 .await?;
+
         let g_strategy = G3M::deploy(client.clone(), (protocol.address(), swap_fee_percent_wad))?
             .send()
             .await?;
-        let ln_solver = LogNormalSolver::deploy(client.clone(), (ln_strategy.address()))?
+
+        let ln_solver = LogNormalSolver::deploy(client.clone(), ln_strategy.address())?
             .send()
             .await?;
-        let g_solver = G3MSolver::deploy(client.clone(), (g_strategy.address()))?
+
+        let g_solver = G3MSolver::deploy(client.clone(), g_strategy.address())?
             .send()
             .await?;
+
         Ok(Self {
             client,
             protocol,
@@ -80,7 +158,26 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
-    pub async fn get_tokens(&self) -> Result<(Address, Address)> {
+    pub async fn bind(self, client: Arc<C>) -> anyhow::Result<Self> {
+        let protocol = MultiDFMM::new(self.protocol.address(), client.clone());
+        let ln_strategy = LogNormal::new(self.ln_strategy.address(), client.clone());
+        let g_strategy = G3M::new(self.g_strategy.address(), client.clone());
+        let ln_solver = LogNormalSolver::new(self.ln_solver.address(), client.clone());
+        let g_solver = G3MSolver::new(self.g_solver.address(), client.clone());
+
+        Ok(Self {
+            client,
+            protocol,
+            ln_strategy,
+            ln_solver,
+            g_strategy,
+            g_solver,
+            token_x: self.token_x,
+            token_y: self.token_y,
+        })
+    }
+
+    pub fn get_tokens(&self) -> Result<(Address, Address)> {
         Ok((self.token_x, self.token_y))
     }
 

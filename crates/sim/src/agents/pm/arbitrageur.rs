@@ -53,8 +53,7 @@ impl Arbitrageur {
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, "arbitrageur".into())?;
-
-        protocol_client.client = client.clone();
+        let protocol_client = protocol_client.bind(client.clone()).await?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange =
@@ -65,7 +64,7 @@ impl Arbitrageur {
         let atomic_arbitrage = AtomicV2::deploy(
             client.clone(),
             (
-                protocol_client.solver.address(),
+                protocol_client.ln_solver.address(),
                 protocol_client.protocol.address(),
                 liquid_exchange.address(),
                 token_admin.arbx.address(),
@@ -125,7 +124,12 @@ impl Arbitrageur {
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
         let liquid_exchange_price_wad = from_ethers_u256(liquid_exchange_price_wad);
 
-        let target_exchange_price_wad = self.protocol_client.get_internal_price().await?;
+        let target_exchange_price_wad = self
+            .protocol_client
+            .ln_solver
+            .internal_price(ethers::types::U256::from(0))
+            .call()
+            .await?;
         let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
         debug!("=== Start Loop ===");
         info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
@@ -148,21 +152,25 @@ impl Arbitrageur {
     }
 
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
-        let log_normal = self.protocol_client.get_strategy().await?;
         let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let (strike, sigma, tau) = log_normal.get_params().call().await?;
+        let (strike, sigma, tau) = self
+            .protocol_client
+            .ln_strategy
+            .get_params(ethers::types::U256::from(0))
+            .call()
+            .await?;
         let (strike, sigma, tau) = (
             I256::from_raw(strike),
             I256::from_raw(sigma),
             I256::from_raw(tau),
         );
         let gamma = I256::from_raw(ethers::utils::parse_ether("1")?)
-            - I256::from_raw(log_normal.swap_fee().call().await?);
+            - I256::from_raw(self.protocol_client.ln_strategy.swap_fee().call().await?);
         let (rx, ry, liq) = self
             .protocol_client
             .protocol
-            .get_reserves_and_liquidity(U256::from(0))
+            .get_reserves_and_liquidity(ethers::types::U256::from(0))
             .call()
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
@@ -342,7 +350,7 @@ impl Agent for Arbitrageur {
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
                     .protocol
-                    .get_reserves_and_liquidity(U256::from(0))
+                    .get_reserves_and_liquidity(ethers::types::U256::from(0))
                     .call()
                     .await?;
                 debug!(
@@ -363,7 +371,10 @@ impl Agent for Arbitrageur {
                     }
                 }
 
-                let internal_price = self.protocol_client.get_internal_price().await?;
+                let internal_price = self
+                    .protocol_client
+                    .get_ln_internal_price(ethers::types::U256::from(0))
+                    .await?;
                 let internal_price = from_ethers_u256(internal_price);
                 info!("Price[LEX]: {:?}", format_ether(target_price));
                 info!("Price[DEX]: {:?}", format_ether(internal_price));
@@ -395,7 +406,7 @@ impl Agent for Arbitrageur {
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
                     .protocol
-                    .get_reserves_and_liquidity(U256::from(0))
+                    .get_reserves_and_liquidity(ethers::types::U256::from(0))
                     .call()
                     .await?;
                 trace!("arby_balance after: {:?}", arby_balance);
@@ -420,7 +431,10 @@ impl Agent for Arbitrageur {
                 }
                 trace!("Sent arbitrage.");
 
-                let internal_price = self.protocol_client.get_internal_price().await?;
+                let internal_price = self
+                    .protocol_client
+                    .get_ln_internal_price(ethers::types::U256::from(0))
+                    .await?;
                 let internal_price = from_ethers_u256(internal_price);
                 debug!("Price[LEX]: {:?}", format_ether(target_price));
                 debug!("Price[DEX]: {:?}", format_ether(internal_price));

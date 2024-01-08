@@ -272,7 +272,10 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let solver = self.contracts.get("solver").cloned();
         let address = address.ok_or_else(|| anyhow::anyhow!("No protocol address"))?;
         let solver = solver.ok_or_else(|| anyhow::anyhow!("No solver address"))?;
-        let protocol = ProtocolClient::new(client, address, solver);
+        let protocol = ProtocolClient::builder(client)
+            .protocol(address)
+            .ln_solver(solver)
+            .build()?;
         Ok(protocol)
     }
 
@@ -299,7 +302,7 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
 
-        let (token_x, token_y) = protocol.get_tokens().await?;
+        let (token_x, token_y) = protocol.get_tokens()?;
         let (token_x, token_y) = (
             ArbiterToken::new(token_x, client.clone()),
             ArbiterToken::new(token_y, client.clone()),
@@ -309,7 +312,7 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         token_y.mint(sender, amount_y_wad).send().await?;
 
         Ok(protocol
-            .initialize_pool(
+            .initialize_ln_pool(
                 amount_x,
                 price,
                 strike_price_wad,
@@ -321,9 +324,13 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
         let protocol = self.protocol()?;
-        let (balance_x, balance_y, liquidity) =
-            protocol.protocol.get_reserves_and_liquidity().await?;
-        let internal_price = protocol.get_internal_price().await?;
+        let (balance_x, balance_y, liquidity) = protocol
+            .protocol
+            .get_reserves_and_liquidity(ethers::types::U256::from(0))
+            .await?;
+        let internal_price = protocol
+            .get_ln_internal_price(ethers::types::U256::from(0))
+            .await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);
         let liquidity = ethers::utils::format_ether(liquidity);

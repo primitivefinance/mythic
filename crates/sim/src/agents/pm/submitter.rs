@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use bindings::{log_normal_solver::LogNormalSolver, multi_dfmm::MultiDFMM};
 use clients::protocol::ProtocolClient;
 use itertools::iproduct;
 use tracing::{debug, info};
@@ -31,14 +30,13 @@ impl Agent for VolatilityTargetingSubmitter {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         let asset_price =
             ethers::utils::format_ether(self.lex.price().call().await?).parse::<f64>()?;
-        let reserve_x = ethers::utils::format_ether(
-            self.protocol_client.protocol.reserve_x_wad().call().await?,
-        )
-        .parse::<f64>()?;
-        let reserve_y = ethers::utils::format_ether(
-            self.protocol_client.protocol.reserve_y_wad().call().await?,
-        )
-        .parse::<f64>()?;
+        let pool = self
+            .protocol_client
+            .protocol
+            .get_pool(ethers::types::U256::from(0))
+            .await?;
+        let reserve_x = ethers::utils::format_ether(pool.reserve_x_wad).parse::<f64>()?;
+        let reserve_y = ethers::utils::format_ether(pool.reserve_y_wad).parse::<f64>()?;
         let portfolio_price = reserve_x * asset_price + reserve_y;
 
         if self.portfolio_prices.is_empty() {
@@ -73,8 +71,8 @@ impl VolatilityTargetingSubmitter {
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
         liquid_exchange_address: Address,
-        token_x: Address,
-        token_y: Address,
+        token_x: H160,
+        token_y: H160,
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
@@ -86,7 +84,7 @@ impl VolatilityTargetingSubmitter {
             match params.specialty {
                 Specialty::VolatilityTargeting(parameters) => {
                     let protocol_client =
-                        ProtocolClient::new(client.clone(), token_x, token_y, parse_ether(0.003)?)
+                        ProtocolClient::new(client.clone(), token_x, token_y, 0.003)
                             .await
                             .unwrap();
                     let strategist = VolatilityTargetingSubmitter {

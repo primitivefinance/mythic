@@ -213,7 +213,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         let dev_client = DevClient::deploy(client.into(), sender).await?;
 
         let protocol = dev_client.protocol.protocol.address();
-        let strategy = dev_client.protocol.get_strategy().await?.address();
+        let strategy = dev_client.protocol.ln_strategy.address();
         let token_x = dev_client.token_x.address();
         let token_y = dev_client.token_y.address();
         let solver = dev_client.solver.address();

@@ -25,7 +25,7 @@ impl Agent for LiquidityProvider {
     async fn init(&mut self) -> Result<()> {
         debug!("LiquidityProvider initializing pool on DFMM.");
         self.protocol_client
-            .initialize_pool(
+            .initialize_ln_pool(
                 self.init_x_wad,
                 self.init_price_wad,
                 self.init_strike_price_wad,
@@ -51,12 +51,15 @@ impl LiquidityProvider {
         environment: &Environment,
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
+        token_admin: &TokenAdmin,
         protocol_client: ProtocolClient<RevmMiddleware>,
     ) -> Result<Self> {
         let label = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
+
+        let protocol_client = protocol_client.bind(client.clone()).await?;
 
         token_admin
             .mint(
@@ -66,18 +69,22 @@ impl LiquidityProvider {
             )
             .await?;
 
-        arbx.approve(to_ethers_address(market), to_ethers_u256(U256::MAX))
-            .send()
-            .await?;
-        arby.approve(to_ethers_address(market), to_ethers_u256(U256::MAX))
-            .send()
-            .await?;
+        arbx.approve(
+            protocol_client.protocol.address(),
+            to_ethers_u256(U256::MAX),
+        )
+        .send()
+        .await?;
+        arby.approve(
+            protocol_client.protocol.address(),
+            to_ethers_u256(U256::MAX),
+        )
+        .send()
+        .await?;
 
         if let Some(AgentParameters::LiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
         {
-            protocol_client.client = client.clone();
-
             Ok(Self {
                 client,
                 protocol_client,

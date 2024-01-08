@@ -89,18 +89,23 @@ impl Scenario for DFMMScenario {
         .await?;
 
         let protocol_client = pm.protocol_client.clone();
-        let market = from_ethers_address(pm.protocol_client.protocol.address());
-        let solver = from_ethers_address(pm.protocol_client.ln_solver.address());
         let market_events = pm.protocol_client.protocol.events();
         agents.add(pm);
 
         // 3. Liquidity provider initializes the DFMM.
-        let lp = LiquidityProvider::new(&environment, &config, "lp", protocol_client).await?;
+        let lp = LiquidityProvider::new(
+            &environment,
+            &config,
+            "lp",
+            &token_admin,
+            protocol_client.clone(),
+        )
+        .await?;
         agents.add(lp);
 
         // 4. Arbitrageur arbitrages between the DFMM and the Liquid Exchange.
         let arbitrageur =
-            Arbitrageur::new(&environment, &token_admin, lex, protocol_client).await?;
+            Arbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
         agents.add(arbitrageur.clone());
 
         EventLogger::builder()

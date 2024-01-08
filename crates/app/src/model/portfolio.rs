@@ -848,7 +848,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<AlloyU256> {
         let solver = self.solver(client.clone()).await?;
-        let internal_price = solver.internal_price().await;
+        let internal_price = solver.internal_price(ethers::types::U256::from(0)).await;
         let internal_price = match internal_price {
             Ok(internal_price) => internal_price,
             Err(error) => {
@@ -866,7 +866,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let strategy = self.strategy(client.clone()).await?;
-        let (strike_price, volatility, time_remaining) = strategy.get_params().await?;
+        let (strike_price, volatility, time_remaining) =
+            strategy.get_params(ethers::types::U256::from(0)).await?;
         let strike_price = from_ethers_u256(strike_price);
         let volatility = from_ethers_u256(volatility);
         let time_remaining = from_ethers_u256(time_remaining);

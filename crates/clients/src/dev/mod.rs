@@ -66,7 +66,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
         let swap_fee_percent_wad = 0.003;
         tracing::trace!("Deploying protocol");
-        let protocol = ProtocolClient::deploy_protocol(
+        let protocol = ProtocolClient::new(
             client.clone(),
             token_x.address(),
             token_y.address(),
