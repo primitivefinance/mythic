@@ -176,10 +176,13 @@ impl State for SettingsScreen {
                     }
                     _ => self.rpc.update(message).map(|x| Message::Rpc(x).into()),
                 },
-                Message::Signers(message) => self
-                    .signers
-                    .update(message)
-                    .map(|x| Message::Signers(x).into()),
+                Message::Signers(message) => 
+                    match message {
+                        signers::Message::NotConnected => self.signers.update(message).map(|x| Message::Signers(x).into()),
+                        signers::Message::Connected(_) => self.signers.update(message).map(|x| Message::Signers(x).into()),
+                        signers::Message::ConnectLedger => self.signers.update(message).map(|x| Message::Signers(x).into()),
+                    }
+
                 Message::Contacts(message) => self
                     .contacts
                     .update(message)
