@@ -46,7 +46,6 @@ contract Core is ICore {
 
     constructor(
         address strategy_,
-        bool isLogNormal,
         address tokenX_,
         address tokenY_,
         uint256 swapFee_
