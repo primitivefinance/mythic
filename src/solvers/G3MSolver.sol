@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
-import "../lib/BisectionLib.sol";
 import "../lib/g3m/G3MExtendedLib.sol";
 import "../interfaces/IStrategyLike.sol";
 
