@@ -1324,10 +1324,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     /// Transforms the portfolio value series into a chart series that can be
     /// plotted by the view logic.
     pub fn derive_portfolio_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let portfolio_values_series = self
-            .portfolio_values_series
-            .clone()
-            .unwrap_or_default();
+        let portfolio_values_series = self.portfolio_values_series.clone().unwrap_or_default();
         let mut result = Self::transform_series_over_block_number(&portfolio_values_series)?;
 
         result.1.legend = "Portfolio Value".to_string();
@@ -1357,10 +1354,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the time series data for the protocol asset value series.
     pub fn derive_protocol_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let protocol_asset_value_series = self
-            .protocol_asset_value_series
-            .clone()
-            .unwrap_or_default();
+        let protocol_asset_value_series =
+            self.protocol_asset_value_series.clone().unwrap_or_default();
         let mut result = Self::transform_series_over_block_number(&protocol_asset_value_series)?;
 
         result.1.legend = "Protocol Asset".to_string();
@@ -1372,10 +1367,8 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the time series data for the protocol quote value series.
     pub fn derive_protocol_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let protocol_quote_value_series = self
-            .protocol_quote_value_series
-            .clone()
-            .unwrap_or_default();
+        let protocol_quote_value_series =
+            self.protocol_quote_value_series.clone().unwrap_or_default();
         let mut result = Self::transform_series_over_block_number(&protocol_quote_value_series)?;
 
         result.1.legend = "Protocol Quote".to_string();
