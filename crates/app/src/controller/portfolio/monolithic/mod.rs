@@ -159,6 +159,7 @@ impl Monolithic {
                 };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
                 if self.model.get_current().is_none() {
                     return Err(anyhow::anyhow!(
                         "Data model is not connected to any network."
@@ -174,6 +175,14 @@ impl Monolithic {
 =======
                 let asset_price =
                     format_ether(self.model.portfolio.external_spot_price).parse::<f64>();
+=======
+                let asset_price = match self.model.portfolio.external_spot_price {
+                    Some(price) => format_ether(price)
+                        .parse::<f64>()
+                        .map_err(anyhow::Error::from),
+                    None => Err(anyhow::anyhow!("No external spot price")),
+                };
+>>>>>>> 01b9631 (revert back to options)
 
 >>>>>>> 10fac4f (model improvements)
                 let asset_price = match asset_price {
@@ -263,6 +272,7 @@ impl Monolithic {
                     };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
                     // Sync the strategy preview chart.
                     let parameters = liquidity.to_parameters(external_price);
                     self.presenter.sync_strategy_preview(
@@ -280,6 +290,32 @@ impl Monolithic {
                 } else {
                     Command::none()
                 }
+=======
+                match self.model.portfolio.external_spot_price {
+                    Some(price) => {
+                        let external_price = format_ether(price).parse::<f64>();
+                        match external_price {
+                            Ok(external_price) => {
+                                // Sync the strategy preview chart.
+                                let parameters = liquidity.to_parameters(external_price);
+                                self.presenter.sync_strategy_preview(
+                                    parameters.strike_price_wad,
+                                    parameters.sigma_percent_wad,
+                                    parameters.time_remaining_years_wad,
+                                );
+                            }
+                            Err(_) => {
+                                tracing::error!("Failed to parse external spot price");
+                            }
+                        }
+                    }
+                    None => {
+                        tracing::error!("No external spot price");
+                    }
+                }
+
+                Command::perform(async {}, |_| Message::Refresh)
+>>>>>>> 01b9631 (revert back to options)
             }
         }
     }
@@ -346,11 +382,18 @@ impl State for Monolithic {
 >>>>>>> 362f655 (update series now no longer async)
 
                 // Update the price of the exchange based on the new step.
-                price_process_update_after_step(
-                    self.price_process.clone().unwrap(),
-                    self.model.portfolio.lex_address,
-                    self.client.clone().unwrap(),
-                )
+                match self.model.portfolio.lex_address {
+                    Some(lex_address) => price_process_update_after_step(
+                        self.price_process.clone().unwrap(),
+                        lex_address,
+                        self.client.clone().unwrap(),
+                    ),
+                    None => {
+                        // Handle the case where lex_address is None
+                        tracing::error!("lex_address is None");
+                        Command::none()
+                    }
+                }
             }
         }
     }

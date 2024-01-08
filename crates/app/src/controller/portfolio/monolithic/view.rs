@@ -202,8 +202,19 @@ impl MonolithicPresenter {
 
         if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
             let external_price = match position.asset.symbol.as_str() {
+<<<<<<< HEAD
                 "X" => connected_model.external_spot_price.to_label(),
                 "Y" => connected_model.external_quote_price.to_label(),
+=======
+                "X" => match self.model.portfolio.external_spot_price {
+                    Some(price) => price.to_label(),
+                    None => label("n/a").title3().quantitative(),
+                },
+                "Y" => match self.model.portfolio.external_quote_price {
+                    Some(price) => price.to_label(),
+                    None => label("n/a").title3().quantitative(),
+                },
+>>>>>>> 01b9631 (revert back to options)
                 _ => label("n/a").title3().quantitative(),
             };
 

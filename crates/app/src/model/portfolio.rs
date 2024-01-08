@@ -584,7 +584,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     fn fetch_and_format(&self, value: Option<AlloyU256>, error_msg: &str) -> Result<f64> {
-        let value = value.ok_or(anyhow!(error_msg))?;
+        let value = value.ok_or(anyhow!(error_msg.to_owned()))?;
         Self::format_and_parse(value)
     }
     /// Gets the balances and prices of the asset and quote tokens and formats
@@ -1324,11 +1324,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
     /// Transforms the portfolio value series into a chart series that can be
     /// plotted by the view logic.
     pub fn derive_portfolio_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let mut result = Self::transform_series_over_block_number(
-            self.portfolio_values_series
-                .as_ref()
-                .unwrap_or_else(|| &Vec::new()),
-        )?;
+        let portfolio_values_series = self
+            .portfolio_values_series
+            .clone()
+            .unwrap_or_default();
+        let mut result = Self::transform_series_over_block_number(&portfolio_values_series)?;
 
         result.1.legend = "Portfolio Value".to_string();
         result.1.color = plotters::style::full_palette::DEEPPURPLE_400;
@@ -1341,11 +1341,12 @@ impl DataModel<AlloyAddress, AlloyU256> {
     pub fn derive_unallocated_portfolio_value_series(
         &self,
     ) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let mut result = Self::transform_series_over_block_number(
-            self.unallocated_portfolio_value_series
-                .as_ref()
-                .unwrap_or_else(|| &Vec::new()),
-        )?;
+        let unallocated_portfolio_value_series = self
+            .unallocated_portfolio_value_series
+            .clone()
+            .unwrap_or_default();
+        let mut result =
+            Self::transform_series_over_block_number(&unallocated_portfolio_value_series)?;
 
         result.1.legend = "Unallocated".to_string();
         result.1.color = plotters::style::full_palette::LIGHTBLUE_A400;
@@ -1356,11 +1357,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the time series data for the protocol asset value series.
     pub fn derive_protocol_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let mut result = Self::transform_series_over_block_number(
-            self.protocol_asset_value_series
-                .as_ref()
-                .unwrap_or_else(|| &Vec::new()),
-        )?;
+        let protocol_asset_value_series = self
+            .protocol_asset_value_series
+            .clone()
+            .unwrap_or_default();
+        let mut result = Self::transform_series_over_block_number(&protocol_asset_value_series)?;
 
         result.1.legend = "Protocol Asset".to_string();
         result.1.color = plotters::style::full_palette::PURPLE_A700;
@@ -1371,11 +1372,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the time series data for the protocol quote value series.
     pub fn derive_protocol_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let mut result = Self::transform_series_over_block_number(
-            self.protocol_quote_value_series
-                .as_ref()
-                .unwrap_or_else(|| &Vec::new()),
-        )?;
+        let protocol_quote_value_series = self
+            .protocol_quote_value_series
+            .clone()
+            .unwrap_or_default();
+        let mut result = Self::transform_series_over_block_number(&protocol_quote_value_series)?;
 
         result.1.legend = "Protocol Quote".to_string();
         result.1.color = plotters::style::full_palette::PURPLE_A400;
@@ -1744,11 +1745,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     pub fn derive_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let mut result = Self::transform_series_over_block_number(
-            &self
-                .user_asset_value_series
-                .ok_or(anyhow!("User asset value series is None"))?,
-        )?;
+        let user_asset_value_series = self
+            .user_asset_value_series
+            .clone()
+            .ok_or(anyhow!("User asset value series is None"))?;
+        let mut result = Self::transform_series_over_block_number(&user_asset_value_series)?;
 
         let asset_name = if let Some(asset_token_info) = &self.cached.asset_token_info {
             &asset_token_info.symbol
@@ -1764,11 +1765,11 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     pub fn derive_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let mut result = Self::transform_series_over_block_number(
-            &self
-                .user_quote_value_series
-                .ok_or(anyhow!("User quote value series is None"))?,
-        )?;
+        let user_quote_value_series = self
+            .user_quote_value_series
+            .clone()
+            .ok_or(anyhow!("User quote value series is None"))?;
+        let mut result = Self::transform_series_over_block_number(&user_quote_value_series)?;
 
         let quote_name = if let Some(quote_token_info) = &self.cached.quote_token_info {
             &quote_token_info.symbol
