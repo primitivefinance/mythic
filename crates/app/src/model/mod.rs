@@ -54,7 +54,7 @@ impl Model {
         }
     }
 
-    pub async fn update(&mut self, client: Arc<Provider<Ws>>) -> anyhow::Result<()> {
+    pub async fn update<M: Middleware + 'static>(&mut self, client: Arc<M>) -> anyhow::Result<()> {
         // 1. Fetches and updates the data model stored in `self.portfolio`.
         // 2. Fetches the now updated position info from the data model.
         // 3. Using the position info, derives the weights of the positions.
@@ -194,7 +194,10 @@ impl Model {
 
     // this happens like a million times a second
     #[tracing::instrument(skip(self, client), level = "debug")]
-    pub async fn update_data_model(&mut self, client: Arc<Provider<Ws>>) -> anyhow::Result<()> {
+    pub async fn update_data_model<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> anyhow::Result<()> {
         tracing::info!(
             "Updating model at block: {}",
             client.get_block_number().await?
