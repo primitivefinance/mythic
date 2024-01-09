@@ -282,6 +282,42 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok(tx)
     }
 
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn initialize_g_pool(
+        &self,
+        init_reserve_x_wad: F64Wad,
+        init_price_wad: F64Wad,
+        init_weight_x: F64Wad,
+    ) -> Result<Option<TransactionReceipt>> {
+        debug!("Initializing DFMM from protocol client.");
+
+        // Format the parameters for the log-normal strategy.
+        let params: G3Mparameters = G3Mparameters {
+            wx: to_wad(init_weight_x),
+            wy: to_wad(1.0 - init_weight_x),
+        };
+        println!("reserve x wad: {}", init_reserve_x_wad);
+
+        let init_reserve_x_wad = to_wad(init_reserve_x_wad);
+        let init_price_wad = to_wad(init_price_wad);
+
+        // Encode the data together to send it to the DFMM protocol.
+        let payload = self
+            .get_g_init_payload(init_reserve_x_wad, init_price_wad, params.clone())
+            .await?;
+
+        let tx = self
+            .protocol
+            .init(payload)
+            .send()
+            .await?
+            .confirmations(0)
+            .interval(Duration::from_millis(100))
+            .await?;
+
+        Ok(tx)
+    }
+
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_strike_price(&self, pool_id: U256) -> Result<U256> {
         let strike_price = self.ln_strategy.strike_price(pool_id).call().await?;
@@ -301,6 +337,26 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .set_strike_price(
                 pool_id,
                 target_strike_price_wad,
+                ethers::types::U256::from(next_timestamp),
+            )
+            .send()
+            .await?
+            .await?;
+        Ok(tx)
+    }
+
+    pub async fn set_weight_x(
+        &self,
+        pool_id: U256,
+        target_wx: F64Wad,
+        next_timestamp: u64,
+    ) -> Result<Option<TransactionReceipt>> {
+        let target_wx_wad = to_wad(target_wx);
+        let tx = self
+            .g_strategy
+            .set_weight_x(
+                pool_id,
+                target_wx_wad,
                 ethers::types::U256::from(next_timestamp),
             )
             .send()

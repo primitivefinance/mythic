@@ -70,3 +70,4 @@ initial_price.fixed = 1.0
 sigma.fixed = 1.0
 tau.fixed = 1.0
 strike_price.fixed = 1.0
+wx.fixed = 0.5

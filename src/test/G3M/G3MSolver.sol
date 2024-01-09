@@ -147,7 +147,7 @@ contract G3MSolver {
                 deltaL += 1;
 
                 endReserves.rx = startReserves.rx + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.ry =
                     getNextReserveY(poolId, endReserves.rx, endReserves.L);
@@ -169,7 +169,7 @@ contract G3MSolver {
                 deltaL += 1;
 
                 endReserves.ry = startReserves.ry + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.rx =
                     getNextReserveX(poolId, endReserves.ry, endReserves.L);
@@ -203,5 +203,15 @@ contract G3MSolver {
         G3M.PublicParams memory params = getPoolParams(poolId);
         (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
+    }
+
+    function checkSwapConstant(
+        uint256 poolId,
+        bytes calldata data
+    ) public view returns (int256) {
+        (uint256 rx, uint256 ry, uint256 L) =
+            abi.decode(data, (uint256, uint256, uint256));
+        G3mParameters memory params = getPoolParams(poolId);
+        return tradingFunction(rx, ry, L, params);
     }
 }

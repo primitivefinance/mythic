@@ -3,10 +3,19 @@ use std::sync::Arc;
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use clients::protocol::ProtocolClient;
+use ethers::utils::format_ether;
 use itertools::iproduct;
 use tracing::{debug, info};
 
 use super::*;
+
+#[derive(Debug, Clone)]
+pub struct PositionData {
+    pub portfolio_prices: Vec<(f64, u64)>,
+    pub asset_prices: Vec<(f64, u64)>,
+    pub portfolio_rv: Vec<(f64, u64)>,
+    pub asset_rv: Vec<(f64, u64)>,
+}
 
 #[derive(Debug, Clone)]
 pub struct VolatilityTargetingSubmitter {
@@ -18,10 +27,8 @@ pub struct VolatilityTargetingSubmitter {
     pub target_volatility: f64,
     pub sensitivity: f64,
     pub max_strike_change: f64,
-    pub portfolio_prices: Vec<(f64, u64)>,
-    pub asset_prices: Vec<(f64, u64)>,
-    pub portfolio_rv: Vec<(f64, u64)>,
-    pub asset_rv: Vec<(f64, u64)>,
+    pub ln_data: PositionData,
+    pub g_data: PositionData,
 }
 
 #[async_trait::async_trait]
@@ -30,26 +37,49 @@ impl Agent for VolatilityTargetingSubmitter {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         let asset_price =
             ethers::utils::format_ether(self.lex.price().call().await?).parse::<f64>()?;
-        let pool = self
+        let ln_pool = self
             .protocol_client
             .protocol
             .get_pool(ethers::types::U256::from(0))
             .await?;
-        let reserve_x = ethers::utils::format_ether(pool.reserve_x_wad).parse::<f64>()?;
-        let reserve_y = ethers::utils::format_ether(pool.reserve_y_wad).parse::<f64>()?;
-        let portfolio_price = reserve_x * asset_price + reserve_y;
+        let g_pool = self
+            .protocol_client
+            .protocol
+            .get_pool(ethers::types::U256::from(1))
+            .await?;
+        let ln_rx = ethers::utils::format_ether(ln_pool.reserve_x_wad).parse::<f64>()?;
+        let ln_ry = ethers::utils::format_ether(ln_pool.reserve_y_wad).parse::<f64>()?;
 
-        if self.portfolio_prices.is_empty() {
-            info!("portfolio_price: {}", portfolio_price);
-            self.portfolio_prices.push((portfolio_price, 0));
-            self.asset_prices.push((asset_price, 0));
+        let g_rx = ethers::utils::format_ether(g_pool.reserve_x_wad).parse::<f64>()?;
+        let g_ry = ethers::utils::format_ether(g_pool.reserve_y_wad).parse::<f64>()?;
+
+        let ln_portfolio_price = ln_rx * asset_price + ln_ry;
+        let g_portfolio_price = g_rx * asset_price + g_ry;
+
+        if self.ln_data.portfolio_prices.is_empty() {
+            info!("portfolio_price: {}", ln_portfolio_price);
+            self.ln_data.portfolio_prices.push((ln_portfolio_price, 0));
+            self.ln_data.asset_prices.push((asset_price, 0));
+        }
+
+        if self.g_data.portfolio_prices.is_empty() {
+            info!("portfolio_price: {}", g_portfolio_price);
+            self.ln_data.portfolio_prices.push((g_portfolio_price, 0));
+            self.ln_data.asset_prices.push((asset_price, 0));
         }
 
         if timestamp >= self.next_update_timestamp {
             self.next_update_timestamp = timestamp + self.update_frequency;
-            debug!("portfolio_price: {}", portfolio_price);
-            self.asset_prices.push((asset_price, timestamp));
-            self.portfolio_prices.push((portfolio_price, timestamp));
+            debug!("ln portfolio_price: {}", ln_portfolio_price);
+            debug!("g3m portfolio_price: {}", g_portfolio_price);
+            self.ln_data.asset_prices.push((asset_price, timestamp));
+            self.ln_data
+                .portfolio_prices
+                .push((ln_portfolio_price, timestamp));
+            self.g_data.asset_prices.push((asset_price, timestamp));
+            self.g_data
+                .portfolio_prices
+                .push((g_portfolio_price, timestamp));
             self.calculate_rv()?;
             self.execute_smooth_rebalance().await?;
         }
@@ -96,10 +126,18 @@ impl VolatilityTargetingSubmitter {
                         target_volatility: parameters.target_volatility.0,
                         sensitivity: parameters.sensitivity.0,
                         max_strike_change: parameters.max_strike_change.0,
-                        portfolio_prices: Vec::new(),
-                        asset_prices: Vec::new(),
-                        portfolio_rv: Vec::new(),
-                        asset_rv: Vec::new(),
+                        ln_data: PositionData {
+                            portfolio_prices: Vec::new(),
+                            asset_prices: Vec::new(),
+                            portfolio_rv: Vec::new(),
+                            asset_rv: Vec::new(),
+                        },
+                        g_data: PositionData {
+                            portfolio_prices: Vec::new(),
+                            asset_prices: Vec::new(),
+                            portfolio_rv: Vec::new(),
+                            asset_rv: Vec::new(),
+                        },
                     };
                     Ok(strategist)
                 }
@@ -112,26 +150,57 @@ impl VolatilityTargetingSubmitter {
     }
 
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
-        if self.portfolio_rv.len() < 2 {
+        if self.ln_data.portfolio_rv.len() < 2 {
             return Ok(());
         }
-        let portfolio_rv = self.portfolio_rv.last().unwrap().0;
-        info!("portfolio_rv: {}", portfolio_rv);
+        if self.g_data.portfolio_rv.len() < 2 {
+            return Ok(());
+        }
+        let ln_portfolio_rv = self.ln_data.portfolio_rv.last().unwrap().0;
+        let g_portfolio_rv = self.g_data.portfolio_rv.last().unwrap().0;
+        info!("ln portfolio_rv: {}", ln_portfolio_rv);
+        info!("g3m portfolio_rv: {}", g_portfolio_rv);
         let current_strike = self.protocol_client.get_strike_price(U256::from(0)).await?;
+
         let current_strike_float = ethers::utils::format_ether(current_strike)
             .parse::<f64>()
             .unwrap();
+        let current_wx = self
+            .protocol_client
+            .g_strategy
+            .weight_x(U256::from(1))
+            .await?;
+        let wx_float = format_ether(current_wx).parse::<f64>().unwrap();
         info!("current strike float: {}", current_strike_float);
         let mut new_strike = current_strike_float;
-        let vol_diff = (portfolio_rv - self.target_volatility).abs();
+        let vol_diff = (ln_portfolio_rv - self.target_volatility).abs();
         let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
         if scaling_factor > self.max_strike_change {
             scaling_factor = self.max_strike_change;
         }
-        if portfolio_rv > self.target_volatility {
+        if ln_portfolio_rv > self.target_volatility {
             new_strike -= scaling_factor;
         } else {
             new_strike += scaling_factor;
+        }
+        if g_portfolio_rv < self.target_volatility {
+            let mut new_weight = wx_float + 0.0025;
+            debug!("new weight: {}", new_weight);
+            if new_weight >= 0.99 {
+                new_weight = 0.99;
+            }
+            self.protocol_client
+                .set_weight_x(U256::from(1), new_weight, self.next_update_timestamp)
+                .await?;
+        } else {
+            let mut new_weight = wx_float - 0.0025;
+            if new_weight <= 0.01 {
+                new_weight = 0.01;
+            }
+            debug!("new weight: {}", new_weight);
+            self.protocol_client
+                .set_weight_x(U256::from(1), new_weight, self.next_update_timestamp)
+                .await?;
         }
         info!("new strike float: {}", new_strike);
         self.protocol_client
@@ -142,45 +211,101 @@ impl VolatilityTargetingSubmitter {
 
     fn calculate_rv(&mut self) -> Result<()> {
         // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
-        if self.asset_prices.len() > 15 {
+        if self.ln_data.asset_prices.len() > 15 {
             let asset_rv = compute_realized_volatility(
-                self.asset_prices
+                self.ln_data
+                    .asset_prices
                     .iter()
-                    .skip(self.asset_prices.len() - 15)
+                    .skip(self.ln_data.asset_prices.len() - 15)
                     .map(|(price, _)| *price)
                     .collect::<Vec<f64>>(),
             );
-            self.asset_rv.push((asset_rv, self.next_update_timestamp));
+            self.ln_data
+                .asset_rv
+                .push((asset_rv, self.next_update_timestamp));
         }
-        if self.portfolio_prices.len() > 15 {
+        if self.ln_data.portfolio_prices.len() > 15 {
             let portfolio_rv = compute_realized_volatility(
-                self.portfolio_prices
+                self.ln_data
+                    .portfolio_prices
                     .iter()
-                    .skip(self.portfolio_prices.len() - 15)
+                    .skip(self.ln_data.portfolio_prices.len() - 15)
                     .map(|(price, _)| *price)
                     .collect::<Vec<f64>>(),
             );
 
-            self.portfolio_rv
+            self.ln_data
+                .portfolio_rv
                 .push((portfolio_rv, self.next_update_timestamp));
         }
         info!(
             "Return[ASSET]: {}",
-            (self.asset_prices.last().unwrap().0 - self.asset_prices.first().unwrap().0)
-                / self.asset_prices.first().unwrap().0
+            (self.ln_data.asset_prices.last().unwrap().0
+                - self.ln_data.asset_prices.first().unwrap().0)
+                / self.ln_data.asset_prices.first().unwrap().0
         );
         info!(
             "Return[PORTFOLIO]: {}",
-            (self.portfolio_prices.last().unwrap().0 - self.portfolio_prices.first().unwrap().0)
-                / self.portfolio_prices.first().unwrap().0
+            (self.ln_data.portfolio_prices.last().unwrap().0
+                - self.ln_data.portfolio_prices.first().unwrap().0)
+                / self.ln_data.portfolio_prices.first().unwrap().0
         );
         debug!(
             "initial portfolio price: {}",
-            self.portfolio_prices.first().unwrap().0
+            self.ln_data.portfolio_prices.first().unwrap().0
         );
         debug!(
             "current portfolio price: {}",
-            self.portfolio_prices.last().unwrap().0
+            self.ln_data.portfolio_prices.last().unwrap().0
+        );
+
+        // if self.asset_prices.len() > 15 then only calculate for the last 15 elements
+        if self.g_data.asset_prices.len() > 15 {
+            let asset_rv = compute_realized_volatility(
+                self.g_data
+                    .asset_prices
+                    .iter()
+                    .skip(self.g_data.asset_prices.len() - 15)
+                    .map(|(price, _)| *price)
+                    .collect::<Vec<f64>>(),
+            );
+            self.g_data
+                .asset_rv
+                .push((asset_rv, self.next_update_timestamp));
+        }
+        if self.g_data.portfolio_prices.len() > 15 {
+            let portfolio_rv = compute_realized_volatility(
+                self.g_data
+                    .portfolio_prices
+                    .iter()
+                    .skip(self.g_data.portfolio_prices.len() - 15)
+                    .map(|(price, _)| *price)
+                    .collect::<Vec<f64>>(),
+            );
+
+            self.g_data
+                .portfolio_rv
+                .push((portfolio_rv, self.next_update_timestamp));
+        }
+        info!(
+            "Return[ASSET]: {}",
+            (self.g_data.asset_prices.last().unwrap().0
+                - self.g_data.asset_prices.first().unwrap().0)
+                / self.g_data.asset_prices.first().unwrap().0
+        );
+        info!(
+            "Return[PORTFOLIO]: {}",
+            (self.g_data.portfolio_prices.last().unwrap().0
+                - self.g_data.portfolio_prices.first().unwrap().0)
+                / self.g_data.portfolio_prices.first().unwrap().0
+        );
+        debug!(
+            "initial portfolio price: {}",
+            self.g_data.portfolio_prices.first().unwrap().0
+        );
+        debug!(
+            "current portfolio price: {}",
+            self.g_data.portfolio_prices.last().unwrap().0
         );
 
         Ok(())

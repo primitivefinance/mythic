@@ -17,6 +17,7 @@ pub struct LiquidityProvider {
     init_strike_price_wad: f64,
     init_sigma_percent_wad: f64,
     init_tau_years_wad: f64,
+    init_weight_x_wad: f64,
 }
 
 #[async_trait::async_trait]
@@ -32,6 +33,10 @@ impl Agent for LiquidityProvider {
                 self.init_sigma_percent_wad,
                 self.init_tau_years_wad,
             )
+            .await?;
+
+        self.protocol_client
+            .initialize_g_pool(self.init_x_wad, self.init_price_wad, self.init_weight_x_wad)
             .await?;
 
         Ok(())
@@ -93,6 +98,7 @@ impl LiquidityProvider {
                 init_strike_price_wad: params.strike_price.0,
                 init_sigma_percent_wad: params.sigma.0,
                 init_tau_years_wad: params.tau.0,
+                init_weight_x_wad: params.wx.0,
             })
         } else {
             Err(anyhow::anyhow!(
@@ -109,6 +115,7 @@ pub struct LiquidityProviderParameters<P: Parameterized> {
     pub sigma: P,
     pub tau: P,
     pub strike_price: P,
+    pub wx: P,
 }
 
 impl From<LiquidityProviderParameters<Multiple>> for Vec<LiquidityProviderParameters<Single>> {
@@ -118,14 +125,16 @@ impl From<LiquidityProviderParameters<Multiple>> for Vec<LiquidityProviderParame
             params.initial_price.parameters(),
             params.sigma.parameters(),
             params.tau.parameters(),
-            params.strike_price.parameters()
+            params.strike_price.parameters(),
+            params.wx.parameters()
         )
-        .map(|(xl, ip, vol, tau, stk)| LiquidityProviderParameters {
+        .map(|(xl, ip, vol, tau, stk, w)| LiquidityProviderParameters {
             x_liquidity: Single(xl),
             initial_price: Single(ip),
             sigma: Single(vol),
             tau: Single(tau),
             strike_price: Single(stk),
+            wx: Single(w),
         })
         .collect()
     }
