@@ -19,7 +19,6 @@ interface IMultiCore {
     }
 
     struct InitParams {
-        uint256 poolId;
         address strategy;
         address tokenX;
         address tokenY;

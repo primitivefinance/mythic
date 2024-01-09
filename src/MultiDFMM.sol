@@ -169,20 +169,27 @@ contract MultiDFMM is IMultiCore {
         uint256 poolId,
         uint256 adjustedReserveX,
         uint256 adjustedReserveY
-    ) internal returns (bool, address, address, uint256, uint256) {
-        (uint256 originalReserveX, uint256 originalReserveY) =
-            (pools[poolId].reserveX, pools[poolId].reserveY);
+    )
+        internal
+        returns (
+            bool isSwapXForY,
+            address inputToken,
+            address outputToken,
+            uint256 inputAmount,
+            uint256 outputAmount
+        )
+    {
+        uint256 originalReserveX = pools[poolId].reserveX;
+        uint256 originalReserveY = pools[poolId].reserveY;
 
-        bool isSwapXForY = adjustedReserveX > originalReserveX;
+        isSwapXForY = adjustedReserveX > originalReserveX;
 
-        address inputToken =
-            isSwapXForY ? pools[poolId].tokenX : pools[poolId].tokenY;
-        address outputToken =
-            isSwapXForY ? pools[poolId].tokenY : pools[poolId].tokenX;
-        uint256 inputAmount = isSwapXForY
+        inputToken = isSwapXForY ? pools[poolId].tokenX : pools[poolId].tokenY;
+        outputToken = isSwapXForY ? pools[poolId].tokenY : pools[poolId].tokenX;
+        inputAmount = isSwapXForY
             ? adjustedReserveX - originalReserveX
             : adjustedReserveY - originalReserveY;
-        uint256 outputAmount = isSwapXForY
+        outputAmount = isSwapXForY
             ? originalReserveY - adjustedReserveY
             : originalReserveX - adjustedReserveX;
 
