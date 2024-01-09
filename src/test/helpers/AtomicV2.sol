@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.14;
 
 import "forge-std/console2.sol";
 import "solstat/Gaussian.sol";
 import "solmate/utils/FixedPointMathLib.sol";
-import "./lib/BisectionLib.sol";
+import "../../strategies/LogNormal/BisectionLib.sol";
 
 interface LiquidExchange {
     function swap(address token, uint256 amount) external;

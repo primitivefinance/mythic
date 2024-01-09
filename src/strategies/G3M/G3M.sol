@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../lib/g3m/G3MLib.sol";
-
-import "../interfaces/IMultiCore.sol";
-import "../interfaces/IMultiStrategy.sol";
+import "../../interfaces/IMultiCore.sol";
+import "../../interfaces/IMultiStrategy.sol";
+import "./G3MLib.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
  */
-
 struct WeightX {
     uint256 target;
     uint256 last;

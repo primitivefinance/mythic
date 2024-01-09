@@ -1,8 +1,8 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../lib/lognormal/LogNormalLib.sol";
-import "../lib/g3m/G3MLib.sol";
+import "../strategies/LogNormal/LogNormalLib.sol";
+import "../strategies/G3M/G3MLib.sol";
 
 interface IStrategyLike {
     function computeSwapConstant(

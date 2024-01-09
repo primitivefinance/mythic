@@ -1,11 +1,11 @@
 /// SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./strategies/G3M.sol";
-import "./strategies/LogNormal.sol";
+import "solmate/tokens/ERC20.sol";
+import "./strategies/G3M/G3M.sol";
+import "./strategies/LogNormal/LogNormal.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/ICore.sol";
-import "solmate/tokens/ERC20.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker

@@ -1,7 +1,7 @@
 pragma solidity ^0.8.13;
 
 import "solstat/Gaussian.sol";
-import "../StrategyLib.sol";
+import "../../lib/StrategyLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
