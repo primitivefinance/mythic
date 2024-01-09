@@ -39,6 +39,12 @@ pub enum SignerManagement {
     Connecting,
     Error,
 }
+pub async fn connect_to_ledger() -> Result<(Arc<LedgerClient>, Address), Arc<Error>> {
+    let ledger = Arc::new(LedgerClient::new_connection(DerivationType::LedgerLive(0)).await?);
+    let address = ledger.get_address().await.unwrap();
+    tracing::info!("Address: {:?}", address);
+    Ok((ledger, address))
+}
 
 impl SignerManagement {
     pub fn new() -> Self {
@@ -55,11 +61,6 @@ impl SignerManagement {
                         cells::CellBuilder::new().value(Some("0xb0b".to_string())),
                     )]),
         )
-    }
-    async fn connect_to_ledger() -> Result<(Arc<LedgerClient>, Address), Arc<Error>> {
-        let ledger = Arc::new(LedgerClient::new_connection(DerivationType::LedgerLive(0)).await?);
-        let address = ledger.get_address().await.unwrap();
-        Ok((ledger, address))
     }
 
     pub fn singer_view() -> Row<'static, Message> {
@@ -85,18 +86,21 @@ impl State for SignerManagement {
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+        tracing::info!("Update message: {:?}", message);
         match message {
             Message::Connected(Ok(res)) => {
+                tracing::info!("Connected to ledger");
                 *self = SignerManagement::Connected(res.0, res.1);
                 Command::none()
             }
             Message::Connected(Err(_err)) => {
+                tracing::error!("Error connecting to ledger");
                 *self = SignerManagement::Error;
                 Command::none()
             }
             Message::ConnectLedger => {
                 *self = SignerManagement::Connecting;
-                Command::perform(Self::connect_to_ledger(), Message::Connected)
+                Command::perform(connect_to_ledger(), Message::Connected) // hangs here
             }
             _ => Command::none(),
         }
