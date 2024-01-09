@@ -1,3 +1,4 @@
+# Notation and Terminology
 # Trading Functions
 
 Trading functions are a specific way of doing automated market making.
