@@ -112,7 +112,6 @@ contract DFMM is ICore {
         ) {
             uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
             balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
-            console2.log("in here");
         }
 
         uint256 deltaX = reserveXWad - rx;
