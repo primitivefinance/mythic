@@ -12,7 +12,7 @@ cfmm_math.workspace = true
 clients.workspace = true
 
 
-unit-conversions = "0.1.13"
+unit-conversions = "=0.1.13"
 
 revm.workspace = true
 revm-primitives.workspace = true
@@ -39,3 +39,6 @@ config.workspace = true
 RustQuant.workspace = true
 statrs.workspace = true
 linked-hash-map.workspace = true
+
+# Historical Data
+rust-gecko = { git = "https://github.com/0xJepsen/rust-gecko.git", branch = "main" }

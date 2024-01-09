@@ -16,6 +16,28 @@ pub mod liquid_exchange {
             constructor: ::core::option::Option::None,
             functions: ::core::convert::From::from([
                 (
+                    ::std::borrow::ToOwned::to_owned("price"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("price"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("swap"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -94,6 +116,14 @@ pub mod liquid_exchange {
                 ),
             )
         }
+        ///Calls the contract's `price` (0xa035b1fe) function
+        pub fn price(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            self.0
+                .method_hash([160, 53, 177, 254], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `swap` (0xd004f0f7) function
         pub fn swap(
             &self,
@@ -111,6 +141,21 @@ pub mod liquid_exchange {
             Self::new(contract.address(), contract.client())
         }
     }
+    ///Container type for all input parameters for the `price` function with signature `price()` and selector `0xa035b1fe`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "price", abi = "price()")]
+    pub struct PriceCall;
     ///Container type for all input parameters for the `swap` function with signature `swap(address,uint256)` and selector `0xd004f0f7`
     #[derive(
         Clone,
@@ -129,4 +174,77 @@ pub mod liquid_exchange {
         pub token: ::ethers::core::types::Address,
         pub amount: ::ethers::core::types::U256,
     }
+    ///Container type for all of the contract's call
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        serde::Serialize,
+        serde::Deserialize,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub enum LiquidExchangeCalls {
+        Price(PriceCall),
+        Swap(SwapCall),
+    }
+    impl ::ethers::core::abi::AbiDecode for LiquidExchangeCalls {
+        fn decode(
+            data: impl AsRef<[u8]>,
+        ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
+            let data = data.as_ref();
+            if let Ok(decoded) = <PriceCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Price(decoded));
+            }
+            if let Ok(decoded) = <SwapCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Swap(decoded));
+            }
+            Err(::ethers::core::abi::Error::InvalidData.into())
+        }
+    }
+    impl ::ethers::core::abi::AbiEncode for LiquidExchangeCalls {
+        fn encode(self) -> Vec<u8> {
+            match self {
+                Self::Price(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Swap(element) => ::ethers::core::abi::AbiEncode::encode(element),
+            }
+        }
+    }
+    impl ::core::fmt::Display for LiquidExchangeCalls {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            match self {
+                Self::Price(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Swap(element) => ::core::fmt::Display::fmt(element, f),
+            }
+        }
+    }
+    impl ::core::convert::From<PriceCall> for LiquidExchangeCalls {
+        fn from(value: PriceCall) -> Self {
+            Self::Price(value)
+        }
+    }
+    impl ::core::convert::From<SwapCall> for LiquidExchangeCalls {
+        fn from(value: SwapCall) -> Self {
+            Self::Swap(value)
+        }
+    }
+    ///Container type for all return fields from the `price` function with signature `price()` and selector `0xa035b1fe`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct PriceReturn(pub ::ethers::core::types::U256);
 }

@@ -68,7 +68,6 @@ impl LedgerClient {
 
         tracing::debug!("Dispatching get_version");
         let answer = self.ledger.exchange(&command).await?;
-        // todo handle this unwrap
         let result = answer.data().unwrap();
         if result.len() < 4 {
             return Err(LedgerClienError::LedgerError(
@@ -180,10 +179,7 @@ impl LedgerClient {
 
     // Helper function for signing either transaction data, personal messages or
     // EIP712 derived structs
-    pub async fn sign_encoded_tx(
-        &self,
-        encoded_tx: &Vec<u8>,
-    ) -> Result<Signature, LedgerClienError> {
+    pub async fn sign_encoded_tx(&self, encoded_tx: &[u8]) -> Result<Signature, LedgerClienError> {
         if encoded_tx.is_empty() {
             return Err(LedgerClienError::CommandError(
                 ("Payload is empty").to_string(),
@@ -204,7 +200,6 @@ impl LedgerClient {
             ));
         }
         let result = result.data().unwrap();
-        // todo handle this unwrap better
         if result.is_empty() {
             if self.get_opened_app().await? == "Ethereum" {
                 return Err(LedgerClienError::CommandError("Canceled".to_owned()));

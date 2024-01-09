@@ -13,6 +13,7 @@ pub struct Watcher {
 }
 
 impl Watcher {
+    #[allow(dead_code)]
     pub async fn new<D: EthEvent + Debug + 'static, P: PubsubClient + 'static>(
         client: Arc<Provider<P>>,
         block: impl Into<BlockNumber>,
@@ -39,7 +40,6 @@ impl Watcher {
             tokio::select! {
                 _ = cloned_token.cancelled() => {
                     info!("Cancellation token triggered");
-                    return;
                 }
                 _ = async {
                     let mut set = tokio::task::JoinSet::new();

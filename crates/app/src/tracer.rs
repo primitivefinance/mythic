@@ -131,7 +131,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
                     && !metadata.target().starts_with("tokio_tungstenite")
                     && !metadata.target().starts_with("tungstenite")
                     && metadata.level() <= &tracing::Level::TRACE
-                    // todo: remove these if you need to see sim traces...
+                    // Remove these if you need to see sim traces...
                     && !metadata.target().starts_with("arbiter_core")
                     && !metadata.target().starts_with("simulation")
                     && !metadata.name().contains("create_task")
@@ -556,7 +556,7 @@ mod tests {
         user_trace();
 
         // get the last item from the receiver channel and log it
-        while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
+        while let Ok(msg) = tracer.receiver.clone().lock().unwrap().try_recv() {
             // println the app event log if the data's hashmap has more than 2 items
             println!("Received message: {:?}", msg.data);
         }
@@ -576,7 +576,7 @@ mod tests {
         single_trace();
 
         // get the last item from the receiver channel and log it
-        while let Some(msg) = tracer.receiver.clone().lock().unwrap().try_recv().ok() {
+        while let Ok(msg) = tracer.receiver.clone().lock().unwrap().try_recv() {
             println!("Received message: {:?}", msg.data);
         }
     }

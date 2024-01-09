@@ -1,19 +1,14 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "./strategies/G3M.sol";
+import "./strategies/LogNormal.sol";
 import "solmate/tokens/ERC20.sol";
-import "solstat/Gaussian.sol";
-import "forge-std/console2.sol";
-import "./v3/BisectionLib.sol";
-import "./LogNormal.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
-contract DFMM is Core {
-    using FixedPointMathLib for uint256;
-    using FixedPointMathLib for int256;
-
-    address public source;
+contract DFMM is ICore {
+    address public strategy;
     bool public inited;
     uint256 public locked = 1;
     address public tokenX;
@@ -23,7 +18,19 @@ contract DFMM is Core {
     uint256 public totalLiquidity;
     mapping(address account => uint256 balance) public balanceOf;
 
+    event LogPoolStats(
+        uint256 rx,
+        uint256 ry,
+        uint256 L,
+        int256 invariant,
+        uint256 sigma,
+        uint256 strike,
+        uint256 tau,
+        uint256 timestamp
+    );
+
     constructor(
+        bool isLogNormal, // temp way to handle either lognorm or g3m
         address tokenX_,
         address tokenY_,
         uint256 swapFeePercentageWad
@@ -32,7 +39,11 @@ contract DFMM is Core {
         tokenY = tokenY_;
 
         // todo: can update later to allow for different sources.
-        source = address(new LogNormal(swapFeePercentageWad));
+        if (isLogNormal) {
+            strategy = address(new LogNormal(swapFeePercentageWad));
+        } else {
+            strategy = address(new G3M(swapFeePercentageWad));
+        }
     }
 
     error Invalid(bool negative, uint256 swapConstantGrowth);
@@ -67,28 +78,12 @@ contract DFMM is Core {
         locked = 1;
     }
 
-    function getSwapConstant() public view returns (int256) {
-        bytes memory data = abi.encode(reserveXWad, reserveYWad, totalLiquidity);
-        return LogNormal(source).computeSwapConstant(data);
-    }
-
     function getReservesAndLiquidity()
         public
         view
         returns (uint256, uint256, uint256)
     {
         return (reserveXWad, reserveYWad, totalLiquidity);
-    }
-
-    function getNextLiquidity() public view returns (uint256) {
-        return Source(source).getNextLiquidity(
-            reserveXWad, reserveYWad, totalLiquidity
-        );
-    }
-
-    /// @dev Gets the approximated price of the pool given x reserves and liquidity.
-    function internalPrice() public view returns (uint256 price) {
-        price = LogNormal(source).internalPrice(reserveXWad, totalLiquidity);
     }
 
     /// @param data The data to be passed to the source strategy contract for pool initialization & validation.
@@ -103,7 +98,7 @@ contract DFMM is Core {
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = Source(source).init(data);
+        ) = IStrategy(strategy).init(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
@@ -114,31 +109,8 @@ contract DFMM is Core {
         balanceOf[msg.sender] = LLLLLL;
         ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
         ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
-        emit Init(msg.sender, source, XXXXXXX, YYYYYY, LLLLLL);
+        emit Init(msg.sender, strategy, XXXXXXX, YYYYYY, LLLLLL);
         return (XXXXXXX, YYYYYY, LLLLLL);
-    }
-
-    /// @dev Use this function to prepare swaps!
-    /// @param swapXIn Whether the swap is X in, Y out.
-    /// @param amountIn The amount of the input token to swap.
-    /// @return valid Whether the swap is valid, as returned by source.validate().
-    /// @return estimatedOut The estimated amount of the output token.
-    /// @return estimatedPrice The computed price after the swap.
-    /// @return swapData The data to be passed to the source strategy contract for swap validation.
-    function simulateSwap(
-        bool swapXIn,
-        uint256 amountIn
-    )
-        public
-        view
-        returns (
-            bool valid,
-            uint256 estimatedOut,
-            uint256 estimatedPrice,
-            bytes memory swapData
-        )
-    {
-        return LogNormal(source).simulateSwap(swapXIn, amountIn);
     }
 
     /// @param data The data to be passed to the source strategy contract for swap validation.
@@ -146,11 +118,11 @@ contract DFMM is Core {
         (
             bool valid,
             int256 swapConstantGrowth,
-            int256 liquidityDelta,
+            int256 liquidityDelta, // this is unused, should we remove it?
             uint256 XXXXXXX,
             uint256 YYYYYY,
             uint256 LLLLLL
-        ) = Source(source).validate(data);
+        ) = IStrategy(strategy).validate(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
@@ -158,28 +130,21 @@ contract DFMM is Core {
         totalLiquidity = LLLLLL;
 
         {
-            // Avoids stack too deep.
-            (
-                address inputToken,
-                address outputToken,
-                uint256 inputAmount,
-                uint256 outputAmount
-            ) = _settle({
-                adjustedReserveXWad: XXXXXXX,
-                adjustedReserveYWad: YYYYYY
-            });
+            _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
 
-            address swapper = msg.sender;
-            address strategy = source;
-            int256 liquidityDelta = liquidityDelta;
-            emit Swap(
-                swapper,
-                strategy,
-                inputToken,
-                outputToken,
-                inputAmount,
-                outputAmount,
-                liquidityDelta
+            bytes memory strategyData = IStrategy(strategy).dynamicSlot();
+            (uint256 strike, uint256 sigma, uint256 tau) =
+                abi.decode(strategyData, (uint256, uint256, uint256));
+
+            emit LogPoolStats(
+                XXXXXXX,
+                YYYYYY,
+                LLLLLL,
+                swapConstantGrowth,
+                sigma,
+                strike,
+                tau,
+                block.timestamp
             );
         }
     }
@@ -240,3 +205,6 @@ contract DFMM is Core {
         );
     }
 }
+
+// move pure functions to solver
+// pass solver address into core functions in strategy

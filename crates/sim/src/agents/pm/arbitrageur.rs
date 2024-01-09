@@ -7,16 +7,10 @@ use alloy_primitives::{
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
 use clients::protocol::ProtocolClient;
-use ethers::abi::AbiDecode;
-use tracing::{debug, error, info, trace, warn};
 
 use super::{
-    agents::base::token_admin::TokenAdmin,
-    bindings::{
-        atomic_v2::{self, AtomicV2},
-        dfmm::DFMM,
-    },
-    Environment, Result, RevmMiddleware, *,
+    agents::base::token_admin::TokenAdmin, bindings::atomic_v2::AtomicV2, Environment, Result,
+    RevmMiddleware, *,
 };
 
 pub const WAD: U256 = U256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
@@ -32,18 +26,41 @@ pub struct Arbitrageur {
     pub atomic_arbitrage: AtomicV2<RevmMiddleware>,
 }
 
+pub struct ArbInputs {
+    pub i_wad: I256,
+    pub target_price_wad: I256,
+    pub strike: I256,
+    pub sigma: I256,
+    pub tau: I256,
+    pub gamma: I256,
+    pub rx: I256,
+    pub ry: I256,
+    pub liq: I256,
+}
+
+// gradient ascent until you find the max arb profit
+// implement the arb math
+// start with doing root finding for the gradient
+// from there add sophistication incrementally
+// 1. we have arb profit function we can call f(x)
+// 2. define fn g(x) = (f(x + 1) - f(x - 1)) / 2
 impl Arbitrageur {
     pub async fn new(
         environment: &Environment,
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
         dfmm_address: Address,
+        solver_address: Address,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, "arbitrageur".into())?;
 
         // Create the protocol client.
-        let protocol_client = ProtocolClient::new(client.clone(), to_ethers_address(dfmm_address));
+        let protocol_client = ProtocolClient::new(
+            client.clone(),
+            to_ethers_address(dfmm_address),
+            to_ethers_address(solver_address),
+        );
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange =
@@ -54,6 +71,7 @@ impl Arbitrageur {
         let atomic_arbitrage = AtomicV2::deploy(
             client.clone(),
             (
+                protocol_client.solver.address(),
                 protocol_client.protocol.address(),
                 liquid_exchange.address(),
                 token_admin.arbx.address(),
@@ -115,164 +133,186 @@ impl Arbitrageur {
 
         let target_exchange_price_wad = self.protocol_client.get_internal_price().await?;
         let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
-        info!("=== Start Loop ===");
+        debug!("=== Start Loop ===");
         info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
         info!("Price[DEX]: {:?}", format_ether(target_exchange_price_wad));
 
-        let swap_fee_wad = self.protocol_client.get_swap_fee().await?;
-        let swap_fee_wad = from_ethers_u256(swap_fee_wad);
-        let gamma_wad = WAD - swap_fee_wad;
-        let upper_arb_bound = WAD * target_exchange_price_wad / gamma_wad;
-        let lower_arb_bound = target_exchange_price_wad * gamma_wad / WAD;
-        debug!("SwapFee [DEX]  : {:?}", format_ether(swap_fee_wad));
-        debug!("ArbBound[UPPER]: {:?}", format_ether(upper_arb_bound));
-        debug!("ArbBound[LOWER]: {:?}", format_ether(lower_arb_bound));
-
-        // Check if we have an arbitrage opportunity by comparing against the bounds and
-        // current price.
-        // If these conditions are not satisfied, there cannot be a profitable
-        // arbitrage. See: [An Analysis of Uniswap Markets](https://arxiv.org/pdf/1911.03380.pdf) Eq. 3, for example.
-        if liquid_exchange_price_wad > upper_arb_bound
-            && liquid_exchange_price_wad > target_exchange_price_wad
-        {
-            // Raise the portfolio price by selling asset for quote
-            Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
-        } else if liquid_exchange_price_wad < lower_arb_bound
-            && liquid_exchange_price_wad < target_exchange_price_wad
-        {
-            // Lower the exchange price by selling asset for quote
-            Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
-        } else {
-            // Prices are within the no-arbitrage bounds, so we don't have an arbitrage.
-            Ok(Swap::None)
+        match liquid_exchange_price_wad {
+            _ if liquid_exchange_price_wad > target_exchange_price_wad => {
+                // Raise the portfolio price by selling asset for quote
+                Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
+            }
+            _ if liquid_exchange_price_wad < target_exchange_price_wad => {
+                // Lower the exchange price by selling asset for quote
+                Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
+            }
+            _ => {
+                // Prices are within the no-arbitrage bounds, so we don't have an arbitrage.
+                Ok(Swap::None)
+            }
         }
     }
 
-    #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn get_raise_price_trade_amount_y(&self, target_price_wad: U256) -> Result<U256> {
-        let amount = self
-            .atomic_arbitrage
-            .try_arbitrage_until_target_price(to_ethers_u256(target_price_wad), 100.into())
-            .call()
-            .await;
-
-        let amount = match amount {
-            Ok(amount) => amount,
-            Err(e) => {
-                if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                    e.as_middleware_error().unwrap()
-                {
-                    warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
-
-                    // let decoded_output =
-                    // atomic_v2::FindingTradeError::decode(&output)?;
-                    // info!("Execution revert: {:?}", decoded_output);
-                }
-
-                return Ok(U256::ZERO);
-            }
-        };
-
-        Ok(from_ethers_u256(amount))
-    }
-
-    #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn get_lower_price_trade_amount_x(&self, target_price_wad: U256) -> Result<U256> {
-        let amount = self
-            .atomic_arbitrage
-            .try_arbitrage_until_target_price(to_ethers_u256(target_price_wad), 100.into())
-            .call()
-            .await;
-
-        let amount = match amount {
-            Ok(amount) => amount,
-            Err(e) => {
-                if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                    e.as_middleware_error().unwrap()
-                {
-                    warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
-
-                    let decoded_output = atomic_v2::FindingTradeError::decode(&output)?;
-                    info!("Execution revert: {:?}", decoded_output);
-                }
-
-                return Ok(U256::ZERO);
-            }
-        };
-
-        Ok(from_ethers_u256(amount))
-    }
-
-    #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn raise_price_maximize_profit_search(&self) -> Result<U256> {
-        let amount = self
-            .atomic_arbitrage
-            .search_raise_price(100.into(), 50.into())
-            .call()
-            .await;
-
-        let amount = match amount {
-            Ok((amount, profit)) => amount,
-            Err(e) => {
-                if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-                    e.as_middleware_error().unwrap()
-                {
-                    warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
-                }
-
-                return Ok(U256::ZERO);
-            }
-        };
-
-        Ok(from_ethers_u256(amount))
-    }
-
-    #[tracing::instrument(skip(self), level = "info", ret)]
-    pub async fn lower_price_maximize_profit_search(&self) -> Result<U256> {
-        self.atomic_arbitrage
-            .search_lower_price(256.into(), 5.into())
-            .send()
-            .await?
-            .await?;
-
-        let trade_packet = self.atomic_arbitrage.trade_packet().call().await?;
-        let amount = trade_packet.3;
-        let profit = trade_packet.4;
-        info!(
-            "Trade: {:?} Profit: {:?}",
-            format_ether(from_ethers_u256(amount)),
-            format_ether(from_ethers_u256(profit))
+    pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
+        let log_normal = self.protocol_client.get_strategy().await?;
+        let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
+        let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
+        let (strike, sigma, tau) = log_normal.get_params().call().await?;
+        let (strike, sigma, tau) = (
+            I256::from_raw(strike),
+            I256::from_raw(sigma),
+            I256::from_raw(tau),
         );
-
-        // let amount = match amount {
-        // Ok((amount, profit)) => {
-        // tracing::info!(
-        // "Trade: {:?} Profit: {:?}",
-        // format_ether(from_ethers_u256(amount)),
-        // format_ether(from_ethers_u256(profit))
-        // );
-        // amount
-        // }
-        // Err(e) => {
-        // if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
-        // e.as_middleware_error().unwrap()
-        // {
-        // warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
-        // }
-        //
-        // return Ok(U256::ZERO);
-        // }
-        // };
-
-        Ok(from_ethers_u256(amount))
+        let gamma = I256::from_raw(ethers::utils::parse_ether("1")?)
+            - I256::from_raw(log_normal.swap_fee().call().await?);
+        let (rx, ry, liq) = self
+            .protocol_client
+            .protocol
+            .get_reserves_and_liquidity()
+            .call()
+            .await?;
+        let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
+        Ok(ArbInputs {
+            i_wad,
+            target_price_wad,
+            strike,
+            sigma,
+            tau,
+            gamma,
+            rx,
+            ry,
+            liq,
+        })
     }
 
-    pub async fn get_dx() -> Result<U256> {
-        todo!()
+    pub async fn get_dx(&self) -> Result<I256> {
+        let ArbInputs {
+            i_wad,
+            target_price_wad,
+            strike,
+            sigma,
+            tau: _,
+            gamma,
+            rx,
+            ry: _,
+            liq,
+        } = self.get_arb_inputs_as_i256().await?;
+
+        let log_p = self
+            .atomic_arbitrage
+            .log(target_price_wad * i_wad / strike)
+            .call()
+            .await?;
+        let inner_p = log_p * i_wad / sigma + (sigma / 2);
+        let cdf_p = self.atomic_arbitrage.cdf(inner_p).call().await?;
+        let delta = liq * (i_wad - cdf_p) / i_wad;
+        let dx = (delta - rx) * i_wad * i_wad
+            / (((gamma - i_wad) * (i_wad - cdf_p)) / (rx * i_wad / liq) + i_wad);
+        Ok(dx / i_wad)
     }
 
-    pub async fn get_dy() -> Result<U256> {
-        todo!()
+    // todo (matt): figure out why this returns u256::max sometimes
+    pub async fn get_dy(&self) -> Result<I256> {
+        let ArbInputs {
+            i_wad,
+            target_price_wad,
+            strike,
+            sigma,
+            tau: _,
+            gamma,
+            rx: _,
+            ry,
+            liq,
+        } = self.get_arb_inputs_as_i256().await?;
+
+        let log_p = self
+            .atomic_arbitrage
+            .log(target_price_wad * i_wad / strike)
+            .call()
+            .await?;
+        let inner_p = log_p * i_wad / sigma - (sigma / 2);
+        let cdf_p = self.atomic_arbitrage.cdf(inner_p).call().await?;
+        let delta = (liq * strike) / i_wad * (cdf_p) / i_wad;
+        let dy = (delta - ry) * i_wad * i_wad
+            / (((gamma - i_wad) * cdf_p) / (ry * i_wad * i_wad / (strike * liq)) + i_wad);
+
+        Ok(dy / i_wad)
+    }
+
+    pub async fn compute_max_profit_trade(
+        &self,
+        x_in: bool,
+        initial_guess_in: ethers::types::U256,
+    ) -> Result<ethers::types::U256, Error> {
+        let (computed_amount_in, computed_profit, _expected_price) = self
+            .atomic_arbitrage
+            .search_max_arb_profit(initial_guess_in, x_in)
+            .call()
+            .await?;
+        debug!("computed amount in: {:?}", computed_amount_in);
+        debug!("computed profit: {:?}", computed_profit);
+        Ok(computed_amount_in)
+    }
+
+    pub async fn compute_g_x(
+        &self,
+        x_in: bool,
+        amount_in: ethers::types::U256,
+        lex_price: ethers::types::U256,
+    ) -> Result<I256> {
+        let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
+        let amount_in_up = amount_in + ethers::types::U256::from(1000);
+        let amount_in_down = amount_in - ethers::types::U256::from(1000);
+        let profit_up = self
+            .compute_swap_profit(x_in, amount_in_up, lex_price)
+            .await?;
+        let profit_down = self
+            .compute_swap_profit(x_in, amount_in_down, lex_price)
+            .await?;
+        debug!("amount in: {amount_in}");
+        debug!("profit up: {profit_up}");
+        debug!("profit down: {profit_down}");
+        debug!("profit up minus profit down: {:?}", profit_up - profit_down);
+
+        Ok((profit_up - profit_down) * i_wad / I256::from_raw(ethers::types::U256::from(200)))
+    }
+
+    pub async fn compute_swap_profit(
+        &self,
+        x_in: bool,
+        amount_in: ethers::types::U256,
+        lex_price: ethers::types::U256,
+    ) -> Result<I256> {
+        let (valid, amount_out, _price, _payload) = self
+            .atomic_arbitrage
+            .simulate_swap(x_in, amount_in)
+            .call()
+            .await?;
+        if !valid {
+            error!("=====valid swap: {valid}=====");
+        }
+        self.calculate_profit(x_in, amount_in, amount_out, lex_price)
+    }
+
+    pub fn calculate_profit(
+        &self,
+        x_in: bool,
+        amount_in: ethers::types::U256,
+        amount_out: ethers::types::U256,
+        lex_price: ethers::types::U256,
+    ) -> Result<I256> {
+        let u_wad = ethers::utils::parse_ether("1")?;
+        let out_value: I256;
+        let in_value: I256;
+        if x_in {
+            out_value = I256::from_raw(amount_out);
+            in_value = I256::from_raw(amount_in * lex_price / u_wad);
+            Ok(out_value - in_value)
+        } else {
+            out_value = I256::from_raw(amount_out * lex_price / u_wad);
+            in_value = I256::from_raw(amount_in);
+            Ok(out_value - in_value)
+        }
     }
 }
 // TODO: make sure we're swapping on low and high vol strategies
@@ -287,8 +327,7 @@ impl Agent for Arbitrageur {
         let arby = ArbiterToken::new(arby, self.client.clone());
         let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
         let arby_balance = arby.balance_of(self.client.address()).call().await?;
-        trace!("arbx_balance: {:?}", arbx_balance);
-        trace!("arby_balance: {:?}", arby_balance);
+        info!("arby_balance before: {:?}", arby_balance);
 
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
@@ -296,20 +335,26 @@ impl Agent for Arbitrageur {
                     "Signal[RAISE PRICE]: {:?}",
                     format_units(target_price, "ether")?
                 );
+                let x_in = false;
+                let input = self.get_dy().await?.into_raw();
 
-                let input = self.raise_price_maximize_profit_search().await?;
-                // let input = self.get_raise_price_trade_amount_y(target_price).await?;
-                debug!("TradeInput[RAISE PRICE] {:?}", format_ether(input));
+                debug!("Optimal y input: {:?}", input);
 
-                let tx = self
-                    .atomic_arbitrage
-                    .raise_exchange_price(to_ethers_u256(input));
+                let tx = self.atomic_arbitrage.raise_exchange_price(input);
                 let output = tx.send().await;
-
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                trace!("arbx_balance after: {:?}", arbx_balance);
-                trace!("arby_balance after: {:?}", arby_balance);
+                debug!("arby_balance after: {:?}", arby_balance);
+                let (reserve_x, reserve_y, liquidity) = self
+                    .protocol_client
+                    .protocol
+                    .get_reserves_and_liquidity()
+                    .call()
+                    .await?;
+                debug!(
+                    "reserve_x: {:?} reserve_y: {:?} liquidity: {:?}",
+                    reserve_x, reserve_y, liquidity
+                );
 
                 match output {
                     Ok(output) => {
@@ -319,7 +364,7 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            warn!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
@@ -328,7 +373,7 @@ impl Agent for Arbitrageur {
                 let internal_price = from_ethers_u256(internal_price);
                 info!("Price[LEX]: {:?}", format_ether(target_price));
                 info!("Price[DEX]: {:?}", format_ether(internal_price));
-                info!("=== End Loop ===");
+                debug!("=== End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
                 info!(
@@ -336,24 +381,36 @@ impl Agent for Arbitrageur {
                     format_units(target_price, "ether")?
                 );
 
-                let input = self.lower_price_maximize_profit_search().await?;
-                // let input = self.get_lower_price_trade_amount_x(target_price).await?;
+                let x_in = true;
+                let liquid_exchange_price = self.liquid_exchange.price().call().await?;
+                let input = self.get_dx().await?.into_raw();
+                debug!("Initial Guess x in: {:?}", input);
 
-                debug!("TradeInput[LOWER PRICE] {:?}", format_ether(input));
+                // let input = self
+                //     .compute_max_profit_trade(x_in, initial_guess_in)
+                //     .await?;
+                let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
 
-                if input.is_zero() {
-                    return Ok(());
-                }
+                debug!("Optimal x input: {:?}", input);
 
-                let tx = self
-                    .atomic_arbitrage
-                    .lower_exchange_price(to_ethers_u256(input));
+                let tx = self.atomic_arbitrage.lower_exchange_price(input);
                 let output = tx.send().await;
 
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                trace!("arbx_balance after: {:?}", arbx_balance);
+                let (reserve_x, reserve_y, liquidity) = self
+                    .protocol_client
+                    .protocol
+                    .get_reserves_and_liquidity()
+                    .call()
+                    .await?;
                 trace!("arby_balance after: {:?}", arby_balance);
+                trace!(
+                    "reserve_x: {:?} reserve_y: {:?} liquidity: {:?}",
+                    reserve_x,
+                    reserve_y,
+                    liquidity
+                );
 
                 match output {
                     Ok(output) => {
@@ -363,7 +420,7 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            warn!("Execution revert: {:?}", output);
+                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
@@ -371,9 +428,9 @@ impl Agent for Arbitrageur {
 
                 let internal_price = self.protocol_client.get_internal_price().await?;
                 let internal_price = from_ethers_u256(internal_price);
-                info!("Price[LEX]: {:?}", format_ether(target_price));
-                info!("Price[DEX]: {:?}", format_ether(internal_price));
-                info!("=== End Loop ===");
+                debug!("Price[LEX]: {:?}", format_ether(target_price));
+                debug!("Price[DEX]: {:?}", format_ether(internal_price));
+                debug!("=== End Loop ===");
             }
             Swap::None => {
                 trace!("No arbitrage opportunity");

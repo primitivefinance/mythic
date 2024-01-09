@@ -1,11 +1,14 @@
 use std::{collections::HashMap, fmt};
 
 use anyhow::Result;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use bindings::mock_erc20::MockERC20;
+use cfmm_math::trading_functions::rmm::{
+    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
+};
 use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
 
@@ -91,11 +94,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
 
     /// Returns the address of the signer, if there is one.
     pub fn address(&self) -> Option<Address> {
-        if let Some(signer) = self.signer() {
-            Some(signer.address())
-        } else {
-            None
-        }
+        self.signer().map(|signer| signer.address())
     }
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
@@ -158,10 +157,13 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
     /// provider to it.
     pub async fn setup(dev: bool) -> anyhow::Result<Self> {
         if dev {
+            let home_dir = std::env::var("HOME").unwrap_or_default();
+            let binary_path = format!("{}/.foundry/bin/anvil", home_dir);
             let anvil = Anvil::default()
                 .arg("--gas-limit")
                 .arg("20000000")
                 .chain_id(31337_u64)
+                .path(binary_path)
                 .spawn();
 
             let signer = LocalWallet::from(anvil.keys()[0].clone());
@@ -170,6 +172,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             let anvil_client = Arc::new(
                 Provider::<Ws>::connect(&anvil.ws_endpoint())
                     .await?
+                    .interval(std::time::Duration::from_millis(100))
                     .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
             );
             let signers = vec![signer];
@@ -227,12 +230,49 @@ pub trait Protocol {
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition>;
 }
 
+/// L = Deposit $ / V(c)
+/// x = X(L)
+/// y = Y(x, L)
+pub fn get_deposits_given_price(
+    price: f64,
+    amount_dollars: f64,
+    strike_price_wad: f64,
+    sigma_percent_wad: f64,
+    tau_years_wad: f64,
+) -> (f64, f64, f64) {
+    let value_per =
+        compute_value_function(price, strike_price_wad, sigma_percent_wad, tau_years_wad);
+
+    let total_liquidity = amount_dollars / value_per;
+
+    let amount_x = compute_x_given_l_rust(
+        total_liquidity,
+        price,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    let amount_y = compute_y_given_x_rust(
+        amount_x,
+        total_liquidity,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    (amount_x, amount_y, total_liquidity)
+}
+
 #[async_trait::async_trait]
 impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     fn protocol(&self) -> Result<ProtocolClient<NetworkClient<Ws, LocalWallet>>> {
         let client = self.client().unwrap().clone();
-        let address = self.contracts.get("protocol").unwrap().clone();
-        let protocol = ProtocolClient::new(client, address);
+        let address = self.contracts.get("protocol").cloned();
+        let solver = self.contracts.get("solver").cloned();
+        let address = address.ok_or_else(|| anyhow::anyhow!("No protocol address"))?;
+        let solver = solver.ok_or_else(|| anyhow::anyhow!("No solver address"))?;
+        let protocol = ProtocolClient::new(client, address, solver);
         Ok(protocol)
     }
 
@@ -248,24 +288,30 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let client = self.anvil_client.clone().unwrap();
         let protocol = self.protocol()?;
 
-        let amount_x = amount_dollars / price;
-        let amount_y = amount_x * price;
+        let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
+            price,
+            amount_dollars,
+            strike_price_wad,
+            sigma_percent_wad,
+            tau_years_wad,
+        );
+
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
 
         let (token_x, token_y) = protocol.get_tokens().await?;
         let (token_x, token_y) = (
-            MockERC20::new(token_x, client.clone()),
-            MockERC20::new(token_y, client.clone()),
+            ArbiterToken::new(token_x, client.clone()),
+            ArbiterToken::new(token_y, client.clone()),
         );
 
         token_x.mint(sender, amount_x_wad).send().await?;
         token_y.mint(sender, amount_y_wad).send().await?;
 
         Ok(protocol
-            .initialize(
-                price,
+            .initialize_pool(
                 amount_x,
+                price,
                 strike_price_wad,
                 sigma_percent_wad,
                 tau_years_wad,
@@ -274,9 +320,9 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
     }
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
-        let client = self.client().unwrap().clone();
         let protocol = self.protocol()?;
-        let (balance_x, balance_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
+        let (balance_x, balance_y, liquidity) =
+            protocol.protocol.get_reserves_and_liquidity().await?;
         let internal_price = protocol.get_internal_price().await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);
@@ -303,7 +349,7 @@ mod tests {
     use ethers::utils::{format_ether, Anvil};
 
     use super::*;
-
+    #[allow(dead_code)]
     async fn setup() -> anyhow::Result<AnvilInstance> {
         let anvil = Anvil::default()
             .arg("--gas-limit")
@@ -350,19 +396,10 @@ mod tests {
         println!("balance: {}", format_ether(balance));
         println!("alice balance: {}", format_ether(alice_balance));
 
-        let pay_tx = TransactionRequest::pay(
+        let _ = TransactionRequest::pay(
             alice_address,
             ethers::types::U256::from(1_000_000_000_000_000_000u128),
         );
-
-        // do the tx
-        let tx = client
-            .anvil_client
-            .clone()
-            .unwrap()
-            .send_transaction(pay_tx, None)
-            .await?
-            .await?;
 
         let balance = client
             .client()

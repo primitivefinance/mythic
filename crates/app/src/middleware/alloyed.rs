@@ -2,21 +2,13 @@ use std::fmt::Debug;
 
 use alloy_networks::{Network, Receipt};
 use alloy_primitives::{Address, Bloom, Bytes, B256, U128, U256, U64, U8};
-use alloy_providers::{Provider, ProviderBuilder};
 use alloy_pubsub::PubSubFrontend;
-use alloy_rlp::{Decodable, Encodable, RlpDecodable, RlpEncodable};
+use alloy_rlp::{RlpDecodable, RlpEncodable};
 use alloy_rpc_client::{ClientBuilder, RpcClient};
-use alloy_rpc_types::AccessList;
-use alloy_signer::LocalWallet;
 use alloy_transport_http::Http;
 use alloy_transport_ws::WsConnect;
 use anyhow::anyhow;
-use arbiter_core::middleware::RevmMiddleware;
-use ethers::{core::k256::ecdsa::SigningKey, utils::AnvilInstance};
 use reqwest::Client;
-use serde_json::Value;
-use tokio_util::sync::CancellationToken;
-use tracing::info;
 
 pub struct ExcNet;
 
@@ -75,8 +67,8 @@ pub struct ExcReceipt {
 
 impl Receipt for ExcReceipt {}
 
-#[rlp(trailing)]
 #[derive(Clone, Debug, RlpEncodable, RlpDecodable, serde::Serialize, serde::Deserialize)]
+#[rlp(trailing)]
 pub struct ExcTransaction {
     /// from address
     pub from: Option<Address>,
@@ -114,8 +106,8 @@ impl alloy_networks::Transaction for ExcTransaction {
 #[derive(Clone, Debug, RlpDecodable, RlpEncodable, serde::Serialize, serde::Deserialize)]
 pub struct MockError(pub String);
 
-#[rlp(trailing)]
 #[derive(Clone, Debug, RlpDecodable, RlpEncodable, serde::Serialize, serde::Deserialize)]
+#[rlp(trailing)]
 pub struct MockResponse {
     pub result: String,
     pub error: Option<MockError>,
@@ -131,11 +123,14 @@ impl Network for ExcNet {
     type TransactionResponse = MockResponse;
 }
 
+#[allow(dead_code)]
 pub type ExcProvider = alloy_providers::provider::Provider<Http<Client>>;
 
+#[allow(dead_code)]
 pub struct ExcaliburMiddleware;
 
 impl ExcaliburMiddleware {
+    #[allow(dead_code)]
     pub async fn build(url: &str) -> anyhow::Result<RpcClient<PubSubFrontend>> {
         let ws = WsConnect {
             url: url.to_string(),
@@ -147,8 +142,11 @@ impl ExcaliburMiddleware {
             .map_err(|e| anyhow!("failed to build client {}", e))
     }
 
+    #[allow(dead_code)]
     pub fn provider(url: &str) -> anyhow::Result<ExcProvider> {
-        Ok(ExcProvider::new(url).map_err(|e| anyhow!("failed to build provider {}", e))?)
+        let url = url::Url::parse(url).map_err(|e| anyhow!("failed to parse url: {}", e))?;
+        let http = Http::new(url);
+        Ok(ExcProvider::new(http))
     }
 }
 
@@ -156,14 +154,17 @@ impl ExcaliburMiddleware {
 mod test {
     use std::time::Duration;
 
-    use alloy_primitives::{Bytes, TxHash, U64};
-    use alloy_providers::{provider::ClientError, NetworkRpcClient};
-    use alloy_signer::{Signer, SignerSync};
+    use alloy_primitives::{Bytes, U64};
+    use alloy_providers::{
+        provider::{ClientError, TempProvider},
+        NetworkRpcClient, Provider,
+    };
+    use alloy_signer::{LocalWallet, Signer, SignerSync};
     use ethers::{
         middleware::{Middleware, MiddlewareBuilder},
         signers::{LocalWallet as EthersWallet, Signer as EthersSigner},
         types::{transaction::eip2718::TypedTransaction, Bytes as EthersBytes},
-        utils::Anvil,
+        utils::{Anvil, AnvilInstance},
     };
     use sim::to_ethers_address;
 
@@ -229,12 +230,6 @@ mod test {
             .gas(50_000)
             .chain_id(chain_id)
             .into();
-        // let mut tx = TypedTransaction::default();
-        // tx.set_to(to_ethers_address(alice_wallet.address()));
-        // tx.set_value(ethers::types::U256::from(100_u64));
-        // tx.set_from(to_ethers_address(wallet.address()));
-        // tx.set_nonce(ethers::types::U256::zero());
-        // tx.set_gas(ethers::types::U256::from(1_000_000_u64));
 
         let chain_id = ethers_wallet.chain_id();
         match tx.chain_id() {
@@ -343,7 +338,6 @@ mod test {
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn excalibur_middleware_sign_msg() -> anyhow::Result<()> {
         let anvil = setup().await?;
-        let http_endpoint = anvil.endpoint();
 
         let anvil_key = anvil.keys().first().expect("no keys in anvil").clone();
 

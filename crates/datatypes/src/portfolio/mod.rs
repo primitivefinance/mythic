@@ -11,7 +11,7 @@ use position::{Position, Positions};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use self::{nwd::NWD, position::PositionError, weight::Weight};
+use self::{nwd::NWD, position::PositionError};
 use super::TokenData;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
@@ -74,9 +74,10 @@ impl SubAssign<Position> for Portfolio {
 
 impl From<Vec<Position>> for Portfolio {
     fn from(positions: Vec<Position>) -> Self {
-        let mut portfolio = Portfolio::default();
-        portfolio.positions = Positions::from(positions);
-        portfolio
+        Portfolio {
+            positions: Positions::from(positions),
+            ..Default::default()
+        }
     }
 }
 

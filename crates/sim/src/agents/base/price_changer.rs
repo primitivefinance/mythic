@@ -1,11 +1,7 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
+use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
 use alloy_primitives::utils::parse_ether;
-use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use bindings::lex::Lex;
 use itertools::iproduct;
 use RustQuant::stochastics::{
     GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
@@ -22,7 +18,7 @@ pub struct PriceChanger {
     pub trajectory: Trajectories,
 
     /// The `LiquidExchange` contract with the admin `Client`.
-    pub liquid_exchange: LiquidExchange<RevmMiddleware>,
+    pub liquid_exchange: Lex<RevmMiddleware>,
 
     /// The index of the current price in the trajectory.
     pub index: usize,
@@ -75,6 +71,8 @@ impl Agent for PriceChanger {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PriceChangerParameters<P: Parameterized> {
+    /// To backtest (true) or not (false)
+    pub backtest: bool,
     /// The initial price of the asset.
     pub initial_price: P,
     /// The start time of the process.
@@ -103,10 +101,9 @@ impl PriceChanger {
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
-
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
-            let liquid_exchange = LiquidExchange::deploy(
+            let liquid_exchange = Lex::deploy(
                 client.clone(),
                 (
                     token_admin.arbx.address(),
@@ -124,43 +121,63 @@ impl PriceChanger {
                     parse_ether(1_000_000_u64.to_string().as_str()).unwrap(),
                 )
                 .await?;
-
-            let trajectory = if let Some(seed) = parameters.seed {
-                let initial_price = parameters.initial_price;
-                let t_0 = parameters.t_0;
-                let t_n = parameters.t_n;
-                let n_steps = parameters.num_steps;
-                if let Some(seed) = parameters.seed {
-                    parameters.process.seedable_euler_maruyama(
-                        initial_price.0,
-                        t_0.0,
-                        t_n.0,
-                        n_steps,
-                        1,
-                        false,
-                        seed,
-                    )
-                } else {
-                    parameters.process.euler_maruyama(
-                        initial_price.0,
-                        t_0.0,
-                        t_n.0,
-                        n_steps,
-                        1,
-                        false,
-                    )
+            if parameters.backtest {
+                debug!("Backtesting price changer");
+                // TODO Cache this somewhere
+                let mut prices = get_historical_daily_prices(parameters.num_steps).await?;
+                prices.reverse();
+                let mut times = vec![];
+                let mut time = 0.0;
+                for _ in &prices {
+                    time += 1.0;
+                    times.push(time);
                 }
+                let paths = vec![prices.clone()];
+                let trajectory = Trajectories { times, paths };
+                Ok(Self {
+                    client,
+                    trajectory,
+                    liquid_exchange,
+                    index: 1,
+                })
             } else {
-                return Err(anyhow::anyhow!("No parameters found for price changer"));
-            };
+                let trajectory = if let Some(_seed) = parameters.seed {
+                    let initial_price = parameters.initial_price;
+                    let t_0 = parameters.t_0;
+                    let t_n = parameters.t_n;
+                    let n_steps = parameters.num_steps;
+                    if let Some(seed) = parameters.seed {
+                        parameters.process.seedable_euler_maruyama(
+                            initial_price.0,
+                            t_0.0,
+                            t_n.0,
+                            n_steps,
+                            1,
+                            false,
+                            seed,
+                        )
+                    } else {
+                        parameters.process.euler_maruyama(
+                            initial_price.0,
+                            t_0.0,
+                            t_n.0,
+                            n_steps,
+                            1,
+                            false,
+                        )
+                    }
+                } else {
+                    return Err(anyhow::anyhow!("No parameters found for price changer"));
+                };
 
-            Ok(Self {
-                client,
-                trajectory,
-                liquid_exchange,
-                index: 1, /* start after the initial price since it is already set on contract
-                           * deployment */
-            })
+                Ok(Self {
+                    client,
+                    trajectory,
+                    liquid_exchange,
+                    index: 1, /* start after the initial price since it is already set on
+                               * contract deployment */
+                })
+            }
         } else {
             Err(anyhow::anyhow!("No parameters found for price changer"))
         }
@@ -201,6 +218,7 @@ impl From<PriceChangerParameters<Multiple>> for Vec<PriceChangerParameters<Singl
                     for tn in t_n.clone() {
                         for process in process.clone() {
                             result.push(PriceChangerParameters {
+                                backtest: item.backtest,
                                 process,
                                 initial_price: Single(initial_price),
                                 t_0: Single(t0),
@@ -237,9 +255,9 @@ impl StochasticProcess for PriceProcess<Single> {
                     .drift(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .drift(x, t),
         }
@@ -252,9 +270,9 @@ impl StochasticProcess for PriceProcess<Single> {
                     .diffusion(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .diffusion(x, t),
         }
@@ -266,9 +284,9 @@ impl StochasticProcess for PriceProcess<Single> {
                 GeometricBrownianMotion::new(parameters.drift.0, parameters.volatility.0).jump(x, t)
             }
             PriceProcess::Ou(parameters) => OrnsteinUhlenbeck::new(
-                parameters.theta.0,
                 parameters.mean.0,
                 parameters.volatility.0,
+                parameters.theta.0,
             )
             .jump(x, t),
         }

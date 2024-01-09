@@ -1,7 +1,5 @@
 simulation = "RmmVolatilityTargeting"
 output_directory = "analysis/rmm/vol_targeting/static"
-max_parallel = 5
-
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 15
@@ -18,10 +16,12 @@ decimals = 18
 
 # Price process parameters
 [agent.price_changer.PriceChanger]
+# True is we want to use historical daily average price data
+backtest = true 
 # The seed to use (optional)
-seed = 2
+seed = 5
 # The number of steps in the process
-num_steps = 3
+num_steps = 1000
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset
@@ -31,33 +31,42 @@ t_0.fixed = 0.0
 # The end time of the process
 t_n.fixed = 1.0
 ## Parameters for the type of process to use.
-# The drift for GBM
-process.GBM.drift.fixed = 0.1
+# # The drift for GBM
+# process.GBM.drift.fixed = 0.0
+# # The volatility for GBM
+# process.GBM.volatility.fixed = 0.1
+process.OU.mean.fixed = 1.0
 # The volatility for GBM
-process.GBM.volatility.fixed = 0.35
+process.OU.volatility.fixed = 0.1
+# The mean reversion rate for OU
+process.OU.theta.fixed = 10
 
 # Rmm portfolio manager params 
 [agent.portfolio_manager.VolatilityTargetingSubmitter]
 sigma.fixed = 1.0
 tau.fixed = 100000.0
 strike_price.fixed = 1.0
-fee.fixed = 30
+fee.fixed = 5
 ## Volatility targeting specialty settings
 # The frequency which weights are updated
 # update_frequency = 450 # 1 update per 30 timestep day
 # update_frequency = 300 # 1 update per 20 timestep day
 # update_frequency = 150 # 1 update per 10 timestep day
-specialty.VolatilityTargeting.update_frequency.fixed = 5 # 1 update per 5 timestep day
+specialty.VolatilityTargeting.update_frequency.fixed = 75 # 1 update per 5 timestep day
 # The target volatility
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
+# The sensitivity factor of the vol differential 
+specialty.VolatilityTargeting.sensitivity.fixed = 0.0
+# Max strike update
+specialty.VolatilityTargeting.max_strike_change.fixed = 0.0
 
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]
 # The amount of `token_x` to provide in ether
-x_liquidity.fixed = 1
+x_liquidity.fixed = 10
 # The initial price of the pair
-initial_price.fixed = 1.0
+initial_price.fixed = 2345.2607
 # inital parameters
-sigma.fixed = 1.0
+sigma.fixed = 2.0
 tau.fixed = 1.0
-strike_price.fixed = 1.0
+strike_price.fixed = 2300.0

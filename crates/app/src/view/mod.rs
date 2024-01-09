@@ -11,6 +11,8 @@ use crate::{
 
 pub mod portfolio_view;
 pub mod sidebar;
+// TODO: execution is not complete
+// pub mod execute;
 
 /// All controllers emit View messages. These get drilled down to the original
 /// controller that emitted them.
@@ -29,9 +31,9 @@ pub enum Message {
     // Children controllers emit their own messages that they expect to get back and process on
     // their own.
     Portfolio(portfolio::Message),
+
+    // Settings view for global application settings.
     Settings(settings::Message),
-    Developer(dev::Message),
-    Experimental(dev::experimental::Message),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -132,11 +134,6 @@ pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
         .align_y(alignment::Vertical::Center)
         .width(Length::Fill)
         .height(Length::Fill)
-        .padding([16, 24, 16, 24])
-        .style(
-            ExcaliburContainer::default()
-                .background(ExcaliburColor::Background1)
-                .theme(),
-        )
+        .style(ExcaliburContainer::default().middle_bottom().theme())
         .into()
 }

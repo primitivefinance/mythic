@@ -120,7 +120,7 @@ where
                         self.headers
                             .into_iter()
                             .map(|header| {
-                                CellBuilder::new().child(label(&header).secondary().build())
+                                CellBuilder::new().child(label(header).secondary().build())
                             })
                             .collect(),
                     )
@@ -140,7 +140,7 @@ where
                         self.headers
                             .into_iter()
                             .map(|header| {
-                                CellBuilder::new().child(label(&header).secondary().build())
+                                CellBuilder::new().child(label(header).secondary().build())
                             })
                             .collect(),
                     )
@@ -156,12 +156,14 @@ where
         }
 
         // Specifies the spacing between cells in a row.
-        for row in self.rows {
+        let total_rows = self.rows.len();
+        for (i, row) in self.rows.into_iter().enumerate() {
             let row: Row<'static, Message> = row
                 .spacing(self.spacing_cell.unwrap_or_default())
                 .padding(self.padding_row.unwrap_or_default())
                 .padding_cell(self.padding_cell.unwrap_or_default())
                 .padding_cell_internal(self.padding_cell_internal.unwrap_or_default())
+                .last_row(i == total_rows - 1)
                 .into();
             inner_column = inner_column.push(row);
         }

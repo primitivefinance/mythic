@@ -26,8 +26,8 @@ __pycache__
 
 # notes
 journal/book/*
-book/*
 
 # ui
 *.svg
-!ui/src/mvp/abi/**/*.json
+!assets/logos/*.svg
+!assets/logos/*.png

@@ -29,7 +29,6 @@ impl State for ExitScreen {
         Command::none()
     }
 
-    // todo: clean up the message piping in this...
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::Message::Root(message)) => match message {
@@ -55,7 +54,7 @@ impl State for ExitScreen {
             true => Column::new()
                 .push(label("Are you sure you want to exit?").secondary().build())
                 .push(
-                    button(label(&"Yes, save and exit.").build())
+                    button(label("Yes, save and exit.").build())
                         .padding([10, 20])
                         .on_press(Self::ViewMessage::Root(view::RootMessage::ConfirmExit)),
                 )

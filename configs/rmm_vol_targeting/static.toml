@@ -1,6 +1,6 @@
 simulation = "RmmVolatilityTargeting"
 output_directory = "analysis/rmm/vol_targeting/static"
-max_parallel = 5
+# max_parallel = 5
 
 
 [agent.block_admin.BlockAdmin]
@@ -19,22 +19,24 @@ decimals = 18
 # Price process parameters
 [agent.price_changer.PriceChanger]
 # The seed to use (optional)
-seed = 2
+seed = 1
 # The number of steps in the process
-num_steps = 1825
+num_steps = 36500# 1825 (10 steps per month)
 # The number of distinct paths to use
-num_paths = 1
+num_paths = 5
 # The initial price of the asset
 initial_price.fixed = 1.0
 # The start time of the process
 t_0.fixed = 0.0
 # The end time of the process
-t_n.fixed = 1.0
+t_n.fixed = 24.0 #1.0 (24 months)
 ## Parameters for the type of process to use.
 # The drift for GBM
-process.GBM.drift.fixed = 0.1
+process.OU.mean.fixed = 0 
 # The volatility for GBM
-process.GBM.volatility.fixed = 0.35
+process.OU.volatility.fixed = 0.01 # 0.01 per month
+# The mean reversion rate for OU
+process.OU.mean_reversion_rate.fixed = 0.1 
 
 # Rmm portfolio manager params 
 [agent.portfolio_manager.RmmPortfolioManager]

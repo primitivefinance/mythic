@@ -3,8 +3,8 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use bindings::{log_normal, mock_erc20::MockERC20};
+use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
+use bindings::{log_normal::LogNormal, log_normal_solver::LogNormalSolver};
 
 use super::{protocol::ProtocolClient, *};
 
@@ -16,10 +16,11 @@ pub const INITIAL_PRICE: f64 = 1.0;
 #[derive(Debug, Clone)]
 pub struct DevClient<C> {
     pub protocol: ProtocolClient<C>,
-    pub strategy: log_normal::LogNormal<C>,
+    pub strategy: LogNormal<C>,
+    pub solver: LogNormalSolver<C>,
     pub liquid_exchange: LiquidExchange<C>,
-    pub token_x: MockERC20<C>,
-    pub token_y: MockERC20<C>,
+    pub token_x: ArbiterToken<C>,
+    pub token_y: ArbiterToken<C>,
 }
 
 impl<C: Middleware + 'static> DevClient<C> {
@@ -37,27 +38,26 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     #[tracing::instrument(skip(client), level = "trace")]
     pub async fn deploy(client: Arc<C>, sender: Address) -> Result<Self> {
-        tracing::trace!("Deploying token x and minting them to sender: {:?}", sender);
+        tracing::trace!("Deploying token x");
         let token_x_args = ("Token X".to_string(), "X".to_string(), 18_u8);
-        let token_x = MockERC20::deploy(client.clone(), token_x_args)?
+        let token_x = ArbiterToken::deploy(client.clone(), token_x_args)?
             .send()
             .await?;
 
         tracing::trace!("Deploying token y");
         let token_y_args = ("Token Y".to_string(), "Y".to_string(), 18_u8);
-        let token_y = MockERC20::deploy(client.clone(), token_y_args)?
+        let token_y = ArbiterToken::deploy(client.clone(), token_y_args)?
             .send()
             .await?;
 
-        // Mint an initial portfolio of 50/50.
-        let initial_portfolio = 0.5;
-        let initial_portfolio_wad = ethers::utils::parse_ether(initial_portfolio).unwrap();
-
+        tracing::trace!("Minting token x to sender: {}", sender);
         token_x
             .mint(sender, ethers::utils::parse_ether(INITIAL_X_BALANCE)?)
             .send()
             .await?
             .await?;
+
+        tracing::trace!("Minting token x to sender: {}", sender);
         token_y
             .mint(sender, ethers::utils::parse_ether(INITIAL_Y_BALANCE)?)
             .send()
@@ -65,7 +65,6 @@ impl<C: Middleware + 'static> DevClient<C> {
             .await?;
 
         let swap_fee_percent_wad = 0.003;
-
         tracing::trace!("Deploying protocol");
         let protocol = ProtocolClient::deploy_protocol(
             client.clone(),
@@ -97,8 +96,12 @@ impl<C: Middleware + 'static> DevClient<C> {
             .send()
             .await?;
 
-        let strategy = log_normal::LogNormal::new(protocol.protocol.source().call().await?, client);
+        let solver =
+            LogNormalSolver::deploy(client.clone(), protocol.protocol.strategy().call().await?)?
+                .send()
+                .await?;
 
+        let strategy = LogNormal::new(protocol.protocol.strategy().call().await?, client);
         // Make sure to set the token y price to 1.0.
 
         Ok(Self {
@@ -106,11 +109,12 @@ impl<C: Middleware + 'static> DevClient<C> {
             token_x,
             token_y,
             strategy,
+            solver,
             liquid_exchange,
         })
     }
 
-    pub async fn get_strategy(&self) -> Result<log_normal::LogNormal<C>> {
+    pub async fn get_strategy(&self) -> Result<LogNormal<C>> {
         self.protocol.get_strategy().await
     }
 
@@ -132,20 +136,20 @@ impl<C: Middleware + 'static> DevClient<C> {
         self.token_x.mint(sender, amount_x_wad).send().await?;
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
-        Ok(self
-            .protocol
-            .initialize(
-                price,
+        self.protocol
+            .initialize_pool(
                 amount_x,
+                price,
                 strike_price_wad,
                 sigma_percent_wad,
                 tau_years_wad,
             )
-            .await?)
+            .await
     }
 
     pub async fn get_position(&self) -> Result<ProtocolPosition> {
-        let (balance_x, balance_y, liquidity) = self.protocol.get_reserves_and_liquidity().await?;
+        let (balance_x, balance_y, liquidity) =
+            self.protocol.protocol.get_reserves_and_liquidity().await?;
         let internal_price = self.protocol.get_internal_price().await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);

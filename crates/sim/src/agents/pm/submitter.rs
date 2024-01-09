@@ -2,22 +2,23 @@ use std::sync::Arc;
 
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use bindings::log_normal_solver::LogNormalSolver;
 use clients::protocol::ProtocolClient;
 use itertools::iproduct;
-use tracing::{debug, info, trace};
+use tracing::{debug, info};
 
-use super::*;
-use crate::{bindings::dfmm::DFMM, *};
+use super::{bindings::dfmm::DFMM, *};
 
 #[derive(Debug, Clone)]
 pub struct VolatilityTargetingSubmitter {
     pub client: Arc<RevmMiddleware>,
     pub lex: LiquidExchange<RevmMiddleware>,
-    pub dfmm: DFMM<RevmMiddleware>,
     pub protocol_client: ProtocolClient<RevmMiddleware>,
     pub next_update_timestamp: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
+    pub sensitivity: f64,
+    pub max_strike_change: f64,
     pub portfolio_prices: Vec<(f64, u64)>,
     pub asset_prices: Vec<(f64, u64)>,
     pub portfolio_rv: Vec<(f64, u64)>,
@@ -30,10 +31,14 @@ impl Agent for VolatilityTargetingSubmitter {
         let timestamp = self.client.get_block_timestamp().await?.as_u64();
         let asset_price =
             ethers::utils::format_ether(self.lex.price().call().await?).parse::<f64>()?;
-        let reserve_x =
-            ethers::utils::format_ether(self.dfmm.reserve_x_wad().call().await?).parse::<f64>()?;
-        let reserve_y =
-            ethers::utils::format_ether(self.dfmm.reserve_y_wad().call().await?).parse::<f64>()?;
+        let reserve_x = ethers::utils::format_ether(
+            self.protocol_client.protocol.reserve_x_wad().call().await?,
+        )
+        .parse::<f64>()?;
+        let reserve_y = ethers::utils::format_ether(
+            self.protocol_client.protocol.reserve_y_wad().call().await?,
+        )
+        .parse::<f64>()?;
         let portfolio_price = reserve_x * asset_price + reserve_y;
 
         if self.portfolio_prices.is_empty() {
@@ -72,40 +77,38 @@ impl VolatilityTargetingSubmitter {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let lex = LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
-
-        tracing::info!("params: {:?}", config.agent_parameters.get(&label));
+        debug!("lex address: {}", lex.address());
 
         if let Some(AgentParameters::VolatilityTargetingSubmitter(params)) =
             config.agent_parameters.get(&label)
         {
-            // let dfmm_args = (
-            // lex.arbiter_token_x().call().await?,
-            // lex.arbiter_token_y().call().await?,
-            // ethers::utils::parse_ether(1)?,
-            // ethers::utils::parse_ether(0.8)?,
-            // ethers::utils::parse_ether(1.0)?,
-            // ethers::utils::parse_ether(0.997)?,
-            // );
-
             let args = (
+                true,
                 lex.arbiter_token_x().call().await?,
                 lex.arbiter_token_y().call().await?,
                 ethers::utils::parse_ether(params.fee.0 / 10_000.0)?,
             );
-            tracing::info!("args: {:?}", args);
+            debug!("args: {:?}", args);
             match params.specialty {
                 Specialty::VolatilityTargeting(parameters) => {
                     let dfmm = DFMM::deploy(client.clone(), args)?.send().await?;
-                    trace!("Deployed dfmm at address: {:?}", dfmm.address());
-                    let protocol_client = ProtocolClient::new(client.clone(), dfmm.address());
+                    debug!("dfmm address: {}", dfmm.address());
+                    let solver =
+                        LogNormalSolver::deploy(client.clone(), dfmm.strategy().call().await?)?
+                            .send()
+                            .await?;
+                    debug!("solver address: {}", solver.address());
+                    let protocol_client =
+                        ProtocolClient::new(client.clone(), dfmm.address(), solver.address());
                     let strategist = VolatilityTargetingSubmitter {
                         client,
                         lex,
-                        dfmm,
                         protocol_client,
                         update_frequency: parameters.update_frequency.0 as u64,
                         next_update_timestamp: parameters.update_frequency.0 as u64,
                         target_volatility: parameters.target_volatility.0,
+                        sensitivity: parameters.sensitivity.0,
+                        max_strike_change: parameters.max_strike_change.0,
                         portfolio_prices: Vec::new(),
                         asset_prices: Vec::new(),
                         portfolio_rv: Vec::new(),
@@ -133,10 +136,15 @@ impl VolatilityTargetingSubmitter {
             .unwrap();
         info!("current strike float: {}", current_strike_float);
         let mut new_strike = current_strike_float;
+        let vol_diff = (portfolio_rv - self.target_volatility).abs();
+        let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
+        if scaling_factor > self.max_strike_change {
+            scaling_factor = self.max_strike_change;
+        }
         if portfolio_rv > self.target_volatility {
-            new_strike -= 0.0015;
+            new_strike -= scaling_factor;
         } else {
-            new_strike += 0.0015;
+            new_strike += scaling_factor;
         }
         info!("new strike float: {}", new_strike);
         self.protocol_client
@@ -246,6 +254,8 @@ impl From<Specialty<Multiple>> for Vec<Specialty<Single>> {
 pub struct DynamicVolatilityTargetingParameters<P: Parameterized> {
     pub target_volatility: P,
     pub update_frequency: P,
+    pub sensitivity: P,
+    pub max_strike_change: P,
 }
 
 impl From<DynamicVolatilityTargetingParameters<Multiple>>
@@ -254,11 +264,15 @@ impl From<DynamicVolatilityTargetingParameters<Multiple>>
     fn from(item: DynamicVolatilityTargetingParameters<Multiple>) -> Self {
         iproduct!(
             item.target_volatility.parameters(),
-            item.update_frequency.parameters()
+            item.update_frequency.parameters(),
+            item.sensitivity.parameters(),
+            item.max_strike_change.parameters()
         )
-        .map(|(tv, uf)| DynamicVolatilityTargetingParameters {
+        .map(|(tv, uf, s, msc)| DynamicVolatilityTargetingParameters {
             target_volatility: Single(tv),
             update_frequency: Single(uf),
+            sensitivity: Single(s),
+            max_strike_change: Single(msc),
         })
         .collect()
     }

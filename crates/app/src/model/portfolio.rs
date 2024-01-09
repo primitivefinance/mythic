@@ -20,10 +20,16 @@
 //! - "compute" - Computes a result based on inputs. Can be expensive.
 //! - "derive" - Computes a result derived from model data input. Expensive.
 
+use std::collections::BTreeMap;
+
+// use alloy_rpc_types::raw_log;
 use alloy_sol_types::{sol, SolCall};
 use anyhow::{anyhow, Error, Result};
-// todo: remove this in favor of alloy types when possible.
-use bindings::{dfmm::DFMM, log_normal::LogNormal};
+use bindings::{
+    dfmm::{InitFilter, DFMM},
+    log_normal::LogNormal,
+    log_normal_solver::LogNormalSolver,
+};
 use cfmm_math::trading_functions::rmm::{
     compute_l_given_x_rust, compute_price_given_x_rust, compute_x_given_l_rust,
     compute_x_given_price, compute_y_given_l_rust, compute_y_given_x_rust, liq_distribution,
@@ -85,6 +91,7 @@ pub struct RawDataModel<A, V> {
     pub raw_external_exchange_address: Option<A>,
     pub raw_protocol_address: Option<A>,
     pub raw_strategy_address: Option<A>,
+    pub raw_solver_address: Option<A>,
     pub raw_asset_token: Option<A>,
     pub raw_quote_token: Option<A>,
 
@@ -97,6 +104,9 @@ pub struct RawDataModel<A, V> {
     // Values of tokens.
     pub raw_user_asset_value_series: Option<Vec<(u64, V)>>,
     pub raw_user_quote_value_series: Option<Vec<(u64, V)>>,
+    pub raw_unallocated_portfolio_value_series: Option<Vec<(u64, V)>>,
+    pub raw_protocol_asset_value_series: Option<Vec<(u64, V)>>,
+    pub raw_protocol_quote_value_series: Option<Vec<(u64, V)>>,
 
     // Prices
     pub raw_external_spot_price_series: Option<Vec<(u64, V)>>,
@@ -120,6 +130,10 @@ pub struct RawDataModel<A, V> {
     // Info
     pub raw_last_chain_data_sync_timestamp: Option<DateTime<Utc>>,
     pub raw_last_chain_data_sync_block: Option<u64>,
+
+    // User historical transactions
+    pub raw_user_historical_transactions: Option<Vec<HistoricalTx>>,
+    pub raw_last_historical_transaction_sync_block: Option<u64>,
 }
 
 sol! {
@@ -139,7 +153,6 @@ sol! {
 // uint timeRemaining); }
 // }
 //
-// todo: use in the future.
 // sol! {
 // interface Protocol {
 // function getReservesAndLiquidity() external view returns(uint reserveX, uint
@@ -147,6 +160,35 @@ sol! {
 // returns(uint internalPrice); function balanceOf(address account) external
 // view returns(uint liquidity); }
 // }
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub enum ProtocolActions {
+    #[default]
+    Empty,
+    CreatePosition,
+    Swap,
+}
+
+impl std::fmt::Display for ProtocolActions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let string = match self {
+            ProtocolActions::Empty => "Empty".to_string(),
+            ProtocolActions::CreatePosition => "Create position".to_string(),
+            ProtocolActions::Swap => "Swap".to_string(),
+        };
+        write!(f, "{}", string)
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HistoricalTx {
+    pub tx_hash: TxHash,
+    pub block_number: u64,
+    pub timestamp: DateTime<Utc>,
+    pub action: ProtocolActions,
+    pub position_name: String,
+    pub market_value: f64,
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct StrategyPosition {
@@ -158,10 +200,13 @@ pub struct StrategyPosition {
     pub quote_price: f64,
 }
 
-impl RawDataModel<AlloyAddress, AlloyU256> {
-    pub type Address = AlloyAddress;
-    pub type Value = AlloyU256;
+impl StrategyPosition {
+    pub fn compute_value(&self) -> Result<f64> {
+        Ok(self.balance_x * self.external_price + self.balance_y * self.quote_price)
+    }
+}
 
+impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Creates a completely fresh model with no values set.
     pub fn new() -> Self {
         Self::default()
@@ -169,12 +214,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Sets up the model with the required addresses needed to fetch all the
     /// data in the model.
+    #[allow(clippy::too_many_arguments)]
     pub fn setup(
         &mut self,
         user_address: AlloyAddress,
         external_exchange_address: AlloyAddress,
         protocol_address: AlloyAddress,
         strategy_address: AlloyAddress,
+        solver_address: AlloyAddress,
         asset_token: AlloyAddress,
         quote_token: AlloyAddress,
     ) {
@@ -182,6 +229,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.raw_external_exchange_address = Some(external_exchange_address);
         self.raw_protocol_address = Some(protocol_address);
         self.raw_strategy_address = Some(strategy_address);
+        self.raw_solver_address = Some(solver_address);
         self.raw_asset_token = Some(asset_token);
         self.raw_quote_token = Some(quote_token);
     }
@@ -189,13 +237,22 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Updates the ENTIRE model! Wow!
     pub async fn update(&mut self, client: Arc<Client>) -> Result<()> {
         // Update sync block + timestamp first, since the other update methods need it.
+        // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
         self.update_last_sync_timestamp()?;
+        self.raw_last_historical_transaction_sync_block = Some(0);
 
         // Update state first.
         self.update_token_balances(client.clone()).await?;
-        self.update_protocol_state(client.clone()).await?;
+        self.update_reserves_and_liquidity(client.clone()).await?;
         self.update_strategy_state(client.clone()).await?;
+
+        // todo: figure out how to handle the calls that should not fail and the ones
+        // that can be handled gracefully.
+        // Try to update the internal price, which only works if a position exists.
+        if let Err(error) = self.update_internal_price(client.clone()).await {
+            tracing::warn!("Internal price update failed: {:?}", error);
+        }
 
         // Update prices.
         self.update_external_prices(client.clone()).await?;
@@ -203,14 +260,162 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // Update series data.
         self.update_portfolio_value_series(client.clone()).await?;
         self.update_external_price_series(client.clone()).await?;
-        self.update_internal_price_series(client.clone()).await?;
         self.update_user_asset_value_series(client.clone()).await?;
         self.update_user_quote_value_series(client.clone()).await?;
+
+        self.update_unallocated_portfolio_value_series(client.clone())
+            .await?;
+        self.update_protocol_asset_value_series(client.clone())
+            .await?;
+        self.update_protocol_quote_value_series(client.clone())
+            .await?;
+
+        // Update historical tx
+        // todo: this is dependent on the external price series!
+        // todo: how do we handle dependent values better?
+        if let Err(error) = self.update_historical_txs(client.clone()).await {
+            tracing::warn!("Historical tx update failed: {:?}", error);
+        }
+
+        // Try to update the internal portfolio, which only works if a position exists.
+        if let Err(error) = self.update_internal_price_series(client.clone()).await {
+            tracing::warn!("Internal portfolio update failed: {:?}", error);
+        }
 
         // Finally update cached data, which will only update if conditions are met.
         self.update_cached(client.clone()).await?;
 
         Ok(())
+    }
+
+    pub async fn fetch_user_historical_tx(&self, client: Arc<Client>) -> Result<Vec<HistoricalTx>> {
+        let current_block = self.fetch_block_number(client.clone()).await?;
+        let last_block = self
+            .raw_last_historical_transaction_sync_block
+            .ok_or(Error::msg("Last historical chain data sync block not set"))?;
+
+        let user_address = self
+            .user_address
+            .ok_or(Error::msg("User address not set"))?;
+        let user_address = to_ethers_address(user_address);
+
+        let protocol_address = self
+            .raw_protocol_address
+            .ok_or(Error::msg("Protocol address not set"))?;
+        let protocol_address = to_ethers_address(protocol_address);
+
+        let protocol = DFMM::new(protocol_address, client.clone());
+        tracing::debug!("Fetching historical tx!");
+
+        let create_pos_filter = protocol
+            .init_filter()
+            .filter
+            .from_block(last_block)
+            .to_block(current_block);
+
+        let raw_logs = client.get_logs(&create_pos_filter).await?;
+        let raw_logs = raw_logs
+            .into_iter()
+            .filter(|log| {
+                log.topics.get(1).map(|topic| EthersAddress::from(*topic)) == Some(user_address)
+            })
+            .collect::<Vec<_>>();
+
+        let mut historical_tx = vec![];
+
+        for raw_log in raw_logs {
+            let block_number = raw_log.block_number.unwrap().as_u64();
+            let block_id: BlockId = block_number.into();
+            let timestamp = client
+                .get_block(block_id)
+                .await?
+                .unwrap()
+                .timestamp
+                .as_u64();
+            let timestamp = timestamp as i64; // convert u64 to i64
+            let naive_datetime = chrono::NaiveDateTime::from_timestamp_opt(timestamp, 0);
+            let datetime: DateTime<Utc> =
+                DateTime::from_naive_utc_and_offset(naive_datetime.unwrap(), Utc);
+            let tx_hash = raw_log.transaction_hash.unwrap();
+            let action = ProtocolActions::CreatePosition;
+
+            let parsed_log = protocol.decode_event::<InitFilter>(
+                "Init",
+                raw_log.topics.clone(),
+                raw_log.data.clone(),
+            )?;
+
+            let amount_x = EthersU256::from(parsed_log.xxxxxxx);
+            let amount_y = EthersU256::from(parsed_log.yyyyyy);
+
+            // Try getting the prices from the series
+            let external_x_price = self
+                .raw_external_spot_price_series
+                .as_ref()
+                .ok_or(Error::msg("External price series not set"))?
+                .iter()
+                .find(|(block, _)| *block == block_number)
+                .map(|(_, price)| *price)
+                .ok_or(Error::msg(format!(
+                    "Missing external price for historical tx at block {}",
+                    block_number
+                )))?;
+
+            // todo: need to add an external quote price series.
+            let external_y_price = ALLOY_WAD;
+
+            let amount_x = from_ethers_u256(amount_x);
+            let amount_y = from_ethers_u256(amount_y);
+
+            let amount_x = amount_x
+                .checked_mul(external_x_price)
+                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .checked_div(ALLOY_WAD)
+                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+            let amount_y = amount_y
+                .checked_mul(external_y_price)
+                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .checked_div(ALLOY_WAD)
+                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+            let amount_x = alloy_primitives::utils::format_ether(amount_x);
+            let amount_y = alloy_primitives::utils::format_ether(amount_y);
+
+            let amount_x = amount_x.parse::<f64>()?;
+            let amount_y = amount_y.parse::<f64>()?;
+
+            let market_value = amount_x + amount_y;
+
+            let token_x_symbol = self
+                .cached
+                .raw_asset_token_info
+                .as_ref()
+                .ok_or(Error::msg("Asset token info not set"))?
+                .symbol
+                .clone();
+
+            let token_y_symbol = self
+                .cached
+                .raw_quote_token_info
+                .as_ref()
+                .ok_or(Error::msg("Quote token info not set"))?
+                .symbol
+                .clone();
+
+            let position_name = format!("{} / {}", token_x_symbol, token_y_symbol);
+
+            historical_tx.push(HistoricalTx {
+                tx_hash,
+                block_number,
+                timestamp: datetime,
+                action,
+                position_name,
+                market_value,
+            });
+        }
+
+        Ok(historical_tx)
     }
 
     pub async fn update_cached(&mut self, client: Arc<Client>) -> Result<()> {
@@ -219,6 +424,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         {
             self.update_token_info(client.clone()).await?;
         }
+        Ok(())
+    }
+
+    pub async fn update_historical_txs(&mut self, client: Arc<Client>) -> Result<()> {
+        let historical_txs = self.fetch_user_historical_tx(client.clone()).await?;
+        self.raw_user_historical_transactions = Some(historical_txs);
+        self.raw_last_historical_transaction_sync_block = self.raw_last_chain_data_sync_block;
         Ok(())
     }
 
@@ -248,7 +460,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub async fn fetch_token_info(
         &self,
         client: Arc<Client>,
-        token_address: Self::Address,
+        token_address: AlloyAddress,
     ) -> Result<TokenInfo> {
         let converted_token_address = to_ethers_address(token_address);
 
@@ -322,27 +534,82 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(strategy)
     }
 
+    /// Gets the strategy contract instance given the model's strategy address.
+    pub async fn solver(&self, client: Arc<Client>) -> Result<LogNormalSolver<Client>> {
+        let solver_address = self
+            .raw_solver_address
+            .ok_or(Error::msg("Solver address not set"))?;
+        let converted_address = to_ethers_address(solver_address);
+        let solver = LogNormalSolver::new(converted_address, client.clone());
+        Ok(solver)
+    }
+
+    /// Gets the "unallocated position" balances.
+    pub fn get_unallocated_positions_info(&self) -> Result<StrategyPosition> {
+        let balance_x = self
+            .raw_user_asset_balance
+            .ok_or(Error::msg("User asset balance not set"))?;
+        let balance_y = self
+            .raw_user_quote_balance
+            .ok_or(Error::msg("User quote balance not set"))?;
+        let external_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("External spot price not set"))?;
+        let quote_price = self.raw_external_quote_price.ok_or(Error::msg(
+            "get_position_info: External quote price not set",
+        ))?;
+
+        let external_price = alloy_primitives::utils::format_ether(external_price);
+        let external_price = external_price.parse::<f64>()?;
+
+        let balance_x = alloy_primitives::utils::format_ether(balance_x);
+        let balance_x = balance_x.parse::<f64>()?;
+
+        let balance_y = alloy_primitives::utils::format_ether(balance_y);
+        let balance_y = balance_y.parse::<f64>()?;
+
+        let quote_price = alloy_primitives::utils::format_ether(quote_price);
+        let quote_price = quote_price.parse::<f64>()?;
+
+        Ok(StrategyPosition {
+            balance_x,
+            balance_y,
+            liquidity: 0.0,
+            external_price,
+            internal_price: 0.0,
+            quote_price,
+        })
+    }
+
     /// Gets the balances and prices of the asset and quote tokens and formats
     /// them into floats.
     pub fn get_position_info(&self) -> Result<StrategyPosition> {
         let balance_x = self
             .raw_asset_reserve
-            .ok_or(Error::msg("Asset reserve not set"))?;
+            .ok_or(Error::msg("get_position_info: Asset reserve not set"))?;
         let balance_y = self
             .raw_quote_reserve
-            .ok_or(Error::msg("Quote reserve not set"))?;
+            .ok_or(Error::msg("get_position_info: Quote reserve not set"))?;
         let internal_price = self
             .raw_internal_spot_price
-            .ok_or(Error::msg("Internal spot price not set"))?;
+            .ok_or(Error::msg("get_position_info: Internal spot price not set"));
+        let internal_price = match internal_price {
+            Ok(internal_price) => internal_price,
+            Err(error) => {
+                // todo: figure out how to handle this case
+                tracing::warn!("Error fetching internal price: {:?}", error);
+                AlloyU256::ZERO
+            }
+        };
         let liquidity = self
             .raw_total_liquidity
-            .ok_or(Error::msg("Total liquidity not set"))?;
-        let quote_price = self
-            .raw_external_quote_price
-            .ok_or(Error::msg("External quote price not set"))?;
+            .ok_or(Error::msg("get_position_info: Total liquidity not set"))?;
+        let quote_price = self.raw_external_quote_price.ok_or(Error::msg(
+            "get_position_info: External quote price not set",
+        ))?;
         let external_price = self
             .raw_external_spot_price
-            .ok_or(Error::msg("External spot price not set"))?;
+            .ok_or(Error::msg("get_position_info: External spot price not set"))?;
 
         let external_price = alloy_primitives::utils::format_ether(external_price);
         let external_price = external_price.parse::<f64>()?;
@@ -389,8 +656,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub async fn fetch_balance(
         &self,
         client: Arc<Client>,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let converted_address = to_ethers_address(address);
         let balance = client.get_balance(converted_address, None).await?;
         let converted_balance = from_ethers_u256(balance);
@@ -404,9 +671,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub async fn fetch_balance_of(
         &self,
         client: Arc<Client>,
-        token_address: Self::Address,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        token_address: AlloyAddress,
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let converted_token_address = to_ethers_address(token_address);
 
         let payload = IERC20::balanceOfCall { account: address };
@@ -419,7 +686,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let balance = client.call(&tx, None).await?;
         let decoded: <IERC20::balanceOfCall as SolCall>::Return =
             IERC20::balanceOfCall::abi_decode_returns(&balance, false)?;
-        let decoded_balance: Self::Value = decoded.balance.into();
+        let decoded_balance: AlloyU256 = decoded.balance;
 
         Ok(decoded_balance)
     }
@@ -429,8 +696,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_user_asset_balance(
         &self,
         client: Arc<Client>,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
@@ -440,15 +707,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_user_quote_balance(
         &self,
         client: Arc<Client>,
-        address: Self::Address,
-    ) -> Result<Self::Value> {
+        address: AlloyAddress,
+    ) -> Result<AlloyU256> {
         let quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
         self.fetch_balance_of(client, quote_token, address).await
     }
 
-    async fn fetch_protocol_asset_balance(&self, client: Arc<Client>) -> Result<Self::Value> {
+    async fn fetch_protocol_asset_balance(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let asset_token = self
             .raw_asset_token
             .ok_or(Error::msg("Asset token not set"))?;
@@ -458,7 +725,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.fetch_balance_of(client, asset_token, protocol).await
     }
 
-    async fn fetch_protocol_quote_balance(&self, client: Arc<Client>) -> Result<Self::Value> {
+    async fn fetch_protocol_quote_balance(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let quote_token = self
             .raw_quote_token
             .ok_or(Error::msg("Quote token not set"))?;
@@ -468,11 +735,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.fetch_balance_of(client, quote_token, protocol).await
     }
 
-    async fn fetch_external_price(
-        &self,
-        client: Arc<Client>,
-        token_address: Self::Address,
-    ) -> Result<Self::Value> {
+    async fn fetch_external_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
         let external_exchange = self
             .raw_external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
@@ -483,7 +746,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             to_ethers_address(external_exchange),
             client.clone(),
         );
-        let price = lex.price().await?;
+        let price = lex.price().await;
+        let price = match price {
+            Ok(price) => price,
+            Err(error) => {
+                tracing::warn!("Error fetching external price: {:?}", error);
+                return Err(anyhow!("Error fetching external price"));
+            }
+        };
         let price = from_ethers_u256(price);
 
         Ok(price)
@@ -494,24 +764,33 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_reserves_and_liquidity(
         &self,
         client: Arc<Client>,
-    ) -> Result<(Self::Value, Self::Value, Self::Value)> {
-        let protocol = self
-            .raw_protocol_address
-            .ok_or(Error::msg("Protocol address not set"))?;
+    ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let protocol = self.protocol(client.clone()).await?;
-        let (reserve_x, reserve_y, liquidity) = protocol.get_reserves_and_liquidity().await?;
+        let result = protocol.get_reserves_and_liquidity().await;
+        let (reserve_x, reserve_y, liquidity) = match result {
+            Ok(result) => result,
+            Err(error) => {
+                tracing::warn!("Error fetching reserves and liquidity: {:?}", error);
+                return Err(anyhow!("Error fetching reserves and liquidity"));
+            }
+        };
         let reserve_x = from_ethers_u256(reserve_x);
         let reserve_y = from_ethers_u256(reserve_y);
         let liquidity = from_ethers_u256(liquidity);
         Ok((reserve_x, reserve_y, liquidity))
     }
 
-    async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<Self::Value> {
-        let protocol = self
-            .raw_protocol_address
-            .ok_or(Error::msg("Protocol address not set"))?;
-        let protocol = self.protocol(client.clone()).await?;
-        let internal_price = protocol.internal_price().await?;
+    async fn fetch_internal_price(&self, client: Arc<Client>) -> Result<AlloyU256> {
+        let solver = self.solver(client.clone()).await?;
+        let internal_price = solver.internal_price().await;
+        let internal_price = match internal_price {
+            Ok(internal_price) => internal_price,
+            Err(error) => {
+                tracing::warn!("Error fetching internal price: {:?}", error);
+                return Err(anyhow!("Error fetching internal price"));
+            }
+        };
+
         let internal_price = from_ethers_u256(internal_price);
         Ok(internal_price)
     }
@@ -519,10 +798,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_strategy_params(
         &self,
         client: Arc<Client>,
-    ) -> Result<(Self::Value, Self::Value, Self::Value)> {
-        let strategy = self
-            .raw_strategy_address
-            .ok_or(Error::msg("Strategy address not set"))?;
+    ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let strategy = self.strategy(client.clone()).await?;
         let (strike_price, volatility, time_remaining) = strategy.get_params().await?;
         let strike_price = from_ethers_u256(strike_price);
@@ -531,31 +807,30 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok((strike_price, volatility, time_remaining))
     }
 
-    async fn update_protocol_state(&mut self, client: Arc<Client>) -> Result<()> {
+    async fn update_reserves_and_liquidity(&mut self, client: Arc<Client>) -> Result<()> {
         let (reserve_x, reserve_y, liquidity) =
             self.fetch_reserves_and_liquidity(client.clone()).await?;
-        let internal_price = self.fetch_internal_price(client.clone()).await?;
 
         self.raw_asset_reserve = Some(reserve_x);
         self.raw_quote_reserve = Some(reserve_y);
         self.raw_total_liquidity = Some(liquidity);
+
+        Ok(())
+    }
+
+    async fn update_internal_price(&mut self, client: Arc<Client>) -> Result<()> {
+        let internal_price = self.fetch_internal_price(client.clone()).await?;
+
         self.raw_internal_spot_price = Some(internal_price);
 
         Ok(())
     }
 
     async fn update_external_prices(&mut self, client: Arc<Client>) -> Result<()> {
-        let asset_token = self
-            .raw_asset_token
-            .ok_or(Error::msg("Asset token not set"))?;
-        let quote_token = self
-            .raw_quote_token
-            .ok_or(Error::msg("Quote token not set"))?;
-
-        let asset_price = self
-            .fetch_external_price(client.clone(), asset_token)
-            .await?;
-        // todo: fix
+        // TODO: fix this, essentially the price function in the lex just gives in terms
+        // of 1 but we should have it get both. we would haave to do this in the
+        // `fetch_external_price` function
+        let asset_price = self.fetch_external_price(client.clone()).await?;
         let quote_price = ALLOY_WAD;
 
         self.raw_external_spot_price = Some(asset_price);
@@ -593,12 +868,41 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    async fn update_unallocated_portfolio_value_series(
+        &mut self,
+        client: Arc<Client>,
+    ) -> Result<()> {
+        // Check the current last sync block number, if its the same as the current one,
+        // continue. Else, refetch and update the data.
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        // Only update the series if the last element in the series is behind the
+        // current block number.
+        if let Some(series) = &self.raw_unallocated_portfolio_value_series {
+            let last_element = series.last().unwrap();
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let portfolio_value = self.derive_unallocated_position_value()?;
+
+        if let Some(series) = &mut self.raw_unallocated_portfolio_value_series {
+            series.push((block_number, portfolio_value));
+        } else {
+            self.raw_unallocated_portfolio_value_series =
+                Some(vec![(block_number, portfolio_value)]);
+        }
+
+        Ok(())
+    }
+
     async fn update_external_price_series(&mut self, client: Arc<Client>) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
 
         if let Some(series) = &self.raw_external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= block_number {
+            if last_element.0 > block_number {
                 return Ok(());
             }
         }
@@ -612,6 +916,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         } else {
             self.raw_external_spot_price_series = Some(vec![(block_number, external_price)]);
         }
+
+        tracing::debug!(
+            "Added external price at block: {:?} {:?}",
+            block_number,
+            external_price
+        );
 
         Ok(())
     }
@@ -675,6 +985,70 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             series.push((block_number, quote_value));
         } else {
             self.raw_user_quote_value_series = Some(vec![(block_number, quote_value)]);
+        }
+
+        Ok(())
+    }
+
+    async fn update_protocol_asset_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        if let Some(series) = &self.raw_protocol_asset_value_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let asset_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("External price not set"))?;
+        let asset_balance = self
+            .raw_protocol_asset_balance
+            .ok_or(Error::msg("Protocol asset balance not set"))?;
+
+        let asset_value = asset_balance
+            .checked_mul(asset_price)
+            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .checked_div(ALLOY_WAD)
+            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+        if let Some(series) = &mut self.raw_protocol_asset_value_series {
+            series.push((block_number, asset_value));
+        } else {
+            self.raw_protocol_asset_value_series = Some(vec![(block_number, asset_value)]);
+        }
+
+        Ok(())
+    }
+
+    async fn update_protocol_quote_value_series(&mut self, client: Arc<Client>) -> Result<()> {
+        let block_number = self.fetch_block_number(client.clone()).await?;
+
+        if let Some(series) = &self.raw_protocol_quote_value_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
+        }
+
+        let quote_price = self
+            .raw_external_quote_price
+            .ok_or(Error::msg("External quote price not set"))?;
+        let quote_balance = self
+            .raw_protocol_quote_balance
+            .ok_or(Error::msg("Protocol quote balance not set"))?;
+
+        let quote_value = quote_balance
+            .checked_mul(quote_price)
+            .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+            .checked_div(ALLOY_WAD)
+            .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+        if let Some(series) = &mut self.raw_protocol_quote_value_series {
+            series.push((block_number, quote_value));
+        } else {
+            self.raw_protocol_quote_value_series = Some(vec![(block_number, quote_value)]);
         }
 
         Ok(())
@@ -800,33 +1174,61 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(portfolio_value)
     }
 
-    /// Computes the portfolio value of the user's balances of tokens according
-    /// to their external prices.
-    pub fn derive_external_portfolio_value(&self) -> Result<Self::Value> {
+    /// Sum of external portfolio value (allocated positions) and unallocated
+    /// positions' value.
+    pub fn derive_total_aum(&self) -> Result<AlloyU256> {
+        // todo: this naming is confusing but the external portfolio value is the
+        // unallocated value.
+        let external_portfolio_value = self.derive_external_portfolio_value()?;
+        let unallocated_position_value = self.derive_unallocated_position_value()?;
+
+        let total_aum = external_portfolio_value
+            .checked_add(unallocated_position_value)
+            .ok_or(anyhow!(
+                "Failed to add external portfolio value and unallocated position value: {} + {}",
+                external_portfolio_value,
+                unallocated_position_value
+            ))?;
+
+        Ok(total_aum)
+    }
+
+    /// Computes the value of the unallocated positions.
+    pub fn derive_unallocated_position_value(&self) -> Result<AlloyU256> {
+        let unallocated_position = self.get_unallocated_positions_info()?;
+        let unallocated_position_value = unallocated_position.compute_value()?;
+        let unallocated_position_value =
+            alloy_primitives::utils::parse_ether(&format!("{}", unallocated_position_value))?;
+        Ok(unallocated_position_value)
+    }
+
+    /// Computes the portfolio value of the user's strategy deposits according
+    /// to an external price.
+    pub fn derive_external_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
             .raw_external_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
         let quote_price_wad = self
             .raw_external_quote_price
             .ok_or(Error::msg("External quote price not set"))?;
-        let quote_balance_wad = self
-            .raw_user_quote_balance
-            .ok_or(Error::msg("User quote balance not set"))?;
-        let asset_balance_wad = self
-            .raw_user_asset_balance
-            .ok_or(Error::msg("User asset balance not set"))?;
+        let quote_reserve_wad = self
+            .raw_quote_reserve
+            .ok_or(Error::msg("Reserve quote not set"))?;
+        let asset_reserve_wad = self
+            .raw_asset_reserve
+            .ok_or(Error::msg("Reserve asset not set"))?;
 
         Self::compute_portfolio_value_real(
             asset_price_wad,
             quote_price_wad,
-            quote_balance_wad,
-            asset_balance_wad,
+            quote_reserve_wad,
+            asset_reserve_wad,
         )
     }
 
     /// Computes the portfolio value of the user's deposits in a strategy
     /// according to the internal price.
-    pub fn derive_internal_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_internal_portfolio_value(&self) -> Result<AlloyU256> {
         let asset_price_wad = self
             .raw_internal_spot_price
             .ok_or(Error::msg("Internal spot price not set"))?;
@@ -854,7 +1256,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the theoretical portfolio value given the strategy parameters,
     /// external market price, and amount of liquidity.
-    pub fn derive_theoretical_portfolio_value(&self) -> Result<Self::Value> {
+    pub fn derive_theoretical_portfolio_value(&self) -> Result<AlloyU256> {
         let strike_price_wad = self
             .raw_strike_price_wad
             .ok_or(Error::msg("Strike price not set"))?;
@@ -905,7 +1307,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the health of the user's portfolio.
-    pub fn derive_portfolio_health(&self) -> Result<Self::Value> {
+    pub fn derive_portfolio_health(&self) -> Result<AlloyU256> {
         let internal_portfolio_value_wad = self.derive_internal_portfolio_value()?;
         let theoretical_value_wad = self.derive_theoretical_portfolio_value()?;
 
@@ -920,7 +1322,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         for (block, value) in series {
             let block = *block as f32;
-            let value = alloy_primitives::utils::format_ether(value.clone());
+            let value = alloy_primitives::utils::format_ether(*value);
             let value = value.parse::<f32>()?;
             transformed.push((block, value));
         }
@@ -931,6 +1333,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let min_y = last_value - last_value * 0.2;
         let max_y = last_value + last_value * 0.2;
+
+        let max_y = if max_y <= f32::EPSILON { 1.0 } else { max_y };
 
         let ranges = CartesianRanges {
             x_range: (first_block, first_block + 10.0),
@@ -945,9 +1349,9 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let mut transformed = Vec::new();
 
         for (x, y) in data {
-            let x = alloy_primitives::utils::format_ether(x.clone());
+            let x = alloy_primitives::utils::format_ether(*x);
             let x = x.parse::<f32>()?;
-            let y = alloy_primitives::utils::format_ether(y.clone());
+            let y = alloy_primitives::utils::format_ether(*y);
             let y = y.parse::<f32>()?;
             transformed.push((x, y));
         }
@@ -966,6 +1370,53 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         result.1.legend = "Portfolio Value".to_string();
         result.1.color = plotters::style::full_palette::DEEPPURPLE_400;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    /// Gets the time series data for the unallocated portfolio value.
+    pub fn derive_unallocated_portfolio_value_series(
+        &self,
+    ) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_unallocated_portfolio_value_series
+            .as_ref()
+            .ok_or(Error::msg("Unallocated portfolio value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        result.1.legend = "Unallocated".to_string();
+        result.1.color = plotters::style::full_palette::LIGHTBLUE_A400;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    /// Gets the time series data for the protocol asset value series.
+    pub fn derive_protocol_asset_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_protocol_asset_value_series
+            .as_ref()
+            .ok_or(Error::msg("Protocol asset value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        result.1.legend = "Protocol Asset".to_string();
+        result.1.color = plotters::style::full_palette::PURPLE_A700;
+        result.1.time_series = true;
+
+        Ok(result)
+    }
+
+    /// Gets the time series data for the protocol quote value series.
+    pub fn derive_protocol_quote_value_series(&self) -> Result<(CartesianRanges, ChartLineSeries)> {
+        let series = self
+            .raw_protocol_quote_value_series
+            .as_ref()
+            .ok_or(Error::msg("Protocol quote value series not set"))?;
+        let mut result = Self::transform_series_over_block_number(series)?;
+
+        result.1.legend = "Protocol Quote".to_string();
+        result.1.color = plotters::style::full_palette::PURPLE_A400;
         result.1.time_series = true;
 
         Ok(result)
@@ -991,6 +1442,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .ok_or(Error::msg("Total liquidity not set"))?;
         let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
         let total_liquidity = total_liquidity.parse::<f64>()?;
+
+        // todo: handle better!
+        if total_liquidity == 0.0 {
+            return Err(anyhow!("Total liquidity is 0"));
+        }
 
         let internal_reserves = (
             (asset_reserve / total_liquidity) as f32,
@@ -1023,6 +1479,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             alloy_primitives::utils::format_ether(time_to_expiry_years_wad);
         let time_to_expiry_years_wad_float = time_to_expiry_years_wad_float.parse::<f64>()?;
 
+        let mut points: Vec<ChartPoint> = vec![];
+
         let theoretical_asset_reserve = compute_x_given_price(
             spot_price_float,
             total_liquidity,
@@ -1050,45 +1508,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             color: plotters::style::full_palette::DEEPORANGE_A400,
             ..Default::default()
         };
-
-        let internal_reserves = ChartPoint {
-            x: internal_reserves.0,
-            y: internal_reserves.1,
-            color: plotters::style::full_palette::DEEPPURPLE_A400,
-            ..Default::default()
-        };
-
-        let internal_liq_dist = liq_distribution(
-            internal_reserves.x as f64,
-            1.0,
-            strike_price_wad_float,
-            sigma_percent_wad_float,
-            time_to_expiry_years_wad_float,
-        ) as f32;
-
-        let internal_liq_dist = ChartPoint {
-            x: internal_reserves.x,
-            y: internal_liq_dist,
-            color: plotters::style::full_palette::DEEPPURPLE_A400,
-            ..Default::default()
-        };
-
-        // Hardcodes 1.0 liquidity to keep the scale in line.
-        // todo: fix these to scale better.
-        let internal_price = compute_price_given_x_rust(
-            internal_reserves.x as f64,
-            1.0,
-            strike_price_wad_float,
-            sigma_percent_wad_float,
-            time_to_expiry_years_wad_float,
-        );
-
-        let internal_price = ChartPoint {
-            x: internal_reserves.x,
-            y: internal_price as f32,
-            color: plotters::style::full_palette::DEEPPURPLE_A400,
-            ..Default::default()
-        };
+        points.push(theoretical_reserves);
 
         let theoretical_price = compute_price_given_x_rust(
             theoretical_reserves.x as f64,
@@ -1104,6 +1524,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             color: plotters::style::full_palette::DEEPORANGE_A400,
             ..Default::default()
         };
+        points.push(theoretical_price);
 
         let theoretical_liq_dist = liq_distribution(
             theoretical_reserves.x as f64,
@@ -1119,17 +1540,163 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             color: plotters::style::full_palette::DEEPORANGE_A400,
             ..Default::default()
         };
+        points.push(theoretical_liq_dist);
 
-        let poi: Vec<ChartPoint> = vec![
-            internal_reserves,
-            theoretical_reserves,
-            internal_price,
-            theoretical_price,
-            internal_liq_dist,
-            theoretical_liq_dist,
-        ];
+        if internal_reserves.0 > 0.0 {
+            let internal_reserves = ChartPoint {
+                x: internal_reserves.0,
+                y: internal_reserves.1,
+                color: plotters::style::full_palette::DEEPPURPLE_A400,
+                ..Default::default()
+            };
+            points.push(internal_reserves);
 
-        Ok(poi)
+            let internal_liq_dist = liq_distribution(
+                internal_reserves.x as f64,
+                1.0,
+                strike_price_wad_float,
+                sigma_percent_wad_float,
+                time_to_expiry_years_wad_float,
+            ) as f32;
+
+            let internal_liq_dist = ChartPoint {
+                x: internal_reserves.x,
+                y: internal_liq_dist,
+                color: plotters::style::full_palette::DEEPPURPLE_A400,
+                ..Default::default()
+            };
+            points.push(internal_liq_dist);
+
+            // Hardcodes 1.0 liquidity to keep the scale in line.
+            // todo: fix these to scale better.
+            let internal_price = compute_price_given_x_rust(
+                internal_reserves.x as f64,
+                1.0,
+                strike_price_wad_float,
+                sigma_percent_wad_float,
+                time_to_expiry_years_wad_float,
+            );
+
+            let internal_price = ChartPoint {
+                x: internal_reserves.x,
+                y: internal_price as f32,
+                color: plotters::style::full_palette::DEEPPURPLE_A400,
+                ..Default::default()
+            };
+            points.push(internal_price);
+        }
+
+        Ok(points)
+    }
+
+    /// Computes the plot of the trading function given strike price,
+    /// volatility, and time remaining.
+    /// Plots:
+    /// - Trading function
+    /// - Liquidity distribution
+    /// - Price curve
+    #[allow(clippy::type_complexity)]
+    pub fn compute_strategy_plot(
+        &self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+        // TODO: make a type allias for this
+    ) -> (Vec<(f64, f64)>, Vec<(f64, f64)>, Vec<(f64, f64)>) {
+        let mut curve_points = vec![];
+        let mut liq_dist_points = vec![];
+        let mut price_curve_points = vec![];
+
+        // Initial x != 0!!! be careful.
+        let mut x = f64::EPSILON;
+        let samples = 100.0;
+        let max = 1.0;
+        while x < max {
+            let y = compute_y_given_x_rust(x, 1.0, strike_price, volatility, time_remaining);
+            curve_points.push((x, y));
+
+            // This really impacts performance!! Like freezes the app.
+            let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
+            liq_dist_points.push((x, liq_dist));
+
+            let price =
+                compute_price_given_x_rust(x, 1.0, strike_price, volatility, time_remaining);
+            price_curve_points.push((x, price));
+
+            x += max / samples;
+        }
+
+        (curve_points, liq_dist_points, price_curve_points)
+    }
+
+    pub fn derive_computed_strategy_plot(
+        &self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+    ) -> Result<Vec<(CartesianRanges, ChartLineSeries)>> {
+        let (curve_points, liq_dist_points, price_curve_points) =
+            self.compute_strategy_plot(strike_price, volatility, time_remaining);
+
+        let max_x = 1.0; // total_liquidity;
+        let max_y = strike_price; // strike_price * total_liquidity;
+
+        // Min y and min x are both 0, so set their margin to a slightly negative
+        // proportion of the total range.
+        let min_x = -max_x * 0.1; // 10%
+        let min_y = -max_y * 0.1; // 10%
+
+        let converted_curve_points = curve_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut curve_series = coords_to_line_series(converted_curve_points);
+        curve_series.legend = "Log Normal".to_string();
+
+        let curve_ranges = CartesianRanges {
+            x_range: (min_x as f32, max_x as f32),
+            y_range: (min_y as f32, max_y as f32),
+        };
+
+        let converted_liq_dist_points = liq_dist_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut liq_dist_series = coords_to_line_series(converted_liq_dist_points);
+        liq_dist_series.legend = "Liq. Dist.".to_string();
+        liq_dist_series.color = plotters::style::full_palette::PURPLE_A400;
+
+        let max_y_dist = liq_dist_points
+            .iter()
+            .max_by(|(_, y1), (_, y2)| y1.partial_cmp(y2).unwrap())
+            .ok_or(Error::msg("Failed to get max y"))?
+            .1;
+
+        let liq_dist_ranges = CartesianRanges {
+            x_range: (min_x as f32, max_x as f32),
+            y_range: (min_y as f32, max_y_dist as f32),
+        };
+
+        let converted_price_points = price_curve_points
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+        let mut price_curve_series = coords_to_line_series(converted_price_points);
+        price_curve_series.legend = "Price".to_string();
+        price_curve_series.color = plotters::style::full_palette::GREEN_A400;
+
+        // Set the ranges.
+        let price_curve_ranges = CartesianRanges {
+            x_range: (min_x as f32, max_x as f32),
+            y_range: (min_y as f32, max_y as f32),
+        };
+
+        // Return it all!
+        Ok(vec![
+            (curve_ranges, curve_series),
+            (liq_dist_ranges, liq_dist_series),
+            (price_curve_ranges, price_curve_series),
+        ])
     }
 
     /// Transforms the portfolio strategy into a plotted curve with the current
@@ -1166,6 +1733,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let total_liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
         let total_liquidity = total_liquidity.parse::<f64>()?;
+
+        if total_liquidity == 0.0 {
+            return Err(anyhow!("Total liquidity is 0"));
+        }
 
         // Choose the maximum bounds for x and y. These use log normal curve
         // assumptions.
@@ -1281,11 +1852,97 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         Ok(result)
     }
+
+    /// Computes liquidity distribution and returns histogram formatted data.
+    pub fn derive_liquidity_histogram(
+        &self,
+        strike_price: f64,
+        volatility: f64,
+        time_remaining: f64,
+    ) -> Result<HistogramData> {
+        let current_price = self
+            .raw_external_spot_price
+            .ok_or(Error::msg("Spot price not set"))?;
+        let current_price = alloy_primitives::utils::format_ether(current_price);
+        let current_price = current_price.parse::<f64>()?;
+
+        let min_price = f64::EPSILON;
+        let max_price = current_price * 2.0;
+
+        // Scale the x-axis "prices" to the histogram "bins".
+        let scalar = 100.0; // Define the scalar
+        let min_bin = (min_price * scalar).round() as u32;
+        let max_bin = (max_price * scalar).round() as u32;
+
+        // Define the number of bins to group the data by.
+        let num_bins = 25u32;
+        let bin_size = (max_bin - min_bin) / num_bins;
+
+        let mut max_count = 0;
+        let mut data: BTreeMap<u32, u32> = BTreeMap::new();
+        let mut notable_bars: BTreeMap<u32, u32> = BTreeMap::new();
+
+        for bin_index in 0..num_bins {
+            let bin_start = min_bin + bin_index * bin_size;
+            let bin_end = bin_start + bin_size;
+
+            // Calculate price for this bin
+            let price = ((bin_start + bin_end) as f64 / scalar) / 2.0;
+            let price_key = (price * scalar).round() as u32;
+
+            // Compute the x and liquidity distribution values at this given price.
+            let x = compute_x_given_price(price, 1.0, strike_price, volatility, time_remaining);
+            let liq_dist = liq_distribution(x, 1.0, strike_price, volatility, time_remaining);
+
+            // Collect the data into the histogram.
+            let count = data.entry(price_key).or_insert(0);
+            *count += (liq_dist * scalar).round() as u32;
+
+            // Keep a track of the highest count to bound the y-axis in the chart.
+            if *count > max_count {
+                max_count = *count;
+            }
+        }
+
+        // Find the closest bin to the current price, and use its value as a notable
+        // bar.
+        let mut closest_bin = 0;
+        let mut closest_bin_distance = f64::MAX;
+        for bin in data.keys() {
+            let distance = (*bin as f64 / scalar - current_price).abs();
+            if distance < closest_bin_distance {
+                closest_bin_distance = distance;
+                closest_bin = *bin;
+            }
+        }
+
+        // Add the closest bin to the notable bars.
+        notable_bars.insert(closest_bin, *data.get(&closest_bin).unwrap());
+
+        Ok(HistogramData {
+            min_bin,
+            max_bin,
+            max_count,
+            bin_size,
+            data,
+            notable_bars,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct HistogramData {
+    pub min_bin: u32,
+    pub max_bin: u32,
+    pub max_count: u32,
+    pub bin_size: u32,
+    pub data: BTreeMap<u32, u32>,
+    pub notable_bars: BTreeMap<u32, u32>,
 }
 
 #[cfg(test)]
 mod tests {
-    use bindings::mock_erc20::MockERC20;
+    use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
     use ethers::{
         prelude::*,
         utils::{Anvil, AnvilInstance},
@@ -1337,11 +1994,12 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_fetch_balance_of() -> anyhow::Result<()> {
-        let (anvil, client) = setup().await?;
+        // TODO: unused anvil instance
+        let (_anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
         let token =
-            MockERC20::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
+            ArbiterToken::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
                 .send()
                 .await?;
 
@@ -1353,7 +2011,7 @@ mod tests {
         println!("Minted tokens");
 
         // Now we can fetch the balance of the wallet.
-        let mut model = RawDataModel::<AlloyAddress, AlloyU256>::new();
+        let model = RawDataModel::<AlloyAddress, AlloyU256>::new();
 
         let converted_address = from_ethers_address(sender);
         let converted_token_address = from_ethers_address(token.address());
@@ -1374,11 +2032,12 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_update_token_balances() -> anyhow::Result<()> {
-        let (anvil, client) = setup().await?;
+        // TODO: unused anvil instance
+        let (_anvil, client) = setup().await?;
 
         // Need to deploy a token and mint some to wallet!
         let token =
-            MockERC20::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
+            ArbiterToken::deploy(client.clone(), ("Test".to_string(), "T".to_string(), 18_u8))?
                 .send()
                 .await?;
 

@@ -5,8 +5,9 @@ use super::*;
 pub fn create_input_component<Message>(
     value: Option<String>,
     on_change: impl Fn(Option<String>) -> Message + 'static,
+    placeholder: String,
 ) -> InputComponent<Message> {
-    InputComponent::new(value, on_change)
+    InputComponent::new(value, on_change, placeholder)
 }
 
 /// Individual component for managing inputs with string values.
@@ -18,6 +19,8 @@ pub struct InputComponent<Message> {
     on_change: Box<dyn Fn(Option<String>) -> Message>,
     /// Icon on the left side of the label.
     icon: Option<Icon>,
+    /// placeholder text
+    placeholder: String,
 }
 
 #[derive(Debug, Clone)]
@@ -29,11 +32,13 @@ impl<Message> InputComponent<Message> {
     pub fn new(
         value: Option<String>,
         on_change: impl Fn(Option<String>) -> Message + 'static,
+        placeholder: String,
     ) -> Self {
         Self {
             value,
             on_change: Box::new(on_change),
             icon: None,
+            placeholder,
         }
     }
 
@@ -55,7 +60,6 @@ impl<Message> Component<Message, Renderer> for InputComponent<Message> {
                 if value.is_empty() {
                     Some((self.on_change)(None))
                 } else {
-                    tracing::trace!("Input changed: {}", value);
                     let parsed_value = value.parse();
                     match parsed_value {
                         Ok(parsed_value) => Some((self.on_change)(Some(parsed_value))),
@@ -71,7 +75,7 @@ impl<Message> Component<Message, Renderer> for InputComponent<Message> {
 
     fn view(&self, _state: &Self::State) -> Element<Self::Event, Renderer> {
         let input = text_input(
-            "Type a value...",
+            &self.placeholder,
             self.value
                 .as_ref()
                 .map(String::to_string)
@@ -79,7 +83,7 @@ impl<Message> Component<Message, Renderer> for InputComponent<Message> {
                 .unwrap_or(""),
         )
         .on_input(StringInputComponentEvent::InputChanged)
-        .padding(Sizes::Md as u16);
+        .padding(Sizes::Sm);
 
         input.into()
     }

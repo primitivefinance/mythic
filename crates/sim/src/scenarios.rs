@@ -1,4 +1,3 @@
-use alloy_primitives::Address;
 use arbiter_core::data_collection::EventLogger;
 use revm::db::{CacheDB, EmptyDB};
 
@@ -72,6 +71,8 @@ impl Scenario for DFMMScenario {
         let price_changer =
             PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
         let steps = price_changer.trajectory.paths[0].len() - 1;
+
+        println!("path: {:?}", price_changer.trajectory.paths[0]);
         let lex = from_ethers_address(price_changer.liquid_exchange.address());
         let lex_events = price_changer.liquid_exchange.events();
         agents.add(price_changer);
@@ -79,16 +80,18 @@ impl Scenario for DFMMScenario {
         // 2. Portfolio manager deploys a Dynamic Function MM & updates its parameters.
         let pm = VolatilityTargetingSubmitter::new(&environment, &config, "portfolio_manager", lex)
             .await?;
-        let market = from_ethers_address(pm.dfmm.address());
-        let market_events = pm.dfmm.events();
+        let market = from_ethers_address(pm.protocol_client.protocol.address());
+        let solver = from_ethers_address(pm.protocol_client.solver.address());
+        let market_events = pm.protocol_client.protocol.events();
         agents.add(pm);
 
         // 3. Liquidity provider initializes the DFMM.
-        let lp = LiquidityProvider::new(&environment, &config, "lp", &token_admin, market).await?;
+        let lp = LiquidityProvider::new(&environment, &config, "lp", &token_admin, market, solver)
+            .await?;
         agents.add(lp);
 
         // 4. Arbitrageur arbitrages between the DFMM and the Liquid Exchange.
-        let arbitrageur = Arbitrageur::new(&environment, &token_admin, lex, market).await?;
+        let arbitrageur = Arbitrageur::new(&environment, &token_admin, lex, market, solver).await?;
         agents.add(arbitrageur.clone());
 
         EventLogger::builder()

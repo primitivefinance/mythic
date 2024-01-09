@@ -279,7 +279,7 @@ pub fn liq_distribution(
 }
 
 /// P_x(x) = K e^(phi^-1(1 - x / L) sigma sqrt(t) - 1/2 sigma^2 t)
-/// x(P_x) = L * (1 - phi((ln(P_x / K) + 1/2 sigma^2 t) / sigma sqrt(t)))
+/// x(P_x) = L * (1 - phi( [ln(P_x / K) + 1/2 sigma^2 t] / sigma sqrt(t) ))
 #[tracing::instrument(level = "trace")]
 pub fn compute_x_given_price(
     spot_price_float: f64,
@@ -298,6 +298,33 @@ pub fn compute_x_given_price(
     let cdf = normal.cdf((ln_x_div_k + half_sigma_pow_two_tau) / sigma_sqrt_tau);
 
     total_liquidity * (1.0 - cdf)
+}
+
+/// V = P(1 - n(d1)) + Kn(d2)
+pub fn compute_value_function(
+    spot_price_float: f64,
+    strike_price_wad_float: f64,
+    sigma_percent_wad_float: f64,
+    time_to_expiry_years_wad_float: f64,
+) -> f64 {
+    let normal = statrs::distribution::Normal::new(0.0, 1.0).expect("Normal distribution failed");
+    let d1 = compute_d1(
+        spot_price_float,
+        strike_price_wad_float,
+        sigma_percent_wad_float,
+        time_to_expiry_years_wad_float,
+    );
+
+    let d2 = compute_d2(
+        spot_price_float,
+        strike_price_wad_float,
+        sigma_percent_wad_float,
+        time_to_expiry_years_wad_float,
+    );
+
+    let n_d1 = normal.cdf(d1);
+    let n_d2 = normal.cdf(d2);
+    spot_price_float * (1.0 - n_d1) + strike_price_wad_float * n_d2
 }
 
 /// P_x(x) = K e^(phi^-1(1 - x / L) sigma sqrt(t) - 1/2 sigma^2 t)

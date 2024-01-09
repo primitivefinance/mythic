@@ -30,6 +30,7 @@ pub fn get_config_dir() -> PathBuf {
     })
 }
 
+#[allow(dead_code)]
 pub fn get_data_dir() -> PathBuf {
     check_in_executable_dir().unwrap_or_else(|| {
         let dir = directories_next::ProjectDirs::from(QUALIFIER, ORGANIZATION, APPLICATION)
@@ -114,20 +115,13 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
         if let Some(prefix) = self.prefix() {
             formatted = format!("{}.{}", prefix, formatted);
         }
-
-        let path = Self::dir().join(formatted);
-
-        path
+        Self::dir().join(formatted)
     }
 
     fn file_path_with_name(name: String) -> PathBuf {
         let mut formatted = Self::file_name_ending();
-
         formatted = format!("{}.{}", name, formatted);
-
-        let path = Self::dir().join(formatted);
-
-        path
+        Self::dir().join(formatted)
     }
 
     /// A prefix to add to the file, e.g. `custom` for `custom.profile.json`.
@@ -182,7 +176,6 @@ impl UserProfile {
     /// Updates the portfolio of this profile and saves to file.
     pub fn update_portfolio(&mut self, portfolio: &Portfolio) -> Result<()> {
         self.portfolio = portfolio.clone();
-        self.save()?;
         Ok(())
     }
 }
@@ -215,7 +208,7 @@ impl Saveable for UserProfile {
         };
         // Don't overwrite existing profiles.
         if profile_file.exists() {
-            return Ok(Self::load(Some(profile_file))?);
+            return Self::load(Some(profile_file));
         }
 
         let mut formatted_path = Self::file_name_ending();

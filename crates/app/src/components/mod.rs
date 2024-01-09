@@ -31,7 +31,7 @@ use styles::*;
 
 use self::{
     select::custom_pick_list,
-    system::{label, panel, Card, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
+    system::{label, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
@@ -93,7 +93,7 @@ where
         .push(indicator.width(Length::Fixed(100.0)))
         .align_items(alignment::Alignment::Center)
 }
-
+#[allow(dead_code)]
 pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
     label: E,
     value: String,
@@ -120,20 +120,20 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
 pub fn labeled_input<'a, Message>(
     text: String,
     value: Option<String>,
-    _placeholder: String,
+    placeholder: String,
     on_change: impl Fn(Option<String>) -> Message + 'static,
 ) -> Column<'a, Message>
 where
     Message: 'static,
 {
-    let title = label(&text).secondary().build();
-    // todo: use placeholder
-    let input = create_input_component(value, on_change);
+    let title = label(text).secondary().build();
+    let input = create_input_component(value, on_change, placeholder);
 
     Column::new().push(title).push(input).spacing(Sizes::Md)
 }
 
 /// Column with a label and pick list field.
+#[allow(dead_code)]
 pub fn labeled_select<'a, Message, T>(
     title: String,
     options: impl Into<Cow<'a, [T]>>,
@@ -145,7 +145,7 @@ where
     T: ToString + Eq + 'static + Clone,
     [T]: ToOwned<Owned = Vec<T>>,
 {
-    let title = label(&title).title3().build();
+    let title = label(title).title3().build();
 
     Column::new()
         .push(title)
@@ -159,10 +159,12 @@ where
 }
 
 /// For use in the instructions container.
+#[allow(dead_code)]
 pub fn instruction_text<'a>(value: String) -> Text<'a> {
-    label(&value).highlight().build()
+    label(value).highlight().build()
 }
 
+#[allow(dead_code)]
 pub fn instructions_inner<'a, Message, T: Into<Element<'a, Message>>>(
     instructions: Vec<T>,
 ) -> Column<'a, Message>
@@ -185,6 +187,7 @@ where
 /// in a card.
 /// note: Message must be `Clone` for the submit button to be converted to an
 /// Element.
+#[allow(dead_code)]
 pub fn instructions<'a, Message, T: Into<Element<'a, Message>>>(
     instructions: Vec<T>,
     action: Option<String>,
@@ -218,7 +221,7 @@ where
         submit = submit.on_press(on_submit)
     }
 
-    let feedback = label(&feedback.unwrap_or("No feedback to report".to_string()))
+    let feedback = label(feedback.unwrap_or("No feedback to report".to_string()))
         .highlight()
         .caption2()
         .secondary()
@@ -356,12 +359,13 @@ impl<'a, Message> From<DualColumn<'a, Message>> for Row<'a, Message> {
     }
 }
 
+#[allow(dead_code)]
 pub fn key_value_row<'a, Message>(key: String, value: String) -> Row<'a, Message>
 where
     Message: 'a,
 {
-    let key = label(&key).secondary().build();
-    let value = label(&value).build();
+    let key = label(key).secondary().build();
+    let value = label(value).build();
     let mut row = Row::new()
         .push(
             Column::new()
@@ -381,6 +385,7 @@ where
     row
 }
 
+#[allow(dead_code)]
 pub fn space_between<'a, Message>(
     elem_1: Element<'a, Message>,
     elem_2: Element<'a, Message>,
@@ -436,6 +441,7 @@ where
         .push(caption)
 }
 
+#[allow(dead_code)]
 pub fn custom_icon_button<'a>(
     icon: icons::Icon,
     font_size: u16,
@@ -502,7 +508,7 @@ pub fn navigation_steps<'a, Message>(
 where
     Message: 'a + Clone + Default,
 {
-    let mut content = Column::new().push(label(&title).title3().build());
+    let mut content = Column::new().push(label(title).title3().build());
 
     for NavigationStep {
         icon,
@@ -550,6 +556,7 @@ where
 }
 
 /// Divides content into four quadrants with centered alignment.
+#[allow(dead_code)]
 pub fn quadrant_container<'a, Message>(
     top_left: Element<'a, Message>,
     top_right: Element<'a, Message>,

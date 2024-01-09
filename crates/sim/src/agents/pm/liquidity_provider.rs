@@ -25,7 +25,7 @@ impl Agent for LiquidityProvider {
     async fn init(&mut self) -> Result<()> {
         debug!("LiquidityProvider initializing pool on DFMM.");
         self.protocol_client
-            .initialize(
+            .initialize_pool(
                 self.init_x_wad,
                 self.init_price_wad,
                 self.init_strike_price_wad,
@@ -53,6 +53,7 @@ impl LiquidityProvider {
         label: impl Into<String>,
         token_admin: &TokenAdmin,
         market: Address,
+        solver: Address,
     ) -> Result<Self> {
         let label = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
@@ -63,7 +64,7 @@ impl LiquidityProvider {
             .mint(
                 from_ethers_address(client.address()),
                 parse_ether("100")?,
-                parse_ether("100")?,
+                parse_ether("10_000_000")?,
             )
             .await?;
 
@@ -77,7 +78,11 @@ impl LiquidityProvider {
         if let Some(AgentParameters::LiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
         {
-            let protocol_client = ProtocolClient::new(client.clone(), to_ethers_address(market));
+            let protocol_client = ProtocolClient::new(
+                client.clone(),
+                to_ethers_address(market),
+                to_ethers_address(solver),
+            );
 
             // todo: right now we init pool with params, that can be updated obviously...
 

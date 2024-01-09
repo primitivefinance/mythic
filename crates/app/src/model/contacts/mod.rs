@@ -15,13 +15,13 @@ pub use classification::*;
 use ethers::prelude::*;
 pub use list::*;
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Contacts {
     pub books: HashMap<Category, ContactList>,
 }
 
-impl Contacts {
-    pub fn new() -> Self {
+impl Default for Contacts {
+    fn default() -> Self {
         let mut books = HashMap::new();
         books.insert(Category::Trusted, ContactList::new());
         books.insert(Category::Untrusted, ContactList::new());
@@ -29,6 +29,12 @@ impl Contacts {
         books.insert(Category::Recent, ContactList::new());
 
         Self { books }
+    }
+}
+
+impl Contacts {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn add(&mut self, address: Address, label: ContactValue, category: Category) {

@@ -1,7 +1,10 @@
 use std::{f32::consts::PI, time::Instant};
 
 use iced::{
-    widget::canvas::{path::arc, stroke, Cache, Path, Stroke},
+    widget::{
+        canvas::{path::arc, stroke, Cache, Path, Stroke},
+        svg,
+    },
     window::icon,
     Point, Rectangle,
 };
@@ -23,28 +26,38 @@ pub fn excalibur_logo_2() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO_2, None).unwrap()
 }
 
+const ETHER_LOGO: &[u8] = include_bytes!("../../../../assets/logos/ethtokenicon.svg");
+const USDC_LOGO: &[u8] = include_bytes!("../../../../assets/logos/usdcvector.svg");
+
+pub fn ether_logo() -> iced::widget::svg::Handle {
+    svg::Handle::from_memory(ETHER_LOGO)
+}
+
+pub fn usdc_logo() -> iced::widget::svg::Handle {
+    svg::Handle::from_memory(USDC_LOGO)
+}
+
 pub struct PhiLogo {
     pub start: Instant,
     pub rotation: f32,
     pub cache: Cache,
 }
 
+#[allow(clippy::excessive_precision)]
 pub const GOLDEN_RATIO: f32 = 1.61803398875;
 
-impl<'a, Message> iced::widget::canvas::Program<Message> for PhiLogo {
+impl<Message> iced::widget::canvas::Program<Message> for PhiLogo {
     type State = ();
 
     fn draw(
         &self,
         _state: &Self::State,
         renderer: &iced::Renderer,
-        theme: &iced::Theme,
+        _theme: &iced::Theme,
         bounds: Rectangle,
         _cursor: iced::mouse::Cursor,
     ) -> Vec<iced::widget::canvas::Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.palette();
-
             let center = frame.center();
 
             let circle_radius = frame.width().min(frame.height()) / (GOLDEN_RATIO * 5.0);
@@ -113,5 +126,24 @@ impl<'a, Message> iced::widget::canvas::Program<Message> for PhiLogo {
         });
 
         vec![geometry]
+    }
+
+    fn update(
+        &self,
+        _state: &mut Self::State,
+        _event: iced::widget::canvas::Event,
+        _bounds: Rectangle,
+        _cursor: iced::advanced::mouse::Cursor,
+    ) -> (iced::widget::canvas::event::Status, Option<Message>) {
+        (iced::widget::canvas::event::Status::Ignored, None)
+    }
+
+    fn mouse_interaction(
+        &self,
+        _state: &Self::State,
+        _bounds: Rectangle,
+        _cursor: iced::advanced::mouse::Cursor,
+    ) -> iced::advanced::mouse::Interaction {
+        iced::advanced::mouse::Interaction::default()
     }
 }

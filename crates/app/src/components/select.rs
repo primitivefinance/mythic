@@ -25,6 +25,38 @@ where
         )
         .placeholder(placeholder.unwrap_or("Select an option".to_string()))
 }
+#[allow(dead_code)]
+pub fn excalibur_select<'a, Message, T>(
+    options: impl Into<Cow<'a, [T]>>,
+    selected: Option<T>,
+    on_selected: impl Fn(T) -> Message + 'a,
+    placeholder: impl ToString,
+    border_radius: Option<BorderRadius>,
+) -> PickList<'a, T, Message>
+where
+    T: ToString + Eq + 'static,
+    [T]: ToOwned<Owned = Vec<T>>,
+{
+    pick_list(options, selected, on_selected)
+        .style(
+            CustomSelect::new()
+                .border_color(ExcaliburColor::Custom(GRAY_600).into())
+                .border_width(1.0)
+                .border_radius(border_radius.unwrap_or(5.0.into()))
+                .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+                .background(ExcaliburColor::Background3.into())
+                .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+                .hovered()
+                .border_color(ExcaliburColor::Custom(GRAY_600).into())
+                .border_width(1.0)
+                .border_radius(border_radius.unwrap_or(5.0.into()))
+                .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+                .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+                .background(ExcaliburColor::Background4.into())
+                .as_custom(),
+        )
+        .placeholder(placeholder.to_string())
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct CustomSelect {
@@ -107,10 +139,10 @@ impl CustomSelect {
         self
     }
 
-    pub fn border_radius(mut self, radius: f32) -> Self {
+    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_radius = radius.into(),
-            SelectState::Hovered => self.hovered.border_radius = radius.into(),
+            SelectState::Active => self.active.border_radius = radius,
+            SelectState::Hovered => self.hovered.border_radius = radius,
         }
 
         self
