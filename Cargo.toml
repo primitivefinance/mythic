@@ -96,7 +96,7 @@ chrono = { version = "=0.4.31", features = ["serde"] }
 app = { path = "./crates/app", version = "0.1.0" }
 sim = { path = "./crates/sim", version = "0.1.0" }
 
-clap = { version = "=4.4.13", features = ["derive"] }
+clap = { version = "=4.4.14", features = ["derive"] }
 
 criterion.workspace = true
 cfmm_math.workspace = true
