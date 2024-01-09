@@ -21,7 +21,8 @@ backtest = false
 # The seed to use (optional)
 seed = 5
 # The number of steps in the process
-num_steps = 1000
+# num_steps = 1000
+num_steps = 1825
 # The number of distinct paths to use
 num_paths = 1
 # The initial price of the asset
@@ -32,9 +33,9 @@ t_0.fixed = 0.0
 t_n.fixed = 1.0
 ## Parameters for the type of process to use.
 # # The drift for GBM
-process.GBM.drift.fixed = 0.0
+process.GBM.drift.fixed = 0.1
 # # The volatility for GBM
-process.GBM.volatility.fixed = 0.1
+process.GBM.volatility.fixed = 0.35
 # process.OU.mean.fixed = 1.0
 # The volatility for GBM
 #process.OU.volatility.fixed = 0.1
@@ -44,9 +45,9 @@ process.GBM.volatility.fixed = 0.1
 # Rmm portfolio manager params 
 [agent.portfolio_manager.VolatilityTargetingSubmitter]
 sigma.fixed = 1.0
-tau.fixed = 100000.0
+tau.fixed = 1.0
 strike_price.fixed = 1.0
-fee.fixed = 5
+fee.fixed = 30
 ## Volatility targeting specialty settings
 # The frequency which weights are updated
 # update_frequency = 450 # 1 update per 30 timestep day
@@ -56,9 +57,9 @@ specialty.VolatilityTargeting.update_frequency.fixed = 75 # 1 update per 5 times
 # The target volatility
 specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 # The sensitivity factor of the vol differential 
-specialty.VolatilityTargeting.sensitivity.fixed = 0.0
+specialty.VolatilityTargeting.sensitivity.fixed = 0.0115
 # Max strike update
-specialty.VolatilityTargeting.max_strike_change.fixed = 0.0
+specialty.VolatilityTargeting.max_strike_change.fixed = 0.06
 
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]

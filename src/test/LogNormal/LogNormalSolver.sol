@@ -156,7 +156,7 @@ contract LogNormalSolver {
                 deltaL += 1;
 
                 endReserves.rx = startReserves.rx + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.ry =
                     getNextReserveY(poolId, endReserves.rx, endReserves.L);
@@ -174,7 +174,7 @@ contract LogNormalSolver {
                 deltaL += 1;
 
                 endReserves.ry = startReserves.ry + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.rx =
                     getNextReserveX(poolId, endReserves.ry, endReserves.L);

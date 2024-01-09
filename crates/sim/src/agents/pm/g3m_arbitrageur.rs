@@ -137,8 +137,8 @@ impl G3mArbitrageur {
             .await?;
         let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
         debug!("=== Start Loop ===");
-        info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
-        info!("Price[G3M]: {:?}", format_ether(target_exchange_price_wad));
+        // info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
+        // info!("Price[G3M]: {:?}", format_ether(target_exchange_price_wad));
 
         match liquid_exchange_price_wad {
             _ if liquid_exchange_price_wad > target_exchange_price_wad => {
@@ -244,12 +244,16 @@ impl Agent for G3mArbitrageur {
 
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!(
-                    "Signal[RAISE PRICE]: {:?}",
-                    format_units(target_price, "ether")?
-                );
+                // info!(
+                //     "Signal[RAISE PRICE]: {:?}",
+                //     format_units(target_price, "ether")?
+                // );
                 let x_in = false;
-                let input = self.get_dy().await?.into_raw();
+                let mut input = self.get_dy().await?;
+                if (input < ethers::types::I256::from(0)) {
+                    input = ethers::types::I256::from(0);
+                }
+                let input = input.into_raw();
 
                 debug!("Optimal y input: {:?}", input);
 
@@ -257,37 +261,10 @@ impl Agent for G3mArbitrageur {
                     .atomic_arbitrage
                     .raise_exchange_price(ethers::types::U256::from(1), input);
 
-                let simulated_swap = self
-                    .protocol_client
-                    .g_solver
-                    .simulate_swap(ethers::types::U256::from(1), false, input)
-                    .call()
-                    .await?;
-
-                let swap_constant = self
-                    .protocol_client
-                    .g_solver
-                    .check_swap_constant(ethers::types::U256::from(1), simulated_swap.3)
-                    .call()
-                    .await?;
-                debug!("=============Swap constant: {:?}==========", swap_constant);
-
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
                 debug!("arby_balance after: {:?}", arby_balance);
-                let (reserve_x, reserve_y, liquidity) = self
-                    .protocol_client
-                    .protocol
-                    .get_reserves_and_liquidity(ethers::types::U256::from(1))
-                    .call()
-                    .await?;
-                let (wx, wy) = self
-                    .protocol_client
-                    .g_strategy
-                    .get_params(ethers::types::U256::from(1))
-                    .call()
-                    .await?;
 
                 match output {
                     Ok(output) => {
@@ -297,7 +274,8 @@ impl Agent for G3mArbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            // info!("Execution revert: {:?} Gas Used: {:?}",
+                            // output, gas_used);
                         }
                     }
                 }
@@ -307,35 +285,25 @@ impl Agent for G3mArbitrageur {
                     .get_g_internal_price(ethers::types::U256::from(1))
                     .await?;
                 let internal_price = from_ethers_u256(internal_price);
-                info!("Price[LEX]: {:?}", format_ether(target_price));
-                info!("Price[G3M]: {:?}", format_ether(internal_price));
+                // info!("Price[LEX]: {:?}", format_ether(target_price));
+                // info!("Price[G3M]: {:?}", format_ether(internal_price));
                 debug!("=== End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!(
-                    "Signal[LOWER PRICE] {:?}",
-                    format_units(target_price, "ether")?
-                );
+                // info!(
+                //     "Signal[LOWER PRICE] {:?}",
+                //     format_units(target_price, "ether")?
+                // );
 
                 let x_in = true;
                 let liquid_exchange_price = self.liquid_exchange.price().call().await?;
-                let input = self.get_dx().await?.into_raw();
+                let mut input = self.get_dx().await?;
+                if (input < ethers::types::I256::from(0)) {
+                    input = ethers::types::I256::from(0);
+                }
+                let input = input.into_raw();
                 let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
-
                 debug!("Optimal x input: {:?}", input);
-                let simulated_swap = self
-                    .protocol_client
-                    .g_solver
-                    .simulate_swap(ethers::types::U256::from(1), true, input)
-                    .call()
-                    .await?;
-                let swap_constant = self
-                    .protocol_client
-                    .g_solver
-                    .check_swap_constant(ethers::types::U256::from(1), simulated_swap.3)
-                    .call()
-                    .await?;
-                debug!("=============Swap constant: {:?}==========", swap_constant);
 
                 let tx = self
                     .atomic_arbitrage
@@ -370,7 +338,8 @@ impl Agent for G3mArbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            // info!("Execution revert: {:?} Gas Used: {:?}",
+                            // output, gas_used);
                         }
                     }
                 }

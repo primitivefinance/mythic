@@ -64,8 +64,8 @@ impl Agent for VolatilityTargetingSubmitter {
 
         if self.g_data.portfolio_prices.is_empty() {
             info!("portfolio_price: {}", g_portfolio_price);
-            self.ln_data.portfolio_prices.push((g_portfolio_price, 0));
-            self.ln_data.asset_prices.push((asset_price, 0));
+            self.g_data.portfolio_prices.push((g_portfolio_price, 0));
+            self.g_data.asset_prices.push((asset_price, 0));
         }
 
         if timestamp >= self.next_update_timestamp {
@@ -245,7 +245,7 @@ impl VolatilityTargetingSubmitter {
                 / self.ln_data.asset_prices.first().unwrap().0
         );
         info!(
-            "Return[PORTFOLIO]: {}",
+            "Return[LN_PORTFOLIO]: {}",
             (self.ln_data.portfolio_prices.last().unwrap().0
                 - self.ln_data.portfolio_prices.first().unwrap().0)
                 / self.ln_data.portfolio_prices.first().unwrap().0
@@ -294,7 +294,7 @@ impl VolatilityTargetingSubmitter {
                 / self.g_data.asset_prices.first().unwrap().0
         );
         info!(
-            "Return[PORTFOLIO]: {}",
+            "Return[G3M_PORTFOLIO]: {}",
             (self.g_data.portfolio_prices.last().unwrap().0
                 - self.g_data.portfolio_prices.first().unwrap().0)
                 / self.g_data.portfolio_prices.first().unwrap().0

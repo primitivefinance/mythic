@@ -104,9 +104,9 @@ impl Scenario for DFMMScenario {
         agents.add(lp);
 
         // 4. Arbitrageur arbitrages between the DFMM and the Liquid Exchange.
-        // let arbitrageur =
-        //     Arbitrageur::new(&environment, &token_admin, lex,
-        // protocol_client.clone()).await?; agents.add(arbitrageur.clone());
+        let arbitrageur =
+            Arbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
+        agents.add(arbitrageur.clone());
 
         let g3m_arbitrageur =
             G3mArbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
@@ -119,7 +119,7 @@ impl Scenario for DFMMScenario {
             .add(market_events, "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
-            // .add(arbitrageur.atomic_arbitrage.events(), "ln_atomic_arbitrage")
+            .add(arbitrageur.atomic_arbitrage.events(), "ln_atomic_arbitrage")
             .add(
                 g3m_arbitrageur.atomic_arbitrage.events(),
                 "g3m_atomic_arbitrage",

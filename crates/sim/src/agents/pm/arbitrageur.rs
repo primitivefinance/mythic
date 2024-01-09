@@ -132,11 +132,11 @@ impl Arbitrageur {
             .await?;
         let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
         debug!("=== Start Loop ===");
-        info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
-        info!(
-            "Price[LOGNORM]: {:?}",
-            format_ether(target_exchange_price_wad)
-        );
+        // info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
+        // info!(
+        //     "Price[LOGNORM]: {:?}",
+        //     format_ether(target_exchange_price_wad)
+        // );
 
         match liquid_exchange_price_wad {
             _ if liquid_exchange_price_wad > target_exchange_price_wad => {
@@ -256,14 +256,14 @@ impl Agent for Arbitrageur {
         let arby = ArbiterToken::new(arby, self.client.clone());
         let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
         let arby_balance = arby.balance_of(self.client.address()).call().await?;
-        info!("arby_balance before: {:?}", arby_balance);
+        // info!("arby_balance before: {:?}", arby_balance);
 
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!(
-                    "Signal[RAISE PRICE]: {:?}",
-                    format_units(target_price, "ether")?
-                );
+                // info!(
+                //     "Signal[RAISE PRICE]: {:?}",
+                //     format_units(target_price, "ether")?
+                // );
                 let x_in = false;
                 let input = self.get_dy().await?.into_raw();
 
@@ -295,7 +295,8 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            // info!("Execution revert: {:?} Gas Used: {:?}",
+                            // output, gas_used);
                         }
                     }
                 }
@@ -305,15 +306,15 @@ impl Agent for Arbitrageur {
                     .get_ln_internal_price(ethers::types::U256::from(0))
                     .await?;
                 let internal_price = from_ethers_u256(internal_price);
-                info!("Price[LEX]: {:?}", format_ether(target_price));
-                info!("Price[LOGNORM]: {:?}", format_ether(internal_price));
+                // info!("Price[LEX]: {:?}", format_ether(target_price));
+                // info!("Price[LOGNORM]: {:?}", format_ether(internal_price));
                 debug!("=== End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!(
-                    "Signal[LOWER PRICE] {:?}",
-                    format_units(target_price, "ether")?
-                );
+                // info!(
+                //     "Signal[LOWER PRICE] {:?}",
+                //     format_units(target_price, "ether")?
+                // );
 
                 let x_in = true;
                 let liquid_exchange_price = self.liquid_exchange.price().call().await?;
@@ -323,6 +324,18 @@ impl Agent for Arbitrageur {
                 let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
 
                 debug!("Optimal x input: {:?}", input);
+
+                let dfmm_balance_x = arbx
+                    .balance_of(self.protocol_client.protocol.address())
+                    .call()
+                    .await?;
+                let dfmm_balance_y = arby
+                    .balance_of(self.protocol_client.protocol.address())
+                    .call()
+                    .await?;
+
+                debug!("DFMM Balance X: {:?}", dfmm_balance_x);
+                debug!("DFMM Balance Y: {:?}", dfmm_balance_y);
 
                 let tx = self
                     .atomic_arbitrage
@@ -353,7 +366,8 @@ impl Agent for Arbitrageur {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            // info!("Execution revert: {:?} Gas Used: {:?}",
+                            // output, gas_used);
                         }
                     }
                 }
