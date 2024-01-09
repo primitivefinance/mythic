@@ -5,14 +5,16 @@ import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 
-import "../../DFMM.sol";
+import "../../strategies/G3M/G3M.sol";
+import "../../MultiDFMM.sol";
 import "../helpers/Lex.sol";
 import "./G3MSolver.sol";
 
 contract G3MTest is Test {
     using stdStorage for StdStorage;
 
-    DFMM dfmm;
+    MultiDFMM dfmm;
+    G3M g3m;
     G3MSolver solver;
     address tokenX;
     address tokenY;
@@ -27,9 +29,10 @@ contract G3MTest is Test {
         MockERC20(tokenY).mint(address(this), 100e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
+        dfmm = new MultiDFMM();
+        g3m = new G3M(address(dfmm), TEST_SWAP_FEE);
+        solver = new G3MSolver(address(dfmm));
 
-        dfmm = new DFMM(false, tokenX, tokenY, TEST_SWAP_FEE);
-        solver = new G3MSolver(address(dfmm.strategy()));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
     }
@@ -44,9 +47,35 @@ contract G3MTest is Test {
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
-        dfmm.init(initData);
+        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+            strategy: address(g3m),
+            tokenX: tokenX,
+            tokenY: tokenY,
+            swapFee: TEST_SWAP_FEE,
+            data: initData
+        });
 
+        dfmm.init(initParams);
         _;
+    }
+
+    function test_G3M_init() public {
+        G3mParameters memory params =
+            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
+        uint256 init_p = ONE;
+        uint256 init_x = ONE;
+        bytes memory initData =
+            solver.getInitialPoolData(init_x, init_p, params);
+
+        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+            strategy: address(g3m),
+            tokenX: tokenX,
+            tokenY: tokenY,
+            swapFee: TEST_SWAP_FEE,
+            data: initData
+        });
+
+        dfmm.init(initParams);
     }
 
     // function test_g3m_swap_x_in() public basic {

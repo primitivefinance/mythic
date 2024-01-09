@@ -3,14 +3,16 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../../DFMM.sol";
+import "../../MultiDFMM.sol";
+import "../../strategies/LogNormal/LogNormal.sol";
 import "../helpers/Lex.sol";
 import "./LogNormalSolver.sol";
 
 contract LogNormalTest is Test {
     using stdStorage for StdStorage;
 
-    DFMM dfmm;
+    MultiDFMM dfmm;
+    LogNormal logNormal;
     LogNormalSolver solver;
     address tokenX;
     address tokenY;
@@ -25,15 +27,16 @@ contract LogNormalTest is Test {
         MockERC20(tokenY).mint(address(this), 100000e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
-
-        dfmm = new DFMM(true, tokenX, tokenY, TEST_SWAP_FEE);
-        solver = new LogNormalSolver(address(dfmm.strategy()));
+        dfmm = new MultiDFMM();
+        logNormal = new LogNormal(address(dfmm), TEST_SWAP_FEE);
+        solver = new LogNormalSolver(address(logNormal));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
     }
 
     modifier realisticEth() {
         vm.warp(0);
+
         LogNormParameters memory params =
             LogNormParameters({ strike: ONE * 2300, sigma: ONE, tau: ONE });
         uint256 init_p = ONE * 2345;
@@ -41,7 +44,15 @@ contract LogNormalTest is Test {
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
-        dfmm.init(initData);
+        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+            strategy: address(logNormal),
+            tokenX: tokenX,
+            tokenY: tokenY,
+            swapFee: TEST_SWAP_FEE,
+            data: initData
+        });
+
+        dfmm.init(initParams);
 
         _;
     }
@@ -49,6 +60,7 @@ contract LogNormalTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
+
         LogNormParameters memory params =
             LogNormParameters({ strike: ONE, sigma: ONE, tau: ONE });
         uint256 init_p = ONE;
@@ -56,7 +68,15 @@ contract LogNormalTest is Test {
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
-        dfmm.init(initData);
+        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+            strategy: address(logNormal),
+            tokenX: tokenX,
+            tokenY: tokenY,
+            swapFee: TEST_SWAP_FEE,
+            data: initData
+        });
+
+        dfmm.init(initParams);
 
         _;
     }

@@ -8,7 +8,7 @@ import "../../strategies/LogNormal/LogNormalExtendedLib.sol";
 import "../../interfaces/IMultiCore.sol";
 import "../../interfaces/IStrategyLike.sol";
 
-contract LogNormalSolver is IParams {
+contract LogNormalSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 

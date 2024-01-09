@@ -5,12 +5,12 @@ import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../../MultiDFMM.sol";
 import "../../strategies/LogNormal/LogNormal.sol";
-import "../../interfaces/IParams.sol";
+import "../../strategies/G3M/G3M.sol";
 import "../helpers/Lex.sol";
 import "../LogNormal/LogNormalSolver.sol";
 import "../G3M/G3MSolver.sol";
 
-contract MultiDFMMTest is Test, IParams {
+contract MultiDFMMTest is Test {
     using stdStorage for StdStorage;
 
     MultiDFMM dfmm;
@@ -56,12 +56,11 @@ contract MultiDFMMTest is Test, IParams {
         bytes memory initData =
             logNormSolver.getInitialPoolData(init_x, init_p, params);
 
-        InitParams memory initParams;
-        initParams.poolId = dfmm.nonce();
+        IMultiCore.InitParams memory initParams;
         initParams.strategy = address(logNormal);
         initParams.tokenX = tokenX;
         initParams.tokenY = tokenY;
-        initParams.swapFeePercentageWad = TEST_SWAP_FEE;
+        initParams.swapFee = TEST_SWAP_FEE;
         initParams.data = initData;
         dfmm.init(initParams);
 
@@ -81,24 +80,22 @@ contract MultiDFMMTest is Test, IParams {
         bytes memory logNormInitData =
             logNormSolver.getInitialPoolData(init_x, init_p, logNormParams);
 
-        InitParams memory logNormInitParams;
-        logNormInitParams.poolId = dfmm.nonce();
+        IMultiCore.InitParams memory logNormInitParams;
         logNormInitParams.strategy = address(logNormal);
         logNormInitParams.tokenX = tokenX;
         logNormInitParams.tokenY = tokenY;
-        logNormInitParams.swapFeePercentageWad = TEST_SWAP_FEE;
+        logNormInitParams.swapFee = TEST_SWAP_FEE;
         logNormInitParams.data = logNormInitData;
 
         dfmm.init(logNormInitParams);
 
         bytes memory g3mInitData =
             g3mSolver.getInitialPoolData(init_x, init_p, g3mParams);
-        InitParams memory g3mInitParams;
-        g3mInitParams.poolId = dfmm.nonce();
+        IMultiCore.InitParams memory g3mInitParams;
         g3mInitParams.strategy = address(g3m);
         g3mInitParams.tokenX = tokenX;
         g3mInitParams.tokenY = tokenY;
-        g3mInitParams.swapFeePercentageWad = TEST_SWAP_FEE;
+        g3mInitParams.swapFee = TEST_SWAP_FEE;
         g3mInitParams.data = g3mInitData;
 
         dfmm.init(g3mInitParams);
@@ -195,13 +192,13 @@ contract MultiDFMMTest is Test, IParams {
             logNormSolver.allocateGivenX(LN_POOL_ID, amountX);
 
         uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        Pool memory pool = dfmm.getPool(LN_POOL_ID);
+        IMultiCore.Pool memory pool = dfmm.getPool(LN_POOL_ID);
         uint256 preTotalLiquidity = pool.totalLiquidity;
 
         bytes memory data = abi.encode(rx, ry, L);
         dfmm.allocate(LN_POOL_ID, data);
 
-        Pool memory postPool = dfmm.getPool(LN_POOL_ID);
+        IMultiCore.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
 
         uint256 deltaTotalLiquidity =
             postPool.totalLiquidity - preTotalLiquidity;
@@ -217,7 +214,7 @@ contract MultiDFMMTest is Test, IParams {
             logNormSolver.allocateGivenX(LN_POOL_ID, amountX);
 
         uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        Pool memory pool = dfmm.getPool(LN_POOL_ID);
+        IMultiCore.Pool memory pool = dfmm.getPool(LN_POOL_ID);
         uint256 deltaLiquidity = L - pool.totalLiquidity;
         bytes memory data = abi.encode(rx, ry, L);
         dfmm.allocate(LN_POOL_ID, data);
@@ -227,7 +224,7 @@ contract MultiDFMMTest is Test, IParams {
         );
 
         (rx, ry, L) = logNormSolver.allocateGivenX(LN_POOL_ID, amountX * 2);
-        Pool memory postPool = dfmm.getPool(LN_POOL_ID);
+        IMultiCore.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
         deltaLiquidity = L - postPool.totalLiquidity;
         data = abi.encode(rx, ry, L);
 
@@ -248,13 +245,13 @@ contract MultiDFMMTest is Test, IParams {
             logNormSolver.deallocateGivenX(LN_POOL_ID, amountX);
 
         uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        Pool memory pool = dfmm.getPool(LN_POOL_ID);
+        IMultiCore.Pool memory pool = dfmm.getPool(LN_POOL_ID);
         uint256 preTotalLiquidity = pool.totalLiquidity;
 
         bytes memory data = abi.encode(rx, ry, L);
         dfmm.deallocate(LN_POOL_ID, data);
 
-        Pool memory postPool = dfmm.getPool(LN_POOL_ID);
+        IMultiCore.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
 
         uint256 deltaTotalLiquidity =
             preTotalLiquidity - postPool.totalLiquidity;
