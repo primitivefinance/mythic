@@ -141,6 +141,12 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         31337
     };
 
+    // todo: try the connection to the sandbox next
+    // Connect the model to the desired network.
+    model
+        .connect_to_network(exc_client.client().cloned().unwrap())
+        .await?;
+
     // If profile has an anvil snapshot, load it.
     let loaded_snapshot = if let Some(AnvilSave {
         snapshot,
@@ -283,15 +289,17 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         tracing::info!("Loaded contacts: {:?}", model.user.contacts);
         // TODO(matt): Create a shared type so that the order of the arguments isn't
         // finicky
-        model.portfolio.setup(
-            from_ethers_address(exc_client.address().unwrap()),
-            from_ethers_address(lex),
-            from_ethers_address(protocol),
-            from_ethers_address(strategy),
-            from_ethers_address(solver),
-            from_ethers_address(token_x),
-            from_ethers_address(token_y),
-        );
+        if let Some(connected_model) = model.get_current_mut() {
+            connected_model.setup(
+                from_ethers_address(exc_client.address().unwrap()),
+                from_ethers_address(lex),
+                from_ethers_address(protocol),
+                from_ethers_address(strategy),
+                from_ethers_address(solver),
+                from_ethers_address(token_x),
+                from_ethers_address(token_y),
+            );
+        }
 
         let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
         let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
