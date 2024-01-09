@@ -1,11 +1,9 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../lib/lognormal/LogNormalLib.sol";
-import "forge-std/console2.sol";
-
-import "../interfaces/IMultiCore.sol";
-import "../interfaces/IMultiStrategy.sol";
+import "../../interfaces/IMultiCore.sol";
+import "../../interfaces/IMultiStrategy.sol";
+import "./LogNormalLib.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price

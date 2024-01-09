@@ -1,11 +1,11 @@
 /// SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./strategies/G3M.sol";
-import "./strategies/LogNormal.sol";
+import "solmate/tokens/ERC20.sol";
+import "./strategies/G3M/G3M.sol";
+import "./strategies/LogNormal/LogNormal.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/ICore.sol";
-import "solmate/tokens/ERC20.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
@@ -112,7 +112,6 @@ contract DFMM is ICore {
         ) {
             uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
             balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
-            console2.log("in here");
         }
 
         uint256 deltaX = reserveXWad - rx;

@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../MultiDFMM.sol";
-import "../strategies/LogNormal.sol";
-import "../solvers/LogNormalSolver.sol";
-import "../solvers/G3MSolver.sol";
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../interfaces/IParams.sol";
-import "../Lex.sol";
+import "../../MultiDFMM.sol";
+import "../../strategies/LogNormal/LogNormal.sol";
+import "../../interfaces/IParams.sol";
+import "../helpers/Lex.sol";
+import "../LogNormal/LogNormalSolver.sol";
+import "../G3M/G3MSolver.sol";
 
 contract MultiDFMMTest is Test, IParams {
     using stdStorage for StdStorage;

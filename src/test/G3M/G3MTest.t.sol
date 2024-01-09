@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../DFMM.sol";
-import "../solvers/LogNormalSolver.sol";
 import "forge-std/Test.sol";
+import "forge-std/console2.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../Lex.sol";
 
-contract LogNormalTest is Test {
+import "../../DFMM.sol";
+import "../helpers/Lex.sol";
+import "./G3MSolver.sol";
+
+contract G3MTest is Test {
     using stdStorage for StdStorage;
 
     DFMM dfmm;
-    LogNormalSolver solver;
+    G3MSolver solver;
     address tokenX;
     address tokenY;
     Lex lex;
@@ -22,35 +24,21 @@ contract LogNormalTest is Test {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
         MockERC20(tokenX).mint(address(this), 100e18);
-        MockERC20(tokenY).mint(address(this), 100000e18);
+        MockERC20(tokenY).mint(address(this), 100e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
 
-        dfmm = new DFMM(true, tokenX, tokenY, TEST_SWAP_FEE);
-        solver = new LogNormalSolver(address(dfmm.strategy()));
+        dfmm = new DFMM(false, tokenX, tokenY, TEST_SWAP_FEE);
+        solver = new G3MSolver(address(dfmm.strategy()));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
-    }
-
-    modifier realisticEth() {
-        vm.warp(0);
-        LogNormParameters memory params =
-            LogNormParameters({ strike: ONE * 2300, sigma: ONE, tau: ONE });
-        uint256 init_p = ONE * 2345;
-        uint256 init_x = ONE * 10;
-        bytes memory initData =
-            solver.getInitialPoolData(init_x, init_p, params);
-
-        dfmm.init(initData);
-
-        _;
     }
 
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        LogNormParameters memory params =
-            LogNormParameters({ strike: ONE, sigma: ONE, tau: ONE });
+        G3mParameters memory params =
+            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
         bytes memory initData =
@@ -61,7 +49,7 @@ contract LogNormalTest is Test {
         _;
     }
 
-    // function test_dfmm_swap_x_in() public basic {
+    // function test_g3m_swap_x_in() public basic {
     //     uint256 amountIn = 0.1 ether;
     //     bool swapXIn = true;
 
@@ -74,7 +62,7 @@ contract LogNormalTest is Test {
     //     dfmm.swap(payload);
     // }
 
-    // function test_dfmm_swap_y_in() public basic {
+    // function test_g3m_swap_y_in() public basic {
     //     uint256 amountIn = 0.1 ether;
     //     bool swapXIn = false;
 
@@ -129,19 +117,6 @@ contract LogNormalTest is Test {
     //     assertLt(postSwapInternalPrice, internalPrice);
     // }
 
-    // function test_swap_eth_backtest() public realisticEth {
-    //     uint256 amountIn = 0.1 ether;
-    //     bool swapXIn = true;
-
-    //     // Try doing simulate swap to see if we get a similar result.
-    //     (bool valid,,, bytes memory payload) =
-    //         solver.simulateSwap(swapXIn, amountIn);
-
-    //     assertEq(valid, true);
-
-    //     dfmm.swap(payload);
-    // }
-
     // function test_allocate_liquidity_given_x() public basic {
     //     uint256 amountX = 0.1 ether;
     //     (uint256 rx, uint256 ry, uint256 L) = solver.allocateGivenX(amountX);
@@ -156,31 +131,6 @@ contract LogNormalTest is Test {
     //     assertEq(
     //         preBalance + deltaTotalLiquidity, dfmm.balanceOf(address(this))
     //     );
-    // }
-
-    // function test_allocate_multiple_times() public basic {
-    //     uint256 amountX = 0.1 ether;
-    //     (uint256 rx, uint256 ry, uint256 L) = solver.allocateGivenX(amountX);
-
-    //     uint256 preBalance = dfmm.balanceOf(address(this));
-    //     uint256 deltaLiquidity = L - dfmm.totalLiquidity();
-    //     bytes memory data = abi.encode(rx, ry, L);
-    //     dfmm.allocate(data);
-    //     assertEq(preBalance + deltaLiquidity, dfmm.balanceOf(address(this)));
-
-    //     (rx, ry, L) = solver.allocateGivenX(amountX * 2);
-    //     deltaLiquidity = L - dfmm.totalLiquidity();
-    //     data = abi.encode(rx, ry, L);
-
-    //     MockERC20(tokenX).mint(address(0xbeef), rx);
-    //     MockERC20(tokenY).mint(address(0xbeef), ry);
-
-    //     vm.startPrank(address(0xbeef));
-    //     MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
-    //     MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
-    //     dfmm.allocate(data);
-    //     assertEq(deltaLiquidity, dfmm.balanceOf(address(0xbeef)));
-    //     vm.stopPrank();
     // }
 
     // function test_deallocate_liquidity_given_x() public basic {
