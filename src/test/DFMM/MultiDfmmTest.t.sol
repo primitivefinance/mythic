@@ -117,10 +117,6 @@ contract MultiDFMMTest is Test {
         (uint256 rx, uint256 ry, uint256 L) =
             dfmm.getReservesAndLiquidity(G3M_POOL_ID);
 
-        console.log("rx: %s", rx);
-        console.log("ry: %s", ry);
-        console.log("L: %s", L);
-
         uint256 amountIn = 0.1 ether;
         bool swapXIn = true;
 
@@ -130,7 +126,7 @@ contract MultiDFMMTest is Test {
 
         assertEq(valid, true);
 
-        // dfmm.swap(G3M_POOL_ID, payload);
+        dfmm.swap(G3M_POOL_ID, payload);
     }
 
     function test_multi_dfmm_swap_x_in() public basic {
