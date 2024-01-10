@@ -39,7 +39,6 @@ contract MultiDFMMTest is Test {
 
         logNormal = new LogNormal(address(dfmm));
         logNormSolver = new LogNormalSolver(address(logNormal));
-
         g3m = new G3M(address(dfmm));
         g3mSolver = new G3MSolver(address(g3m));
 
@@ -73,7 +72,7 @@ contract MultiDFMMTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        G3mParameters memory g3mParams = G3mParameters({
+        G3MParameters memory g3mParams = G3MParameters({
             wx: 0.5 ether,
             wy: 0.5 ether,
             swapFee: TEST_SWAP_FEE
@@ -114,9 +113,6 @@ contract MultiDFMMTest is Test {
     function test_multi_basic() public basic { }
 
     function test_multi_dfmm_g3m_swap_x_in() public basic {
-        (uint256 rx, uint256 ry, uint256 L) =
-            dfmm.getReservesAndLiquidity(G3M_POOL_ID);
-
         uint256 amountIn = 0.1 ether;
         bool swapXIn = true;
 

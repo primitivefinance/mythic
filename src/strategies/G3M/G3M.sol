@@ -22,7 +22,7 @@ contract G3M is IMultiStrategy {
 
     IMultiCore public immutable core;
 
-    mapping(uint256 => G3mParameters) public slots;
+    mapping(uint256 => G3MParameters) public slots;
     mapping(uint256 => WeightX) public weights;
 
     constructor(address _core) {
@@ -38,7 +38,7 @@ contract G3M is IMultiStrategy {
     function staticSlot(uint256 poolId)
         public
         view
-        returns (G3mParameters memory)
+        returns (G3MParameters memory)
     {
         return slots[poolId];
     }
@@ -51,7 +51,7 @@ contract G3M is IMultiStrategy {
     function dynamicSlotInternal(uint256 poolId)
         public
         view
-        returns (G3mParameters memory params)
+        returns (G3MParameters memory params)
     {
         params.wx = weightX(poolId);
         params.wy = weightY(poolId);
@@ -67,7 +67,7 @@ contract G3M is IMultiStrategy {
     }
 
     function _syncDynamicSlot(uint256 poolId) internal {
-        G3mParameters memory params = slots[poolId];
+        G3MParameters memory params = slots[poolId];
 
         WeightX memory weight;
 
@@ -106,7 +106,7 @@ contract G3M is IMultiStrategy {
         )
     {
         (rx, ry, L, slots[poolId]) =
-            abi.decode(data, (uint256, uint256, uint256, G3mParameters));
+            abi.decode(data, (uint256, uint256, uint256, G3MParameters));
 
         require(slots[poolId].wx + slots[poolId].wy == ONE, "Invalid weights");
 
@@ -162,7 +162,7 @@ contract G3M is IMultiStrategy {
             uint256 nextL
         )
     {
-        G3mParameters memory params = slots[poolId];
+        G3MParameters memory params = slots[poolId];
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             getReservesAndLiquidity(poolId);

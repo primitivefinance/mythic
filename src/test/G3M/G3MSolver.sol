@@ -23,7 +23,7 @@ contract G3MSolver {
     function getPoolParams(uint256 poolId)
         public
         view
-        returns (G3mParameters memory)
+        returns (G3MParameters memory)
     {
         return G3MStrategyLike(strategy).dynamicSlotInternal(poolId);
     }
@@ -39,7 +39,7 @@ contract G3MSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        G3mParameters memory params
+        G3MParameters memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -122,7 +122,7 @@ contract G3MSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             IStrategyLike(strategy).getReservesAndLiquidity(poolId);
-        G3mParameters memory poolParams = getPoolParams(poolId);
+        G3MParameters memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
         {
@@ -191,7 +191,7 @@ contract G3MSolver {
         view
         returns (uint256 price)
     {
-        G3mParameters memory params = getPoolParams(poolId);
+        G3MParameters memory params = getPoolParams(poolId);
         (uint256 rx, uint256 ry,) =
             IStrategyLike(strategy).getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);

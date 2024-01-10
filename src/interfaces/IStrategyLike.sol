@@ -32,5 +32,5 @@ interface G3MStrategyLike {
     function dynamicSlotInternal(uint256 poolId)
         external
         view
-        returns (G3mParameters memory);
+        returns (G3MParameters memory);
 }

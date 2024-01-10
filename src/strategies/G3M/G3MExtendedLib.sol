@@ -10,7 +10,7 @@ using FixedPointMathLib for int256;
 function computeLGivenX(
     uint256 x,
     uint256 S,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256) {
     return x.mulWadUp(params.wy.divWadUp(params.wx.mulWadUp(S)));
 }
@@ -18,7 +18,7 @@ function computeLGivenX(
 function computeLGivenY(
     uint256 y,
     uint256 S,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256) {
     return y.mulWadUp(params.wx).divWadUp(params.wy.mulWadUp(S));
 }
@@ -26,7 +26,7 @@ function computeLGivenY(
 function computeXGivenL(
     uint256 L,
     uint256 S,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256) {
     return params.wx.mulWadUp(L).divWadUp(params.wy.mulWadUp(S));
 }
@@ -34,7 +34,7 @@ function computeXGivenL(
 function computeYGivenL(
     uint256 L,
     uint256 S,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256) {
     return params.wy.mulWadUp(L).divWadUp(params.wx.mulWadUp(S));
 }
@@ -42,7 +42,7 @@ function computeYGivenL(
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 ry = computeYGivenL(L, initialPrice, params);
@@ -54,7 +54,7 @@ function computeInitialPoolData(
 function computeNextLiquidity(
     uint256 reserveXWad,
     uint256 reserveYWad,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256 L) {
     return uint256(int256(reserveXWad).powWad(int256(params.wx))).mulWadUp(
         uint256(int256(reserveYWad).powWad(int256(params.wy)))
@@ -65,7 +65,7 @@ function computeNextLiquidity(
 function computeNextRy(
     uint256 reserveXWad,
     uint256 liquidity,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256 ry) {
     ry = uint256(
         int256(
@@ -80,7 +80,7 @@ function computeNextRy(
 function computeNextRx(
     uint256 reserveYWad,
     uint256 liquidity,
-    G3mParameters memory params
+    G3MParameters memory params
 ) pure returns (uint256 rx) {
     rx = uint256(
         int256(
