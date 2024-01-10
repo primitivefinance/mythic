@@ -139,13 +139,12 @@ contract LogNormalSolver {
 
         uint256 amountOut;
         {
-            uint256 swapFee = IStrategyLike(strategy).swapFee();
             uint256 startComputedL = getNextLiquidity(
                 poolId, startReserves.rx, startReserves.ry, startReserves.L
             );
 
             if (swapXIn) {
-                uint256 fees = amountIn.mulWadUp(swapFee);
+                uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 deltaL =
                     fees.mulWadUp(startComputedL).divWadUp(startReserves.rx);
                 deltaL += 1;
@@ -163,7 +162,7 @@ contract LogNormalSolver {
                 );
                 amountOut = startReserves.ry - endReserves.ry;
             } else {
-                uint256 fees = amountIn.mulWadUp(swapFee);
+                uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 deltaL =
                     fees.mulWadUp(startComputedL).divWadUp(startReserves.ry);
                 deltaL += 1;

@@ -11,6 +11,7 @@ using FixedPointMathLib for int256;
 struct G3mParameters {
     uint256 wx;
     uint256 wy;
+    uint256 swapFee;
 }
 
 function tradingFunction(

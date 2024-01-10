@@ -24,8 +24,8 @@ contract MultiDFMMTest is Test {
 
     uint256 public constant TEST_SWAP_FEE = 0.003 ether;
 
-    uint256 public constant LN_POOL_ID = 0;
-    uint256 public constant G3M_POOL_ID = 1;
+    uint256 public LN_POOL_ID;
+    uint256 public G3M_POOL_ID;
 
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
@@ -37,10 +37,10 @@ contract MultiDFMMTest is Test {
 
         dfmm = new MultiDFMM();
 
-        logNormal = new LogNormal(address(dfmm), TEST_SWAP_FEE);
+        logNormal = new LogNormal(address(dfmm));
         logNormSolver = new LogNormalSolver(address(logNormal));
 
-        g3m = new G3M(address(dfmm), TEST_SWAP_FEE);
+        g3m = new G3M(address(dfmm));
         g3mSolver = new G3MSolver(address(g3m));
 
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
@@ -49,8 +49,12 @@ contract MultiDFMMTest is Test {
 
     modifier realisticEth() {
         vm.warp(0);
-        LogNormParameters memory params =
-            LogNormParameters({ strike: ONE * 2300, sigma: ONE, tau: ONE });
+        LogNormParameters memory params = LogNormParameters({
+            strike: ONE * 2300,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE * 2345;
         uint256 init_x = ONE * 10;
         bytes memory initData =
@@ -60,9 +64,8 @@ contract MultiDFMMTest is Test {
         initParams.strategy = address(logNormal);
         initParams.tokenX = tokenX;
         initParams.tokenY = tokenY;
-        initParams.swapFee = TEST_SWAP_FEE;
         initParams.data = initData;
-        dfmm.init(initParams);
+        (LN_POOL_ID,,,) = dfmm.init(initParams);
 
         _;
     }
@@ -70,13 +73,20 @@ contract MultiDFMMTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        G3mParameters memory g3mParams =
-            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
+        G3mParameters memory g3mParams = G3mParameters({
+            wx: 0.5 ether,
+            wy: 0.5 ether,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
 
-        LogNormParameters memory logNormParams =
-            LogNormParameters({ strike: ONE, sigma: ONE, tau: ONE });
+        LogNormParameters memory logNormParams = LogNormParameters({
+            strike: ONE,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
         bytes memory logNormInitData =
             logNormSolver.getInitialPoolData(init_x, init_p, logNormParams);
 
@@ -84,10 +94,9 @@ contract MultiDFMMTest is Test {
         logNormInitParams.strategy = address(logNormal);
         logNormInitParams.tokenX = tokenX;
         logNormInitParams.tokenY = tokenY;
-        logNormInitParams.swapFee = TEST_SWAP_FEE;
         logNormInitParams.data = logNormInitData;
 
-        dfmm.init(logNormInitParams);
+        (LN_POOL_ID,,,) = dfmm.init(logNormInitParams);
 
         bytes memory g3mInitData =
             g3mSolver.getInitialPoolData(init_x, init_p, g3mParams);
@@ -95,15 +104,34 @@ contract MultiDFMMTest is Test {
         g3mInitParams.strategy = address(g3m);
         g3mInitParams.tokenX = tokenX;
         g3mInitParams.tokenY = tokenY;
-        g3mInitParams.swapFee = TEST_SWAP_FEE;
         g3mInitParams.data = g3mInitData;
 
-        dfmm.init(g3mInitParams);
+        (G3M_POOL_ID,,,) = dfmm.init(g3mInitParams);
 
         _;
     }
 
     function test_multi_basic() public basic { }
+
+    function test_multi_dfmm_g3m_swap_x_in() public basic {
+        (uint256 rx, uint256 ry, uint256 L) =
+            dfmm.getReservesAndLiquidity(G3M_POOL_ID);
+
+        console.log("rx: %s", rx);
+        console.log("ry: %s", ry);
+        console.log("L: %s", L);
+
+        uint256 amountIn = 0.1 ether;
+        bool swapXIn = true;
+
+        // Try doing simulate swap to see if we get a similar result.
+        (bool valid,,, bytes memory payload) =
+            g3mSolver.simulateSwap(G3M_POOL_ID, swapXIn, amountIn);
+
+        assertEq(valid, true);
+
+        // dfmm.swap(G3M_POOL_ID, payload);
+    }
 
     function test_multi_dfmm_swap_x_in() public basic {
         uint256 amountIn = 0.1 ether;

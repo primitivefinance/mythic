@@ -9,11 +9,12 @@ interface IStrategyLike {
         uint256 poolId,
         bytes memory
     ) external view returns (int256);
-    function swapFee() external view returns (uint256);
+
     function getReservesAndLiquidity(uint256 poolId)
         external
         view
         returns (uint256, uint256, uint256);
+
     function validateSwap(
         uint256 poolId,
         bytes calldata

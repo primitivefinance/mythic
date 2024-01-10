@@ -126,9 +126,8 @@ contract G3MSolver {
 
         uint256 amountOut;
         {
-            uint256 swapFee = IStrategyLike(strategy).swapFee();
             if (swapXIn) {
-                uint256 fees = amountIn.mulWadUp(swapFee);
+                uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 weightedPrice = uint256(
                     int256(startReserves.ry.divWadUp(startReserves.rx)).powWad(
                         int256(poolParams.wy)
@@ -150,7 +149,7 @@ contract G3MSolver {
                 );
                 amountOut = startReserves.ry - endReserves.ry;
             } else {
-                uint256 fees = amountIn.mulWadUp(swapFee);
+                uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 weightedPrice = uint256(
                     int256(startReserves.rx.divWadUp(startReserves.ry)).powWad(
                         int256(poolParams.wx)

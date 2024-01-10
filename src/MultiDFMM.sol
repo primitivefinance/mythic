@@ -36,7 +36,7 @@ contract MultiDFMM is IMultiCore {
     function init(InitParams calldata params)
         public
         lock
-        returns (uint256, uint256, uint256)
+        returns (uint256, uint256, uint256, uint256)
     {
         (
             bool valid,
@@ -59,8 +59,7 @@ contract MultiDFMM is IMultiCore {
             reserveX: reserveX,
             reserveY: reserveY,
             totalLiquidity: totalLiquidity,
-            feeGrowth: FixedPointMathLib.WAD,
-            swapFee: params.swapFee
+            feeGrowth: FixedPointMathLib.WAD
         });
 
         pools.push(pool);
@@ -85,7 +84,7 @@ contract MultiDFMM is IMultiCore {
             totalLiquidity
         );
 
-        return (reserveX, reserveY, totalLiquidity);
+        return (poolId, reserveX, reserveY, totalLiquidity);
     }
 
     function allocate(

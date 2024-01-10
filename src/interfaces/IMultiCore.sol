@@ -15,14 +15,12 @@ interface IMultiCore {
         uint256 reserveY;
         uint256 totalLiquidity;
         uint256 feeGrowth;
-        uint256 swapFee;
     }
 
     struct InitParams {
         address strategy;
         address tokenX;
         address tokenY;
-        uint256 swapFee;
         bytes data;
     }
 
@@ -127,7 +125,7 @@ interface IMultiCore {
 
     function init(InitParams calldata params)
         external
-        returns (uint256, uint256, uint256);
+        returns (uint256, uint256, uint256, uint256);
 
     function allocate(
         uint256 poolId,

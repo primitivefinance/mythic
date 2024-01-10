@@ -41,17 +41,13 @@ contract LogNormal is IMultiStrategy {
     using FixedPointMathLib for int256;
 
     IMultiCore public core;
-    uint256 public swapFee;
 
     mapping(uint256 => LogNormParameters) public slots;
-
     mapping(uint256 => Sigma) public sigmas;
     mapping(uint256 => Strike) public strikes;
     mapping(uint256 => Tau) public taus;
 
-    constructor(address _core, uint256 _swapFee) {
-        require(_swapFee < ONE, "swap fee percentage must be less than 100%");
-        swapFee = _swapFee;
+    constructor(address _core) {
         core = IMultiCore(_core);
     }
 
@@ -83,8 +79,12 @@ contract LogNormal is IMultiStrategy {
         view
         returns (LogNormParameters memory params)
     {
-        (params.strike, params.sigma, params.tau) =
-            (strikePrice(poolId), sigma(poolId), tau(poolId));
+        (params.strike, params.sigma, params.tau, params.swapFee) = (
+            strikePrice(poolId),
+            sigma(poolId),
+            tau(poolId),
+            slots[poolId].swapFee
+        );
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -213,6 +213,8 @@ contract LogNormal is IMultiStrategy {
             uint256 nextL
         )
     {
+        LogNormParameters memory params = slots[poolId];
+
         (uint256 startRx, uint256 startRy, uint256 startL) =
             getReservesAndLiquidity(poolId);
 
@@ -225,12 +227,12 @@ contract LogNormal is IMultiStrategy {
         uint256 fees;
         if (nextRx > startRx) {
             amountIn = nextRx - startRx;
-            fees = amountIn.mulWadUp(swapFee);
+            fees = amountIn.mulWadUp(params.swapFee);
             minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
         } else if (nextRy > startRy) {
             // δl = δx * L / X, where δx = delta x * fee
             amountIn = nextRy - startRy;
-            fees = amountIn.mulWadUp(swapFee);
+            fees = amountIn.mulWadUp(params.swapFee);
             minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
         } else {
             // should never get here!
@@ -238,8 +240,6 @@ contract LogNormal is IMultiStrategy {
         }
 
         liquidityDelta = int256(nextL) - int256(startL);
-
-        LogNormParameters memory params = dynamicSlotInternal(poolId);
 
         invariant = tradingFunction({
             rx: nextRx,

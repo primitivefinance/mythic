@@ -20,15 +20,12 @@ contract G3M is IMultiStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
-    IMultiCore public core;
-    uint256 public swapFee;
-    mapping(uint256 => G3mParameters) public slots;
+    IMultiCore public immutable core;
 
+    mapping(uint256 => G3mParameters) public slots;
     mapping(uint256 => WeightX) public weights;
 
-    constructor(address _core, uint256 _swapFee) {
-        require(_swapFee < ONE, "swap fee percentage must be less than 100%");
-        swapFee = _swapFee;
+    constructor(address _core) {
         core = IMultiCore(_core);
     }
 
@@ -58,6 +55,7 @@ contract G3M is IMultiStrategy {
     {
         params.wx = weightX(poolId);
         params.wy = weightY(poolId);
+        params.swapFee = slots[poolId].swapFee;
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -164,6 +162,8 @@ contract G3M is IMultiStrategy {
             uint256 nextL
         )
     {
+        G3mParameters memory params = slots[poolId];
+
         (uint256 startRx, uint256 startRy, uint256 startL) =
             getReservesAndLiquidity(poolId);
 
@@ -174,19 +174,17 @@ contract G3M is IMultiStrategy {
         uint256 fees;
         if (nextRx > startRx) {
             amountIn = nextRx - startRx;
-            fees = amountIn.mulWadUp(swapFee);
+            fees = amountIn.mulWadUp(params.swapFee);
             minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
         } else if (nextRy > startRy) {
             amountIn = nextRy - startRy;
-            fees = amountIn.mulWadUp(swapFee);
+            fees = amountIn.mulWadUp(params.swapFee);
             minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
         } else {
             revert("invalid swap: inputs x and y have the same sign!");
         }
 
         liquidityDelta = int256(nextL) - int256(startL);
-
-        G3mParameters memory params = dynamicSlotInternal(poolId);
 
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
 

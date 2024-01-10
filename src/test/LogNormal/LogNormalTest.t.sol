@@ -28,7 +28,7 @@ contract LogNormalTest is Test {
 
         lex = new Lex(tokenX, tokenY, ONE);
         dfmm = new MultiDFMM();
-        logNormal = new LogNormal(address(dfmm), TEST_SWAP_FEE);
+        logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
@@ -37,8 +37,12 @@ contract LogNormalTest is Test {
     modifier realisticEth() {
         vm.warp(0);
 
-        LogNormParameters memory params =
-            LogNormParameters({ strike: ONE * 2300, sigma: ONE, tau: ONE });
+        LogNormParameters memory params = LogNormParameters({
+            strike: ONE * 2300,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE * 2345;
         uint256 init_x = ONE * 10;
         bytes memory initData =
@@ -48,7 +52,6 @@ contract LogNormalTest is Test {
             strategy: address(logNormal),
             tokenX: tokenX,
             tokenY: tokenY,
-            swapFee: TEST_SWAP_FEE,
             data: initData
         });
 
@@ -61,8 +64,12 @@ contract LogNormalTest is Test {
     modifier basic() {
         vm.warp(0);
 
-        LogNormParameters memory params =
-            LogNormParameters({ strike: ONE, sigma: ONE, tau: ONE });
+        LogNormParameters memory params = LogNormParameters({
+            strike: ONE,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
         bytes memory initData =
@@ -72,7 +79,6 @@ contract LogNormalTest is Test {
             strategy: address(logNormal),
             tokenX: tokenX,
             tokenY: tokenY,
-            swapFee: TEST_SWAP_FEE,
             data: initData
         });
 

@@ -11,6 +11,7 @@ struct LogNormParameters {
     uint256 strike;
     uint256 sigma;
     uint256 tau;
+    uint256 swapFee;
 }
 
 function tradingFunction(

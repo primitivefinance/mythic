@@ -30,7 +30,7 @@ contract G3MTest is Test {
 
         lex = new Lex(tokenX, tokenY, ONE);
         dfmm = new MultiDFMM();
-        g3m = new G3M(address(dfmm), TEST_SWAP_FEE);
+        g3m = new G3M(address(dfmm));
         solver = new G3MSolver(address(dfmm));
 
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
@@ -40,8 +40,11 @@ contract G3MTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        G3mParameters memory params =
-            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
+        G3mParameters memory params = G3mParameters({
+            wx: 0.5 ether,
+            wy: 0.5 ether,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
         bytes memory initData =
@@ -51,7 +54,6 @@ contract G3MTest is Test {
             strategy: address(g3m),
             tokenX: tokenX,
             tokenY: tokenY,
-            swapFee: TEST_SWAP_FEE,
             data: initData
         });
 
@@ -60,8 +62,11 @@ contract G3MTest is Test {
     }
 
     function test_G3M_init() public {
-        G3mParameters memory params =
-            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
+        G3mParameters memory params = G3mParameters({
+            wx: 0.5 ether,
+            wy: 0.5 ether,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
         bytes memory initData =
@@ -71,7 +76,6 @@ contract G3MTest is Test {
             strategy: address(g3m),
             tokenX: tokenX,
             tokenY: tokenY,
-            swapFee: TEST_SWAP_FEE,
             data: initData
         });
 
