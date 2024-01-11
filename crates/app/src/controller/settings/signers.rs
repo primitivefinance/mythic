@@ -175,7 +175,10 @@ impl State for SignerManagement {
                 Row::new().spacing(Sizes::Md).push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(label(format!("Connected to wallet with address : {}", address)).build())
+                        .build(
+                            label(format!("Connected to wallet with address : {}", address))
+                                .build(),
+                        )
                         .padding(Sizes::Sm)
                         .on_press(Message::ConnectLedger),
                 ),
@@ -185,7 +188,10 @@ impl State for SignerManagement {
                 Row::new().spacing(Sizes::Md).push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(label("Error connecting, Is your ledger plugged in an authenticated?").build())
+                        .build(
+                            label("Error connecting, Is your ledger plugged in an authenticated?")
+                                .build(),
+                        )
                         .padding(Sizes::Sm)
                         .on_press(Message::ConnectLedger),
                 ),
