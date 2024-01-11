@@ -30,7 +30,7 @@ contract G3MSetUp is SetUp {
         lex = new Lex(address(tokenX), address(tokenY), ONE);
         dfmm = new MultiDFMM();
         g3m = new G3M(address(dfmm));
-        solver = new G3MSolver(address(dfmm));
+        solver = new G3MSolver(address(g3m));
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);
