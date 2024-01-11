@@ -38,26 +38,15 @@ contract G3MSetUp is SetUp {
 
     modifier init() {
         vm.warp(0);
-        G3MParameters memory params = G3MParameters({
-            wx: 0.5 ether,
-            wy: 0.5 ether,
-            swapFee: TEST_SWAP_FEE
-        });
 
-        uint256 reserveX = 1 ether;
-        uint256 strikePrice = 1 ether;
-
-        (bytes memory initialPoolData) =
-            computeInitialPoolData(reserveX, strikePrice, params);
-
-        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+        IMultiCore.InitParams memory defaultInitParams = IMultiCore.InitParams({
             strategy: address(g3m),
             tokenX: address(tokenX),
             tokenY: address(tokenY),
-            data: initialPoolData
+            data: defaultInitialPoolData
         });
 
-        (G3M_POOL_ID,,,) = dfmm.init(initParams);
+        (G3M_POOL_ID,,,) = dfmm.init(defaultInitParams);
 
         _;
     }
