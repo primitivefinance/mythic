@@ -111,14 +111,10 @@ interface IMultiCore {
      */
     event Swap(
         address indexed account,
-        address source,
-        uint256 poolId,
+        uint256 indexed poolId,
         bool isSwapXForY,
-        address indexed tokenIn,
-        address indexed tokenOut,
         uint256 inputAmount,
-        uint256 outputAmount,
-        int256 liquidityDelta
+        uint256 outputAmount
     );
 
     // Setters
@@ -147,4 +143,9 @@ interface IMultiCore {
             uint256 reserveYWad,
             uint256 totalLiquidity
         );
+
+    function swap(
+        uint256 poolId,
+        bytes calldata data
+    ) external returns (uint256, uint256);
 }
