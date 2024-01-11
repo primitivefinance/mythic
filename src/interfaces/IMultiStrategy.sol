@@ -44,9 +44,4 @@ interface IMultiStrategy {
             uint256 reserveY,
             uint256 totalLiquidity
         );
-
-    function dynamicSlot(uint256 poolId)
-        external
-        view
-        returns (bytes memory data);
 }
