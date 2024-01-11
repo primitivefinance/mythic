@@ -124,14 +124,14 @@ impl State for SignerManagement {
                 *self = SignerManagement::Connected(res.0, res.1);
                 Command::none()
             }
-            Message::Connected(Err(_err)) => {
-                tracing::error!("Error connecting to ledger");
+            Message::Connected(Err(err)) => {
+                tracing::error!("Error connecting to ledger: {:?}", err);
                 *self = SignerManagement::Error;
                 Command::none()
             }
             Message::ConnectLedger => {
                 *self = SignerManagement::Connecting;
-                Command::perform(connect_to_ledger(), Message::Connected) // hangs here
+                Command::perform(connect_to_ledger(), Message::Connected)
             }
             _ => Command::none(),
         }
@@ -171,11 +171,11 @@ impl State for SignerManagement {
                 ),
                 Row::<Message>::new(),
             ),
-            SignerManagement::Connected(_ledger, _address) => (
+            SignerManagement::Connected(_ledger, address) => (
                 Row::new().spacing(Sizes::Md).push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(label("Connected").build())
+                        .build(label(format!("Connected to wallet with address : {}", address)).build())
                         .padding(Sizes::Sm)
                         .on_press(Message::ConnectLedger),
                 ),
@@ -185,7 +185,7 @@ impl State for SignerManagement {
                 Row::new().spacing(Sizes::Md).push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(label("Error connecting, try again").build())
+                        .build(label("Error connecting, Is your ledger plugged in an authenticated?").build())
                         .padding(Sizes::Sm)
                         .on_press(Message::ConnectLedger),
                 ),
