@@ -11,8 +11,8 @@ interface IMultiStrategy {
         returns (
             bool valid,
             int256 swapConstantGrowth,
-            uint256 reserveXWad,
-            uint256 reserveYWad,
+            uint256 reserveX,
+            uint256 reserveY,
             uint256 totalLiquidity
         );
 
@@ -26,8 +26,8 @@ interface IMultiStrategy {
             bool valid,
             int256 swapConstantGrowth,
             int256 liquidityDelta,
-            uint256 reserveXWad,
-            uint256 reserveYWad,
+            uint256 reserveX,
+            uint256 reserveY,
             uint256 totalLiquidity
         );
 
@@ -40,9 +40,9 @@ interface IMultiStrategy {
         returns (
             bool valid,
             int256 invariant,
-            uint256 rx,
-            uint256 ry,
-            uint256 L
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity
         );
 
     function dynamicSlot(uint256 poolId)
