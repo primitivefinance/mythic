@@ -27,4 +27,16 @@ contract G3MInitTest is G3MSetUp {
         assertEq(totalLiquidity, totalLiquidity);
         assertEq(feeGrowth, FixedPointMathLib.WAD);
     }
+
+    function test_G3M_init_RevertsIfInvalidTokens() public {
+        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+            strategy: address(g3m),
+            tokenX: address(tokenX),
+            tokenY: address(tokenX),
+            data: defaultInitialPoolData
+        });
+
+        vm.expectRevert(IMultiCore.InvalidTokens.selector);
+        dfmm.init(initParams);
+    }
 }
