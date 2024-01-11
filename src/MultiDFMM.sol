@@ -38,6 +38,8 @@ contract MultiDFMM is IMultiCore {
         lock
         returns (uint256, uint256, uint256, uint256)
     {
+        if (params.tokenX == params.tokenY) revert InvalidTokens();
+
         (
             bool valid,
             int256 swapConstantGrowth,
