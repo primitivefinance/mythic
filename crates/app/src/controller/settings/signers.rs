@@ -7,7 +7,7 @@ use clients::ledger::{types::DerivationType, *};
 
 use super::*;
 use crate::components::{
-    system::{label, ExcaliburButton},
+    system::{label, Card, ExcaliburButton},
     tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
 };
 
@@ -51,16 +51,47 @@ impl SignerManagement {
         Self::NotConnected
     }
 
-    pub fn _signer_table(&self) -> TableBuilder<Message> {
-        TableBuilder::new().padding_cell(Sizes::Md).column(
-            ColumnBuilder::new()
-                .headers(vec!["Name".to_string(), "Address".to_string()])
-                .rows(vec![RowBuilder::new()
-                    .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
-                    .cell(
-                        cells::CellBuilder::new().value(Some("0xb0b".to_string())),
-                    )]),
-        )
+    pub fn signer_table(&self) -> TableBuilder<Message> {
+        match self {
+            SignerManagement::NotConnected => TableBuilder::new().padding_cell(Sizes::Md).column(
+                ColumnBuilder::new()
+                    .headers(vec!["Name".to_string(), "Address".to_string()])
+                    .rows(vec![RowBuilder::new()
+                        .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
+                        .cell(
+                            cells::CellBuilder::new().value(Some("0xb0b".to_string())),
+                        )]),
+            ),
+            SignerManagement::Connecting => TableBuilder::new().padding_cell(Sizes::Md).column(
+                ColumnBuilder::new()
+                    .headers(vec!["Name".to_string(), "Address".to_string()])
+                    .rows(vec![RowBuilder::new()
+                        .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
+                        .cell(
+                            cells::CellBuilder::new().value(Some("0xb0b".to_string())),
+                        )]),
+            ),
+            SignerManagement::Connected(_ledger, _address) => {
+                TableBuilder::new().padding_cell(Sizes::Md).column(
+                    ColumnBuilder::new()
+                        .headers(vec!["Name".to_string(), _address.to_string()])
+                        .rows(vec![RowBuilder::new()
+                            .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
+                            .cell(
+                                cells::CellBuilder::new().value(Some("0xb0b".to_string())),
+                            )]),
+                )
+            }
+            SignerManagement::Error => TableBuilder::new().padding_cell(Sizes::Md).column(
+                ColumnBuilder::new()
+                    .headers(vec!["Name".to_string(), "Address".to_string()])
+                    .rows(vec![RowBuilder::new()
+                        .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
+                        .cell(
+                            cells::CellBuilder::new().value(Some("0xb0b".to_string())),
+                        )]),
+            ),
+        }
     }
 
     pub fn singer_view() -> Row<'static, Message> {
@@ -161,7 +192,9 @@ impl State for SignerManagement {
                 Row::<Message>::new().spacing(Sizes::Md),
             ),
         };
-        upper_half = upper_half.push(upper_content);
+        upper_half = upper_half
+            .push(upper_content)
+            .push(Card::build_container(self.signer_table().build()).padding(Sizes::Md));
         lower_half = lower_half.push(lower_content);
         content = content.push(upper_half);
         content = content.push(lower_half);
