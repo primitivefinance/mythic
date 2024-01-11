@@ -142,7 +142,7 @@ contract MultiDFMM is IMultiCore {
     function swap(
         uint256 poolId,
         bytes calldata data
-    ) public lock initialized(poolId) {
+    ) public lock initialized(poolId) returns (uint256, uint256) {
         (
             bool valid,
             int256 swapConstantGrowth,
@@ -156,13 +156,14 @@ contract MultiDFMM is IMultiCore {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
-        uint256 preLiquidity = pools[poolId].totalLiquidity;
-        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
+        _updatePoolGrowth(poolId, adjustedTotalLiquidity);
 
-        uint256 growth = pools[poolId].totalLiquidity.divWadDown(preLiquidity);
-        pools[poolId].feeGrowth = pools[poolId].feeGrowth.mulWadDown(growth);
+        (bool isSwapXForY,,, uint256 inputAmount, uint256 outputAmount) =
+            _settle(poolId, adjustedReserveX, adjustedReserveY);
 
-        _settle(poolId, adjustedReserveX, adjustedReserveY);
+        emit Swap(msg.sender, poolId, isSwapXForY, inputAmount, outputAmount);
+
+        return (inputAmount, outputAmount);
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.
@@ -271,6 +272,16 @@ contract MultiDFMM is IMultiCore {
         pools[poolId].reserveX = rx;
         pools[poolId].reserveY = ry;
         pools[poolId].totalLiquidity = L;
+    }
+
+    function _updatePoolGrowth(
+        uint256 poolId,
+        uint256 adjustedTotalLiquidity
+    ) internal {
+        uint256 preLiquidity = pools[poolId].totalLiquidity;
+        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
+        uint256 growth = pools[poolId].totalLiquidity.divWadDown(preLiquidity);
+        pools[poolId].feeGrowth = pools[poolId].feeGrowth.mulWadDown(growth);
     }
 
     // Lens
