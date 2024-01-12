@@ -5,10 +5,10 @@ import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 
 abstract contract MockStrategy is IStrategy {
-    IDFMM public immutable dfmm;
+    address public immutable dfmm;
 
     constructor(address dfmm_) {
-        dfmm = IDFMM(dfmm_);
+        dfmm = dfmm_;
     }
 
     function init(
