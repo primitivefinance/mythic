@@ -150,4 +150,6 @@ interface IDFMM {
         uint256 poolId,
         bytes calldata data
     ) external returns (uint256, uint256);
+
+    function update(uint256 poolId, bytes calldata data) external;
 }
