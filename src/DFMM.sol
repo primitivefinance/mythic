@@ -35,7 +35,7 @@ contract DFMM is IDFMM {
 
     /// @inheritdoc IDFMM
     function init(InitParams calldata params)
-        public
+        external
         lock
         returns (uint256, uint256, uint256, uint256)
     {
@@ -94,7 +94,7 @@ contract DFMM is IDFMM {
     function allocate(
         uint256 poolId,
         bytes calldata data
-    ) public lock initialized(poolId) returns (uint256, uint256, uint256) {
+    ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
         _updateBalance(poolId);
 
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
@@ -118,7 +118,7 @@ contract DFMM is IDFMM {
     function deallocate(
         uint256 poolId,
         bytes calldata data
-    ) public lock initialized(poolId) returns (uint256, uint256, uint256) {
+    ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
         _updateBalance(poolId);
 
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
@@ -145,7 +145,7 @@ contract DFMM is IDFMM {
     function swap(
         uint256 poolId,
         bytes calldata data
-    ) public lock initialized(poolId) returns (uint256, uint256) {
+    ) external lock initialized(poolId) returns (uint256, uint256) {
         (
             bool valid,
             int256 swapConstantGrowth,
@@ -173,7 +173,7 @@ contract DFMM is IDFMM {
     function update(
         uint256 poolId,
         bytes calldata data
-    ) public lock initialized(poolId) {
+    ) external lock initialized(poolId) {
         if (msg.sender != pools[poolId].controller) revert NotController();
         IStrategy(pools[poolId].strategy).update(poolId, data);
     }
@@ -298,16 +298,16 @@ contract DFMM is IDFMM {
 
     // Lens
 
-    function nonce() public view returns (uint256) {
+    function nonce() external view returns (uint256) {
         return pools.length;
     }
 
-    function getPool(uint256 poolId) public view returns (Pool memory) {
+    function getPool(uint256 poolId) external view returns (Pool memory) {
         return pools[poolId];
     }
 
     function getReservesAndLiquidity(uint256 poolId)
-        public
+        external
         view
         returns (uint256, uint256, uint256)
     {
