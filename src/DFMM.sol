@@ -16,9 +16,11 @@ contract DFMM is IDFMM {
     Pool[] public pools;
     uint256 private _locked = 1;
 
+    /// @inheritdoc IDFMM
     mapping(address account => mapping(uint256 poolId => uint256 balance))
         public balanceOf;
-    mapping(address account => mapping(uint256 poolId => uint256 balance))
+
+    mapping(address account => mapping(uint256 poolId => uint256 lastFeeGrowth))
         public lastFeeGrowthOf;
 
     modifier initialized(uint256 poolId) {
