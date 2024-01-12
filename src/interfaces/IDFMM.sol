@@ -43,6 +43,8 @@ interface IDFMM {
     /// @dev Thrown when the transfer of the output amount is invalid.
     error InvalidSwapOutputTransfer();
 
+    error NotController();
+
     // Events
 
     event LogPoolStats(

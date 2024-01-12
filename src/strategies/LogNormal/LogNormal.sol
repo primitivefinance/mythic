@@ -25,12 +25,12 @@ contract LogNormal is IStrategy {
         uint256 swapFee;
     }
 
-    IDFMM public dfmm;
+    address public dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
     constructor(address dfmm_) {
-        dfmm = IDFMM(dfmm_);
+        dfmm = dfmm_;
     }
 
     modifier onlyDFMM() {
@@ -135,7 +135,7 @@ contract LogNormal is IStrategy {
         LogNormParameters memory params = getPoolParams(poolId);
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
-            getReservesAndLiquidity(poolId);
+            IDFMM(dfmm).getReservesAndLiquidity(poolId);
 
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
@@ -166,6 +166,11 @@ contract LogNormal is IStrategy {
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 
+    function update(uint256 poolId, bytes calldata data) external onlyDFMM {
+        InternalParams memory params = abi.decode(data, (InternalParams));
+        internalParams[poolId] = params;
+    }
+
     function getPoolParams(uint256 poolId)
         public
         view
@@ -175,14 +180,6 @@ contract LogNormal is IStrategy {
         params.strike = internalParams[poolId].strike.actualized();
         params.tau = internalParams[poolId].tau.actualized();
         params.swapFee = internalParams[poolId].swapFee;
-    }
-
-    function getReservesAndLiquidity(uint256 poolId)
-        public
-        view
-        returns (uint256, uint256, uint256)
-    {
-        return dfmm.getReservesAndLiquidity(poolId);
     }
 
     /// @dev Computes the result of the tradingFunction().

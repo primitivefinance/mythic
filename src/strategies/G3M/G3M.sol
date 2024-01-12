@@ -19,12 +19,12 @@ contract G3M is IStrategy {
         uint256 swapFee;
     }
 
-    IDFMM public immutable dfmm;
+    address public immutable dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
     constructor(address dfmm_) {
-        dfmm = IDFMM(dfmm_);
+        dfmm = dfmm_;
     }
 
     // TODO: Move these errors into an interface
@@ -135,7 +135,7 @@ contract G3M is IStrategy {
         G3MParameters memory params = getPoolParams(poolId);
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
-            dfmm.getReservesAndLiquidity(poolId);
+            IDFMM(dfmm).getReservesAndLiquidity(poolId);
 
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
@@ -161,6 +161,11 @@ contract G3M is IStrategy {
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 
+    function update(uint256 poolId, bytes calldata data) external onlyDFMM {
+        InternalParams memory params = abi.decode(data, (InternalParams));
+        internalParams[poolId] = params;
+    }
+
     function getPoolParams(uint256 poolId)
         public
         view
@@ -182,14 +187,6 @@ contract G3M is IStrategy {
         return abi.encode(params);
     }
     */
-
-    function getReservesAndLiquidity(uint256 poolId)
-        public
-        view
-        returns (uint256, uint256, uint256)
-    {
-        return dfmm.getReservesAndLiquidity(poolId);
-    }
 
     /// @dev Computes the result of the tradingFunction().
     function computeSwapConstant(

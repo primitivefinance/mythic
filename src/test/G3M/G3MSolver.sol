@@ -3,13 +3,11 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
+import "../../interfaces/IDFMM.sol";
 import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/G3M/G3MExtendedLib.sol";
-import {
-    LogNormalStrategyLike,
-    G3MStrategyLike
-} from "../../interfaces/IStrategyLike.sol";
 import "../../interfaces/IStrategy.sol";
+import { G3MStrategyLike } from "../helpers/IStrategyLike.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;
@@ -44,7 +42,7 @@ contract G3MSolver {
         view
         returns (uint256, uint256, uint256)
     {
-        return IStrategy(strategy).getReservesAndLiquidity(poolId);
+        return IDFMM(IStrategy(strategy).dfmm()).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
@@ -132,7 +130,7 @@ contract G3MSolver {
         Reserves memory startReserves;
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
-            IStrategy(strategy).getReservesAndLiquidity(poolId);
+            getReservesAndLiquidity(poolId);
         G3MParameters memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
@@ -202,8 +200,7 @@ contract G3MSolver {
         returns (uint256 price)
     {
         G3MParameters memory params = getPoolParams(poolId);
-        (uint256 rx, uint256 ry,) =
-            IStrategy(strategy).getReservesAndLiquidity(poolId);
+        (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
     }
 }

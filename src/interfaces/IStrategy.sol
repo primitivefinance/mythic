@@ -45,13 +45,12 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
-    function getReservesAndLiquidity(uint256 poolId)
-        external
-        view
-        returns (uint256, uint256, uint256);
+    function update(uint256 poolId, bytes calldata data) external;
 
     function computeSwapConstant(
         uint256 poolId,
         bytes memory data
     ) external view returns (int256);
+
+    function dfmm() external view returns (address);
 }

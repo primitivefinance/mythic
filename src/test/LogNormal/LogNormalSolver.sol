@@ -6,8 +6,8 @@ import "solstat/Gaussian.sol";
 import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/LogNormal/LogNormalExtendedLib.sol";
 import "../../interfaces/IDFMM.sol";
-import "../../interfaces/IStrategyLike.sol";
 import "../../interfaces/IStrategy.sol";
+import "../helpers/IStrategyLike.sol";
 
 contract LogNormalSolver {
     using FixedPointMathLib for uint256;
@@ -42,7 +42,7 @@ contract LogNormalSolver {
         view
         returns (uint256, uint256, uint256)
     {
-        return IStrategy(strategy).getReservesAndLiquidity(poolId);
+        return IDFMM(IStrategy(strategy).dfmm()).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
