@@ -135,7 +135,24 @@ interface IDFMM {
         bytes calldata data
     ) external returns (uint256, uint256, uint256);
 
+    function swap(
+        uint256 poolId,
+        bytes calldata data
+    ) external returns (uint256, uint256);
+
+    function update(uint256 poolId, bytes calldata data) external;
+
     // Getters
+
+    function balanceOf(
+        address account,
+        uint256 poolId
+    ) external view returns (uint256 balance);
+
+    function lastFeeGrowthOf(
+        address account,
+        uint256 poolId
+    ) external view returns (uint256 lastFeeGrowth);
 
     function getReservesAndLiquidity(uint256 poolId)
         external
@@ -146,10 +163,18 @@ interface IDFMM {
             uint256 totalLiquidity
         );
 
-    function swap(
-        uint256 poolId,
-        bytes calldata data
-    ) external returns (uint256, uint256);
-
-    function update(uint256 poolId, bytes calldata data) external;
+    function pools(uint256 poolId)
+        external
+        view
+        returns (
+            bool inited,
+            address controller,
+            address strategy,
+            address tokenX,
+            address tokenY,
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity,
+            uint256 feeGrowth
+        );
 }
