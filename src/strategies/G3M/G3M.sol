@@ -3,90 +3,37 @@ pragma solidity ^0.8.13;
 
 import "../../interfaces/IMultiCore.sol";
 import "../../interfaces/IMultiStrategy.sol";
+import "../../lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
+
+struct G3MInternalParams {
+    DynamicParam wX;
+    uint256 swapFee;
+}
 
 /**
  * @notice Geometric Mean Market Maker.
  */
-struct WeightX {
-    uint256 target;
-    uint256 last;
-    uint256 updateEnd;
-    uint256 updatePerSecond;
-    uint256 lastSync;
-}
-
 contract G3M is IMultiStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
+    using DynamicParamLib for DynamicParam;
 
     IMultiCore public immutable core;
 
-    mapping(uint256 => G3MParameters) public slots;
-    mapping(uint256 => WeightX) public weights;
+    mapping(uint256 => G3MInternalParams) public internalParams;
 
     constructor(address _core) {
         core = IMultiCore(_core);
     }
 
+    // TODO: Move these errors into an interface
+    error NotCore();
+    error InvalidWeightX();
+
     modifier onlyCore() {
-        // require(msg.sender == address(core), "only core");
+        // if (msg.sender != address(core)) revert NotCore();
         _;
-    }
-
-    /// @dev Returns the original parameters that were used to initialize the pool.
-    function staticSlot(uint256 poolId)
-        public
-        view
-        returns (G3MParameters memory)
-    {
-        return slots[poolId];
-    }
-
-    /// @dev Slot holds out parameters, these return the dyanmic parameters.
-    function dynamicSlot(uint256 poolId) public view returns (bytes memory) {
-        return abi.encode(weightX(poolId), weightY(poolId));
-    }
-
-    function dynamicSlotInternal(uint256 poolId)
-        public
-        view
-        returns (G3MParameters memory params)
-    {
-        params.wx = weightX(poolId);
-        params.wy = weightY(poolId);
-        params.swapFee = slots[poolId].swapFee;
-    }
-
-    function getReservesAndLiquidity(uint256 poolId)
-        public
-        view
-        returns (uint256, uint256, uint256)
-    {
-        return core.getReservesAndLiquidity(poolId);
-    }
-
-    function _syncDynamicSlot(uint256 poolId) internal {
-        G3MParameters memory params = slots[poolId];
-
-        WeightX memory weight;
-
-        weight.target = params.wx;
-        weight.last = params.wx;
-        weight.updateEnd = block.timestamp;
-        weight.lastSync = block.timestamp;
-
-        weights[poolId] = weight;
-    }
-
-    /// @dev Computes the result of the tradingFunction().
-    function computeSwapConstant(
-        uint256 poolId,
-        bytes memory data
-    ) public view returns (int256) {
-        (uint256 rx, uint256 ry, uint256 L) =
-            abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction(rx, ry, L, dynamicSlotInternal(poolId));
     }
 
     /// @dev Decodes and validates pool initialization parameters.
@@ -100,22 +47,75 @@ contract G3M is IMultiStrategy {
         returns (
             bool valid,
             int256 invariant,
-            uint256 rx,
-            uint256 ry,
-            uint256 L
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity
         )
     {
-        (rx, ry, L, slots[poolId]) =
-            abi.decode(data, (uint256, uint256, uint256, G3MParameters));
+        (valid, invariant, reserveX, reserveY, totalLiquidity,,) =
+            _decodeInit(poolId, data);
+    }
 
-        require(slots[poolId].wx + slots[poolId].wy == ONE, "Invalid weights");
+    function _decodeInit(
+        uint256 poolId,
+        bytes calldata data
+    )
+        private
+        returns (
+            bool valid,
+            int256 invariant,
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity,
+            uint256 wX,
+            uint256 swapFee
+        )
+    {
+        (reserveX, reserveY, totalLiquidity, wX, swapFee) =
+            abi.decode(data, (uint256, uint256, uint256, uint256, uint256));
 
-        _syncDynamicSlot(poolId);
+        if (wX >= ONE) {
+            revert InvalidWeightX();
+        }
 
-        invariant = tradingFunction(rx, ry, L, dynamicSlotInternal(poolId));
+        internalParams[poolId].wX.lastComputedValue = wX;
+        internalParams[poolId].wX.lastUpdateAt = block.timestamp;
+        internalParams[poolId].swapFee = swapFee;
+
+        invariant = tradingFunction(
+            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+        );
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
+    }
+
+    function getPoolParams(uint256 poolId)
+        public
+        view
+        returns (G3MParameters memory params)
+    {
+        params.wX = internalParams[poolId].wX.actualized();
+        params.wY = ONE - params.wX;
+        params.swapFee = internalParams[poolId].swapFee;
+    }
+
+    function getReservesAndLiquidity(uint256 poolId)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return core.getReservesAndLiquidity(poolId);
+    }
+
+    /// @dev Computes the result of the tradingFunction().
+    function computeSwapConstant(
+        uint256 poolId,
+        bytes memory data
+    ) public view returns (int256) {
+        (uint256 rx, uint256 ry, uint256 L) =
+            abi.decode(data, (uint256, uint256, uint256));
+        return tradingFunction(rx, ry, L, getPoolParams(poolId));
     }
 
     function validateAllocateOrDeallocate(
@@ -128,19 +128,17 @@ contract G3M is IMultiStrategy {
         returns (
             bool valid,
             int256 invariant,
-            uint256 rx,
-            uint256 ry,
-            uint256 L
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity
         )
     {
-        (rx, ry, L) = abi.decode(data, (uint256, uint256, uint256));
+        (reserveX, reserveY, totalLiquidity) =
+            abi.decode(data, (uint256, uint256, uint256));
 
-        invariant = tradingFunction({
-            rx: rx,
-            ry: ry,
-            L: L,
-            params: dynamicSlotInternal(poolId)
-        });
+        invariant = tradingFunction(
+            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+        );
 
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
@@ -162,16 +160,17 @@ contract G3M is IMultiStrategy {
             uint256 nextL
         )
     {
-        G3MParameters memory params = slots[poolId];
+        G3MParameters memory params = getPoolParams(poolId);
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
-            getReservesAndLiquidity(poolId);
+            core.getReservesAndLiquidity(poolId);
 
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
-        uint256 minLiquidityDelta;
         uint256 amountIn;
         uint256 fees;
+        uint256 minLiquidityDelta;
+
         if (nextRx > startRx) {
             amountIn = nextRx - startRx;
             fees = amountIn.mulWadUp(params.swapFee);
@@ -185,31 +184,8 @@ contract G3M is IMultiStrategy {
         }
 
         liquidityDelta = int256(nextL) - int256(startL);
-
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
-
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
-
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
-    }
-
-    function weightX(uint256 poolId) public view returns (uint256) {
-        WeightX memory weight = weights[poolId];
-        if (block.timestamp >= weight.updateEnd) {
-            return weight.target;
-        }
-
-        uint256 timeElapsed = block.timestamp - weight.lastSync;
-        uint256 weightXDelta = timeElapsed * weight.updatePerSecond;
-
-        if (weight.last > weight.target) {
-            return weight.last - weightXDelta;
-        } else {
-            return weight.last + weightXDelta;
-        }
-    }
-
-    function weightY(uint256 poolId) public view returns (uint256) {
-        return 1 ether - weightX(poolId);
     }
 }

@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import "solmate/utils/FixedPointMathLib.sol";
 
+struct DynamicParam {
+    uint256 lastComputedValue;
+    uint256 updateEnd;
+    uint256 lastUpdateAt;
+    int256 updatePerSecond;
+}
+
 library DynamicParamLib {
     using FixedPointMathLib for uint256;
-
-    struct DynamicParam {
-        uint256 lastComputedValue;
-        uint256 updateEnd;
-        uint256 lastUpdateAt;
-        int256 updatePerSecond;
-    }
 
     function actualized(DynamicParam memory param)
         internal

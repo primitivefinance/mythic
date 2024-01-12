@@ -73,8 +73,8 @@ contract MultiDFMMTest is Test {
     modifier basic() {
         vm.warp(0);
         G3MParameters memory g3mParams = G3MParameters({
-            wx: 0.5 ether,
-            wy: 0.5 ether,
+            wX: 0.5 ether,
+            wY: 0.5 ether,
             swapFee: TEST_SWAP_FEE
         });
         uint256 init_p = ONE;

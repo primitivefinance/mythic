@@ -5,7 +5,11 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/G3M/G3MExtendedLib.sol";
-import "../../interfaces/IStrategyLike.sol";
+import {
+    LogNormalStrategyLike,
+    G3MStrategyLike
+} from "../../interfaces/IStrategyLike.sol";
+import "../../interfaces/IMultiStrategy.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;
@@ -25,7 +29,7 @@ contract G3MSolver {
         view
         returns (G3MParameters memory)
     {
-        return G3MStrategyLike(strategy).dynamicSlotInternal(poolId);
+        return G3MStrategyLike(strategy).getPoolParams(poolId);
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -33,7 +37,7 @@ contract G3MSolver {
         view
         returns (uint256, uint256, uint256)
     {
-        return IStrategyLike(strategy).getReservesAndLiquidity(poolId);
+        return IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
@@ -121,7 +125,7 @@ contract G3MSolver {
         Reserves memory startReserves;
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
-            IStrategyLike(strategy).getReservesAndLiquidity(poolId);
+            IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
         G3MParameters memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
@@ -130,7 +134,7 @@ contract G3MSolver {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 weightedPrice = uint256(
                     int256(startReserves.ry.divWadUp(startReserves.rx)).powWad(
-                        int256(poolParams.wy)
+                        int256(poolParams.wY)
                     )
                 );
                 uint256 deltaL = fees.mulWadUp(weightedPrice);
@@ -152,7 +156,7 @@ contract G3MSolver {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 weightedPrice = uint256(
                     int256(startReserves.rx.divWadUp(startReserves.ry)).powWad(
-                        int256(poolParams.wx)
+                        int256(poolParams.wX)
                     )
                 );
                 uint256 deltaL = fees.mulWadUp(weightedPrice);
@@ -176,7 +180,7 @@ contract G3MSolver {
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
         (bool valid,,,,,) =
-            IStrategyLike(strategy).validateSwap(poolId, swapData);
+            IMultiStrategy(strategy).validateSwap(poolId, swapData);
         return (
             valid,
             amountOut,
@@ -193,7 +197,7 @@ contract G3MSolver {
     {
         G3MParameters memory params = getPoolParams(poolId);
         (uint256 rx, uint256 ry,) =
-            IStrategyLike(strategy).getReservesAndLiquidity(poolId);
+            IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
     }
 }

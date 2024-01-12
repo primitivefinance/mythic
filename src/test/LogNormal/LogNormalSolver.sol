@@ -7,6 +7,7 @@ import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/LogNormal/LogNormalExtendedLib.sol";
 import "../../interfaces/IMultiCore.sol";
 import "../../interfaces/IStrategyLike.sol";
+import "../../interfaces/IMultiStrategy.sol";
 
 contract LogNormalSolver {
     using FixedPointMathLib for uint256;
@@ -26,7 +27,7 @@ contract LogNormalSolver {
         view
         returns (LogNormParameters memory)
     {
-        return LogNormalStrategyLike(strategy).dynamicSlotInternal(poolId);
+        return LogNormalStrategyLike(strategy).getPoolParams(poolId);
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -34,7 +35,7 @@ contract LogNormalSolver {
         view
         returns (uint256, uint256, uint256)
     {
-        return IStrategyLike(strategy).getReservesAndLiquidity(poolId);
+        return IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
@@ -97,7 +98,7 @@ contract LogNormalSolver {
     ) public view returns (uint256) {
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant =
-            IStrategyLike(strategy).computeSwapConstant(poolId, data);
+            IMultiStrategy(strategy).computeSwapConstant(poolId, data);
         return computeNextLiquidity(rx, ry, invariant, L, getPoolParams(poolId));
     }
 
@@ -109,7 +110,7 @@ contract LogNormalSolver {
         (uint256 rx,,) = getReservesAndLiquidity(poolId);
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant =
-            IStrategyLike(strategy).computeSwapConstant(poolId, data);
+            IMultiStrategy(strategy).computeSwapConstant(poolId, data);
         return computeNextRx(ry, L, invariant, rx, getPoolParams(poolId));
     }
 
@@ -121,7 +122,7 @@ contract LogNormalSolver {
         (, uint256 ry,) = getReservesAndLiquidity(poolId);
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant =
-            IStrategyLike(strategy).computeSwapConstant(poolId, data);
+            IMultiStrategy(strategy).computeSwapConstant(poolId, data);
         return computeNextRy(rx, L, invariant, ry, getPoolParams(poolId));
     }
 
@@ -185,7 +186,7 @@ contract LogNormalSolver {
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
         (bool valid,,,,,) =
-            IStrategyLike(strategy).validateSwap(poolId, swapData);
+            IMultiStrategy(strategy).validateSwap(poolId, swapData);
         return (
             valid,
             amountOut,

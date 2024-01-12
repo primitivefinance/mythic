@@ -44,4 +44,14 @@ interface IMultiStrategy {
             uint256 reserveY,
             uint256 totalLiquidity
         );
+
+    function getReservesAndLiquidity(uint256 poolId)
+        external
+        view
+        returns (uint256, uint256, uint256);
+
+    function computeSwapConstant(
+        uint256 poolId,
+        bytes memory data
+    ) external view returns (int256);
 }

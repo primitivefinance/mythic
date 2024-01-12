@@ -41,8 +41,8 @@ contract G3MTest is Test {
     modifier basic() {
         vm.warp(0);
         G3MParameters memory params = G3MParameters({
-            wx: 0.5 ether,
-            wy: 0.5 ether,
+            wX: 0.5 ether,
+            wY: 0.5 ether,
             swapFee: TEST_SWAP_FEE
         });
         uint256 init_p = ONE;
@@ -59,27 +59,6 @@ contract G3MTest is Test {
 
         dfmm.init(initParams);
         _;
-    }
-
-    function test_G3M_init() public {
-        G3MParameters memory params = G3MParameters({
-            wx: 0.5 ether,
-            wy: 0.5 ether,
-            swapFee: TEST_SWAP_FEE
-        });
-        uint256 init_p = ONE;
-        uint256 init_x = ONE;
-        bytes memory initData =
-            solver.getInitialPoolData(init_x, init_p, params);
-
-        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
-            strategy: address(g3m),
-            tokenX: tokenX,
-            tokenY: tokenY,
-            data: initData
-        });
-
-        dfmm.init(initParams);
     }
 
     // function test_g3m_swap_x_in() public basic {
