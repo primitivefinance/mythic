@@ -19,6 +19,13 @@ contract G3M is IStrategy {
         uint256 swapFee;
     }
 
+    /// @dev Parameterization of the G3M curve.
+    struct PublicParams {
+        uint256 wX;
+        uint256 wY;
+        uint256 swapFee;
+    }
+
     address public immutable dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
@@ -83,7 +90,10 @@ contract G3M is IStrategy {
         internalParams[poolId].swapFee = swapFee;
 
         invariant = tradingFunction(
-            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+            reserveX,
+            reserveY,
+            totalLiquidity,
+            abi.decode(getPoolParams(poolId), (PublicParams))
         );
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
@@ -109,7 +119,10 @@ contract G3M is IStrategy {
             abi.decode(data, (uint256, uint256, uint256));
 
         invariant = tradingFunction(
-            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+            reserveX,
+            reserveY,
+            totalLiquidity,
+            abi.decode(getPoolParams(poolId), (PublicParams))
         );
 
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -132,7 +145,8 @@ contract G3M is IStrategy {
             uint256 nextL
         )
     {
-        G3MParameters memory params = getPoolParams(poolId);
+        PublicParams memory params =
+            abi.decode(getPoolParams(poolId), (PublicParams));
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             IDFMM(dfmm).getReservesAndLiquidity(poolId);
@@ -166,19 +180,8 @@ contract G3M is IStrategy {
         internalParams[poolId] = params;
     }
 
-    function getPoolParams(uint256 poolId)
-        public
-        view
-        returns (G3MParameters memory params)
-    {
-        params.wX = internalParams[poolId].wX.actualized();
-        params.wY = ONE - params.wX;
-        params.swapFee = internalParams[poolId].swapFee;
-    }
-
-    /*
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
-        G3MParameters memory params;
+        PublicParams memory params;
 
         params.wX = internalParams[poolId].wX.actualized();
         params.wY = ONE - params.wX;
@@ -186,7 +189,6 @@ contract G3M is IStrategy {
 
         return abi.encode(params);
     }
-    */
 
     /// @dev Computes the result of the tradingFunction().
     function computeSwapConstant(
@@ -195,6 +197,8 @@ contract G3M is IStrategy {
     ) public view returns (int256) {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction(rx, ry, L, getPoolParams(poolId));
+        return tradingFunction(
+            rx, ry, L, abi.decode(getPoolParams(poolId), (PublicParams))
+        );
     }
 }

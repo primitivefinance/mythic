@@ -7,7 +7,6 @@ import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/LogNormal/LogNormalExtendedLib.sol";
 import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
-import "../helpers/IStrategyLike.sol";
 
 contract LogNormalSolver {
     using FixedPointMathLib for uint256;
@@ -32,9 +31,11 @@ contract LogNormalSolver {
     function getPoolParams(uint256 poolId)
         public
         view
-        returns (LogNormParameters memory)
+        returns (LogNormal.PublicParams memory)
     {
-        return LogNormalStrategyLike(strategy).getPoolParams(poolId);
+        return abi.decode(
+            IStrategy(strategy).getPoolParams(poolId), (LogNormal.PublicParams)
+        );
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -48,7 +49,7 @@ contract LogNormalSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        LogNormParameters memory params
+        LogNormal.PublicParams memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -140,7 +141,7 @@ contract LogNormalSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             getReservesAndLiquidity(poolId);
-        LogNormParameters memory poolParams = getPoolParams(poolId);
+        LogNormal.PublicParams memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
         {
@@ -210,7 +211,7 @@ contract LogNormalSolver {
         view
         returns (uint256 price)
     {
-        LogNormParameters memory params = getPoolParams(poolId);
+        LogNormal.PublicParams memory params = getPoolParams(poolId);
         (uint256 rx,, uint256 L) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, L, params.strike, params.sigma, params.tau);
     }

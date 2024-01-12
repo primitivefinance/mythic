@@ -53,4 +53,9 @@ interface IStrategy {
     ) external view returns (int256);
 
     function dfmm() external view returns (address);
+
+    function getPoolParams(uint256 poolId)
+        external
+        view
+        returns (bytes calldata params);
 }

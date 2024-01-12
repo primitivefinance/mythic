@@ -25,6 +25,14 @@ contract LogNormal is IStrategy {
         uint256 swapFee;
     }
 
+    /// @dev Parameterization of the Log Normal curve.
+    struct PublicParams {
+        uint256 strike;
+        uint256 sigma;
+        uint256 tau;
+        uint256 swapFee;
+    }
+
     address public dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
@@ -72,11 +80,11 @@ contract LogNormal is IStrategy {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity,
-            LogNormParameters memory params
+            PublicParams memory params
         )
     {
         (reserveX, reserveY, totalLiquidity, params) =
-            abi.decode(data, (uint256, uint256, uint256, LogNormParameters));
+            abi.decode(data, (uint256, uint256, uint256, PublicParams));
 
         internalParams[poolId].sigma.lastComputedValue = params.sigma;
         internalParams[poolId].tau.lastComputedValue = params.tau;
@@ -84,7 +92,10 @@ contract LogNormal is IStrategy {
         internalParams[poolId].swapFee = params.swapFee;
 
         invariant = tradingFunction(
-            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+            reserveX,
+            reserveY,
+            totalLiquidity,
+            abi.decode(getPoolParams(poolId), (PublicParams))
         );
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -109,7 +120,10 @@ contract LogNormal is IStrategy {
             abi.decode(data, (uint256, uint256, uint256));
 
         invariant = tradingFunction(
-            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+            reserveX,
+            reserveY,
+            totalLiquidity,
+            abi.decode(getPoolParams(poolId), (PublicParams))
         );
 
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -132,7 +146,8 @@ contract LogNormal is IStrategy {
             uint256 nextL
         )
     {
-        LogNormParameters memory params = getPoolParams(poolId);
+        PublicParams memory params =
+            abi.decode(getPoolParams(poolId), (PublicParams));
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             IDFMM(dfmm).getReservesAndLiquidity(poolId);
@@ -171,15 +186,15 @@ contract LogNormal is IStrategy {
         internalParams[poolId] = params;
     }
 
-    function getPoolParams(uint256 poolId)
-        public
-        view
-        returns (LogNormParameters memory params)
-    {
+    function getPoolParams(uint256 poolId) public view returns (bytes memory) {
+        PublicParams memory params;
+
         params.sigma = internalParams[poolId].sigma.actualized();
         params.strike = internalParams[poolId].strike.actualized();
         params.tau = internalParams[poolId].tau.actualized();
         params.swapFee = internalParams[poolId].swapFee;
+
+        return abi.encode(params);
     }
 
     /// @dev Computes the result of the tradingFunction().
@@ -190,7 +205,10 @@ contract LogNormal is IStrategy {
         (uint256 reserveX, uint256 reserveY, uint256 totalLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction(
-            reserveX, reserveY, totalLiquidity, getPoolParams(poolId)
+            reserveX,
+            reserveY,
+            totalLiquidity,
+            abi.decode(getPoolParams(poolId), (PublicParams))
         );
     }
 }

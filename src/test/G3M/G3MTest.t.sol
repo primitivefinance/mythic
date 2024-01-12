@@ -40,7 +40,7 @@ contract G3MTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        G3MParameters memory params = G3MParameters({
+        G3M.PublicParams memory params = G3M.PublicParams({
             wX: 0.5 ether,
             wY: 0.5 ether,
             swapFee: TEST_SWAP_FEE

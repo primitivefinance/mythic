@@ -48,7 +48,7 @@ contract MultiDFMMTest is Test {
 
     modifier realisticEth() {
         vm.warp(0);
-        LogNormParameters memory params = LogNormParameters({
+        LogNormal.PublicParams memory params = LogNormal.PublicParams({
             strike: ONE * 2300,
             sigma: ONE,
             tau: ONE,
@@ -72,7 +72,7 @@ contract MultiDFMMTest is Test {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        G3MParameters memory g3mParams = G3MParameters({
+        G3M.PublicParams memory g3mParams = G3M.PublicParams({
             wX: 0.5 ether,
             wY: 0.5 ether,
             swapFee: TEST_SWAP_FEE
@@ -80,7 +80,7 @@ contract MultiDFMMTest is Test {
         uint256 init_p = ONE;
         uint256 init_x = ONE;
 
-        LogNormParameters memory logNormParams = LogNormParameters({
+        LogNormal.PublicParams memory logNormParams = LogNormal.PublicParams({
             strike: ONE,
             sigma: ONE,
             tau: ONE,

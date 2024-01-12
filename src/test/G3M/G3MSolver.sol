@@ -7,7 +7,6 @@ import "../../interfaces/IDFMM.sol";
 import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/G3M/G3MExtendedLib.sol";
 import "../../interfaces/IStrategy.sol";
-import { G3MStrategyLike } from "../helpers/IStrategyLike.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;
@@ -32,9 +31,11 @@ contract G3MSolver {
     function getPoolParams(uint256 poolId)
         public
         view
-        returns (G3MParameters memory)
+        returns (G3M.PublicParams memory)
     {
-        return G3MStrategyLike(strategy).getPoolParams(poolId);
+        return abi.decode(
+            IStrategy(strategy).getPoolParams(poolId), (G3M.PublicParams)
+        );
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -48,7 +49,7 @@ contract G3MSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        G3MParameters memory params
+        G3M.PublicParams memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -131,7 +132,7 @@ contract G3MSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             getReservesAndLiquidity(poolId);
-        G3MParameters memory poolParams = getPoolParams(poolId);
+        G3M.PublicParams memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
         {
@@ -199,7 +200,7 @@ contract G3MSolver {
         view
         returns (uint256 price)
     {
-        G3MParameters memory params = getPoolParams(poolId);
+        G3M.PublicParams memory params = getPoolParams(poolId);
         (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
     }

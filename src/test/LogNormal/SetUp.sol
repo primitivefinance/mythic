@@ -11,7 +11,7 @@ contract LogNormalSetUp is SetUp {
 
     uint256 public POOL_ID;
 
-    LogNormParameters defaultParams = LogNormParameters({
+    LogNormal.PublicParams defaultParams = LogNormal.PublicParams({
         strike: ONE,
         sigma: ONE,
         tau: ONE,
