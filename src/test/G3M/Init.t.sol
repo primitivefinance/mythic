@@ -15,7 +15,7 @@ contract G3MInitTest is G3MSetUp {
             uint256 reserveY,
             uint256 totalLiquidity,
             uint256 feeGrowth
-        ) = dfmm.pools(G3M_POOL_ID);
+        ) = dfmm.pools(POOL_ID);
 
         assertEq(inited, true);
         assertEq(controller, address(this));

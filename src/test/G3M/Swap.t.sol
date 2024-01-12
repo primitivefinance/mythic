@@ -15,10 +15,10 @@ contract G3MSwapTest is G3MSetUp {
         bool swapXForY = true;
 
         (bool valid,,, bytes memory payload) =
-            solver.simulateSwap(G3M_POOL_ID, swapXForY, amountIn);
+            solver.simulateSwap(POOL_ID, swapXForY, amountIn);
         assertEq(valid, true);
         (uint256 inputAmount, uint256 outputAmount) =
-            dfmm.swap(G3M_POOL_ID, payload);
+            dfmm.swap(POOL_ID, payload);
 
         assertEq(tokenX.balanceOf(address(dfmm)), preDfmmBalanceX + inputAmount);
         assertEq(
@@ -42,10 +42,10 @@ contract G3MSwapTest is G3MSetUp {
         bool swapXForY = false;
 
         (bool valid,,, bytes memory payload) =
-            solver.simulateSwap(G3M_POOL_ID, swapXForY, amountIn);
+            solver.simulateSwap(POOL_ID, swapXForY, amountIn);
         assertEq(valid, true);
         (uint256 inputAmount, uint256 outputAmount) =
-            dfmm.swap(G3M_POOL_ID, payload);
+            dfmm.swap(POOL_ID, payload);
 
         assertEq(tokenY.balanceOf(address(dfmm)), preDfmmBalanceX + inputAmount);
         assertEq(
