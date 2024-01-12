@@ -6,7 +6,7 @@ import "solmate/utils/FixedPointMathLib.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "solstat/Units.sol";
 import "./interfaces/IMultiCore.sol";
-import "./interfaces/IMultiStrategy.sol";
+import "./interfaces/IStrategy.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
@@ -46,7 +46,7 @@ contract DFMM is IMultiCore {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity
-        ) = IMultiStrategy(params.strategy).init(pools.length, params.data);
+        ) = IStrategy(params.strategy).init(pools.length, params.data);
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
@@ -150,7 +150,7 @@ contract DFMM is IMultiCore {
             uint256 adjustedReserveX,
             uint256 adjustedReserveY,
             uint256 adjustedTotalLiquidity
-        ) = IMultiStrategy(pools[poolId].strategy).validateSwap(poolId, data);
+        ) = IStrategy(pools[poolId].strategy).validateSwap(poolId, data);
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
@@ -251,7 +251,7 @@ contract DFMM is IMultiCore {
         bytes calldata data
     ) internal returns (uint256 deltaX, uint256 deltaY, uint256 deltaL) {
         (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-        IMultiStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
+        IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
             poolId, data
         );
 

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "../../interfaces/IMultiCore.sol";
-import "../../interfaces/IMultiStrategy.sol";
+import "../../interfaces/IStrategy.sol";
 
-abstract contract MockStrategy is IMultiStrategy {
+abstract contract MockStrategy is IStrategy {
     IMultiCore public immutable core;
 
     constructor(address _core) {

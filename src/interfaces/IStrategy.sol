@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 /// @dev Contract that holds the strategy parameterization and validation function.
-interface IMultiStrategy {
+interface IStrategy {
     function init(
         uint256 poolId,
         bytes calldata data

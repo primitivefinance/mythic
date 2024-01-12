@@ -9,7 +9,7 @@ import {
     LogNormalStrategyLike,
     G3MStrategyLike
 } from "../../interfaces/IStrategyLike.sol";
-import "../../interfaces/IMultiStrategy.sol";
+import "../../interfaces/IStrategy.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;
@@ -44,7 +44,7 @@ contract G3MSolver {
         view
         returns (uint256, uint256, uint256)
     {
-        return IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
+        return IStrategy(strategy).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
@@ -132,7 +132,7 @@ contract G3MSolver {
         Reserves memory startReserves;
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
-            IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
+            IStrategy(strategy).getReservesAndLiquidity(poolId);
         G3MParameters memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
@@ -186,8 +186,7 @@ contract G3MSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-        (bool valid,,,,,) =
-            IMultiStrategy(strategy).validateSwap(poolId, swapData);
+        (bool valid,,,,,) = IStrategy(strategy).validateSwap(poolId, swapData);
         return (
             valid,
             amountOut,
@@ -204,7 +203,7 @@ contract G3MSolver {
     {
         G3MParameters memory params = getPoolParams(poolId);
         (uint256 rx, uint256 ry,) =
-            IMultiStrategy(strategy).getReservesAndLiquidity(poolId);
+            IStrategy(strategy).getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
     }
 }

@@ -2,14 +2,14 @@
 pragma solidity ^0.8.13;
 
 import "../../interfaces/IMultiCore.sol";
-import "../../interfaces/IMultiStrategy.sol";
+import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
  */
-contract G3M is IMultiStrategy {
+contract G3M is IStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
     using DynamicParamLib for DynamicParam;

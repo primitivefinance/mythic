@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../../interfaces/IMultiCore.sol";
-import "../../interfaces/IMultiStrategy.sol";
+import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./LogNormalLib.sol";
 
@@ -13,7 +13,7 @@ import "./LogNormalLib.sol";
 ///
 /// Swaps are validated by the trading function:
 /// Gaussian.ppf(x / L) + Gaussian.ppf(y / KL) = -sigma * sqrt(tau)
-contract LogNormal is IMultiStrategy {
+contract LogNormal is IStrategy {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
     using DynamicParamLib for DynamicParam;
