@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../../MultiDFMM.sol";
+import "../../DFMM.sol";
 import "../../strategies/LogNormal/LogNormal.sol";
 import "../../strategies/G3M/G3M.sol";
 import "../helpers/Lex.sol";
@@ -13,7 +13,7 @@ import "../G3M/G3MSolver.sol";
 contract MultiDFMMTest is Test {
     using stdStorage for StdStorage;
 
-    MultiDFMM dfmm;
+    DFMM dfmm;
     LogNormal logNormal;
     LogNormalSolver logNormSolver;
     G3M g3m;
@@ -35,7 +35,7 @@ contract MultiDFMMTest is Test {
 
         lex = new Lex(tokenX, tokenY, ONE);
 
-        dfmm = new MultiDFMM();
+        dfmm = new DFMM();
 
         logNormal = new LogNormal(address(dfmm));
         logNormSolver = new LogNormalSolver(address(logNormal));

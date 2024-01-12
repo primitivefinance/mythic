@@ -28,7 +28,7 @@ contract G3MSetUp is SetUp {
         tokenY.mint(address(this), 100e18);
 
         lex = new Lex(address(tokenX), address(tokenY), ONE);
-        dfmm = new MultiDFMM();
+        dfmm = new DFMM();
         g3m = new G3M(address(dfmm));
         solver = new G3MSolver(address(g3m));
 

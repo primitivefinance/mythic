@@ -33,7 +33,7 @@ contract LogNormalSetUp is SetUp {
         tokenY.mint(address(this), 100e18);
 
         lex = new Lex(address(tokenX), address(tokenY), ONE);
-        dfmm = new MultiDFMM();
+        dfmm = new DFMM();
         logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
 

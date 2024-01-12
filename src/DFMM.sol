@@ -8,9 +8,9 @@ import "solstat/Units.sol";
 import "./interfaces/IMultiCore.sol";
 import "./interfaces/IMultiStrategy.sol";
 
-/// @title MultiDFMM
+/// @title DFMM
 /// @notice Dynamic Function Market Maker
-contract MultiDFMM is IMultiCore {
+contract DFMM is IMultiCore {
     using FixedPointMathLib for uint256;
 
     Pool[] public pools;

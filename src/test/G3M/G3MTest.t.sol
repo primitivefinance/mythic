@@ -6,14 +6,14 @@ import "forge-std/console2.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 
 import "../../strategies/G3M/G3M.sol";
-import "../../MultiDFMM.sol";
+import "../../DFMM.sol";
 import "../helpers/Lex.sol";
 import "./G3MSolver.sol";
 
 contract G3MTest is Test {
     using stdStorage for StdStorage;
 
-    MultiDFMM dfmm;
+    DFMM dfmm;
     G3M g3m;
     G3MSolver solver;
     address tokenX;
@@ -29,7 +29,7 @@ contract G3MTest is Test {
         MockERC20(tokenY).mint(address(this), 100e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
-        dfmm = new MultiDFMM();
+        dfmm = new DFMM();
         g3m = new G3M(address(dfmm));
         solver = new G3MSolver(address(dfmm));
 
