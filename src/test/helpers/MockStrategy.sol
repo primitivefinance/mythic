@@ -55,10 +55,4 @@ abstract contract MockStrategy is IStrategy {
             uint256 totalLiquidity
         )
     { }
-
-    function dynamicSlot(uint256 poolId)
-        external
-        view
-        returns (bytes memory data)
-    { }
 }
