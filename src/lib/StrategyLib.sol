@@ -15,13 +15,6 @@ uint256 constant ZERO = 0;
 /// @dev the swap constant should never fall outside of range [-EPSILON, EPSILON]
 int256 constant EPSILON = 10;
 
-/// @dev Structure to hold reserve information
-struct Reserves {
-    uint256 rx;
-    uint256 ry;
-    uint256 L;
-}
-
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 

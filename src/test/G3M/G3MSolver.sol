@@ -15,6 +15,13 @@ contract G3MSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
+    /// @dev Structure to hold reserve information
+    struct Reserves {
+        uint256 rx;
+        uint256 ry;
+        uint256 L;
+    }
+
     uint256 public constant BISECTION_EPSILON = 1;
     uint256 public constant MAX_BISECTION_ITERS = 90;
 
