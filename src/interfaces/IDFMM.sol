@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 /// @dev Contract that holds the reserve and liquidity state.
-interface IMultiCore {
+interface IDFMM {
     // Structs
 
     struct Pool {

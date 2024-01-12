@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IMultiCore.sol";
+import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 
 abstract contract MockStrategy is IStrategy {
-    IMultiCore public immutable core;
+    IDFMM public immutable dfmm;
 
-    constructor(address _core) {
-        core = IMultiCore(_core);
+    constructor(address dfmm_) {
+        dfmm = IDFMM(dfmm_);
     }
 
     function init(

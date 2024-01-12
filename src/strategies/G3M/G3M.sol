@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IMultiCore.sol";
+import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
@@ -19,20 +19,20 @@ contract G3M is IStrategy {
         uint256 swapFee;
     }
 
-    IMultiCore public immutable core;
+    IDFMM public immutable dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
-    constructor(address _core) {
-        core = IMultiCore(_core);
+    constructor(address dfmm_) {
+        dfmm = IDFMM(dfmm_);
     }
 
     // TODO: Move these errors into an interface
     error NotCore();
     error InvalidWeightX();
 
-    modifier onlyCore() {
-        // if (msg.sender != address(core)) revert NotCore();
+    modifier onlyDFMM() {
+        // if (msg.sender != address(dfmm)) revert NotCore();
         _;
     }
 
@@ -43,7 +43,7 @@ contract G3M is IStrategy {
         bytes calldata data
     )
         public
-        onlyCore
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -96,7 +96,7 @@ contract G3M is IStrategy {
     )
         public
         view
-        onlyCore
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -122,7 +122,7 @@ contract G3M is IStrategy {
     )
         public
         view
-        onlyCore
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -135,7 +135,7 @@ contract G3M is IStrategy {
         G3MParameters memory params = getPoolParams(poolId);
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
-            core.getReservesAndLiquidity(poolId);
+            dfmm.getReservesAndLiquidity(poolId);
 
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
@@ -188,7 +188,7 @@ contract G3M is IStrategy {
         view
         returns (uint256, uint256, uint256)
     {
-        return core.getReservesAndLiquidity(poolId);
+        return dfmm.getReservesAndLiquidity(poolId);
     }
 
     /// @dev Computes the result of the tradingFunction().

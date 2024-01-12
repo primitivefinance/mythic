@@ -5,12 +5,12 @@ import "solmate/tokens/ERC20.sol";
 import "solmate/utils/FixedPointMathLib.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "solstat/Units.sol";
-import "./interfaces/IMultiCore.sol";
+import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
-contract DFMM is IMultiCore {
+contract DFMM is IDFMM {
     using FixedPointMathLib for uint256;
 
     Pool[] public pools;

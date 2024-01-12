@@ -48,7 +48,7 @@ contract LogNormalTest is Test {
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
-        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+        IDFMM.InitParams memory initParams = IDFMM.InitParams({
             strategy: address(logNormal),
             tokenX: tokenX,
             tokenY: tokenY,
@@ -75,7 +75,7 @@ contract LogNormalTest is Test {
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
-        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+        IDFMM.InitParams memory initParams = IDFMM.InitParams({
             strategy: address(logNormal),
             tokenX: tokenX,
             tokenY: tokenY,

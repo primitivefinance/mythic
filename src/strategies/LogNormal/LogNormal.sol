@@ -1,7 +1,7 @@
 // SPDX-LICENSE-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IMultiCore.sol";
+import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./LogNormalLib.sol";
@@ -25,16 +25,16 @@ contract LogNormal is IStrategy {
         uint256 swapFee;
     }
 
-    IMultiCore public core;
+    IDFMM public dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
-    constructor(address _core) {
-        core = IMultiCore(_core);
+    constructor(address dfmm_) {
+        dfmm = IDFMM(dfmm_);
     }
 
-    modifier onlyCore() {
-        // require(msg.sender == address(core), "only core");
+    modifier onlyDFMM() {
+        // require(msg.sender == address(dfmm), "only dfmm");
         _;
     }
 
@@ -45,7 +45,7 @@ contract LogNormal is IStrategy {
         bytes calldata data
     )
         public
-        onlyCore
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -96,7 +96,7 @@ contract LogNormal is IStrategy {
     )
         public
         view
-        onlyCore
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -122,7 +122,7 @@ contract LogNormal is IStrategy {
     )
         public
         view
-        onlyCore
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -182,7 +182,7 @@ contract LogNormal is IStrategy {
         view
         returns (uint256, uint256, uint256)
     {
-        return core.getReservesAndLiquidity(poolId);
+        return dfmm.getReservesAndLiquidity(poolId);
     }
 
     /// @dev Computes the result of the tradingFunction().

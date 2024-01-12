@@ -39,7 +39,7 @@ contract G3MSetUp is SetUp {
     modifier init() {
         vm.warp(0);
 
-        IMultiCore.InitParams memory defaultInitParams = IMultiCore.InitParams({
+        IDFMM.InitParams memory defaultInitParams = IDFMM.InitParams({
             strategy: address(g3m),
             tokenX: address(tokenX),
             tokenY: address(tokenY),

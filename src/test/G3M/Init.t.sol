@@ -29,14 +29,14 @@ contract G3MInitTest is G3MSetUp {
     }
 
     function test_G3M_init_RevertsIfInvalidTokens() public {
-        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+        IDFMM.InitParams memory initParams = IDFMM.InitParams({
             strategy: address(g3m),
             tokenX: address(tokenX),
             tokenY: address(tokenX),
             data: defaultInitialPoolData
         });
 
-        vm.expectRevert(IMultiCore.InvalidTokens.selector);
+        vm.expectRevert(IDFMM.InvalidTokens.selector);
         dfmm.init(initParams);
     }
 }

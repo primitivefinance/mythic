@@ -44,7 +44,7 @@ contract LogNormalSetUp is SetUp {
     modifier init() {
         vm.warp(0);
 
-        IMultiCore.InitParams memory defaultInitParams = IMultiCore.InitParams({
+        IDFMM.InitParams memory defaultInitParams = IDFMM.InitParams({
             strategy: address(logNormal),
             tokenX: address(tokenX),
             tokenY: address(tokenY),

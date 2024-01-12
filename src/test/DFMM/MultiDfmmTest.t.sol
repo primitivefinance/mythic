@@ -59,7 +59,7 @@ contract MultiDFMMTest is Test {
         bytes memory initData =
             logNormSolver.getInitialPoolData(init_x, init_p, params);
 
-        IMultiCore.InitParams memory initParams;
+        IDFMM.InitParams memory initParams;
         initParams.strategy = address(logNormal);
         initParams.tokenX = tokenX;
         initParams.tokenY = tokenY;
@@ -89,7 +89,7 @@ contract MultiDFMMTest is Test {
         bytes memory logNormInitData =
             logNormSolver.getInitialPoolData(init_x, init_p, logNormParams);
 
-        IMultiCore.InitParams memory logNormInitParams;
+        IDFMM.InitParams memory logNormInitParams;
         logNormInitParams.strategy = address(logNormal);
         logNormInitParams.tokenX = tokenX;
         logNormInitParams.tokenY = tokenY;
@@ -99,7 +99,7 @@ contract MultiDFMMTest is Test {
 
         bytes memory g3mInitData =
             g3mSolver.getInitialPoolData(init_x, init_p, g3mParams);
-        IMultiCore.InitParams memory g3mInitParams;
+        IDFMM.InitParams memory g3mInitParams;
         g3mInitParams.strategy = address(g3m);
         g3mInitParams.tokenX = tokenX;
         g3mInitParams.tokenY = tokenY;
@@ -171,7 +171,7 @@ contract MultiDFMMTest is Test {
             logNormSolver.allocateGivenX(LN_POOL_ID, amountX);
 
         uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        IMultiCore.Pool memory pool = dfmm.getPool(LN_POOL_ID);
+        IDFMM.Pool memory pool = dfmm.getPool(LN_POOL_ID);
         uint256 deltaLiquidity = L - pool.totalLiquidity;
         bytes memory data = abi.encode(rx, ry, L);
         dfmm.allocate(LN_POOL_ID, data);
@@ -181,7 +181,7 @@ contract MultiDFMMTest is Test {
         );
 
         (rx, ry, L) = logNormSolver.allocateGivenX(LN_POOL_ID, amountX * 2);
-        IMultiCore.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
+        IDFMM.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
         deltaLiquidity = L - postPool.totalLiquidity;
         data = abi.encode(rx, ry, L);
 

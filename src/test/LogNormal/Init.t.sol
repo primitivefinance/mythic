@@ -29,14 +29,14 @@ contract LogNormalInitTest is LogNormalSetUp {
     }
 
     function test_LogNormal_init_RevertsIfInvalidTokens() public {
-        IMultiCore.InitParams memory initParams = IMultiCore.InitParams({
+        IDFMM.InitParams memory initParams = IDFMM.InitParams({
             strategy: address(logNormal),
             tokenX: address(tokenX),
             tokenY: address(tokenX),
             data: defaultInitialPoolData
         });
 
-        vm.expectRevert(IMultiCore.InvalidTokens.selector);
+        vm.expectRevert(IDFMM.InvalidTokens.selector);
         dfmm.init(initParams);
     }
 }

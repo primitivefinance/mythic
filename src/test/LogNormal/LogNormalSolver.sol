@@ -5,7 +5,7 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/LogNormal/LogNormalExtendedLib.sol";
-import "../../interfaces/IMultiCore.sol";
+import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategyLike.sol";
 import "../../interfaces/IStrategy.sol";
 
