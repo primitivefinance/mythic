@@ -98,7 +98,7 @@ contract DFMM is IDFMM {
         _updateBalance(poolId);
 
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
-            _updatePool(poolId, true, data);
+            _updatePoolReserves(poolId, true, data);
 
         balanceOf[msg.sender][poolId] += deltaL;
         lastFeeGrowthOf[msg.sender][poolId] = pools[poolId].feeGrowth;
@@ -122,7 +122,7 @@ contract DFMM is IDFMM {
         _updateBalance(poolId);
 
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
-            _updatePool(poolId, false, data);
+            _updatePoolReserves(poolId, false, data);
 
         balanceOf[msg.sender][poolId] -= deltaL;
         lastFeeGrowthOf[msg.sender][poolId] = pools[poolId].feeGrowth;
@@ -257,7 +257,7 @@ contract DFMM is IDFMM {
         }
     }
 
-    function _updatePool(
+    function _updatePoolReserves(
         uint256 poolId,
         bool isAllocate,
         bytes calldata data
