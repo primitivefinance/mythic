@@ -6,11 +6,6 @@ import "../../interfaces/IMultiStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
 
-struct G3MInternalParams {
-    DynamicParam wX;
-    uint256 swapFee;
-}
-
 /**
  * @notice Geometric Mean Market Maker.
  */
@@ -19,9 +14,14 @@ contract G3M is IMultiStrategy {
     using FixedPointMathLib for int256;
     using DynamicParamLib for DynamicParam;
 
+    struct InternalParams {
+        DynamicParam wX;
+        uint256 swapFee;
+    }
+
     IMultiCore public immutable core;
 
-    mapping(uint256 => G3MInternalParams) public internalParams;
+    mapping(uint256 => InternalParams) public internalParams;
 
     constructor(address _core) {
         core = IMultiCore(_core);
@@ -88,34 +88,6 @@ contract G3M is IMultiStrategy {
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
-    }
-
-    function getPoolParams(uint256 poolId)
-        public
-        view
-        returns (G3MParameters memory params)
-    {
-        params.wX = internalParams[poolId].wX.actualized();
-        params.wY = ONE - params.wX;
-        params.swapFee = internalParams[poolId].swapFee;
-    }
-
-    function getReservesAndLiquidity(uint256 poolId)
-        public
-        view
-        returns (uint256, uint256, uint256)
-    {
-        return core.getReservesAndLiquidity(poolId);
-    }
-
-    /// @dev Computes the result of the tradingFunction().
-    function computeSwapConstant(
-        uint256 poolId,
-        bytes memory data
-    ) public view returns (int256) {
-        (uint256 rx, uint256 ry, uint256 L) =
-            abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction(rx, ry, L, getPoolParams(poolId));
     }
 
     function validateAllocateOrDeallocate(
@@ -187,5 +159,45 @@ contract G3M is IMultiStrategy {
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
+    }
+
+    function getPoolParams(uint256 poolId)
+        public
+        view
+        returns (G3MParameters memory params)
+    {
+        params.wX = internalParams[poolId].wX.actualized();
+        params.wY = ONE - params.wX;
+        params.swapFee = internalParams[poolId].swapFee;
+    }
+
+    /*
+    function getPoolParams(uint256 poolId) public view returns (bytes memory) {
+        G3MParameters memory params;
+
+        params.wX = internalParams[poolId].wX.actualized();
+        params.wY = ONE - params.wX;
+        params.swapFee = internalParams[poolId].swapFee;
+
+        return abi.encode(params);
+    }
+    */
+
+    function getReservesAndLiquidity(uint256 poolId)
+        public
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return core.getReservesAndLiquidity(poolId);
+    }
+
+    /// @dev Computes the result of the tradingFunction().
+    function computeSwapConstant(
+        uint256 poolId,
+        bytes memory data
+    ) public view returns (int256) {
+        (uint256 rx, uint256 ry, uint256 L) =
+            abi.decode(data, (uint256, uint256, uint256));
+        return tradingFunction(rx, ry, L, getPoolParams(poolId));
     }
 }
