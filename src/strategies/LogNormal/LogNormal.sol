@@ -6,13 +6,6 @@ import "../../interfaces/IMultiStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./LogNormalLib.sol";
 
-struct LogNormalInternalParams {
-    DynamicParam sigma;
-    DynamicParam tau;
-    DynamicParam strike;
-    uint256 swapFee;
-}
-
 /// @notice Log Normal has three variable parameters:
 /// K - strike price
 /// sigma - volatility
@@ -25,9 +18,16 @@ contract LogNormal is IMultiStrategy {
     using FixedPointMathLib for int256;
     using DynamicParamLib for DynamicParam;
 
+    struct InternalParams {
+        DynamicParam sigma;
+        DynamicParam tau;
+        DynamicParam strike;
+        uint256 swapFee;
+    }
+
     IMultiCore public core;
 
-    mapping(uint256 => LogNormalInternalParams) public internalParams;
+    mapping(uint256 => InternalParams) public internalParams;
 
     constructor(address _core) {
         core = IMultiCore(_core);
