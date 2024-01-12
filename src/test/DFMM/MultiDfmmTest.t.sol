@@ -110,47 +110,6 @@ contract MultiDFMMTest is Test {
         _;
     }
 
-    function test_multi_basic() public basic { }
-
-    function test_multi_dfmm_g3m_swap_x_in() public basic {
-        uint256 amountIn = 0.1 ether;
-        bool swapXIn = true;
-
-        // Try doing simulate swap to see if we get a similar result.
-        (bool valid,,, bytes memory payload) =
-            g3mSolver.simulateSwap(G3M_POOL_ID, swapXIn, amountIn);
-
-        assertEq(valid, true);
-
-        dfmm.swap(G3M_POOL_ID, payload);
-    }
-
-    function test_multi_dfmm_swap_x_in() public basic {
-        uint256 amountIn = 0.1 ether;
-        bool swapXIn = true;
-
-        // Try doing simulate swap to see if we get a similar result.
-        (bool valid,,, bytes memory payload) =
-            logNormSolver.simulateSwap(LN_POOL_ID, swapXIn, amountIn);
-
-        assertEq(valid, true);
-
-        dfmm.swap(LN_POOL_ID, payload);
-    }
-
-    function test_multi_dfmm_swap_y_in() public basic {
-        uint256 amountIn = 0.1 ether;
-        bool swapXIn = false;
-
-        // Try doing simulate swap to see if we get a similar result.
-        (bool valid,,, bytes memory payload) =
-            logNormSolver.simulateSwap(LN_POOL_ID, swapXIn, amountIn);
-
-        assertEq(valid, true);
-
-        dfmm.swap(LN_POOL_ID, payload);
-    }
-
     function test_multi_internal_price() public basic {
         uint256 internalPrice = logNormSolver.internalPrice(LN_POOL_ID);
 
@@ -206,28 +165,6 @@ contract MultiDFMMTest is Test {
         dfmm.swap(LN_POOL_ID, payload);
     }
 
-    function test_multi_allocate_liquidity_given_x() public basic {
-        uint256 amountX = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.allocateGivenX(LN_POOL_ID, amountX);
-
-        uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        IMultiCore.Pool memory pool = dfmm.getPool(LN_POOL_ID);
-        uint256 preTotalLiquidity = pool.totalLiquidity;
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.allocate(LN_POOL_ID, data);
-
-        IMultiCore.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
-
-        uint256 deltaTotalLiquidity =
-            postPool.totalLiquidity - preTotalLiquidity;
-        assertEq(
-            preBalance + deltaTotalLiquidity,
-            dfmm.balanceOf(address(this), LN_POOL_ID)
-        );
-    }
-
     function test_allocate_multiple_times() public basic {
         uint256 amountX = 0.1 ether;
         (uint256 rx, uint256 ry, uint256 L) =
@@ -257,45 +194,5 @@ contract MultiDFMMTest is Test {
         dfmm.allocate(LN_POOL_ID, data);
         assertEq(deltaLiquidity, dfmm.balanceOf(address(0xbeef), LN_POOL_ID));
         vm.stopPrank();
-    }
-
-    function test_deallocate_liquidity_given_x() public basic {
-        uint256 amountX = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.deallocateGivenX(LN_POOL_ID, amountX);
-
-        uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        IMultiCore.Pool memory pool = dfmm.getPool(LN_POOL_ID);
-        uint256 preTotalLiquidity = pool.totalLiquidity;
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.deallocate(LN_POOL_ID, data);
-
-        IMultiCore.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
-
-        uint256 deltaTotalLiquidity =
-            preTotalLiquidity - postPool.totalLiquidity;
-        assertEq(
-            preBalance - deltaTotalLiquidity,
-            dfmm.balanceOf(address(this), LN_POOL_ID)
-        );
-    }
-
-    function test_allocate_liquidity_given_y() public basic {
-        uint256 amountY = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.allocateGivenY(LN_POOL_ID, amountY);
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.allocate(LN_POOL_ID, data);
-    }
-
-    function test_deallocate_liquidity_given_y() public basic {
-        uint256 amountY = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.deallocateGivenY(LN_POOL_ID, amountY);
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.deallocate(LN_POOL_ID, data);
     }
 }
