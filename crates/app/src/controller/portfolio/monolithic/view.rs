@@ -2,7 +2,7 @@ use std::env;
 
 use chrono::Utc;
 use datatypes::portfolio::position::{PositionLayer, Positions};
-use iced::{widget::{svg, Space}, advanced::widget::Id};
+use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
 use super::{inventory::Inventory, *};
@@ -88,25 +88,14 @@ impl MonolithicPresenter {
     }
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
-<<<<<<< HEAD
-        if self.model.get_current().is_none() {
-            return label("Timestamp: N/A").caption().tertiary();
+        if let Some(model) = self.model.get_current() {
+            let timestamp = model.latest_timestamp;
+            label(format!("Last Sync: {:}", timestamp))
+                .caption()
+                .tertiary()
+        } else {
+            label("Last Sync: N/A").caption().tertiary()
         }
-
-        let data = self
-            .model
-            .get_current()
-            .unwrap()
-            .latest_timestamp;
-
-        match data {
-            Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
-            None => label("Timestamp: N/A").caption().tertiary(),
-        }
-=======
-        let data = self.model.portfolio.latest_timestamp;
-        label(format!("Timestamp: {:}", data)).caption().tertiary()
->>>>>>> 10fac4f (model improvements)
     }
 
     pub fn get_aum(&self) -> String {
@@ -202,22 +191,16 @@ impl MonolithicPresenter {
 
         if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
             let external_price = match position.asset.symbol.as_str() {
-<<<<<<< HEAD
-                "X" => connected_model.external_spot_price.to_label(),
-                "Y" => connected_model.external_quote_price.to_label(),
-=======
-                "X" => match self.model.portfolio.external_spot_price {
-                    Some(price) => price.to_label(),
-                    None => label("n/a").title3().quantitative(),
-                },
-                "Y" => match self.model.portfolio.external_quote_price {
-                    Some(price) => price.to_label(),
-                    None => label("n/a").title3().quantitative(),
-                },
->>>>>>> 01b9631 (revert back to options)
+                "X" => connected_model
+                    .external_spot_price
+                    .map(|price| price.to_label())
+                    .unwrap_or_else(|| label("n/a").title3().quantitative()),
+                "Y" => connected_model
+                    .external_quote_price
+                    .map(|price| price.to_label())
+                    .unwrap_or_else(|| label("n/a").title3().quantitative()),
                 _ => label("n/a").title3().quantitative(),
             };
-
             let aum = connected_model.derive_internal_portfolio_value().to_label();
 
             let health = connected_model.derive_portfolio_health();

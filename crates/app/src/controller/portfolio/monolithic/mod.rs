@@ -158,8 +158,6 @@ impl Monolithic {
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
                 if self.model.get_current().is_none() {
                     return Err(anyhow::anyhow!(
                         "Data model is not connected to any network."
@@ -167,24 +165,12 @@ impl Monolithic {
                 }
 
                 // Does not panic because it's caught in the above if statement.
-                let asset_price = self.model.get_current().unwrap().external_spot_price;
-                let asset_price = match asset_price {
-                    Some(x) => format_ether(x).parse::<f64>(),
-                    None => return Err(anyhow::anyhow!("No asset price")),
-                };
-=======
-                let asset_price =
-                    format_ether(self.model.portfolio.external_spot_price).parse::<f64>();
-=======
-                let asset_price = match self.model.portfolio.external_spot_price {
+                let asset_price = match self.model.get_current().unwrap().external_spot_price {
                     Some(price) => format_ether(price)
                         .parse::<f64>()
                         .map_err(anyhow::Error::from),
                     None => Err(anyhow::anyhow!("No external spot price")),
                 };
->>>>>>> 01b9631 (revert back to options)
-
->>>>>>> 10fac4f (model improvements)
                 let asset_price = match asset_price {
                     Ok(x) => x,
                     Err(_) => return Err(anyhow::anyhow!("Failed to parse")),
@@ -264,6 +250,7 @@ impl Monolithic {
             }
             FormMessage::Liquidity(liquidity) => {
                 self.create.liquidity = Some(liquidity);
+
                 if let Some(connected_model) = self.model.get_current() {
                     let external_price = connected_model.external_spot_price;
                     let external_price = match external_price {
@@ -271,8 +258,6 @@ impl Monolithic {
                         None => return Command::none(),
                     };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
                     // Sync the strategy preview chart.
                     let parameters = liquidity.to_parameters(external_price);
                     self.presenter.sync_strategy_preview(
@@ -280,42 +265,11 @@ impl Monolithic {
                         parameters.sigma_percent_wad,
                         parameters.time_remaining_years_wad,
                     );
-=======
-                let external_price = format_ether(self.model.portfolio.external_spot_price)
-                    .parse::<f64>()
-                    .unwrap();
->>>>>>> 10fac4f (model improvements)
 
                     Command::perform(async {}, |_| Message::Refresh)
                 } else {
                     Command::none()
                 }
-=======
-                match self.model.portfolio.external_spot_price {
-                    Some(price) => {
-                        let external_price = format_ether(price).parse::<f64>();
-                        match external_price {
-                            Ok(external_price) => {
-                                // Sync the strategy preview chart.
-                                let parameters = liquidity.to_parameters(external_price);
-                                self.presenter.sync_strategy_preview(
-                                    parameters.strike_price_wad,
-                                    parameters.sigma_percent_wad,
-                                    parameters.time_remaining_years_wad,
-                                );
-                            }
-                            Err(_) => {
-                                tracing::error!("Failed to parse external spot price");
-                            }
-                        }
-                    }
-                    None => {
-                        tracing::error!("No external spot price");
-                    }
-                }
-
-                Command::perform(async {}, |_| Message::Refresh)
->>>>>>> 01b9631 (revert back to options)
             }
         }
     }
@@ -366,7 +320,6 @@ impl State for Monolithic {
                 }
             },
             Self::AppMessage::UpdatePriceProcess => {
-<<<<<<< HEAD
                 if let (Some(_), Some(exchange)) = (
                     self.price_process.clone(),
                     self.model
@@ -376,24 +329,16 @@ impl State for Monolithic {
                 ) {
                     // Step the price process.
                     self.price_process.as_mut().unwrap().step += 1;
-=======
-                // Step the price process.
-                self.price_process.as_mut().unwrap().step += 1;
->>>>>>> 362f655 (update series now no longer async)
 
-                // Update the price of the exchange based on the new step.
-                match self.model.portfolio.lex_address {
-                    Some(lex_address) => price_process_update_after_step(
+                    // Update the price of the exchange based on the new step.
+                    return price_process_update_after_step(
                         self.price_process.clone().unwrap(),
-                        lex_address,
+                        exchange,
                         self.client.clone().unwrap(),
-                    ),
-                    None => {
-                        // Handle the case where lex_address is None
-                        tracing::error!("lex_address is None");
-                        Command::none()
-                    }
+                    );
                 }
+
+                Command::none()
             }
         }
     }

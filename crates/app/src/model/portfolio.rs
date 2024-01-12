@@ -229,7 +229,6 @@ impl DataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-
         // Update sync block + timestamp first, since the other update methods need it.
         // These updates must be successful.
         self.update_last_sync_block(client.clone()).await?;
@@ -525,17 +524,17 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the protocol contract instance given the model's protocol address.
-    pub async fn dfmm(&self, client: Arc<Client>) -> Result<DFMM<Client>> {
+    pub fn dfmm<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<DFMM<M>> {
         let protocol_address = self
             .protocol_address
             .ok_or(anyhow!("Protocol address is not set"))?;
         let converted_address = to_ethers_address(protocol_address);
-        let dfmm = DFMM::new(converted_address, client.clone());
+        let dfmm = DFMM::new(converted_address, client);
         Ok(dfmm)
     }
 
     /// Gets the strategy contract instance given the model's strategy address.
-    pub async fn strategy<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<LogNormal<M>> {
+    pub fn strategy<M: Middleware + 'static>(&self, client: Arc<M>) -> Result<LogNormal<M>> {
         let strategy_address = self
             .strategy_address
             .ok_or(Error::msg("Strategy address not set"))?;
@@ -667,9 +666,9 @@ impl DataModel<AlloyAddress, AlloyU256> {
             client.clone(),
         );
         // Send the call to the token contract.
-        let balance = token.balance_of(address).await?;
-        let decoded_balance: AlloyU256 = balance;
-        Ok(decoded_balance)
+        let balance = token.balance_of(to_ethers_address(address)).await?;
+        let balance: alloy_primitives::Uint<256, 4> = from_ethers_u256(balance);
+        Ok(balance)
     }
 
     // Token balances
@@ -682,9 +681,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let asset_token = self
-            .asset_token
-            .ok_or(Error::msg("Asset token not set"))?;
+        let asset_token = self.asset_token.ok_or(Error::msg("Asset token not set"))?;
         self.fetch_balance_of(client, asset_token, address).await
     }
 
@@ -696,9 +693,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let quote_token = self
-            .quote_token
-            .ok_or(Error::msg("Quote token not set"))?;
+        let quote_token = self.quote_token.ok_or(Error::msg("Quote token not set"))?;
         self.fetch_balance_of(client, quote_token, address).await
     }
 
@@ -709,9 +704,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let asset_token = self
-            .asset_token
-            .ok_or(Error::msg("Asset token not set"))?;
+        let asset_token = self.asset_token.ok_or(Error::msg("Asset token not set"))?;
         let protocol = self
             .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
@@ -725,30 +718,25 @@ impl DataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let quote_token = self
-            .quote_token
-            .ok_or(Error::msg("Quote token not set"))?;
+        let quote_token = self.quote_token.ok_or(Error::msg("Quote token not set"))?;
         let protocol = self
             .protocol_address
             .ok_or(Error::msg("Protocol address not set"))?;
-        self.fetch_balance_of(client, quote_token, protocol).await;
-        let token =
-            bindings::arbiter_token::ArbiterToken::new(converted_token_address, client.clone());
-        let balance = token.balance_of(converted_token_address).await?;
-        let alloy = from_ethers_u256(balance);
-        Ok(alloy)
+        self.fetch_balance_of(client, quote_token, protocol).await
     }
 
     async fn fetch_external_price<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
     ) -> Result<AlloyU256> {
-        let lex = self
+        let external_exchange = self
             .lex_address
             .ok_or(Error::msg("External exchange address not set"))?;
 
+        // todo: replace
+
         let lex = arbiter_bindings::bindings::liquid_exchange::LiquidExchange::new(
-            to_ethers_address(lex_address),
+            to_ethers_address(external_exchange),
             client.clone(),
         );
         let price = lex.price().await;
@@ -769,7 +757,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        let dfmm = self.dfmm(client.clone()).await?;
+        let dfmm = self.dfmm(client.clone())?;
         let result = dfmm.get_reserves_and_liquidity().await;
         let (reserve_x, reserve_y, liquidity) = match result {
             Ok(result) => result,
@@ -806,7 +794,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        let strategy = self.strategy(client.clone()).await?;
+        let strategy = self.strategy(client.clone())?;
         let (strike_price, volatility, time_remaining) = strategy.get_params().await?;
         let strike_price = from_ethers_u256(strike_price);
         let volatility = from_ethers_u256(volatility);
@@ -891,10 +879,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_external_price_series(
-        &mut self,
-    ) -> Result<()>
-    {
+    fn update_external_price_series(&mut self) -> Result<()> {
         if let Some(series) = &self.external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 > self.latest_block {
@@ -914,11 +899,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_user_asset_value_series(
-        &mut self,
-    ) -> Result<()>
-
-    {
+    fn update_user_asset_value_series(&mut self) -> Result<()> {
         if let Some(series) = &self.user_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= self.latest_block {
@@ -943,10 +924,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_user_quote_value_series(
-        &mut self,
-    ) -> Result<()>
-    {
+    fn update_user_quote_value_series(&mut self) -> Result<()> {
         if let Some(series) = &self.user_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= self.latest_block {
@@ -972,9 +950,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_protocol_asset_value_series(
-        &mut self) -> Result<()>
-    {
+    fn update_protocol_asset_value_series(&mut self) -> Result<()> {
         if let Some(series) = &self.protocol_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= self.latest_block {
@@ -999,8 +975,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
-    fn update_protocol_quote_value_series(
-        &mut self) -> Result<()> {
+    fn update_protocol_quote_value_series(&mut self) -> Result<()> {
         if let Some(series) = &self.protocol_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
             if last_element.0 >= self.latest_block {
@@ -1042,49 +1017,21 @@ impl DataModel<AlloyAddress, AlloyU256> {
             Err(anyhow!("Internal spot price is None"))
         }
     }
-    async fn update_token_balances(&mut self, client: Arc<Client>) -> Result<()> {
-        let default = (
-            0u64,
-            self.user_asset_balance
-                .ok_or(anyhow!("User asset balance is None"))?,
-        );
-        let last_element = self
-            .user_asset_value_series
-            .as_ref()
-            .map_or(&default, |v| v.last().unwrap_or(&default));
-        if last_element.0 >= self.latest_block {
-            return Ok(());
-        }
+    async fn update_token_balances<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
+        let user_address = self
+            .user_address
+            .ok_or(Error::msg("User address not set"))?;
         let user_asset_balance = self
-            .fetch_balance_of(
-                client.clone(),
-                self.asset_token.ok_or(anyhow!("Asset token is None"))?,
-                self.user_address.ok_or(anyhow!("User address is None"))?,
-            )
+            .fetch_user_asset_balance(client.clone(), user_address)
             .await?;
         let user_quote_balance = self
-            .fetch_balance_of(
-                client.clone(),
-                self.quote_token.ok_or(anyhow!("Quote token is None"))?,
-                self.user_address.ok_or(anyhow!("User address is None"))?,
-            )
+            .fetch_user_quote_balance(client.clone(), user_address)
             .await?;
-        let protocol_asset_balance = self
-            .fetch_balance_of(
-                client.clone(),
-                self.asset_token.ok_or(anyhow!("Asset token is None"))?,
-                self.protocol_address
-                    .ok_or(anyhow!("Protocol address is None"))?,
-            )
-            .await?;
-        let protocol_quote_balance = self
-            .fetch_balance_of(
-                client.clone(),
-                self.quote_token.ok_or(anyhow!("Quote token is None"))?,
-                self.protocol_address
-                    .ok_or(anyhow!("Protocol address is None"))?,
-            )
-            .await?;
+        let protocol_asset_balance = self.fetch_protocol_asset_balance(client.clone()).await?;
+        let protocol_quote_balance = self.fetch_protocol_quote_balance(client.clone()).await?;
 
         self.user_asset_balance = Some(user_asset_balance);
         self.user_quote_balance = Some(user_quote_balance);

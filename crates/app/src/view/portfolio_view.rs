@@ -212,28 +212,25 @@ impl PortfolioPresenter {
     }
 
     pub fn get_block_number(&self) -> Option<u64> {
-        self.model
-            .get_current().map(|x| x.latest_block)
+        self.model.get_current().map(|x| x.latest_block)
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
-        self.model
-            .get_current()
-            .and_then(|x| Some(x.latest_timestamp))
+        self.model.get_current().map(|x| x.latest_timestamp)
     }
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
         self.model
             .get_current()
-            .and_then(|x| Some(x.internal_spot_price))
-            .to_label()
+            .and_then(|x| x.internal_spot_price.map(|price| price.to_label()))
+            .unwrap_or_else(|| label("N/A").title1().secondary())
     }
 
     pub fn get_external_price(&self) -> ExcaliburText {
-        self.model
-            .get_current()
-            .and_then(|x| Some(x.external_spot_price))
-            .to_label()
+        match self.model.get_current().and_then(|x| x.external_spot_price) {
+            Some(price) => price.to_label(),
+            None => label("N/A").title1().secondary(),
+        }
     }
 
     pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
@@ -273,10 +270,7 @@ impl PortfolioPresenter {
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
             let data = connected_model.latest_timestamp;
-            match data {
-                Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
-                None => label("Timestamp: N/A").caption().tertiary(),
-            }
+            label(format!("Timestamp: {:}", data)).caption().tertiary()
         } else {
             label("Timestamp: N/A").caption().tertiary()
         }
@@ -284,7 +278,9 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            label(format!("Block: {:}", connected_model.latest_block)).caption().tertiary()
+            label(format!("Block: {:}", connected_model.latest_block))
+                .caption()
+                .tertiary()
         } else {
             label("Block: N/A").caption().tertiary()
         }

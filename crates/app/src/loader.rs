@@ -145,9 +145,9 @@ pub async fn load_app(
 
     // todo: try the connection to the sandbox next
     // Connect the model to the desired network.
-    model
+    let _ = model
         .connect_to_network(exc_client.client().cloned().unwrap())
-        .await?;
+        .await;
 
     // If profile has an anvil snapshot, load it.
     let loaded_snapshot = if let Some(AnvilSave {
