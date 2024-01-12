@@ -33,6 +33,7 @@ contract DFMM is IDFMM {
         _locked = 1;
     }
 
+    /// @inheritdoc IDFMM
     function init(InitParams calldata params)
         public
         lock
@@ -89,6 +90,7 @@ contract DFMM is IDFMM {
         return (poolId, reserveX, reserveY, totalLiquidity);
     }
 
+    /// @inheritdoc IDFMM
     function allocate(
         uint256 poolId,
         bytes calldata data
@@ -112,6 +114,7 @@ contract DFMM is IDFMM {
         return (deltaX, deltaY, deltaL);
     }
 
+    /// @inheritdoc IDFMM
     function deallocate(
         uint256 poolId,
         bytes calldata data
@@ -138,7 +141,7 @@ contract DFMM is IDFMM {
         return (deltaX, deltaY, deltaL);
     }
 
-    /// @param data The data to be passed to the source strategy contract for swap validation.
+    /// @inheritdoc IDFMM
     function swap(
         uint256 poolId,
         bytes calldata data
@@ -166,6 +169,7 @@ contract DFMM is IDFMM {
         return (inputAmount, outputAmount);
     }
 
+    /// @inheritdoc IDFMM
     function update(
         uint256 poolId,
         bytes calldata data
