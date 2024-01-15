@@ -3,17 +3,17 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../../MultiDFMM.sol";
+import "../../DFMM.sol";
 import "../../strategies/LogNormal/LogNormal.sol";
-import "../../interfaces/IParams.sol";
+import "../../strategies/G3M/G3M.sol";
 import "../helpers/Lex.sol";
 import "../LogNormal/LogNormalSolver.sol";
 import "../G3M/G3MSolver.sol";
 
-contract MultiDFMMTest is Test, IParams {
+contract MultiDFMMTest is Test {
     using stdStorage for StdStorage;
 
-    MultiDFMM dfmm;
+    DFMM dfmm;
     LogNormal logNormal;
     LogNormalSolver logNormSolver;
     G3M g3m;
@@ -24,8 +24,8 @@ contract MultiDFMMTest is Test, IParams {
 
     uint256 public constant TEST_SWAP_FEE = 0.003 ether;
 
-    uint256 public constant LN_POOL_ID = 0;
-    uint256 public constant G3M_POOL_ID = 1;
+    uint256 public LN_POOL_ID;
+    uint256 public G3M_POOL_ID;
 
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
@@ -35,12 +35,11 @@ contract MultiDFMMTest is Test, IParams {
 
         lex = new Lex(tokenX, tokenY, ONE);
 
-        dfmm = new MultiDFMM();
+        dfmm = new DFMM();
 
-        logNormal = new LogNormal(address(dfmm), TEST_SWAP_FEE);
+        logNormal = new LogNormal(address(dfmm));
         logNormSolver = new LogNormalSolver(address(logNormal));
-
-        g3m = new G3M(address(dfmm), TEST_SWAP_FEE);
+        g3m = new G3M(address(dfmm));
         g3mSolver = new G3MSolver(address(g3m));
 
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
@@ -49,21 +48,23 @@ contract MultiDFMMTest is Test, IParams {
 
     modifier realisticEth() {
         vm.warp(0);
-        LogNormParameters memory params =
-            LogNormParameters({ strike: ONE * 2300, sigma: ONE, tau: ONE });
+        LogNormal.PublicParams memory params = LogNormal.PublicParams({
+            strike: ONE * 2300,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE * 2345;
         uint256 init_x = ONE * 10;
         bytes memory initData =
             logNormSolver.getInitialPoolData(init_x, init_p, params);
 
-        InitParams memory initParams;
-        initParams.poolId = dfmm.nonce();
+        IDFMM.InitParams memory initParams;
         initParams.strategy = address(logNormal);
         initParams.tokenX = tokenX;
         initParams.tokenY = tokenY;
-        initParams.swapFeePercentageWad = TEST_SWAP_FEE;
         initParams.data = initData;
-        dfmm.init(initParams);
+        (LN_POOL_ID,,,) = dfmm.init(initParams);
 
         _;
     }
@@ -71,67 +72,42 @@ contract MultiDFMMTest is Test, IParams {
     /// @dev Initializes a basic pool in dfmm.
     modifier basic() {
         vm.warp(0);
-        G3mParameters memory g3mParams =
-            G3mParameters({ wx: 0.5 ether, wy: 0.5 ether });
+        G3M.PublicParams memory g3mParams = G3M.PublicParams({
+            wX: 0.5 ether,
+            wY: 0.5 ether,
+            swapFee: TEST_SWAP_FEE
+        });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
 
-        LogNormParameters memory logNormParams =
-            LogNormParameters({ strike: ONE, sigma: ONE, tau: ONE });
+        LogNormal.PublicParams memory logNormParams = LogNormal.PublicParams({
+            strike: ONE,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
         bytes memory logNormInitData =
             logNormSolver.getInitialPoolData(init_x, init_p, logNormParams);
 
-        InitParams memory logNormInitParams;
-        logNormInitParams.poolId = dfmm.nonce();
+        IDFMM.InitParams memory logNormInitParams;
         logNormInitParams.strategy = address(logNormal);
         logNormInitParams.tokenX = tokenX;
         logNormInitParams.tokenY = tokenY;
-        logNormInitParams.swapFeePercentageWad = TEST_SWAP_FEE;
         logNormInitParams.data = logNormInitData;
 
-        dfmm.init(logNormInitParams);
+        (LN_POOL_ID,,,) = dfmm.init(logNormInitParams);
 
         bytes memory g3mInitData =
             g3mSolver.getInitialPoolData(init_x, init_p, g3mParams);
-        InitParams memory g3mInitParams;
-        g3mInitParams.poolId = dfmm.nonce();
+        IDFMM.InitParams memory g3mInitParams;
         g3mInitParams.strategy = address(g3m);
         g3mInitParams.tokenX = tokenX;
         g3mInitParams.tokenY = tokenY;
-        g3mInitParams.swapFeePercentageWad = TEST_SWAP_FEE;
         g3mInitParams.data = g3mInitData;
 
-        dfmm.init(g3mInitParams);
+        (G3M_POOL_ID,,,) = dfmm.init(g3mInitParams);
 
         _;
-    }
-
-    function test_multi_basic() public basic { }
-
-    function test_multi_dfmm_swap_x_in() public basic {
-        uint256 amountIn = 0.1 ether;
-        bool swapXIn = true;
-
-        // Try doing simulate swap to see if we get a similar result.
-        (bool valid,,, bytes memory payload) =
-            logNormSolver.simulateSwap(LN_POOL_ID, swapXIn, amountIn);
-
-        assertEq(valid, true);
-
-        dfmm.swap(LN_POOL_ID, payload);
-    }
-
-    function test_multi_dfmm_swap_y_in() public basic {
-        uint256 amountIn = 0.1 ether;
-        bool swapXIn = false;
-
-        // Try doing simulate swap to see if we get a similar result.
-        (bool valid,,, bytes memory payload) =
-            logNormSolver.simulateSwap(LN_POOL_ID, swapXIn, amountIn);
-
-        assertEq(valid, true);
-
-        dfmm.swap(LN_POOL_ID, payload);
     }
 
     function test_multi_internal_price() public basic {
@@ -189,35 +165,13 @@ contract MultiDFMMTest is Test, IParams {
         dfmm.swap(LN_POOL_ID, payload);
     }
 
-    function test_multi_allocate_liquidity_given_x() public basic {
-        uint256 amountX = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.allocateGivenX(LN_POOL_ID, amountX);
-
-        uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        Pool memory pool = dfmm.getPool(LN_POOL_ID);
-        uint256 preTotalLiquidity = pool.totalLiquidity;
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.allocate(LN_POOL_ID, data);
-
-        Pool memory postPool = dfmm.getPool(LN_POOL_ID);
-
-        uint256 deltaTotalLiquidity =
-            postPool.totalLiquidity - preTotalLiquidity;
-        assertEq(
-            preBalance + deltaTotalLiquidity,
-            dfmm.balanceOf(address(this), LN_POOL_ID)
-        );
-    }
-
     function test_allocate_multiple_times() public basic {
         uint256 amountX = 0.1 ether;
         (uint256 rx, uint256 ry, uint256 L) =
             logNormSolver.allocateGivenX(LN_POOL_ID, amountX);
 
         uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        Pool memory pool = dfmm.getPool(LN_POOL_ID);
+        IDFMM.Pool memory pool = dfmm.getPool(LN_POOL_ID);
         uint256 deltaLiquidity = L - pool.totalLiquidity;
         bytes memory data = abi.encode(rx, ry, L);
         dfmm.allocate(LN_POOL_ID, data);
@@ -227,7 +181,7 @@ contract MultiDFMMTest is Test, IParams {
         );
 
         (rx, ry, L) = logNormSolver.allocateGivenX(LN_POOL_ID, amountX * 2);
-        Pool memory postPool = dfmm.getPool(LN_POOL_ID);
+        IDFMM.Pool memory postPool = dfmm.getPool(LN_POOL_ID);
         deltaLiquidity = L - postPool.totalLiquidity;
         data = abi.encode(rx, ry, L);
 
@@ -240,45 +194,5 @@ contract MultiDFMMTest is Test, IParams {
         dfmm.allocate(LN_POOL_ID, data);
         assertEq(deltaLiquidity, dfmm.balanceOf(address(0xbeef), LN_POOL_ID));
         vm.stopPrank();
-    }
-
-    function test_deallocate_liquidity_given_x() public basic {
-        uint256 amountX = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.deallocateGivenX(LN_POOL_ID, amountX);
-
-        uint256 preBalance = dfmm.balanceOf(address(this), LN_POOL_ID);
-        Pool memory pool = dfmm.getPool(LN_POOL_ID);
-        uint256 preTotalLiquidity = pool.totalLiquidity;
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.deallocate(LN_POOL_ID, data);
-
-        Pool memory postPool = dfmm.getPool(LN_POOL_ID);
-
-        uint256 deltaTotalLiquidity =
-            preTotalLiquidity - postPool.totalLiquidity;
-        assertEq(
-            preBalance - deltaTotalLiquidity,
-            dfmm.balanceOf(address(this), LN_POOL_ID)
-        );
-    }
-
-    function test_allocate_liquidity_given_y() public basic {
-        uint256 amountY = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.allocateGivenY(LN_POOL_ID, amountY);
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.allocate(LN_POOL_ID, data);
-    }
-
-    function test_deallocate_liquidity_given_y() public basic {
-        uint256 amountY = 0.1 ether;
-        (uint256 rx, uint256 ry, uint256 L) =
-            logNormSolver.deallocateGivenY(LN_POOL_ID, amountY);
-
-        bytes memory data = abi.encode(rx, ry, L);
-        dfmm.deallocate(LN_POOL_ID, data);
     }
 }

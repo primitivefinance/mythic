@@ -1,15 +1,23 @@
-// SPDX-LICENSE-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
+import "../../interfaces/IDFMM.sol";
 import "../../strategies/LogNormal/BisectionLib.sol";
 import "../../strategies/G3M/G3MExtendedLib.sol";
-import "../../interfaces/IStrategyLike.sol";
+import "../../interfaces/IStrategy.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
+
+    /// @dev Structure to hold reserve information
+    struct Reserves {
+        uint256 rx;
+        uint256 ry;
+        uint256 L;
+    }
 
     uint256 public constant BISECTION_EPSILON = 1;
     uint256 public constant MAX_BISECTION_ITERS = 90;
@@ -23,9 +31,11 @@ contract G3MSolver {
     function getPoolParams(uint256 poolId)
         public
         view
-        returns (G3mParameters memory)
+        returns (G3M.PublicParams memory)
     {
-        return G3MStrategyLike(strategy).dynamicSlotInternal(poolId);
+        return abi.decode(
+            IStrategy(strategy).getPoolParams(poolId), (G3M.PublicParams)
+        );
     }
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -33,13 +43,13 @@ contract G3MSolver {
         view
         returns (uint256, uint256, uint256)
     {
-        return IStrategyLike(strategy).getReservesAndLiquidity(poolId);
+        return IDFMM(IStrategy(strategy).dfmm()).getReservesAndLiquidity(poolId);
     }
 
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        G3mParameters memory params
+        G3M.PublicParams memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -121,17 +131,16 @@ contract G3MSolver {
         Reserves memory startReserves;
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
-            IStrategyLike(strategy).getReservesAndLiquidity(poolId);
-        G3mParameters memory poolParams = getPoolParams(poolId);
+            getReservesAndLiquidity(poolId);
+        G3M.PublicParams memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
         {
-            uint256 swapFee = IStrategyLike(strategy).swapFee();
             if (swapXIn) {
-                uint256 fees = amountIn.mulWadUp(swapFee);
+                uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 weightedPrice = uint256(
                     int256(startReserves.ry.divWadUp(startReserves.rx)).powWad(
-                        int256(poolParams.wy)
+                        int256(poolParams.wY)
                     )
                 );
                 uint256 deltaL = fees.mulWadUp(weightedPrice);
@@ -150,10 +159,10 @@ contract G3MSolver {
                 );
                 amountOut = startReserves.ry - endReserves.ry;
             } else {
-                uint256 fees = amountIn.mulWadUp(swapFee);
+                uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
                 uint256 weightedPrice = uint256(
                     int256(startReserves.rx.divWadUp(startReserves.ry)).powWad(
-                        int256(poolParams.wx)
+                        int256(poolParams.wX)
                     )
                 );
                 uint256 deltaL = fees.mulWadUp(weightedPrice);
@@ -176,8 +185,7 @@ contract G3MSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-        (bool valid,,,,,) =
-            IStrategyLike(strategy).validateSwap(poolId, swapData);
+        (bool valid,,,,,) = IStrategy(strategy).validateSwap(poolId, swapData);
         return (
             valid,
             amountOut,
@@ -192,9 +200,8 @@ contract G3MSolver {
         view
         returns (uint256 price)
     {
-        G3mParameters memory params = getPoolParams(poolId);
-        (uint256 rx, uint256 ry,) =
-            IStrategyLike(strategy).getReservesAndLiquidity(poolId);
+        G3M.PublicParams memory params = getPoolParams(poolId);
+        (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
     }
 }

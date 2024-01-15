@@ -2,36 +2,31 @@
 pragma solidity ^0.8.13;
 
 import "solmate/utils/FixedPointMathLib.sol";
+import "./G3M.sol";
 import "../../lib/StrategyLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
-/// @dev Parameterization of the Log Normal curve.
-struct G3mParameters {
-    uint256 wx;
-    uint256 wy;
-}
-
 function tradingFunction(
-    uint256 rx,
-    uint256 ry,
+    uint256 rX,
+    uint256 rY,
     uint256 L,
-    G3mParameters memory params
+    G3M.PublicParams memory params
 ) pure returns (int256) {
-    uint256 a = uint256(int256(rx).powWad(int256(params.wx)));
-    uint256 b = uint256(int256(ry).powWad(int256(params.wy)));
+    uint256 a = uint256(int256(rX).powWad(int256(params.wX)));
+    uint256 b = uint256(int256(rY).powWad(int256(params.wY)));
 
     return int256(a.mulWadUp(b)) - int256(L);
 }
 
 /// @dev Computes the approximated spot price given current reserves and liquidity.
 function computePrice(
-    uint256 rx,
-    uint256 ry,
-    G3mParameters memory params
+    uint256 rX,
+    uint256 rY,
+    G3M.PublicParams memory params
 ) pure returns (uint256 price) {
-    uint256 n = ry.divWadDown(params.wy);
-    uint256 d = rx.divWadDown(params.wx);
+    uint256 n = rX.divWadDown(params.wX);
+    uint256 d = rY.divWadDown(params.wY);
     price = n.divWadDown(d);
 }

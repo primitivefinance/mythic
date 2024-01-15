@@ -2,22 +2,16 @@
 pragma solidity ^0.8.13;
 
 import "./LogNormalMath.sol";
+import "./LogNormal.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
-
-/// @dev Parameterization of the Log Normal curve.
-struct LogNormParameters {
-    uint256 strike;
-    uint256 sigma;
-    uint256 tau;
-}
 
 function tradingFunction(
     uint256 rx,
     uint256 ry,
     uint256 L,
-    LogNormParameters memory params
+    LogNormal.PublicParams memory params
 ) pure returns (int256) {
     require(rx < L, "tradingFunction: invalid x");
 
