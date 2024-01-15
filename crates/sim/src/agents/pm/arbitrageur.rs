@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-use alloy_primitives::{
-    utils::{format_ether, format_units, parse_ether},
-    Address, U256,
-};
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
 use clients::protocol::ProtocolClient;
@@ -59,29 +55,30 @@ impl Arbitrageur {
         let liquid_exchange =
             LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
 
+        let atomic_arb_args = (
+            protocol_client.ln_solver.address(),
+            protocol_client.protocol.address(),
+            liquid_exchange.address(),
+            token_admin.arbx.address(),
+            token_admin.arby.address(),
+        );
+
         // Deploy the arbitrageur's atomic contract to atomically swap between
         // exchanges.
-        let atomic_arbitrage = AtomicV2::deploy(
-            client.clone(),
-            (
-                protocol_client.ln_solver.address(),
-                protocol_client.protocol.address(),
-                liquid_exchange.address(),
-                token_admin.arbx.address(),
-                token_admin.arby.address(),
-            ),
-        )?
-        .send()
-        .await?;
+        let atomic_arbitrage = AtomicV2::deploy(client.clone(), atomic_arb_args)?
+            .send()
+            .await?;
 
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 
+        let mint_amount = parse_ether("100_000_000")?;
+
         token_admin
             .mint(
                 from_ethers_address(client.address()),
-                parse_ether(100_000_000.to_string().as_str()).unwrap(),
-                parse_ether(100_000_000.to_string().as_str()).unwrap(),
+                mint_amount,
+                mint_amount,
             )
             .await?;
 
@@ -93,18 +90,6 @@ impl Arbitrageur {
             .send()
             .await?
             .await?;
-
-        let arby_allowance = arby
-            .allowance(client.address(), atomic_arbitrage.address())
-            .call()
-            .await?;
-        let arbx_allowance = arbx
-            .allowance(client.address(), atomic_arbitrage.address())
-            .call()
-            .await?;
-
-        trace!("arbx_allowance: {:?}", arbx_allowance);
-        trace!("arby_allowance: {:?}", arby_allowance);
 
         Ok(Self {
             client,
@@ -120,9 +105,7 @@ impl Arbitrageur {
     /// opportunity.
     #[tracing::instrument(skip(self), level = "trace", ret)]
     async fn detect_arbitrage(&self) -> Result<Swap> {
-        // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        let liquid_exchange_price_wad = from_ethers_u256(liquid_exchange_price_wad);
 
         let target_exchange_price_wad = self
             .protocol_client
@@ -130,13 +113,7 @@ impl Arbitrageur {
             .internal_price(ethers::types::U256::from(0))
             .call()
             .await?;
-        let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
-        debug!("=== Start Loop ===");
-        // info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
-        // info!(
-        //     "Price[LOGNORM]: {:?}",
-        //     format_ether(target_exchange_price_wad)
-        // );
+        let target_exchange_price_wad = target_exchange_price_wad;
 
         match liquid_exchange_price_wad {
             _ if liquid_exchange_price_wad > target_exchange_price_wad => {
