@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 
-abstract contract MockStrategy is IStrategy {
+contract MockStrategy is IStrategy {
     address public immutable dfmm;
 
     constructor(address dfmm_) {
@@ -54,5 +54,18 @@ abstract contract MockStrategy is IStrategy {
             uint256 reserveY,
             uint256 totalLiquidity
         )
+    { }
+
+    function update(uint256 poolId, bytes calldata data) external { }
+
+    function computeSwapConstant(
+        uint256 poolId,
+        bytes memory data
+    ) external view returns (int256) { }
+
+    function getPoolParams(uint256 poolId)
+        external
+        view
+        returns (bytes memory params)
     { }
 }
