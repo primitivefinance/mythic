@@ -135,6 +135,10 @@ contract G3MSolver {
         G3M.PublicParams memory poolParams = getPoolParams(poolId);
 
         uint256 amountOut;
+
+        uint256 startComputedL =
+            computeNextLiquidity(startReserves.rx, startReserves.ry, getPoolParams(poolId));
+
         {
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
@@ -211,7 +215,7 @@ contract G3MSolver {
     ) public view returns (int256) {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        G3mParameters memory params = getPoolParams(poolId);
+        G3M.PublicParams memory params = getPoolParams(poolId);
         return tradingFunction(rx, ry, L, params);
     }
 }

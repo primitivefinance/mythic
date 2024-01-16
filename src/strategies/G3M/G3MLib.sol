@@ -30,3 +30,15 @@ function computePrice(
     uint256 d = rY.divWadDown(params.wY);
     price = n.divWadDown(d);
 }
+
+/// @dev Finds the root of the swapConstant given the independent variable liquidity.
+function computeNextLiquidity(
+    uint256 rX,
+    uint256 rY,
+    G3M.PublicParams memory params
+) pure returns (uint256 L) {
+    return uint256(int256(rX).powWad(int256(params.wX))).mulWadUp(
+        uint256(int256(rY).powWad(int256(params.wY)))
+    );
+}
+
