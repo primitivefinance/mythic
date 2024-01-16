@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "../../strategies/G3M/G3M.sol";
-import "../SetUp.sol";
+import "../DFMM/SetUp.sol";
 import "./G3MSolver.sol";
 
 contract G3MSetUp is SetUp {

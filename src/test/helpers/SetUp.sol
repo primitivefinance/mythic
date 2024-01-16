@@ -3,8 +3,9 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../DFMM.sol";
-import "./helpers/Lex.sol";
+import "../../DFMM.sol";
+import "../helpers/Lex.sol";
+import "../helpers/MockStrategy.sol";
 
 contract SetUp is Test {
     DFMM dfmm;
