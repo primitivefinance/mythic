@@ -125,15 +125,12 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         token_y: Address,
         swap_fee_percent_wad: f64,
     ) -> anyhow::Result<Self> {
-        let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
-
         let protocol = DFMM::deploy(client.clone(), ())?.send().await?;
-        let ln_strategy =
-            LogNormal::deploy(client.clone(), (protocol.address(), swap_fee_percent_wad))?
-                .send()
-                .await?;
+        let ln_strategy = LogNormal::deploy(client.clone(), protocol.address())?
+            .send()
+            .await?;
 
-        let g_strategy = G3M::deploy(client.clone(), (protocol.address(), swap_fee_percent_wad))?
+        let g_strategy = G3M::deploy(client.clone(), protocol.address())?
             .send()
             .await?;
 
