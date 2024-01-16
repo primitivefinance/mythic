@@ -9,6 +9,6 @@ contract DFMMSetUp is SetUp {
 
     function setUp() public {
         globalSetUp();
-        strategy = MockStrategy(address(dfmm));
+        strategy = new MockStrategy(address(dfmm));
     }
 }
