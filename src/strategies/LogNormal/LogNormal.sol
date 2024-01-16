@@ -86,9 +86,9 @@ contract LogNormal is IStrategy {
         (reserveX, reserveY, totalLiquidity, params) =
             abi.decode(data, (uint256, uint256, uint256, PublicParams));
 
-        internalParams[poolId].sigma.lastComputedValue = params.sigma;
-        internalParams[poolId].tau.lastComputedValue = params.tau;
-        internalParams[poolId].strike.lastComputedValue = params.strike;
+        internalParams[poolId].sigma.last = params.sigma;
+        internalParams[poolId].tau.last = params.tau;
+        internalParams[poolId].strike.last = params.strike;
         internalParams[poolId].swapFee = params.swapFee;
 
         invariant = tradingFunction(
@@ -184,6 +184,24 @@ contract LogNormal is IStrategy {
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
         InternalParams memory params = abi.decode(data, (InternalParams));
         internalParams[poolId] = params;
+    }
+
+    function setStrikePrice(uint256 poolId, uint256 target, uint256 end) external {
+      InternalParams memory params = internalParams[poolId];
+      params.strike = params.strike.set(target, end);
+      internalParams[poolId] = params;
+    }
+
+    function setSigma(uint256 poolId, uint256 target, uint256 end) external {
+      InternalParams memory params = internalParams[poolId];
+      params.sigma = params.sigma.set(target, end);
+      internalParams[poolId] = params;
+    }
+
+    function setTau(uint256 poolId, uint256 target, uint256 end) external {
+      InternalParams memory params = internalParams[poolId];
+      params.tau = params.tau.set(target, end);
+      internalParams[poolId] = params;
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {

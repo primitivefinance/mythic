@@ -16,10 +16,69 @@ pub mod i_strategy {
             constructor: ::core::option::Option::None,
             functions: ::core::convert::From::from([
                 (
-                    ::std::borrow::ToOwned::to_owned("dynamicSlot"),
+                    ::std::borrow::ToOwned::to_owned("computeSwapConstant"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("dynamicSlot"),
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "computeSwapConstant",
+                            ),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bytes"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Int(256usize),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("int256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("dfmm"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("dfmm"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("getPoolParams"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("getPoolParams"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
@@ -33,7 +92,7 @@ pub mod i_strategy {
                             ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    name: ::std::borrow::ToOwned::to_owned("params"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
                                     internal_type: ::core::option::Option::Some(
                                         ::std::borrow::ToOwned::to_owned("bytes"),
@@ -51,6 +110,15 @@ pub mod i_strategy {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("init"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -77,7 +145,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("reserveXWad"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -86,7 +154,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("reserveYWad"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -110,6 +178,35 @@ pub mod i_strategy {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("update"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("update"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bytes"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("validateAllocateOrDeallocate"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -117,6 +214,15 @@ pub mod i_strategy {
                                 "validateAllocateOrDeallocate",
                             ),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -141,7 +247,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("rx"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -150,7 +256,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("ry"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -159,7 +265,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("L"),
+                                    name: ::std::borrow::ToOwned::to_owned("totalLiquidity"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -179,6 +285,15 @@ pub mod i_strategy {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("validateSwap"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -212,7 +327,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("reserveXWad"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -221,7 +336,7 @@ pub mod i_strategy {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("reserveYWad"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -292,8 +407,29 @@ pub mod i_strategy {
                 ),
             )
         }
-        ///Calls the contract's `dynamicSlot` (0xa4d47a5e) function
-        pub fn dynamic_slot(
+        ///Calls the contract's `computeSwapConstant` (0x002e524b) function
+        pub fn compute_swap_constant(
+            &self,
+            pool_id: ::ethers::core::types::U256,
+            data: ::ethers::core::types::Bytes,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::I256> {
+            self.0
+                .method_hash([0, 46, 82, 75], (pool_id, data))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `dfmm` (0xafba13c4) function
+        pub fn dfmm(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            ::ethers::core::types::Address,
+        > {
+            self.0
+                .method_hash([175, 186, 19, 196], ())
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `getPoolParams` (0xdc178355) function
+        pub fn get_pool_params(
             &self,
             pool_id: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -301,12 +437,13 @@ pub mod i_strategy {
             ::ethers::core::types::Bytes,
         > {
             self.0
-                .method_hash([164, 212, 122, 94], pool_id)
+                .method_hash([220, 23, 131, 85], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `init` (0x4ddf47d4) function
+        ///Calls the contract's `init` (0x9f83137b) function
         pub fn init(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -319,12 +456,23 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([77, 223, 71, 212], data)
+                .method_hash([159, 131, 19, 123], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateAllocateOrDeallocate` (0x90fad756) function
+        ///Calls the contract's `update` (0x0216b838) function
+        pub fn update(
+            &self,
+            pool_id: ::ethers::core::types::U256,
+            data: ::ethers::core::types::Bytes,
+        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+            self.0
+                .method_hash([2, 22, 184, 56], (pool_id, data))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `validateAllocateOrDeallocate` (0x8e2dd400) function
         pub fn validate_allocate_or_deallocate(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -337,12 +485,13 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([144, 250, 215, 86], data)
+                .method_hash([142, 45, 212, 0], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateSwap` (0xb2b2e7dd) function
+        ///Calls the contract's `validateSwap` (0x3214890f) function
         pub fn validate_swap(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -356,7 +505,7 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([178, 178, 231, 221], data)
+                .method_hash([50, 20, 137, 15], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
     }
@@ -366,7 +515,7 @@ pub mod i_strategy {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Container type for all input parameters for the `dynamicSlot` function with signature `dynamicSlot(uint256)` and selector `0xa4d47a5e`
+    ///Container type for all input parameters for the `computeSwapConstant` function with signature `computeSwapConstant(uint256,bytes)` and selector `0x002e524b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -379,28 +528,80 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "dynamicSlot", abi = "dynamicSlot(uint256)")]
-    pub struct DynamicSlotCall {
+    #[ethcall(name = "computeSwapConstant", abi = "computeSwapConstant(uint256,bytes)")]
+    pub struct ComputeSwapConstantCall {
         pub pool_id: ::ethers::core::types::U256,
-    }
-    ///Container type for all input parameters for the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "init", abi = "init(bytes)")]
-    pub struct InitCall {
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(bytes)` and selector `0x90fad756`
+    ///Container type for all input parameters for the `dfmm` function with signature `dfmm()` and selector `0xafba13c4`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "dfmm", abi = "dfmm()")]
+    pub struct DfmmCall;
+    ///Container type for all input parameters for the `getPoolParams` function with signature `getPoolParams(uint256)` and selector `0xdc178355`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "getPoolParams", abi = "getPoolParams(uint256)")]
+    pub struct GetPoolParamsCall {
+        pub pool_id: ::ethers::core::types::U256,
+    }
+    ///Container type for all input parameters for the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "init", abi = "init(uint256,bytes)")]
+    pub struct InitCall {
+        pub pool_id: ::ethers::core::types::U256,
+        pub data: ::ethers::core::types::Bytes,
+    }
+    ///Container type for all input parameters for the `update` function with signature `update(uint256,bytes)` and selector `0x0216b838`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "update", abi = "update(uint256,bytes)")]
+    pub struct UpdateCall {
+        pub pool_id: ::ethers::core::types::U256,
+        pub data: ::ethers::core::types::Bytes,
+    }
+    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -415,12 +616,13 @@ pub mod i_strategy {
     )]
     #[ethcall(
         name = "validateAllocateOrDeallocate",
-        abi = "validateAllocateOrDeallocate(bytes)"
+        abi = "validateAllocateOrDeallocate(uint256,bytes)"
     )]
     pub struct ValidateAllocateOrDeallocateCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(bytes)` and selector `0xb2b2e7dd`
+    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -433,8 +635,9 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "validateSwap", abi = "validateSwap(bytes)")]
+    #[ethcall(name = "validateSwap", abi = "validateSwap(uint256,bytes)")]
     pub struct ValidateSwapCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
     ///Container type for all of the contract's call
@@ -449,8 +652,11 @@ pub mod i_strategy {
         Hash
     )]
     pub enum IStrategyCalls {
-        DynamicSlot(DynamicSlotCall),
+        ComputeSwapConstant(ComputeSwapConstantCall),
+        Dfmm(DfmmCall),
+        GetPoolParams(GetPoolParamsCall),
         Init(InitCall),
+        Update(UpdateCall),
         ValidateAllocateOrDeallocate(ValidateAllocateOrDeallocateCall),
         ValidateSwap(ValidateSwapCall),
     }
@@ -459,15 +665,30 @@ pub mod i_strategy {
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) = <DynamicSlotCall as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <ComputeSwapConstantCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::DynamicSlot(decoded));
+                return Ok(Self::ComputeSwapConstant(decoded));
+            }
+            if let Ok(decoded) = <DfmmCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Dfmm(decoded));
+            }
+            if let Ok(decoded) = <GetPoolParamsCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::GetPoolParams(decoded));
             }
             if let Ok(decoded) = <InitCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
                 return Ok(Self::Init(decoded));
+            }
+            if let Ok(decoded) = <UpdateCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Update(decoded));
             }
             if let Ok(decoded) = <ValidateAllocateOrDeallocateCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -485,10 +706,15 @@ pub mod i_strategy {
     impl ::ethers::core::abi::AbiEncode for IStrategyCalls {
         fn encode(self) -> Vec<u8> {
             match self {
-                Self::DynamicSlot(element) => {
+                Self::ComputeSwapConstant(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::Dfmm(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::GetPoolParams(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Update(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::ValidateAllocateOrDeallocate(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -501,8 +727,13 @@ pub mod i_strategy {
     impl ::core::fmt::Display for IStrategyCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
-                Self::DynamicSlot(element) => ::core::fmt::Display::fmt(element, f),
+                Self::ComputeSwapConstant(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
+                Self::Dfmm(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetPoolParams(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Update(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ValidateAllocateOrDeallocate(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
@@ -510,14 +741,29 @@ pub mod i_strategy {
             }
         }
     }
-    impl ::core::convert::From<DynamicSlotCall> for IStrategyCalls {
-        fn from(value: DynamicSlotCall) -> Self {
-            Self::DynamicSlot(value)
+    impl ::core::convert::From<ComputeSwapConstantCall> for IStrategyCalls {
+        fn from(value: ComputeSwapConstantCall) -> Self {
+            Self::ComputeSwapConstant(value)
+        }
+    }
+    impl ::core::convert::From<DfmmCall> for IStrategyCalls {
+        fn from(value: DfmmCall) -> Self {
+            Self::Dfmm(value)
+        }
+    }
+    impl ::core::convert::From<GetPoolParamsCall> for IStrategyCalls {
+        fn from(value: GetPoolParamsCall) -> Self {
+            Self::GetPoolParams(value)
         }
     }
     impl ::core::convert::From<InitCall> for IStrategyCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
+        }
+    }
+    impl ::core::convert::From<UpdateCall> for IStrategyCalls {
+        fn from(value: UpdateCall) -> Self {
+            Self::Update(value)
         }
     }
     impl ::core::convert::From<ValidateAllocateOrDeallocateCall> for IStrategyCalls {
@@ -530,7 +776,7 @@ pub mod i_strategy {
             Self::ValidateSwap(value)
         }
     }
-    ///Container type for all return fields from the `dynamicSlot` function with signature `dynamicSlot(uint256)` and selector `0xa4d47a5e`
+    ///Container type for all return fields from the `computeSwapConstant` function with signature `computeSwapConstant(uint256,bytes)` and selector `0x002e524b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -543,10 +789,38 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    pub struct DynamicSlotReturn {
-        pub data: ::ethers::core::types::Bytes,
+    pub struct ComputeSwapConstantReturn(pub ::ethers::core::types::I256);
+    ///Container type for all return fields from the `dfmm` function with signature `dfmm()` and selector `0xafba13c4`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct DfmmReturn(pub ::ethers::core::types::Address);
+    ///Container type for all return fields from the `getPoolParams` function with signature `getPoolParams(uint256)` and selector `0xdc178355`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct GetPoolParamsReturn {
+        pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all return fields from the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
+    ///Container type for all return fields from the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -562,11 +836,11 @@ pub mod i_strategy {
     pub struct InitReturn {
         pub valid: bool,
         pub swap_constant_growth: ::ethers::core::types::I256,
-        pub reserve_x_wad: ::ethers::core::types::U256,
-        pub reserve_y_wad: ::ethers::core::types::U256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(bytes)` and selector `0x90fad756`
+    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -582,11 +856,11 @@ pub mod i_strategy {
     pub struct ValidateAllocateOrDeallocateReturn {
         pub valid: bool,
         pub invariant: ::ethers::core::types::I256,
-        pub rx: ::ethers::core::types::U256,
-        pub ry: ::ethers::core::types::U256,
-        pub l: ::ethers::core::types::U256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(bytes)` and selector `0xb2b2e7dd`
+    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -603,8 +877,8 @@ pub mod i_strategy {
         pub valid: bool,
         pub swap_constant_growth: ::ethers::core::types::I256,
         pub liquidity_delta: ::ethers::core::types::I256,
-        pub reserve_x_wad: ::ethers::core::types::U256,
-        pub reserve_y_wad: ::ethers::core::types::U256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
 }

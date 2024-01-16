@@ -1,17 +1,16 @@
 //! Dynamic Function Market Making Protocol Client
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
-use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use bindings::{
+    dfmm::DFMM,
     g3m::G3M,
-    g3m_solver::G3MSolver,
+    g3m_solver::{G3MSolver, PublicParams as G3Mparameters},
     log_normal::LogNormal,
-    log_normal_solver::{LogNormParameters, LogNormalSolver},
-    multi_dfmm::MultiDFMM,
-    shared_types::{G3Mparameters, InitParams},
+    log_normal_solver::{LogNormalSolver, PublicParams as LogNormParameters},
+    shared_types::InitParams,
 };
 use tracing::debug;
 
@@ -20,7 +19,7 @@ use super::*;
 #[derive(Debug)]
 pub struct ProtocolClient<C> {
     pub client: Arc<C>,
-    pub protocol: MultiDFMM<C>,
+    pub protocol: DFMM<C>,
     pub ln_strategy: LogNormal<C>,
     pub ln_solver: LogNormalSolver<C>,
     pub g_strategy: G3M<C>,
@@ -31,7 +30,7 @@ pub struct ProtocolClient<C> {
 
 pub struct ProtocolClientBuilder<C> {
     pub client: Arc<C>,
-    pub protocol: Option<MultiDFMM<C>>,
+    pub protocol: Option<DFMM<C>>,
     pub ln_strategy: Option<LogNormal<C>>,
     pub ln_solver: Option<LogNormalSolver<C>>,
     pub g_strategy: Option<G3M<C>>,
@@ -42,7 +41,7 @@ pub struct ProtocolClientBuilder<C> {
 
 impl<C: Middleware + 'static> ProtocolClientBuilder<C> {
     pub fn protocol(mut self, protocol: Address) -> Self {
-        self.protocol = Some(MultiDFMM::new(protocol, self.client.clone()));
+        self.protocol = Some(DFMM::new(protocol, self.client.clone()));
         self
     }
 
@@ -128,7 +127,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     ) -> anyhow::Result<Self> {
         let swap_fee_percent_wad = ethers::utils::parse_ether(swap_fee_percent_wad).unwrap();
 
-        let protocol = MultiDFMM::deploy(client.clone(), ())?.send().await?;
+        let protocol = DFMM::deploy(client.clone(), ())?.send().await?;
         let ln_strategy =
             LogNormal::deploy(client.clone(), (protocol.address(), swap_fee_percent_wad))?
                 .send()
@@ -159,7 +158,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 
     pub async fn bind(self, client: Arc<C>) -> anyhow::Result<Self> {
-        let protocol = MultiDFMM::new(self.protocol.address(), client.clone());
+        let protocol = DFMM::new(self.protocol.address(), client.clone());
         let ln_strategy = LogNormal::new(self.ln_strategy.address(), client.clone());
         let g_strategy = G3M::new(self.g_strategy.address(), client.clone());
         let ln_solver = LogNormalSolver::new(self.ln_solver.address(), client.clone());
@@ -182,8 +181,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn get_swap_fee(&self) -> Result<U256> {
-        let swap_fee = self.ln_strategy.swap_fee().call().await?;
+    pub async fn get_swap_fee(&self, pool_id: U256) -> Result<U256> {
+        let (_, _, _, swap_fee) = self.ln_strategy.internal_params(pool_id).call().await?;
         Ok(swap_fee)
     }
 
@@ -194,18 +193,15 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         init_price_wad: U256,
         init_params: LogNormParameters,
     ) -> Result<InitParams> {
-        let nonce = self.protocol.nonce().call().await?;
         let init_data = self
             .ln_solver
             .get_initial_pool_data(init_reserve_x_wad, init_price_wad, init_params)
             .call()
             .await?;
         let init_params: InitParams = InitParams {
-            pool_id: nonce,
             strategy: self.ln_strategy.address(),
             token_x: self.token_x,
             token_y: self.token_y,
-            swap_fee_percentage_wad: ethers::utils::parse_ether(0.003).unwrap(),
             data: init_data,
         };
         Ok(init_params)
@@ -218,18 +214,15 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         init_price_wad: U256,
         init_params: G3Mparameters,
     ) -> Result<InitParams> {
-        let nonce = self.protocol.nonce().call().await?;
         let init_data = self
             .g_solver
             .get_initial_pool_data(init_reserve_x_wad, init_price_wad, init_params)
             .call()
             .await?;
         let init_params: InitParams = InitParams {
-            pool_id: nonce,
             strategy: self.g_strategy.address(),
             token_x: self.token_x,
             token_y: self.token_y,
-            swap_fee_percentage_wad: ethers::utils::parse_ether(0.003).unwrap(),
             data: init_data,
         };
         Ok(init_params)
@@ -251,6 +244,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         strike_price_wad: F64Wad,
         sigma_percent_wad: F64Wad,
         tau_years_wad: F64Wad,
+        swap_fee_percent_wad: F64Wad,
     ) -> Result<Option<TransactionReceipt>> {
         debug!("Initializing DFMM from protocol client.");
 
@@ -259,6 +253,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             strike: to_wad(strike_price_wad),
             sigma: to_wad(sigma_percent_wad),
             tau: to_wad(tau_years_wad),
+            swap_fee: to_wad(swap_fee_percent_wad),
         };
         println!("reserve x wad: {}", init_reserve_x_wad);
 
@@ -288,13 +283,15 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         init_reserve_x_wad: F64Wad,
         init_price_wad: F64Wad,
         init_weight_x: F64Wad,
+        swap_fee_percent_wad: F64Wad,
     ) -> Result<Option<TransactionReceipt>> {
         debug!("Initializing DFMM from protocol client.");
 
         // Format the parameters for the log-normal strategy.
         let params: G3Mparameters = G3Mparameters {
-            wx: to_wad(init_weight_x),
-            wy: to_wad(1.0 - init_weight_x),
+            w_x: to_wad(init_weight_x),
+            w_y: to_wad(1.0 - init_weight_x),
+            swap_fee: to_wad(swap_fee_percent_wad),
         };
         println!("reserve x wad: {}", init_reserve_x_wad);
 

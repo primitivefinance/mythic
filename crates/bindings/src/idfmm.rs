@@ -1,4 +1,4 @@
-pub use i_multi_core::*;
+pub use idfmm::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +9,7 @@ pub use i_multi_core::*;
     dead_code,
     non_camel_case_types,
 )]
-pub mod i_multi_core {
+pub mod idfmm {
     pub use super::super::shared_types::*;
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
@@ -70,6 +70,45 @@ pub mod i_multi_core {
                             ],
                             constant: ::core::option::Option::None,
                             state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("balanceOf"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("balanceOf"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("account"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("balance"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
                         },
                     ],
                 ),
@@ -192,22 +231,27 @@ pub mod i_multi_core {
                                     name: ::std::borrow::ToOwned::to_owned("params"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Tuple(
                                         ::std::vec![
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
                                             ::ethers::core::abi::ethabi::ParamType::Address,
                                             ::ethers::core::abi::ethabi::ParamType::Address,
                                             ::ethers::core::abi::ethabi::ParamType::Address,
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
                                             ::ethers::core::abi::ethabi::ParamType::Bytes,
                                         ],
                                     ),
                                     internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned(
-                                            "struct IParams.InitParams",
-                                        ),
+                                        ::std::borrow::ToOwned::to_owned("struct IDFMM.InitParams"),
                                     ),
                                 },
                             ],
                             outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::string::String::new(),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
@@ -241,6 +285,216 @@ pub mod i_multi_core {
                         },
                     ],
                 ),
+                (
+                    ::std::borrow::ToOwned::to_owned("lastFeeGrowthOf"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("lastFeeGrowthOf"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("account"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("lastFeeGrowth"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("pools"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("pools"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("inited"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bool,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bool"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("controller"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("strategy"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("tokenX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("tokenY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("totalLiquidity"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("feeGrowth"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("swap"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("swap"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bytes"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("update"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("update"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bytes"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
             ]),
             events: ::core::convert::From::from([
                 (
@@ -250,21 +504,33 @@ pub mod i_multi_core {
                             name: ::std::borrow::ToOwned::to_owned("Allocate"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("x"),
+                                    name: ::std::borrow::ToOwned::to_owned("account"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    indexed: true,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("y"),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("l"),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("deltaL"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -282,21 +548,33 @@ pub mod i_multi_core {
                             name: ::std::borrow::ToOwned::to_owned("Deallocate"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("x"),
+                                    name: ::std::borrow::ToOwned::to_owned("account"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    indexed: true,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("y"),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("l"),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("deltaL"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -314,7 +592,7 @@ pub mod i_multi_core {
                             name: ::std::borrow::ToOwned::to_owned("Init"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("swapper"),
+                                    name: ::std::borrow::ToOwned::to_owned("account"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
                                     indexed: true,
                                 },
@@ -324,21 +602,28 @@ pub mod i_multi_core {
                                     indexed: true,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("XXXXXXX"),
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("YYYYYY"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("LLLLLL"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: false,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("totalLiquidity"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -421,42 +706,34 @@ pub mod i_multi_core {
                             name: ::std::borrow::ToOwned::to_owned("Swap"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("swapper"),
+                                    name: ::std::borrow::ToOwned::to_owned("account"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
                                     indexed: true,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("source"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    indexed: true,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("isSwapXForY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bool,
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("tokenIn"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("tokenOut"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("amountIn"),
+                                    name: ::std::borrow::ToOwned::to_owned("inputAmount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("amountOut"),
+                                    name: ::std::borrow::ToOwned::to_owned("outputAmount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("liquidityDelta"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Int(256usize),
                                     indexed: false,
                                 },
                             ],
@@ -495,10 +772,50 @@ pub mod i_multi_core {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("InvalidSwap"),
+                    ::std::borrow::ToOwned::to_owned("InvalidSwapInputTransfer"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::AbiError {
-                            name: ::std::borrow::ToOwned::to_owned("InvalidSwap"),
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "InvalidSwapInputTransfer",
+                            ),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("InvalidSwapOutputTransfer"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "InvalidSwapOutputTransfer",
+                            ),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("InvalidTokens"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("InvalidTokens"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("Locked"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("Locked"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("NotController"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("NotController"),
                             inputs: ::std::vec![],
                         },
                     ],
@@ -518,32 +835,32 @@ pub mod i_multi_core {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static IMULTICORE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+    pub static IDFMM_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
         __abi,
     );
-    pub struct IMultiCore<M>(::ethers::contract::Contract<M>);
-    impl<M> ::core::clone::Clone for IMultiCore<M> {
+    pub struct IDFMM<M>(::ethers::contract::Contract<M>);
+    impl<M> ::core::clone::Clone for IDFMM<M> {
         fn clone(&self) -> Self {
             Self(::core::clone::Clone::clone(&self.0))
         }
     }
-    impl<M> ::core::ops::Deref for IMultiCore<M> {
+    impl<M> ::core::ops::Deref for IDFMM<M> {
         type Target = ::ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M> ::core::ops::DerefMut for IMultiCore<M> {
+    impl<M> ::core::ops::DerefMut for IDFMM<M> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
-    impl<M> ::core::fmt::Debug for IMultiCore<M> {
+    impl<M> ::core::fmt::Debug for IDFMM<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(IMultiCore)).field(&self.address()).finish()
+            f.debug_tuple(::core::stringify!(IDFMM)).field(&self.address()).finish()
         }
     }
-    impl<M: ::ethers::providers::Middleware> IMultiCore<M> {
+    impl<M: ::ethers::providers::Middleware> IDFMM<M> {
         /// Creates a new contract instance with the specified `ethers` client at
         /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
@@ -553,7 +870,7 @@ pub mod i_multi_core {
             Self(
                 ::ethers::contract::Contract::new(
                     address.into(),
-                    IMULTICORE_ABI.clone(),
+                    IDFMM_ABI.clone(),
                     client,
                 ),
             )
@@ -573,6 +890,16 @@ pub mod i_multi_core {
         > {
             self.0
                 .method_hash([46, 195, 129, 136], (pool_id, data))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `balanceOf` (0x00fdd58e) function
+        pub fn balance_of(
+            &self,
+            account: ::ethers::core::types::Address,
+            pool_id: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            self.0
+                .method_hash([0, 253, 213, 142], (account, pool_id))
                 .expect("method not found (this should never happen)")
         }
         ///Calls the contract's `deallocate` (0x9d942f9a) function
@@ -608,7 +935,7 @@ pub mod i_multi_core {
                 .method_hash([206, 21, 59, 244], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `init` (0xe676c3ac) function
+        ///Calls the contract's `init` (0x1455f1fc) function
         pub fn init(
             &self,
             params: InitParams,
@@ -618,10 +945,66 @@ pub mod i_multi_core {
                 ::ethers::core::types::U256,
                 ::ethers::core::types::U256,
                 ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
             ),
         > {
             self.0
-                .method_hash([230, 118, 195, 172], (params,))
+                .method_hash([20, 85, 241, 252], (params,))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `lastFeeGrowthOf` (0x5f00e1f3) function
+        pub fn last_fee_growth_of(
+            &self,
+            account: ::ethers::core::types::Address,
+            pool_id: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            self.0
+                .method_hash([95, 0, 225, 243], (account, pool_id))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `pools` (0xac4afa38) function
+        pub fn pools(
+            &self,
+            pool_id: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            (
+                bool,
+                ::ethers::core::types::Address,
+                ::ethers::core::types::Address,
+                ::ethers::core::types::Address,
+                ::ethers::core::types::Address,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+            ),
+        > {
+            self.0
+                .method_hash([172, 74, 250, 56], pool_id)
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `swap` (0xbd0625ab) function
+        pub fn swap(
+            &self,
+            pool_id: ::ethers::core::types::U256,
+            data: ::ethers::core::types::Bytes,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            (::ethers::core::types::U256, ::ethers::core::types::U256),
+        > {
+            self.0
+                .method_hash([189, 6, 37, 171], (pool_id, data))
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `update` (0x0216b838) function
+        pub fn update(
+            &self,
+            pool_id: ::ethers::core::types::U256,
+            data: ::ethers::core::types::Bytes,
+        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
+            self.0
+                .method_hash([2, 22, 184, 56], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
         ///Gets the contract's `Allocate` event
@@ -669,16 +1052,12 @@ pub mod i_multi_core {
         /// Returns an `Event` builder for all the events of this contract.
         pub fn events(
             &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            IMultiCoreEvents,
-        > {
+        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, IDFMMEvents> {
             self.0.event_with_filter(::core::default::Default::default())
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for IMultiCore<M> {
+    for IDFMM<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
@@ -701,7 +1080,7 @@ pub mod i_multi_core {
         pub negative: bool,
         pub swap_constant_growth: ::ethers::core::types::U256,
     }
-    ///Custom Error type `InvalidSwap` with signature `InvalidSwap()` and selector `0x11157667`
+    ///Custom Error type `InvalidSwapInputTransfer` with signature `InvalidSwapInputTransfer()` and selector `0x80f64074`
     #[derive(
         Clone,
         ::ethers::contract::EthError,
@@ -714,8 +1093,68 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    #[etherror(name = "InvalidSwap", abi = "InvalidSwap()")]
-    pub struct InvalidSwap;
+    #[etherror(name = "InvalidSwapInputTransfer", abi = "InvalidSwapInputTransfer()")]
+    pub struct InvalidSwapInputTransfer;
+    ///Custom Error type `InvalidSwapOutputTransfer` with signature `InvalidSwapOutputTransfer()` and selector `0xf3cbbc87`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "InvalidSwapOutputTransfer", abi = "InvalidSwapOutputTransfer()")]
+    pub struct InvalidSwapOutputTransfer;
+    ///Custom Error type `InvalidTokens` with signature `InvalidTokens()` and selector `0x672215de`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "InvalidTokens", abi = "InvalidTokens()")]
+    pub struct InvalidTokens;
+    ///Custom Error type `Locked` with signature `Locked()` and selector `0x0f2e5b6c`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "Locked", abi = "Locked()")]
+    pub struct Locked;
+    ///Custom Error type `NotController` with signature `NotController()` and selector `0x23019e67`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "NotController", abi = "NotController()")]
+    pub struct NotController;
     ///Custom Error type `NotInitialized` with signature `NotInitialized()` and selector `0x87138d5c`
     #[derive(
         Clone,
@@ -742,15 +1181,19 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    pub enum IMultiCoreErrors {
+    pub enum IDFMMErrors {
         Invalid(Invalid),
-        InvalidSwap(InvalidSwap),
+        InvalidSwapInputTransfer(InvalidSwapInputTransfer),
+        InvalidSwapOutputTransfer(InvalidSwapOutputTransfer),
+        InvalidTokens(InvalidTokens),
+        Locked(Locked),
+        NotController(NotController),
         NotInitialized(NotInitialized),
         /// The standard solidity revert string, with selector
         /// Error(string) -- 0x08c379a0
         RevertString(::std::string::String),
     }
-    impl ::ethers::core::abi::AbiDecode for IMultiCoreErrors {
+    impl ::ethers::core::abi::AbiDecode for IDFMMErrors {
         fn decode(
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
@@ -765,10 +1208,30 @@ pub mod i_multi_core {
             ) {
                 return Ok(Self::Invalid(decoded));
             }
-            if let Ok(decoded) = <InvalidSwap as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <InvalidSwapInputTransfer as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::InvalidSwap(decoded));
+                return Ok(Self::InvalidSwapInputTransfer(decoded));
+            }
+            if let Ok(decoded) = <InvalidSwapOutputTransfer as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InvalidSwapOutputTransfer(decoded));
+            }
+            if let Ok(decoded) = <InvalidTokens as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InvalidTokens(decoded));
+            }
+            if let Ok(decoded) = <Locked as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Locked(decoded));
+            }
+            if let Ok(decoded) = <NotController as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::NotController(decoded));
             }
             if let Ok(decoded) = <NotInitialized as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -778,11 +1241,21 @@ pub mod i_multi_core {
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
-    impl ::ethers::core::abi::AbiEncode for IMultiCoreErrors {
+    impl ::ethers::core::abi::AbiEncode for IDFMMErrors {
         fn encode(self) -> ::std::vec::Vec<u8> {
             match self {
                 Self::Invalid(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::InvalidSwap(element) => {
+                Self::InvalidSwapInputTransfer(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::InvalidSwapOutputTransfer(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::InvalidTokens(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::Locked(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::NotController(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::NotInitialized(element) => {
@@ -792,14 +1265,31 @@ pub mod i_multi_core {
             }
         }
     }
-    impl ::ethers::contract::ContractRevert for IMultiCoreErrors {
+    impl ::ethers::contract::ContractRevert for IDFMMErrors {
         fn valid_selector(selector: [u8; 4]) -> bool {
             match selector {
                 [0x08, 0xc3, 0x79, 0xa0] => true,
                 _ if selector
                     == <Invalid as ::ethers::contract::EthError>::selector() => true,
                 _ if selector
-                    == <InvalidSwap as ::ethers::contract::EthError>::selector() => true,
+                    == <InvalidSwapInputTransfer as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector
+                    == <InvalidSwapOutputTransfer as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector
+                    == <InvalidTokens as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector == <Locked as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector
+                    == <NotController as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
                 _ if selector
                     == <NotInitialized as ::ethers::contract::EthError>::selector() => {
                     true
@@ -808,32 +1298,60 @@ pub mod i_multi_core {
             }
         }
     }
-    impl ::core::fmt::Display for IMultiCoreErrors {
+    impl ::core::fmt::Display for IDFMMErrors {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::Invalid(element) => ::core::fmt::Display::fmt(element, f),
-                Self::InvalidSwap(element) => ::core::fmt::Display::fmt(element, f),
+                Self::InvalidSwapInputTransfer(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
+                Self::InvalidSwapOutputTransfer(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
+                Self::InvalidTokens(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Locked(element) => ::core::fmt::Display::fmt(element, f),
+                Self::NotController(element) => ::core::fmt::Display::fmt(element, f),
                 Self::NotInitialized(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
             }
         }
     }
-    impl ::core::convert::From<::std::string::String> for IMultiCoreErrors {
+    impl ::core::convert::From<::std::string::String> for IDFMMErrors {
         fn from(value: String) -> Self {
             Self::RevertString(value)
         }
     }
-    impl ::core::convert::From<Invalid> for IMultiCoreErrors {
+    impl ::core::convert::From<Invalid> for IDFMMErrors {
         fn from(value: Invalid) -> Self {
             Self::Invalid(value)
         }
     }
-    impl ::core::convert::From<InvalidSwap> for IMultiCoreErrors {
-        fn from(value: InvalidSwap) -> Self {
-            Self::InvalidSwap(value)
+    impl ::core::convert::From<InvalidSwapInputTransfer> for IDFMMErrors {
+        fn from(value: InvalidSwapInputTransfer) -> Self {
+            Self::InvalidSwapInputTransfer(value)
         }
     }
-    impl ::core::convert::From<NotInitialized> for IMultiCoreErrors {
+    impl ::core::convert::From<InvalidSwapOutputTransfer> for IDFMMErrors {
+        fn from(value: InvalidSwapOutputTransfer) -> Self {
+            Self::InvalidSwapOutputTransfer(value)
+        }
+    }
+    impl ::core::convert::From<InvalidTokens> for IDFMMErrors {
+        fn from(value: InvalidTokens) -> Self {
+            Self::InvalidTokens(value)
+        }
+    }
+    impl ::core::convert::From<Locked> for IDFMMErrors {
+        fn from(value: Locked) -> Self {
+            Self::Locked(value)
+        }
+    }
+    impl ::core::convert::From<NotController> for IDFMMErrors {
+        fn from(value: NotController) -> Self {
+            Self::NotController(value)
+        }
+    }
+    impl ::core::convert::From<NotInitialized> for IDFMMErrors {
         fn from(value: NotInitialized) -> Self {
             Self::NotInitialized(value)
         }
@@ -850,11 +1368,17 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    #[ethevent(name = "Allocate", abi = "Allocate(uint256,uint256,uint256)")]
+    #[ethevent(
+        name = "Allocate",
+        abi = "Allocate(address,uint256,uint256,uint256,uint256)"
+    )]
     pub struct AllocateFilter {
-        pub x: ::ethers::core::types::U256,
-        pub y: ::ethers::core::types::U256,
-        pub l: ::ethers::core::types::U256,
+        #[ethevent(indexed)]
+        pub account: ::ethers::core::types::Address,
+        pub pool_id: ::ethers::core::types::U256,
+        pub delta_x: ::ethers::core::types::U256,
+        pub delta_y: ::ethers::core::types::U256,
+        pub delta_l: ::ethers::core::types::U256,
     }
     #[derive(
         Clone,
@@ -868,11 +1392,17 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    #[ethevent(name = "Deallocate", abi = "Deallocate(uint256,uint256,uint256)")]
+    #[ethevent(
+        name = "Deallocate",
+        abi = "Deallocate(address,uint256,uint256,uint256,uint256)"
+    )]
     pub struct DeallocateFilter {
-        pub x: ::ethers::core::types::U256,
-        pub y: ::ethers::core::types::U256,
-        pub l: ::ethers::core::types::U256,
+        #[ethevent(indexed)]
+        pub account: ::ethers::core::types::Address,
+        pub pool_id: ::ethers::core::types::U256,
+        pub delta_x: ::ethers::core::types::U256,
+        pub delta_y: ::ethers::core::types::U256,
+        pub delta_l: ::ethers::core::types::U256,
     }
     #[derive(
         Clone,
@@ -886,15 +1416,19 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    #[ethevent(name = "Init", abi = "Init(address,address,uint256,uint256,uint256)")]
+    #[ethevent(
+        name = "Init",
+        abi = "Init(address,address,uint256,uint256,uint256,uint256)"
+    )]
     pub struct InitFilter {
         #[ethevent(indexed)]
-        pub swapper: ::ethers::core::types::Address,
+        pub account: ::ethers::core::types::Address,
         #[ethevent(indexed)]
         pub strategy: ::ethers::core::types::Address,
-        pub xxxxxxx: ::ethers::core::types::U256,
-        pub yyyyyy: ::ethers::core::types::U256,
-        pub llllll: ::ethers::core::types::U256,
+        pub pool_id: ::ethers::core::types::U256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub total_liquidity: ::ethers::core::types::U256,
     }
     #[derive(
         Clone,
@@ -934,21 +1468,15 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    #[ethevent(
-        name = "Swap",
-        abi = "Swap(address,address,address,address,uint256,uint256,int256)"
-    )]
+    #[ethevent(name = "Swap", abi = "Swap(address,uint256,bool,uint256,uint256)")]
     pub struct SwapFilter {
         #[ethevent(indexed)]
-        pub swapper: ::ethers::core::types::Address,
-        pub source: ::ethers::core::types::Address,
+        pub account: ::ethers::core::types::Address,
         #[ethevent(indexed)]
-        pub token_in: ::ethers::core::types::Address,
-        #[ethevent(indexed)]
-        pub token_out: ::ethers::core::types::Address,
-        pub amount_in: ::ethers::core::types::U256,
-        pub amount_out: ::ethers::core::types::U256,
-        pub liquidity_delta: ::ethers::core::types::I256,
+        pub pool_id: ::ethers::core::types::U256,
+        pub is_swap_x_for_y: bool,
+        pub input_amount: ::ethers::core::types::U256,
+        pub output_amount: ::ethers::core::types::U256,
     }
     ///Container type for all of the contract's events
     #[derive(
@@ -961,36 +1489,36 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    pub enum IMultiCoreEvents {
+    pub enum IDFMMEvents {
         AllocateFilter(AllocateFilter),
         DeallocateFilter(DeallocateFilter),
         InitFilter(InitFilter),
         LogPoolStatsFilter(LogPoolStatsFilter),
         SwapFilter(SwapFilter),
     }
-    impl ::ethers::contract::EthLogDecode for IMultiCoreEvents {
+    impl ::ethers::contract::EthLogDecode for IDFMMEvents {
         fn decode_log(
             log: &::ethers::core::abi::RawLog,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
             if let Ok(decoded) = AllocateFilter::decode_log(log) {
-                return Ok(IMultiCoreEvents::AllocateFilter(decoded));
+                return Ok(IDFMMEvents::AllocateFilter(decoded));
             }
             if let Ok(decoded) = DeallocateFilter::decode_log(log) {
-                return Ok(IMultiCoreEvents::DeallocateFilter(decoded));
+                return Ok(IDFMMEvents::DeallocateFilter(decoded));
             }
             if let Ok(decoded) = InitFilter::decode_log(log) {
-                return Ok(IMultiCoreEvents::InitFilter(decoded));
+                return Ok(IDFMMEvents::InitFilter(decoded));
             }
             if let Ok(decoded) = LogPoolStatsFilter::decode_log(log) {
-                return Ok(IMultiCoreEvents::LogPoolStatsFilter(decoded));
+                return Ok(IDFMMEvents::LogPoolStatsFilter(decoded));
             }
             if let Ok(decoded) = SwapFilter::decode_log(log) {
-                return Ok(IMultiCoreEvents::SwapFilter(decoded));
+                return Ok(IDFMMEvents::SwapFilter(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData)
         }
     }
-    impl ::core::fmt::Display for IMultiCoreEvents {
+    impl ::core::fmt::Display for IDFMMEvents {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::AllocateFilter(element) => ::core::fmt::Display::fmt(element, f),
@@ -1003,27 +1531,27 @@ pub mod i_multi_core {
             }
         }
     }
-    impl ::core::convert::From<AllocateFilter> for IMultiCoreEvents {
+    impl ::core::convert::From<AllocateFilter> for IDFMMEvents {
         fn from(value: AllocateFilter) -> Self {
             Self::AllocateFilter(value)
         }
     }
-    impl ::core::convert::From<DeallocateFilter> for IMultiCoreEvents {
+    impl ::core::convert::From<DeallocateFilter> for IDFMMEvents {
         fn from(value: DeallocateFilter) -> Self {
             Self::DeallocateFilter(value)
         }
     }
-    impl ::core::convert::From<InitFilter> for IMultiCoreEvents {
+    impl ::core::convert::From<InitFilter> for IDFMMEvents {
         fn from(value: InitFilter) -> Self {
             Self::InitFilter(value)
         }
     }
-    impl ::core::convert::From<LogPoolStatsFilter> for IMultiCoreEvents {
+    impl ::core::convert::From<LogPoolStatsFilter> for IDFMMEvents {
         fn from(value: LogPoolStatsFilter) -> Self {
             Self::LogPoolStatsFilter(value)
         }
     }
-    impl ::core::convert::From<SwapFilter> for IMultiCoreEvents {
+    impl ::core::convert::From<SwapFilter> for IDFMMEvents {
         fn from(value: SwapFilter) -> Self {
             Self::SwapFilter(value)
         }
@@ -1045,6 +1573,24 @@ pub mod i_multi_core {
     pub struct AllocateCall {
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
+    }
+    ///Container type for all input parameters for the `balanceOf` function with signature `balanceOf(address,uint256)` and selector `0x00fdd58e`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "balanceOf", abi = "balanceOf(address,uint256)")]
+    pub struct BalanceOfCall {
+        pub account: ::ethers::core::types::Address,
+        pub pool_id: ::ethers::core::types::U256,
     }
     ///Container type for all input parameters for the `deallocate` function with signature `deallocate(uint256,bytes)` and selector `0x9d942f9a`
     #[derive(
@@ -1084,7 +1630,7 @@ pub mod i_multi_core {
     pub struct GetReservesAndLiquidityCall {
         pub pool_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `init` function with signature `init((uint256,address,address,address,uint256,bytes))` and selector `0xe676c3ac`
+    ///Container type for all input parameters for the `init` function with signature `init((address,address,address,bytes))` and selector `0x1455f1fc`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1097,12 +1643,80 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    #[ethcall(
-        name = "init",
-        abi = "init((uint256,address,address,address,uint256,bytes))"
-    )]
+    #[ethcall(name = "init", abi = "init((address,address,address,bytes))")]
     pub struct InitCall {
         pub params: InitParams,
+    }
+    ///Container type for all input parameters for the `lastFeeGrowthOf` function with signature `lastFeeGrowthOf(address,uint256)` and selector `0x5f00e1f3`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "lastFeeGrowthOf", abi = "lastFeeGrowthOf(address,uint256)")]
+    pub struct LastFeeGrowthOfCall {
+        pub account: ::ethers::core::types::Address,
+        pub pool_id: ::ethers::core::types::U256,
+    }
+    ///Container type for all input parameters for the `pools` function with signature `pools(uint256)` and selector `0xac4afa38`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "pools", abi = "pools(uint256)")]
+    pub struct PoolsCall {
+        pub pool_id: ::ethers::core::types::U256,
+    }
+    ///Container type for all input parameters for the `swap` function with signature `swap(uint256,bytes)` and selector `0xbd0625ab`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "swap", abi = "swap(uint256,bytes)")]
+    pub struct SwapCall {
+        pub pool_id: ::ethers::core::types::U256,
+        pub data: ::ethers::core::types::Bytes,
+    }
+    ///Container type for all input parameters for the `update` function with signature `update(uint256,bytes)` and selector `0x0216b838`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "update", abi = "update(uint256,bytes)")]
+    pub struct UpdateCall {
+        pub pool_id: ::ethers::core::types::U256,
+        pub data: ::ethers::core::types::Bytes,
     }
     ///Container type for all of the contract's call
     #[derive(
@@ -1115,13 +1729,18 @@ pub mod i_multi_core {
         Eq,
         Hash
     )]
-    pub enum IMultiCoreCalls {
+    pub enum IDFMMCalls {
         Allocate(AllocateCall),
+        BalanceOf(BalanceOfCall),
         Deallocate(DeallocateCall),
         GetReservesAndLiquidity(GetReservesAndLiquidityCall),
         Init(InitCall),
+        LastFeeGrowthOf(LastFeeGrowthOfCall),
+        Pools(PoolsCall),
+        Swap(SwapCall),
+        Update(UpdateCall),
     }
-    impl ::ethers::core::abi::AbiDecode for IMultiCoreCalls {
+    impl ::ethers::core::abi::AbiDecode for IDFMMCalls {
         fn decode(
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
@@ -1130,6 +1749,11 @@ pub mod i_multi_core {
                 data,
             ) {
                 return Ok(Self::Allocate(decoded));
+            }
+            if let Ok(decoded) = <BalanceOfCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::BalanceOf(decoded));
             }
             if let Ok(decoded) = <DeallocateCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -1146,13 +1770,36 @@ pub mod i_multi_core {
             ) {
                 return Ok(Self::Init(decoded));
             }
+            if let Ok(decoded) = <LastFeeGrowthOfCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::LastFeeGrowthOf(decoded));
+            }
+            if let Ok(decoded) = <PoolsCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Pools(decoded));
+            }
+            if let Ok(decoded) = <SwapCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Swap(decoded));
+            }
+            if let Ok(decoded) = <UpdateCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Update(decoded));
+            }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
-    impl ::ethers::core::abi::AbiEncode for IMultiCoreCalls {
+    impl ::ethers::core::abi::AbiEncode for IDFMMCalls {
         fn encode(self) -> Vec<u8> {
             match self {
                 Self::Allocate(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::BalanceOf(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Deallocate(element) => {
@@ -1162,39 +1809,75 @@ pub mod i_multi_core {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::LastFeeGrowthOf(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::Pools(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Swap(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Update(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
     }
-    impl ::core::fmt::Display for IMultiCoreCalls {
+    impl ::core::fmt::Display for IDFMMCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::Allocate(element) => ::core::fmt::Display::fmt(element, f),
+                Self::BalanceOf(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Deallocate(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetReservesAndLiquidity(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
+                Self::LastFeeGrowthOf(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Pools(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Swap(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Update(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
     }
-    impl ::core::convert::From<AllocateCall> for IMultiCoreCalls {
+    impl ::core::convert::From<AllocateCall> for IDFMMCalls {
         fn from(value: AllocateCall) -> Self {
             Self::Allocate(value)
         }
     }
-    impl ::core::convert::From<DeallocateCall> for IMultiCoreCalls {
+    impl ::core::convert::From<BalanceOfCall> for IDFMMCalls {
+        fn from(value: BalanceOfCall) -> Self {
+            Self::BalanceOf(value)
+        }
+    }
+    impl ::core::convert::From<DeallocateCall> for IDFMMCalls {
         fn from(value: DeallocateCall) -> Self {
             Self::Deallocate(value)
         }
     }
-    impl ::core::convert::From<GetReservesAndLiquidityCall> for IMultiCoreCalls {
+    impl ::core::convert::From<GetReservesAndLiquidityCall> for IDFMMCalls {
         fn from(value: GetReservesAndLiquidityCall) -> Self {
             Self::GetReservesAndLiquidity(value)
         }
     }
-    impl ::core::convert::From<InitCall> for IMultiCoreCalls {
+    impl ::core::convert::From<InitCall> for IDFMMCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
+        }
+    }
+    impl ::core::convert::From<LastFeeGrowthOfCall> for IDFMMCalls {
+        fn from(value: LastFeeGrowthOfCall) -> Self {
+            Self::LastFeeGrowthOf(value)
+        }
+    }
+    impl ::core::convert::From<PoolsCall> for IDFMMCalls {
+        fn from(value: PoolsCall) -> Self {
+            Self::Pools(value)
+        }
+    }
+    impl ::core::convert::From<SwapCall> for IDFMMCalls {
+        fn from(value: SwapCall) -> Self {
+            Self::Swap(value)
+        }
+    }
+    impl ::core::convert::From<UpdateCall> for IDFMMCalls {
+        fn from(value: UpdateCall) -> Self {
+            Self::Update(value)
         }
     }
     ///Container type for all return fields from the `allocate` function with signature `allocate(uint256,bytes)` and selector `0x2ec38188`
@@ -1215,6 +1898,22 @@ pub mod i_multi_core {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::U256,
     );
+    ///Container type for all return fields from the `balanceOf` function with signature `balanceOf(address,uint256)` and selector `0x00fdd58e`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct BalanceOfReturn {
+        pub balance: ::ethers::core::types::U256,
+    }
     ///Container type for all return fields from the `deallocate` function with signature `deallocate(uint256,bytes)` and selector `0x9d942f9a`
     #[derive(
         Clone,
@@ -1251,7 +1950,7 @@ pub mod i_multi_core {
         pub reserve_y_wad: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `init` function with signature `init((uint256,address,address,address,uint256,bytes))` and selector `0xe676c3ac`
+    ///Container type for all return fields from the `init` function with signature `init((address,address,address,bytes))` and selector `0x1455f1fc`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1266,6 +1965,64 @@ pub mod i_multi_core {
     )]
     pub struct InitReturn(
         pub ::ethers::core::types::U256,
+        pub ::ethers::core::types::U256,
+        pub ::ethers::core::types::U256,
+        pub ::ethers::core::types::U256,
+    );
+    ///Container type for all return fields from the `lastFeeGrowthOf` function with signature `lastFeeGrowthOf(address,uint256)` and selector `0x5f00e1f3`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct LastFeeGrowthOfReturn {
+        pub last_fee_growth: ::ethers::core::types::U256,
+    }
+    ///Container type for all return fields from the `pools` function with signature `pools(uint256)` and selector `0xac4afa38`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct PoolsReturn {
+        pub inited: bool,
+        pub controller: ::ethers::core::types::Address,
+        pub strategy: ::ethers::core::types::Address,
+        pub token_x: ::ethers::core::types::Address,
+        pub token_y: ::ethers::core::types::Address,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub total_liquidity: ::ethers::core::types::U256,
+        pub fee_growth: ::ethers::core::types::U256,
+    }
+    ///Container type for all return fields from the `swap` function with signature `swap(uint256,bytes)` and selector `0xbd0625ab`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct SwapReturn(
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::U256,
     );

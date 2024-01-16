@@ -85,8 +85,8 @@ contract G3M is IStrategy {
             revert InvalidWeightX();
         }
 
-        internalParams[poolId].wX.lastComputedValue = wX;
-        internalParams[poolId].wX.lastUpdateAt = block.timestamp;
+        internalParams[poolId].wX.last = wX;
+        internalParams[poolId].wX.lastSync = block.timestamp;
         internalParams[poolId].swapFee = swapFee;
 
         invariant = tradingFunction(
@@ -186,6 +186,12 @@ contract G3M is IStrategy {
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
         InternalParams memory params = abi.decode(data, (InternalParams));
         internalParams[poolId] = params;
+    }
+
+    function setWeightX(uint256 poolId, uint256 target, uint256 end) external {
+      InternalParams memory params = internalParams[poolId];
+      params.wX = params.wX.set(target, end);
+      internalParams[poolId] = params;
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {

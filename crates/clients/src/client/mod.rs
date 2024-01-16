@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bindings::{coin::Coin, counter::Counter};
+use bindings::coin::Coin;
 use ethers::{
     core::k256::ecdsa::SigningKey,
     middleware::SignerMiddleware,
@@ -108,25 +108,6 @@ impl Local<Provider<Ws>, Wallet<SigningKey>> {
 
         Self {
             client: Some(client),
-            ..self
-        }
-    }
-
-    pub async fn with_counter(self) -> Self {
-        let client = self.client.unwrap();
-        let counter = Counter::deploy(client.clone(), ())
-            .unwrap()
-            .send()
-            .await
-            .unwrap();
-
-        let contract = counter.address();
-
-        tracing::info!("Deployed counter contract at 0x{:x}", contract);
-
-        Self {
-            client: Some(client),
-            counter_contract: Some(contract),
             ..self
         }
     }
