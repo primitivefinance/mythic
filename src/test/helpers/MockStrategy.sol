@@ -23,7 +23,17 @@ contract MockStrategy is IStrategy {
             uint256 reserveY,
             uint256 totalLiquidity
         )
-    { }
+    {
+        uint256 status = abi.decode(data, (uint256));
+
+        if (status == 1) {
+            valid = true;
+            swapConstantGrowth = 1 ether;
+            reserveX = 2 ether;
+            reserveY = 3 ether;
+            totalLiquidity = 4 ether;
+        }
+    }
 
     function validateAllocateOrDeallocate(
         uint256 poolId,
