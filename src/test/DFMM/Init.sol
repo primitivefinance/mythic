@@ -25,6 +25,29 @@ contract DFMMInit is DFMMSetUp {
         assertEq(totalLiquidity, 4 ether);
     }
 
+    function test_DFMM_init_ReturnsStrategyInitialReserves() public {
+        bytes memory data = abi.encode(uint256(1));
+
+        IDFMM.InitParams memory params = IDFMM.InitParams({
+            strategy: address(strategy),
+            tokenX: address(0xbeef),
+            tokenY: address(0xdead),
+            data: data
+        });
+
+        (
+            uint256 poolId,
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity
+        ) = dfmm.init(params);
+
+        assertEq(poolId, 0);
+        assertEq(reserveX, 2 ether);
+        assertEq(reserveY, 3 ether);
+        assertEq(totalLiquidity, 4 ether);
+    }
+
     function test_DFMM_init_TransfersInitialReserves() public {
         bytes memory data = abi.encode(uint256(1));
 
