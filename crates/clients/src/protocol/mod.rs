@@ -182,8 +182,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_swap_fee(&self, pool_id: U256) -> Result<U256> {
-        let (_, _, _, swap_fee) = self.ln_strategy.internal_params(pool_id).call().await?;
-        Ok(swap_fee)
+        let params = self.ln_solver.get_pool_params(pool_id).call().await?;
+        Ok(params.swap_fee)
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
@@ -317,8 +317,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_strike_price(&self, pool_id: U256) -> Result<U256> {
-        let strike_price = self.ln_strategy.strike_price(pool_id).call().await?;
-        Ok(strike_price)
+        let pool_data = self.ln_solver.get_pool_params(pool_id).call().await?;
+        Ok(pool_data.strike)
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]

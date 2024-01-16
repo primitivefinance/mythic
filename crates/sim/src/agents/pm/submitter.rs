@@ -47,11 +47,11 @@ impl Agent for VolatilityTargetingSubmitter {
             .protocol
             .get_pool(ethers::types::U256::from(1))
             .await?;
-        let ln_rx = ethers::utils::format_ether(ln_pool.reserve_x_wad).parse::<f64>()?;
-        let ln_ry = ethers::utils::format_ether(ln_pool.reserve_y_wad).parse::<f64>()?;
+        let ln_rx = ethers::utils::format_ether(ln_pool.reserve_x).parse::<f64>()?;
+        let ln_ry = ethers::utils::format_ether(ln_pool.reserve_y).parse::<f64>()?;
 
-        let g_rx = ethers::utils::format_ether(g_pool.reserve_x_wad).parse::<f64>()?;
-        let g_ry = ethers::utils::format_ether(g_pool.reserve_y_wad).parse::<f64>()?;
+        let g_rx = ethers::utils::format_ether(g_pool.reserve_x).parse::<f64>()?;
+        let g_ry = ethers::utils::format_ether(g_pool.reserve_y).parse::<f64>()?;
 
         let ln_portfolio_price = ln_rx * asset_price + ln_ry;
         let g_portfolio_price = g_rx * asset_price + g_ry;
@@ -158,8 +158,6 @@ impl VolatilityTargetingSubmitter {
         }
         let ln_portfolio_rv = self.ln_data.portfolio_rv.last().unwrap().0;
         let g_portfolio_rv = self.g_data.portfolio_rv.last().unwrap().0;
-        info!("ln portfolio_rv: {}", ln_portfolio_rv);
-        info!("g3m portfolio_rv: {}", g_portfolio_rv);
         let current_strike = self.protocol_client.get_strike_price(U256::from(0)).await?;
 
         let current_strike_float = ethers::utils::format_ether(current_strike)
@@ -167,9 +165,10 @@ impl VolatilityTargetingSubmitter {
             .unwrap();
         let current_wx = self
             .protocol_client
-            .g_strategy
-            .weight_x(U256::from(1))
-            .await?;
+            .g_solver
+            .get_pool_params(U256::from(1))
+            .await?
+            .w_x;
         let wx_float = format_ether(current_wx).parse::<f64>().unwrap();
         info!("current strike float: {}", current_strike_float);
         let mut new_strike = current_strike_float;

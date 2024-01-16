@@ -138,6 +138,7 @@ impl<C: Middleware + 'static> DevClient<C> {
                 strike_price_wad,
                 sigma_percent_wad,
                 tau_years_wad,
+                0.003,
             )
             .await
     }

@@ -159,15 +159,18 @@ impl G3mArbitrageur {
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
         let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let (wx, wy) = self
+        let pool_params = self
             .protocol_client
-            .g_strategy
-            .get_params(ethers::types::U256::from(1))
+            .g_solver
+            .get_pool_params(ethers::types::U256::from(1))
             .call()
             .await?;
-        let (wx, wy) = (I256::from_raw(wx), I256::from_raw(wy));
-        let gamma = I256::from_raw(ethers::utils::parse_ether("1")?)
-            - I256::from_raw(self.protocol_client.g_strategy.swap_fee().call().await?);
+        let (wx, wy) = (
+            I256::from_raw(pool_params.w_x),
+            I256::from_raw(pool_params.w_y),
+        );
+        let gamma =
+            I256::from_raw(ethers::utils::parse_ether("1")?) - I256::from_raw(pool_params.swap_fee);
         let (rx, ry, liq) = self
             .protocol_client
             .protocol
@@ -318,13 +321,16 @@ impl Agent for G3mArbitrageur {
                     .get_reserves_and_liquidity(ethers::types::U256::from(1))
                     .call()
                     .await?;
-                let (wx, wy) = self
+                let pool_params = self
                     .protocol_client
-                    .g_strategy
-                    .get_params(ethers::types::U256::from(1))
+                    .g_solver
+                    .get_pool_params(ethers::types::U256::from(1))
                     .call()
                     .await?;
-                debug!("====Params[POST-SWAP] wx: {:?} wy: {:?}", wx, wy);
+                debug!(
+                    "====Params[POST-SWAP] wx: {:?} wy: {:?}",
+                    pool_params.w_x, pool_params.w_y
+                );
                 debug!(
                     "====Reserves[POST-SWAP] reserve_x: {:?} reserve_y: {:?} liquidity: {:?}=====",
                     reserve_x, reserve_y, liquidity

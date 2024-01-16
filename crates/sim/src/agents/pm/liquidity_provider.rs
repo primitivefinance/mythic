@@ -32,11 +32,17 @@ impl Agent for LiquidityProvider {
                 self.init_strike_price_wad,
                 self.init_sigma_percent_wad,
                 self.init_tau_years_wad,
+                0.003,
             )
             .await?;
 
         self.protocol_client
-            .initialize_g_pool(self.init_x_wad, self.init_price_wad, self.init_weight_x_wad)
+            .initialize_g_pool(
+                self.init_x_wad,
+                self.init_price_wad,
+                self.init_weight_x_wad,
+                0.003,
+            )
             .await?;
 
         Ok(())

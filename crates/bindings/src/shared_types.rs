@@ -1,4 +1,4 @@
-///`DynamicParam(uint256,uint256,uint256,int256)`
+///`DynamicParam(uint256,uint256,uint256,uint256,uint256)`
 #[derive(
     Clone,
     ::ethers::contract::EthAbiType,
@@ -12,10 +12,11 @@
     Hash
 )]
 pub struct DynamicParam {
-    pub last_computed_value: ::ethers::core::types::U256,
+    pub target: ::ethers::core::types::U256,
+    pub last: ::ethers::core::types::U256,
     pub update_end: ::ethers::core::types::U256,
-    pub last_update_at: ::ethers::core::types::U256,
-    pub update_per_second: ::ethers::core::types::I256,
+    pub update_per_second: ::ethers::core::types::U256,
+    pub last_sync: ::ethers::core::types::U256,
 }
 ///`InitParams(address,address,address,bytes)`
 #[derive(

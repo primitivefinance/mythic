@@ -157,19 +157,19 @@ impl Arbitrageur {
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
         let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let (strike, sigma, tau) = self
+        let pool_params = self
             .protocol_client
-            .ln_strategy
-            .get_params(ethers::types::U256::from(0))
+            .ln_solver
+            .get_pool_params(ethers::types::U256::from(0))
             .call()
             .await?;
         let (strike, sigma, tau) = (
-            I256::from_raw(strike),
-            I256::from_raw(sigma),
-            I256::from_raw(tau),
+            I256::from_raw(pool_params.strike),
+            I256::from_raw(pool_params.sigma),
+            I256::from_raw(pool_params.tau),
         );
-        let gamma = I256::from_raw(ethers::utils::parse_ether("1")?)
-            - I256::from_raw(self.protocol_client.ln_strategy.swap_fee().call().await?);
+        let gamma =
+            I256::from_raw(ethers::utils::parse_ether("1")?) - I256::from_raw(pool_params.swap_fee);
         let (rx, ry, liq) = self
             .protocol_client
             .protocol

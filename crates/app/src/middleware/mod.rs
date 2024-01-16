@@ -318,6 +318,7 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
                 strike_price_wad,
                 sigma_percent_wad,
                 tau_years_wad,
+                0.003,
             )
             .await?)
     }
