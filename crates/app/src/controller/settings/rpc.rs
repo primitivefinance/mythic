@@ -24,6 +24,7 @@ impl From<anyhow::Error> for Feedback {
     }
 }
 
+
 #[derive(Debug, Clone, Default)]
 pub enum Message {
     #[default]
@@ -70,7 +71,10 @@ pub struct RpcManagement {
 }
 
 impl RpcManagement {
-    pub fn new(storage: RPCList) -> Self {
+    pub fn new(mut storage: RPCList) -> Self {
+        if storage.chains.get("flashbot").is_none() {
+            storage.chains.insert("flashbot".to_owned(), RPCValue::default());
+        }
         Self {
             storage,
             chain_packet: None,
@@ -191,6 +195,11 @@ impl State for RpcManagement {
         match message {
             Message::Sync(storage) => {
                 tracing::debug!("Syncing RPCs in rpc settings: {:?}", storage.clone());
+                // let mut storage = storage.clone();
+                // if let Ok(chain_packet) = self.get_chain_packet() {
+                //     let chain_packet_name = chain_packet.name.clone();
+                //     storage.chains.insert(chain_packet_name, chain_packet);
+                // }
                 self.storage = storage;
             }
             Message::ChangeName(name) => {
