@@ -16,9 +16,6 @@ use clients::{
 };
 use ethers::utils::{Anvil, AnvilInstance};
 
-pub mod alloyed;
-pub mod watch;
-
 use super::*;
 use crate::{app::AnvilSave, model::portfolio::EthersAddress};
 
