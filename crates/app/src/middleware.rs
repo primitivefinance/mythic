@@ -1,19 +1,10 @@
 use std::{collections::HashMap, fmt};
 
-use anyhow::Result;
-use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use cfmm_math::trading_functions::rmm::{
-    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
-};
-use clients::{
-    dev::ProtocolPosition,
-    ledger::LedgerClient,
-    protocol::{LogNormalF64, PoolInitParamsF64, ProtocolClient},
-};
+use clients::ledger::LedgerClient;
 use ethers::utils::{Anvil, AnvilInstance};
 
 use super::*;

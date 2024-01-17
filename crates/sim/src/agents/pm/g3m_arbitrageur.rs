@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use alloy_primitives::{
-    utils::{format_ether, format_units, parse_ether},
+    utils::{format_ether, parse_ether},
     Address, U256,
 };
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};

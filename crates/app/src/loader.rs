@@ -14,11 +14,7 @@ use iced::{
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use sim::from_ethers_address;
 
-use super::{
-    middleware::*,
-    model::{contacts, user::UserProfile},
-    *,
-};
+use super::{middleware::*, model::contacts, *};
 use crate::{
     app::AnvilSave,
     components::{

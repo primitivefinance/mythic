@@ -19,8 +19,8 @@ use self::{
 };
 use super::*;
 use crate::{
+    adapters::dfmm_adapter::DFMMProtocol,
     components::system::{ExcaliburChart, ExcaliburContainer},
-    middleware::Protocol,
     model::portfolio::{AlloyAddress, ALLOY_WAD},
     view::portfolio_view::PortfolioPresenter,
 };

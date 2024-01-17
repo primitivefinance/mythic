@@ -1,7 +1,12 @@
 //! Adapter for the DFMM protocol.
-
 use anyhow::Result;
+use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
+use cfmm_math::trading_functions::rmm::{
+    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
+};
+use clients::{dev::ProtocolPosition, protocol::ProtocolClient};
 
+use self::middleware::{ExcaliburMiddleware, NetworkClient};
 use super::*;
 
 #[async_trait::async_trait]
