@@ -14,6 +14,8 @@ struct DynamicParam {
 library DynamicParamLib {
     using FixedPointMathLib for uint256;
 
+    error InvalidUpdateEnd();
+
     function actualized(DynamicParam memory param)
         internal
         view
@@ -37,25 +39,22 @@ library DynamicParamLib {
         }
     }
 
-    function set(DynamicParam memory param, uint256 target, uint256 end) internal view returns (DynamicParam memory) {
-      require(end > block.timestamp, "End must be greater than current block.timestamp");
-      
-      DynamicParam memory syncedParam = sync(param);
-
-      uint256 delta = syncedParam.last > target
-        ? syncedParam.last - target
-        : target - syncedParam.last;
-
-      syncedParam.updatePerSecond = delta / (end - block.timestamp);
-      syncedParam.target = target;
-      syncedParam.updateEnd = end;
-
-      return syncedParam;
+    function sync(DynamicParam storage param) internal {
+        param.lastComputedValue = actualized(param);
+        param.lastUpdateAt = block.timestamp;
     }
 
-    function sync(DynamicParam memory param) internal view returns (DynamicParam memory) {
-        param.last = actualized(param);
-        param.lastSync = block.timestamp;
-        return param;
+    function set(
+        DynamicParam storage param,
+        uint256 target,
+        uint256 updateEnd
+    ) internal {
+        if (updateEnd <= block.timestamp) revert InvalidUpdateEnd();
+        sync(param);
+        uint256 timeDelta = updateEnd - block.timestamp;
+        int256 delta = int256(target) - int256(param.lastComputedValue);
+        int256 deltaPerSecond = delta / int256(timeDelta);
+        param.updateEnd = updateEnd;
+        param.updatePerSecond = deltaPerSecond;
     }
 }
