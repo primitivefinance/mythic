@@ -22,6 +22,7 @@ use iced::{
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
+mod adapters;
 mod app;
 mod components;
 mod controller;
