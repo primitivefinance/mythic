@@ -53,30 +53,6 @@ pub struct Loader {
     pub logo: PhiLogo,
 }
 
-/// This function attempts to load a user profile. If it fails, it creates a new
-/// default profile. It then logs the loaded profile's name and file path.
-#[tracing::instrument(level = "debug")]
-pub fn load_profile() -> anyhow::Result<UserProfile> {
-    let profile = UserProfile::load(None);
-    let profile = match profile {
-        Ok(profile) => profile,
-        Err(e) => {
-            tracing::warn!("Failed to load profile: {:?}", e);
-            tracing::info!("Creating a new default profile.");
-
-            UserProfile::create_new(None)?
-        }
-    };
-
-    tracing::debug!(
-        "Loaded profile {:?} at path {:?}",
-        profile.name,
-        profile.file_path()
-    );
-
-    Ok(profile)
-}
-
 /// This function attempts to load user data into a model. If it fails, it
 /// creates a new default model. It then logs the loaded model's user name and
 /// file path.
@@ -101,26 +77,6 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     );
 
     Ok(model)
-}
-
-/// This function loads a development client. It first logs the loading process,
-/// then creates a signer with the chain id of the client. It then gets the
-/// address of the signer and clones the client. It deploys the development
-/// client and returns it.
-#[tracing::instrument(skip(client), level = "trace")]
-pub async fn load_dev_client(
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-) -> anyhow::Result<DevClient<NetworkClient<Ws, LocalWallet>>> {
-    tracing::debug!("Loading dev client");
-    let signer = client
-        .signer()
-        .unwrap()
-        .clone()
-        .with_chain_id(client.clone().anvil.as_ref().unwrap().chain_id());
-    let sender = signer.address();
-    let client = client.client().unwrap().clone();
-    let dev_client = DevClient::deploy(client, sender).await?;
-    Ok(dev_client)
 }
 
 /// Contracts that we start up the client with
