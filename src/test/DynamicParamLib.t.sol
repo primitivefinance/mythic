@@ -21,4 +21,16 @@ contract DynamicParamLibTest is Test {
         vm.warp(block.timestamp + 1 days);
         assertEq(param.actualized(), 100);
     }
+
+    function test_DynamicParamLib_actualized_ValueIncreasesOverTime() public {
+        DynamicParam memory param = DynamicParam({
+            lastComputedValue: 1,
+            updateEnd: 10,
+            lastUpdateAt: 0,
+            updatePerSecond: 1
+        });
+
+        vm.warp(5);
+        assertEq(param.actualized(), 6);
+    }
 }
