@@ -105,4 +105,11 @@ contract DynamicParamLibTest is Test {
         assertEq(storedParam.lastUpdateAt, block.timestamp);
         assertEq(storedParam.updatePerSecond, 1);
     }
+
+    function test_DynamicParamLib_set_RevertsWhenUpdateEndIsPast() public {
+        initStoredParam(10, 0, 0, 0);
+        vm.warp(0);
+        vm.expectRevert(DynamicParamLib.InvalidUpdateEnd.selector);
+        storedParam.set(20, 0);
+    }
 }
