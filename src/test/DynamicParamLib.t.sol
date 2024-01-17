@@ -96,4 +96,13 @@ contract DynamicParamLibTest is Test {
         assertEq(storedParam.lastComputedValue, 5);
         assertEq(storedParam.lastUpdateAt, 5);
     }
+
+    function test_DynamicParamLib_set_SetsValue() public {
+        initStoredParam(10, 0, 0, 0);
+        storedParam.set(20, 10);
+        assertEq(storedParam.lastComputedValue, 10);
+        assertEq(storedParam.updateEnd, 10);
+        assertEq(storedParam.lastUpdateAt, block.timestamp);
+        assertEq(storedParam.updatePerSecond, 1);
+    }
 }
