@@ -7,6 +7,25 @@ import "../lib/DynamicParamLib.sol";
 contract DynamicParamLibTest is Test {
     using DynamicParamLib for DynamicParam;
 
+    DynamicParam storedParam = DynamicParam({
+        lastComputedValue: 0,
+        updateEnd: 0,
+        lastUpdateAt: 0,
+        updatePerSecond: 0
+    });
+
+    function initStoredParam(
+        uint256 lastComputedValue,
+        uint256 updateEnd,
+        uint256 lastUpdateAt,
+        int256 updatePerSecond
+    ) internal {
+        storedParam.lastComputedValue = lastComputedValue;
+        storedParam.updateEnd = updateEnd;
+        storedParam.lastUpdateAt = lastUpdateAt;
+        storedParam.updatePerSecond = updatePerSecond;
+    }
+
     function test_DynamicParamLib_actualized_SameValueWhenEmptyStruct()
         public
     {
@@ -42,7 +61,7 @@ contract DynamicParamLibTest is Test {
             updatePerSecond: 1
         });
 
-        vm.warp(10);
+        vm.warp(20);
         assertEq(param.actualized(), 11);
     }
 
@@ -66,7 +85,15 @@ contract DynamicParamLibTest is Test {
             updatePerSecond: -1
         });
 
-        vm.warp(10);
+        vm.warp(20);
         assertEq(param.actualized(), 0);
+    }
+
+    function test_DynamicParamLib_sync_SyncsValue() public {
+        initStoredParam(10, 10, 0, -1);
+        vm.warp(5);
+        storedParam.sync();
+        assertEq(storedParam.lastComputedValue, 5);
+        assertEq(storedParam.lastUpdateAt, 5);
     }
 }
