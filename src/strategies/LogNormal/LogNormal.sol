@@ -42,7 +42,7 @@ contract LogNormal is IStrategy {
     }
 
     modifier onlyDFMM() {
-        // require(msg.sender == address(dfmm), "only dfmm");
+        if (msg.sender != dfmm) revert NotDFMM();
         _;
     }
 
@@ -107,7 +107,6 @@ contract LogNormal is IStrategy {
     )
         public
         view
-        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -136,7 +135,6 @@ contract LogNormal is IStrategy {
     )
         public
         view
-        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
