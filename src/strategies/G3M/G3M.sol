@@ -5,6 +5,7 @@ import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
+import "./G3MHelper.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
@@ -37,6 +38,7 @@ contract G3M is IStrategy {
     // TODO: Move these errors into an interface
     error NotCore();
     error InvalidWeightX();
+    error InvalidUpdateCode();
 
     modifier onlyDFMM() {
         // if (msg.sender != address(dfmm)) revert NotCore();
@@ -184,13 +186,13 @@ contract G3M is IStrategy {
     }
 
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
-        uint8 updateCode = uint8(bytes1(data));
+        UpdateCode updateCode = abi.decode(data[0:1], (UpdateCode));
 
-        if (updateCode == 0) {
-            internalParams[poolId].swapFee = uint16(bytes2(data[1:3]));
-        } else if (updateCode == 1) {
-            (, uint256 targetWeightX, uint256 targetTimestamp) =
-                abi.decode(data[1:], (uint256, uint256, uint256));
+        if (updateCode == UpdateCode.SwapFee) {
+            internalParams[poolId].swapFee = decodeFeeUpdate(data);
+        } else if (updateCode == UpdateCode.WeightX) {
+            (uint256 targetWeightX, uint256 targetTimestamp) =
+                decodeWeightXUpdate(data);
             internalParams[poolId].wX.set(targetWeightX, targetTimestamp);
         } else {
             revert("invalid updateCode");
