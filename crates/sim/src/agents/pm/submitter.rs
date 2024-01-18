@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use clients::protocol::ProtocolClient;
+use clients::protocol::{PoolParams, ProtocolClient};
 use ethers::utils::format_ether;
 use itertools::iproduct;
 use tracing::{debug, info};
@@ -113,10 +113,22 @@ impl VolatilityTargetingSubmitter {
         {
             match params.specialty {
                 Specialty::VolatilityTargeting(parameters) => {
-                    let protocol_client =
+                    let mut protocol_client =
                         ProtocolClient::new(client.clone(), token_x, token_y, 0.003)
                             .await
                             .unwrap();
+                    protocol_client.add_token(
+                        token_x,
+                        "Arbiter Token X".into(),
+                        "arbx".into(),
+                        18,
+                    )?;
+                    protocol_client.add_token(
+                        token_y,
+                        "Arbiter Token Y".into(),
+                        "arby".into(),
+                        18,
+                    )?;
                     let strategist = VolatilityTargetingSubmitter {
                         client,
                         lex,
@@ -158,54 +170,59 @@ impl VolatilityTargetingSubmitter {
         }
         let ln_portfolio_rv = self.ln_data.portfolio_rv.last().unwrap().0;
         let g_portfolio_rv = self.g_data.portfolio_rv.last().unwrap().0;
-        let current_strike = self.protocol_client.get_strike_price(U256::from(0)).await?;
-
-        let current_strike_float = ethers::utils::format_ether(current_strike)
-            .parse::<f64>()
-            .unwrap();
-        let current_wx = self
-            .protocol_client
-            .g_solver
-            .get_pool_params(U256::from(1))
-            .await?
-            .w_x;
-        let wx_float = format_ether(current_wx).parse::<f64>().unwrap();
-        info!("current strike float: {}", current_strike_float);
-        let mut new_strike = current_strike_float;
-        let vol_diff = (ln_portfolio_rv - self.target_volatility).abs();
-        let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
-        if scaling_factor > self.max_strike_change {
-            scaling_factor = self.max_strike_change;
-        }
-        if ln_portfolio_rv > self.target_volatility {
-            new_strike -= scaling_factor;
-        } else {
-            new_strike += scaling_factor;
-        }
-        if g_portfolio_rv < self.target_volatility {
-            let mut new_weight = wx_float + 0.0025;
-            debug!("new weight: {}", new_weight);
-            if new_weight >= 0.99 {
-                new_weight = 0.99;
+        let pool_params = self.protocol_client.get_params(U256::from(0)).await?;
+        match pool_params {
+            PoolParams::G3M(_) => Ok(()), // todo need to handle g3m case
+            PoolParams::LogNormal(log_normal_params) => {
+                let current_strike = log_normal_params.strike;
+                let current_strike_float = ethers::utils::format_ether(current_strike)
+                    .parse::<f64>()
+                    .unwrap();
+                let current_wx = self
+                    .protocol_client
+                    .g_solver
+                    .get_pool_params(U256::from(1))
+                    .await?
+                    .w_x;
+                let wx_float = format_ether(current_wx).parse::<f64>().unwrap();
+                info!("current strike float: {}", current_strike_float);
+                let mut new_strike = current_strike_float;
+                let vol_diff = (ln_portfolio_rv - self.target_volatility).abs();
+                let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
+                if scaling_factor > self.max_strike_change {
+                    scaling_factor = self.max_strike_change;
+                }
+                if ln_portfolio_rv > self.target_volatility {
+                    new_strike -= scaling_factor;
+                } else {
+                    new_strike += scaling_factor;
+                }
+                if g_portfolio_rv < self.target_volatility {
+                    let mut new_weight = wx_float + 0.0025;
+                    debug!("new weight: {}", new_weight);
+                    if new_weight >= 0.99 {
+                        new_weight = 0.99;
+                    }
+                    self.protocol_client
+                        .set_weight_x(U256::from(1), new_weight, self.next_update_timestamp)
+                        .await?;
+                } else {
+                    let mut new_weight = wx_float - 0.0025;
+                    if new_weight <= 0.01 {
+                        new_weight = 0.01;
+                    }
+                    debug!("new weight: {}", new_weight);
+                    self.protocol_client
+                        .set_weight_x(U256::from(1), new_weight, self.next_update_timestamp)
+                        .await?;
+                }
+                info!("new strike float: {}", new_strike);
+                self.protocol_client
+                    .set_strike_price(U256::from(0), new_strike, self.next_update_timestamp)
+                    .await?;
+                Ok(())
             }
-            self.protocol_client
-                .set_weight_x(U256::from(1), new_weight, self.next_update_timestamp)
-                .await?;
-        } else {
-            let mut new_weight = wx_float - 0.0025;
-            if new_weight <= 0.01 {
-                new_weight = 0.01;
-            }
-            debug!("new weight: {}", new_weight);
-            self.protocol_client
-                .set_weight_x(U256::from(1), new_weight, self.next_update_timestamp)
-                .await?;
         }
-        info!("new strike float: {}", new_strike);
-        self.protocol_client
-            .set_strike_price(U256::from(0), new_strike, self.next_update_timestamp)
-            .await?;
-        Ok(())
     }
 
     fn calculate_rv(&mut self) -> Result<()> {

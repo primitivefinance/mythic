@@ -55,7 +55,7 @@ impl G3mArbitrageur {
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, "g3m_arbitrageur".into())?;
-        let protocol_client = protocol_client.bind(client.clone()).await?;
+        let protocol_client = protocol_client.bind(client.clone())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange =
@@ -285,7 +285,7 @@ impl Agent for G3mArbitrageur {
 
                 let internal_price = self
                     .protocol_client
-                    .get_g_internal_price(ethers::types::U256::from(1))
+                    .get_internal_price(ethers::types::U256::from(1))
                     .await?;
                 let internal_price = from_ethers_u256(internal_price);
                 // info!("Price[LEX]: {:?}", format_ether(target_price));
@@ -353,7 +353,7 @@ impl Agent for G3mArbitrageur {
 
                 let internal_price = self
                     .protocol_client
-                    .get_g_internal_price(ethers::types::U256::from(1))
+                    .get_internal_price(ethers::types::U256::from(1))
                     .await?;
                 let internal_price = from_ethers_u256(internal_price);
                 debug!("Price[LEX]: {:?}", format_ether(target_price));

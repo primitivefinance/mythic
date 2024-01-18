@@ -6,7 +6,7 @@ pub enum PoolKind {
     LogNormal,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Pool {
     pub kind: PoolKind,
     pub token_x: Address,

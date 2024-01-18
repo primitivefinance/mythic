@@ -330,7 +330,7 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
             .get_reserves_and_liquidity(ethers::types::U256::from(0))
             .await?;
         let internal_price = protocol
-            .get_ln_internal_price(ethers::types::U256::from(0))
+            .get_internal_price(ethers::types::U256::from(0))
             .await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);

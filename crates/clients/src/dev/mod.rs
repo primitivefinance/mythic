@@ -116,7 +116,7 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn create_position(
-        self,
+        &mut self,
         sender: Address,
         amount_dollars: f64,
         price: f64,

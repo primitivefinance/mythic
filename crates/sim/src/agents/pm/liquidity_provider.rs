@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use alloy_primitives::{utils::parse_ether, Address, U256};
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
-use clients::protocol::ProtocolClient;
+use clients::protocol::{G3mF64, LogNormalF64, PoolInitParamsF64, ProtocolClient};
 use tracing::debug;
 
 use super::*;
@@ -24,27 +24,50 @@ pub struct LiquidityProvider {
 impl Agent for LiquidityProvider {
     #[tracing::instrument(skip(self), level = "trace")]
     async fn init(&mut self) -> Result<()> {
-        debug!("LiquidityProvider initializing pool on DFMM.");
+        let token_x = self
+            .protocol_client
+            .get_token_by_symbol("arbx".into())?
+            .clone();
+        let token_y = self
+            .protocol_client
+            .get_token_by_symbol("arby".into())?
+            .clone();
+        let init_x = ethers::utils::parse_ether(self.init_x_wad)?;
+        let init_price = ethers::utils::parse_ether(self.init_price_wad)?;
+
+        // todo: it's a little dumb to be storing the init params on the liquidity
+        // provider struct...
+        let ln_init_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
+            strike: self.init_strike_price_wad,
+            sigma: self.init_sigma_percent_wad,
+            tau: self.init_tau_years_wad,
+            swap_fee: 0.003,
+        });
+
         self.protocol_client
-            .initialize_ln_pool(
-                self.init_x_wad,
-                self.init_price_wad,
-                self.init_strike_price_wad,
-                self.init_sigma_percent_wad,
-                self.init_tau_years_wad,
-                0.003,
+            .init_pool(
+                token_x.address,
+                token_y.address,
+                init_x,
+                init_price,
+                ln_init_params,
             )
             .await?;
 
+        let g_init_params = PoolInitParamsF64::G3M(G3mF64 {
+            wx: self.init_weight_x_wad,
+            swap_fee: 0.003,
+        });
+
         self.protocol_client
-            .initialize_g_pool(
-                self.init_x_wad,
-                self.init_price_wad,
-                self.init_weight_x_wad,
-                0.003,
+            .init_pool(
+                token_x.address,
+                token_y.address,
+                init_x,
+                init_price,
+                g_init_params,
             )
             .await?;
-
         Ok(())
     }
 
@@ -70,7 +93,7 @@ impl LiquidityProvider {
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 
-        let protocol_client = protocol_client.bind(client.clone()).await?;
+        let protocol_client = protocol_client.bind(client.clone())?;
 
         token_admin
             .mint(

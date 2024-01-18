@@ -17,16 +17,17 @@ use bindings::{
     shared_types::InitParams,
 };
 use pool::{Pool, PoolKind};
+use tokens::Token;
 
 use super::*;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct G3mF64 {
-    wx: f64,
-    swap_fee: f64,
+    pub wx: f64,
+    pub swap_fee: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LogNormalF64 {
     pub sigma: f64,
     pub strike: f64,
@@ -34,19 +35,19 @@ pub struct LogNormalF64 {
     pub swap_fee: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PoolInitParamsF64 {
     G3M(G3mF64),
     LogNormal(LogNormalF64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PoolParams {
     G3M(G3mParameters),
     LogNormal(LogNormalParameters),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ProtocolClient<C> {
     pub client: Arc<C>,
     pub protocol: DFMM<C>,
@@ -55,7 +56,22 @@ pub struct ProtocolClient<C> {
     pub g_solver: G3MSolver<C>,
     pub g_strategy: G3M<C>,
     pub pools: BTreeMap<U256, Pool>,
-    pub tokens: BTreeMap<Address, ArbiterToken<C>>,
+    pub tokens: BTreeMap<Address, Token>,
+}
+
+impl<C> Clone for ProtocolClient<C> {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            protocol: self.protocol.clone(),
+            ln_solver: self.ln_solver.clone(),
+            ln_strategy: self.ln_strategy.clone(),
+            g_solver: self.g_solver.clone(),
+            g_strategy: self.g_strategy.clone(),
+            pools: self.pools.clone(),
+            tokens: self.tokens.clone(),
+        }
+    }
 }
 
 impl<C: Middleware + 'static> ProtocolClient<C> {
@@ -95,7 +111,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
-    pub async fn bind(self, client: Arc<C>) -> anyhow::Result<Self> {
+    pub fn bind(self, client: Arc<C>) -> anyhow::Result<Self> {
         let protocol = DFMM::new(self.protocol.address(), client.clone());
         let ln_strategy = LogNormal::new(self.ln_strategy.address(), client.clone());
         let g_strategy = G3M::new(self.g_strategy.address(), client.clone());
@@ -103,8 +119,9 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let g_solver = G3MSolver::new(self.g_solver.address(), client.clone());
         let pools = self.pools.clone();
         let mut tokens = BTreeMap::new();
-        for (key, _value) in self.tokens.iter() {
-            tokens.insert(*key, ArbiterToken::new(*key, client.clone()));
+        for (key, value) in self.tokens.iter() {
+            let token = value.clone();
+            tokens.insert(*key, token);
         }
 
         Ok(Self {
@@ -119,20 +136,49 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
-    pub fn get_token(&self, address: &Address) -> Result<&ArbiterToken<C>> {
-        Ok(self.tokens.get(address).unwrap())
+    pub fn add_token(
+        &mut self,
+        address: Address,
+        name: String,
+        symbol: String,
+        decimals: usize,
+    ) -> Result<()> {
+        let token = Token::new(name, symbol, decimals, address)?;
+        self.tokens.insert(address, token).unwrap();
+        Ok(())
     }
 
-    pub fn get_pool_tokens(&self, pool: Pool) -> Result<(&ArbiterToken<C>, &ArbiterToken<C>)> {
-        Ok((
-            self.get_token(&pool.token_x)?,
-            self.get_token(&pool.token_y)?,
-        ))
+    pub fn get_token(&self, address: Address) -> Result<&Token> {
+        Ok(self.tokens.get(&address).unwrap())
+    }
+
+    pub fn get_token_by_symbol(&self, symbol: String) -> Result<&Token> {
+        let (_address, token) = self
+            .tokens
+            .iter()
+            .filter(|(_k, v)| v.symbol == symbol)
+            .next()
+            .unwrap();
+        Ok(token)
+    }
+
+    pub fn get_token_by_name(&self, name: String) -> Result<&Token> {
+        let (_address, token) = self
+            .tokens
+            .iter()
+            .filter(|(_k, v)| v.name == name)
+            .next()
+            .unwrap();
+        Ok(token)
+    }
+
+    pub fn get_pool_tokens(&self, pool: Pool) -> Result<(&Token, &Token)> {
+        Ok((self.get_token(pool.token_x)?, self.get_token(pool.token_y)?))
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn init_pool(
-        mut self,
+        &mut self,
         token_x: Address,
         token_y: Address,
         init_reserve_x_wad: U256,
