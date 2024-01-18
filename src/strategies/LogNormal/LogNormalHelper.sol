@@ -22,4 +22,12 @@ contract LogNormalHelper {
         bytes memory data = logNormal.getPoolParams(poolId);
         params = abi.decode(data, (LogNormal.PublicParams));
     }
+
+    function prepareFeeUpdate(uint256 swapFee)
+        public
+        pure
+        returns (bytes memory data)
+    {
+        return abi.encode(uint8(0), uint256(swapFee));
+    }
 }
