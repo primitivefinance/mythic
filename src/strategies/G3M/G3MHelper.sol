@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import "./G3M.sol";
 
 enum UpdateCode {
+    Invalid,
     SwapFee,
     WeightX
 }
