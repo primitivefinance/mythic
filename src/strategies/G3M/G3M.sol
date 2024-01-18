@@ -36,12 +36,12 @@ contract G3M is IStrategy {
     }
 
     // TODO: Move these errors into an interface
-    error NotCore();
+    error NotDFMM();
     error InvalidWeightX();
     error InvalidUpdateCode();
 
     modifier onlyDFMM() {
-        // if (msg.sender != address(dfmm)) revert NotCore();
+        if (msg.sender != address(dfmm)) revert NotDFMM();
         _;
     }
 
@@ -108,7 +108,6 @@ contract G3M is IStrategy {
     )
         public
         view
-        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -137,7 +136,6 @@ contract G3M is IStrategy {
     )
         public
         view
-        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
