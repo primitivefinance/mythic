@@ -54,7 +54,7 @@ contract G3MHelper {
         pure
         returns (bytes memory data)
     {
-        return abi.encode(uint8(0), uint256(swapFee));
+        return encodeFeeUpdate(swapFee);
     }
 
     function prepareWeightXUpdate(
