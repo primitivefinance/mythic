@@ -28,10 +28,10 @@ pub struct G3mF64 {
 
 #[derive(Debug)]
 pub struct LogNormalF64 {
-    sigma: f64,
-    strike: f64,
-    tau: f64,
-    swap_fee: f64,
+    pub sigma: f64,
+    pub strike: f64,
+    pub tau: f64,
+    pub swap_fee: f64,
 }
 
 #[derive(Debug)]
@@ -132,7 +132,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn init_pool(
-        &self,
+        mut self,
         token_x: Address,
         token_y: Address,
         init_reserve_x_wad: U256,
@@ -140,6 +140,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         init_params: PoolInitParamsF64,
     ) -> Result<TransactionReceipt> {
         let pool_params = to_init_params_wad(init_params)?;
+        let pool_id = self.get_next_pool_id().await?;
         match pool_params {
             PoolParams::G3M(g3m_params) => {
                 let init_data = self
@@ -153,7 +154,17 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                     token_y,
                     data: init_data,
                 };
+
                 let tx = self.initialize_pool(init_params).await?.unwrap();
+
+                let pool = Pool {
+                    kind: PoolKind::G3M,
+                    token_x,
+                    token_y,
+                    pool_id,
+                };
+                self.pools.insert(pool_id, pool).unwrap();
+
                 Ok(tx)
             }
             PoolParams::LogNormal(log_normal_params) => {
@@ -168,10 +179,25 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                     token_y,
                     data: init_data,
                 };
+
                 let tx = self.initialize_pool(init_params).await?.unwrap();
+
+                let pool = Pool {
+                    kind: PoolKind::LogNormal,
+                    token_x,
+                    token_y,
+                    pool_id,
+                };
+                self.pools.insert(pool_id, pool).unwrap();
+
                 Ok(tx)
             }
         }
+    }
+
+    async fn get_next_pool_id(&self) -> Result<U256> {
+        let pool_id = self.protocol.nonce().call().await?;
+        Ok(pool_id)
     }
 
     async fn initialize_pool(&self, payload: InitParams) -> Result<Option<TransactionReceipt>> {

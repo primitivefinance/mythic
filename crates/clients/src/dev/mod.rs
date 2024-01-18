@@ -6,6 +6,7 @@ use anyhow::Result;
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use bindings::{log_normal::LogNormal, log_normal_solver::LogNormalSolver};
 
+use self::protocol::{LogNormalF64, PoolInitParamsF64};
 use super::{protocol::ProtocolClient, *};
 
 pub const INITIAL_X_BALANCE: f64 = 100.0;
@@ -115,32 +116,39 @@ impl<C: Middleware + 'static> DevClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn create_position(
-        &self,
+        self,
         sender: Address,
         amount_dollars: f64,
         price: f64,
         strike_price_wad: f64,
         sigma_percent_wad: f64,
         tau_years_wad: f64,
-    ) -> Result<Option<TransactionReceipt>> {
+    ) -> Result<TransactionReceipt> {
         let amount_x = amount_dollars / price;
         let amount_y = amount_x * price;
-        let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
-        let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
+        let amount_x_wad = ethers::utils::parse_ether(amount_x)?;
+        let amount_y_wad = ethers::utils::parse_ether(amount_y)?;
+        let price_wad = ethers::utils::parse_ether(price)?;
+
+        let init_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
+            strike: strike_price_wad,
+            sigma: sigma_percent_wad,
+            tau: tau_years_wad,
+            swap_fee: 0.003,
+        });
+
+        let token_x = self.token_x.address();
+        let token_y = self.token_y.address();
 
         self.token_x.mint(sender, amount_x_wad).send().await?;
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
-        self.protocol
-            .initialize_ln_pool(
-                amount_x,
-                price,
-                strike_price_wad,
-                sigma_percent_wad,
-                tau_years_wad,
-                0.003,
-            )
-            .await
+        let tx = self
+            .protocol
+            .init_pool(token_x, token_y, amount_x_wad, price_wad, init_params)
+            .await?;
+
+        Ok(tx)
     }
 
     pub async fn get_position(&self, pool_id: U256) -> Result<ProtocolPosition> {
@@ -149,7 +157,7 @@ impl<C: Middleware + 'static> DevClient<C> {
             .protocol
             .get_reserves_and_liquidity(pool_id)
             .await?;
-        let internal_price = self.protocol.get_ln_internal_price(pool_id).await?;
+        let internal_price = self.protocol.get_internal_price(pool_id).await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);
         let liquidity = ethers::utils::format_ether(liquidity);
