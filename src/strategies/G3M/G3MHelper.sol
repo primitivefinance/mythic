@@ -3,6 +3,35 @@ pragma solidity ^0.8.13;
 
 import "./G3M.sol";
 
+enum UpdateCode {
+    SwapFee,
+    WeightX
+}
+
+function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory data) {
+    return abi.encode(UpdateCode.SwapFee, uint256(swapFee));
+}
+
+function decodeFeeUpdate(bytes memory data) pure returns (uint256 swapFee) {
+    (, uint256 value) = abi.decode(data, (UpdateCode, uint256));
+    return value;
+}
+
+function encodeWeightXUpdate(
+    uint256 targetWeightX,
+    uint256 targetTimestamp
+) pure returns (bytes memory data) {
+    return abi.encode(UpdateCode.WeightX, targetWeightX, targetTimestamp);
+}
+
+function decodeWeightXUpdate(bytes memory data)
+    pure
+    returns (uint256 targetWeightX, uint256 targetTimestamp)
+{
+    (, targetWeightX, targetTimestamp) =
+        abi.decode(data, (UpdateCode, uint256, uint256));
+}
+
 contract G3MHelper {
     G3M public immutable g3m;
 
