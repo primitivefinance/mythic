@@ -9,13 +9,13 @@ enum UpdateCode {
     WeightX
 }
 
-function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory data) {
+function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
     return abi.encode(UpdateCode.SwapFee, uint256(swapFee));
 }
 
-function decodeFeeUpdate(bytes memory data) pure returns (uint256 swapFee) {
-    (, uint256 value) = abi.decode(data, (UpdateCode, uint256));
-    return value;
+function decodeFeeUpdate(bytes memory data) pure returns (uint256) {
+    (, uint256 swapFee) = abi.decode(data, (UpdateCode, uint256));
+    return swapFee;
 }
 
 function encodeWeightXUpdate(
