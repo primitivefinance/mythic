@@ -36,9 +36,7 @@ contract G3M is IStrategy {
     }
 
     // TODO: Move these errors into an interface
-    error NotDFMM();
     error InvalidWeightX();
-    error InvalidUpdateCode();
 
     modifier onlyDFMM() {
         if (msg.sender != address(dfmm)) revert NotDFMM();
