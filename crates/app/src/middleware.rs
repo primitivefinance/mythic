@@ -16,41 +16,56 @@ pub const SANDBOX_LABEL: &str = "sandbox";
 pub type NetworkClient<P, S> = SignerMiddleware<Provider<P>, S>;
 
 /// Connects users to networks.
+/// - Anvil instance is optional and can be connected via `connect_anvil`.
+/// - Arbiter is optional and can be connected via `connect_arbiter`.
+/// - Ledger is optional and can be connected via `connect_ledger`.
+/// - Active client is the currently existing connection.
+/// - Active signer is the currently existing signer (if there is one).
+/// - Contracts are a stateful map of human readable contract identifiers to
+///   addresses.
+/// - note: if AnvilInstance is some, then the client is the client for Anvil.
 pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
-    /// ARBITER
-    pub sandbox: Environment,
-    /// ARBITER
-    pub sandbox_client: Arc<RevmMiddleware>,
-    /// ANVIL
-    pub anvil: Option<AnvilInstance>,
-    /// ANVIL
-    pub anvil_client: Option<Arc<SignerMiddleware<Provider<P>, S>>>,
-    /// ANY
-    pub clients: Vec<Arc<SignerMiddleware<Provider<P>, S>>>,
-    /// ANY
-    pub signers: Vec<S>,
-    /// ANY
+    /// ACTIVE CLIENT CONNECTION
+    pub client: Option<Arc<NetworkClient<P, S>>>,
+    /// ACTIVE SIGNER
+    pub signer: Option<S>,
+    /// ANY CONTRACTS
     pub contracts: HashMap<String, EthersAddress>,
     /// HARDWARE
     pub ledger: Option<LedgerClient>,
+    /// ARBITER
+    pub arbiter: Option<Environment>,
+    /// ARBITER CLIENT
+    pub arbiter_client: Option<Arc<RevmMiddleware>>,
+    /// ANVIL
+    pub anvil: Option<AnvilInstance>,
 }
 
 impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExcaliburMiddleware")
-            .field("sandbox_client", &self.sandbox_client)
-            .field("anvil_client", &self.anvil_client)
-            .field("clients", &self.clients)
-            .field("signers", &self.signers)
+            .field("client", &self.client)
             .finish()
     }
 }
 
 impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
+    /// Returns a ref to the unwrapped client
+    pub fn get_client(&self) -> Arc<NetworkClient<P, S>> {
+        self.client.as_ref().unwrap().clone()
+    }
+
+    /// Returns the address of the signer, if there is one.
+    pub fn address(&self) -> Option<Address> {
+        self.signer.as_ref().map(|signer| signer.address())
+    }
+
+    /// Adds a new contract to the contracts map.
     pub fn add_contract(&mut self, name: &str, address: EthersAddress) {
         self.contracts.insert(name.to_string(), address);
     }
 
+    /// Creates a connection to a ledger device.
     #[tracing::instrument(skip(self), level = "debug")]
     pub async fn connect_ledger(&mut self) -> anyhow::Result<()> {
         let ledger =
@@ -69,140 +84,162 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
         Ok(())
     }
 
-    /// Returns the sandbox environment client.
-    pub fn sandbox(&self) -> Arc<RevmMiddleware> {
-        self.sandbox_client.clone()
-    }
+    /// Connects the middleware to an arbiter `Environment`.
+    /// Must use the method `arbiter_client` field to make
+    /// blockchain calls to arbiter with.
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn connect_arbiter(
+        &mut self,
+        arbiter: Environment,
+        seed: Option<&str>,
+    ) -> anyhow::Result<()> {
+        let arbiter_client = RevmMiddleware::new(&arbiter, seed)?;
 
-    /// Returns the first provider in the list.
-    pub fn client(&self) -> Option<&Arc<NetworkClient<P, S>>> {
-        self.clients.first()
-    }
+        self.arbiter = Some(arbiter);
+        self.arbiter_client = Some(arbiter_client.clone());
 
-    /// Returns the first signer in the list.
-    pub fn signer(&self) -> Option<&S> {
-        self.signers.first()
-    }
-
-    /// Returns the address of the signer, if there is one.
-    pub fn address(&self) -> Option<Address> {
-        self.signer().map(|signer| signer.address())
+        Ok(())
     }
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
     pub async fn snapshot(&self) -> anyhow::Result<AnvilSave> {
-        let anvil_client = self.anvil_client.as_ref().unwrap();
-        let block_number = anvil_client.provider().get_block_number().await?.as_u64();
+        if let Some(_) = &self.anvil {
+            let block_number = self
+                .client
+                .as_ref()
+                .unwrap()
+                .provider()
+                .get_block_number()
+                .await?
+                .as_u64();
 
-        let params: Vec<String> = vec![];
-        let snapshot = anvil_client
-            .provider()
-            .request("anvil_dumpState", params)
-            .await
-            .expect("failed to get snapshot");
+            let params: Vec<String> = vec![];
+            let snapshot = self
+                .client
+                .as_ref()
+                .unwrap()
+                .provider()
+                .request("anvil_dumpState", params)
+                .await
+                .expect("failed to get snapshot");
 
-        Ok(AnvilSave {
-            block_number,
-            snapshot,
-        })
+            Ok(AnvilSave {
+                block_number,
+                snapshot,
+            })
+        } else {
+            Err(anyhow::anyhow!("No anvil instance set."))
+        }
     }
 }
 
 impl ExcaliburMiddleware<Ws, LocalWallet> {
+    /// Creates a new Excalibur middleware instance, setting the anvil and/or
+    /// arbiter instances if provided.
+    /// - If anvil is available, then the client is automatically connected to
+    ///   an anvil provider.
+    /// - If arbiter is available, then the the arbiter client is automatically
+    ///   connected and available to use.
+    /// - Else, no client is connected and it must be connected to while the app
+    ///   is running.
     pub async fn new(
         anvil: Option<AnvilInstance>,
-        sandbox: Environment,
-        signer: LocalWallet,
+        arbiter: Option<Environment>,
+        signer: Option<LocalWallet>,
     ) -> anyhow::Result<Self> {
-        let sandbox_client = RevmMiddleware::new(&sandbox, Some(SANDBOX_LABEL))?;
-
         let mut anvil_client = None;
         if let Some(anvil_instance) = anvil.as_ref() {
+            let signer = signer
+                .clone()
+                .unwrap_or_else(|| LocalWallet::from(anvil_instance.keys()[0].clone()));
+
             anvil_client = Some(Arc::new(
                 Provider::<Ws>::connect(&anvil_instance.ws_endpoint())
                     .await?
-                    .with_signer(signer.clone().with_chain_id(anvil_instance.chain_id())),
+                    .with_signer(signer.with_chain_id(anvil_instance.chain_id())),
             ));
         }
 
-        let signers = vec![signer];
+        let mut arbiter_client = None;
+        if let Some(arbiter_instance) = arbiter.as_ref() {
+            arbiter_client = Some(RevmMiddleware::new(&arbiter_instance, Some(SANDBOX_LABEL))?);
+        }
 
-        let mut clients = vec![];
+        let mut client = None;
         if let Some(anvil_client) = anvil_client.clone() {
-            clients.push(anvil_client);
+            client = Some(anvil_client);
         }
 
         Ok(Self {
-            sandbox,
-            sandbox_client,
-            anvil,
-            anvil_client,
-            clients,
-            signers,
+            client,
+            signer,
             contracts: HashMap::new(),
             ledger: None,
+            arbiter,
+            arbiter_client,
+            anvil,
         })
     }
 
-    /// Starts the sandbox environment.
-    /// If `dev` is true, it will also start an anvil instance and connect a
-    /// provider to it.
-    pub async fn setup(dev: bool) -> anyhow::Result<Self> {
-        if dev {
-            let home_dir = std::env::var("HOME").unwrap_or_default();
-            let binary_path = format!("{}/.foundry/bin/anvil", home_dir);
-            let anvil = Anvil::default()
-                .arg("--gas-limit")
-                .arg("20000000")
-                .chain_id(31337_u64)
-                .path(binary_path)
-                .spawn();
+    /// Connects to a network via a websocket endpoint.
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn connect_ws(&mut self, endpoint: &str, chain_id: u64) -> anyhow::Result<()> {
+        let signer = self.signer.clone().unwrap();
+        let client = Arc::new(
+            Provider::<Ws>::connect(endpoint)
+                .await?
+                .interval(std::time::Duration::from_millis(100))
+                .with_signer(signer.with_chain_id(chain_id)),
+        );
 
-            let signer = LocalWallet::from(anvil.keys()[0].clone());
-            let sandbox = EnvironmentBuilder::new().build();
-            let sandbox_client = RevmMiddleware::new(&sandbox, Some(SANDBOX_LABEL))?;
-            let anvil_client = Arc::new(
-                Provider::<Ws>::connect(&anvil.ws_endpoint())
-                    .await?
-                    .interval(std::time::Duration::from_millis(100))
-                    .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
-            );
-            let signers = vec![signer];
-            let clients = vec![anvil_client.clone()];
-
-            Ok(Self {
-                sandbox,
-                sandbox_client,
-                anvil: Some(anvil),
-                anvil_client: Some(anvil_client),
-                clients,
-                signers,
-                contracts: HashMap::new(),
-                ledger: None,
-            })
-        } else {
-            let sandbox = EnvironmentBuilder::new().build();
-            let sandbox_client = RevmMiddleware::new(&sandbox, Some(SANDBOX_LABEL))?;
-            let clients = vec![];
-            let signers = vec![];
-
-            Ok(Self {
-                anvil: None,
-                anvil_client: None,
-                sandbox,
-                sandbox_client,
-                clients,
-                signers,
-                contracts: HashMap::new(),
-                ledger: None,
-            })
-        }
-    }
-
-    pub fn add_signer(&mut self, signer: LocalWallet) -> anyhow::Result<()> {
-        self.signers.push(signer);
+        self.client = Some(client);
         Ok(())
     }
+
+    /// Connects the middleware to a running anvil instance.
+    #[tracing::instrument(skip(self, anvil), level = "debug")]
+    pub async fn connect_anvil(&mut self, anvil: AnvilInstance) -> anyhow::Result<()> {
+        let signer = LocalWallet::from(anvil.keys()[0].clone());
+        let client = Arc::new(
+            Provider::<Ws>::connect(&anvil.ws_endpoint())
+                .await?
+                .interval(std::time::Duration::from_millis(100))
+                .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
+        );
+
+        self.anvil = Some(anvil);
+        self.client = Some(client);
+        self.signer = Some(signer);
+
+        Ok(())
+    }
+}
+
+/// Spawns a new anvil instance.
+/// note: Requires anvil to be installed and available in the path.
+pub fn start_anvil(chain_id: Option<u64>) -> anyhow::Result<AnvilInstance> {
+    let home_dir = std::env::var("HOME").unwrap_or_default();
+    let binary_path = format!("{}/.foundry/bin/anvil", home_dir);
+
+    // todo: throw an error if the binary doesn't exist
+
+    let chain_id = chain_id.unwrap_or(31337_u64);
+    let anvil = Anvil::default()
+        .arg("--gas-limit")
+        .arg("20000000")
+        .chain_id(chain_id)
+        .path(binary_path)
+        .spawn();
+
+    Ok(anvil)
+}
+
+/// Spawns a new Arbiter instance.
+#[allow(dead_code)]
+pub fn start_arbiter() -> anyhow::Result<Environment> {
+    let arbiter = EnvironmentBuilder::new().build();
+
+    Ok(arbiter)
 }
 
 #[cfg(test)]
@@ -224,7 +261,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_excalibur_local() -> anyhow::Result<()> {
-        let client = ExcaliburMiddleware::setup(true).await?;
+        let client = ExcaliburMiddleware::new(None, None, None).await?;
 
         let anvil = client.anvil.as_ref().unwrap();
 
@@ -242,15 +279,13 @@ mod tests {
         let bob_address = bob.address();
 
         let balance = client
-            .client()
-            .unwrap()
+            .get_client()
             .get_balance(bob_address, None)
             .await
             .unwrap();
 
         let alice_balance = client
-            .client()
-            .unwrap()
+            .get_client()
             .get_balance(alice_address, None)
             .await
             .unwrap();
@@ -264,15 +299,13 @@ mod tests {
         );
 
         let balance = client
-            .client()
-            .unwrap()
+            .get_client()
             .get_balance(bob_address, None)
             .await
             .unwrap();
 
         let alice_balance = client
-            .client()
-            .unwrap()
+            .get_client()
             .get_balance(alice_address, None)
             .await
             .unwrap();

@@ -1,4 +1,6 @@
 //! Adapter for the DFMM protocol.
+//! Exposes an API for interacting with the protocol that can be used by the
+//! app.
 use anyhow::Result;
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use cfmm_math::trading_functions::rmm::{
@@ -63,7 +65,7 @@ pub fn get_deposits_given_price(
 #[async_trait::async_trait]
 impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
     fn protocol(&self) -> Result<ProtocolClient<NetworkClient<Ws, LocalWallet>>> {
-        let client = self.client().unwrap().clone();
+        let client = self.get_client();
         let address = self.contracts.get("protocol").cloned();
         let solver = self.contracts.get("solver").cloned();
         let address = address.ok_or_else(|| anyhow::anyhow!("No protocol address"))?;
@@ -84,7 +86,7 @@ impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
         sigma_percent_wad: f64,
         tau_years_wad: f64,
     ) -> anyhow::Result<Option<TransactionReceipt>> {
-        let client = self.anvil_client.clone().unwrap();
+        let client = self.get_client();
         let protocol = self.protocol()?;
 
         let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(

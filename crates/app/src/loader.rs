@@ -86,18 +86,24 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
-    let mut exc_client = ExcaliburMiddleware::setup(true).await?;
+    // Create a new middleware client to make calls to the network.
+    let mut exc_client = ExcaliburMiddleware::new(None, None, None).await?;
+
+    // Start and connect to an anvil instance.
+    let anvil = start_anvil(None)?;
+    exc_client.connect_anvil(anvil).await?;
+
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
         31337
     };
 
+    let client = exc_client.get_client();
+
     // todo: try the connection to the sandbox next
     // Connect the model to the desired network.
-    model
-        .connect_to_network(exc_client.client().cloned().unwrap())
-        .await?;
+    model.connect_to_network(client.clone()).await?;
 
     // If profile has an anvil snapshot, load it.
     let loaded_snapshot = if let Some(AnvilSave {
@@ -110,9 +116,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             &snapshot[..10.min(snapshot.len())],
         );
 
-        let client = exc_client.client().unwrap().clone();
-
         let success = client
+            .clone()
             .provider()
             .request::<[String; 1], bool>("anvil_loadState", [snapshot.to_string()])
             .await
@@ -123,6 +128,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         if success {
             tracing::info!("Syncing Anvil to block: {}", block_number);
             client
+                .clone()
                 .provider()
                 .request::<[u64; 1], ()>("anvil_mine", [*block_number])
                 .await
@@ -158,10 +164,10 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
 
     // If we are loading a fresh instance, deploy the contracts.
     if !loaded_snapshot {
-        let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
+        let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
         let sender = signer.address();
-        let client = exc_client.client().unwrap().clone();
-        let client = client.with_signer(signer);
+
+        let client = client.clone().with_signer(signer);
         let dev_client = DevClient::deploy(client.into(), sender).await?;
 
         let protocol = dev_client.protocol.protocol.address();

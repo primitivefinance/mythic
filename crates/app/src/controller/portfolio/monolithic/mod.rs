@@ -149,7 +149,7 @@ impl Monolithic {
 
     pub fn handle_submit_allocate(&mut self) -> anyhow::Result<Command<Message>> {
         if let Some(client) = self.client.clone() {
-            if let Some(signer) = client.signer() {
+            if let Some(signer) = client.signer.as_ref() {
                 let submitter = signer.address();
 
                 let deposit_amount = self.create.amount.clone();
@@ -420,7 +420,7 @@ impl State for Monolithic {
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
         if let Some(client) = self.client.clone() {
-            let provider = client.client().unwrap().clone();
+            let provider = client.get_client();
             let mut subscriptions: Vec<Subscription<Message>> = vec![];
 
             // Fetches the most recent block and updates the model.
@@ -510,7 +510,7 @@ fn price_process_update_after_step(
         }
     }
 
-    let client = client.client().cloned().unwrap();
+    let client = client.get_client();
 
     Command::perform(
         async move {
