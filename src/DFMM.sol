@@ -83,7 +83,6 @@ contract DFMM is IDFMM {
             reserveX: reserveX,
             reserveY: reserveY,
             totalLiquidity: totalLiquidity,
-            feeGrowth: FixedPointMathLib.WAD,
             liquidityToken: address(liquidityToken)
         });
 
