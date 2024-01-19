@@ -33,12 +33,14 @@ impl MessageWrapperView for Message {
     type ParentMessage = RootViewMessage;
 }
 
+// normal message which are not clone
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
-    fn from(_message: Message) -> Self {
-        Self::Empty
+    fn from(message: Message) -> Self {
+        Self::View(view::Message::Settings(message))
     }
 }
 
+// for view messages which are clone
 impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Settings(message)
@@ -180,6 +182,7 @@ impl State for SettingsScreen {
                     .signers
                     .update(message)
                     .map(|x| Message::Signers(x).into()),
+
                 Message::Contacts(message) => self
                     .contacts
                     .update(message)
