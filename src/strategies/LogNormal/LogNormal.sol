@@ -5,6 +5,7 @@ import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./LogNormalLib.sol";
+import "./LogNormalHelper.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price
@@ -180,8 +181,24 @@ contract LogNormal is IStrategy {
     }
 
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
-        InternalParams memory params = abi.decode(data, (InternalParams));
-        internalParams[poolId] = params;
+        LogNormalUpdateCode updateCode = abi.decode(data, (LogNormalUpdateCode));
+
+        if (updateCode == LogNormalUpdateCode.SwapFee) {
+            internalParams[poolId].swapFee = decodeFeeUpdate(data);
+        } else if (updateCode == LogNormalUpdateCode.Sigma) {
+            (uint256 targetSigma, uint256 targetTimestamp) =
+                decodeSigmaUpdate(data);
+            internalParams[poolId].sigma.set(targetSigma, targetTimestamp);
+        } else if (updateCode == LogNormalUpdateCode.Tau) {
+            (uint256 targetTau, uint256 targetTimestamp) = decodeTauUpdate(data);
+            internalParams[poolId].tau.set(targetTau, targetTimestamp);
+        } else if (updateCode == LogNormalUpdateCode.Strike) {
+            (uint256 targetStrike, uint256 targetTimestamp) =
+                decodeStrikeUpdate(data);
+            internalParams[poolId].strike.set(targetStrike, targetTimestamp);
+        } else {
+            revert InvalidUpdateCode();
+        }
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
