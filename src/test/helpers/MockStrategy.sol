@@ -34,7 +34,7 @@ contract MockStrategy is IStrategy {
             totalLiquidity = 4 ether;
         }
 
-        if (status == 1) {
+        if (status == 2) {
             valid = true;
             swapConstantGrowth = 1 ether;
             reserveX = 100 ether;
@@ -59,7 +59,13 @@ contract MockStrategy is IStrategy {
     {
         uint256 status = abi.decode(data, (uint256));
 
-        if (status == 9) {
+        if (status == 1) {
+            valid = true;
+            invariant = 1 ether;
+            reserveX = 50 ether;
+            reserveY = 50 ether;
+            totalLiquidity = 5 ether;
+        } else if (status == 9) {
             valid = true;
             invariant = 1 ether;
             reserveX = 100 ether;
