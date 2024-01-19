@@ -2,12 +2,14 @@
 pragma solidity ^0.8.13;
 
 import "../../strategies/LogNormal/LogNormal.sol";
+import "../../strategies/LogNormal/LogNormalHelper.sol";
 import "../DFMM/SetUp.sol";
 import "./LogNormalSolver.sol";
 
 contract LogNormalSetUp is SetUp {
     LogNormal logNormal;
     LogNormalSolver solver;
+    LogNormalHelper helper;
 
     uint256 public POOL_ID;
 
@@ -36,6 +38,7 @@ contract LogNormalSetUp is SetUp {
         dfmm = new DFMM();
         logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
+        helper = new LogNormalHelper(address(logNormal));
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);
