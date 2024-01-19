@@ -6,6 +6,7 @@ import "solmate/utils/SafeTransferLib.sol";
 import "solstat/Units.sol";
 import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
+import "./LPToken.sol";
 
 /// @title DFMM
 /// @notice Dynamic Function Market Maker
@@ -14,13 +15,6 @@ contract DFMM is IDFMM {
 
     Pool[] public pools;
     uint256 private _locked = 1;
-
-    /// @inheritdoc IDFMM
-    mapping(address account => mapping(uint256 poolId => uint256 balance))
-        public liquidityOf;
-
-    mapping(address account => mapping(uint256 poolId => uint256 lastFeeGrowth))
-        public lastFeeGrowthOf;
 
     modifier initialized(uint256 poolId) {
         if (!pools[poolId].inited) revert NotInitialized();
@@ -78,6 +72,8 @@ contract DFMM is IDFMM {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
+        LPToken liquidityToken = new LPToken("NAME", "SYMBOL", totalLiquidity);
+
         Pool memory pool = Pool({
             inited: true,
             controller: msg.sender,
@@ -87,14 +83,14 @@ contract DFMM is IDFMM {
             reserveX: reserveX,
             reserveY: reserveY,
             totalLiquidity: totalLiquidity,
-            feeGrowth: FixedPointMathLib.WAD
+            feeGrowth: FixedPointMathLib.WAD,
+            liquidityToken: address(liquidityToken)
         });
 
         pools.push(pool);
         uint256 poolId = pools.length - 1;
 
-        liquidityOf[msg.sender][poolId] = totalLiquidity;
-        lastFeeGrowthOf[msg.sender][poolId] = FixedPointMathLib.WAD;
+        liquidityToken.mint(msg.sender, totalLiquidity);
 
         SafeTransferLib.safeTransferFrom(
             ERC20(params.tokenX), msg.sender, address(this), reserveX
@@ -120,13 +116,8 @@ contract DFMM is IDFMM {
         uint256 poolId,
         bytes calldata data
     ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
-        _updateBalance(poolId);
-
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, true, data);
-
-        liquidityOf[msg.sender][poolId] += deltaL;
-        lastFeeGrowthOf[msg.sender][poolId] = pools[poolId].feeGrowth;
 
         SafeTransferLib.safeTransferFrom(
             ERC20(pools[poolId].tokenX), msg.sender, address(this), deltaX
@@ -144,13 +135,8 @@ contract DFMM is IDFMM {
         uint256 poolId,
         bytes calldata data
     ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
-        _updateBalance(poolId);
-
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, false, data);
-
-        liquidityOf[msg.sender][poolId] -= deltaL;
-        lastFeeGrowthOf[msg.sender][poolId] = pools[poolId].feeGrowth;
 
         ERC20(pools[poolId].tokenX).transfer(msg.sender, deltaX);
         ERC20(pools[poolId].tokenY).transfer(msg.sender, deltaY);
@@ -184,7 +170,7 @@ contract DFMM is IDFMM {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
-        _updatePoolGrowth(poolId, adjustedTotalLiquidity);
+        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
 
         (bool isSwapXForY,,, uint256 inputAmount, uint256 outputAmount) =
             _settle(poolId, adjustedReserveX, adjustedReserveY);
@@ -269,26 +255,18 @@ contract DFMM is IDFMM {
 
     // Internals
 
-    function _updateBalance(uint256 poolId) internal {
-        if (
-            liquidityOf[msg.sender][poolId] != 0
-                && pools[poolId].feeGrowth != lastFeeGrowthOf[msg.sender][poolId]
-        ) {
-            uint256 growth = pools[poolId].feeGrowth.mulWadDown(
-                lastFeeGrowthOf[msg.sender][poolId]
-            );
-            liquidityOf[msg.sender][poolId] =
-                liquidityOf[msg.sender][poolId].mulWadDown(growth);
-        }
-    }
-
     function _updatePoolReserves(
         uint256 poolId,
         bool isAllocate,
         bytes calldata data
     ) internal returns (uint256 deltaX, uint256 deltaY, uint256 deltaL) {
-        (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-        IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
+        (
+            bool valid,
+            int256 invariant,
+            uint256 adjustedReserveX,
+            uint256 adjustedReserveY,
+            uint256 adjustedTotalLiquidity
+        ) = IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
             poolId, data
         );
 
@@ -297,28 +275,38 @@ contract DFMM is IDFMM {
         }
 
         deltaX = isAllocate
-            ? rx - pools[poolId].reserveX
-            : pools[poolId].reserveX - rx;
+            ? adjustedReserveX - pools[poolId].reserveX
+            : pools[poolId].reserveX - adjustedReserveX;
         deltaY = isAllocate
-            ? ry - pools[poolId].reserveY
-            : pools[poolId].reserveY - ry;
+            ? adjustedReserveY - pools[poolId].reserveY
+            : pools[poolId].reserveY - adjustedReserveY;
         deltaL = isAllocate
-            ? L - pools[poolId].totalLiquidity
-            : pools[poolId].totalLiquidity - L;
+            ? adjustedTotalLiquidity - pools[poolId].totalLiquidity
+            : pools[poolId].totalLiquidity - adjustedTotalLiquidity;
 
-        pools[poolId].reserveX = rx;
-        pools[poolId].reserveY = ry;
-        pools[poolId].totalLiquidity = L;
+        _manageTokens(poolId, isAllocate, deltaL);
+
+        pools[poolId].reserveX = adjustedReserveX;
+        pools[poolId].reserveY = adjustedReserveY;
+        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
     }
 
-    function _updatePoolGrowth(
+    function _manageTokens(
         uint256 poolId,
-        uint256 adjustedTotalLiquidity
-    ) internal {
-        uint256 preLiquidity = pools[poolId].totalLiquidity;
-        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
-        uint256 growth = pools[poolId].totalLiquidity.divWadDown(preLiquidity);
-        pools[poolId].feeGrowth = pools[poolId].feeGrowth.mulWadDown(growth);
+        bool isAllocate,
+        uint256 deltaL
+    ) private {
+        LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
+        uint256 totalSupply = liquidityToken.totalSupply();
+        uint256 totalLiquidity = pools[poolId].totalLiquidity;
+        uint256 amount =
+            deltaL.mulWadDown(totalSupply.divWadDown(totalLiquidity));
+
+        if (isAllocate) {
+            liquidityToken.mint(msg.sender, amount);
+        } else {
+            liquidityToken.burn(msg.sender, amount);
+        }
     }
 
     // Lens
@@ -341,5 +329,16 @@ contract DFMM is IDFMM {
             pools[poolId].reserveY,
             pools[poolId].totalLiquidity
         );
+    }
+
+    function liquidityOf(
+        address account,
+        uint256 poolId
+    ) public view returns (uint256) {
+        LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
+        uint256 balance = liquidityToken.balanceOf(account);
+        uint256 totalSupply = liquidityToken.totalSupply();
+        uint256 totalLiquidity = pools[poolId].totalLiquidity;
+        return balance.mulWadDown(totalLiquidity.divWadDown(totalSupply));
     }
 }
