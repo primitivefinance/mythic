@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use alloy_primitives::{utils::parse_ether, Address, U256};
+use alloy_primitives::{utils::parse_ether, U256};
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use clients::protocol::{G3mF64, LogNormalF64, PoolInitParamsF64, ProtocolClient};
-use tracing::debug;
 
 use super::*;
 use crate::agents::base::token_admin::TokenAdmin;
@@ -12,6 +11,8 @@ use crate::agents::base::token_admin::TokenAdmin;
 pub struct LiquidityProvider {
     pub client: Arc<RevmMiddleware>,
     pub protocol_client: ProtocolClient<RevmMiddleware>,
+    token_x: Address,
+    token_y: Address,
     init_x_wad: f64,
     init_price_wad: f64,
     init_strike_price_wad: f64,
@@ -24,14 +25,6 @@ pub struct LiquidityProvider {
 impl Agent for LiquidityProvider {
     #[tracing::instrument(skip(self), level = "trace")]
     async fn init(&mut self) -> Result<()> {
-        let token_x = self
-            .protocol_client
-            .get_token_by_symbol("arbx".into())?
-            .clone();
-        let token_y = self
-            .protocol_client
-            .get_token_by_symbol("arby".into())?
-            .clone();
         let init_x = ethers::utils::parse_ether(self.init_x_wad)?;
         let init_price = ethers::utils::parse_ether(self.init_price_wad)?;
 
@@ -46,8 +39,8 @@ impl Agent for LiquidityProvider {
 
         self.protocol_client
             .init_pool(
-                token_x.address,
-                token_y.address,
+                self.token_x,
+                self.token_y,
                 init_x,
                 init_price,
                 ln_init_params,
@@ -61,8 +54,8 @@ impl Agent for LiquidityProvider {
 
         self.protocol_client
             .init_pool(
-                token_x.address,
-                token_y.address,
+                self.token_x,
+                self.token_y,
                 init_x,
                 init_price,
                 g_init_params,
@@ -122,6 +115,8 @@ impl LiquidityProvider {
             Ok(Self {
                 client,
                 protocol_client,
+                token_x: arbx.address(),
+                token_y: arby.address(),
                 init_x_wad: params.x_liquidity.0,
                 init_price_wad: params.initial_price.0,
                 init_strike_price_wad: params.strike_price.0,

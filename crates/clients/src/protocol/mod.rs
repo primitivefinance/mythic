@@ -7,7 +7,6 @@ mod tokens;
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
-use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use bindings::{
     dfmm::DFMM,
     g3m::G3M,
@@ -16,8 +15,8 @@ use bindings::{
     log_normal_solver::{LogNormalSolver, PublicParams as LogNormalParameters},
     shared_types::InitParams,
 };
+use datatypes::TokenData;
 use pool::{Pool, PoolKind};
-use tokens::Token;
 
 use super::*;
 
@@ -56,7 +55,7 @@ pub struct ProtocolClient<C> {
     pub g_solver: G3MSolver<C>,
     pub g_strategy: G3M<C>,
     pub pools: BTreeMap<U256, Pool>,
-    pub tokens: BTreeMap<Address, Token>,
+    pub tokens: BTreeMap<Address, TokenData>,
 }
 
 impl<C> Clone for ProtocolClient<C> {
@@ -111,6 +110,34 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
+    pub fn from(
+        client: Arc<C>,
+        protocol_address: Address,
+        ln_solver_address: Address,
+        ln_strategy_address: Address,
+        g_solver_address: Address,
+        g_strategy_address: Address,
+    ) -> Result<Self> {
+        let protocol = DFMM::new(protocol_address, client.clone());
+        let ln_strategy = LogNormal::new(ln_strategy_address, client.clone());
+        let g_strategy = G3M::new(g_strategy_address, client.clone());
+        let ln_solver = LogNormalSolver::new(ln_solver_address, client.clone());
+        let g_solver = G3MSolver::new(g_solver_address, client.clone());
+
+        // todo: get protocol nonce then loop through pools to generate token list and
+        // pool list
+        Ok(Self {
+            client,
+            protocol,
+            ln_solver,
+            ln_strategy,
+            g_solver,
+            g_strategy,
+            pools: BTreeMap::new(),
+            tokens: BTreeMap::new(),
+        })
+    }
+
     pub fn bind(self, client: Arc<C>) -> anyhow::Result<Self> {
         let protocol = DFMM::new(self.protocol.address(), client.clone());
         let ln_strategy = LogNormal::new(self.ln_strategy.address(), client.clone());
@@ -141,18 +168,22 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         address: Address,
         name: String,
         symbol: String,
-        decimals: usize,
+        decimals: u8,
     ) -> Result<()> {
-        let token = Token::new(name, symbol, decimals, address)?;
-        self.tokens.insert(address, token).unwrap();
+        let token_data = TokenData {
+            name,
+            symbol,
+            decimals,
+        };
+        self.tokens.insert(address, token_data).unwrap();
         Ok(())
     }
 
-    pub fn get_token(&self, address: Address) -> Result<&Token> {
+    pub fn get_token(&self, address: Address) -> Result<&TokenData> {
         Ok(self.tokens.get(&address).unwrap())
     }
 
-    pub fn get_token_by_symbol(&self, symbol: String) -> Result<&Token> {
+    pub fn get_token_by_symbol(&self, symbol: String) -> Result<&TokenData> {
         let (_address, token) = self
             .tokens
             .iter()
@@ -162,7 +193,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok(token)
     }
 
-    pub fn get_token_by_name(&self, name: String) -> Result<&Token> {
+    pub fn get_token_by_name(&self, name: String) -> Result<&TokenData> {
         let (_address, token) = self
             .tokens
             .iter()
@@ -172,7 +203,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok(token)
     }
 
-    pub fn get_pool_tokens(&self, pool: Pool) -> Result<(&Token, &Token)> {
+    pub fn get_pool_tokens(&self, pool: Pool) -> Result<(&TokenData, &TokenData)> {
         Ok((self.get_token(pool.token_x)?, self.get_token(pool.token_y)?))
     }
 
@@ -187,6 +218,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     ) -> Result<TransactionReceipt> {
         let pool_params = to_init_params_wad(init_params)?;
         let pool_id = self.get_next_pool_id().await?;
+
         match pool_params {
             PoolParams::G3M(g3m_params) => {
                 let init_data = self

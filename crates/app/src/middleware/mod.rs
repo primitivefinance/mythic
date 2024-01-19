@@ -9,7 +9,11 @@ use arbiter_core::{
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
-use clients::{dev::ProtocolPosition, ledger::LedgerClient, protocol::ProtocolClient};
+use clients::{
+    dev::ProtocolPosition,
+    ledger::LedgerClient,
+    protocol::{LogNormalF64, PoolInitParamsF64, ProtocolClient},
+};
 use ethers::utils::{Anvil, AnvilInstance};
 
 pub mod alloyed;
@@ -270,13 +274,14 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let client = self.client().unwrap().clone();
         let address = self.contracts.get("protocol").cloned();
         let solver = self.contracts.get("solver").cloned();
+        let token_x = self.contracts.get("token_x").cloned();
+        let token_y = self.contracts.get("token_y").cloned();
         let address = address.ok_or_else(|| anyhow::anyhow!("No protocol address"))?;
         let solver = solver.ok_or_else(|| anyhow::anyhow!("No solver address"))?;
-        let protocol = ProtocolClient::builder(client)
-            .protocol(address)
-            .ln_solver(solver)
-            .build()?;
-        Ok(protocol)
+        // todo: reference the correct contracts from the list
+        let protocol_client =
+            ProtocolClient::from(client, address, address, address, address, address)?;
+        Ok(protocol_client)
     }
 
     async fn create_position(
@@ -287,9 +292,9 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
         strike_price_wad: f64,
         sigma_percent_wad: f64,
         tau_years_wad: f64,
-    ) -> anyhow::Result<Option<TransactionReceipt>> {
+    ) -> Result<Option<TransactionReceipt>> {
         let client = self.anvil_client.clone().unwrap();
-        let protocol = self.protocol()?;
+        let mut protocol = self.protocol()?;
 
         let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
             price,
@@ -301,26 +306,35 @@ impl Protocol for ExcaliburMiddleware<Ws, LocalWallet> {
 
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
+        let price_wad = ethers::utils::parse_ether(price)?;
 
-        let (token_x, token_y) = protocol.get_tokens()?;
+        // let (token_x, token_y) = protocol.()?;
         let (token_x, token_y) = (
-            ArbiterToken::new(token_x, client.clone()),
-            ArbiterToken::new(token_y, client.clone()),
+            ArbiterToken::new(protocol.client.address(), client.clone()),
+            ArbiterToken::new(protocol.client.address(), client.clone()),
         );
 
         token_x.mint(sender, amount_x_wad).send().await?;
         token_y.mint(sender, amount_y_wad).send().await?;
 
-        Ok(protocol
-            .initialize_ln_pool(
-                amount_x,
-                price,
-                strike_price_wad,
-                sigma_percent_wad,
-                tau_years_wad,
-                0.003,
+        let init_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
+            sigma: sigma_percent_wad,
+            strike: strike_price_wad,
+            tau: tau_years_wad,
+            swap_fee: 0.003,
+        });
+
+        let tx = protocol
+            .init_pool(
+                token_x.address(),
+                token_y.address(),
+                amount_x_wad,
+                price_wad,
+                init_params,
             )
-            .await?)
+            .await?;
+
+        Ok(Some(tx))
     }
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
