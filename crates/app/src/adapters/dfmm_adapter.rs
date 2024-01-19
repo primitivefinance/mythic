@@ -6,7 +6,10 @@ use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
-use clients::{dev::ProtocolPosition, protocol::ProtocolClient};
+use clients::{
+    dev::ProtocolPosition,
+    protocol::{LogNormalF64, PoolInitParamsF64, ProtocolClient},
+};
 
 use self::middleware::{ExcaliburMiddleware, NetworkClient};
 use super::*;
@@ -70,11 +73,9 @@ impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
         let solver = self.contracts.get("solver").cloned();
         let address = address.ok_or_else(|| anyhow::anyhow!("No protocol address"))?;
         let solver = solver.ok_or_else(|| anyhow::anyhow!("No solver address"))?;
-        let protocol = ProtocolClient::builder(client)
-            .protocol(address)
-            .ln_solver(solver)
-            .build()?;
-        Ok(protocol)
+        let protocol_client =
+            ProtocolClient::from(client, address, address, address, address, address)?;
+        Ok(protocol_client)
     }
 
     async fn create_position(
@@ -87,7 +88,7 @@ impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
         tau_years_wad: f64,
     ) -> anyhow::Result<Option<TransactionReceipt>> {
         let client = self.get_client();
-        let protocol = self.protocol()?;
+        let mut protocol = self.protocol()?;
 
         let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
             price,
@@ -99,26 +100,34 @@ impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
 
         let amount_x_wad = ethers::utils::parse_ether(amount_x).unwrap();
         let amount_y_wad = ethers::utils::parse_ether(amount_y).unwrap();
+        let price_wad = ethers::utils::parse_ether(price).unwrap();
 
-        let (token_x, token_y) = protocol.get_tokens()?;
+        // let (token_x, token_y) = protocol.get_tokens()?;
         let (token_x, token_y) = (
-            ArbiterToken::new(token_x, client.clone()),
-            ArbiterToken::new(token_y, client.clone()),
+            ArbiterToken::new(protocol.client.address(), client.clone()),
+            ArbiterToken::new(protocol.client.address(), client.clone()),
         );
 
         token_x.mint(sender, amount_x_wad).send().await?;
         token_y.mint(sender, amount_y_wad).send().await?;
+        let init_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
+            sigma: sigma_percent_wad,
+            strike: strike_price_wad,
+            tau: tau_years_wad,
+            swap_fee: 0.003,
+        });
 
-        Ok(protocol
-            .initialize_ln_pool(
-                amount_x,
-                price,
-                strike_price_wad,
-                sigma_percent_wad,
-                tau_years_wad,
-                0.003,
+        let tx = protocol
+            .init_pool(
+                token_x.address(),
+                token_y.address(),
+                amount_x_wad,
+                price_wad,
+                init_params,
             )
-            .await?)
+            .await?;
+
+        Ok(Some(tx))
     }
 
     async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
@@ -128,7 +137,7 @@ impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
             .get_reserves_and_liquidity(ethers::types::U256::from(0))
             .await?;
         let internal_price = protocol
-            .get_ln_internal_price(ethers::types::U256::from(0))
+            .get_internal_price(ethers::types::U256::from(0))
             .await?;
         let balance_x = ethers::utils::format_ether(balance_x);
         let balance_y = ethers::utils::format_ether(balance_y);
