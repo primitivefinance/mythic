@@ -19,31 +19,49 @@ function decodeFeeUpdate(bytes memory data) pure returns (uint256) {
     return swapFee;
 }
 
-function encodeStrikeUpdate(uint256 strike) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.Strike, uint256(strike));
+function encodeStrikeUpdate(
+    uint256 targetStrike,
+    uint256 targetTimestamp
+) pure returns (bytes memory) {
+    return abi.encode(UpdateCode.Strike, targetStrike, targetTimestamp);
 }
 
-function decodeStrikeUpdate(bytes memory data) pure returns (uint256) {
-    (, uint256 strike) = abi.decode(data, (UpdateCode, uint256));
-    return strike;
+function decodeStrikeUpdate(bytes memory data)
+    pure
+    returns (uint256 targetStrike, uint256 targetTimestamp)
+{
+    (, targetStrike, targetTimestamp) =
+        abi.decode(data, (UpdateCode, uint256, uint256));
 }
 
-function encodeSigmaUpdate(uint256 sigma) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.Sigma, uint256(sigma));
+function encodeSigmaUpdate(
+    uint256 targetSigma,
+    uint256 targetTimestamp
+) pure returns (bytes memory) {
+    return abi.encode(UpdateCode.Sigma, targetSigma, targetTimestamp);
 }
 
-function decodeSigmaUpdate(bytes memory data) pure returns (uint256) {
-    (, uint256 sigma) = abi.decode(data, (UpdateCode, uint256));
-    return sigma;
+function decodeSigmaUpdate(bytes memory data)
+    pure
+    returns (uint256 targetSigma, uint256 targetTimestamp)
+{
+    (, targetSigma, targetTimestamp) =
+        abi.decode(data, (UpdateCode, uint256, uint256));
 }
 
-function encodeTauUpdate(uint256 tau) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.Tau, uint256(tau));
+function encodeTauUpdate(
+    uint256 targetTau,
+    uint256 targetTimestamp
+) pure returns (bytes memory) {
+    return abi.encode(UpdateCode.Tau, targetTau, targetTimestamp);
 }
 
-function decodeTauUpdate(bytes memory data) pure returns (uint256) {
-    (, uint256 tau) = abi.decode(data, (UpdateCode, uint256));
-    return tau;
+function decodeTauUpdate(bytes memory data)
+    pure
+    returns (uint256 targetTau, uint256 targetTimestamp)
+{
+    (, targetTau, targetTimestamp) =
+        abi.decode(data, (UpdateCode, uint256, uint256));
 }
 
 contract LogNormalHelper {
@@ -63,10 +81,31 @@ contract LogNormalHelper {
     }
 
     function prepareFeeUpdate(uint256 swapFee)
-        public
+        external
         pure
-        returns (bytes memory data)
+        returns (bytes memory)
     {
-        return abi.encode(uint8(0), uint256(swapFee));
+        return encodeFeeUpdate(swapFee);
+    }
+
+    function prepareStrikeUpdate(
+        uint256 targetStrike,
+        uint256 targetTimestamp
+    ) external pure returns (bytes memory) {
+        return encodeStrikeUpdate(targetStrike, targetTimestamp);
+    }
+
+    function prepareSigmaUpdate(
+        uint256 targetSigma,
+        uint256 targetTimestamp
+    ) external pure returns (bytes memory) {
+        return encodeSigmaUpdate(targetSigma, targetTimestamp);
+    }
+
+    function prepareTauUpdate(
+        uint256 targetTau,
+        uint256 targetTimestamp
+    ) external pure returns (bytes memory) {
+        return encodeTauUpdate(targetTau, targetTimestamp);
     }
 }
