@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./LogNormal.sol";
 
-enum UpdateCode {
+enum LogNormalUpdateCode {
     SwapFee,
     Strike,
     Sigma,
@@ -11,11 +11,11 @@ enum UpdateCode {
 }
 
 function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.SwapFee, uint256(swapFee));
+    return abi.encode(LogNormalUpdateCode.SwapFee, uint256(swapFee));
 }
 
 function decodeFeeUpdate(bytes memory data) pure returns (uint256) {
-    (, uint256 swapFee) = abi.decode(data, (UpdateCode, uint256));
+    (, uint256 swapFee) = abi.decode(data, (LogNormalUpdateCode, uint256));
     return swapFee;
 }
 
@@ -23,7 +23,7 @@ function encodeStrikeUpdate(
     uint256 targetStrike,
     uint256 targetTimestamp
 ) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.Strike, targetStrike, targetTimestamp);
+    return abi.encode(LogNormalUpdateCode.Strike, targetStrike, targetTimestamp);
 }
 
 function decodeStrikeUpdate(bytes memory data)
@@ -31,14 +31,14 @@ function decodeStrikeUpdate(bytes memory data)
     returns (uint256 targetStrike, uint256 targetTimestamp)
 {
     (, targetStrike, targetTimestamp) =
-        abi.decode(data, (UpdateCode, uint256, uint256));
+        abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
 }
 
 function encodeSigmaUpdate(
     uint256 targetSigma,
     uint256 targetTimestamp
 ) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.Sigma, targetSigma, targetTimestamp);
+    return abi.encode(LogNormalUpdateCode.Sigma, targetSigma, targetTimestamp);
 }
 
 function decodeSigmaUpdate(bytes memory data)
@@ -46,14 +46,14 @@ function decodeSigmaUpdate(bytes memory data)
     returns (uint256 targetSigma, uint256 targetTimestamp)
 {
     (, targetSigma, targetTimestamp) =
-        abi.decode(data, (UpdateCode, uint256, uint256));
+        abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
 }
 
 function encodeTauUpdate(
     uint256 targetTau,
     uint256 targetTimestamp
 ) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.Tau, targetTau, targetTimestamp);
+    return abi.encode(LogNormalUpdateCode.Tau, targetTau, targetTimestamp);
 }
 
 function decodeTauUpdate(bytes memory data)
@@ -61,7 +61,7 @@ function decodeTauUpdate(bytes memory data)
     returns (uint256 targetTau, uint256 targetTimestamp)
 {
     (, targetTau, targetTimestamp) =
-        abi.decode(data, (UpdateCode, uint256, uint256));
+        abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
 }
 
 contract LogNormalHelper {
