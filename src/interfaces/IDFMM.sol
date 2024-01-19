@@ -14,7 +14,6 @@ interface IDFMM {
         uint256 reserveX;
         uint256 reserveY;
         uint256 totalLiquidity;
-        uint256 feeGrowth;
         address liquidityToken;
     }
 
@@ -166,7 +165,6 @@ interface IDFMM {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity,
-            uint256 feeGrowth,
             address liquidityToken
         );
 }
