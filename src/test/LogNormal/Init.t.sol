@@ -14,7 +14,7 @@ contract LogNormalInitTest is LogNormalSetUp {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity,
-            uint256 feeGrowth
+            uint256 feeGrowth,
         ) = dfmm.pools(POOL_ID);
 
         assertEq(inited, true);

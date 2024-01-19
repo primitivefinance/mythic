@@ -11,12 +11,12 @@ contract G3MDeallocateTest is G3MSetUp {
             solver.deallocateGivenX(POOL_ID, amountX);
 
         uint256 preLiquidityBalance = dfmm.liquidityOf(address(this), POOL_ID);
-        (,,,,,,, uint256 preTotalLiquidity,) = dfmm.pools(POOL_ID);
+        (,, uint256 preTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
 
         bytes memory data = abi.encode(reserveX, reserveY, deltaLiquidity);
         dfmm.deallocate(POOL_ID, data);
 
-        (,,,,,,, uint256 postTotalLiquidity,) = dfmm.pools(POOL_ID);
+        (,, uint256 postTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
         uint256 deltaTotalLiquidity = preTotalLiquidity - postTotalLiquidity;
         assertEq(
             preLiquidityBalance - deltaTotalLiquidity,
@@ -31,12 +31,12 @@ contract G3MDeallocateTest is G3MSetUp {
             solver.deallocateGivenY(POOL_ID, amountX);
 
         uint256 preLiquidityBalance = dfmm.liquidityOf(address(this), POOL_ID);
-        (,,,,,,, uint256 preTotalLiquidity,) = dfmm.pools(POOL_ID);
+        (,, uint256 preTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
 
         bytes memory data = abi.encode(reserveX, reserveY, deltaLiquidity);
         dfmm.deallocate(POOL_ID, data);
 
-        (,,,,,,, uint256 postTotalLiquidity,) = dfmm.pools(POOL_ID);
+        (,, uint256 postTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
         uint256 deltaTotalLiquidity = preTotalLiquidity - postTotalLiquidity;
         assertEq(
             preLiquidityBalance - deltaTotalLiquidity,
