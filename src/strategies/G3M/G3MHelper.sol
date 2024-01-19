@@ -60,7 +60,7 @@ contract G3MHelper {
     function prepareWeightXUpdate(
         uint256 targetWeightX,
         uint256 targetTimestamp
-    ) public pure returns (bytes memory data) {
-        return abi.encode(uint8(1), targetWeightX, targetTimestamp);
+    ) public pure returns (bytes memory) {
+        return encodeWeightXUpdate(targetWeightX, targetTimestamp);
     }
 }
