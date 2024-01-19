@@ -17,7 +17,7 @@ contract DFMM is IDFMM {
 
     /// @inheritdoc IDFMM
     mapping(address account => mapping(uint256 poolId => uint256 balance))
-        public balanceOf;
+        public liquidityOf;
 
     mapping(address account => mapping(uint256 poolId => uint256 lastFeeGrowth))
         public lastFeeGrowthOf;
@@ -93,7 +93,7 @@ contract DFMM is IDFMM {
         pools.push(pool);
         uint256 poolId = pools.length - 1;
 
-        balanceOf[msg.sender][poolId] = totalLiquidity;
+        liquidityOf[msg.sender][poolId] = totalLiquidity;
         lastFeeGrowthOf[msg.sender][poolId] = FixedPointMathLib.WAD;
 
         SafeTransferLib.safeTransferFrom(
@@ -125,7 +125,7 @@ contract DFMM is IDFMM {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, true, data);
 
-        balanceOf[msg.sender][poolId] += deltaL;
+        liquidityOf[msg.sender][poolId] += deltaL;
         lastFeeGrowthOf[msg.sender][poolId] = pools[poolId].feeGrowth;
 
         SafeTransferLib.safeTransferFrom(
@@ -149,7 +149,7 @@ contract DFMM is IDFMM {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, false, data);
 
-        balanceOf[msg.sender][poolId] -= deltaL;
+        liquidityOf[msg.sender][poolId] -= deltaL;
         lastFeeGrowthOf[msg.sender][poolId] = pools[poolId].feeGrowth;
 
         ERC20(pools[poolId].tokenX).transfer(msg.sender, deltaX);
@@ -271,14 +271,14 @@ contract DFMM is IDFMM {
 
     function _updateBalance(uint256 poolId) internal {
         if (
-            balanceOf[msg.sender][poolId] != 0
+            liquidityOf[msg.sender][poolId] != 0
                 && pools[poolId].feeGrowth != lastFeeGrowthOf[msg.sender][poolId]
         ) {
             uint256 growth = pools[poolId].feeGrowth.mulWadDown(
                 lastFeeGrowthOf[msg.sender][poolId]
             );
-            balanceOf[msg.sender][poolId] =
-                balanceOf[msg.sender][poolId].mulWadDown(growth);
+            liquidityOf[msg.sender][poolId] =
+                liquidityOf[msg.sender][poolId].mulWadDown(growth);
         }
     }
 

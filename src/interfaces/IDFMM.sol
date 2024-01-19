@@ -144,10 +144,10 @@ interface IDFMM {
 
     // Getters
 
-    function balanceOf(
+    function liquidityOf(
         address account,
         uint256 poolId
-    ) external view returns (uint256 balance);
+    ) external view returns (uint256 liquidity);
 
     function lastFeeGrowthOf(
         address account,
