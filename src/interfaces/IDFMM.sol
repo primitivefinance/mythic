@@ -15,6 +15,7 @@ interface IDFMM {
         uint256 reserveY;
         uint256 totalLiquidity;
         uint256 feeGrowth;
+        address liquidityToken;
     }
 
     struct InitParams {
@@ -144,16 +145,6 @@ interface IDFMM {
 
     // Getters
 
-    function liquidityOf(
-        address account,
-        uint256 poolId
-    ) external view returns (uint256 liquidity);
-
-    function lastFeeGrowthOf(
-        address account,
-        uint256 poolId
-    ) external view returns (uint256 lastFeeGrowth);
-
     function getReservesAndLiquidity(uint256 poolId)
         external
         view
@@ -175,6 +166,7 @@ interface IDFMM {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity,
-            uint256 feeGrowth
+            uint256 feeGrowth,
+            address liquidityToken
         );
 }
