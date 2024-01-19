@@ -89,8 +89,6 @@ contract DFMM is IDFMM {
         pools.push(pool);
         uint256 poolId = pools.length - 1;
 
-        liquidityToken.mint(msg.sender, totalLiquidity);
-
         SafeTransferLib.safeTransferFrom(
             ERC20(params.tokenX), msg.sender, address(this), reserveX
         );
