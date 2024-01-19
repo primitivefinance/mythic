@@ -3,18 +3,18 @@ pragma solidity ^0.8.13;
 
 import "./G3M.sol";
 
-enum UpdateCode {
+enum G3MUpdateCode {
     Invalid,
     SwapFee,
     WeightX
 }
 
 function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
-    return abi.encode(UpdateCode.SwapFee, uint256(swapFee));
+    return abi.encode(G3MUpdateCode.SwapFee, uint256(swapFee));
 }
 
 function decodeFeeUpdate(bytes memory data) pure returns (uint256) {
-    (, uint256 swapFee) = abi.decode(data, (UpdateCode, uint256));
+    (, uint256 swapFee) = abi.decode(data, (G3MUpdateCode, uint256));
     return swapFee;
 }
 
@@ -22,7 +22,7 @@ function encodeWeightXUpdate(
     uint256 targetWeightX,
     uint256 targetTimestamp
 ) pure returns (bytes memory data) {
-    return abi.encode(UpdateCode.WeightX, targetWeightX, targetTimestamp);
+    return abi.encode(G3MUpdateCode.WeightX, targetWeightX, targetTimestamp);
 }
 
 function decodeWeightXUpdate(bytes memory data)
@@ -30,7 +30,7 @@ function decodeWeightXUpdate(bytes memory data)
     returns (uint256 targetWeightX, uint256 targetTimestamp)
 {
     (, targetWeightX, targetTimestamp) =
-        abi.decode(data, (UpdateCode, uint256, uint256));
+        abi.decode(data, (G3MUpdateCode, uint256, uint256));
 }
 
 contract G3MHelper {

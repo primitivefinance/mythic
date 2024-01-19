@@ -182,16 +182,16 @@ contract G3M is IStrategy {
     }
 
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
-        UpdateCode updateCode = abi.decode(data[:32], (UpdateCode));
+        G3MUpdateCode updateCode = abi.decode(data, (G3MUpdateCode));
 
-        if (updateCode == UpdateCode.SwapFee) {
+        if (updateCode == G3MUpdateCode.SwapFee) {
             internalParams[poolId].swapFee = decodeFeeUpdate(data);
-        } else if (updateCode == UpdateCode.WeightX) {
+        } else if (updateCode == G3MUpdateCode.WeightX) {
             (uint256 targetWeightX, uint256 targetTimestamp) =
                 decodeWeightXUpdate(data);
             internalParams[poolId].wX.set(targetWeightX, targetTimestamp);
         } else {
-            revert("invalid updateCode");
+            revert InvalidUpdateCode();
         }
     }
 
