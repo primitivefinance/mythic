@@ -167,8 +167,11 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
         let sender = signer.address();
 
-        let client = client.clone().with_signer(signer);
+        exc_client.connect_signer(signer).await?;
+        let client = exc_client.get_client();
+
         let dev_client = DevClient::deploy(client.into(), sender).await?;
+        exc_client.connect_dfmm(dev_client.protocol.clone()).await?;
 
         let protocol = dev_client.protocol.protocol.address();
         let strategy = dev_client.protocol.ln_strategy.address();

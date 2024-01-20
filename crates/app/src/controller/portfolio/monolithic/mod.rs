@@ -156,6 +156,18 @@ impl Monolithic {
             if let (Some(signer), Some(_)) = (client.signer.as_ref(), client.dfmm_client.as_ref()) {
                 let submitter = signer.address();
 
+                let asset_token = self.model.get_current().map(|x| x.raw_asset_token).unwrap();
+                let asset_token = match asset_token {
+                    Some(x) => x,
+                    None => return Err(anyhow::anyhow!("No asset token")),
+                };
+
+                let quote_token = self.model.get_current().map(|x| x.raw_quote_token).unwrap();
+                let quote_token = match quote_token {
+                    Some(x) => x,
+                    None => return Err(anyhow::anyhow!("No quote token")),
+                };
+
                 let deposit_amount_dollars = self.create.amount.clone();
                 let deposit_amount_dollars = match deposit_amount_dollars {
                     Some(x) => x.parse::<f64>().unwrap(),
@@ -219,8 +231,8 @@ impl Monolithic {
 
                         let payload = dfmm
                             .get_init_payload(
-                                submitter,
-                                submitter,
+                                to_ethers_address(asset_token),
+                                to_ethers_address(quote_token),
                                 init_reserve_x_wad,
                                 init_price_wad,
                                 payload_params,

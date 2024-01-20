@@ -199,6 +199,22 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         Ok(())
     }
 
+    /// Connects a signer to the client.
+    /// todo: replacing the client like this... are there side effects?
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn connect_signer(&mut self, signer: LocalWallet) -> anyhow::Result<()> {
+        let provider = self.client.as_ref().unwrap().provider().clone();
+        let chain_id = provider.get_chainid().await?.as_u64();
+        let signer = signer.with_chain_id(chain_id);
+
+        self.client = Some(Arc::new(
+            provider
+                .interval(std::time::Duration::from_millis(100))
+                .with_signer(signer),
+        ));
+        Ok(())
+    }
+
     /// Connects the middleware to a running anvil instance.
     #[tracing::instrument(skip(self, anvil), level = "debug")]
     pub async fn connect_anvil(&mut self, anvil: AnvilInstance) -> anyhow::Result<()> {
