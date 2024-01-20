@@ -4,7 +4,7 @@ use arbiter_core::{
     environment::{builder::EnvironmentBuilder, Environment},
     middleware::RevmMiddleware,
 };
-use clients::ledger::LedgerClient;
+use clients::{ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
 
 use super::*;
@@ -39,6 +39,8 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     pub arbiter_client: Option<Arc<RevmMiddleware>>,
     /// ANVIL
     pub anvil: Option<AnvilInstance>,
+    /// PROTOCOL
+    pub dfmm_client: Option<ProtocolClient<NetworkClient<P, S>>>,
 }
 
 impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
@@ -178,6 +180,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             arbiter,
             arbiter_client,
             anvil,
+            dfmm_client: None,
         })
     }
 
@@ -211,6 +214,16 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         self.client = Some(client);
         self.signer = Some(signer);
 
+        Ok(())
+    }
+
+    /// Connects the middleware to the dfmm protocol client.
+    #[tracing::instrument(skip(self), level = "debug")]
+    pub async fn connect_dfmm(
+        &mut self,
+        client: ProtocolClient<NetworkClient<Ws, LocalWallet>>,
+    ) -> anyhow::Result<()> {
+        self.dfmm_client = Some(client);
         Ok(())
     }
 }

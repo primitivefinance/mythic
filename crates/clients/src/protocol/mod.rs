@@ -278,7 +278,49 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok(pool_id)
     }
 
-    async fn initialize_pool(&self, payload: InitParams) -> Result<Option<TransactionReceipt>> {
+    /// Gets the data to send to the `initialize_pool` function.
+    pub async fn get_init_payload(
+        &self,
+        token_x: Address,
+        token_y: Address,
+        init_reserve_x_wad: U256,
+        init_price_wad: U256,
+        init_params: PoolInitParamsF64,
+    ) -> Result<InitParams> {
+        let pool_params = to_init_params_wad(init_params)?;
+        match pool_params {
+            PoolParams::G3M(g3m_params) => {
+                let init_data = self
+                    .g_solver
+                    .get_initial_pool_data(init_reserve_x_wad, init_price_wad, g3m_params)
+                    .call()
+                    .await?;
+                let init_params: InitParams = InitParams {
+                    strategy: self.g_strategy.address(),
+                    token_x,
+                    token_y,
+                    data: init_data,
+                };
+                Ok(init_params)
+            }
+            PoolParams::LogNormal(log_normal_params) => {
+                let init_data = self
+                    .ln_solver
+                    .get_initial_pool_data(init_reserve_x_wad, init_price_wad, log_normal_params)
+                    .call()
+                    .await?;
+                let init_params: InitParams = InitParams {
+                    strategy: self.ln_strategy.address(),
+                    token_x,
+                    token_y,
+                    data: init_data,
+                };
+                Ok(init_params)
+            }
+        }
+    }
+
+    pub async fn initialize_pool(&self, payload: InitParams) -> Result<Option<TransactionReceipt>> {
         let tx = self
             .protocol
             .init(payload)
@@ -303,12 +345,13 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_params(&self, pool_id: U256) -> Result<PoolParams> {
         let pool = self.pools.get(&pool_id).unwrap();
+
         match pool.kind {
             PoolKind::G3M => Ok(PoolParams::G3M(
-                self.g_solver.get_pool_params(pool_id).call().await?,
+                self.g_solver.fetch_pool_params(pool_id).call().await?,
             )),
             PoolKind::LogNormal => Ok(PoolParams::LogNormal(
-                self.ln_solver.get_pool_params(pool_id).call().await?,
+                self.ln_solver.fetch_pool_params(pool_id).call().await?,
             )),
         }
     }

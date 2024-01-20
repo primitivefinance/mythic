@@ -27,8 +27,6 @@ pub trait DFMMProtocol {
         sigma_percent_wad: f64,
         tau_years_wad: f64,
     ) -> anyhow::Result<Option<TransactionReceipt>>;
-
-    async fn get_position(&self) -> anyhow::Result<ProtocolPosition>;
 }
 
 /// L = Deposit $ / V(c)
@@ -128,32 +126,5 @@ impl DFMMProtocol for ExcaliburMiddleware<Ws, LocalWallet> {
             .await?;
 
         Ok(Some(tx))
-    }
-
-    async fn get_position(&self) -> anyhow::Result<ProtocolPosition> {
-        let protocol = self.protocol()?;
-        let (balance_x, balance_y, liquidity) = protocol
-            .protocol
-            .get_reserves_and_liquidity(ethers::types::U256::from(0))
-            .await?;
-        let internal_price = protocol
-            .get_internal_price(ethers::types::U256::from(0))
-            .await?;
-        let balance_x = ethers::utils::format_ether(balance_x);
-        let balance_y = ethers::utils::format_ether(balance_y);
-        let liquidity = ethers::utils::format_ether(liquidity);
-        let internal_price = ethers::utils::format_ether(internal_price);
-
-        let balance_x = format!("{:.2}", balance_x.parse::<f64>().unwrap());
-        let balance_y = format!("{:.2}", balance_y.parse::<f64>().unwrap());
-        let liquidity = format!("{:.2}", liquidity.parse::<f64>().unwrap());
-        let internal_price = format!("{:.2}", internal_price.parse::<f64>().unwrap());
-
-        Ok(ProtocolPosition {
-            balance_x: Some(balance_x),
-            balance_y: Some(balance_y),
-            liquidity: Some(liquidity),
-            internal_price: Some(internal_price),
-        })
     }
 }
