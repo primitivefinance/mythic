@@ -4,11 +4,10 @@ pragma solidity ^0.8.13;
 import "solmate/utils/FixedPointMathLib.sol";
 
 struct DynamicParam {
-    uint256 target;
-    uint256 last;
+    uint256 lastComputedValue;
     uint256 updateEnd;
-    uint256 updatePerSecond;
-    uint256 lastSync;
+    int256 updatePerSecond;
+    uint256 lastUpdateAt;
 }
 
 library DynamicParamLib {
@@ -21,21 +20,21 @@ library DynamicParamLib {
         view
         returns (uint256)
     {
-        if (param.lastSync == param.updateEnd) {
-            return param.last;
+        if (param.lastUpdateAt == param.updateEnd) {
+            return param.lastComputedValue;
         }
 
         uint256 updateTo = block.timestamp > param.updateEnd
             ? param.updateEnd
             : block.timestamp;
-        uint256 deltaTime = updateTo - param.lastSync;
+        uint256 deltaTime = updateTo - param.lastUpdateAt;
 
         if (param.updatePerSecond > 0) {
-            return param.last
-                + deltaTime * param.updatePerSecond;
+            return param.lastComputedValue
+                + deltaTime * uint256(param.updatePerSecond);
         } else {
-            return param.last
-                - deltaTime * param.updatePerSecond;
+            return param.lastComputedValue
+                - deltaTime * uint256(-param.updatePerSecond);
         }
     }
 
