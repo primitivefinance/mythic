@@ -11,7 +11,7 @@ using FixedPointMathLib for int256;
 function computeLGivenX(
     uint256 x,
     uint256 S,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256) {
     return x.mulWadUp(params.wY.divWadUp(params.wX.mulWadUp(S)));
 }
@@ -19,7 +19,7 @@ function computeLGivenX(
 function computeLGivenY(
     uint256 y,
     uint256 S,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256) {
     return y.mulWadUp(params.wX).divWadUp(params.wY.mulWadUp(S));
 }
@@ -27,7 +27,7 @@ function computeLGivenY(
 function computeXGivenL(
     uint256 L,
     uint256 S,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256) {
     return params.wX.mulWadUp(L).divWadUp(params.wY.mulWadUp(S));
 }
@@ -35,7 +35,7 @@ function computeXGivenL(
 function computeYGivenL(
     uint256 L,
     uint256 S,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256) {
     return params.wY.mulWadUp(L).divWadUp(params.wX.mulWadUp(S));
 }
@@ -43,7 +43,7 @@ function computeYGivenL(
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 rY = computeYGivenL(L, initialPrice, params);
@@ -54,7 +54,7 @@ function computeInitialPoolData(
 function computeInitialPoolData2(
     uint256 amountX,
     uint256 initialPrice,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 rY = computeYGivenL(L, initialPrice, params);
@@ -66,7 +66,7 @@ function computeInitialPoolData2(
 function computeNextRy(
     uint256 rX,
     uint256 liquidity,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256 rY) {
     rY = uint256(
         int256(
@@ -79,7 +79,7 @@ function computeNextRy(
 function computeNextRx(
     uint256 rY,
     uint256 liquidity,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256 rX) {
     rX = uint256(
         int256(

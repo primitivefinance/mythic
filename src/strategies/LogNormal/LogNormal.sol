@@ -27,7 +27,7 @@ contract LogNormal is IStrategy {
     }
 
     /// @dev Parameterization of the Log Normal curve.
-    struct PublicParams {
+    struct LogNormalParams {
         uint256 strike;
         uint256 sigma;
         uint256 tau;
@@ -81,11 +81,11 @@ contract LogNormal is IStrategy {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity,
-            PublicParams memory params
+            LogNormalParams memory params
         )
     {
         (reserveX, reserveY, totalLiquidity, params) =
-            abi.decode(data, (uint256, uint256, uint256, PublicParams));
+            abi.decode(data, (uint256, uint256, uint256, LogNormalParams));
 
         internalParams[poolId].sigma.lastComputedValue = params.sigma;
         internalParams[poolId].tau.lastComputedValue = params.tau;
@@ -96,7 +96,7 @@ contract LogNormal is IStrategy {
             reserveX,
             reserveY,
             totalLiquidity,
-            abi.decode(getPoolParams(poolId), (PublicParams))
+            abi.decode(getPoolParams(poolId), (LogNormalParams))
         );
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -123,7 +123,7 @@ contract LogNormal is IStrategy {
             reserveX,
             reserveY,
             totalLiquidity,
-            abi.decode(getPoolParams(poolId), (PublicParams))
+            abi.decode(getPoolParams(poolId), (LogNormalParams))
         );
 
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -145,8 +145,8 @@ contract LogNormal is IStrategy {
             uint256 nextL
         )
     {
-        PublicParams memory params =
-            abi.decode(getPoolParams(poolId), (PublicParams));
+        LogNormalParams memory params =
+            abi.decode(getPoolParams(poolId), (LogNormalParams));
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             IDFMM(dfmm).getReservesAndLiquidity(poolId);
@@ -202,7 +202,7 @@ contract LogNormal is IStrategy {
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
-        PublicParams memory params;
+        LogNormalParams memory params;
 
         params.sigma = internalParams[poolId].sigma.actualized();
         params.strike = internalParams[poolId].strike.actualized();
@@ -223,7 +223,7 @@ contract LogNormal is IStrategy {
             reserveX,
             reserveY,
             totalLiquidity,
-            abi.decode(getPoolParams(poolId), (PublicParams))
+            abi.decode(getPoolParams(poolId), (LogNormalParams))
         );
     }
 }

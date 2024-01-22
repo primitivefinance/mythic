@@ -9,10 +9,12 @@ use anyhow::Result;
 use bindings::{
     dfmm::DFMM,
     g3m::G3M,
-    g3m_solver::{G3MSolver, PublicParams as G3mParameters},
+    g3m_solver::G3MSolver,
     log_normal::LogNormal,
-    log_normal_solver::{LogNormalSolver, PublicParams as LogNormalParameters},
-    shared_types::InitParams,
+    log_normal_solver::LogNormalSolver,
+    shared_types::{
+        G3Mparams as G3mParameters, InitParams, LogNormalParams as LogNormalParameters,
+    },
 };
 use datatypes::TokenData;
 use pool::{Pool, PoolKind};
@@ -356,38 +358,41 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         target_strike_price_wad: f64,
         next_timestamp: u64,
     ) -> Result<Option<TransactionReceipt>> {
-        let target_strike_price_wad = to_wad(target_strike_price_wad);
-        let tx = self
-            .ln_strategy
-            .set_strike_price(
-                pool_id,
-                target_strike_price_wad,
-                ethers::types::U256::from(next_timestamp),
-            )
-            .send()
-            .await?
-            .await?;
-        Ok(tx)
+        // let target_strike_price_wad = to_wad(target_strike_price_wad);
+        // let tx = self
+        // .ln_strategy
+        // .set_strike_price(
+        // pool_id,
+        // target_strike_price_wad,
+        // ethers::types::U256::from(next_timestamp),
+        // )
+        // .send()
+        // .await?
+        // .await?;
+        // Ok(tx)
+        todo!("@kinrezc fix")
     }
 
     pub async fn set_weight_x(
         &self,
-        pool_id: U256,
-        target_wx: f64,
-        next_timestamp: u64,
+        _pool_id: U256,
+        _target_wx: f64,
+        _next_timestamp: u64,
     ) -> Result<Option<TransactionReceipt>> {
-        let target_wx_wad = to_wad(target_wx);
-        let tx = self
-            .g_strategy
-            .set_weight_x(
-                pool_id,
-                target_wx_wad,
-                ethers::types::U256::from(next_timestamp),
-            )
-            .send()
-            .await?
-            .await?;
-        Ok(tx)
+        // let target_wx_wad = to_wad(target_wx);
+        // let tx = self
+        // .g_strategy
+        // .set_weight_x(
+        // pool_id,
+        // target_wx_wad,
+        // ethers::types::U256::from(next_timestamp),
+        // )
+        // .send()
+        // .await?
+        // .await?;
+        // Ok(tx)
+
+        todo!("@kinrezc fix")
     }
 }
 

@@ -13,7 +13,7 @@ contract LogNormalSetUp is SetUp {
 
     uint256 public POOL_ID;
 
-    LogNormal.PublicParams defaultParams = LogNormal.PublicParams({
+    LogNormal.LogNormalParams defaultParams = LogNormal.LogNormalParams({
         strike: ONE,
         sigma: ONE,
         tau: ONE,
@@ -61,7 +61,7 @@ contract LogNormalSetUp is SetUp {
     modifier initRealistic() {
         vm.warp(0);
 
-        LogNormal.PublicParams memory params = LogNormal.PublicParams({
+        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
             strike: 2500 ether,
             sigma: ONE,
             tau: ONE,

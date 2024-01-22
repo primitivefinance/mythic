@@ -10,6 +10,7 @@ pub use log_normal_solver::*;
     non_camel_case_types,
 )]
 pub mod log_normal_solver {
+    pub use super::super::shared_types::*;
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
@@ -336,7 +337,7 @@ pub mod log_normal_solver {
                                     ),
                                     internal_type: ::core::option::Option::Some(
                                         ::std::borrow::ToOwned::to_owned(
-                                            "struct LogNormal.PublicParams",
+                                            "struct LogNormal.LogNormalParams",
                                         ),
                                     ),
                                 },
@@ -382,7 +383,7 @@ pub mod log_normal_solver {
                                     ),
                                     internal_type: ::core::option::Option::Some(
                                         ::std::borrow::ToOwned::to_owned(
-                                            "struct LogNormal.PublicParams",
+                                            "struct LogNormal.LogNormalParams",
                                         ),
                                     ),
                                 },
@@ -1017,7 +1018,7 @@ pub mod log_normal_solver {
         pub fn fetch_pool_params(
             &self,
             pool_id: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, PublicParams> {
+        ) -> ::ethers::contract::builders::ContractCall<M, LogNormalParams> {
             self.0
                 .method_hash([129, 181, 250, 194], pool_id)
                 .expect("method not found (this should never happen)")
@@ -1027,7 +1028,7 @@ pub mod log_normal_solver {
             &self,
             rx: ::ethers::core::types::U256,
             s: ::ethers::core::types::U256,
-            params: PublicParams,
+            params: LogNormalParams,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
             ::ethers::core::types::Bytes,
@@ -1539,7 +1540,7 @@ pub mod log_normal_solver {
     pub struct GetInitialPoolDataCall {
         pub rx: ::ethers::core::types::U256,
         pub s: ::ethers::core::types::U256,
-        pub params: PublicParams,
+        pub params: LogNormalParams,
     }
     ///Container type for all input parameters for the `getNextLiquidity` function with signature `getNextLiquidity(uint256,uint256,uint256,uint256)` and selector `0xaf4e437f`
     #[derive(
@@ -2054,7 +2055,7 @@ pub mod log_normal_solver {
         Eq,
         Hash
     )]
-    pub struct FetchPoolParamsReturn(pub PublicParams);
+    pub struct FetchPoolParamsReturn(pub LogNormalParams);
     ///Container type for all return fields from the `getInitialPoolData` function with signature `getInitialPoolData(uint256,uint256,(uint256,uint256,uint256,uint256))` and selector `0x388ecee7`
     #[derive(
         Clone,
@@ -2178,23 +2179,4 @@ pub mod log_normal_solver {
         Hash
     )]
     pub struct StrategyReturn(pub ::ethers::core::types::Address);
-    ///`PublicParams(uint256,uint256,uint256,uint256)`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct PublicParams {
-        pub strike: ::ethers::core::types::U256,
-        pub sigma: ::ethers::core::types::U256,
-        pub tau: ::ethers::core::types::U256,
-        pub swap_fee: ::ethers::core::types::U256,
-    }
 }

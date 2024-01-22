@@ -74,10 +74,10 @@ contract LogNormalHelper {
     function getPoolParams(uint256 poolId)
         public
         view
-        returns (LogNormal.PublicParams memory params)
+        returns (LogNormal.LogNormalParams memory params)
     {
         bytes memory data = logNormal.getPoolParams(poolId);
-        params = abi.decode(data, (LogNormal.PublicParams));
+        params = abi.decode(data, (LogNormal.LogNormalParams));
     }
 
     function prepareFeeUpdate(uint256 swapFee)

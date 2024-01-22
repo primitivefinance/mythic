@@ -31,10 +31,10 @@ contract G3MSolver {
     function fetchPoolParams(uint256 poolId)
         public
         view
-        returns (G3M.PublicParams memory)
+        returns (G3M.G3MParams memory)
     {
         return abi.decode(
-            IStrategy(strategy).getPoolParams(poolId), (G3M.PublicParams)
+            IStrategy(strategy).getPoolParams(poolId), (G3M.G3MParams)
         );
     }
 
@@ -49,7 +49,7 @@ contract G3MSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        G3M.PublicParams memory params
+        G3M.G3MParams memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -132,7 +132,7 @@ contract G3MSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             getReservesAndLiquidity(poolId);
-        G3M.PublicParams memory poolParams = fetchPoolParams(poolId);
+        G3M.G3MParams memory poolParams = fetchPoolParams(poolId);
 
         uint256 amountOut;
 
@@ -204,7 +204,7 @@ contract G3MSolver {
         view
         returns (uint256 price)
     {
-        G3M.PublicParams memory params = fetchPoolParams(poolId);
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
         (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
     }
@@ -215,7 +215,7 @@ contract G3MSolver {
     ) public view returns (int256) {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        G3M.PublicParams memory params = fetchPoolParams(poolId);
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
         return tradingFunction(rx, ry, L, params);
     }
 }

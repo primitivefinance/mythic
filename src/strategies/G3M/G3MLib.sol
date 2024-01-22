@@ -12,7 +12,7 @@ function tradingFunction(
     uint256 rX,
     uint256 rY,
     uint256 L,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (int256) {
     uint256 a = uint256(int256(rX).powWad(int256(params.wX)));
     uint256 b = uint256(int256(rY).powWad(int256(params.wY)));
@@ -24,7 +24,7 @@ function tradingFunction(
 function computePrice(
     uint256 rX,
     uint256 rY,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256 price) {
     uint256 n = rX.divWadDown(params.wX);
     uint256 d = rY.divWadDown(params.wY);
@@ -35,7 +35,7 @@ function computePrice(
 function computeNextLiquidity(
     uint256 rX,
     uint256 rY,
-    G3M.PublicParams memory params
+    G3M.G3MParams memory params
 ) pure returns (uint256 L) {
     return uint256(int256(rX).powWad(int256(params.wX))).mulWadUp(
         uint256(int256(rY).powWad(int256(params.wY)))

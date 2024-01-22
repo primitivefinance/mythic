@@ -74,45 +74,6 @@ pub mod idfmm {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("balanceOf"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("balanceOf"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("account"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("balance"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
                     ::std::borrow::ToOwned::to_owned("deallocate"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -286,45 +247,6 @@ pub mod idfmm {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("lastFeeGrowthOf"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("lastFeeGrowthOf"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("account"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("lastFeeGrowth"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
                     ::std::borrow::ToOwned::to_owned("pools"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -404,12 +326,10 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("feeGrowth"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
+                                    name: ::std::borrow::ToOwned::to_owned("liquidityToken"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
                                     internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                        ::std::borrow::ToOwned::to_owned("address"),
                                     ),
                                 },
                             ],
@@ -892,16 +812,6 @@ pub mod idfmm {
                 .method_hash([46, 195, 129, 136], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `balanceOf` (0x00fdd58e) function
-        pub fn balance_of(
-            &self,
-            account: ::ethers::core::types::Address,
-            pool_id: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([0, 253, 213, 142], (account, pool_id))
-                .expect("method not found (this should never happen)")
-        }
         ///Calls the contract's `deallocate` (0x9d942f9a) function
         pub fn deallocate(
             &self,
@@ -952,16 +862,6 @@ pub mod idfmm {
                 .method_hash([20, 85, 241, 252], (params,))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `lastFeeGrowthOf` (0x5f00e1f3) function
-        pub fn last_fee_growth_of(
-            &self,
-            account: ::ethers::core::types::Address,
-            pool_id: ::ethers::core::types::U256,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([95, 0, 225, 243], (account, pool_id))
-                .expect("method not found (this should never happen)")
-        }
         ///Calls the contract's `pools` (0xac4afa38) function
         pub fn pools(
             &self,
@@ -977,7 +877,7 @@ pub mod idfmm {
                 ::ethers::core::types::U256,
                 ::ethers::core::types::U256,
                 ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
+                ::ethers::core::types::Address,
             ),
         > {
             self.0
@@ -1574,24 +1474,6 @@ pub mod idfmm {
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `balanceOf` function with signature `balanceOf(address,uint256)` and selector `0x00fdd58e`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "balanceOf", abi = "balanceOf(address,uint256)")]
-    pub struct BalanceOfCall {
-        pub account: ::ethers::core::types::Address,
-        pub pool_id: ::ethers::core::types::U256,
-    }
     ///Container type for all input parameters for the `deallocate` function with signature `deallocate(uint256,bytes)` and selector `0x9d942f9a`
     #[derive(
         Clone,
@@ -1646,24 +1528,6 @@ pub mod idfmm {
     #[ethcall(name = "init", abi = "init((address,address,address,bytes))")]
     pub struct InitCall {
         pub params: InitParams,
-    }
-    ///Container type for all input parameters for the `lastFeeGrowthOf` function with signature `lastFeeGrowthOf(address,uint256)` and selector `0x5f00e1f3`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "lastFeeGrowthOf", abi = "lastFeeGrowthOf(address,uint256)")]
-    pub struct LastFeeGrowthOfCall {
-        pub account: ::ethers::core::types::Address,
-        pub pool_id: ::ethers::core::types::U256,
     }
     ///Container type for all input parameters for the `pools` function with signature `pools(uint256)` and selector `0xac4afa38`
     #[derive(
@@ -1731,11 +1595,9 @@ pub mod idfmm {
     )]
     pub enum IDFMMCalls {
         Allocate(AllocateCall),
-        BalanceOf(BalanceOfCall),
         Deallocate(DeallocateCall),
         GetReservesAndLiquidity(GetReservesAndLiquidityCall),
         Init(InitCall),
-        LastFeeGrowthOf(LastFeeGrowthOfCall),
         Pools(PoolsCall),
         Swap(SwapCall),
         Update(UpdateCall),
@@ -1749,11 +1611,6 @@ pub mod idfmm {
                 data,
             ) {
                 return Ok(Self::Allocate(decoded));
-            }
-            if let Ok(decoded) = <BalanceOfCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::BalanceOf(decoded));
             }
             if let Ok(decoded) = <DeallocateCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -1769,11 +1626,6 @@ pub mod idfmm {
                 data,
             ) {
                 return Ok(Self::Init(decoded));
-            }
-            if let Ok(decoded) = <LastFeeGrowthOfCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::LastFeeGrowthOf(decoded));
             }
             if let Ok(decoded) = <PoolsCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -1799,9 +1651,6 @@ pub mod idfmm {
                 Self::Allocate(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::BalanceOf(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
                 Self::Deallocate(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1809,9 +1658,6 @@ pub mod idfmm {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::LastFeeGrowthOf(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
                 Self::Pools(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Swap(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Update(element) => ::ethers::core::abi::AbiEncode::encode(element),
@@ -1822,13 +1668,11 @@ pub mod idfmm {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::Allocate(element) => ::core::fmt::Display::fmt(element, f),
-                Self::BalanceOf(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Deallocate(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetReservesAndLiquidity(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
-                Self::LastFeeGrowthOf(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Pools(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Swap(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Update(element) => ::core::fmt::Display::fmt(element, f),
@@ -1838,11 +1682,6 @@ pub mod idfmm {
     impl ::core::convert::From<AllocateCall> for IDFMMCalls {
         fn from(value: AllocateCall) -> Self {
             Self::Allocate(value)
-        }
-    }
-    impl ::core::convert::From<BalanceOfCall> for IDFMMCalls {
-        fn from(value: BalanceOfCall) -> Self {
-            Self::BalanceOf(value)
         }
     }
     impl ::core::convert::From<DeallocateCall> for IDFMMCalls {
@@ -1858,11 +1697,6 @@ pub mod idfmm {
     impl ::core::convert::From<InitCall> for IDFMMCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
-        }
-    }
-    impl ::core::convert::From<LastFeeGrowthOfCall> for IDFMMCalls {
-        fn from(value: LastFeeGrowthOfCall) -> Self {
-            Self::LastFeeGrowthOf(value)
         }
     }
     impl ::core::convert::From<PoolsCall> for IDFMMCalls {
@@ -1898,22 +1732,6 @@ pub mod idfmm {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::U256,
     );
-    ///Container type for all return fields from the `balanceOf` function with signature `balanceOf(address,uint256)` and selector `0x00fdd58e`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct BalanceOfReturn {
-        pub balance: ::ethers::core::types::U256,
-    }
     ///Container type for all return fields from the `deallocate` function with signature `deallocate(uint256,bytes)` and selector `0x9d942f9a`
     #[derive(
         Clone,
@@ -1969,22 +1787,6 @@ pub mod idfmm {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::U256,
     );
-    ///Container type for all return fields from the `lastFeeGrowthOf` function with signature `lastFeeGrowthOf(address,uint256)` and selector `0x5f00e1f3`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct LastFeeGrowthOfReturn {
-        pub last_fee_growth: ::ethers::core::types::U256,
-    }
     ///Container type for all return fields from the `pools` function with signature `pools(uint256)` and selector `0xac4afa38`
     #[derive(
         Clone,
@@ -2007,7 +1809,7 @@ pub mod idfmm {
         pub reserve_x: ::ethers::core::types::U256,
         pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
-        pub fee_growth: ::ethers::core::types::U256,
+        pub liquidity_token: ::ethers::core::types::Address,
     }
     ///Container type for all return fields from the `swap` function with signature `swap(uint256,bytes)` and selector `0xbd0625ab`
     #[derive(

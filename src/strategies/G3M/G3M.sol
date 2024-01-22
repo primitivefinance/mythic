@@ -21,7 +21,7 @@ contract G3M is IStrategy {
     }
 
     /// @dev Parameterization of the G3M curve.
-    struct PublicParams {
+    struct G3MParams {
         uint256 wX;
         uint256 wY;
         uint256 swapFee;
@@ -93,7 +93,7 @@ contract G3M is IStrategy {
             reserveX,
             reserveY,
             totalLiquidity,
-            abi.decode(getPoolParams(poolId), (PublicParams))
+            abi.decode(getPoolParams(poolId), (G3MParams))
         );
 
         // todo: should the be EXACTLY 0? just positive? within an epsilon?
@@ -121,7 +121,7 @@ contract G3M is IStrategy {
             reserveX,
             reserveY,
             totalLiquidity,
-            abi.decode(getPoolParams(poolId), (PublicParams))
+            abi.decode(getPoolParams(poolId), (G3MParams))
         );
 
         valid = -(EPSILON) < invariant && invariant < EPSILON;
@@ -143,8 +143,8 @@ contract G3M is IStrategy {
             uint256 nextL
         )
     {
-        PublicParams memory params =
-            abi.decode(getPoolParams(poolId), (PublicParams));
+        G3MParams memory params =
+            abi.decode(getPoolParams(poolId), (G3MParams));
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             IDFMM(dfmm).getReservesAndLiquidity(poolId);
@@ -173,7 +173,7 @@ contract G3M is IStrategy {
                 computeNextLiquidity(
                     startRx,
                     startRy,
-                    abi.decode(getPoolParams(poolId), (PublicParams))
+                    abi.decode(getPoolParams(poolId), (G3MParams))
                 )
             );
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
@@ -196,7 +196,7 @@ contract G3M is IStrategy {
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
-        PublicParams memory params;
+        G3MParams memory params;
 
         params.wX = internalParams[poolId].wX.actualized();
         params.wY = ONE - params.wX;
@@ -213,7 +213,7 @@ contract G3M is IStrategy {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction(
-            rx, ry, L, abi.decode(getPoolParams(poolId), (PublicParams))
+            rx, ry, L, abi.decode(getPoolParams(poolId), (G3MParams))
         );
     }
 }

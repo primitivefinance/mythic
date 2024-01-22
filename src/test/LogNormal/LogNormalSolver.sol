@@ -31,10 +31,10 @@ contract LogNormalSolver {
     function fetchPoolParams(uint256 poolId)
         public
         view
-        returns (LogNormal.PublicParams memory)
+        returns (LogNormal.LogNormalParams memory)
     {
         return abi.decode(
-            IStrategy(strategy).getPoolParams(poolId), (LogNormal.PublicParams)
+            IStrategy(strategy).getPoolParams(poolId), (LogNormal.LogNormalParams)
         );
     }
 
@@ -49,7 +49,7 @@ contract LogNormalSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        LogNormal.PublicParams memory params
+        LogNormal.LogNormalParams memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -141,7 +141,7 @@ contract LogNormalSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             getReservesAndLiquidity(poolId);
-        LogNormal.PublicParams memory poolParams = fetchPoolParams(poolId);
+        LogNormal.LogNormalParams memory poolParams = fetchPoolParams(poolId);
 
         uint256 amountOut;
         {
@@ -211,7 +211,7 @@ contract LogNormalSolver {
         view
         returns (uint256 price)
     {
-        LogNormal.PublicParams memory params = fetchPoolParams(poolId);
+        LogNormal.LogNormalParams memory params = fetchPoolParams(poolId);
         (uint256 rx,, uint256 L) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, L, params.strike, params.sigma, params.tau);
     }
