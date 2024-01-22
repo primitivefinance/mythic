@@ -375,9 +375,9 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
     pub async fn set_weight_x(
         &self,
-        pool_id: U256,
-        target_wx: f64,
-        next_timestamp: u64,
+        _pool_id: U256,
+        _target_wx: f64,
+        _next_timestamp: u64,
     ) -> Result<Option<TransactionReceipt>> {
         // let target_wx_wad = to_wad(target_wx);
         // let tx = self
