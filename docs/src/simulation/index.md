@@ -1,4 +1,4 @@
-# Usage
+# Simulation
 
 ## General Strategy Interfacing
 
@@ -45,9 +45,3 @@ These methods can be a trait that is implemented by the agents, then the agents 
 Both the local agents, the arbitrageur and liquidity provider, need access to the Strategy methods to interact with the strategy, whether that's computing actions to take or taking the action. For example, the arbitrageur needs to get price info from the strategy's respective contracts, while the liquidity provider needs to initialize the pool and add tokens into it.
 
 These agents are sharing the same interface, that can be a trait implemented over the contract instance.
-
-## Standardization
-We can define notation in math such as
-- $w_x$ which is the weight of the x token in a pool, and give it a standard name in code by:
-$$ w_x \equiv \mathtt{weight\_x} $$
-This way we can stay aligned on how we reference everything.

@@ -2,7 +2,7 @@
 authors = ["Primitive Team"]
 language = "en"
 multilingual = false
-src = "doc/src"
+src = "docs/src"
 title = "Excalibur Documentation"
 
 [preprocessor.katex]
