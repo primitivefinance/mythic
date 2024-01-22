@@ -361,7 +361,26 @@ pub mod i_strategy {
                 ),
             ]),
             events: ::std::collections::BTreeMap::new(),
-            errors: ::std::collections::BTreeMap::new(),
+            errors: ::core::convert::From::from([
+                (
+                    ::std::borrow::ToOwned::to_owned("InvalidUpdateCode"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("InvalidUpdateCode"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("NotDFMM"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("NotDFMM"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+            ]),
             receive: false,
             fallback: false,
         }
@@ -513,6 +532,126 @@ pub mod i_strategy {
     for IStrategy<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
+        }
+    }
+    ///Custom Error type `InvalidUpdateCode` with signature `InvalidUpdateCode()` and selector `0x235d2b3d`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "InvalidUpdateCode", abi = "InvalidUpdateCode()")]
+    pub struct InvalidUpdateCode;
+    ///Custom Error type `NotDFMM` with signature `NotDFMM()` and selector `0x6853cba7`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "NotDFMM", abi = "NotDFMM()")]
+    pub struct NotDFMM;
+    ///Container type for all of the contract's custom errors
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        serde::Serialize,
+        serde::Deserialize,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub enum IStrategyErrors {
+        InvalidUpdateCode(InvalidUpdateCode),
+        NotDFMM(NotDFMM),
+        /// The standard solidity revert string, with selector
+        /// Error(string) -- 0x08c379a0
+        RevertString(::std::string::String),
+    }
+    impl ::ethers::core::abi::AbiDecode for IStrategyErrors {
+        fn decode(
+            data: impl AsRef<[u8]>,
+        ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
+            let data = data.as_ref();
+            if let Ok(decoded) = <::std::string::String as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::RevertString(decoded));
+            }
+            if let Ok(decoded) = <InvalidUpdateCode as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InvalidUpdateCode(decoded));
+            }
+            if let Ok(decoded) = <NotDFMM as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::NotDFMM(decoded));
+            }
+            Err(::ethers::core::abi::Error::InvalidData.into())
+        }
+    }
+    impl ::ethers::core::abi::AbiEncode for IStrategyErrors {
+        fn encode(self) -> ::std::vec::Vec<u8> {
+            match self {
+                Self::InvalidUpdateCode(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
+                Self::NotDFMM(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::RevertString(s) => ::ethers::core::abi::AbiEncode::encode(s),
+            }
+        }
+    }
+    impl ::ethers::contract::ContractRevert for IStrategyErrors {
+        fn valid_selector(selector: [u8; 4]) -> bool {
+            match selector {
+                [0x08, 0xc3, 0x79, 0xa0] => true,
+                _ if selector
+                    == <InvalidUpdateCode as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector
+                    == <NotDFMM as ::ethers::contract::EthError>::selector() => true,
+                _ => false,
+            }
+        }
+    }
+    impl ::core::fmt::Display for IStrategyErrors {
+        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+            match self {
+                Self::InvalidUpdateCode(element) => ::core::fmt::Display::fmt(element, f),
+                Self::NotDFMM(element) => ::core::fmt::Display::fmt(element, f),
+                Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
+            }
+        }
+    }
+    impl ::core::convert::From<::std::string::String> for IStrategyErrors {
+        fn from(value: String) -> Self {
+            Self::RevertString(value)
+        }
+    }
+    impl ::core::convert::From<InvalidUpdateCode> for IStrategyErrors {
+        fn from(value: InvalidUpdateCode) -> Self {
+            Self::InvalidUpdateCode(value)
+        }
+    }
+    impl ::core::convert::From<NotDFMM> for IStrategyErrors {
+        fn from(value: NotDFMM) -> Self {
+            Self::NotDFMM(value)
         }
     }
     ///Container type for all input parameters for the `computeSwapConstant` function with signature `computeSwapConstant(uint256,bytes)` and selector `0x002e524b`
