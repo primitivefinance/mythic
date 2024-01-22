@@ -1,6 +1,5 @@
 # Summary
 
-- [book](./book.md)
 - [Usage](./usage.md)
 - [Dynamic Function Market Makers](./dynamic_function_market_makers/index.md)
     - [Notation and Terminology](./dynamic_function_market_makers/notation_and_terminology.md)
