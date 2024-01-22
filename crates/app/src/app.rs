@@ -380,9 +380,7 @@ impl App {
     ///   synchronization.
     fn sync_model(&mut self) -> Command<Message> {
         let model = self.model.clone();
-        // todo: fix this clunky provider
-        // let provider = Arc::new(client.provider().clone());
-        let provider = self.client.sandbox().clone();
+        let provider = self.client.get_client();
         Command::perform(
             async move {
                 let mut model = model;

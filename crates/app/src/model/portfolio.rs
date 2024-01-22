@@ -829,6 +829,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let protocol = self.protocol(client.clone()).await?;
+
+        let total_pools = protocol.nonce().call().await?;
+
+        // Returns early with 0 values if there are no pools.
+        // todo: handle this case a little better
+        if total_pools.is_zero() {
+            return Ok((AlloyU256::ZERO, AlloyU256::ZERO, AlloyU256::ZERO));
+        }
+
         let result = protocol.get_reserves_and_liquidity(U256::from(0)).await;
         let (reserve_x, reserve_y, liquidity) = match result {
             Ok(result) => result,
@@ -866,7 +875,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let solver = self.solver(client.clone()).await?;
-        let pool_params = solver.get_pool_params(ethers::types::U256::from(0)).await?;
+        let pool_params = solver
+            .fetch_pool_params(ethers::types::U256::from(0))
+            .call()
+            .await?;
         let strike_price = from_ethers_u256(pool_params.strike);
         let volatility = from_ethers_u256(pool_params.sigma);
         let time_remaining = from_ethers_u256(pool_params.tau);

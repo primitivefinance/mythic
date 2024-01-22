@@ -160,7 +160,7 @@ impl Arbitrageur {
         let pool_params = self
             .protocol_client
             .ln_solver
-            .get_pool_params(ethers::types::U256::from(0))
+            .fetch_pool_params(ethers::types::U256::from(0))
             .call()
             .await?;
         let (strike, sigma, tau) = (

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use alloy_primitives::{
-    utils::{format_ether, format_units, parse_ether},
+    utils::{format_ether, parse_ether},
     Address, U256,
 };
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
@@ -162,7 +162,7 @@ impl G3mArbitrageur {
         let pool_params = self
             .protocol_client
             .g_solver
-            .get_pool_params(ethers::types::U256::from(1))
+            .fetch_pool_params(ethers::types::U256::from(1))
             .call()
             .await?;
         let (wx, wy) = (
@@ -324,7 +324,7 @@ impl Agent for G3mArbitrageur {
                 let pool_params = self
                     .protocol_client
                     .g_solver
-                    .get_pool_params(ethers::types::U256::from(1))
+                    .fetch_pool_params(ethers::types::U256::from(1))
                     .call()
                     .await?;
                 debug!(

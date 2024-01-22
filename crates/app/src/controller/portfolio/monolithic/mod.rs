@@ -6,6 +6,11 @@ mod view;
 
 use alloy_primitives::utils::format_ether;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use bindings::log_normal_solver::{LogNormalSolver, PublicParams as LogNormalParameters};
+use cfmm_math::trading_functions::rmm::{
+    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
+};
+use clients::protocol::{LogNormalF64, PoolInitParamsF64, PoolParams};
 use datatypes::portfolio::coin::Coin;
 use iced::{futures::TryFutureExt, subscription, Padding};
 use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
@@ -20,7 +25,6 @@ use self::{
 use super::*;
 use crate::{
     components::system::{ExcaliburChart, ExcaliburContainer},
-    middleware::Protocol,
     model::portfolio::{AlloyAddress, ALLOY_WAD},
     view::portfolio_view::PortfolioPresenter,
 };
@@ -149,11 +153,23 @@ impl Monolithic {
 
     pub fn handle_submit_allocate(&mut self) -> anyhow::Result<Command<Message>> {
         if let Some(client) = self.client.clone() {
-            if let Some(signer) = client.signer() {
+            if let (Some(signer), Some(_)) = (client.signer.as_ref(), client.dfmm_client.as_ref()) {
                 let submitter = signer.address();
 
-                let deposit_amount = self.create.amount.clone();
-                let deposit_amount = match deposit_amount {
+                let asset_token = self.model.get_current().map(|x| x.raw_asset_token).unwrap();
+                let asset_token = match asset_token {
+                    Some(x) => x,
+                    None => return Err(anyhow::anyhow!("No asset token")),
+                };
+
+                let quote_token = self.model.get_current().map(|x| x.raw_quote_token).unwrap();
+                let quote_token = match quote_token {
+                    Some(x) => x,
+                    None => return Err(anyhow::anyhow!("No quote token")),
+                };
+
+                let deposit_amount_dollars = self.create.amount.clone();
+                let deposit_amount_dollars = match deposit_amount_dollars {
                     Some(x) => x.parse::<f64>().unwrap(),
                     None => return Err(anyhow::anyhow!("No deposit amount")),
                 };
@@ -182,20 +198,50 @@ impl Monolithic {
                 };
                 let parameters = parameters.to_parameters(asset_price);
 
+                let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
+                    asset_price,
+                    deposit_amount_dollars,
+                    parameters.strike_price_wad,
+                    parameters.sigma_percent_wad,
+                    parameters.time_remaining_years_wad,
+                );
+
+                let payload_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
+                    sigma: parameters.sigma_percent_wad,
+                    strike: parameters.strike_price_wad,
+                    tau: parameters.time_remaining_years_wad,
+                    swap_fee: 0.003,
+                });
+
+                let init_price_wad =
+                    alloy_primitives::utils::parse_ether(&format!("{}", asset_price))?;
+                let init_price_wad = to_ethers_u256(init_price_wad);
+
+                let init_reserve_x_wad = to_ethers_u256(alloy_primitives::utils::parse_ether(
+                    &format!("{}", amount_x),
+                )?);
+
                 let client = client.clone();
                 return Ok(Command::perform(
                     async move {
-                        client
-                            .create_position(
-                                submitter,
-                                deposit_amount,
-                                asset_price,
-                                parameters.strike_price_wad,
-                                parameters.sigma_percent_wad,
-                                parameters.time_remaining_years_wad,
+                        let dfmm = client
+                            .dfmm_client
+                            .as_ref()
+                            .unwrap_or_else(|| panic!("No DFMM client in ExcaliburMiddleware"));
+
+                        let payload = dfmm
+                            .get_init_payload(
+                                to_ethers_address(asset_token),
+                                to_ethers_address(quote_token),
+                                init_reserve_x_wad,
+                                init_price_wad,
+                                payload_params,
                             )
-                            .map_err(Arc::new)
-                            .await
+                            .await?;
+
+                        // todo: handle mutable update to the pools array in the protocol client
+                        // separately.
+                        dfmm.initialize_pool(payload).map_err(Arc::new).await
                     },
                     Message::AllocateResult,
                 ));
@@ -420,7 +466,7 @@ impl State for Monolithic {
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
         if let Some(client) = self.client.clone() {
-            let provider = client.client().unwrap().clone();
+            let provider = client.get_client();
             let mut subscriptions: Vec<Subscription<Message>> = vec![];
 
             // Fetches the most recent block and updates the model.
@@ -510,7 +556,7 @@ fn price_process_update_after_step(
         }
     }
 
-    let client = client.client().cloned().unwrap();
+    let client = client.get_client();
 
     Command::perform(
         async move {
@@ -548,4 +594,38 @@ fn price_process_update_after_step(
         },
         |_| Message::Empty,
     )
+}
+
+/// L = Deposit $ / V(c)
+/// x = X(L)
+/// y = Y(x, L)
+pub fn get_deposits_given_price(
+    price: f64,
+    amount_dollars: f64,
+    strike_price_wad: f64,
+    sigma_percent_wad: f64,
+    tau_years_wad: f64,
+) -> (f64, f64, f64) {
+    let value_per =
+        compute_value_function(price, strike_price_wad, sigma_percent_wad, tau_years_wad);
+
+    let total_liquidity = amount_dollars / value_per;
+
+    let amount_x = compute_x_given_l_rust(
+        total_liquidity,
+        price,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    let amount_y = compute_y_given_x_rust(
+        amount_x,
+        total_liquidity,
+        strike_price_wad,
+        sigma_percent_wad,
+        tau_years_wad,
+    );
+
+    (amount_x, amount_y, total_liquidity)
 }

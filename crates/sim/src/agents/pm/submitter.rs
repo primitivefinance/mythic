@@ -181,7 +181,7 @@ impl VolatilityTargetingSubmitter {
                 let current_wx = self
                     .protocol_client
                     .g_solver
-                    .get_pool_params(U256::from(1))
+                    .fetch_pool_params(U256::from(1))
                     .await?
                     .w_x;
                 let wx_float = format_ether(current_wx).parse::<f64>().unwrap();
