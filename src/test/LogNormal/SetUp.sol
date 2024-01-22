@@ -2,12 +2,14 @@
 pragma solidity ^0.8.13;
 
 import "../../strategies/LogNormal/LogNormal.sol";
-import "../SetUp.sol";
+import "../../strategies/LogNormal/LogNormalHelper.sol";
+import "../DFMM/SetUp.sol";
 import "./LogNormalSolver.sol";
 
 contract LogNormalSetUp is SetUp {
     LogNormal logNormal;
     LogNormalSolver solver;
+    LogNormalHelper helper;
 
     uint256 public POOL_ID;
 
@@ -18,11 +20,10 @@ contract LogNormalSetUp is SetUp {
         swapFee: TEST_SWAP_FEE
     });
 
-    uint256 defaultReserveX = 1 ether;
-    uint256 defaultStrikePrice = 1 ether;
-    bytes defaultInitialPoolData = computeInitialPoolData(
-        defaultReserveX, defaultStrikePrice, defaultParams
-    );
+    uint256 defaultReserveX = ONE;
+    uint256 defaultPrice = ONE;
+    bytes defaultInitialPoolData =
+        computeInitialPoolData(defaultReserveX, defaultPrice, defaultParams);
 
     function setUp() public {
         globalSetUp();
@@ -36,6 +37,7 @@ contract LogNormalSetUp is SetUp {
         dfmm = new DFMM();
         logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
+        helper = new LogNormalHelper(address(logNormal));
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);
@@ -49,6 +51,28 @@ contract LogNormalSetUp is SetUp {
             tokenX: address(tokenX),
             tokenY: address(tokenY),
             data: defaultInitialPoolData
+        });
+
+        (POOL_ID,,,) = dfmm.init(defaultInitParams);
+
+        _;
+    }
+
+    modifier initRealistic() {
+        vm.warp(0);
+
+        LogNormal.PublicParams memory params = LogNormal.PublicParams({
+            strike: 2500 ether,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE
+        });
+
+        IDFMM.InitParams memory defaultInitParams = IDFMM.InitParams({
+            strategy: address(logNormal),
+            tokenX: address(tokenX),
+            tokenY: address(tokenY),
+            data: computeInitialPoolData(1 ether, 2500 ether, params)
         });
 
         (POOL_ID,,,) = dfmm.init(defaultInitParams);

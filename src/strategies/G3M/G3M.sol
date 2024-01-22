@@ -5,6 +5,7 @@ import "../../interfaces/IDFMM.sol";
 import "../../interfaces/IStrategy.sol";
 import "../../lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
+import "./G3MHelper.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
@@ -35,11 +36,10 @@ contract G3M is IStrategy {
     }
 
     // TODO: Move these errors into an interface
-    error NotCore();
     error InvalidWeightX();
 
     modifier onlyDFMM() {
-        // if (msg.sender != address(dfmm)) revert NotCore();
+        if (msg.sender != address(dfmm)) revert NotDFMM();
         _;
     }
 
@@ -49,7 +49,7 @@ contract G3M is IStrategy {
         uint256 poolId,
         bytes calldata data
     )
-        public
+        external
         onlyDFMM
         returns (
             bool valid,
@@ -85,8 +85,8 @@ contract G3M is IStrategy {
             revert InvalidWeightX();
         }
 
-        internalParams[poolId].wX.last = wX;
-        internalParams[poolId].wX.lastSync = block.timestamp;
+        internalParams[poolId].wX.lastComputedValue = wX;
+        internalParams[poolId].wX.lastUpdateAt = block.timestamp;
         internalParams[poolId].swapFee = swapFee;
 
         invariant = tradingFunction(
@@ -104,9 +104,8 @@ contract G3M is IStrategy {
         uint256 poolId,
         bytes calldata data
     )
-        public
+        external
         view
-        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -133,9 +132,8 @@ contract G3M is IStrategy {
         uint256 poolId,
         bytes memory data
     )
-        public
+        external
         view
-        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -184,14 +182,17 @@ contract G3M is IStrategy {
     }
 
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
-        InternalParams memory params = abi.decode(data, (InternalParams));
-        internalParams[poolId] = params;
-    }
+        G3MUpdateCode updateCode = abi.decode(data, (G3MUpdateCode));
 
-    function setWeightX(uint256 poolId, uint256 target, uint256 end) external {
-      InternalParams memory params = internalParams[poolId];
-      params.wX = params.wX.set(target, end);
-      internalParams[poolId] = params;
+        if (updateCode == G3MUpdateCode.SwapFee) {
+            internalParams[poolId].swapFee = decodeFeeUpdate(data);
+        } else if (updateCode == G3MUpdateCode.WeightX) {
+            (uint256 targetWeightX, uint256 targetTimestamp) =
+                decodeWeightXUpdate(data);
+            internalParams[poolId].wX.set(targetWeightX, targetTimestamp);
+        } else {
+            revert InvalidUpdateCode();
+        }
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
@@ -208,7 +209,7 @@ contract G3M is IStrategy {
     function computeSwapConstant(
         uint256 poolId,
         bytes memory data
-    ) public view returns (int256) {
+    ) external view returns (int256) {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
         return tradingFunction(

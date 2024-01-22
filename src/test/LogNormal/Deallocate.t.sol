@@ -10,17 +10,17 @@ contract LogNormalDeallocateTest is LogNormalSetUp {
         (uint256 reserveX, uint256 reserveY, uint256 deltaLiquidity) =
             solver.deallocateGivenX(POOL_ID, amountX);
 
-        uint256 preLiquidityBalance = dfmm.balanceOf(address(this), POOL_ID);
-        (,,,,,,, uint256 preTotalLiquidity,) = dfmm.pools(POOL_ID);
+        uint256 preLiquidityBalance = dfmm.liquidityOf(address(this), POOL_ID);
+        (,, uint256 preTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
 
         bytes memory data = abi.encode(reserveX, reserveY, deltaLiquidity);
         dfmm.deallocate(POOL_ID, data);
 
-        (,,,,,,, uint256 postTotalLiquidity,) = dfmm.pools(POOL_ID);
+        (,, uint256 postTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
         uint256 deltaTotalLiquidity = preTotalLiquidity - postTotalLiquidity;
         assertEq(
             preLiquidityBalance - deltaTotalLiquidity,
-            dfmm.balanceOf(address(this), POOL_ID)
+            dfmm.liquidityOf(address(this), POOL_ID)
         );
     }
 
@@ -30,17 +30,17 @@ contract LogNormalDeallocateTest is LogNormalSetUp {
         (uint256 reserveX, uint256 reserveY, uint256 deltaLiquidity) =
             solver.deallocateGivenY(POOL_ID, amountX);
 
-        uint256 preLiquidityBalance = dfmm.balanceOf(address(this), POOL_ID);
-        (,,,,,,, uint256 preTotalLiquidity,) = dfmm.pools(POOL_ID);
+        uint256 preLiquidityBalance = dfmm.liquidityOf(address(this), POOL_ID);
+        (,, uint256 preTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
 
         bytes memory data = abi.encode(reserveX, reserveY, deltaLiquidity);
         dfmm.deallocate(POOL_ID, data);
 
-        (,,,,,,, uint256 postTotalLiquidity,) = dfmm.pools(POOL_ID);
+        (,, uint256 postTotalLiquidity) = dfmm.getReservesAndLiquidity(POOL_ID);
         uint256 deltaTotalLiquidity = preTotalLiquidity - postTotalLiquidity;
         assertEq(
             preLiquidityBalance - deltaTotalLiquidity,
-            dfmm.balanceOf(address(this), POOL_ID)
+            dfmm.liquidityOf(address(this), POOL_ID)
         );
     }
 }

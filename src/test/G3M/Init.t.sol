@@ -14,7 +14,6 @@ contract G3MInitTest is G3MSetUp {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity,
-            uint256 feeGrowth
         ) = dfmm.pools(POOL_ID);
 
         assertEq(inited, true);
@@ -25,7 +24,6 @@ contract G3MInitTest is G3MSetUp {
         assertEq(reserveX, defaultReserveX);
         assertEq(reserveY, reserveY);
         assertEq(totalLiquidity, totalLiquidity);
-        assertEq(feeGrowth, FixedPointMathLib.WAD);
     }
 
     function test_G3M_init_RevertsIfInvalidTokens() public {

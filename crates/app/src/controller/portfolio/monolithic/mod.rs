@@ -6,11 +6,10 @@ mod view;
 
 use alloy_primitives::utils::format_ether;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use bindings::log_normal_solver::{LogNormalSolver, PublicParams as LogNormalParameters};
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
-use clients::protocol::{LogNormalF64, PoolInitParamsF64, PoolParams};
+use clients::protocol::{LogNormalF64, PoolInitParamsF64};
 use datatypes::portfolio::coin::Coin;
 use iced::{futures::TryFutureExt, subscription, Padding};
 use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
@@ -154,7 +153,7 @@ impl Monolithic {
     pub fn handle_submit_allocate(&mut self) -> anyhow::Result<Command<Message>> {
         if let Some(client) = self.client.clone() {
             if let (Some(signer), Some(_)) = (client.signer.as_ref(), client.dfmm_client.as_ref()) {
-                let submitter = signer.address();
+                let _submitter = signer.address();
 
                 let asset_token = self.model.get_current().map(|x| x.raw_asset_token).unwrap();
                 let asset_token = match asset_token {
@@ -198,7 +197,7 @@ impl Monolithic {
                 };
                 let parameters = parameters.to_parameters(asset_price);
 
-                let (amount_x, amount_y, _total_liquidity) = get_deposits_given_price(
+                let (amount_x, _amount_y, _total_liquidity) = get_deposits_given_price(
                     asset_price,
                     deposit_amount_dollars,
                     parameters.strike_price_wad,

@@ -170,7 +170,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         exc_client.connect_signer(signer).await?;
         let client = exc_client.get_client();
 
-        let dev_client = DevClient::deploy(client.into(), sender).await?;
+        let dev_client = DevClient::deploy(client, sender).await?;
         exc_client.connect_dfmm(dev_client.protocol.clone()).await?;
 
         let protocol = dev_client.protocol.protocol.address();

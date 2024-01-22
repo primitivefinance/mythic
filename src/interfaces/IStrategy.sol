@@ -3,6 +3,9 @@ pragma solidity ^0.8.13;
 
 /// @dev Contract that holds the strategy parameterization and validation function.
 interface IStrategy {
+    error InvalidUpdateCode();
+    error NotDFMM();
+
     function init(
         uint256 poolId,
         bytes calldata data
