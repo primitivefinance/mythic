@@ -212,11 +212,11 @@ impl PortfolioPresenter {
     }
 
     pub fn get_block_number(&self) -> Option<u64> {
-        self.model.get_current().map(|x| x.latest_block)
+        self.model.get_current().and_then(|x| x.latest_block)
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
-        self.model.get_current().map(|x| x.latest_timestamp)
+        self.model.get_current().and_then(|x| x.latest_timestamp)
     }
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
@@ -270,7 +270,10 @@ impl PortfolioPresenter {
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
             let data = connected_model.latest_timestamp;
-            label(format!("Timestamp: {:}", data)).caption().tertiary()
+            let timestamp_str = data.map_or("N/A".to_string(), |d| d.to_string());
+            label(format!("Timestamp: {}", timestamp_str))
+                .caption()
+                .tertiary()
         } else {
             label("Timestamp: N/A").caption().tertiary()
         }
@@ -278,9 +281,12 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            label(format!("Block: {:}", connected_model.latest_block))
-                .caption()
-                .tertiary()
+            label(format!(
+                "Block: {:}",
+                connected_model.latest_block.unwrap_or(0)
+            ))
+            .caption()
+            .tertiary()
         } else {
             label("Block: N/A").caption().tertiary()
         }

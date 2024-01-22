@@ -267,7 +267,7 @@ impl Saveable for Model {
 
     /// Creates a new user save.
     // This is where the bug is
-    fn create_new(name: Option<String>) -> Self {
+    fn create_new(name: Option<String>) -> anyhow::Result<Self, anyhow::Error> {
         // Check the org directory exists, if not, create it.
         if !Self::org_dir().exists() {
             println!("Creating org directory: {:?}", Self::org_dir());
@@ -286,7 +286,7 @@ impl Saveable for Model {
         };
         // Don't overwrite existing profiles.
         if user_data_file.exists() {
-            return Self::load(Some(user_data_file)).unwrap();
+            return Self::load(Some(user_data_file));
         }
 
         let mut formatted_path = Self::file_name_ending();
@@ -295,7 +295,7 @@ impl Saveable for Model {
         }
 
         let profile_path = Self::dir().join(formatted_path);
-        let file = File::create(profile_path).unwrap();
+        let file = File::create(profile_path)?;
 
         let value = Model {
             user: UserProfile::default(),
@@ -303,8 +303,8 @@ impl Saveable for Model {
             current: None,
         };
 
-        serde_json::to_writer_pretty(file, &value).unwrap();
+        serde_json::to_writer_pretty(file, &value)?;
 
-        value
+        Ok(value)
     }
 }

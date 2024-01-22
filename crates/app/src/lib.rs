@@ -182,7 +182,7 @@ impl Application for MVP {
             }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready((model, client)) => {
+                loader::Message::Ready(Ok((model, client))) => {
                     // 4. Create our app and move to the app state.
                     let (app, command) = App::new(model, client);
                     self.state = State::App(app);

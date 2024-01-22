@@ -29,7 +29,8 @@ use crate::{
     model::user::Saveable,
 };
 
-type LoadResult = (Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>);
+type LoadResult =
+    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
 
 #[derive(Debug)]
 pub enum Message {
@@ -63,7 +64,7 @@ pub fn load_profile() -> anyhow::Result<UserProfile> {
             tracing::warn!("Failed to load profile: {:?}", e);
             tracing::info!("Creating a new default profile.");
 
-            UserProfile::create_new(None)
+            UserProfile::create_new(None)?
         }
     };
 
@@ -89,7 +90,7 @@ pub fn load_user_data() -> anyhow::Result<Model> {
             tracing::warn!("Failed to load model: {:?}", e);
             tracing::info!("Creating a new default model.");
 
-            Model::create_new(None)
+            Model::create_new(None)?
         }
     };
 
@@ -102,26 +103,6 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     Ok(model)
 }
 
-/// This function loads a development client. It first logs the loading process,
-/// then creates a signer with the chain id of the client. It then gets the
-/// address of the signer and clones the client. It deploys the development
-/// client and returns it.
-#[tracing::instrument(skip(client), level = "trace")]
-pub async fn load_dev_client(
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-) -> anyhow::Result<DevClient<NetworkClient<Ws, LocalWallet>>> {
-    tracing::debug!("Loading dev client");
-    let signer = client
-        .signer()
-        .unwrap()
-        .clone()
-        .with_chain_id(client.clone().anvil.as_ref().unwrap().chain_id());
-    let sender = signer.address();
-    let client = client.client().unwrap().clone();
-    let dev_client = DevClient::deploy(client, sender).await?;
-    Ok(dev_client)
-}
-
 /// Contracts that we start up the client with
 pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token_y", "lex"];
 
@@ -129,14 +110,12 @@ pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
-pub async fn load_app(
-    flags: super::Flags,
-) -> (Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>) {
+pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load the user's save or create a new one.
 
-    let mut model = load_user_data().unwrap();
+    let mut model = load_user_data()?;
 
-    let mut exc_client = ExcaliburMiddleware::setup(true).await.unwrap();
+    let mut exc_client = ExcaliburMiddleware::setup(true).await?;
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
@@ -145,9 +124,14 @@ pub async fn load_app(
 
     // todo: try the connection to the sandbox next
     // Connect the model to the desired network.
-    let _ = model
-        .connect_to_network(exc_client.client().cloned().unwrap())
-        .await;
+    let client = exc_client.client().cloned();
+    if let Some(client) = client {
+        let _ = model.connect_to_network(client).await;
+    } else {
+        return Err(anyhow::anyhow!(
+            "Client is not able to connect to the network."
+        ));
+    }
 
     // If profile has an anvil snapshot, load it.
     let loaded_snapshot = if let Some(AnvilSave {
@@ -160,8 +144,10 @@ pub async fn load_app(
             &snapshot[..10.min(snapshot.len())],
         );
 
-        let client = exc_client.client().unwrap().clone();
-
+        let client = exc_client
+            .client()
+            .ok_or_else(|| anyhow::anyhow!("Client is not available"))?
+            .clone();
         let success = client
             .provider()
             .request::<[String; 1], bool>("anvil_loadState", [snapshot.to_string()])
@@ -208,16 +194,23 @@ pub async fn load_app(
 
     // If we are loading a fresh instance, deploy the contracts.
     if !loaded_snapshot {
-        let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
+        let signer = exc_client
+            .signer()
+            .ok_or_else(|| anyhow::anyhow!("Signer is not available"))?
+            .clone()
+            .with_chain_id(chain_id);
         let sender = signer.address();
-        let client = exc_client.client().unwrap().clone();
+        let client = exc_client
+            .client()
+            .ok_or_else(|| anyhow::anyhow!("Client is not available"))?
+            .clone();
         let client = client.with_signer(signer);
         tracing::debug!("Deploying contracts with sender: {:?}", sender);
         // error comes from this line
-        let dev_client = DevClient::deploy(client.into(), sender).await.unwrap();
+        let dev_client = DevClient::deploy(client.into(), sender).await?;
 
         let protocol = dev_client.protocol.dfmm.address();
-        let strategy = dev_client.protocol.get_strategy().await.unwrap().address();
+        let strategy = dev_client.protocol.get_strategy().await?.address();
         let token_x = dev_client.token_x.address();
         let token_y = dev_client.token_y.address();
         let solver = dev_client.solver.address();
@@ -337,7 +330,7 @@ pub async fn load_app(
             model.user.coins += coin;
         }
 
-        model.save().unwrap();
+        model.save()?;
     }
 
     // Add the default signer to the contacts book, if there is a signer.
@@ -351,10 +344,10 @@ pub async fn load_app(
             },
             contacts::Category::Trusted,
         );
-        model.save().unwrap();
+        model.save()?;
     }
 
-    (model, Arc::new(exc_client))
+    Ok((model, Arc::new(exc_client)))
 }
 
 /// Attempts to establish a new connection with the Ledger hardware wallet.

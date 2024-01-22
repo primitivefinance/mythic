@@ -130,12 +130,12 @@ pub struct DataModel<A, V> {
     pub portfolio_values_series: Option<Vec<(u64, V)>>,
 
     // Info
-    pub latest_timestamp: DateTime<Utc>,
-    pub latest_block: u64,
+    pub latest_timestamp: Option<DateTime<Utc>>,
+    pub latest_block: Option<u64>,
 
     // User historical transactions
     pub user_historical_transactions: Option<Vec<HistoricalTx>>,
-    pub last_historical_transaction_sync_block: u64,
+    pub last_historical_transaction_sync_block: Option<u64>,
 }
 
 sol! {
@@ -303,10 +303,14 @@ impl DataModel<AlloyAddress, AlloyU256> {
         let protocol = DFMM::new(protocol_address, client.clone());
         tracing::debug!("Fetching historical tx!");
 
+        let last_block = self
+            .latest_block
+            .ok_or(Error::msg("Last historical chain data sync block not set"))?;
+
         let create_pos_filter = protocol
             .init_filter()
             .filter
-            .from_block(self.last_historical_transaction_sync_block)
+            .from_block(last_block)
             .to_block(current_block);
 
         let logs = client.get_logs(&create_pos_filter).await?;
@@ -519,7 +523,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
     }
 
     pub fn update_last_sync_timestamp(&mut self) -> Result<()> {
-        self.latest_timestamp = Utc::now();
+        self.latest_timestamp = Some(Utc::now());
         Ok(())
     }
 
@@ -626,7 +630,7 @@ impl DataModel<AlloyAddress, AlloyU256> {
         &mut self,
         client: Arc<M>,
     ) -> Result<()> {
-        self.latest_block = self.fetch_block_number(client.clone()).await?;
+        self.latest_block = Some(self.fetch_block_number(client.clone()).await?);
         self.update_last_sync_timestamp()?;
         Ok(())
     }
@@ -848,174 +852,225 @@ impl DataModel<AlloyAddress, AlloyU256> {
     fn update_portfolio_value_series(&mut self) -> Result<()> {
         // Only update the series if the last element in the series is behind the
         // current block number.
-        let default = (0u64, self.derive_external_portfolio_value());
-        let last_element = self
-            .portfolio_values_series
-            .as_ref()
-            .map_or(&default, |v| v.last().unwrap_or(&default));
-        if last_element.0 >= self.latest_block {
-            return Ok(());
+        let block_number = self.latest_block.unwrap_or(0);
+
+        if let Some(series) = &self.portfolio_values_series {
+            let last_element = series.last().unwrap();
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
         }
+
         let portfolio_value = self.derive_external_portfolio_value();
-        self.portfolio_values_series
-            .get_or_insert(Vec::new())
-            .push((self.latest_block, portfolio_value));
+        if let Some(series) = &mut self.portfolio_values_series {
+            series.push((block_number, portfolio_value));
+        } else {
+            self.portfolio_values_series = Some(vec![(block_number, portfolio_value)]);
+        }
+
         Ok(())
     }
 
     fn update_unallocated_portfolio_value_series(&mut self) -> Result<()> {
-        let default = (0u64, self.derive_unallocated_position_value()?);
-        let last_element = &self
-            .unallocated_portfolio_value_series
-            .as_ref()
-            .map_or(&default, |v| v.last().unwrap_or(&default));
-        if last_element.0 >= self.latest_block {
-            return Ok(());
+        let block_number = self.latest_block.unwrap_or(0);
+
+        // Only update the series if the last element in the series is behind the
+        // current block number.
+        if let Some(series) = &self.unallocated_portfolio_value_series {
+            let last_element = series.last().unwrap();
+            if last_element.0 >= block_number {
+                return Ok(());
+            }
         }
+
         let portfolio_value = self.derive_unallocated_position_value()?;
-        self.unallocated_portfolio_value_series
-            .get_or_insert(Vec::new())
-            .push((self.latest_block, portfolio_value));
+
+        if let Some(series) = &mut self.unallocated_portfolio_value_series {
+            series.push((block_number, portfolio_value));
+        } else {
+            self.unallocated_portfolio_value_series = Some(vec![(block_number, portfolio_value)]);
+        }
         Ok(())
     }
 
     fn update_external_price_series(&mut self) -> Result<()> {
+        let block_number = self.latest_block.unwrap_or(0);
+
         if let Some(series) = &self.external_spot_price_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 > self.latest_block {
+            if last_element.0 > block_number {
                 return Ok(());
             }
         }
-        if let Some(external_spot_price) = self.external_spot_price {
-            self.external_spot_price_series
-                .get_or_insert(Vec::new())
-                .push((self.latest_block, external_spot_price));
-            tracing::debug!(
-                "Added external price at block: {:?} {:?}",
-                self.latest_block,
-                external_spot_price
-            );
+
+        let external_price = self
+            .external_spot_price
+            .ok_or(Error::msg("External price not set"))?;
+
+        if let Some(series) = &mut self.external_spot_price_series {
+            series.push((block_number, external_price));
+        } else {
+            self.external_spot_price_series = Some(vec![(block_number, external_price)]);
         }
+
+        tracing::debug!(
+            "Added external price at block: {:?} {:?}",
+            block_number,
+            external_price
+        );
+
         Ok(())
     }
 
     fn update_user_asset_value_series(&mut self) -> Result<()> {
+        let block_number = self.latest_block.unwrap_or(0);
+
         if let Some(series) = &self.user_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= self.latest_block {
+            if last_element.0 >= block_number {
                 return Ok(());
             }
         }
-        let user_asset_balance = self
+
+        let asset_price = self
+            .external_spot_price
+            .ok_or(Error::msg("External price not set"))?;
+        let asset_balance = self
             .user_asset_balance
-            .ok_or(anyhow!("User asset balance is None"))?;
-        let asset_value = user_asset_balance
-            .checked_mul(
-                self.external_spot_price
-                    .ok_or(anyhow!("External spot price is None"))?,
-            )
+            .ok_or(Error::msg("User asset balance not set"))?;
+
+        let asset_value = asset_balance
+            .checked_mul(asset_price)
             .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
-        self.user_asset_value_series
-            .get_or_insert(Vec::new())
-            .push((self.latest_block, asset_value));
+
+        if let Some(series) = &mut self.user_asset_value_series {
+            series.push((block_number, asset_value));
+        } else {
+            self.user_asset_value_series = Some(vec![(block_number, asset_value)]);
+        }
 
         Ok(())
     }
 
     fn update_user_quote_value_series(&mut self) -> Result<()> {
+        let block_number = self.latest_block.unwrap_or(0);
+
         if let Some(series) = &self.user_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= self.latest_block {
+            if last_element.0 >= block_number {
                 return Ok(());
             }
         }
 
-        let user_quote_balance = self
+        let quote_price = self
+            .external_quote_price
+            .ok_or(Error::msg("External quote price not set"))?;
+        let quote_balance = self
             .user_quote_balance
-            .ok_or(anyhow!("User quote balance is None"))?;
-        let quote_value = user_quote_balance
-            .checked_mul(
-                self.external_quote_price
-                    .ok_or(anyhow!("External quote price is None"))?,
-            )
+            .ok_or(Error::msg("User quote balance not set"))?;
+
+        let quote_value = quote_balance
+            .checked_mul(quote_price)
             .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-        self.user_quote_value_series
-            .get_or_insert(Vec::new())
-            .push((self.latest_block, quote_value));
+        if let Some(series) = &mut self.user_quote_value_series {
+            series.push((block_number, quote_value));
+        } else {
+            self.user_quote_value_series = Some(vec![(block_number, quote_value)]);
+        }
+
         Ok(())
     }
 
     fn update_protocol_asset_value_series(&mut self) -> Result<()> {
+        let block_number = self.latest_block.unwrap_or(0);
+
         if let Some(series) = &self.protocol_asset_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= self.latest_block {
+            if last_element.0 >= block_number {
                 return Ok(());
             }
         }
-        let protocol_asset_balance = self
+
+        let asset_price = self
+            .external_spot_price
+            .ok_or(Error::msg("External price not set"))?;
+        let asset_balance = self
             .protocol_asset_balance
-            .ok_or(anyhow!("Protocol asset balance is None"))?;
-        let asset_value = protocol_asset_balance
-            .checked_mul(
-                self.external_spot_price
-                    .ok_or(anyhow!("External spot price is None"))?,
-            )
+            .ok_or(Error::msg("Protocol asset balance not set"))?;
+
+        let asset_value = asset_balance
+            .checked_mul(asset_price)
             .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
-        self.protocol_asset_value_series
-            .get_or_insert(Vec::new())
-            .push((self.latest_block, asset_value));
+
+        if let Some(series) = &mut self.protocol_asset_value_series {
+            series.push((block_number, asset_value));
+        } else {
+            self.protocol_asset_value_series = Some(vec![(block_number, asset_value)]);
+        }
 
         Ok(())
     }
 
     fn update_protocol_quote_value_series(&mut self) -> Result<()> {
+        let block_number = self.latest_block.unwrap_or(0);
+
         if let Some(series) = &self.protocol_quote_value_series {
             let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
-            if last_element.0 >= self.latest_block {
+            if last_element.0 >= block_number {
                 return Ok(());
             }
         }
-        let protocol_quote_balance = self
+
+        let quote_price = self
+            .external_quote_price
+            .ok_or(Error::msg("External quote price not set"))?;
+        let quote_balance = self
             .protocol_quote_balance
-            .ok_or(anyhow!("Protocol quote balance is None"))?;
-        let quote_value = protocol_quote_balance
-            .checked_mul(
-                self.external_quote_price
-                    .ok_or(anyhow!("External quote price is None"))?,
-            )
+            .ok_or(Error::msg("Protocol quote balance not set"))?;
+
+        let quote_value = quote_balance
+            .checked_mul(quote_price)
             .ok_or(anyhow!(DataModelError::CheckedMul))?
             .checked_div(ALLOY_WAD)
             .ok_or(anyhow!(DataModelError::CheckedDiv))?;
 
-        self.protocol_quote_value_series
-            .get_or_insert(Vec::new())
-            .push((self.latest_block, quote_value));
+        if let Some(series) = &mut self.protocol_quote_value_series {
+            series.push((block_number, quote_value));
+        } else {
+            self.protocol_quote_value_series = Some(vec![(block_number, quote_value)]);
+        }
+
         Ok(())
     }
 
     fn update_internal_price_series(&mut self) -> Result<()> {
-        if let Some(internal_spot_price) = self.internal_spot_price {
-            let default = (0u64, internal_spot_price);
-            let last_element = self
-                .internal_spot_price_series
-                .as_ref()
-                .map_or(&default, |v| v.last().unwrap_or(&default));
-            if last_element.0 < self.latest_block {
-                if let Some(internal_spot_price_series) = &mut self.internal_spot_price_series {
-                    internal_spot_price_series.push((self.latest_block, internal_spot_price));
-                }
+        let block_number = self.latest_block.unwrap_or(0);
+
+        if let Some(series) = &self.internal_spot_price_series {
+            let last_element = series.last().ok_or(Error::msg("Last element not set"))?;
+            if last_element.0 >= block_number {
+                return Ok(());
             }
-            Ok(())
-        } else {
-            Err(anyhow!("Internal spot price is None"))
         }
+
+        let internal_price = self
+            .internal_spot_price
+            .ok_or(Error::msg("Internal price not set"))?;
+
+        if let Some(series) = &mut self.internal_spot_price_series {
+            series.push((block_number, internal_price));
+        } else {
+            self.internal_spot_price_series = Some(vec![(block_number, internal_price)]);
+        }
+
+        Ok(())
     }
     async fn update_token_balances<M: Middleware + 'static>(
         &mut self,

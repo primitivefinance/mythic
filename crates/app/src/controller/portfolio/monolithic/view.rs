@@ -90,7 +90,11 @@ impl MonolithicPresenter {
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         if let Some(model) = self.model.get_current() {
             let timestamp = model.latest_timestamp;
-            label(format!("Last Sync: {:}", timestamp))
+            let timestamp_str = match timestamp {
+                Some(time) => format!("{}", time),
+                None => "N/A".to_string(),
+            };
+            label(format!("Last Sync: {}", timestamp_str))
                 .caption()
                 .tertiary()
         } else {
