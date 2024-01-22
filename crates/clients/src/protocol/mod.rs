@@ -2,7 +2,6 @@
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
 mod pool;
-mod tokens;
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
@@ -187,19 +186,13 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let (_address, token) = self
             .tokens
             .iter()
-            .filter(|(_k, v)| v.symbol == symbol)
-            .next()
+            .find(|(_, v)| v.symbol == symbol)
             .unwrap();
         Ok(token)
     }
 
     pub fn get_token_by_name(&self, name: String) -> Result<&TokenData> {
-        let (_address, token) = self
-            .tokens
-            .iter()
-            .filter(|(_k, v)| v.name == name)
-            .next()
-            .unwrap();
+        let (_address, token) = self.tokens.iter().find(|(_k, v)| v.name == name).unwrap();
         Ok(token)
     }
 
