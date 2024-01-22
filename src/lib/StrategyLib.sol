@@ -13,7 +13,7 @@ uint256 constant INFINITY_IS_NOT_REAL = type(uint256).max;
 uint256 constant ZERO = 0;
 
 /// @dev the swap constant should never fall outside of range [-EPSILON, EPSILON]
-int256 constant EPSILON = 10;
+int256 constant EPSILON = 30;
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;

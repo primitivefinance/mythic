@@ -441,7 +441,7 @@ impl UnsealedTransaction {
 
 #[cfg(test)]
 mod tests {
-    use bindings::counter::Counter;
+    use arbiter_bindings::bindings::counter::Counter;
     use ethers::{prelude::*, utils::Anvil};
 
     use super::scroll::*;

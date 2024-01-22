@@ -1,4 +1,4 @@
-///`G3Mparameters(uint256,uint256)`
+///`DynamicParam(uint256,uint256,uint256,uint256,uint256)`
 #[derive(
     Clone,
     ::ethers::contract::EthAbiType,
@@ -11,11 +11,14 @@
     Eq,
     Hash
 )]
-pub struct G3Mparameters {
-    pub wx: ::ethers::core::types::U256,
-    pub wy: ::ethers::core::types::U256,
+pub struct DynamicParam {
+    pub target: ::ethers::core::types::U256,
+    pub last: ::ethers::core::types::U256,
+    pub update_end: ::ethers::core::types::U256,
+    pub update_per_second: ::ethers::core::types::U256,
+    pub last_sync: ::ethers::core::types::U256,
 }
-///`LogNormParameters(uint256,uint256,uint256)`
+///`InitParams(address,address,address,bytes)`
 #[derive(
     Clone,
     ::ethers::contract::EthAbiType,
@@ -28,8 +31,43 @@ pub struct G3Mparameters {
     Eq,
     Hash
 )]
-pub struct LogNormParameters {
-    pub strike: ::ethers::core::types::U256,
-    pub sigma: ::ethers::core::types::U256,
-    pub tau: ::ethers::core::types::U256,
+pub struct InitParams {
+    pub strategy: ::ethers::core::types::Address,
+    pub token_x: ::ethers::core::types::Address,
+    pub token_y: ::ethers::core::types::Address,
+    pub data: ::ethers::core::types::Bytes,
+}
+///`FuzzInterface(address,string[])`
+#[derive(
+    Clone,
+    ::ethers::contract::EthAbiType,
+    ::ethers::contract::EthAbiCodec,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash
+)]
+pub struct FuzzInterface {
+    pub addr: ::ethers::core::types::Address,
+    pub artifacts: ::std::vec::Vec<::std::string::String>,
+}
+///`FuzzSelector(address,bytes4[])`
+#[derive(
+    Clone,
+    ::ethers::contract::EthAbiType,
+    ::ethers::contract::EthAbiCodec,
+    serde::Serialize,
+    serde::Deserialize,
+    Default,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash
+)]
+pub struct FuzzSelector {
+    pub addr: ::ethers::core::types::Address,
+    pub selectors: ::std::vec::Vec<[u8; 4]>,
 }

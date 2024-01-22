@@ -12,8 +12,9 @@ interface LiquidExchange {
 }
 
 interface StrategyLike {
-    function swap(bytes calldata data) external;
+    function swap(uint256 poolId, bytes calldata data) external;
     function simulateSwap(
+        uint256 poolId,
         bool swapXIn,
         uint256 amountIn
     )
@@ -25,9 +26,8 @@ interface StrategyLike {
             uint256 estimatedPrice,
             bytes memory payload
         );
-    function internalPrice() external view returns (uint256);
-    function source() external view returns (address);
-    function getReservesAndLiquidity()
+    function internalPrice(uint256 poolId) external view returns (uint256);
+    function getReservesAndLiquidity(uint256 poolId)
         external
         view
         returns (uint256, uint256, uint256);
@@ -153,6 +153,7 @@ contract AtomicV2 {
     error AttemptedProfit(int256 profit);
 
     function searchMaxArbProfit(
+        uint256 poolId,
         uint256 best_guess,
         bool xForY
     )
@@ -173,7 +174,7 @@ contract AtomicV2 {
         while (start < end && iteration < 64) {
             mid = start + (end - start) / 2;
             console2.log("mid", mid);
-            derivative = derivativeOfProfit(xForY, mid);
+            derivative = derivativeOfProfit(poolId, xForY, mid);
             console2.log("derivative", derivative);
 
             // Check the sign of the derivative to determine the direction of the bisection
@@ -189,18 +190,20 @@ contract AtomicV2 {
         }
 
         best_amount_in = (start + end) / 2;
-        (best_profit, expectedPrice) = calculateProfit(xForY, best_amount_in);
+        (best_profit, expectedPrice) =
+            calculateProfit(poolId, xForY, best_amount_in);
     }
 
     function derivativeOfProfit(
+        uint256 poolId,
         bool xForY,
         uint256 guess
     ) public returns (int256) {
         uint256 tradeDecrement = guess - 10_000;
         uint256 tradeIncrement = guess + 10_000;
         console2.log("guess", guess);
-        (int256 profitUp,) = calculateProfit(xForY, tradeIncrement);
-        (int256 profitDown,) = calculateProfit(xForY, tradeDecrement);
+        (int256 profitUp,) = calculateProfit(poolId, xForY, tradeIncrement);
+        (int256 profitDown,) = calculateProfit(poolId, xForY, tradeDecrement);
         console2.log("profitUp", profitUp);
         console2.log("profitDown", profitDown);
         console2.log("difference", profitUp - profitDown);
@@ -213,12 +216,13 @@ contract AtomicV2 {
     }
 
     function calculateProfit(
+        uint256 poolId,
         bool xForY,
         uint256 amountIn
     ) public returns (int256, uint256) {
         uint256 price = LiquidExchange(liquidExchange).price();
         (bool valid, uint256 estimatedOut, uint256 estimatedPrice,) =
-            StrategyLike(solver).simulateSwap(xForY, amountIn);
+            StrategyLike(solver).simulateSwap(poolId, xForY, amountIn);
         require(valid, "Invalid swap simulation");
 
         uint256 valueIn = xForY ? amountIn.mulWadUp(price) : amountIn;
@@ -227,8 +231,8 @@ contract AtomicV2 {
         return (int256(valueOut) - int256(valueIn), estimatedPrice);
     }
 
-    function lower_exchange_price(uint256 input) external {
-        uint256 price = StrategyLike(solver).internalPrice();
+    function lower_exchange_price(uint256 poolId, uint256 input) external {
+        uint256 price = StrategyLike(solver).internalPrice(poolId);
         emit Price(price, block.timestamp);
         // Arbitrageur Y -> AtomicV2
         _invoice(input);
@@ -237,14 +241,17 @@ contract AtomicV2 {
         _lex_swap(YTOX, input);
 
         // X -> Y on DEX
-        _dex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
+        _dex_swap(poolId, XTOY, TokenLike(asset).balanceOf(address(this)));
 
         // AtomicV2 Y -> Arbitrageur
         _payout();
     }
 
     // Always reverts with the profit at the end.
-    function try_lower_exchange_price(uint256 input_y_amount) external {
+    function try_lower_exchange_price(
+        uint256 poolId,
+        uint256 input_y_amount
+    ) external {
         // Arbitrageur Y -> AtomicV2
         _invoice(input_y_amount);
 
@@ -252,7 +259,7 @@ contract AtomicV2 {
         _lex_swap(YTOX, input_y_amount);
 
         // X -> Y on DEX
-        _dex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
+        _dex_swap(poolId, XTOY, TokenLike(asset).balanceOf(address(this)));
 
         intermediateTokenYEndBalance = TokenLike(quote).balanceOf(address(this));
         revert AttemptedProfit(
@@ -261,14 +268,14 @@ contract AtomicV2 {
         );
     }
 
-    function raise_exchange_price(uint256 input) external {
-        uint256 price = StrategyLike(solver).internalPrice();
+    function raise_exchange_price(uint256 poolId, uint256 input) external {
+        uint256 price = StrategyLike(solver).internalPrice(poolId);
         emit Price(price, block.timestamp);
         // Arbitrageur Y -> AtomicV2
         _invoice(input);
 
         // Y -> X on DEX
-        _dex_swap(YTOX, input);
+        _dex_swap(poolId, YTOX, input);
 
         // X -> Y on LEX
         _lex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
@@ -277,12 +284,15 @@ contract AtomicV2 {
         _payout();
     }
 
-    function try_raise_exchange_price(uint256 input_y_amount) external {
+    function try_raise_exchange_price(
+        uint256 poolId,
+        uint256 input_y_amount
+    ) external {
         // Arbitrageur Y -> AtomicV2
         _invoice(input_y_amount);
 
         // Y -> X on DEX
-        _dex_swap(YTOX, input_y_amount);
+        _dex_swap(poolId, YTOX, input_y_amount);
 
         // X -> Y on LEX
         _lex_swap(XTOY, TokenLike(asset).balanceOf(address(this)));
@@ -337,7 +347,11 @@ contract AtomicV2 {
         }
     }
 
-    function _dex_swap(bool swapXIn, uint256 amountIn) internal {
+    function _dex_swap(
+        uint256 poolId,
+        bool swapXIn,
+        uint256 amountIn
+    ) internal {
         if (swapXIn) {
             // If X -> Y
             // Approve Exchange to spend AtomicV2's asset tokens
@@ -355,7 +369,7 @@ contract AtomicV2 {
             uint256 estimatedOut,
             uint256 estimatedPrice,
             bytes memory payload
-        ) = StrategyLike(solver).simulateSwap(swapXIn, amountIn);
+        ) = StrategyLike(solver).simulateSwap(poolId, swapXIn, amountIn);
 
         if (!valid) {
             revert SimulatedSwapFailure(
@@ -364,7 +378,7 @@ contract AtomicV2 {
         }
 
         // Execute the swap.
-        try StrategyLike(exchange).swap(payload) {
+        try StrategyLike(exchange).swap(poolId, payload) {
             // Swap succeeded, do nothing other than store the intermediary balance.
             if (swapXIn) {
                 // If X -> Y
@@ -410,6 +424,7 @@ contract AtomicV2 {
     }
 
     function simulateSwap(
+        uint256 poolId,
         bool swapXIn,
         uint256 amountIn
     )
@@ -422,7 +437,7 @@ contract AtomicV2 {
             bytes memory payload
         )
     {
-        return StrategyLike(solver).simulateSwap(swapXIn, amountIn);
+        return StrategyLike(solver).simulateSwap(poolId, swapXIn, amountIn);
     }
 
     function cdf(int256 input) public pure returns (int256 output) {

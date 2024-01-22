@@ -1,4 +1,4 @@
-pub use i_strategy::*;
+pub use mock_strategy::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +9,7 @@ pub use i_strategy::*;
     dead_code,
     non_camel_case_types,
 )]
-pub mod i_strategy {
+pub mod mock_strategy {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
@@ -367,32 +367,34 @@ pub mod i_strategy {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static ISTRATEGY_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+    pub static MOCKSTRATEGY_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
         __abi,
     );
-    pub struct IStrategy<M>(::ethers::contract::Contract<M>);
-    impl<M> ::core::clone::Clone for IStrategy<M> {
+    pub struct MockStrategy<M>(::ethers::contract::Contract<M>);
+    impl<M> ::core::clone::Clone for MockStrategy<M> {
         fn clone(&self) -> Self {
             Self(::core::clone::Clone::clone(&self.0))
         }
     }
-    impl<M> ::core::ops::Deref for IStrategy<M> {
+    impl<M> ::core::ops::Deref for MockStrategy<M> {
         type Target = ::ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M> ::core::ops::DerefMut for IStrategy<M> {
+    impl<M> ::core::ops::DerefMut for MockStrategy<M> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
-    impl<M> ::core::fmt::Debug for IStrategy<M> {
+    impl<M> ::core::fmt::Debug for MockStrategy<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(IStrategy)).field(&self.address()).finish()
+            f.debug_tuple(::core::stringify!(MockStrategy))
+                .field(&self.address())
+                .finish()
         }
     }
-    impl<M: ::ethers::providers::Middleware> IStrategy<M> {
+    impl<M: ::ethers::providers::Middleware> MockStrategy<M> {
         /// Creates a new contract instance with the specified `ethers` client at
         /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
@@ -402,7 +404,7 @@ pub mod i_strategy {
             Self(
                 ::ethers::contract::Contract::new(
                     address.into(),
-                    ISTRATEGY_ABI.clone(),
+                    MOCKSTRATEGY_ABI.clone(),
                     client,
                 ),
             )
@@ -510,7 +512,7 @@ pub mod i_strategy {
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for IStrategy<M> {
+    for MockStrategy<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
@@ -651,7 +653,7 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    pub enum IStrategyCalls {
+    pub enum MockStrategyCalls {
         ComputeSwapConstant(ComputeSwapConstantCall),
         Dfmm(DfmmCall),
         GetPoolParams(GetPoolParamsCall),
@@ -660,7 +662,7 @@ pub mod i_strategy {
         ValidateAllocateOrDeallocate(ValidateAllocateOrDeallocateCall),
         ValidateSwap(ValidateSwapCall),
     }
-    impl ::ethers::core::abi::AbiDecode for IStrategyCalls {
+    impl ::ethers::core::abi::AbiDecode for MockStrategyCalls {
         fn decode(
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
@@ -703,7 +705,7 @@ pub mod i_strategy {
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
-    impl ::ethers::core::abi::AbiEncode for IStrategyCalls {
+    impl ::ethers::core::abi::AbiEncode for MockStrategyCalls {
         fn encode(self) -> Vec<u8> {
             match self {
                 Self::ComputeSwapConstant(element) => {
@@ -724,7 +726,7 @@ pub mod i_strategy {
             }
         }
     }
-    impl ::core::fmt::Display for IStrategyCalls {
+    impl ::core::fmt::Display for MockStrategyCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
                 Self::ComputeSwapConstant(element) => {
@@ -741,37 +743,37 @@ pub mod i_strategy {
             }
         }
     }
-    impl ::core::convert::From<ComputeSwapConstantCall> for IStrategyCalls {
+    impl ::core::convert::From<ComputeSwapConstantCall> for MockStrategyCalls {
         fn from(value: ComputeSwapConstantCall) -> Self {
             Self::ComputeSwapConstant(value)
         }
     }
-    impl ::core::convert::From<DfmmCall> for IStrategyCalls {
+    impl ::core::convert::From<DfmmCall> for MockStrategyCalls {
         fn from(value: DfmmCall) -> Self {
             Self::Dfmm(value)
         }
     }
-    impl ::core::convert::From<GetPoolParamsCall> for IStrategyCalls {
+    impl ::core::convert::From<GetPoolParamsCall> for MockStrategyCalls {
         fn from(value: GetPoolParamsCall) -> Self {
             Self::GetPoolParams(value)
         }
     }
-    impl ::core::convert::From<InitCall> for IStrategyCalls {
+    impl ::core::convert::From<InitCall> for MockStrategyCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
         }
     }
-    impl ::core::convert::From<UpdateCall> for IStrategyCalls {
+    impl ::core::convert::From<UpdateCall> for MockStrategyCalls {
         fn from(value: UpdateCall) -> Self {
             Self::Update(value)
         }
     }
-    impl ::core::convert::From<ValidateAllocateOrDeallocateCall> for IStrategyCalls {
+    impl ::core::convert::From<ValidateAllocateOrDeallocateCall> for MockStrategyCalls {
         fn from(value: ValidateAllocateOrDeallocateCall) -> Self {
             Self::ValidateAllocateOrDeallocate(value)
         }
     }
-    impl ::core::convert::From<ValidateSwapCall> for IStrategyCalls {
+    impl ::core::convert::From<ValidateSwapCall> for MockStrategyCalls {
         fn from(value: ValidateSwapCall) -> Self {
             Self::ValidateSwap(value)
         }

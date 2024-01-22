@@ -17,55 +17,15 @@ pub mod log_normal {
             constructor: ::core::option::Option::Some(::ethers::core::abi::ethabi::Constructor {
                 inputs: ::std::vec![
                     ::ethers::core::abi::ethabi::Param {
-                        name: ::std::borrow::ToOwned::to_owned("_swapFee"),
-                        kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                        name: ::std::borrow::ToOwned::to_owned("dfmm_"),
+                        kind: ::ethers::core::abi::ethabi::ParamType::Address,
                         internal_type: ::core::option::Option::Some(
-                            ::std::borrow::ToOwned::to_owned("uint256"),
+                            ::std::borrow::ToOwned::to_owned("address"),
                         ),
                     },
                 ],
             }),
             functions: ::core::convert::From::from([
-                (
-                    ::std::borrow::ToOwned::to_owned("__slot__"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("__slot__"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("strike"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("sigma"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("tau"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
                 (
                     ::std::borrow::ToOwned::to_owned("computeSwapConstant"),
                     ::std::vec![
@@ -74,6 +34,15 @@ pub mod log_normal {
                                 "computeSwapConstant",
                             ),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -97,17 +66,17 @@ pub mod log_normal {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("core"),
+                    ::std::borrow::ToOwned::to_owned("dfmm"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("core"),
+                            name: ::std::borrow::ToOwned::to_owned("dfmm"),
                             inputs: ::std::vec![],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::string::String::new(),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
                                     internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("contract ICore"),
+                                        ::std::borrow::ToOwned::to_owned("address"),
                                     ),
                                 },
                             ],
@@ -117,127 +86,27 @@ pub mod log_normal {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("dynamicSlot"),
+                    ::std::borrow::ToOwned::to_owned("getPoolParams"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("dynamicSlot"),
-                            inputs: ::std::vec![],
+                            name: ::std::borrow::ToOwned::to_owned("getPoolParams"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("params"),
+                                    name: ::std::string::String::new(),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
                                     internal_type: ::core::option::Option::Some(
                                         ::std::borrow::ToOwned::to_owned("bytes"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("dynamicSlotInternal"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned(
-                                "dynamicSlotInternal",
-                            ),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("params"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Tuple(
-                                        ::std::vec![
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                        ],
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("struct LogNormParameters"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("getParams"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("getParams"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("getReservesAndLiquidity"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned(
-                                "getReservesAndLiquidity",
-                            ),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
                                     ),
                                 },
                             ],
@@ -252,6 +121,15 @@ pub mod log_normal {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("init"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -276,7 +154,7 @@ pub mod log_normal {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("rx"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -285,7 +163,7 @@ pub mod log_normal {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("ry"),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -294,7 +172,7 @@ pub mod log_normal {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("L"),
+                                    name: ::std::borrow::ToOwned::to_owned("totalLiquidity"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -309,13 +187,90 @@ pub mod log_normal {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("internalParams"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("internalParams"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sigma"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("struct DynamicParam"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("tau"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("struct DynamicParam"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("strike"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Tuple(
+                                        ::std::vec![
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
+                                        ],
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("struct DynamicParam"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("swapFee"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("setSigma"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("setSigma"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("newTargetSigma"),
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -324,7 +279,16 @@ pub mod log_normal {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("newSigmaUpdateEnd"),
+                                    name: ::std::borrow::ToOwned::to_owned("target"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("end"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -346,7 +310,7 @@ pub mod log_normal {
                             name: ::std::borrow::ToOwned::to_owned("setStrikePrice"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("newTargetStrike"),
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -355,9 +319,16 @@ pub mod log_normal {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned(
-                                        "newStrikeUpdateEnd",
+                                    name: ::std::borrow::ToOwned::to_owned("target"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
                                     ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("end"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -379,7 +350,7 @@ pub mod log_normal {
                             name: ::std::borrow::ToOwned::to_owned("setTau"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("newTargetTau"),
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -388,7 +359,16 @@ pub mod log_normal {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("newTauUpdateEnd"),
+                                    name: ::std::borrow::ToOwned::to_owned("target"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("end"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -404,169 +384,122 @@ pub mod log_normal {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("sigma"),
+                    ::std::borrow::ToOwned::to_owned("update"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("sigma"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("staticSlot"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("staticSlot"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Tuple(
-                                        ::std::vec![
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                            ::ethers::core::abi::ethabi::ParamType::Uint(256usize),
-                                        ],
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("struct LogNormParameters"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("strikePrice"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("strikePrice"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("swapFee"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("swapFee"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("targetSigma"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("targetSigma"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("targetStrike"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("targetStrike"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("tau"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("tau"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("validate"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("validate"),
+                            name: ::std::borrow::ToOwned::to_owned("update"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bytes"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("validateAllocateOrDeallocate"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "validateAllocateOrDeallocate",
+                            ),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("data"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bytes"),
+                                    ),
+                                },
+                            ],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("valid"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Bool,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("bool"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("invariant"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Int(256usize),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("int256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("totalLiquidity"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("validateSwap"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("validateSwap"),
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -631,125 +564,7 @@ pub mod log_normal {
                     ],
                 ),
             ]),
-            events: ::core::convert::From::from([
-                (
-                    ::std::borrow::ToOwned::to_owned("SetSigma"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("SetSigma"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("targetSigma"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("lastSigma"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("sigmaUpdateEnd"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("delta"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("SetStrikePrice"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("SetStrikePrice"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("targetStrike"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("lastStrike"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("strikeUpdateEnd"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("delta"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("SetTau"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("SetTau"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("targetTau"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("lastTau"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("tauUpdateEnd"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("delta"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
-                ),
-            ]),
+            events: ::std::collections::BTreeMap::new(),
             errors: ::core::convert::From::from([
                 (
                     ::std::borrow::ToOwned::to_owned("Infinity"),
@@ -797,13 +612,13 @@ pub mod log_normal {
         __abi,
     );
     #[rustfmt::skip]
-    const __BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`@Qa\x1F\xA78\x03\x80a\x1F\xA7\x839\x81\x01`@\x81\x90Ra\0|\x91a\x01\x04V[g\r\xE0\xB6\xB3\xA7d\0\0\x81\x10a\0\xEAW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`*`$\x82\x01R\x7Fswap fee percentage must be less`D\x82\x01Ri than 100%`\xB0\x1B`d\x82\x01R`\x84\x01`@Q\x80\x91\x03\x90\xFD[`\x01U`\0\x80T`\x01`\x01`\xA0\x1B\x03\x19\x163\x17\x90Ua\x01hV[`\0` \x82\x84\x03\x12\x15a\x01aW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[PQ\x91\x90PV[a\x1E0\x80a\x01w`\09`\0\xF3\xFE`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\x01nW`\x005`\xE0\x1C\x80c\x99\x87\xFEd\x11a\0\xFAW\x80c\xC1\xE0\x04;\x11a\0\xBEW\x80c\xC1\xE0\x04;\x14a\x03=W\x80c\xC5)\x87\xCF\x14a\x03RW\x80c\xCF\xC4\xAFU\x14a\x03ZW\x80c\xEB\xAD\xEF\x01\x14a\x03bW\x80c\xF2\xF4\xEB&\x14a\x03jWa\x01nV[\x80c\x99\x87\xFEd\x14a\x02\xC4W\x80c\xA1\x9C\xD3\xD1\x14a\x02\xD7W\x80c\xAF\xDF1\xCD\x14a\x02\xEAW\x80c\xC1e&\x12\x14a\x02\xF2W\x80c\xC1nP\xEF\x14a\x02\xFBWa\x01nV[\x80cT\xCF*\xEB\x11a\x01AW\x80cT\xCF*\xEB\x14a\x02^W\x80c^aZk\x14a\x02gW\x80cf\x8F\x90U\x14a\x02\x8AW\x80c\x7F\x0EL\x8C\x14a\x02\x9CW\x80c\x8DR\xA1\xFC\x14a\x02\xB1Wa\x01nV[\x80c\x04\xB5\xC7\xAF\x14a\x01\xD3W\x80c.-yi\x14a\x02\x02W\x80c>\x1E3\x92\x14a\x02\nW\x80cM\xDFG\xD4\x14a\x02!W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01\xDBa\x03\x95V[`@\x80Q\x82Q\x81R` \x80\x84\x01Q\x90\x82\x01R\x91\x81\x01Q\x90\x82\x01R``\x01[`@Q\x80\x91\x03\x90\xF3[a\x01\xDBa\x03\xE0V[a\x02\x13`\x0BT\x81V[`@Q\x90\x81R` \x01a\x01\xF9V[a\x024a\x02/6`\x04a\x19\x14V[a\x04)V[`@\x80Q\x95\x15\x15\x86R` \x86\x01\x94\x90\x94R\x92\x84\x01\x91\x90\x91R``\x83\x01R`\x80\x82\x01R`\xA0\x01a\x01\xF9V[a\x02\x13`\x01T\x81V[a\x02oa\x04\x97V[`@\x80Q\x93\x84R` \x84\x01\x92\x90\x92R\x90\x82\x01R``\x01a\x01\xF9V[`\x02T`\x03T`\x04Ta\x02o\x92\x91\x90\x83V[a\x02\xAFa\x02\xAA6`\x04a\x1A9V[a\x04\xBFV[\0[a\x02\xAFa\x02\xBF6`\x04a\x1A9V[a\x05\xB9V[a\x02\xAFa\x02\xD26`\x04a\x1A9V[a\x06}V[a\x02\x13a\x02\xE56`\x04a\x1A\xCEV[a\x07AV[a\x02\x13a\x07xV[a\x02\x13`\x06T\x81V[a\x03\x0Ea\x03\t6`\x04a\x1A\xCEV[a\x07\xE8V[`@\x80Q\x96\x15\x15\x87R` \x87\x01\x95\x90\x95R\x93\x85\x01\x92\x90\x92R``\x84\x01R`\x80\x83\x01R`\xA0\x82\x01R`\xC0\x01a\x01\xF9V[a\x03Ea\tdV[`@Qa\x01\xF9\x91\x90a\x1B\xBCV[a\x02\x13a\t\xACV[a\x02\x13a\n\x17V[a\x02oa\n\x82V[`\0Ta\x03}\x90`\x01`\x01`\xA0\x1B\x03\x16\x81V[`@Q`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x81R` \x01a\x01\xF9V[a\x03\xB9`@Q\x80``\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x03\xC1a\t\xACV[a\x03\xC9a\x07xV[a\x03\xD1a\n\x17V[`@\x84\x01R` \x83\x01R\x81R\x90V[a\x04\x04`@Q\x80``\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[P`@\x80Q``\x81\x01\x82R`\x02T\x81R`\x03T` \x82\x01R`\x04T\x91\x81\x01\x91\x90\x91R\x90V[`\0\x80\x80\x80\x80a\x04;\x86\x88\x01\x88a\x1C\nV[\x80Q`\x02U` \x81\x01Q`\x03U`@\x01Q`\x04U\x91\x94P\x92P\x90Pa\x04^a\x0B\\V[a\x04q\x83\x83\x83a\x04la\x03\x95V[a\x0B\xABV[\x93P\x83a\x04~`\na\x1C\xDAV[\x12\x80\x15a\x04\x8BWP`\n\x84\x12[\x94P\x92\x95P\x92\x95\x90\x93PV[`\0\x80`\0a\x04\xA4a\t\xACV[a\x04\xACa\x07xV[a\x04\xB4a\n\x17V[\x92P\x92P\x92P\x90\x91\x92V[B\x81\x11a\x04\xE7W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x01a\x04\xDE\x90a\x1C\xF6V[`@Q\x80\x91\x03\x90\xFD[a\x04\xEFa\x0C\xBDV[`\0\x82`\x0FT\x11a\x05\x0CW`\x0FTa\x05\x07\x90\x84a\x1D!V[a\x05\x1AV[\x82`\x0FTa\x05\x1A\x91\x90a\x1D!V[\x90Pa\x05&B\x83a\x1D!V[a\x050\x90\x82a\x1D4V[`\x12U`\x10\x83\x90U`\x13\x82\x90U`\x0FT\x7F\x1EK Gg&%\xF4\xDF!\xD4|\xA7\xA0\x0C \x12\xCC\xF7x\xF2w\xBF2(\xDD\xF4Y=o\x84\xAA\x90\x84\x90\x84\x81\x83\x11a\x05\x81W`\x10T`\x0FTa\x05|\x91\x90a\x1D!V[a\x05\x91V[`\x0FT`\x10Ta\x05\x91\x91\x90a\x1D!V[`@\x80Q\x94\x85R` \x85\x01\x93\x90\x93R\x91\x83\x01R``\x82\x01R`\x80\x01`@Q\x80\x91\x03\x90\xA1PPPV[B\x81\x11a\x05\xD8W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x01a\x04\xDE\x90a\x1C\xF6V[a\x05\xE0a\x0C\xCEV[`\0\x82`\nT\x11a\x05\xFDW`\nTa\x05\xF8\x90\x84a\x1D!V[a\x06\x0BV[\x82`\nTa\x06\x0B\x91\x90a\x1D!V[\x90Pa\x06\x17B\x83a\x1D!V[a\x06!\x90\x82a\x1D4V[`\rU`\x0B\x83\x90U`\x0E\x82\x90U`\nT\x7F$\xBBEgU#\x9Cf@Y\xB5\x19\xE4c\xB4\xE5\xEA\xEF\x05\x08~\x87\xB0\xDF\xED\xF6\x06\x11iR\xAC\xEE\x90\x84\x90\x84\x81\x83\x11a\x06mW`\x0BT`\nTa\x05|\x91\x90a\x1D!V[`\nT`\x0BTa\x05\x91\x91\x90a\x1D!V[B\x81\x11a\x06\x9CW`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x01a\x04\xDE\x90a\x1C\xF6V[a\x06\xA4a\x0C\xDFV[`\0\x82`\x05T\x11a\x06\xC1W`\x05Ta\x06\xBC\x90\x84a\x1D!V[a\x06\xCFV[\x82`\x05Ta\x06\xCF\x91\x90a\x1D!V[\x90Pa\x06\xDBB\x83a\x1D!V[a\x06\xE5\x90\x82a\x1D4V[`\x08U`\x06\x83\x90U`\t\x82\x90U`\x05T\x7F\xB9hO\xE86\x87_\xAF\x05m\xB2]\xE9\x85S\x859`\xB3&\x08\x8A\x10!\xAF\xA7[\xA1`\x12d\xF5\x90\x84\x90\x84\x81\x83\x11a\x071W`\x06T`\x05Ta\x05|\x91\x90a\x1D!V[`\x05T`\x06Ta\x05\x91\x91\x90a\x1D!V[`\0\x80`\0\x80\x84\x80` \x01\x90Q\x81\x01\x90a\x07[\x91\x90a\x1DVV[\x92P\x92P\x92Pa\x07o\x83\x83\x83a\x04la\x03\x95V[\x95\x94PPPPPV[`\0`\tTB\x10a\x07\x8AWP`\x06T\x90V[`\x06T`\x05T\x11a\x07\xC1W`\x08T`\x07Ta\x07\xA5\x90Ba\x1D!V[a\x07\xAF\x91\x90a\x1D\x87V[`\x05Ta\x07\xBC\x91\x90a\x1D\x9EV[\x90P\x90V[`\x08T`\x07Ta\x07\xD1\x90Ba\x1D!V[a\x07\xDB\x91\x90a\x1D\x87V[`\x05Ta\x07\xBC\x91\x90a\x1D!V[`\0\x80`\0\x80`\0\x80`\0\x80`\0a\x07\xFEa\n\x82V[\x92P\x92P\x92P\x89\x80` \x01\x90Q\x81\x01\x90a\x08\x18\x91\x90a\x1DVV[\x91\x97P\x95P\x93P`\0\x80\x80\x85\x89\x11\x15a\x08sWa\x085\x86\x8Aa\x1D!V[\x91Pa\x08L`\x01T\x83a\x0C\xF0\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x08b\x86a\x08\\\x83\x87a\x0C\xF0V[\x90a\r\x0EV[a\x08l\x90\x84a\x1D\x9EV[\x92Pa\t\rV[\x84\x88\x11\x15a\x08\xACWa\x08\x85\x85\x89a\x1D!V[\x91Pa\x08\x9C`\x01T\x83a\x0C\xF0\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x08b\x85a\x08\\\x83\x87a\x0C\xF0V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`0`$\x82\x01R\x7Finvalid swap: inputs x and y hav`D\x82\x01Roe the same sign!`\x80\x1B`d\x82\x01R`\x84\x01a\x04\xDEV[a\t\x17\x84\x88a\x1D\xB1V[\x99Pa\t'\x89\x89\x89a\x04la\x03\x95V[\x9AP`\0\x8Ba\t6`\na\x1C\xDAV[\x12\x80\x15a\tCWP`\n\x8C\x12[\x90P\x80\x80\x15a\tRWP\x83\x8B\x12\x15[\x9CPPPPPPPP\x91\x93\x95P\x91\x93\x95V[``a\tna\t\xACV[a\tva\x07xV[a\t~a\n\x17V[`@\x80Q` \x81\x01\x94\x90\x94R\x83\x01\x91\x90\x91R``\x82\x01R`\x80\x01`@Q` \x81\x83\x03\x03\x81R\x90`@R\x90P\x90V[`\0`\x0ETB\x10a\t\xBEWP`\x0BT\x90V[`\x0BT`\nT\x11a\t\xF0W`\rT`\x0CTa\t\xD9\x90Ba\x1D!V[a\t\xE3\x91\x90a\x1D\x87V[`\nTa\x07\xBC\x91\x90a\x1D\x9EV[`\rT`\x0CTa\n\0\x90Ba\x1D!V[a\n\n\x91\x90a\x1D\x87V[`\nTa\x07\xBC\x91\x90a\x1D!V[`\0`\x13TB\x10a\n)WP`\x10T\x90V[`\x10T`\x0FT\x11a\n[W`\x12T`\x11Ta\nD\x90Ba\x1D!V[a\nN\x91\x90a\x1D\x87V[`\x0FTa\x07\xBC\x91\x90a\x1D\x9EV[`\x12T`\x11Ta\nk\x90Ba\x1D!V[a\nu\x91\x90a\x1D\x87V[`\x0FTa\x07\xBC\x91\x90a\x1D!V[`\0\x80`\0\x80`\0\x90T\x90a\x01\0\n\x90\x04`\x01`\x01`\xA0\x1B\x03\x16`\x01`\x01`\xA0\x1B\x03\x16c\xEB\xAD\xEF\x01`@Q\x81c\xFF\xFF\xFF\xFF\x16`\xE0\x1B\x81R`\x04\x01```@Q\x80\x83\x03\x81\x86\x80;\x15\x80\x15a\x0B$W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`%`$\x82\x01R\x7FTarget contract does not contain`D\x82\x01\x90\x81Rd code`\xD8\x1B`d\x83\x01R`\x84\x82\xFD[PZ\xFA\x15\x80\x15a\x0B8W=`\0\x80>=`\0\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\x04\xB4\x91\x90a\x1DVV[`\0a\x0Bfa\x03\xE0V[` \x81\x01Q`\x06\x81\x90U`\x05UB`\t\x81\x90U`\x07\x81\x90U\x81Q`\x0B\x81\x90U`\nU`\x0E\x81\x90U`\x0C\x81\x90U`@\x90\x91\x01Q`\x10\x81\x90U`\x0FU`\x13\x81\x90U`\x11UPV[`\0\x82\x85\x10a\x0B\xFCW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x1A`$\x82\x01R\x7FtradingFunction: invalid x\0\0\0\0\0\0`D\x82\x01R`d\x01a\x04\xDEV[`\0\x80g\r\xE0\xB6\xB3\xA7d\0\0a\x0C\x12\x88\x87a\r#V[\x10a\x0C&W`\x01`\x01`\xFF\x1B\x03\x91Pa\x0C;V[a\x0C8a\x0C3\x88\x87a\r#V[a\r8V[\x91P[g\r\xE0\xB6\xB3\xA7d\0\0a\x0C[\x87a\x0CV\x87`\0\x01Q\x89a\r\xD5V[a\r#V[\x10a\x0CnWP`\x01`\x01`\xFF\x1B\x03a\x0C\x86V[a\x0C\x83a\x0C3\x87a\x0CV\x87`\0\x01Q\x89a\r\xD5V[\x90P[`\0a\x0C\x9A\x85` \x01Q\x86`@\x01Qa\r\xEAV[\x90P\x80a\x0C\xA7\x83\x85a\x1D\xD8V[a\x0C\xB1\x91\x90a\x1D\xD8V[\x98\x97PPPPPPPPV[a\x0C\xC5a\n\x17V[`\x0FUB`\x11UV[a\x0C\xD6a\t\xACV[`\nUB`\x0CUV[a\x0C\xE7a\x07xV[`\x05UB`\x07UV[`\0a\r\x05\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x0E\x18V[\x90P[\x92\x91PPV[`\0a\r\x05\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x0E\x18V[`\0a\r\x05\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x0EFV[`\0g\x06\xF0[Y\xD3\xB2\0\0\x82\x03a\rQWP`\0\x91\x90PV[g\r\xE0\xB6\xB3\xA7d\0\0\x82\x12a\ryW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\r\x9AW`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\r\xA7\x83`\x02a\x1E\0V[\x90P`\0a\r\xB4\x82a\x0EeV[\x90P`\0a\r\xCAg\x13\xA0K\xBD\xFD\xC9\xBE\x88\x83a\x10\xE3V[\x90Pa\x07o\x81a\x1C\xDAV[`\0a\r\x05\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x0EFV[`\0\x80a\r\xF6\x83a\x10\xF8V[a\x0E\x04\x90c;\x9A\xCA\0a\x1D\x87V[\x90Pa\x0E\x10\x84\x82a\r\xD5V[\x94\x93PPPPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x0E0W`\0\x80\xFD[`\x01\x82`\x01\x83\x03\x04\x01\x81\x15\x15\x02\x90P\x93\x92PPPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x0E^W`\0\x80\xFD[\x04\x92\x91PPV[`\0\x80\x82\x12\x80a\x0E|WPg\x1B\xC1mgN\xC8\0\0\x82\x13[\x15a\x0E\x9AW`@Qc-\x04\x83\xC5`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\x0E\xBBW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81g\x1B\xC1mgN\xC8\0\0\x03a\x0E\xE3W`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x80\x15a\x0E\xEEW\x91\x90PV[`\0g\r\xE0\xB6\xB3\xA7d\0\0\x83\x12a\x0F\x16Wa\x0F\x11\x83g\x1B\xC1mgN\xC8\0\0a\x1D\xB1V[a\x0F\x18V[\x82[\x90P`\0a\x0F.\x82g\x1B\xC1mgN\xC8\0\0a\x11\x9CV[\x90P\x80`\0\x03a\x0FQW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\x0F\\\x82a\x11\xB1V[\x90P`\0c;\x9A\xCA\0a\x0F\x87a\x0F\x82a\x0F|g\x1B\xC1mgN\xC8\0\0a\x1C\xDAV[\x85a\x10\xE3V[a\x10\xF8V[a\x0F\x91\x91\x90a\x1E\0V[\x90P`\0\x80a\x0F\xA8\x83g\x03\xC1f\\z\xAB \0a\x10\xE3V[a\x0F\xBA\x90g \x05\xFEO&\x8E\xA0\0a\x1D\xD8V[\x90P`\0a\x0F\xEA\x84a\x0F\xD3\x86f\x9F2u$b\xA0\0a\x10\xE3V[a\x0F\xE5\x90g\r\xC5R\x7Fd, \0a\x1D\xD8V[a\x10\xE3V[a\x0F\xFC\x90g\r\xE0\xB6\xB3\xA7d\0\0a\x1D\xD8V[\x90Pa\x10 g\t\xD0(\xCCo _\xFF\x19\x85a\x10\x16\x85\x85a\x11\x9CV[a\x0F\xE5\x91\x90a\x1D\xB1V[\x92PPP`\0[`\x02\x81\x10\x15a\x10\xBBW`\0\x86a\x10<\x84a\x13\x8CV[a\x10F\x91\x90a\x1D\xB1V[\x90P`\0a\x10T\x84\x85a\x10\xE3V[a\x10]\x90a\x1C\xDAV[\x90P`\0a\x10j\x82a\x15pV[\x90P`\0a\x10x\x86\x85a\x10\xE3V[a\x10\x8Ag\x0F\xA8\xCE\xDF\xC2\xAD\xDD\xFA\x84a\x10\xE3V[a\x10\x94\x91\x90a\x1D\xB1V[\x90Pa\x10\xA0\x84\x82a\x11\x9CV[a\x10\xAA\x90\x87a\x1D\xD8V[\x95P\x84`\x01\x01\x94PPPPPa\x10'V[g\r\xE0\xB6\xB3\xA7d\0\0\x88\x12a\x10\xD8Wa\x10\xD3\x82a\x1C\xDAV[a\x0C\xB1V[P\x96\x95PPPPPPV[`\0a\r\x05\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x17\x19V[`\xB5\x81`\x01`\x88\x1B\x81\x10a\x11\x11W`@\x91\x90\x91\x1B\x90`\x80\x1C[i\x01\0\0\0\0\0\0\0\0\0\x81\x10a\x11-W` \x91\x90\x91\x1B\x90`@\x1C[e\x01\0\0\0\0\0\x81\x10a\x11EW`\x10\x91\x90\x91\x1B\x90` \x1C[c\x01\0\0\0\x81\x10a\x11[W`\x08\x91\x90\x91\x1B\x90`\x10\x1C[b\x01\0\0\x01\x02`\x12\x1C\x80\x82\x04\x01`\x01\x90\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x90\x1C\x90\x81\x90\x04\x81\x11\x90\x03\x90V[`\0a\r\x05\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x17\x19V[`\0\x80\x82\x13a\x11\xEEW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x04\xDEV[`\0``a\x11\xFB\x84a\x178V[\x03`\x9F\x81\x81\x03\x94\x90\x94\x1B\x90\x93\x1ClFWr\xB2\xBB\xBB_\x82K\x15 z0\x81\x01\x81\x02``\x90\x81\x1Dm\x03\x88\xEA\xA2t\x12\xD5\xAC\xA0&\x81]cn\x01\x82\x02\x81\x1Dm\r\xF9\x9A\xC5\x02\x03\x1B\xF9S\xEF\xF4r\xFD\xCC\x01\x82\x02\x81\x1Dm\x13\xCD\xFF\xB2\x9DQ\xD9\x93\"\xBD\xFF_\"\x11\x01\x82\x02\x81\x1Dm\n\x0Ft #\xDE\xF7\x83\xA3\x07\xA9\x86\x91.\x01\x82\x02\x81\x1Dm\x01\x92\r\x80C\xCA\x89\xB5#\x92S(NB\x01\x82\x02\x81\x1Dl\x0Bz\x86\xD77Th\xFA\xC6g\xA0\xA5'\x01l)P\x8EE\x85C\xD8\xAAM\xF2\xAB\xEEx\x83\x01\x83\x02\x82\x1Dm\x019`\x1A.\xFA\xBEq~`L\xBBH\x94\x01\x83\x02\x82\x1Dm\x02$\x7Fz{e\x942\x06I\xAA\x03\xAB\xA1\x01\x83\x02\x82\x1Dl\x8C?8\xE9Zk\x1F\xF2\xAB\x1C;46\x19\x01\x83\x02\x82\x1Dm\x028Gs\xBD\xF1\xACVv\xFA\xCC\xED`\x90\x19\x01\x83\x02\x90\x91\x1Dl\xB9\xA0%\xD8\x14\xB2\x9C!+\x8B\x1A\x07\xCD\x19\x01\x90\x91\x02x\n\tPp\x84\xCCi\x9B\xB0\xE7\x1E\xA8i\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x01\x05q\x13@\xDA\xA0\xD5\xF7i\xDB\xA1\x91\\\xEFY\xF0\x81ZU\x06\x02}\x02g\xA3l\x0C\x95\xB3\x97Z\xB3\xEE[ :v\x14\xA3\xF7Ss\xF0G\xD8\x03\xAE{f\x87\xF2\xB3\x93\x90\x93\x02\x92\x90\x92\x01}W\x11^G\x01\x8Cqw\xEE\xBF|\xD3p\xA35j\x1Bxc\0\x8AZ\xE8\x02\x8Cr\xB8\x86B\x84\x01`\xAE\x1D\x92\x91PPV[`\0\x81`\0\x03a\x13\xA5WPg\r\xE0\xB6\xB3\xA7d\0\0\x91\x90PV[gV\x98\xEE\xF0fp\0\0\x82\x12a\x13\xBCWP`\0\x91\x90PV[a\x13\xCDgV\x98\xEE\xF0fp\0\0a\x1C\xDAV[\x82\x13a\x13\xE2WPg\x1B\xC1mgN\xC8\0\0\x91\x90PV[`\0a\x13\xED\x83a\x17\xE0V[\x90P`\0a\x14&g\r\xE0\xB6\xB3\xA7d\0\0a\x14\x0F\x84g\x1B\xC1mgN\xC8\0\0a\r#V[a\x14!\x90g\r\xE0\xB6\xB3\xA7d\0\0a\x1D\xD8V[a\x11\x9CV[\x90P`\0\x80\x82a\x14\x82\x81a\x14o\x81a\x14]\x81a\x14J\x81g\x02_\x0F\xE1\x05\xA3\x14\0a\x10\xE3V[a\x0F\xE5\x90g\x0Bh\xDF\x18\xE4q\xFB\xFF\x19a\x1D\xD8V[a\x0F\xE5\x90g\x14\xA8EL\x19\xE1\xAC\0a\x1D\xD8V[a\x0F\xE5\x90g\x0F\xC1\x0E\x01W\x82w\xFF\x19a\x1D\xD8V[a\x14\x94\x90g\x03\xDE\xBD\x08;\x8C|\0a\x1D\xD8V[\x91P\x83\x90Pa\x14\xFC\x81a\x14\xEA\x81a\x14\xD8\x81a\x14\xC6\x81a\x14\xB3\x81\x8Ba\x10\xE3V[a\x0F\xE5\x90g\x02\x95\xD4\0\xEA2W\xFF\x19a\x1D\xD8V[a\x0F\xE5\x90g\x01W\xD8\xB2\xEC\xC7\x08\0a\x1D\xD8V[a\x0F\xE5\x90g\x051\n\xA7\xD5!0\0a\x1D\xD8V[a\x0F\xE5\x90g\r\xE0\xCC=\x15a\0\0a\x1D\xD8V[\x91P\x81g\x11\x90\0\xAB\x10\x0F\xFC\0a\x15\x12\x87\x88a\x10\xE3V[a\x15\x1E\x90`\0\x19a\x1E\0V[a\x15(\x91\x90a\x1D\xB1V[a\x152\x91\x90a\x1D\xD8V[\x92PP`\0a\x15@\x83a\x15pV[\x90P`\0a\x15N\x85\x83a\x10\xE3V[\x90P`\0\x88\x12a\x15^W\x80a\x0C\xB1V[a\x0C\xB1\x81g\x1B\xC1mgN\xC8\0\0a\x1D\xB1V[`\0h\x02H\xCE6\xA7\x0C\xB2k>\x19\x82\x13a\x15\x8BWP`\0\x91\x90PV[h\x07U\xBFy\x8BJ\x1B\xF1\xE5\x82\x12a\x15\xD2W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x0C`$\x82\x01RkEXP_OVERFLOW`\xA0\x1B`D\x82\x01R`d\x01a\x04\xDEV[e\x03x-\xAC\xE9\xD9`N\x83\x90\x1B\x05\x91P`\0``k\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x84\x82\x1B\x05`\x01`_\x1B\x01\x90\x1Dk\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x81\x02\x90\x93\x03l$\x0C3\x0E\x9F\xB2\xD9\xCB\xAF\x0F\xD5\xAA\xFB\x19\x81\x01\x81\x02``\x90\x81\x1Dm\x02wYI\x91\xCF\xC8_n$a\x83|\xD9\x01\x82\x02\x81\x1Dm\x1AR\x12U\xE3OjPa\xB2^\xF1\xC9\xC3\x19\x01\x82\x02\x81\x1Dm\xB1\xBB\xB2\x01\xF4C\xCF\x96/\x1A\x1D=\xB4\xA5\x01\x82\x02\x81\x1Dn\x02\xC7#\x88\xD9\xF7OQ\xA93\x1F\xEDi?\x14\x19\x01\x82\x02\x81\x1Dn\x05\x18\x0B\xB1G\x99\xABG\xA8\xA8\xCB*R}W\x01m\x02\xD1g W{\xD1\x9B\xF6\x14\x17o\xE9\xEAl\x10\xFEh\xE7\xFD7\xD0\0{q?vP\x84\x01\x84\x02\x83\x1D\x90\x81\x01\x90\x84\x01m\x01\xD3\x96~\xD3\x0F\xC4\xF8\x9C\x02\xBA\xB5p\x81\x19\x01\x02\x90\x91\x1Dn\x05\x87\xF5\x03\xBBn\xA2\x9D%\xFC\xB7@\x19dP\x01\x90\x91\x02m6\rz\xEE\xA0\x93&>\xCCn\x0E\xCB)\x17`b\x1B\x01\x05t\x02\x9D\x9D\xC3\x85c\xC3.\\/m\xC1\x92\xEEp\xEFe\xF9\x97\x8A\xF3\x02`\xC3\x93\x90\x93\x03\x92\x90\x92\x1C\x92\x91PPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x05\x85\x14\x17\x16a\x171W`\0\x80\xFD[\x05\x92\x91PPV[`\0\x80\x82\x11a\x17uW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x04\xDEV[P`\x01o\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x82\x11`\x07\x1B\x82\x81\x1Cg\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x10`\x06\x1B\x17\x82\x81\x1Cc\xFF\xFF\xFF\xFF\x10`\x05\x1B\x17\x82\x81\x1Ca\xFF\xFF\x10`\x04\x1B\x17\x82\x81\x1C`\xFF\x10`\x03\x90\x81\x1B\x90\x91\x17\x83\x81\x1C`\x0F\x10`\x02\x1B\x17\x83\x81\x1C\x90\x91\x10\x82\x1B\x17\x91\x82\x1C\x11\x17\x90V[`\0`\x01`\xFF\x1B\x82\x03a\x18\x06W`@QcM-u\xB1`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0\x82\x12\x15a\x18\x17WP\x19`\x01\x01\x90V[P\x90V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x81\xFD[`\0\x80` \x83\x85\x03\x12\x15a\x19*Wa\x19*a\x18\x1BV[\x825g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x19EWa\x19Ea\x18kV[\x81\x85\x01\x91P\x85`\x1F\x83\x01\x12a\x19\\Wa\x19\\a\x18\xBBV[\x815\x81\x81\x11\x15a\x19\xBFW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x81\xFD[\x86` \x82\x85\x01\x01\x11\x15a\x1A'W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R\x91P`\x84\x82\xFD[` \x92\x90\x92\x01\x96\x91\x95P\x90\x93PPPPV[`\0\x80`@\x83\x85\x03\x12\x15a\x1AOWa\x1AOa\x18\x1BV[PP\x805\x92` \x90\x91\x015\x91PV[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[`@Q``\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1A\x97Wa\x1A\x97a\x1A^V[`@R\x90V[`@Q`\x1F\x82\x01`\x1F\x19\x16\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1A\xC6Wa\x1A\xC6a\x1A^V[`@R\x91\x90PV[`\0` \x80\x83\x85\x03\x12\x15a\x1A\xE4Wa\x1A\xE4a\x18\x1BV[\x825g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x1A\xFFWa\x1A\xFFa\x18kV[\x81\x85\x01\x91P\x85`\x1F\x83\x01\x12a\x1B\x16Wa\x1B\x16a\x18\xBBV[\x815\x81\x81\x11\x15a\x1B(Wa\x1B(a\x1A^V[a\x1B:`\x1F\x82\x01`\x1F\x19\x16\x85\x01a\x1A\x9DV[\x91P\x80\x82R\x86\x84\x82\x85\x01\x01\x11\x15a\x1B\xA0W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x81\x01\x85\x90R`'`$\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R`\x84\x81\xFD[\x80\x84\x84\x01\x85\x84\x017`\0\x90\x82\x01\x90\x93\x01\x92\x90\x92RP\x93\x92PPPV[`\0` \x80\x83R\x83Q\x80\x82\x85\x01R`\0[\x81\x81\x10\x15a\x1B\xE9W\x85\x81\x01\x83\x01Q\x85\x82\x01`@\x01R\x82\x01a\x1B\xCDV[P`\0`@\x82\x86\x01\x01R`@`\x1F\x19`\x1F\x83\x01\x16\x85\x01\x01\x92PPP\x92\x91PPV[`\0\x80`\0\x80\x84\x86\x03`\xC0\x81\x12\x15a\x1C$Wa\x1C$a\x18\x1BV[\x855\x94P` \x86\x015\x93P`@\x86\x015\x92P```_\x19\x82\x01\x12\x15a\x1C\x94W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`#`$\x82\x01R\x7FABI decoding: struct data too sh`D\x82\x01Rb\x1B\xDC\x9D`\xEA\x1B`d\x82\x01R`\x84\x81\xFD[Pa\x1C\x9Da\x1AtV[``\x86\x015\x81R`\x80\x86\x015` \x82\x01R`\xA0\x90\x95\x015`@\x86\x01RP\x91\x94\x90\x93P\x90\x91\x90V[cNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[`\0`\x01`\xFF\x1B\x82\x01a\x1C\xEFWa\x1C\xEFa\x1C\xC4V[P`\0\x03\x90V[` \x80\x82R`\x11\x90\x82\x01Rp\x15\\\x19\x18]\x19H\x19[\x99\x08\x1C\x18\\\xDC\xD9Y`z\x1B`@\x82\x01R``\x01\x90V[\x81\x81\x03\x81\x81\x11\x15a\r\x08Wa\r\x08a\x1C\xC4V[`\0\x82a\x1DQWcNH{q`\xE0\x1B`\0R`\x12`\x04R`$`\0\xFD[P\x04\x90V[`\0\x80`\0``\x84\x86\x03\x12\x15a\x1DnWa\x1Dna\x18\x1BV[\x83Q\x92P` \x84\x01Q\x91P`@\x84\x01Q\x90P\x92P\x92P\x92V[\x80\x82\x02\x81\x15\x82\x82\x04\x84\x14\x17a\r\x08Wa\r\x08a\x1C\xC4V[\x80\x82\x01\x80\x82\x11\x15a\r\x08Wa\r\x08a\x1C\xC4V[\x81\x81\x03`\0\x83\x12\x80\x15\x83\x83\x13\x16\x83\x83\x12\x82\x16\x17\x15a\x1D\xD1Wa\x1D\xD1a\x1C\xC4V[P\x92\x91PPV[\x80\x82\x01\x82\x81\x12`\0\x83\x12\x80\x15\x82\x16\x82\x15\x82\x16\x17\x15a\x1D\xF8Wa\x1D\xF8a\x1C\xC4V[PP\x92\x91PPV[\x80\x82\x02`\0\x82\x12`\x01`\xFF\x1B\x84\x14\x16\x15a\x1E\x1CWa\x1E\x1Ca\x1C\xC4V[\x81\x81\x05\x83\x14\x82\x15\x17a\r\x08Wa\r\x08a\x1C\xC4V";
+    const __BYTECODE: &[u8] = b"`\x80`@R4\x80\x15b\0\0^W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`@Qb\0%\xE98\x03\x80b\0%\xE9\x839\x81\x01`@\x81\x90Rb\0\0\x81\x91b\0\0\xA7V[`\0\x80T`\x01`\x01`\xA0\x1B\x03\x19\x16`\x01`\x01`\xA0\x1B\x03\x92\x90\x92\x16\x91\x90\x91\x17\x90Ub\0\x01$V[`\0` \x82\x84\x03\x12\x15b\0\x01\x05W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[\x81Q`\x01`\x01`\xA0\x1B\x03\x81\x16\x81\x14b\0\x01\x1DW`\0\x80\xFD[\x93\x92PPPV[a$\xB5\x80b\0\x014`\09`\0\xF3\xFE`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\xF5W`\x005`\xE0\x1C\x80crQ0\x8C\x11a\0\xBEW\x80crQ0\x8C\x14a\x02\xCBW\x80c\x8E-\xD4\0\x14a\x02\xDEW\x80c\x9F\x83\x13{\x14a\x03\x1BW\x80c\xAF\xBA\x13\xC4\x14a\x03.W\x80c\xD7\x10\x955\x14a\x03YW\x80c\xDC\x17\x83U\x14a\x03lWa\0\xF5V[\x80b.RK\x14a\x01ZW\x80c\x02\x16\xB88\x14a\x01\x80W\x80c\x1E\xDBq\xE5\x14a\x01\x95W\x80c2\x14\x89\x0F\x14a\x02vW\x80c?C\xBA\xAC\x14a\x02\xB8W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01ma\x01h6`\x04a\x1E\x1AV[a\x03\x8CV[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x01\x93a\x01\x8E6`\x04a\x1F\x12V[a\x03\xDFV[\0[a\x02fa\x01\xA36`\x04a AV[`\x01` \x81\x81R`\0\x92\x83R`@\x92\x83\x90 \x83Q`\xA0\x80\x82\x01\x86R\x82T\x82R\x93\x82\x01T\x81\x84\x01R`\x02\x82\x01T\x81\x86\x01R`\x03\x82\x01T``\x80\x83\x01\x91\x90\x91R`\x04\x83\x01T`\x80\x80\x84\x01\x91\x90\x91R\x86Q\x80\x87\x01\x88R`\x05\x85\x01T\x81R`\x06\x85\x01T\x81\x87\x01R`\x07\x85\x01T\x81\x89\x01R`\x08\x85\x01T\x81\x84\x01R`\t\x85\x01T\x81\x83\x01R\x87Q\x96\x87\x01\x88R`\n\x85\x01T\x87R`\x0B\x85\x01T\x95\x87\x01\x95\x90\x95R`\x0C\x84\x01T\x96\x86\x01\x96\x90\x96R`\r\x83\x01T\x90\x85\x01R`\x0E\x82\x01T\x94\x84\x01\x94\x90\x94R`\x0F\x01T\x90\x91\x90\x84V[`@Qa\x01w\x94\x93\x92\x91\x90a ]V[a\x02\x89a\x02\x846`\x04a\x1E\x1AV[a\x04\x9CV[`@\x80Q\x96\x15\x15\x87R` \x87\x01\x95\x90\x95R\x93\x85\x01\x92\x90\x92R``\x84\x01R`\x80\x83\x01R`\xA0\x82\x01R`\xC0\x01a\x01wV[a\x01\x93a\x02\xC66`\x04a!\x0CV[a\x07\x08V[a\x01\x93a\x02\xD96`\x04a!\x0CV[a\x08\x9CV[a\x02\xF1a\x02\xEC6`\x04a\x1F\x12V[a\n4V[`@\x80Q\x95\x15\x15\x86R` \x86\x01\x94\x90\x94R\x92\x84\x01\x91\x90\x91R``\x83\x01R`\x80\x82\x01R`\xA0\x01a\x01wV[a\x02\xF1a\x03)6`\x04a\x1F\x12V[a\n\x83V[`\0Ta\x03A\x90`\x01`\x01`\xA0\x1B\x03\x16\x81V[`@Q`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x81R` \x01a\x01wV[a\x01\x93a\x03g6`\x04a!\x0CV[a\n\xABV[a\x03\x7Fa\x03z6`\x04a AV[a\x0CAV[`@Qa\x01w\x91\x90a!;V[`\0\x80`\0\x80\x84\x80` \x01\x90Q\x81\x01\x90a\x03\xA6\x91\x90a!\x89V[\x92P\x92P\x92Pa\x03\xD3\x83\x83\x83a\x03\xBB\x8Aa\x0CAV[\x80` \x01\x90Q\x81\x01\x90a\x03\xCE\x91\x90a\"\x0BV[a\r\xDAV[\x93PPPP[\x92\x91PPV[`\0a\x03\xED\x82\x84\x01\x84a\"\xC7V[`\0\x94\x85R`\x01` \x81\x81R`@\x96\x87\x90 \x83Q\x80Q\x82U\x80\x83\x01Q\x93\x82\x01\x93\x90\x93U\x82\x88\x01Q`\x02\x82\x01U``\x80\x84\x01Q`\x03\x83\x01U`\x80\x93\x84\x01Q`\x04\x83\x01U\x82\x85\x01Q\x80Q`\x05\x84\x01U\x80\x84\x01Q`\x06\x84\x01U\x80\x8A\x01Q`\x07\x84\x01U\x80\x82\x01Q`\x08\x84\x01U\x84\x01Q`\t\x83\x01U\x88\x85\x01Q\x80Q`\n\x84\x01U\x92\x83\x01Q`\x0B\x83\x01U\x97\x82\x01Q`\x0C\x82\x01U\x81\x88\x01Q`\r\x82\x01U\x91\x01Q`\x0E\x82\x01U\x94\x01Q`\x0F\x90\x94\x01\x93\x90\x93UPPPV[`\0\x80`\0\x80`\0\x80`\0a\x04\xB0\x89a\x0CAV[\x80` \x01\x90Q\x81\x01\x90a\x04\xC3\x91\x90a\"\x0BV[`\0\x80T`@Qc3\x85N\xFD`\xE2\x1B\x81R`\x04\x81\x01\x8D\x90R\x92\x93P\x90\x91\x82\x91\x82\x91`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x90c\xCE\x15;\xF4\x90`$\x01```@Q\x80\x83\x03\x81\x86\x80;\x15\x80\x15a\x05aW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`%`$\x82\x01R\x7FTarget contract does not contain`D\x82\x01\x90\x81Rd code`\xD8\x1B`d\x83\x01R`\x84\x82\xFD[PZ\xFA\x15\x80\x15a\x05uW=`\0\x80>=`\0\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\x05\x99\x91\x90a!\x89V[\x92P\x92P\x92P\x8A\x80` \x01\x90Q\x81\x01\x90a\x05\xB3\x91\x90a!\x89V[\x91\x98P\x96P\x94P`\0\x80\x80\x85\x8A\x11\x15a\x06\x10Wa\x05\xD0\x86\x8Ba#?V[\x91Pa\x05\xE9\x87``\x01Q\x83a\x0E\xEC\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x05\xFF\x86a\x05\xF9\x83\x87a\x0E\xECV[\x90a\x0F\x08V[a\x06\t\x90\x84a#RV[\x92Pa\x06\xB1V[\x84\x89\x11\x15a\x06KWa\x06\"\x85\x8Aa#?V[\x91Pa\x06;\x87``\x01Q\x83a\x0E\xEC\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x05\xFF\x85a\x05\xF9\x83\x87a\x0E\xECV[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`0`$\x82\x01R\x7Finvalid swap: inputs x and y hav`D\x82\x01Roe the same sign!`\x80\x1B`d\x82\x01R`\x84\x01[`@Q\x80\x91\x03\x90\xFD[a\x06\xBB\x84\x89a#eV[\x9APa\x06\xC9\x8A\x8A\x8A\x8Aa\r\xDAV[\x9BP`\0\x8Ca\x06\xD8`\x1Ea#\x8CV[\x12\x80\x15a\x06\xE5WP`\x1E\x8D\x12[\x90P\x80\x80\x15a\x06\xF4WP\x83\x8C\x12\x15[\x9DPPPPPPPPP\x92\x95P\x92\x95P\x92\x95V[`\0\x83\x81R`\x01` \x81\x81R`@\x92\x83\x90 \x83Qa\x01 \x81\x01\x85R\x81T`\x80\x80\x83\x01\x91\x82R\x94\x83\x01T`\xA0\x80\x84\x01\x91\x90\x91R`\x02\x84\x01T`\xC0\x84\x01R`\x03\x84\x01T`\xE0\x84\x01R`\x04\x84\x01Ta\x01\0\x84\x01R\x90\x82R\x85Q\x80\x82\x01\x87R`\x05\x84\x01T\x81R`\x06\x84\x01T\x81\x86\x01R`\x07\x84\x01T\x81\x88\x01R`\x08\x84\x01T``\x80\x83\x01\x91\x90\x91R`\t\x85\x01T\x82\x88\x01R\x83\x86\x01\x91\x82R\x87Q\x92\x83\x01\x88R`\n\x85\x01T\x83R`\x0B\x85\x01T\x95\x83\x01\x95\x90\x95R`\x0C\x84\x01T\x82\x88\x01R`\r\x84\x01T\x82\x86\x01R`\x0E\x84\x01T\x95\x82\x01\x95\x90\x95R\x94\x81\x01\x94\x90\x94R`\x0F\x01T\x90\x83\x01RQa\x07\xEC\x90\x84\x84a\x0F\x1DV[` \x80\x83\x01\x91\x82R`\0\x95\x86R`\x01\x80\x82R`@\x96\x87\x90 \x84Q\x80Q\x82U\x80\x84\x01Q\x92\x82\x01\x92\x90\x92U\x81\x88\x01Q`\x02\x82\x01U``\x80\x83\x01Q`\x03\x83\x01U`\x80\x92\x83\x01Q`\x04\x83\x01U\x93Q\x80Q`\x05\x83\x01U\x80\x84\x01Q`\x06\x83\x01U\x80\x89\x01Q`\x07\x83\x01U\x80\x85\x01Q`\x08\x83\x01U\x82\x01Q`\t\x82\x01U\x87\x85\x01Q\x80Q`\n\x83\x01U\x92\x83\x01Q`\x0B\x82\x01U\x96\x82\x01Q`\x0C\x88\x01U\x81\x83\x01Q`\r\x88\x01U\x01Q`\x0E\x86\x01U\x01Q`\x0F\x90\x93\x01\x92\x90\x92UPPV[`\0\x83\x81R`\x01` \x81\x81R`@\x92\x83\x90 \x83Qa\x01 \x81\x01\x85R\x81T`\x80\x80\x83\x01\x91\x82R\x94\x83\x01T`\xA0\x80\x84\x01\x91\x90\x91R`\x02\x84\x01T`\xC0\x84\x01R`\x03\x84\x01T`\xE0\x84\x01R`\x04\x84\x01Ta\x01\0\x84\x01R\x90\x82R\x85Q\x80\x82\x01\x87R`\x05\x84\x01T\x81R`\x06\x84\x01T\x81\x86\x01R`\x07\x84\x01T\x81\x88\x01R`\x08\x84\x01T``\x80\x83\x01\x91\x90\x91R`\t\x85\x01T\x82\x88\x01R\x83\x86\x01\x91\x90\x91R\x86Q\x91\x82\x01\x87R`\n\x84\x01T\x82R`\x0B\x84\x01T\x94\x82\x01\x94\x90\x94R`\x0C\x83\x01T\x81\x87\x01R`\r\x83\x01T\x81\x85\x01R`\x0E\x83\x01T\x94\x81\x01\x94\x90\x94R\x93\x84\x01\x92\x90\x92R`\x0F\x90\x91\x01T\x90\x82\x01R\x80Qa\t\x84\x90\x84\x84a\x0F\x1DV[\x81R`\0\x93\x84R`\x01` \x81\x81R`@\x95\x86\x90 \x83Q\x80Q\x82U\x80\x83\x01Q\x93\x82\x01\x93\x90\x93U\x82\x87\x01Q`\x02\x82\x01U``\x80\x84\x01Q`\x03\x83\x01U`\x80\x93\x84\x01Q`\x04\x83\x01U\x82\x85\x01Q\x80Q`\x05\x84\x01U\x80\x84\x01Q`\x06\x84\x01U\x80\x89\x01Q`\x07\x84\x01U\x80\x82\x01Q`\x08\x84\x01U\x84\x01Q`\t\x83\x01U\x87\x85\x01Q\x80Q`\n\x84\x01U\x92\x83\x01Q`\x0B\x83\x01U\x96\x82\x01Q`\x0C\x82\x01U\x81\x87\x01Q`\r\x82\x01U\x91\x01Q`\x0E\x82\x01U\x93\x01Q`\x0F\x90\x93\x01\x92\x90\x92UPPV[`\0\x80\x80\x80\x80a\nF\x86\x88\x01\x88a!\x0CV[\x91\x94P\x92P\x90Pa\n\\\x83\x83\x83a\x03\xBB\x8Ca\x0CAV[\x93P\x83a\ni`\x1Ea#\x8CV[\x12\x80\x15a\nvWP`\x1E\x84\x12[\x94P\x93\x97\x92\x96P\x93P\x93PV[`\0\x80`\0\x80`\0a\n\x96\x88\x88\x88a\x10\x1FV[P\x93\x9C\x92\x9BP\x90\x99P\x97P\x90\x95P\x93PPPPV[`\0\x83\x81R`\x01` \x81\x81R`@\x92\x83\x90 \x83Qa\x01 \x81\x01\x85R\x81T`\x80\x80\x83\x01\x91\x82R\x94\x83\x01T`\xA0\x80\x84\x01\x91\x90\x91R`\x02\x84\x01T`\xC0\x84\x01R`\x03\x84\x01T`\xE0\x84\x01R`\x04\x84\x01Ta\x01\0\x84\x01R\x90\x82R\x85Q\x80\x82\x01\x87R`\x05\x84\x01T\x81R`\x06\x84\x01T\x81\x86\x01R`\x07\x84\x01T\x81\x88\x01R`\x08\x84\x01T``\x80\x83\x01\x91\x90\x91R`\t\x85\x01T\x82\x88\x01R\x83\x86\x01\x91\x90\x91R\x86Q\x91\x82\x01\x87R`\n\x84\x01T\x82R`\x0B\x84\x01T\x94\x82\x01\x94\x90\x94R`\x0C\x83\x01T\x81\x87\x01R`\r\x83\x01T\x81\x85\x01R`\x0E\x83\x01T\x94\x81\x01\x94\x90\x94R\x93\x84\x01\x83\x90R`\x0F\x01T\x90\x83\x01Ra\x0B\x8E\x90\x84\x84a\x0F\x1DV[`@\x80\x83\x01\x91\x82R`\0\x95\x86R`\x01` \x81\x81R\x96\x82\x90 \x84Q\x80Q\x82U\x80\x89\x01Q\x92\x82\x01\x92\x90\x92U\x81\x83\x01Q`\x02\x82\x01U``\x80\x83\x01Q`\x03\x83\x01U`\x80\x92\x83\x01Q`\x04\x83\x01U\x88\x86\x01Q\x80Q`\x05\x84\x01U\x80\x8A\x01Q`\x06\x84\x01U\x80\x85\x01Q`\x07\x84\x01U\x80\x82\x01Q`\x08\x84\x01U\x83\x01Q`\t\x83\x01U\x93Q\x80Q`\n\x83\x01U\x97\x88\x01Q`\x0B\x82\x01U\x91\x87\x01Q`\x0C\x83\x01U\x86\x83\x01Q`\r\x83\x01U\x95\x90\x95\x01Q`\x0E\x86\x01U\x01Q`\x0F\x90\x93\x01\x92\x90\x92UPPV[``a\x0Cn`@Q\x80`\x80\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x0C\xC9`\x01`\0\x85\x81R` \x01\x90\x81R` \x01`\0 `\0\x01`@Q\x80`\xA0\x01`@R\x90\x81`\0\x82\x01T\x81R` \x01`\x01\x82\x01T\x81R` \x01`\x02\x82\x01T\x81R` \x01`\x03\x82\x01T\x81R` \x01`\x04\x82\x01T\x81RPPa\x10\xD7V[` \x80\x83\x01\x91\x90\x91R`\0\x84\x81R`\x01\x82R`@\x90\x81\x90 \x81Q`\xA0\x81\x01\x83R`\n\x82\x01T\x81R`\x0B\x82\x01T\x93\x81\x01\x93\x90\x93R`\x0C\x81\x01T\x91\x83\x01\x91\x90\x91R`\r\x81\x01T``\x83\x01R`\x0E\x01T`\x80\x82\x01Ra\r$\x90a\x10\xD7V[\x81R`\0\x83\x81R`\x01` \x90\x81R`@\x91\x82\x90 \x82Q`\xA0\x81\x01\x84R`\x05\x82\x01T\x81R`\x06\x82\x01T\x92\x81\x01\x92\x90\x92R`\x07\x81\x01T\x92\x82\x01\x92\x90\x92R`\x08\x82\x01T``\x82\x01R`\t\x90\x91\x01T`\x80\x82\x01Ra\r}\x90a\x10\xD7V[`@\x82\x81\x01\x91\x82R`\0\x94\x85R`\x01` \x90\x81R\x94\x81\x90 `\x0F\x01T``\x80\x85\x01\x91\x82R\x82Q\x85Q\x81\x89\x01R\x96\x90\x94\x01Q\x86\x83\x01R\x91Q\x92\x85\x01\x92\x90\x92RQ`\x80\x80\x85\x01\x91\x90\x91R\x81Q\x80\x85\x03\x90\x91\x01\x81R`\xA0\x90\x93\x01\x90RP\x90V[`\0\x82\x85\x10a\x0E+W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x1A`$\x82\x01R\x7FtradingFunction: invalid x\0\0\0\0\0\0`D\x82\x01R`d\x01a\x06\xA8V[`\0\x80g\r\xE0\xB6\xB3\xA7d\0\0a\x0EA\x88\x87a\x11nV[\x10a\x0EUW`\x01`\x01`\xFF\x1B\x03\x91Pa\x0EjV[a\x0Ega\x0Eb\x88\x87a\x11nV[a\x11\x83V[\x91P[g\r\xE0\xB6\xB3\xA7d\0\0a\x0E\x8A\x87a\x0E\x85\x87`\0\x01Q\x89a\x12)V[a\x11nV[\x10a\x0E\x9DWP`\x01`\x01`\xFF\x1B\x03a\x0E\xB5V[a\x0E\xB2a\x0Eb\x87a\x0E\x85\x87`\0\x01Q\x89a\x12)V[\x90P[`\0a\x0E\xC9\x85` \x01Q\x86`@\x01Qa\x12>V[\x90P\x80a\x0E\xD6\x83\x85a#\xA8V[a\x0E\xE0\x91\x90a#\xA8V[\x98\x97PPPPPPPPV[`\0a\x0F\x01\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x12dV[\x93\x92PPPV[`\0a\x0F\x01\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x12dV[a\x0FO`@Q\x80`\xA0\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[B\x82\x11a\x0F\xB7W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`0`$\x82\x01R\x7FEnd must be greater than current`D\x82\x01Ro\x02\x06&\xC6\xF66\xB2\xE7F\x96\xD6W7F\x16\xD7`\x84\x1B`d\x82\x01R`\x84\x01a\x06\xA8V[`\0a\x0F\xC2\x85a\x12\x92V[\x90P`\0\x84\x82` \x01Q\x11a\x0F\xE5W` \x82\x01Qa\x0F\xE0\x90\x86a#?V[a\x0F\xF5V[\x84\x82` \x01Qa\x0F\xF5\x91\x90a#?V[\x90Pa\x10\x01B\x85a#?V[a\x10\x0B\x90\x82a#\xD0V[``\x83\x01RP\x92\x83RP`@\x82\x01R\x91\x90PV[`\0\x80`\0\x80`\0a\x10R`@Q\x80`\x80\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x10^\x87\x89\x01\x89a#\xF2V[` \x80\x82\x01Q`\0\x8F\x81R`\x01\x92\x83\x90R`@\x90\x81\x90 \x92\x83\x01\x91\x90\x91U\x82\x01Q`\x06\x82\x01U\x81Q`\x0B\x82\x01U``\x82\x01Q`\x0F\x90\x91\x01U\x92\x96P\x90\x94P\x92P\x90Pa\x10\xAF\x84\x84\x84a\x03\xBB\x8Da\x0CAV[\x94P\x84a\x10\xBC`\x1Ea#\x8CV[\x12\x80\x15a\x10\xC9WP`\x1E\x85\x12[\x95P\x93\x97P\x93\x97\x91\x95P\x93PV[`\0\x81`@\x01Q\x82`\x80\x01Q\x03a\x10\xF0WP` \x01Q\x90V[`\0\x82`@\x01QB\x11a\x11\x03WBa\x11\tV[\x82`@\x01Q[\x90P`\0\x83`\x80\x01Q\x82a\x11\x1D\x91\x90a#?V[``\x85\x01Q\x90\x91P\x15a\x11PW``\x84\x01Qa\x119\x90\x82a$nV[\x84` \x01Qa\x11H\x91\x90a#RV[\x94\x93PPPPV[``\x84\x01Qa\x11_\x90\x82a$nV[\x84` \x01Qa\x11H\x91\x90a#?V[`\0a\x0F\x01\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x12\xDCV[`\0g\x06\xF0[Y\xD3\xB2\0\0\x82\x03a\x11\x9CWP`\0\x91\x90PV[g\r\xE0\xB6\xB3\xA7d\0\0\x82\x12a\x11\xC4W`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\x11\xE5W`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\x11\xF2\x83`\x02a$\x85V[\x90P`\0a\x11\xFF\x82a\x12\xFBV[\x90P`\0a\x12\x15g\x13\xA0K\xBD\xFD\xC9\xBE\x88\x83a\x15yV[\x90Pa\x12 \x81a#\x8CV[\x95\x94PPPPPV[`\0a\x0F\x01\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x12\xDCV[`\0\x80a\x12J\x83a\x15\x8EV[a\x12X\x90c;\x9A\xCA\0a$nV[\x90Pa\x11H\x84\x82a\x12)V[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x12|W`\0\x80\xFD[`\x01\x82`\x01\x83\x03\x04\x01\x81\x15\x15\x02\x90P\x93\x92PPPV[a\x12\xC4`@Q\x80`\xA0\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x12\xCD\x82a\x10\xD7V[` \x83\x01RPB`\x80\x82\x01R\x90V[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x12\xF4W`\0\x80\xFD[\x04\x92\x91PPV[`\0\x80\x82\x12\x80a\x13\x12WPg\x1B\xC1mgN\xC8\0\0\x82\x13[\x15a\x130W`@Qc-\x04\x83\xC5`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\x13QW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81g\x1B\xC1mgN\xC8\0\0\x03a\x13yW`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x80\x15a\x13\x84W\x91\x90PV[`\0g\r\xE0\xB6\xB3\xA7d\0\0\x83\x12a\x13\xACWa\x13\xA7\x83g\x1B\xC1mgN\xC8\0\0a#eV[a\x13\xAEV[\x82[\x90P`\0a\x13\xC4\x82g\x1B\xC1mgN\xC8\0\0a\x162V[\x90P\x80`\0\x03a\x13\xE7W`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\x13\xF2\x82a\x16GV[\x90P`\0c;\x9A\xCA\0a\x14\x1Da\x14\x18a\x14\x12g\x1B\xC1mgN\xC8\0\0a#\x8CV[\x85a\x15yV[a\x15\x8EV[a\x14'\x91\x90a$\x85V[\x90P`\0\x80a\x14>\x83g\x03\xC1f\\z\xAB \0a\x15yV[a\x14P\x90g \x05\xFEO&\x8E\xA0\0a#\xA8V[\x90P`\0a\x14\x80\x84a\x14i\x86f\x9F2u$b\xA0\0a\x15yV[a\x14{\x90g\r\xC5R\x7Fd, \0a#\xA8V[a\x15yV[a\x14\x92\x90g\r\xE0\xB6\xB3\xA7d\0\0a#\xA8V[\x90Pa\x14\xB6g\t\xD0(\xCCo _\xFF\x19\x85a\x14\xAC\x85\x85a\x162V[a\x14{\x91\x90a#eV[\x92PPP`\0[`\x02\x81\x10\x15a\x15QW`\0\x86a\x14\xD2\x84a\x18\"V[a\x14\xDC\x91\x90a#eV[\x90P`\0a\x14\xEA\x84\x85a\x15yV[a\x14\xF3\x90a#\x8CV[\x90P`\0a\x15\0\x82a\x1A\x06V[\x90P`\0a\x15\x0E\x86\x85a\x15yV[a\x15 g\x0F\xA8\xCE\xDF\xC2\xAD\xDD\xFA\x84a\x15yV[a\x15*\x91\x90a#eV[\x90Pa\x156\x84\x82a\x162V[a\x15@\x90\x87a#\xA8V[\x95P\x84`\x01\x01\x94PPPPPa\x14\xBDV[g\r\xE0\xB6\xB3\xA7d\0\0\x88\x12a\x15nWa\x15i\x82a#\x8CV[a\x0E\xE0V[P\x96\x95PPPPPPV[`\0a\x0F\x01\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x1B\xAFV[`\xB5\x81`\x01`\x88\x1B\x81\x10a\x15\xA7W`@\x91\x90\x91\x1B\x90`\x80\x1C[i\x01\0\0\0\0\0\0\0\0\0\x81\x10a\x15\xC3W` \x91\x90\x91\x1B\x90`@\x1C[e\x01\0\0\0\0\0\x81\x10a\x15\xDBW`\x10\x91\x90\x91\x1B\x90` \x1C[c\x01\0\0\0\x81\x10a\x15\xF1W`\x08\x91\x90\x91\x1B\x90`\x10\x1C[b\x01\0\0\x01\x02`\x12\x1C\x80\x82\x04\x01`\x01\x90\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x90\x1C\x90\x81\x90\x04\x81\x11\x90\x03\x90V[`\0a\x0F\x01\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x1B\xAFV[`\0\x80\x82\x13a\x16\x84W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x06\xA8V[`\0``a\x16\x91\x84a\x1B\xCEV[\x03`\x9F\x81\x81\x03\x94\x90\x94\x1B\x90\x93\x1ClFWr\xB2\xBB\xBB_\x82K\x15 z0\x81\x01\x81\x02``\x90\x81\x1Dm\x03\x88\xEA\xA2t\x12\xD5\xAC\xA0&\x81]cn\x01\x82\x02\x81\x1Dm\r\xF9\x9A\xC5\x02\x03\x1B\xF9S\xEF\xF4r\xFD\xCC\x01\x82\x02\x81\x1Dm\x13\xCD\xFF\xB2\x9DQ\xD9\x93\"\xBD\xFF_\"\x11\x01\x82\x02\x81\x1Dm\n\x0Ft #\xDE\xF7\x83\xA3\x07\xA9\x86\x91.\x01\x82\x02\x81\x1Dm\x01\x92\r\x80C\xCA\x89\xB5#\x92S(NB\x01\x82\x02\x81\x1Dl\x0Bz\x86\xD77Th\xFA\xC6g\xA0\xA5'\x01l)P\x8EE\x85C\xD8\xAAM\xF2\xAB\xEEx\x83\x01\x83\x02\x82\x1Dm\x019`\x1A.\xFA\xBEq~`L\xBBH\x94\x01\x83\x02\x82\x1Dm\x02$\x7Fz{e\x942\x06I\xAA\x03\xAB\xA1\x01\x83\x02\x82\x1Dl\x8C?8\xE9Zk\x1F\xF2\xAB\x1C;46\x19\x01\x83\x02\x82\x1Dm\x028Gs\xBD\xF1\xACVv\xFA\xCC\xED`\x90\x19\x01\x83\x02\x90\x91\x1Dl\xB9\xA0%\xD8\x14\xB2\x9C!+\x8B\x1A\x07\xCD\x19\x01\x90\x91\x02x\n\tPp\x84\xCCi\x9B\xB0\xE7\x1E\xA8i\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x01\x05q\x13@\xDA\xA0\xD5\xF7i\xDB\xA1\x91\\\xEFY\xF0\x81ZU\x06\x02}\x02g\xA3l\x0C\x95\xB3\x97Z\xB3\xEE[ :v\x14\xA3\xF7Ss\xF0G\xD8\x03\xAE{f\x87\xF2\xB3\x93\x90\x93\x02\x92\x90\x92\x01}W\x11^G\x01\x8Cqw\xEE\xBF|\xD3p\xA35j\x1Bxc\0\x8AZ\xE8\x02\x8Cr\xB8\x86B\x84\x01`\xAE\x1D\x92\x91PPV[`\0\x81`\0\x03a\x18;WPg\r\xE0\xB6\xB3\xA7d\0\0\x91\x90PV[gV\x98\xEE\xF0fp\0\0\x82\x12a\x18RWP`\0\x91\x90PV[a\x18cgV\x98\xEE\xF0fp\0\0a#\x8CV[\x82\x13a\x18xWPg\x1B\xC1mgN\xC8\0\0\x91\x90PV[`\0a\x18\x83\x83a\x1CvV[\x90P`\0a\x18\xBCg\r\xE0\xB6\xB3\xA7d\0\0a\x18\xA5\x84g\x1B\xC1mgN\xC8\0\0a\x11nV[a\x18\xB7\x90g\r\xE0\xB6\xB3\xA7d\0\0a#\xA8V[a\x162V[\x90P`\0\x80\x82a\x19\x18\x81a\x19\x05\x81a\x18\xF3\x81a\x18\xE0\x81g\x02_\x0F\xE1\x05\xA3\x14\0a\x15yV[a\x14{\x90g\x0Bh\xDF\x18\xE4q\xFB\xFF\x19a#\xA8V[a\x14{\x90g\x14\xA8EL\x19\xE1\xAC\0a#\xA8V[a\x14{\x90g\x0F\xC1\x0E\x01W\x82w\xFF\x19a#\xA8V[a\x19*\x90g\x03\xDE\xBD\x08;\x8C|\0a#\xA8V[\x91P\x83\x90Pa\x19\x92\x81a\x19\x80\x81a\x19n\x81a\x19\\\x81a\x19I\x81\x8Ba\x15yV[a\x14{\x90g\x02\x95\xD4\0\xEA2W\xFF\x19a#\xA8V[a\x14{\x90g\x01W\xD8\xB2\xEC\xC7\x08\0a#\xA8V[a\x14{\x90g\x051\n\xA7\xD5!0\0a#\xA8V[a\x14{\x90g\r\xE0\xCC=\x15a\0\0a#\xA8V[\x91P\x81g\x11\x90\0\xAB\x10\x0F\xFC\0a\x19\xA8\x87\x88a\x15yV[a\x19\xB4\x90`\0\x19a$\x85V[a\x19\xBE\x91\x90a#eV[a\x19\xC8\x91\x90a#\xA8V[\x92PP`\0a\x19\xD6\x83a\x1A\x06V[\x90P`\0a\x19\xE4\x85\x83a\x15yV[\x90P`\0\x88\x12a\x19\xF4W\x80a\x0E\xE0V[a\x0E\xE0\x81g\x1B\xC1mgN\xC8\0\0a#eV[`\0h\x02H\xCE6\xA7\x0C\xB2k>\x19\x82\x13a\x1A!WP`\0\x91\x90PV[h\x07U\xBFy\x8BJ\x1B\xF1\xE5\x82\x12a\x1AhW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x0C`$\x82\x01RkEXP_OVERFLOW`\xA0\x1B`D\x82\x01R`d\x01a\x06\xA8V[e\x03x-\xAC\xE9\xD9`N\x83\x90\x1B\x05\x91P`\0``k\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x84\x82\x1B\x05`\x01`_\x1B\x01\x90\x1Dk\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x81\x02\x90\x93\x03l$\x0C3\x0E\x9F\xB2\xD9\xCB\xAF\x0F\xD5\xAA\xFB\x19\x81\x01\x81\x02``\x90\x81\x1Dm\x02wYI\x91\xCF\xC8_n$a\x83|\xD9\x01\x82\x02\x81\x1Dm\x1AR\x12U\xE3OjPa\xB2^\xF1\xC9\xC3\x19\x01\x82\x02\x81\x1Dm\xB1\xBB\xB2\x01\xF4C\xCF\x96/\x1A\x1D=\xB4\xA5\x01\x82\x02\x81\x1Dn\x02\xC7#\x88\xD9\xF7OQ\xA93\x1F\xEDi?\x14\x19\x01\x82\x02\x81\x1Dn\x05\x18\x0B\xB1G\x99\xABG\xA8\xA8\xCB*R}W\x01m\x02\xD1g W{\xD1\x9B\xF6\x14\x17o\xE9\xEAl\x10\xFEh\xE7\xFD7\xD0\0{q?vP\x84\x01\x84\x02\x83\x1D\x90\x81\x01\x90\x84\x01m\x01\xD3\x96~\xD3\x0F\xC4\xF8\x9C\x02\xBA\xB5p\x81\x19\x01\x02\x90\x91\x1Dn\x05\x87\xF5\x03\xBBn\xA2\x9D%\xFC\xB7@\x19dP\x01\x90\x91\x02m6\rz\xEE\xA0\x93&>\xCCn\x0E\xCB)\x17`b\x1B\x01\x05t\x02\x9D\x9D\xC3\x85c\xC3.\\/m\xC1\x92\xEEp\xEFe\xF9\x97\x8A\xF3\x02`\xC3\x93\x90\x93\x03\x92\x90\x92\x1C\x92\x91PPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x05\x85\x14\x17\x16a\x1B\xC7W`\0\x80\xFD[\x05\x92\x91PPV[`\0\x80\x82\x11a\x1C\x0BW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x06\xA8V[P`\x01o\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x82\x11`\x07\x1B\x82\x81\x1Cg\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x10`\x06\x1B\x17\x82\x81\x1Cc\xFF\xFF\xFF\xFF\x10`\x05\x1B\x17\x82\x81\x1Ca\xFF\xFF\x10`\x04\x1B\x17\x82\x81\x1C`\xFF\x10`\x03\x90\x81\x1B\x90\x91\x17\x83\x81\x1C`\x0F\x10`\x02\x1B\x17\x83\x81\x1C\x90\x91\x10\x82\x1B\x17\x91\x82\x1C\x11\x17\x90V[`\0`\x01`\xFF\x1B\x82\x03a\x1C\x9CW`@QcM-u\xB1`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0\x82\x12\x15a\x1C\xADWP\x19`\x01\x01\x90V[P\x90V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x81\xFD[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[`@Q`\x80\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1D\xE3Wa\x1D\xE3a\x1D\xAAV[`@R\x90V[`@Q`\x1F\x82\x01`\x1F\x19\x16\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1E\x12Wa\x1E\x12a\x1D\xAAV[`@R\x91\x90PV[`\0\x80`@\x83\x85\x03\x12\x15a\x1E0Wa\x1E0a\x1C\xB1V[\x825\x91P` \x80\x84\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x1ESWa\x1ESa\x1D\x01V[\x81\x86\x01\x91P\x86`\x1F\x83\x01\x12a\x1EjWa\x1Eja\x1DQV[\x815\x81\x81\x11\x15a\x1E|Wa\x1E|a\x1D\xAAV[a\x1E\x8E`\x1F\x82\x01`\x1F\x19\x16\x85\x01a\x1D\xE9V[\x91P\x80\x82R\x87\x84\x82\x85\x01\x01\x11\x15a\x1E\xF4W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x81\x01\x85\x90R`'`$\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R`\x84\x81\xFD[\x80\x84\x84\x01\x85\x84\x017`\0\x84\x82\x84\x01\x01RP\x80\x93PPPP\x92P\x92\x90PV[`\0\x80`\0`@\x84\x86\x03\x12\x15a\x1F*Wa\x1F*a\x1C\xB1V[\x835\x92P` \x84\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x1FLWa\x1FLa\x1D\x01V[\x81\x86\x01\x91P\x86`\x1F\x83\x01\x12a\x1FcWa\x1Fca\x1DQV[\x815\x81\x81\x11\x15a\x1F\xC6W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x81\xFD[\x87` \x82\x85\x01\x01\x11\x15a .W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R\x91P`\x84\x82\xFD[` \x83\x01\x94P\x80\x93PPPP\x92P\x92P\x92V[`\0` \x82\x84\x03\x12\x15a VWa Va\x1C\xB1V[P5\x91\x90PV[a\x02\0\x81\x01a \x97\x82\x87\x80Q\x82R` \x81\x01Q` \x83\x01R`@\x81\x01Q`@\x83\x01R``\x81\x01Q``\x83\x01R`\x80\x81\x01Q`\x80\x83\x01RPPV[\x84Q`\xA0\x83\x01R` \x85\x01Q`\xC0\x83\x01R`@\x85\x01Q`\xE0\x83\x01R``\x85\x01Qa\x01\0\x83\x01R`\x80\x85\x01Qa\x01 \x83\x01R\x83Qa\x01@\x83\x01R` \x84\x01Qa\x01`\x83\x01R`@\x84\x01Qa\x01\x80\x83\x01R``\x84\x01Qa\x01\xA0\x83\x01R`\x80\x84\x01Qa\x01\xC0\x83\x01R\x82a\x01\xE0\x83\x01R\x95\x94PPPPPV[`\0\x80`\0``\x84\x86\x03\x12\x15a!$Wa!$a\x1C\xB1V[PP\x815\x93` \x83\x015\x93P`@\x90\x92\x015\x91\x90PV[`\0` \x80\x83R\x83Q\x80\x82\x85\x01R`\0[\x81\x81\x10\x15a!hW\x85\x81\x01\x83\x01Q\x85\x82\x01`@\x01R\x82\x01a!LV[P`\0`@\x82\x86\x01\x01R`@`\x1F\x19`\x1F\x83\x01\x16\x85\x01\x01\x92PPP\x92\x91PPV[`\0\x80`\0``\x84\x86\x03\x12\x15a!\xA1Wa!\xA1a\x1C\xB1V[\x83Q\x92P` \x84\x01Q\x91P`@\x84\x01Q\x90P\x92P\x92P\x92V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`#`$\x82\x01R\x7FABI decoding: struct data too sh`D\x82\x01Rb\x1B\xDC\x9D`\xEA\x1B`d\x82\x01R`\x84\x81\xFD[`\0`\x80\x82\x84\x03\x12\x15a\" Wa\" a\x1C\xB1V[a\"(a\x1D\xC0V[\x82Q\x81R` \x83\x01Q` \x82\x01R`@\x83\x01Q`@\x82\x01R``\x83\x01Q``\x82\x01R\x80\x91PP\x92\x91PPV[`\0`\xA0\x82\x84\x03\x12\x15a\"iWa\"ia!\xBAV[`@Q`\xA0\x81\x01\x81\x81\x10g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x82\x11\x17\x15a\"\x8CWa\"\x8Ca\x1D\xAAV[\x80`@RP\x80\x91P\x825\x81R` \x83\x015` \x82\x01R`@\x83\x015`@\x82\x01R``\x83\x015``\x82\x01R`\x80\x83\x015`\x80\x82\x01RP\x92\x91PPV[`\0a\x02\0\x82\x84\x03\x12\x15a\"\xDDWa\"\xDDa\x1C\xB1V[a\"\xE5a\x1D\xC0V[a\"\xEF\x84\x84a\"TV[\x81Ra\"\xFE\x84`\xA0\x85\x01a\"TV[` \x82\x01Ra#\x11\x84a\x01@\x85\x01a\"TV[`@\x82\x01Ra\x01\xE0\x92\x90\x92\x015``\x83\x01RP\x91\x90PV[cNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[\x81\x81\x03\x81\x81\x11\x15a\x03\xD9Wa\x03\xD9a#)V[\x80\x82\x01\x80\x82\x11\x15a\x03\xD9Wa\x03\xD9a#)V[\x81\x81\x03`\0\x83\x12\x80\x15\x83\x83\x13\x16\x83\x83\x12\x82\x16\x17\x15a#\x85Wa#\x85a#)V[P\x92\x91PPV[`\0`\x01`\xFF\x1B\x82\x01a#\xA1Wa#\xA1a#)V[P`\0\x03\x90V[\x80\x82\x01\x82\x81\x12`\0\x83\x12\x80\x15\x82\x16\x82\x15\x82\x16\x17\x15a#\xC8Wa#\xC8a#)V[PP\x92\x91PPV[`\0\x82a#\xEDWcNH{q`\xE0\x1B`\0R`\x12`\x04R`$`\0\xFD[P\x04\x90V[`\0\x80`\0\x80\x84\x86\x03`\xE0\x81\x12\x15a$\x0CWa$\x0Ca\x1C\xB1V[\x855\x94P` \x86\x015\x93P`@\x86\x015\x92P`\x80`_\x19\x82\x01\x12\x15a$3Wa$3a!\xBAV[Pa$<a\x1D\xC0V[``\x86\x015\x81R`\x80\x86\x015` \x82\x01R`\xA0\x86\x015`@\x82\x01R`\xC0\x86\x015``\x82\x01R\x80\x91PP\x92\x95\x91\x94P\x92PV[\x80\x82\x02\x81\x15\x82\x82\x04\x84\x14\x17a\x03\xD9Wa\x03\xD9a#)V[\x80\x82\x02`\0\x82\x12`\x01`\xFF\x1B\x84\x14\x16\x15a$\xA1Wa$\xA1a#)V[\x81\x81\x05\x83\x14\x82\x15\x17a\x03\xD9Wa\x03\xD9a#)V";
     /// The bytecode of the contract.
     pub static LOGNORMAL_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
         __BYTECODE,
     );
     #[rustfmt::skip]
-    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\x01nW`\x005`\xE0\x1C\x80c\x99\x87\xFEd\x11a\0\xFAW\x80c\xC1\xE0\x04;\x11a\0\xBEW\x80c\xC1\xE0\x04;\x14a\x03=W\x80c\xC5)\x87\xCF\x14a\x03RW\x80c\xCF\xC4\xAFU\x14a\x03ZW\x80c\xEB\xAD\xEF\x01\x14a\x03bW\x80c\xF2\xF4\xEB&\x14a\x03jWa\x01nV[\x80c\x99\x87\xFEd\x14a\x02\xC4W\x80c\xA1\x9C\xD3\xD1\x14a\x02\xD7W\x80c\xAF\xDF1\xCD\x14a\x02\xEAW\x80c\xC1e&\x12\x14a\x02\xF2W\x80c\xC1nP\xEF\x14a\x02\xFBWa\x01nV[\x80cT\xCF*\xEB\x11a\x01AW\x80cT\xCF*\xEB\x14a\x02^W\x80c^aZk\x14a\x02gW\x80cf\x8F\x90U\x14a\x02\x8AW\x80c\x7F\x0EL\x8C\x14a\x02\x9CW\x80c\x8DR\xA1\xFC\x14a\x02\xB1Wa\x01nV[\x80c\x04\xB5\xC7\xAF\x14a\x01\xD3W\x80c.-yi\x14a\x02\x02W\x80c>\x1E3\x92\x14a\x02\nW\x80cM\xDFG\xD4\x14a\x02!W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01\xDBa\x03\x95V[`@\x80Q\x82Q\x81R` \x80\x84\x01Q\x90\x82\x01R\x91\x81\x01Q\x90\x82\x01R``\x01[`@Q\x80\x91\x03\x90\xF3[a\x01\xDBa\x03\xE0V[a\x02\x13`\x0BT\x81V[`@Q\x90\x81R` \x01a\x01\xF9V[a\x024a\x02/6`\x04a\x19\x14V[a\x04)V[`@\x80Q\x95\x15\x15\x86R` \x86\x01\x94\x90\x94R\x92\x84\x01\x91\x90\x91R``\x83\x01R`\x80\x82\x01R`\xA0\x01a\x01\xF9V[a\x02\x13`\x01T\x81V[a\x02oa\x04\x97V[`@\x80Q\x93\x84R` \x84\x01\x92\x90\x92R\x90\x82\x01R``\x01a\x01\xF9V[`\x02T`\x03T`\x04Ta\x02o\x92\x91\x90\x83V[a\x02\xAFa\x02\xAA6`\x04a\x1A9V[a\x04\xBFV[\0[a\x02\xAFa\x02\xBF6`\x04a\x1A9V[a\x05\xB9V[a\x02\xAFa\x02\xD26`\x04a\x1A9V[a\x06}V[a\x02\x13a\x02\xE56`\x04a\x1A\xCEV[a\x07AV[a\x02\x13a\x07xV[a\x02\x13`\x06T\x81V[a\x03\x0Ea\x03\t6`\x04a\x1A\xCEV[a\x07\xE8V[`@\x80Q\x96\x15\x15\x87R` \x87\x01\x95\x90\x95R\x93\x85\x01\x92\x90\x92R``\x84\x01R`\x80\x83\x01R`\xA0\x82\x01R`\xC0\x01a\x01\xF9V[a\x03Ea\tdV[`@Qa\x01\xF9\x91\x90a\x1B\xBCV[a\x02\x13a\t\xACV[a\x02\x13a\n\x17V[a\x02oa\n\x82V[`\0Ta\x03}\x90`\x01`\x01`\xA0\x1B\x03\x16\x81V[`@Q`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x81R` \x01a\x01\xF9V[a\x03\xB9`@Q\x80``\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x03\xC1a\t\xACV[a\x03\xC9a\x07xV[a\x03\xD1a\n\x17V[`@\x84\x01R` \x83\x01R\x81R\x90V[a\x04\x04`@Q\x80``\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[P`@\x80Q``\x81\x01\x82R`\x02T\x81R`\x03T` \x82\x01R`\x04T\x91\x81\x01\x91\x90\x91R\x90V[`\0\x80\x80\x80\x80a\x04;\x86\x88\x01\x88a\x1C\nV[\x80Q`\x02U` \x81\x01Q`\x03U`@\x01Q`\x04U\x91\x94P\x92P\x90Pa\x04^a\x0B\\V[a\x04q\x83\x83\x83a\x04la\x03\x95V[a\x0B\xABV[\x93P\x83a\x04~`\na\x1C\xDAV[\x12\x80\x15a\x04\x8BWP`\n\x84\x12[\x94P\x92\x95P\x92\x95\x90\x93PV[`\0\x80`\0a\x04\xA4a\t\xACV[a\x04\xACa\x07xV[a\x04\xB4a\n\x17V[\x92P\x92P\x92P\x90\x91\x92V[B\x81\x11a\x04\xE7W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x01a\x04\xDE\x90a\x1C\xF6V[`@Q\x80\x91\x03\x90\xFD[a\x04\xEFa\x0C\xBDV[`\0\x82`\x0FT\x11a\x05\x0CW`\x0FTa\x05\x07\x90\x84a\x1D!V[a\x05\x1AV[\x82`\x0FTa\x05\x1A\x91\x90a\x1D!V[\x90Pa\x05&B\x83a\x1D!V[a\x050\x90\x82a\x1D4V[`\x12U`\x10\x83\x90U`\x13\x82\x90U`\x0FT\x7F\x1EK Gg&%\xF4\xDF!\xD4|\xA7\xA0\x0C \x12\xCC\xF7x\xF2w\xBF2(\xDD\xF4Y=o\x84\xAA\x90\x84\x90\x84\x81\x83\x11a\x05\x81W`\x10T`\x0FTa\x05|\x91\x90a\x1D!V[a\x05\x91V[`\x0FT`\x10Ta\x05\x91\x91\x90a\x1D!V[`@\x80Q\x94\x85R` \x85\x01\x93\x90\x93R\x91\x83\x01R``\x82\x01R`\x80\x01`@Q\x80\x91\x03\x90\xA1PPPV[B\x81\x11a\x05\xD8W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x01a\x04\xDE\x90a\x1C\xF6V[a\x05\xE0a\x0C\xCEV[`\0\x82`\nT\x11a\x05\xFDW`\nTa\x05\xF8\x90\x84a\x1D!V[a\x06\x0BV[\x82`\nTa\x06\x0B\x91\x90a\x1D!V[\x90Pa\x06\x17B\x83a\x1D!V[a\x06!\x90\x82a\x1D4V[`\rU`\x0B\x83\x90U`\x0E\x82\x90U`\nT\x7F$\xBBEgU#\x9Cf@Y\xB5\x19\xE4c\xB4\xE5\xEA\xEF\x05\x08~\x87\xB0\xDF\xED\xF6\x06\x11iR\xAC\xEE\x90\x84\x90\x84\x81\x83\x11a\x06mW`\x0BT`\nTa\x05|\x91\x90a\x1D!V[`\nT`\x0BTa\x05\x91\x91\x90a\x1D!V[B\x81\x11a\x06\x9CW`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x01a\x04\xDE\x90a\x1C\xF6V[a\x06\xA4a\x0C\xDFV[`\0\x82`\x05T\x11a\x06\xC1W`\x05Ta\x06\xBC\x90\x84a\x1D!V[a\x06\xCFV[\x82`\x05Ta\x06\xCF\x91\x90a\x1D!V[\x90Pa\x06\xDBB\x83a\x1D!V[a\x06\xE5\x90\x82a\x1D4V[`\x08U`\x06\x83\x90U`\t\x82\x90U`\x05T\x7F\xB9hO\xE86\x87_\xAF\x05m\xB2]\xE9\x85S\x859`\xB3&\x08\x8A\x10!\xAF\xA7[\xA1`\x12d\xF5\x90\x84\x90\x84\x81\x83\x11a\x071W`\x06T`\x05Ta\x05|\x91\x90a\x1D!V[`\x05T`\x06Ta\x05\x91\x91\x90a\x1D!V[`\0\x80`\0\x80\x84\x80` \x01\x90Q\x81\x01\x90a\x07[\x91\x90a\x1DVV[\x92P\x92P\x92Pa\x07o\x83\x83\x83a\x04la\x03\x95V[\x95\x94PPPPPV[`\0`\tTB\x10a\x07\x8AWP`\x06T\x90V[`\x06T`\x05T\x11a\x07\xC1W`\x08T`\x07Ta\x07\xA5\x90Ba\x1D!V[a\x07\xAF\x91\x90a\x1D\x87V[`\x05Ta\x07\xBC\x91\x90a\x1D\x9EV[\x90P\x90V[`\x08T`\x07Ta\x07\xD1\x90Ba\x1D!V[a\x07\xDB\x91\x90a\x1D\x87V[`\x05Ta\x07\xBC\x91\x90a\x1D!V[`\0\x80`\0\x80`\0\x80`\0\x80`\0a\x07\xFEa\n\x82V[\x92P\x92P\x92P\x89\x80` \x01\x90Q\x81\x01\x90a\x08\x18\x91\x90a\x1DVV[\x91\x97P\x95P\x93P`\0\x80\x80\x85\x89\x11\x15a\x08sWa\x085\x86\x8Aa\x1D!V[\x91Pa\x08L`\x01T\x83a\x0C\xF0\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x08b\x86a\x08\\\x83\x87a\x0C\xF0V[\x90a\r\x0EV[a\x08l\x90\x84a\x1D\x9EV[\x92Pa\t\rV[\x84\x88\x11\x15a\x08\xACWa\x08\x85\x85\x89a\x1D!V[\x91Pa\x08\x9C`\x01T\x83a\x0C\xF0\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x08b\x85a\x08\\\x83\x87a\x0C\xF0V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`0`$\x82\x01R\x7Finvalid swap: inputs x and y hav`D\x82\x01Roe the same sign!`\x80\x1B`d\x82\x01R`\x84\x01a\x04\xDEV[a\t\x17\x84\x88a\x1D\xB1V[\x99Pa\t'\x89\x89\x89a\x04la\x03\x95V[\x9AP`\0\x8Ba\t6`\na\x1C\xDAV[\x12\x80\x15a\tCWP`\n\x8C\x12[\x90P\x80\x80\x15a\tRWP\x83\x8B\x12\x15[\x9CPPPPPPPP\x91\x93\x95P\x91\x93\x95V[``a\tna\t\xACV[a\tva\x07xV[a\t~a\n\x17V[`@\x80Q` \x81\x01\x94\x90\x94R\x83\x01\x91\x90\x91R``\x82\x01R`\x80\x01`@Q` \x81\x83\x03\x03\x81R\x90`@R\x90P\x90V[`\0`\x0ETB\x10a\t\xBEWP`\x0BT\x90V[`\x0BT`\nT\x11a\t\xF0W`\rT`\x0CTa\t\xD9\x90Ba\x1D!V[a\t\xE3\x91\x90a\x1D\x87V[`\nTa\x07\xBC\x91\x90a\x1D\x9EV[`\rT`\x0CTa\n\0\x90Ba\x1D!V[a\n\n\x91\x90a\x1D\x87V[`\nTa\x07\xBC\x91\x90a\x1D!V[`\0`\x13TB\x10a\n)WP`\x10T\x90V[`\x10T`\x0FT\x11a\n[W`\x12T`\x11Ta\nD\x90Ba\x1D!V[a\nN\x91\x90a\x1D\x87V[`\x0FTa\x07\xBC\x91\x90a\x1D\x9EV[`\x12T`\x11Ta\nk\x90Ba\x1D!V[a\nu\x91\x90a\x1D\x87V[`\x0FTa\x07\xBC\x91\x90a\x1D!V[`\0\x80`\0\x80`\0\x90T\x90a\x01\0\n\x90\x04`\x01`\x01`\xA0\x1B\x03\x16`\x01`\x01`\xA0\x1B\x03\x16c\xEB\xAD\xEF\x01`@Q\x81c\xFF\xFF\xFF\xFF\x16`\xE0\x1B\x81R`\x04\x01```@Q\x80\x83\x03\x81\x86\x80;\x15\x80\x15a\x0B$W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`%`$\x82\x01R\x7FTarget contract does not contain`D\x82\x01\x90\x81Rd code`\xD8\x1B`d\x83\x01R`\x84\x82\xFD[PZ\xFA\x15\x80\x15a\x0B8W=`\0\x80>=`\0\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\x04\xB4\x91\x90a\x1DVV[`\0a\x0Bfa\x03\xE0V[` \x81\x01Q`\x06\x81\x90U`\x05UB`\t\x81\x90U`\x07\x81\x90U\x81Q`\x0B\x81\x90U`\nU`\x0E\x81\x90U`\x0C\x81\x90U`@\x90\x91\x01Q`\x10\x81\x90U`\x0FU`\x13\x81\x90U`\x11UPV[`\0\x82\x85\x10a\x0B\xFCW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x1A`$\x82\x01R\x7FtradingFunction: invalid x\0\0\0\0\0\0`D\x82\x01R`d\x01a\x04\xDEV[`\0\x80g\r\xE0\xB6\xB3\xA7d\0\0a\x0C\x12\x88\x87a\r#V[\x10a\x0C&W`\x01`\x01`\xFF\x1B\x03\x91Pa\x0C;V[a\x0C8a\x0C3\x88\x87a\r#V[a\r8V[\x91P[g\r\xE0\xB6\xB3\xA7d\0\0a\x0C[\x87a\x0CV\x87`\0\x01Q\x89a\r\xD5V[a\r#V[\x10a\x0CnWP`\x01`\x01`\xFF\x1B\x03a\x0C\x86V[a\x0C\x83a\x0C3\x87a\x0CV\x87`\0\x01Q\x89a\r\xD5V[\x90P[`\0a\x0C\x9A\x85` \x01Q\x86`@\x01Qa\r\xEAV[\x90P\x80a\x0C\xA7\x83\x85a\x1D\xD8V[a\x0C\xB1\x91\x90a\x1D\xD8V[\x98\x97PPPPPPPPV[a\x0C\xC5a\n\x17V[`\x0FUB`\x11UV[a\x0C\xD6a\t\xACV[`\nUB`\x0CUV[a\x0C\xE7a\x07xV[`\x05UB`\x07UV[`\0a\r\x05\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x0E\x18V[\x90P[\x92\x91PPV[`\0a\r\x05\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x0E\x18V[`\0a\r\x05\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x0EFV[`\0g\x06\xF0[Y\xD3\xB2\0\0\x82\x03a\rQWP`\0\x91\x90PV[g\r\xE0\xB6\xB3\xA7d\0\0\x82\x12a\ryW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\r\x9AW`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\r\xA7\x83`\x02a\x1E\0V[\x90P`\0a\r\xB4\x82a\x0EeV[\x90P`\0a\r\xCAg\x13\xA0K\xBD\xFD\xC9\xBE\x88\x83a\x10\xE3V[\x90Pa\x07o\x81a\x1C\xDAV[`\0a\r\x05\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x0EFV[`\0\x80a\r\xF6\x83a\x10\xF8V[a\x0E\x04\x90c;\x9A\xCA\0a\x1D\x87V[\x90Pa\x0E\x10\x84\x82a\r\xD5V[\x94\x93PPPPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x0E0W`\0\x80\xFD[`\x01\x82`\x01\x83\x03\x04\x01\x81\x15\x15\x02\x90P\x93\x92PPPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x0E^W`\0\x80\xFD[\x04\x92\x91PPV[`\0\x80\x82\x12\x80a\x0E|WPg\x1B\xC1mgN\xC8\0\0\x82\x13[\x15a\x0E\x9AW`@Qc-\x04\x83\xC5`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\x0E\xBBW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81g\x1B\xC1mgN\xC8\0\0\x03a\x0E\xE3W`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x80\x15a\x0E\xEEW\x91\x90PV[`\0g\r\xE0\xB6\xB3\xA7d\0\0\x83\x12a\x0F\x16Wa\x0F\x11\x83g\x1B\xC1mgN\xC8\0\0a\x1D\xB1V[a\x0F\x18V[\x82[\x90P`\0a\x0F.\x82g\x1B\xC1mgN\xC8\0\0a\x11\x9CV[\x90P\x80`\0\x03a\x0FQW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\x0F\\\x82a\x11\xB1V[\x90P`\0c;\x9A\xCA\0a\x0F\x87a\x0F\x82a\x0F|g\x1B\xC1mgN\xC8\0\0a\x1C\xDAV[\x85a\x10\xE3V[a\x10\xF8V[a\x0F\x91\x91\x90a\x1E\0V[\x90P`\0\x80a\x0F\xA8\x83g\x03\xC1f\\z\xAB \0a\x10\xE3V[a\x0F\xBA\x90g \x05\xFEO&\x8E\xA0\0a\x1D\xD8V[\x90P`\0a\x0F\xEA\x84a\x0F\xD3\x86f\x9F2u$b\xA0\0a\x10\xE3V[a\x0F\xE5\x90g\r\xC5R\x7Fd, \0a\x1D\xD8V[a\x10\xE3V[a\x0F\xFC\x90g\r\xE0\xB6\xB3\xA7d\0\0a\x1D\xD8V[\x90Pa\x10 g\t\xD0(\xCCo _\xFF\x19\x85a\x10\x16\x85\x85a\x11\x9CV[a\x0F\xE5\x91\x90a\x1D\xB1V[\x92PPP`\0[`\x02\x81\x10\x15a\x10\xBBW`\0\x86a\x10<\x84a\x13\x8CV[a\x10F\x91\x90a\x1D\xB1V[\x90P`\0a\x10T\x84\x85a\x10\xE3V[a\x10]\x90a\x1C\xDAV[\x90P`\0a\x10j\x82a\x15pV[\x90P`\0a\x10x\x86\x85a\x10\xE3V[a\x10\x8Ag\x0F\xA8\xCE\xDF\xC2\xAD\xDD\xFA\x84a\x10\xE3V[a\x10\x94\x91\x90a\x1D\xB1V[\x90Pa\x10\xA0\x84\x82a\x11\x9CV[a\x10\xAA\x90\x87a\x1D\xD8V[\x95P\x84`\x01\x01\x94PPPPPa\x10'V[g\r\xE0\xB6\xB3\xA7d\0\0\x88\x12a\x10\xD8Wa\x10\xD3\x82a\x1C\xDAV[a\x0C\xB1V[P\x96\x95PPPPPPV[`\0a\r\x05\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x17\x19V[`\xB5\x81`\x01`\x88\x1B\x81\x10a\x11\x11W`@\x91\x90\x91\x1B\x90`\x80\x1C[i\x01\0\0\0\0\0\0\0\0\0\x81\x10a\x11-W` \x91\x90\x91\x1B\x90`@\x1C[e\x01\0\0\0\0\0\x81\x10a\x11EW`\x10\x91\x90\x91\x1B\x90` \x1C[c\x01\0\0\0\x81\x10a\x11[W`\x08\x91\x90\x91\x1B\x90`\x10\x1C[b\x01\0\0\x01\x02`\x12\x1C\x80\x82\x04\x01`\x01\x90\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x90\x1C\x90\x81\x90\x04\x81\x11\x90\x03\x90V[`\0a\r\x05\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x17\x19V[`\0\x80\x82\x13a\x11\xEEW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x04\xDEV[`\0``a\x11\xFB\x84a\x178V[\x03`\x9F\x81\x81\x03\x94\x90\x94\x1B\x90\x93\x1ClFWr\xB2\xBB\xBB_\x82K\x15 z0\x81\x01\x81\x02``\x90\x81\x1Dm\x03\x88\xEA\xA2t\x12\xD5\xAC\xA0&\x81]cn\x01\x82\x02\x81\x1Dm\r\xF9\x9A\xC5\x02\x03\x1B\xF9S\xEF\xF4r\xFD\xCC\x01\x82\x02\x81\x1Dm\x13\xCD\xFF\xB2\x9DQ\xD9\x93\"\xBD\xFF_\"\x11\x01\x82\x02\x81\x1Dm\n\x0Ft #\xDE\xF7\x83\xA3\x07\xA9\x86\x91.\x01\x82\x02\x81\x1Dm\x01\x92\r\x80C\xCA\x89\xB5#\x92S(NB\x01\x82\x02\x81\x1Dl\x0Bz\x86\xD77Th\xFA\xC6g\xA0\xA5'\x01l)P\x8EE\x85C\xD8\xAAM\xF2\xAB\xEEx\x83\x01\x83\x02\x82\x1Dm\x019`\x1A.\xFA\xBEq~`L\xBBH\x94\x01\x83\x02\x82\x1Dm\x02$\x7Fz{e\x942\x06I\xAA\x03\xAB\xA1\x01\x83\x02\x82\x1Dl\x8C?8\xE9Zk\x1F\xF2\xAB\x1C;46\x19\x01\x83\x02\x82\x1Dm\x028Gs\xBD\xF1\xACVv\xFA\xCC\xED`\x90\x19\x01\x83\x02\x90\x91\x1Dl\xB9\xA0%\xD8\x14\xB2\x9C!+\x8B\x1A\x07\xCD\x19\x01\x90\x91\x02x\n\tPp\x84\xCCi\x9B\xB0\xE7\x1E\xA8i\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x01\x05q\x13@\xDA\xA0\xD5\xF7i\xDB\xA1\x91\\\xEFY\xF0\x81ZU\x06\x02}\x02g\xA3l\x0C\x95\xB3\x97Z\xB3\xEE[ :v\x14\xA3\xF7Ss\xF0G\xD8\x03\xAE{f\x87\xF2\xB3\x93\x90\x93\x02\x92\x90\x92\x01}W\x11^G\x01\x8Cqw\xEE\xBF|\xD3p\xA35j\x1Bxc\0\x8AZ\xE8\x02\x8Cr\xB8\x86B\x84\x01`\xAE\x1D\x92\x91PPV[`\0\x81`\0\x03a\x13\xA5WPg\r\xE0\xB6\xB3\xA7d\0\0\x91\x90PV[gV\x98\xEE\xF0fp\0\0\x82\x12a\x13\xBCWP`\0\x91\x90PV[a\x13\xCDgV\x98\xEE\xF0fp\0\0a\x1C\xDAV[\x82\x13a\x13\xE2WPg\x1B\xC1mgN\xC8\0\0\x91\x90PV[`\0a\x13\xED\x83a\x17\xE0V[\x90P`\0a\x14&g\r\xE0\xB6\xB3\xA7d\0\0a\x14\x0F\x84g\x1B\xC1mgN\xC8\0\0a\r#V[a\x14!\x90g\r\xE0\xB6\xB3\xA7d\0\0a\x1D\xD8V[a\x11\x9CV[\x90P`\0\x80\x82a\x14\x82\x81a\x14o\x81a\x14]\x81a\x14J\x81g\x02_\x0F\xE1\x05\xA3\x14\0a\x10\xE3V[a\x0F\xE5\x90g\x0Bh\xDF\x18\xE4q\xFB\xFF\x19a\x1D\xD8V[a\x0F\xE5\x90g\x14\xA8EL\x19\xE1\xAC\0a\x1D\xD8V[a\x0F\xE5\x90g\x0F\xC1\x0E\x01W\x82w\xFF\x19a\x1D\xD8V[a\x14\x94\x90g\x03\xDE\xBD\x08;\x8C|\0a\x1D\xD8V[\x91P\x83\x90Pa\x14\xFC\x81a\x14\xEA\x81a\x14\xD8\x81a\x14\xC6\x81a\x14\xB3\x81\x8Ba\x10\xE3V[a\x0F\xE5\x90g\x02\x95\xD4\0\xEA2W\xFF\x19a\x1D\xD8V[a\x0F\xE5\x90g\x01W\xD8\xB2\xEC\xC7\x08\0a\x1D\xD8V[a\x0F\xE5\x90g\x051\n\xA7\xD5!0\0a\x1D\xD8V[a\x0F\xE5\x90g\r\xE0\xCC=\x15a\0\0a\x1D\xD8V[\x91P\x81g\x11\x90\0\xAB\x10\x0F\xFC\0a\x15\x12\x87\x88a\x10\xE3V[a\x15\x1E\x90`\0\x19a\x1E\0V[a\x15(\x91\x90a\x1D\xB1V[a\x152\x91\x90a\x1D\xD8V[\x92PP`\0a\x15@\x83a\x15pV[\x90P`\0a\x15N\x85\x83a\x10\xE3V[\x90P`\0\x88\x12a\x15^W\x80a\x0C\xB1V[a\x0C\xB1\x81g\x1B\xC1mgN\xC8\0\0a\x1D\xB1V[`\0h\x02H\xCE6\xA7\x0C\xB2k>\x19\x82\x13a\x15\x8BWP`\0\x91\x90PV[h\x07U\xBFy\x8BJ\x1B\xF1\xE5\x82\x12a\x15\xD2W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x0C`$\x82\x01RkEXP_OVERFLOW`\xA0\x1B`D\x82\x01R`d\x01a\x04\xDEV[e\x03x-\xAC\xE9\xD9`N\x83\x90\x1B\x05\x91P`\0``k\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x84\x82\x1B\x05`\x01`_\x1B\x01\x90\x1Dk\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x81\x02\x90\x93\x03l$\x0C3\x0E\x9F\xB2\xD9\xCB\xAF\x0F\xD5\xAA\xFB\x19\x81\x01\x81\x02``\x90\x81\x1Dm\x02wYI\x91\xCF\xC8_n$a\x83|\xD9\x01\x82\x02\x81\x1Dm\x1AR\x12U\xE3OjPa\xB2^\xF1\xC9\xC3\x19\x01\x82\x02\x81\x1Dm\xB1\xBB\xB2\x01\xF4C\xCF\x96/\x1A\x1D=\xB4\xA5\x01\x82\x02\x81\x1Dn\x02\xC7#\x88\xD9\xF7OQ\xA93\x1F\xEDi?\x14\x19\x01\x82\x02\x81\x1Dn\x05\x18\x0B\xB1G\x99\xABG\xA8\xA8\xCB*R}W\x01m\x02\xD1g W{\xD1\x9B\xF6\x14\x17o\xE9\xEAl\x10\xFEh\xE7\xFD7\xD0\0{q?vP\x84\x01\x84\x02\x83\x1D\x90\x81\x01\x90\x84\x01m\x01\xD3\x96~\xD3\x0F\xC4\xF8\x9C\x02\xBA\xB5p\x81\x19\x01\x02\x90\x91\x1Dn\x05\x87\xF5\x03\xBBn\xA2\x9D%\xFC\xB7@\x19dP\x01\x90\x91\x02m6\rz\xEE\xA0\x93&>\xCCn\x0E\xCB)\x17`b\x1B\x01\x05t\x02\x9D\x9D\xC3\x85c\xC3.\\/m\xC1\x92\xEEp\xEFe\xF9\x97\x8A\xF3\x02`\xC3\x93\x90\x93\x03\x92\x90\x92\x1C\x92\x91PPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x05\x85\x14\x17\x16a\x171W`\0\x80\xFD[\x05\x92\x91PPV[`\0\x80\x82\x11a\x17uW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x04\xDEV[P`\x01o\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x82\x11`\x07\x1B\x82\x81\x1Cg\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x10`\x06\x1B\x17\x82\x81\x1Cc\xFF\xFF\xFF\xFF\x10`\x05\x1B\x17\x82\x81\x1Ca\xFF\xFF\x10`\x04\x1B\x17\x82\x81\x1C`\xFF\x10`\x03\x90\x81\x1B\x90\x91\x17\x83\x81\x1C`\x0F\x10`\x02\x1B\x17\x83\x81\x1C\x90\x91\x10\x82\x1B\x17\x91\x82\x1C\x11\x17\x90V[`\0`\x01`\xFF\x1B\x82\x03a\x18\x06W`@QcM-u\xB1`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0\x82\x12\x15a\x18\x17WP\x19`\x01\x01\x90V[P\x90V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x81\xFD[`\0\x80` \x83\x85\x03\x12\x15a\x19*Wa\x19*a\x18\x1BV[\x825g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x19EWa\x19Ea\x18kV[\x81\x85\x01\x91P\x85`\x1F\x83\x01\x12a\x19\\Wa\x19\\a\x18\xBBV[\x815\x81\x81\x11\x15a\x19\xBFW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x81\xFD[\x86` \x82\x85\x01\x01\x11\x15a\x1A'W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R\x91P`\x84\x82\xFD[` \x92\x90\x92\x01\x96\x91\x95P\x90\x93PPPPV[`\0\x80`@\x83\x85\x03\x12\x15a\x1AOWa\x1AOa\x18\x1BV[PP\x805\x92` \x90\x91\x015\x91PV[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[`@Q``\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1A\x97Wa\x1A\x97a\x1A^V[`@R\x90V[`@Q`\x1F\x82\x01`\x1F\x19\x16\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1A\xC6Wa\x1A\xC6a\x1A^V[`@R\x91\x90PV[`\0` \x80\x83\x85\x03\x12\x15a\x1A\xE4Wa\x1A\xE4a\x18\x1BV[\x825g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x1A\xFFWa\x1A\xFFa\x18kV[\x81\x85\x01\x91P\x85`\x1F\x83\x01\x12a\x1B\x16Wa\x1B\x16a\x18\xBBV[\x815\x81\x81\x11\x15a\x1B(Wa\x1B(a\x1A^V[a\x1B:`\x1F\x82\x01`\x1F\x19\x16\x85\x01a\x1A\x9DV[\x91P\x80\x82R\x86\x84\x82\x85\x01\x01\x11\x15a\x1B\xA0W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x81\x01\x85\x90R`'`$\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R`\x84\x81\xFD[\x80\x84\x84\x01\x85\x84\x017`\0\x90\x82\x01\x90\x93\x01\x92\x90\x92RP\x93\x92PPPV[`\0` \x80\x83R\x83Q\x80\x82\x85\x01R`\0[\x81\x81\x10\x15a\x1B\xE9W\x85\x81\x01\x83\x01Q\x85\x82\x01`@\x01R\x82\x01a\x1B\xCDV[P`\0`@\x82\x86\x01\x01R`@`\x1F\x19`\x1F\x83\x01\x16\x85\x01\x01\x92PPP\x92\x91PPV[`\0\x80`\0\x80\x84\x86\x03`\xC0\x81\x12\x15a\x1C$Wa\x1C$a\x18\x1BV[\x855\x94P` \x86\x015\x93P`@\x86\x015\x92P```_\x19\x82\x01\x12\x15a\x1C\x94W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`#`$\x82\x01R\x7FABI decoding: struct data too sh`D\x82\x01Rb\x1B\xDC\x9D`\xEA\x1B`d\x82\x01R`\x84\x81\xFD[Pa\x1C\x9Da\x1AtV[``\x86\x015\x81R`\x80\x86\x015` \x82\x01R`\xA0\x90\x95\x015`@\x86\x01RP\x91\x94\x90\x93P\x90\x91\x90V[cNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[`\0`\x01`\xFF\x1B\x82\x01a\x1C\xEFWa\x1C\xEFa\x1C\xC4V[P`\0\x03\x90V[` \x80\x82R`\x11\x90\x82\x01Rp\x15\\\x19\x18]\x19H\x19[\x99\x08\x1C\x18\\\xDC\xD9Y`z\x1B`@\x82\x01R``\x01\x90V[\x81\x81\x03\x81\x81\x11\x15a\r\x08Wa\r\x08a\x1C\xC4V[`\0\x82a\x1DQWcNH{q`\xE0\x1B`\0R`\x12`\x04R`$`\0\xFD[P\x04\x90V[`\0\x80`\0``\x84\x86\x03\x12\x15a\x1DnWa\x1Dna\x18\x1BV[\x83Q\x92P` \x84\x01Q\x91P`@\x84\x01Q\x90P\x92P\x92P\x92V[\x80\x82\x02\x81\x15\x82\x82\x04\x84\x14\x17a\r\x08Wa\r\x08a\x1C\xC4V[\x80\x82\x01\x80\x82\x11\x15a\r\x08Wa\r\x08a\x1C\xC4V[\x81\x81\x03`\0\x83\x12\x80\x15\x83\x83\x13\x16\x83\x83\x12\x82\x16\x17\x15a\x1D\xD1Wa\x1D\xD1a\x1C\xC4V[P\x92\x91PPV[\x80\x82\x01\x82\x81\x12`\0\x83\x12\x80\x15\x82\x16\x82\x15\x82\x16\x17\x15a\x1D\xF8Wa\x1D\xF8a\x1C\xC4V[PP\x92\x91PPV[\x80\x82\x02`\0\x82\x12`\x01`\xFF\x1B\x84\x14\x16\x15a\x1E\x1CWa\x1E\x1Ca\x1C\xC4V[\x81\x81\x05\x83\x14\x82\x15\x17a\r\x08Wa\r\x08a\x1C\xC4V";
+    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\xF5W`\x005`\xE0\x1C\x80crQ0\x8C\x11a\0\xBEW\x80crQ0\x8C\x14a\x02\xCBW\x80c\x8E-\xD4\0\x14a\x02\xDEW\x80c\x9F\x83\x13{\x14a\x03\x1BW\x80c\xAF\xBA\x13\xC4\x14a\x03.W\x80c\xD7\x10\x955\x14a\x03YW\x80c\xDC\x17\x83U\x14a\x03lWa\0\xF5V[\x80b.RK\x14a\x01ZW\x80c\x02\x16\xB88\x14a\x01\x80W\x80c\x1E\xDBq\xE5\x14a\x01\x95W\x80c2\x14\x89\x0F\x14a\x02vW\x80c?C\xBA\xAC\x14a\x02\xB8W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01ma\x01h6`\x04a\x1E\x1AV[a\x03\x8CV[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x01\x93a\x01\x8E6`\x04a\x1F\x12V[a\x03\xDFV[\0[a\x02fa\x01\xA36`\x04a AV[`\x01` \x81\x81R`\0\x92\x83R`@\x92\x83\x90 \x83Q`\xA0\x80\x82\x01\x86R\x82T\x82R\x93\x82\x01T\x81\x84\x01R`\x02\x82\x01T\x81\x86\x01R`\x03\x82\x01T``\x80\x83\x01\x91\x90\x91R`\x04\x83\x01T`\x80\x80\x84\x01\x91\x90\x91R\x86Q\x80\x87\x01\x88R`\x05\x85\x01T\x81R`\x06\x85\x01T\x81\x87\x01R`\x07\x85\x01T\x81\x89\x01R`\x08\x85\x01T\x81\x84\x01R`\t\x85\x01T\x81\x83\x01R\x87Q\x96\x87\x01\x88R`\n\x85\x01T\x87R`\x0B\x85\x01T\x95\x87\x01\x95\x90\x95R`\x0C\x84\x01T\x96\x86\x01\x96\x90\x96R`\r\x83\x01T\x90\x85\x01R`\x0E\x82\x01T\x94\x84\x01\x94\x90\x94R`\x0F\x01T\x90\x91\x90\x84V[`@Qa\x01w\x94\x93\x92\x91\x90a ]V[a\x02\x89a\x02\x846`\x04a\x1E\x1AV[a\x04\x9CV[`@\x80Q\x96\x15\x15\x87R` \x87\x01\x95\x90\x95R\x93\x85\x01\x92\x90\x92R``\x84\x01R`\x80\x83\x01R`\xA0\x82\x01R`\xC0\x01a\x01wV[a\x01\x93a\x02\xC66`\x04a!\x0CV[a\x07\x08V[a\x01\x93a\x02\xD96`\x04a!\x0CV[a\x08\x9CV[a\x02\xF1a\x02\xEC6`\x04a\x1F\x12V[a\n4V[`@\x80Q\x95\x15\x15\x86R` \x86\x01\x94\x90\x94R\x92\x84\x01\x91\x90\x91R``\x83\x01R`\x80\x82\x01R`\xA0\x01a\x01wV[a\x02\xF1a\x03)6`\x04a\x1F\x12V[a\n\x83V[`\0Ta\x03A\x90`\x01`\x01`\xA0\x1B\x03\x16\x81V[`@Q`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x81R` \x01a\x01wV[a\x01\x93a\x03g6`\x04a!\x0CV[a\n\xABV[a\x03\x7Fa\x03z6`\x04a AV[a\x0CAV[`@Qa\x01w\x91\x90a!;V[`\0\x80`\0\x80\x84\x80` \x01\x90Q\x81\x01\x90a\x03\xA6\x91\x90a!\x89V[\x92P\x92P\x92Pa\x03\xD3\x83\x83\x83a\x03\xBB\x8Aa\x0CAV[\x80` \x01\x90Q\x81\x01\x90a\x03\xCE\x91\x90a\"\x0BV[a\r\xDAV[\x93PPPP[\x92\x91PPV[`\0a\x03\xED\x82\x84\x01\x84a\"\xC7V[`\0\x94\x85R`\x01` \x81\x81R`@\x96\x87\x90 \x83Q\x80Q\x82U\x80\x83\x01Q\x93\x82\x01\x93\x90\x93U\x82\x88\x01Q`\x02\x82\x01U``\x80\x84\x01Q`\x03\x83\x01U`\x80\x93\x84\x01Q`\x04\x83\x01U\x82\x85\x01Q\x80Q`\x05\x84\x01U\x80\x84\x01Q`\x06\x84\x01U\x80\x8A\x01Q`\x07\x84\x01U\x80\x82\x01Q`\x08\x84\x01U\x84\x01Q`\t\x83\x01U\x88\x85\x01Q\x80Q`\n\x84\x01U\x92\x83\x01Q`\x0B\x83\x01U\x97\x82\x01Q`\x0C\x82\x01U\x81\x88\x01Q`\r\x82\x01U\x91\x01Q`\x0E\x82\x01U\x94\x01Q`\x0F\x90\x94\x01\x93\x90\x93UPPPV[`\0\x80`\0\x80`\0\x80`\0a\x04\xB0\x89a\x0CAV[\x80` \x01\x90Q\x81\x01\x90a\x04\xC3\x91\x90a\"\x0BV[`\0\x80T`@Qc3\x85N\xFD`\xE2\x1B\x81R`\x04\x81\x01\x8D\x90R\x92\x93P\x90\x91\x82\x91\x82\x91`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x90c\xCE\x15;\xF4\x90`$\x01```@Q\x80\x83\x03\x81\x86\x80;\x15\x80\x15a\x05aW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`%`$\x82\x01R\x7FTarget contract does not contain`D\x82\x01\x90\x81Rd code`\xD8\x1B`d\x83\x01R`\x84\x82\xFD[PZ\xFA\x15\x80\x15a\x05uW=`\0\x80>=`\0\xFD[PPPP`@Q=`\x1F\x19`\x1F\x82\x01\x16\x82\x01\x80`@RP\x81\x01\x90a\x05\x99\x91\x90a!\x89V[\x92P\x92P\x92P\x8A\x80` \x01\x90Q\x81\x01\x90a\x05\xB3\x91\x90a!\x89V[\x91\x98P\x96P\x94P`\0\x80\x80\x85\x8A\x11\x15a\x06\x10Wa\x05\xD0\x86\x8Ba#?V[\x91Pa\x05\xE9\x87``\x01Q\x83a\x0E\xEC\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x05\xFF\x86a\x05\xF9\x83\x87a\x0E\xECV[\x90a\x0F\x08V[a\x06\t\x90\x84a#RV[\x92Pa\x06\xB1V[\x84\x89\x11\x15a\x06KWa\x06\"\x85\x8Aa#?V[\x91Pa\x06;\x87``\x01Q\x83a\x0E\xEC\x90\x91\x90c\xFF\xFF\xFF\xFF\x16V[\x90Pa\x05\xFF\x85a\x05\xF9\x83\x87a\x0E\xECV[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`0`$\x82\x01R\x7Finvalid swap: inputs x and y hav`D\x82\x01Roe the same sign!`\x80\x1B`d\x82\x01R`\x84\x01[`@Q\x80\x91\x03\x90\xFD[a\x06\xBB\x84\x89a#eV[\x9APa\x06\xC9\x8A\x8A\x8A\x8Aa\r\xDAV[\x9BP`\0\x8Ca\x06\xD8`\x1Ea#\x8CV[\x12\x80\x15a\x06\xE5WP`\x1E\x8D\x12[\x90P\x80\x80\x15a\x06\xF4WP\x83\x8C\x12\x15[\x9DPPPPPPPPP\x92\x95P\x92\x95P\x92\x95V[`\0\x83\x81R`\x01` \x81\x81R`@\x92\x83\x90 \x83Qa\x01 \x81\x01\x85R\x81T`\x80\x80\x83\x01\x91\x82R\x94\x83\x01T`\xA0\x80\x84\x01\x91\x90\x91R`\x02\x84\x01T`\xC0\x84\x01R`\x03\x84\x01T`\xE0\x84\x01R`\x04\x84\x01Ta\x01\0\x84\x01R\x90\x82R\x85Q\x80\x82\x01\x87R`\x05\x84\x01T\x81R`\x06\x84\x01T\x81\x86\x01R`\x07\x84\x01T\x81\x88\x01R`\x08\x84\x01T``\x80\x83\x01\x91\x90\x91R`\t\x85\x01T\x82\x88\x01R\x83\x86\x01\x91\x82R\x87Q\x92\x83\x01\x88R`\n\x85\x01T\x83R`\x0B\x85\x01T\x95\x83\x01\x95\x90\x95R`\x0C\x84\x01T\x82\x88\x01R`\r\x84\x01T\x82\x86\x01R`\x0E\x84\x01T\x95\x82\x01\x95\x90\x95R\x94\x81\x01\x94\x90\x94R`\x0F\x01T\x90\x83\x01RQa\x07\xEC\x90\x84\x84a\x0F\x1DV[` \x80\x83\x01\x91\x82R`\0\x95\x86R`\x01\x80\x82R`@\x96\x87\x90 \x84Q\x80Q\x82U\x80\x84\x01Q\x92\x82\x01\x92\x90\x92U\x81\x88\x01Q`\x02\x82\x01U``\x80\x83\x01Q`\x03\x83\x01U`\x80\x92\x83\x01Q`\x04\x83\x01U\x93Q\x80Q`\x05\x83\x01U\x80\x84\x01Q`\x06\x83\x01U\x80\x89\x01Q`\x07\x83\x01U\x80\x85\x01Q`\x08\x83\x01U\x82\x01Q`\t\x82\x01U\x87\x85\x01Q\x80Q`\n\x83\x01U\x92\x83\x01Q`\x0B\x82\x01U\x96\x82\x01Q`\x0C\x88\x01U\x81\x83\x01Q`\r\x88\x01U\x01Q`\x0E\x86\x01U\x01Q`\x0F\x90\x93\x01\x92\x90\x92UPPV[`\0\x83\x81R`\x01` \x81\x81R`@\x92\x83\x90 \x83Qa\x01 \x81\x01\x85R\x81T`\x80\x80\x83\x01\x91\x82R\x94\x83\x01T`\xA0\x80\x84\x01\x91\x90\x91R`\x02\x84\x01T`\xC0\x84\x01R`\x03\x84\x01T`\xE0\x84\x01R`\x04\x84\x01Ta\x01\0\x84\x01R\x90\x82R\x85Q\x80\x82\x01\x87R`\x05\x84\x01T\x81R`\x06\x84\x01T\x81\x86\x01R`\x07\x84\x01T\x81\x88\x01R`\x08\x84\x01T``\x80\x83\x01\x91\x90\x91R`\t\x85\x01T\x82\x88\x01R\x83\x86\x01\x91\x90\x91R\x86Q\x91\x82\x01\x87R`\n\x84\x01T\x82R`\x0B\x84\x01T\x94\x82\x01\x94\x90\x94R`\x0C\x83\x01T\x81\x87\x01R`\r\x83\x01T\x81\x85\x01R`\x0E\x83\x01T\x94\x81\x01\x94\x90\x94R\x93\x84\x01\x92\x90\x92R`\x0F\x90\x91\x01T\x90\x82\x01R\x80Qa\t\x84\x90\x84\x84a\x0F\x1DV[\x81R`\0\x93\x84R`\x01` \x81\x81R`@\x95\x86\x90 \x83Q\x80Q\x82U\x80\x83\x01Q\x93\x82\x01\x93\x90\x93U\x82\x87\x01Q`\x02\x82\x01U``\x80\x84\x01Q`\x03\x83\x01U`\x80\x93\x84\x01Q`\x04\x83\x01U\x82\x85\x01Q\x80Q`\x05\x84\x01U\x80\x84\x01Q`\x06\x84\x01U\x80\x89\x01Q`\x07\x84\x01U\x80\x82\x01Q`\x08\x84\x01U\x84\x01Q`\t\x83\x01U\x87\x85\x01Q\x80Q`\n\x84\x01U\x92\x83\x01Q`\x0B\x83\x01U\x96\x82\x01Q`\x0C\x82\x01U\x81\x87\x01Q`\r\x82\x01U\x91\x01Q`\x0E\x82\x01U\x93\x01Q`\x0F\x90\x93\x01\x92\x90\x92UPPV[`\0\x80\x80\x80\x80a\nF\x86\x88\x01\x88a!\x0CV[\x91\x94P\x92P\x90Pa\n\\\x83\x83\x83a\x03\xBB\x8Ca\x0CAV[\x93P\x83a\ni`\x1Ea#\x8CV[\x12\x80\x15a\nvWP`\x1E\x84\x12[\x94P\x93\x97\x92\x96P\x93P\x93PV[`\0\x80`\0\x80`\0a\n\x96\x88\x88\x88a\x10\x1FV[P\x93\x9C\x92\x9BP\x90\x99P\x97P\x90\x95P\x93PPPPV[`\0\x83\x81R`\x01` \x81\x81R`@\x92\x83\x90 \x83Qa\x01 \x81\x01\x85R\x81T`\x80\x80\x83\x01\x91\x82R\x94\x83\x01T`\xA0\x80\x84\x01\x91\x90\x91R`\x02\x84\x01T`\xC0\x84\x01R`\x03\x84\x01T`\xE0\x84\x01R`\x04\x84\x01Ta\x01\0\x84\x01R\x90\x82R\x85Q\x80\x82\x01\x87R`\x05\x84\x01T\x81R`\x06\x84\x01T\x81\x86\x01R`\x07\x84\x01T\x81\x88\x01R`\x08\x84\x01T``\x80\x83\x01\x91\x90\x91R`\t\x85\x01T\x82\x88\x01R\x83\x86\x01\x91\x90\x91R\x86Q\x91\x82\x01\x87R`\n\x84\x01T\x82R`\x0B\x84\x01T\x94\x82\x01\x94\x90\x94R`\x0C\x83\x01T\x81\x87\x01R`\r\x83\x01T\x81\x85\x01R`\x0E\x83\x01T\x94\x81\x01\x94\x90\x94R\x93\x84\x01\x83\x90R`\x0F\x01T\x90\x83\x01Ra\x0B\x8E\x90\x84\x84a\x0F\x1DV[`@\x80\x83\x01\x91\x82R`\0\x95\x86R`\x01` \x81\x81R\x96\x82\x90 \x84Q\x80Q\x82U\x80\x89\x01Q\x92\x82\x01\x92\x90\x92U\x81\x83\x01Q`\x02\x82\x01U``\x80\x83\x01Q`\x03\x83\x01U`\x80\x92\x83\x01Q`\x04\x83\x01U\x88\x86\x01Q\x80Q`\x05\x84\x01U\x80\x8A\x01Q`\x06\x84\x01U\x80\x85\x01Q`\x07\x84\x01U\x80\x82\x01Q`\x08\x84\x01U\x83\x01Q`\t\x83\x01U\x93Q\x80Q`\n\x83\x01U\x97\x88\x01Q`\x0B\x82\x01U\x91\x87\x01Q`\x0C\x83\x01U\x86\x83\x01Q`\r\x83\x01U\x95\x90\x95\x01Q`\x0E\x86\x01U\x01Q`\x0F\x90\x93\x01\x92\x90\x92UPPV[``a\x0Cn`@Q\x80`\x80\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x0C\xC9`\x01`\0\x85\x81R` \x01\x90\x81R` \x01`\0 `\0\x01`@Q\x80`\xA0\x01`@R\x90\x81`\0\x82\x01T\x81R` \x01`\x01\x82\x01T\x81R` \x01`\x02\x82\x01T\x81R` \x01`\x03\x82\x01T\x81R` \x01`\x04\x82\x01T\x81RPPa\x10\xD7V[` \x80\x83\x01\x91\x90\x91R`\0\x84\x81R`\x01\x82R`@\x90\x81\x90 \x81Q`\xA0\x81\x01\x83R`\n\x82\x01T\x81R`\x0B\x82\x01T\x93\x81\x01\x93\x90\x93R`\x0C\x81\x01T\x91\x83\x01\x91\x90\x91R`\r\x81\x01T``\x83\x01R`\x0E\x01T`\x80\x82\x01Ra\r$\x90a\x10\xD7V[\x81R`\0\x83\x81R`\x01` \x90\x81R`@\x91\x82\x90 \x82Q`\xA0\x81\x01\x84R`\x05\x82\x01T\x81R`\x06\x82\x01T\x92\x81\x01\x92\x90\x92R`\x07\x81\x01T\x92\x82\x01\x92\x90\x92R`\x08\x82\x01T``\x82\x01R`\t\x90\x91\x01T`\x80\x82\x01Ra\r}\x90a\x10\xD7V[`@\x82\x81\x01\x91\x82R`\0\x94\x85R`\x01` \x90\x81R\x94\x81\x90 `\x0F\x01T``\x80\x85\x01\x91\x82R\x82Q\x85Q\x81\x89\x01R\x96\x90\x94\x01Q\x86\x83\x01R\x91Q\x92\x85\x01\x92\x90\x92RQ`\x80\x80\x85\x01\x91\x90\x91R\x81Q\x80\x85\x03\x90\x91\x01\x81R`\xA0\x90\x93\x01\x90RP\x90V[`\0\x82\x85\x10a\x0E+W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x1A`$\x82\x01R\x7FtradingFunction: invalid x\0\0\0\0\0\0`D\x82\x01R`d\x01a\x06\xA8V[`\0\x80g\r\xE0\xB6\xB3\xA7d\0\0a\x0EA\x88\x87a\x11nV[\x10a\x0EUW`\x01`\x01`\xFF\x1B\x03\x91Pa\x0EjV[a\x0Ega\x0Eb\x88\x87a\x11nV[a\x11\x83V[\x91P[g\r\xE0\xB6\xB3\xA7d\0\0a\x0E\x8A\x87a\x0E\x85\x87`\0\x01Q\x89a\x12)V[a\x11nV[\x10a\x0E\x9DWP`\x01`\x01`\xFF\x1B\x03a\x0E\xB5V[a\x0E\xB2a\x0Eb\x87a\x0E\x85\x87`\0\x01Q\x89a\x12)V[\x90P[`\0a\x0E\xC9\x85` \x01Q\x86`@\x01Qa\x12>V[\x90P\x80a\x0E\xD6\x83\x85a#\xA8V[a\x0E\xE0\x91\x90a#\xA8V[\x98\x97PPPPPPPPV[`\0a\x0F\x01\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x12dV[\x93\x92PPPV[`\0a\x0F\x01\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x12dV[a\x0FO`@Q\x80`\xA0\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[B\x82\x11a\x0F\xB7W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`0`$\x82\x01R\x7FEnd must be greater than current`D\x82\x01Ro\x02\x06&\xC6\xF66\xB2\xE7F\x96\xD6W7F\x16\xD7`\x84\x1B`d\x82\x01R`\x84\x01a\x06\xA8V[`\0a\x0F\xC2\x85a\x12\x92V[\x90P`\0\x84\x82` \x01Q\x11a\x0F\xE5W` \x82\x01Qa\x0F\xE0\x90\x86a#?V[a\x0F\xF5V[\x84\x82` \x01Qa\x0F\xF5\x91\x90a#?V[\x90Pa\x10\x01B\x85a#?V[a\x10\x0B\x90\x82a#\xD0V[``\x83\x01RP\x92\x83RP`@\x82\x01R\x91\x90PV[`\0\x80`\0\x80`\0a\x10R`@Q\x80`\x80\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x10^\x87\x89\x01\x89a#\xF2V[` \x80\x82\x01Q`\0\x8F\x81R`\x01\x92\x83\x90R`@\x90\x81\x90 \x92\x83\x01\x91\x90\x91U\x82\x01Q`\x06\x82\x01U\x81Q`\x0B\x82\x01U``\x82\x01Q`\x0F\x90\x91\x01U\x92\x96P\x90\x94P\x92P\x90Pa\x10\xAF\x84\x84\x84a\x03\xBB\x8Da\x0CAV[\x94P\x84a\x10\xBC`\x1Ea#\x8CV[\x12\x80\x15a\x10\xC9WP`\x1E\x85\x12[\x95P\x93\x97P\x93\x97\x91\x95P\x93PV[`\0\x81`@\x01Q\x82`\x80\x01Q\x03a\x10\xF0WP` \x01Q\x90V[`\0\x82`@\x01QB\x11a\x11\x03WBa\x11\tV[\x82`@\x01Q[\x90P`\0\x83`\x80\x01Q\x82a\x11\x1D\x91\x90a#?V[``\x85\x01Q\x90\x91P\x15a\x11PW``\x84\x01Qa\x119\x90\x82a$nV[\x84` \x01Qa\x11H\x91\x90a#RV[\x94\x93PPPPV[``\x84\x01Qa\x11_\x90\x82a$nV[\x84` \x01Qa\x11H\x91\x90a#?V[`\0a\x0F\x01\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x12\xDCV[`\0g\x06\xF0[Y\xD3\xB2\0\0\x82\x03a\x11\x9CWP`\0\x91\x90PV[g\r\xE0\xB6\xB3\xA7d\0\0\x82\x12a\x11\xC4W`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\x11\xE5W`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\x11\xF2\x83`\x02a$\x85V[\x90P`\0a\x11\xFF\x82a\x12\xFBV[\x90P`\0a\x12\x15g\x13\xA0K\xBD\xFD\xC9\xBE\x88\x83a\x15yV[\x90Pa\x12 \x81a#\x8CV[\x95\x94PPPPPV[`\0a\x0F\x01\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x12\xDCV[`\0\x80a\x12J\x83a\x15\x8EV[a\x12X\x90c;\x9A\xCA\0a$nV[\x90Pa\x11H\x84\x82a\x12)V[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x12|W`\0\x80\xFD[`\x01\x82`\x01\x83\x03\x04\x01\x81\x15\x15\x02\x90P\x93\x92PPPV[a\x12\xC4`@Q\x80`\xA0\x01`@R\x80`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81R` \x01`\0\x81RP\x90V[a\x12\xCD\x82a\x10\xD7V[` \x83\x01RPB`\x80\x82\x01R\x90V[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x04\x85\x14\x17\x16a\x12\xF4W`\0\x80\xFD[\x04\x92\x91PPV[`\0\x80\x82\x12\x80a\x13\x12WPg\x1B\xC1mgN\xC8\0\0\x82\x13[\x15a\x130W`@Qc-\x04\x83\xC5`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81`\0\x03a\x13QW`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x81g\x1B\xC1mgN\xC8\0\0\x03a\x13yW`@Qc\"\xEDY\x85`\xE2\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[\x80\x15a\x13\x84W\x91\x90PV[`\0g\r\xE0\xB6\xB3\xA7d\0\0\x83\x12a\x13\xACWa\x13\xA7\x83g\x1B\xC1mgN\xC8\0\0a#eV[a\x13\xAEV[\x82[\x90P`\0a\x13\xC4\x82g\x1B\xC1mgN\xC8\0\0a\x162V[\x90P\x80`\0\x03a\x13\xE7W`@Qc\x07\xA0!'`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0a\x13\xF2\x82a\x16GV[\x90P`\0c;\x9A\xCA\0a\x14\x1Da\x14\x18a\x14\x12g\x1B\xC1mgN\xC8\0\0a#\x8CV[\x85a\x15yV[a\x15\x8EV[a\x14'\x91\x90a$\x85V[\x90P`\0\x80a\x14>\x83g\x03\xC1f\\z\xAB \0a\x15yV[a\x14P\x90g \x05\xFEO&\x8E\xA0\0a#\xA8V[\x90P`\0a\x14\x80\x84a\x14i\x86f\x9F2u$b\xA0\0a\x15yV[a\x14{\x90g\r\xC5R\x7Fd, \0a#\xA8V[a\x15yV[a\x14\x92\x90g\r\xE0\xB6\xB3\xA7d\0\0a#\xA8V[\x90Pa\x14\xB6g\t\xD0(\xCCo _\xFF\x19\x85a\x14\xAC\x85\x85a\x162V[a\x14{\x91\x90a#eV[\x92PPP`\0[`\x02\x81\x10\x15a\x15QW`\0\x86a\x14\xD2\x84a\x18\"V[a\x14\xDC\x91\x90a#eV[\x90P`\0a\x14\xEA\x84\x85a\x15yV[a\x14\xF3\x90a#\x8CV[\x90P`\0a\x15\0\x82a\x1A\x06V[\x90P`\0a\x15\x0E\x86\x85a\x15yV[a\x15 g\x0F\xA8\xCE\xDF\xC2\xAD\xDD\xFA\x84a\x15yV[a\x15*\x91\x90a#eV[\x90Pa\x156\x84\x82a\x162V[a\x15@\x90\x87a#\xA8V[\x95P\x84`\x01\x01\x94PPPPPa\x14\xBDV[g\r\xE0\xB6\xB3\xA7d\0\0\x88\x12a\x15nWa\x15i\x82a#\x8CV[a\x0E\xE0V[P\x96\x95PPPPPPV[`\0a\x0F\x01\x83\x83g\r\xE0\xB6\xB3\xA7d\0\0a\x1B\xAFV[`\xB5\x81`\x01`\x88\x1B\x81\x10a\x15\xA7W`@\x91\x90\x91\x1B\x90`\x80\x1C[i\x01\0\0\0\0\0\0\0\0\0\x81\x10a\x15\xC3W` \x91\x90\x91\x1B\x90`@\x1C[e\x01\0\0\0\0\0\x81\x10a\x15\xDBW`\x10\x91\x90\x91\x1B\x90` \x1C[c\x01\0\0\0\x81\x10a\x15\xF1W`\x08\x91\x90\x91\x1B\x90`\x10\x1C[b\x01\0\0\x01\x02`\x12\x1C\x80\x82\x04\x01`\x01\x90\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x81\x1C\x80\x83\x04\x01\x90\x1C\x90\x81\x90\x04\x81\x11\x90\x03\x90V[`\0a\x0F\x01\x83g\r\xE0\xB6\xB3\xA7d\0\0\x84a\x1B\xAFV[`\0\x80\x82\x13a\x16\x84W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x06\xA8V[`\0``a\x16\x91\x84a\x1B\xCEV[\x03`\x9F\x81\x81\x03\x94\x90\x94\x1B\x90\x93\x1ClFWr\xB2\xBB\xBB_\x82K\x15 z0\x81\x01\x81\x02``\x90\x81\x1Dm\x03\x88\xEA\xA2t\x12\xD5\xAC\xA0&\x81]cn\x01\x82\x02\x81\x1Dm\r\xF9\x9A\xC5\x02\x03\x1B\xF9S\xEF\xF4r\xFD\xCC\x01\x82\x02\x81\x1Dm\x13\xCD\xFF\xB2\x9DQ\xD9\x93\"\xBD\xFF_\"\x11\x01\x82\x02\x81\x1Dm\n\x0Ft #\xDE\xF7\x83\xA3\x07\xA9\x86\x91.\x01\x82\x02\x81\x1Dm\x01\x92\r\x80C\xCA\x89\xB5#\x92S(NB\x01\x82\x02\x81\x1Dl\x0Bz\x86\xD77Th\xFA\xC6g\xA0\xA5'\x01l)P\x8EE\x85C\xD8\xAAM\xF2\xAB\xEEx\x83\x01\x83\x02\x82\x1Dm\x019`\x1A.\xFA\xBEq~`L\xBBH\x94\x01\x83\x02\x82\x1Dm\x02$\x7Fz{e\x942\x06I\xAA\x03\xAB\xA1\x01\x83\x02\x82\x1Dl\x8C?8\xE9Zk\x1F\xF2\xAB\x1C;46\x19\x01\x83\x02\x82\x1Dm\x028Gs\xBD\xF1\xACVv\xFA\xCC\xED`\x90\x19\x01\x83\x02\x90\x91\x1Dl\xB9\xA0%\xD8\x14\xB2\x9C!+\x8B\x1A\x07\xCD\x19\x01\x90\x91\x02x\n\tPp\x84\xCCi\x9B\xB0\xE7\x1E\xA8i\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x19\x01\x05q\x13@\xDA\xA0\xD5\xF7i\xDB\xA1\x91\\\xEFY\xF0\x81ZU\x06\x02}\x02g\xA3l\x0C\x95\xB3\x97Z\xB3\xEE[ :v\x14\xA3\xF7Ss\xF0G\xD8\x03\xAE{f\x87\xF2\xB3\x93\x90\x93\x02\x92\x90\x92\x01}W\x11^G\x01\x8Cqw\xEE\xBF|\xD3p\xA35j\x1Bxc\0\x8AZ\xE8\x02\x8Cr\xB8\x86B\x84\x01`\xAE\x1D\x92\x91PPV[`\0\x81`\0\x03a\x18;WPg\r\xE0\xB6\xB3\xA7d\0\0\x91\x90PV[gV\x98\xEE\xF0fp\0\0\x82\x12a\x18RWP`\0\x91\x90PV[a\x18cgV\x98\xEE\xF0fp\0\0a#\x8CV[\x82\x13a\x18xWPg\x1B\xC1mgN\xC8\0\0\x91\x90PV[`\0a\x18\x83\x83a\x1CvV[\x90P`\0a\x18\xBCg\r\xE0\xB6\xB3\xA7d\0\0a\x18\xA5\x84g\x1B\xC1mgN\xC8\0\0a\x11nV[a\x18\xB7\x90g\r\xE0\xB6\xB3\xA7d\0\0a#\xA8V[a\x162V[\x90P`\0\x80\x82a\x19\x18\x81a\x19\x05\x81a\x18\xF3\x81a\x18\xE0\x81g\x02_\x0F\xE1\x05\xA3\x14\0a\x15yV[a\x14{\x90g\x0Bh\xDF\x18\xE4q\xFB\xFF\x19a#\xA8V[a\x14{\x90g\x14\xA8EL\x19\xE1\xAC\0a#\xA8V[a\x14{\x90g\x0F\xC1\x0E\x01W\x82w\xFF\x19a#\xA8V[a\x19*\x90g\x03\xDE\xBD\x08;\x8C|\0a#\xA8V[\x91P\x83\x90Pa\x19\x92\x81a\x19\x80\x81a\x19n\x81a\x19\\\x81a\x19I\x81\x8Ba\x15yV[a\x14{\x90g\x02\x95\xD4\0\xEA2W\xFF\x19a#\xA8V[a\x14{\x90g\x01W\xD8\xB2\xEC\xC7\x08\0a#\xA8V[a\x14{\x90g\x051\n\xA7\xD5!0\0a#\xA8V[a\x14{\x90g\r\xE0\xCC=\x15a\0\0a#\xA8V[\x91P\x81g\x11\x90\0\xAB\x10\x0F\xFC\0a\x19\xA8\x87\x88a\x15yV[a\x19\xB4\x90`\0\x19a$\x85V[a\x19\xBE\x91\x90a#eV[a\x19\xC8\x91\x90a#\xA8V[\x92PP`\0a\x19\xD6\x83a\x1A\x06V[\x90P`\0a\x19\xE4\x85\x83a\x15yV[\x90P`\0\x88\x12a\x19\xF4W\x80a\x0E\xE0V[a\x0E\xE0\x81g\x1B\xC1mgN\xC8\0\0a#eV[`\0h\x02H\xCE6\xA7\x0C\xB2k>\x19\x82\x13a\x1A!WP`\0\x91\x90PV[h\x07U\xBFy\x8BJ\x1B\xF1\xE5\x82\x12a\x1AhW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\x0C`$\x82\x01RkEXP_OVERFLOW`\xA0\x1B`D\x82\x01R`d\x01a\x06\xA8V[e\x03x-\xAC\xE9\xD9`N\x83\x90\x1B\x05\x91P`\0``k\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x84\x82\x1B\x05`\x01`_\x1B\x01\x90\x1Dk\xB1r\x17\xF7\xD1\xCFy\xAB\xC9\xE3\xB3\x98\x81\x02\x90\x93\x03l$\x0C3\x0E\x9F\xB2\xD9\xCB\xAF\x0F\xD5\xAA\xFB\x19\x81\x01\x81\x02``\x90\x81\x1Dm\x02wYI\x91\xCF\xC8_n$a\x83|\xD9\x01\x82\x02\x81\x1Dm\x1AR\x12U\xE3OjPa\xB2^\xF1\xC9\xC3\x19\x01\x82\x02\x81\x1Dm\xB1\xBB\xB2\x01\xF4C\xCF\x96/\x1A\x1D=\xB4\xA5\x01\x82\x02\x81\x1Dn\x02\xC7#\x88\xD9\xF7OQ\xA93\x1F\xEDi?\x14\x19\x01\x82\x02\x81\x1Dn\x05\x18\x0B\xB1G\x99\xABG\xA8\xA8\xCB*R}W\x01m\x02\xD1g W{\xD1\x9B\xF6\x14\x17o\xE9\xEAl\x10\xFEh\xE7\xFD7\xD0\0{q?vP\x84\x01\x84\x02\x83\x1D\x90\x81\x01\x90\x84\x01m\x01\xD3\x96~\xD3\x0F\xC4\xF8\x9C\x02\xBA\xB5p\x81\x19\x01\x02\x90\x91\x1Dn\x05\x87\xF5\x03\xBBn\xA2\x9D%\xFC\xB7@\x19dP\x01\x90\x91\x02m6\rz\xEE\xA0\x93&>\xCCn\x0E\xCB)\x17`b\x1B\x01\x05t\x02\x9D\x9D\xC3\x85c\xC3.\\/m\xC1\x92\xEEp\xEFe\xF9\x97\x8A\xF3\x02`\xC3\x93\x90\x93\x03\x92\x90\x92\x1C\x92\x91PPV[\x82\x82\x02\x81\x15\x15\x84\x15\x85\x83\x05\x85\x14\x17\x16a\x1B\xC7W`\0\x80\xFD[\x05\x92\x91PPV[`\0\x80\x82\x11a\x1C\x0BW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\t`$\x82\x01Rh\x15S\x91\x11Q\x92S\x91Q`\xBA\x1B`D\x82\x01R`d\x01a\x06\xA8V[P`\x01o\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x82\x11`\x07\x1B\x82\x81\x1Cg\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x10`\x06\x1B\x17\x82\x81\x1Cc\xFF\xFF\xFF\xFF\x10`\x05\x1B\x17\x82\x81\x1Ca\xFF\xFF\x10`\x04\x1B\x17\x82\x81\x1C`\xFF\x10`\x03\x90\x81\x1B\x90\x91\x17\x83\x81\x1C`\x0F\x10`\x02\x1B\x17\x83\x81\x1C\x90\x91\x10\x82\x1B\x17\x91\x82\x1C\x11\x17\x90V[`\0`\x01`\xFF\x1B\x82\x03a\x1C\x9CW`@QcM-u\xB1`\xE0\x1B\x81R`\x04\x01`@Q\x80\x91\x03\x90\xFD[`\0\x82\x12\x15a\x1C\xADWP\x19`\x01\x01\x90V[P\x90V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x81\xFD[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[`@Q`\x80\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1D\xE3Wa\x1D\xE3a\x1D\xAAV[`@R\x90V[`@Q`\x1F\x82\x01`\x1F\x19\x16\x81\x01g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x81\x11\x82\x82\x10\x17\x15a\x1E\x12Wa\x1E\x12a\x1D\xAAV[`@R\x91\x90PV[`\0\x80`@\x83\x85\x03\x12\x15a\x1E0Wa\x1E0a\x1C\xB1V[\x825\x91P` \x80\x84\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x1ESWa\x1ESa\x1D\x01V[\x81\x86\x01\x91P\x86`\x1F\x83\x01\x12a\x1EjWa\x1Eja\x1DQV[\x815\x81\x81\x11\x15a\x1E|Wa\x1E|a\x1D\xAAV[a\x1E\x8E`\x1F\x82\x01`\x1F\x19\x16\x85\x01a\x1D\xE9V[\x91P\x80\x82R\x87\x84\x82\x85\x01\x01\x11\x15a\x1E\xF4W`@QbF\x1B\xCD`\xE5\x1B\x81R`\x04\x81\x01\x85\x90R`'`$\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R`\x84\x81\xFD[\x80\x84\x84\x01\x85\x84\x017`\0\x84\x82\x84\x01\x01RP\x80\x93PPPP\x92P\x92\x90PV[`\0\x80`\0`@\x84\x86\x03\x12\x15a\x1F*Wa\x1F*a\x1C\xB1V[\x835\x92P` \x84\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x1FLWa\x1FLa\x1D\x01V[\x81\x86\x01\x91P\x86`\x1F\x83\x01\x12a\x1FcWa\x1Fca\x1DQV[\x815\x81\x81\x11\x15a\x1F\xC6W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x81\xFD[\x87` \x82\x85\x01\x01\x11\x15a .W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R\x91P`\x84\x82\xFD[` \x83\x01\x94P\x80\x93PPPP\x92P\x92P\x92V[`\0` \x82\x84\x03\x12\x15a VWa Va\x1C\xB1V[P5\x91\x90PV[a\x02\0\x81\x01a \x97\x82\x87\x80Q\x82R` \x81\x01Q` \x83\x01R`@\x81\x01Q`@\x83\x01R``\x81\x01Q``\x83\x01R`\x80\x81\x01Q`\x80\x83\x01RPPV[\x84Q`\xA0\x83\x01R` \x85\x01Q`\xC0\x83\x01R`@\x85\x01Q`\xE0\x83\x01R``\x85\x01Qa\x01\0\x83\x01R`\x80\x85\x01Qa\x01 \x83\x01R\x83Qa\x01@\x83\x01R` \x84\x01Qa\x01`\x83\x01R`@\x84\x01Qa\x01\x80\x83\x01R``\x84\x01Qa\x01\xA0\x83\x01R`\x80\x84\x01Qa\x01\xC0\x83\x01R\x82a\x01\xE0\x83\x01R\x95\x94PPPPPV[`\0\x80`\0``\x84\x86\x03\x12\x15a!$Wa!$a\x1C\xB1V[PP\x815\x93` \x83\x015\x93P`@\x90\x92\x015\x91\x90PV[`\0` \x80\x83R\x83Q\x80\x82\x85\x01R`\0[\x81\x81\x10\x15a!hW\x85\x81\x01\x83\x01Q\x85\x82\x01`@\x01R\x82\x01a!LV[P`\0`@\x82\x86\x01\x01R`@`\x1F\x19`\x1F\x83\x01\x16\x85\x01\x01\x92PPP\x92\x91PPV[`\0\x80`\0``\x84\x86\x03\x12\x15a!\xA1Wa!\xA1a\x1C\xB1V[\x83Q\x92P` \x84\x01Q\x91P`@\x84\x01Q\x90P\x92P\x92P\x92V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`#`$\x82\x01R\x7FABI decoding: struct data too sh`D\x82\x01Rb\x1B\xDC\x9D`\xEA\x1B`d\x82\x01R`\x84\x81\xFD[`\0`\x80\x82\x84\x03\x12\x15a\" Wa\" a\x1C\xB1V[a\"(a\x1D\xC0V[\x82Q\x81R` \x83\x01Q` \x82\x01R`@\x83\x01Q`@\x82\x01R``\x83\x01Q``\x82\x01R\x80\x91PP\x92\x91PPV[`\0`\xA0\x82\x84\x03\x12\x15a\"iWa\"ia!\xBAV[`@Q`\xA0\x81\x01\x81\x81\x10g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x82\x11\x17\x15a\"\x8CWa\"\x8Ca\x1D\xAAV[\x80`@RP\x80\x91P\x825\x81R` \x83\x015` \x82\x01R`@\x83\x015`@\x82\x01R``\x83\x015``\x82\x01R`\x80\x83\x015`\x80\x82\x01RP\x92\x91PPV[`\0a\x02\0\x82\x84\x03\x12\x15a\"\xDDWa\"\xDDa\x1C\xB1V[a\"\xE5a\x1D\xC0V[a\"\xEF\x84\x84a\"TV[\x81Ra\"\xFE\x84`\xA0\x85\x01a\"TV[` \x82\x01Ra#\x11\x84a\x01@\x85\x01a\"TV[`@\x82\x01Ra\x01\xE0\x92\x90\x92\x015``\x83\x01RP\x91\x90PV[cNH{q`\xE0\x1B`\0R`\x11`\x04R`$`\0\xFD[\x81\x81\x03\x81\x81\x11\x15a\x03\xD9Wa\x03\xD9a#)V[\x80\x82\x01\x80\x82\x11\x15a\x03\xD9Wa\x03\xD9a#)V[\x81\x81\x03`\0\x83\x12\x80\x15\x83\x83\x13\x16\x83\x83\x12\x82\x16\x17\x15a#\x85Wa#\x85a#)V[P\x92\x91PPV[`\0`\x01`\xFF\x1B\x82\x01a#\xA1Wa#\xA1a#)V[P`\0\x03\x90V[\x80\x82\x01\x82\x81\x12`\0\x83\x12\x80\x15\x82\x16\x82\x15\x82\x16\x17\x15a#\xC8Wa#\xC8a#)V[PP\x92\x91PPV[`\0\x82a#\xEDWcNH{q`\xE0\x1B`\0R`\x12`\x04R`$`\0\xFD[P\x04\x90V[`\0\x80`\0\x80\x84\x86\x03`\xE0\x81\x12\x15a$\x0CWa$\x0Ca\x1C\xB1V[\x855\x94P` \x86\x015\x93P`@\x86\x015\x92P`\x80`_\x19\x82\x01\x12\x15a$3Wa$3a!\xBAV[Pa$<a\x1D\xC0V[``\x86\x015\x81R`\x80\x86\x015` \x82\x01R`\xA0\x86\x015`@\x82\x01R`\xC0\x86\x015``\x82\x01R\x80\x91PP\x92\x95\x91\x94P\x92PV[\x80\x82\x02\x81\x15\x82\x82\x04\x84\x14\x17a\x03\xD9Wa\x03\xD9a#)V[\x80\x82\x02`\0\x82\x12`\x01`\xFF\x1B\x84\x14\x16\x15a$\xA1Wa$\xA1a#)V[\x81\x81\x05\x83\x14\x82\x15\x17a\x03\xD9Wa\x03\xD9a#)V";
     /// The deployed bytecode of the contract.
     pub static LOGNORMAL_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
         __DEPLOYED_BYTECODE,
@@ -884,93 +699,43 @@ pub mod log_normal {
             let deployer = ::ethers::contract::ContractDeployer::new(deployer);
             Ok(deployer)
         }
-        ///Calls the contract's `__slot__` (0x668f9055) function
-        pub fn slot(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            (
-                ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
-            ),
-        > {
-            self.0
-                .method_hash([102, 143, 144, 85], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `computeSwapConstant` (0xa19cd3d1) function
+        ///Calls the contract's `computeSwapConstant` (0x002e524b) function
         pub fn compute_swap_constant(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::I256> {
             self.0
-                .method_hash([161, 156, 211, 209], data)
+                .method_hash([0, 46, 82, 75], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `core` (0xf2f4eb26) function
-        pub fn core(
+        ///Calls the contract's `dfmm` (0xafba13c4) function
+        pub fn dfmm(
             &self,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
             ::ethers::core::types::Address,
         > {
             self.0
-                .method_hash([242, 244, 235, 38], ())
+                .method_hash([175, 186, 19, 196], ())
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `dynamicSlot` (0xc1e0043b) function
-        pub fn dynamic_slot(
+        ///Calls the contract's `getPoolParams` (0xdc178355) function
+        pub fn get_pool_params(
             &self,
+            pool_id: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
             ::ethers::core::types::Bytes,
         > {
             self.0
-                .method_hash([193, 224, 4, 59], ())
+                .method_hash([220, 23, 131, 85], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `dynamicSlotInternal` (0x04b5c7af) function
-        pub fn dynamic_slot_internal(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, LogNormParameters> {
-            self.0
-                .method_hash([4, 181, 199, 175], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `getParams` (0x5e615a6b) function
-        pub fn get_params(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            (
-                ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
-            ),
-        > {
-            self.0
-                .method_hash([94, 97, 90, 107], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `getReservesAndLiquidity` (0xebadef01) function
-        pub fn get_reserves_and_liquidity(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            (
-                ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
-                ::ethers::core::types::U256,
-            ),
-        > {
-            self.0
-                .method_hash([235, 173, 239, 1], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `init` (0x4ddf47d4) function
+        ///Calls the contract's `init` (0x9f83137b) function
         pub fn init(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -983,104 +748,87 @@ pub mod log_normal {
             ),
         > {
             self.0
-                .method_hash([77, 223, 71, 212], data)
+                .method_hash([159, 131, 19, 123], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setSigma` (0x9987fe64) function
+        ///Calls the contract's `internalParams` (0x1edb71e5) function
+        pub fn internal_params(
+            &self,
+            p0: ::ethers::core::types::U256,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            (DynamicParam, DynamicParam, DynamicParam, ::ethers::core::types::U256),
+        > {
+            self.0
+                .method_hash([30, 219, 113, 229], p0)
+                .expect("method not found (this should never happen)")
+        }
+        ///Calls the contract's `setSigma` (0x7251308c) function
         pub fn set_sigma(
             &self,
-            new_target_sigma: ::ethers::core::types::U256,
-            new_sigma_update_end: ::ethers::core::types::U256,
+            pool_id: ::ethers::core::types::U256,
+            target: ::ethers::core::types::U256,
+            end: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash(
-                    [153, 135, 254, 100],
-                    (new_target_sigma, new_sigma_update_end),
-                )
+                .method_hash([114, 81, 48, 140], (pool_id, target, end))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setStrikePrice` (0x8d52a1fc) function
+        ///Calls the contract's `setStrikePrice` (0xd7109535) function
         pub fn set_strike_price(
             &self,
-            new_target_strike: ::ethers::core::types::U256,
-            new_strike_update_end: ::ethers::core::types::U256,
+            pool_id: ::ethers::core::types::U256,
+            target: ::ethers::core::types::U256,
+            end: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash(
-                    [141, 82, 161, 252],
-                    (new_target_strike, new_strike_update_end),
-                )
+                .method_hash([215, 16, 149, 53], (pool_id, target, end))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `setTau` (0x7f0e4c8c) function
+        ///Calls the contract's `setTau` (0x3f43baac) function
         pub fn set_tau(
             &self,
-            new_target_tau: ::ethers::core::types::U256,
-            new_tau_update_end: ::ethers::core::types::U256,
+            pool_id: ::ethers::core::types::U256,
+            target: ::ethers::core::types::U256,
+            end: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([127, 14, 76, 140], (new_target_tau, new_tau_update_end))
+                .method_hash([63, 67, 186, 172], (pool_id, target, end))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `sigma` (0xafdf31cd) function
-        pub fn sigma(
+        ///Calls the contract's `update` (0x0216b838) function
+        pub fn update(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
+            pool_id: ::ethers::core::types::U256,
+            data: ::ethers::core::types::Bytes,
+        ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([175, 223, 49, 205], ())
+                .method_hash([2, 22, 184, 56], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `staticSlot` (0x2e2d7969) function
-        pub fn static_slot(
+        ///Calls the contract's `validateAllocateOrDeallocate` (0x8e2dd400) function
+        pub fn validate_allocate_or_deallocate(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, LogNormParameters> {
+            pool_id: ::ethers::core::types::U256,
+            data: ::ethers::core::types::Bytes,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            (
+                bool,
+                ::ethers::core::types::I256,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+                ::ethers::core::types::U256,
+            ),
+        > {
             self.0
-                .method_hash([46, 45, 121, 105], ())
+                .method_hash([142, 45, 212, 0], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `strikePrice` (0xc52987cf) function
-        pub fn strike_price(
+        ///Calls the contract's `validateSwap` (0x3214890f) function
+        pub fn validate_swap(
             &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([197, 41, 135, 207], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `swapFee` (0x54cf2aeb) function
-        pub fn swap_fee(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([84, 207, 42, 235], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `targetSigma` (0xc1652612) function
-        pub fn target_sigma(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([193, 101, 38, 18], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `targetStrike` (0x3e1e3392) function
-        pub fn target_strike(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([62, 30, 51, 146], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `tau` (0xcfc4af55) function
-        pub fn tau(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
-            self.0
-                .method_hash([207, 196, 175, 85], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `validate` (0xc16e50ef) function
-        pub fn validate(
-            &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
@@ -1094,44 +842,8 @@ pub mod log_normal {
             ),
         > {
             self.0
-                .method_hash([193, 110, 80, 239], data)
+                .method_hash([50, 20, 137, 15], (pool_id, data))
                 .expect("method not found (this should never happen)")
-        }
-        ///Gets the contract's `SetSigma` event
-        pub fn set_sigma_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            SetSigmaFilter,
-        > {
-            self.0.event()
-        }
-        ///Gets the contract's `SetStrikePrice` event
-        pub fn set_strike_price_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            SetStrikePriceFilter,
-        > {
-            self.0.event()
-        }
-        ///Gets the contract's `SetTau` event
-        pub fn set_tau_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, SetTauFilter> {
-            self.0.event()
-        }
-        /// Returns an `Event` builder for all the events of this contract.
-        pub fn events(
-            &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            LogNormalEvents,
-        > {
-            self.0.event_with_filter(::core::default::Default::default())
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
@@ -1323,125 +1035,7 @@ pub mod log_normal {
             Self::OutOfBounds(value)
         }
     }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethevent(name = "SetSigma", abi = "SetSigma(uint256,uint256,uint256,uint256)")]
-    pub struct SetSigmaFilter {
-        pub target_sigma: ::ethers::core::types::U256,
-        pub last_sigma: ::ethers::core::types::U256,
-        pub sigma_update_end: ::ethers::core::types::U256,
-        pub delta: ::ethers::core::types::U256,
-    }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethevent(
-        name = "SetStrikePrice",
-        abi = "SetStrikePrice(uint256,uint256,uint256,uint256)"
-    )]
-    pub struct SetStrikePriceFilter {
-        pub target_strike: ::ethers::core::types::U256,
-        pub last_strike: ::ethers::core::types::U256,
-        pub strike_update_end: ::ethers::core::types::U256,
-        pub delta: ::ethers::core::types::U256,
-    }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethevent(name = "SetTau", abi = "SetTau(uint256,uint256,uint256,uint256)")]
-    pub struct SetTauFilter {
-        pub target_tau: ::ethers::core::types::U256,
-        pub last_tau: ::ethers::core::types::U256,
-        pub tau_update_end: ::ethers::core::types::U256,
-        pub delta: ::ethers::core::types::U256,
-    }
-    ///Container type for all of the contract's events
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        serde::Serialize,
-        serde::Deserialize,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub enum LogNormalEvents {
-        SetSigmaFilter(SetSigmaFilter),
-        SetStrikePriceFilter(SetStrikePriceFilter),
-        SetTauFilter(SetTauFilter),
-    }
-    impl ::ethers::contract::EthLogDecode for LogNormalEvents {
-        fn decode_log(
-            log: &::ethers::core::abi::RawLog,
-        ) -> ::core::result::Result<Self, ::ethers::core::abi::Error> {
-            if let Ok(decoded) = SetSigmaFilter::decode_log(log) {
-                return Ok(LogNormalEvents::SetSigmaFilter(decoded));
-            }
-            if let Ok(decoded) = SetStrikePriceFilter::decode_log(log) {
-                return Ok(LogNormalEvents::SetStrikePriceFilter(decoded));
-            }
-            if let Ok(decoded) = SetTauFilter::decode_log(log) {
-                return Ok(LogNormalEvents::SetTauFilter(decoded));
-            }
-            Err(::ethers::core::abi::Error::InvalidData)
-        }
-    }
-    impl ::core::fmt::Display for LogNormalEvents {
-        fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            match self {
-                Self::SetSigmaFilter(element) => ::core::fmt::Display::fmt(element, f),
-                Self::SetStrikePriceFilter(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::SetTauFilter(element) => ::core::fmt::Display::fmt(element, f),
-            }
-        }
-    }
-    impl ::core::convert::From<SetSigmaFilter> for LogNormalEvents {
-        fn from(value: SetSigmaFilter) -> Self {
-            Self::SetSigmaFilter(value)
-        }
-    }
-    impl ::core::convert::From<SetStrikePriceFilter> for LogNormalEvents {
-        fn from(value: SetStrikePriceFilter) -> Self {
-            Self::SetStrikePriceFilter(value)
-        }
-    }
-    impl ::core::convert::From<SetTauFilter> for LogNormalEvents {
-        fn from(value: SetTauFilter) -> Self {
-            Self::SetTauFilter(value)
-        }
-    }
-    ///Container type for all input parameters for the `__slot__` function with signature `__slot__()` and selector `0x668f9055`
+    ///Container type for all input parameters for the `computeSwapConstant` function with signature `computeSwapConstant(uint256,bytes)` and selector `0x002e524b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1454,26 +1048,12 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "__slot__", abi = "__slot__()")]
-    pub struct SlotCall;
-    ///Container type for all input parameters for the `computeSwapConstant` function with signature `computeSwapConstant(bytes)` and selector `0xa19cd3d1`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "computeSwapConstant", abi = "computeSwapConstant(bytes)")]
+    #[ethcall(name = "computeSwapConstant", abi = "computeSwapConstant(uint256,bytes)")]
     pub struct ComputeSwapConstantCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `core` function with signature `core()` and selector `0xf2f4eb26`
+    ///Container type for all input parameters for the `dfmm` function with signature `dfmm()` and selector `0xafba13c4`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1486,9 +1066,9 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "core", abi = "core()")]
-    pub struct CoreCall;
-    ///Container type for all input parameters for the `dynamicSlot` function with signature `dynamicSlot()` and selector `0xc1e0043b`
+    #[ethcall(name = "dfmm", abi = "dfmm()")]
+    pub struct DfmmCall;
+    ///Container type for all input parameters for the `getPoolParams` function with signature `getPoolParams(uint256)` and selector `0xdc178355`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1501,9 +1081,11 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "dynamicSlot", abi = "dynamicSlot()")]
-    pub struct DynamicSlotCall;
-    ///Container type for all input parameters for the `dynamicSlotInternal` function with signature `dynamicSlotInternal()` and selector `0x04b5c7af`
+    #[ethcall(name = "getPoolParams", abi = "getPoolParams(uint256)")]
+    pub struct GetPoolParamsCall {
+        pub pool_id: ::ethers::core::types::U256,
+    }
+    ///Container type for all input parameters for the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1516,56 +1098,12 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "dynamicSlotInternal", abi = "dynamicSlotInternal()")]
-    pub struct DynamicSlotInternalCall;
-    ///Container type for all input parameters for the `getParams` function with signature `getParams()` and selector `0x5e615a6b`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "getParams", abi = "getParams()")]
-    pub struct GetParamsCall;
-    ///Container type for all input parameters for the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity()` and selector `0xebadef01`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "getReservesAndLiquidity", abi = "getReservesAndLiquidity()")]
-    pub struct GetReservesAndLiquidityCall;
-    ///Container type for all input parameters for the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "init", abi = "init(bytes)")]
+    #[ethcall(name = "init", abi = "init(uint256,bytes)")]
     pub struct InitCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `setSigma` function with signature `setSigma(uint256,uint256)` and selector `0x9987fe64`
+    ///Container type for all input parameters for the `internalParams` function with signature `internalParams(uint256)` and selector `0x1edb71e5`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1578,12 +1116,28 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "setSigma", abi = "setSigma(uint256,uint256)")]
+    #[ethcall(name = "internalParams", abi = "internalParams(uint256)")]
+    pub struct InternalParamsCall(pub ::ethers::core::types::U256);
+    ///Container type for all input parameters for the `setSigma` function with signature `setSigma(uint256,uint256,uint256)` and selector `0x7251308c`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "setSigma", abi = "setSigma(uint256,uint256,uint256)")]
     pub struct SetSigmaCall {
-        pub new_target_sigma: ::ethers::core::types::U256,
-        pub new_sigma_update_end: ::ethers::core::types::U256,
+        pub pool_id: ::ethers::core::types::U256,
+        pub target: ::ethers::core::types::U256,
+        pub end: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setStrikePrice` function with signature `setStrikePrice(uint256,uint256)` and selector `0x8d52a1fc`
+    ///Container type for all input parameters for the `setStrikePrice` function with signature `setStrikePrice(uint256,uint256,uint256)` and selector `0xd7109535`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1596,12 +1150,13 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "setStrikePrice", abi = "setStrikePrice(uint256,uint256)")]
+    #[ethcall(name = "setStrikePrice", abi = "setStrikePrice(uint256,uint256,uint256)")]
     pub struct SetStrikePriceCall {
-        pub new_target_strike: ::ethers::core::types::U256,
-        pub new_strike_update_end: ::ethers::core::types::U256,
+        pub pool_id: ::ethers::core::types::U256,
+        pub target: ::ethers::core::types::U256,
+        pub end: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `setTau` function with signature `setTau(uint256,uint256)` and selector `0x7f0e4c8c`
+    ///Container type for all input parameters for the `setTau` function with signature `setTau(uint256,uint256,uint256)` and selector `0x3f43baac`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1614,12 +1169,13 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "setTau", abi = "setTau(uint256,uint256)")]
+    #[ethcall(name = "setTau", abi = "setTau(uint256,uint256,uint256)")]
     pub struct SetTauCall {
-        pub new_target_tau: ::ethers::core::types::U256,
-        pub new_tau_update_end: ::ethers::core::types::U256,
+        pub pool_id: ::ethers::core::types::U256,
+        pub target: ::ethers::core::types::U256,
+        pub end: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `sigma` function with signature `sigma()` and selector `0xafdf31cd`
+    ///Container type for all input parameters for the `update` function with signature `update(uint256,bytes)` and selector `0x0216b838`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1632,9 +1188,12 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "sigma", abi = "sigma()")]
-    pub struct SigmaCall;
-    ///Container type for all input parameters for the `staticSlot` function with signature `staticSlot()` and selector `0x2e2d7969`
+    #[ethcall(name = "update", abi = "update(uint256,bytes)")]
+    pub struct UpdateCall {
+        pub pool_id: ::ethers::core::types::U256,
+        pub data: ::ethers::core::types::Bytes,
+    }
+    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1647,9 +1206,15 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "staticSlot", abi = "staticSlot()")]
-    pub struct StaticSlotCall;
-    ///Container type for all input parameters for the `strikePrice` function with signature `strikePrice()` and selector `0xc52987cf`
+    #[ethcall(
+        name = "validateAllocateOrDeallocate",
+        abi = "validateAllocateOrDeallocate(uint256,bytes)"
+    )]
+    pub struct ValidateAllocateOrDeallocateCall {
+        pub pool_id: ::ethers::core::types::U256,
+        pub data: ::ethers::core::types::Bytes,
+    }
+    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -1662,83 +1227,9 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    #[ethcall(name = "strikePrice", abi = "strikePrice()")]
-    pub struct StrikePriceCall;
-    ///Container type for all input parameters for the `swapFee` function with signature `swapFee()` and selector `0x54cf2aeb`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "swapFee", abi = "swapFee()")]
-    pub struct SwapFeeCall;
-    ///Container type for all input parameters for the `targetSigma` function with signature `targetSigma()` and selector `0xc1652612`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "targetSigma", abi = "targetSigma()")]
-    pub struct TargetSigmaCall;
-    ///Container type for all input parameters for the `targetStrike` function with signature `targetStrike()` and selector `0x3e1e3392`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "targetStrike", abi = "targetStrike()")]
-    pub struct TargetStrikeCall;
-    ///Container type for all input parameters for the `tau` function with signature `tau()` and selector `0xcfc4af55`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "tau", abi = "tau()")]
-    pub struct TauCall;
-    ///Container type for all input parameters for the `validate` function with signature `validate(bytes)` and selector `0xc16e50ef`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "validate", abi = "validate(bytes)")]
-    pub struct ValidateCall {
+    #[ethcall(name = "validateSwap", abi = "validateSwap(uint256,bytes)")]
+    pub struct ValidateSwapCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
     ///Container type for all of the contract's call
@@ -1753,70 +1244,47 @@ pub mod log_normal {
         Hash
     )]
     pub enum LogNormalCalls {
-        Slot(SlotCall),
         ComputeSwapConstant(ComputeSwapConstantCall),
-        Core(CoreCall),
-        DynamicSlot(DynamicSlotCall),
-        DynamicSlotInternal(DynamicSlotInternalCall),
-        GetParams(GetParamsCall),
-        GetReservesAndLiquidity(GetReservesAndLiquidityCall),
+        Dfmm(DfmmCall),
+        GetPoolParams(GetPoolParamsCall),
         Init(InitCall),
+        InternalParams(InternalParamsCall),
         SetSigma(SetSigmaCall),
         SetStrikePrice(SetStrikePriceCall),
         SetTau(SetTauCall),
-        Sigma(SigmaCall),
-        StaticSlot(StaticSlotCall),
-        StrikePrice(StrikePriceCall),
-        SwapFee(SwapFeeCall),
-        TargetSigma(TargetSigmaCall),
-        TargetStrike(TargetStrikeCall),
-        Tau(TauCall),
-        Validate(ValidateCall),
+        Update(UpdateCall),
+        ValidateAllocateOrDeallocate(ValidateAllocateOrDeallocateCall),
+        ValidateSwap(ValidateSwapCall),
     }
     impl ::ethers::core::abi::AbiDecode for LogNormalCalls {
         fn decode(
             data: impl AsRef<[u8]>,
         ) -> ::core::result::Result<Self, ::ethers::core::abi::AbiError> {
             let data = data.as_ref();
-            if let Ok(decoded) = <SlotCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::Slot(decoded));
-            }
             if let Ok(decoded) = <ComputeSwapConstantCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
                 return Ok(Self::ComputeSwapConstant(decoded));
             }
-            if let Ok(decoded) = <CoreCall as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <DfmmCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::Core(decoded));
+                return Ok(Self::Dfmm(decoded));
             }
-            if let Ok(decoded) = <DynamicSlotCall as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <GetPoolParamsCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::DynamicSlot(decoded));
-            }
-            if let Ok(decoded) = <DynamicSlotInternalCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::DynamicSlotInternal(decoded));
-            }
-            if let Ok(decoded) = <GetParamsCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::GetParams(decoded));
-            }
-            if let Ok(decoded) = <GetReservesAndLiquidityCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::GetReservesAndLiquidity(decoded));
+                return Ok(Self::GetPoolParams(decoded));
             }
             if let Ok(decoded) = <InitCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
                 return Ok(Self::Init(decoded));
+            }
+            if let Ok(decoded) = <InternalParamsCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InternalParams(decoded));
             }
             if let Ok(decoded) = <SetSigmaCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -1833,45 +1301,20 @@ pub mod log_normal {
             ) {
                 return Ok(Self::SetTau(decoded));
             }
-            if let Ok(decoded) = <SigmaCall as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <UpdateCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::Sigma(decoded));
+                return Ok(Self::Update(decoded));
             }
-            if let Ok(decoded) = <StaticSlotCall as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <ValidateAllocateOrDeallocateCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::StaticSlot(decoded));
+                return Ok(Self::ValidateAllocateOrDeallocate(decoded));
             }
-            if let Ok(decoded) = <StrikePriceCall as ::ethers::core::abi::AbiDecode>::decode(
+            if let Ok(decoded) = <ValidateSwapCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
-                return Ok(Self::StrikePrice(decoded));
-            }
-            if let Ok(decoded) = <SwapFeeCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::SwapFee(decoded));
-            }
-            if let Ok(decoded) = <TargetSigmaCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::TargetSigma(decoded));
-            }
-            if let Ok(decoded) = <TargetStrikeCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::TargetStrike(decoded));
-            }
-            if let Ok(decoded) = <TauCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::Tau(decoded));
-            }
-            if let Ok(decoded) = <ValidateCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::Validate(decoded));
+                return Ok(Self::ValidateSwap(decoded));
             }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
@@ -1879,24 +1322,17 @@ pub mod log_normal {
     impl ::ethers::core::abi::AbiEncode for LogNormalCalls {
         fn encode(self) -> Vec<u8> {
             match self {
-                Self::Slot(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::ComputeSwapConstant(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::Core(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::DynamicSlot(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::DynamicSlotInternal(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::GetParams(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::GetReservesAndLiquidity(element) => {
+                Self::Dfmm(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::GetPoolParams(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::InternalParams(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::SetSigma(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1904,22 +1340,11 @@ pub mod log_normal {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::SetTau(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::Sigma(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::StaticSlot(element) => {
+                Self::Update(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::ValidateAllocateOrDeallocate(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::StrikePrice(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::SwapFee(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::TargetSigma(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::TargetStrike(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::Tau(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::Validate(element) => {
+                Self::ValidateSwap(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
             }
@@ -1928,37 +1353,22 @@ pub mod log_normal {
     impl ::core::fmt::Display for LogNormalCalls {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
-                Self::Slot(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ComputeSwapConstant(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
-                Self::Core(element) => ::core::fmt::Display::fmt(element, f),
-                Self::DynamicSlot(element) => ::core::fmt::Display::fmt(element, f),
-                Self::DynamicSlotInternal(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
-                Self::GetParams(element) => ::core::fmt::Display::fmt(element, f),
-                Self::GetReservesAndLiquidity(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
+                Self::Dfmm(element) => ::core::fmt::Display::fmt(element, f),
+                Self::GetPoolParams(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
+                Self::InternalParams(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetSigma(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetStrikePrice(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SetTau(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Sigma(element) => ::core::fmt::Display::fmt(element, f),
-                Self::StaticSlot(element) => ::core::fmt::Display::fmt(element, f),
-                Self::StrikePrice(element) => ::core::fmt::Display::fmt(element, f),
-                Self::SwapFee(element) => ::core::fmt::Display::fmt(element, f),
-                Self::TargetSigma(element) => ::core::fmt::Display::fmt(element, f),
-                Self::TargetStrike(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Tau(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Validate(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Update(element) => ::core::fmt::Display::fmt(element, f),
+                Self::ValidateAllocateOrDeallocate(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
+                Self::ValidateSwap(element) => ::core::fmt::Display::fmt(element, f),
             }
-        }
-    }
-    impl ::core::convert::From<SlotCall> for LogNormalCalls {
-        fn from(value: SlotCall) -> Self {
-            Self::Slot(value)
         }
     }
     impl ::core::convert::From<ComputeSwapConstantCall> for LogNormalCalls {
@@ -1966,34 +1376,24 @@ pub mod log_normal {
             Self::ComputeSwapConstant(value)
         }
     }
-    impl ::core::convert::From<CoreCall> for LogNormalCalls {
-        fn from(value: CoreCall) -> Self {
-            Self::Core(value)
+    impl ::core::convert::From<DfmmCall> for LogNormalCalls {
+        fn from(value: DfmmCall) -> Self {
+            Self::Dfmm(value)
         }
     }
-    impl ::core::convert::From<DynamicSlotCall> for LogNormalCalls {
-        fn from(value: DynamicSlotCall) -> Self {
-            Self::DynamicSlot(value)
-        }
-    }
-    impl ::core::convert::From<DynamicSlotInternalCall> for LogNormalCalls {
-        fn from(value: DynamicSlotInternalCall) -> Self {
-            Self::DynamicSlotInternal(value)
-        }
-    }
-    impl ::core::convert::From<GetParamsCall> for LogNormalCalls {
-        fn from(value: GetParamsCall) -> Self {
-            Self::GetParams(value)
-        }
-    }
-    impl ::core::convert::From<GetReservesAndLiquidityCall> for LogNormalCalls {
-        fn from(value: GetReservesAndLiquidityCall) -> Self {
-            Self::GetReservesAndLiquidity(value)
+    impl ::core::convert::From<GetPoolParamsCall> for LogNormalCalls {
+        fn from(value: GetPoolParamsCall) -> Self {
+            Self::GetPoolParams(value)
         }
     }
     impl ::core::convert::From<InitCall> for LogNormalCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
+        }
+    }
+    impl ::core::convert::From<InternalParamsCall> for LogNormalCalls {
+        fn from(value: InternalParamsCall) -> Self {
+            Self::InternalParams(value)
         }
     }
     impl ::core::convert::From<SetSigmaCall> for LogNormalCalls {
@@ -2011,65 +1411,22 @@ pub mod log_normal {
             Self::SetTau(value)
         }
     }
-    impl ::core::convert::From<SigmaCall> for LogNormalCalls {
-        fn from(value: SigmaCall) -> Self {
-            Self::Sigma(value)
+    impl ::core::convert::From<UpdateCall> for LogNormalCalls {
+        fn from(value: UpdateCall) -> Self {
+            Self::Update(value)
         }
     }
-    impl ::core::convert::From<StaticSlotCall> for LogNormalCalls {
-        fn from(value: StaticSlotCall) -> Self {
-            Self::StaticSlot(value)
+    impl ::core::convert::From<ValidateAllocateOrDeallocateCall> for LogNormalCalls {
+        fn from(value: ValidateAllocateOrDeallocateCall) -> Self {
+            Self::ValidateAllocateOrDeallocate(value)
         }
     }
-    impl ::core::convert::From<StrikePriceCall> for LogNormalCalls {
-        fn from(value: StrikePriceCall) -> Self {
-            Self::StrikePrice(value)
+    impl ::core::convert::From<ValidateSwapCall> for LogNormalCalls {
+        fn from(value: ValidateSwapCall) -> Self {
+            Self::ValidateSwap(value)
         }
     }
-    impl ::core::convert::From<SwapFeeCall> for LogNormalCalls {
-        fn from(value: SwapFeeCall) -> Self {
-            Self::SwapFee(value)
-        }
-    }
-    impl ::core::convert::From<TargetSigmaCall> for LogNormalCalls {
-        fn from(value: TargetSigmaCall) -> Self {
-            Self::TargetSigma(value)
-        }
-    }
-    impl ::core::convert::From<TargetStrikeCall> for LogNormalCalls {
-        fn from(value: TargetStrikeCall) -> Self {
-            Self::TargetStrike(value)
-        }
-    }
-    impl ::core::convert::From<TauCall> for LogNormalCalls {
-        fn from(value: TauCall) -> Self {
-            Self::Tau(value)
-        }
-    }
-    impl ::core::convert::From<ValidateCall> for LogNormalCalls {
-        fn from(value: ValidateCall) -> Self {
-            Self::Validate(value)
-        }
-    }
-    ///Container type for all return fields from the `__slot__` function with signature `__slot__()` and selector `0x668f9055`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct SlotReturn {
-        pub strike: ::ethers::core::types::U256,
-        pub sigma: ::ethers::core::types::U256,
-        pub tau: ::ethers::core::types::U256,
-    }
-    ///Container type for all return fields from the `computeSwapConstant` function with signature `computeSwapConstant(bytes)` and selector `0xa19cd3d1`
+    ///Container type for all return fields from the `computeSwapConstant` function with signature `computeSwapConstant(uint256,bytes)` and selector `0x002e524b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2083,7 +1440,7 @@ pub mod log_normal {
         Hash
     )]
     pub struct ComputeSwapConstantReturn(pub ::ethers::core::types::I256);
-    ///Container type for all return fields from the `core` function with signature `core()` and selector `0xf2f4eb26`
+    ///Container type for all return fields from the `dfmm` function with signature `dfmm()` and selector `0xafba13c4`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2096,8 +1453,8 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    pub struct CoreReturn(pub ::ethers::core::types::Address);
-    ///Container type for all return fields from the `dynamicSlot` function with signature `dynamicSlot()` and selector `0xc1e0043b`
+    pub struct DfmmReturn(pub ::ethers::core::types::Address);
+    ///Container type for all return fields from the `getPoolParams` function with signature `getPoolParams(uint256)` and selector `0xdc178355`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2110,62 +1467,8 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    pub struct DynamicSlotReturn {
-        pub params: ::ethers::core::types::Bytes,
-    }
-    ///Container type for all return fields from the `dynamicSlotInternal` function with signature `dynamicSlotInternal()` and selector `0x04b5c7af`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct DynamicSlotInternalReturn {
-        pub params: LogNormParameters,
-    }
-    ///Container type for all return fields from the `getParams` function with signature `getParams()` and selector `0x5e615a6b`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct GetParamsReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
-    ///Container type for all return fields from the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity()` and selector `0xebadef01`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct GetReservesAndLiquidityReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
-    ///Container type for all return fields from the `init` function with signature `init(bytes)` and selector `0x4ddf47d4`
+    pub struct GetPoolParamsReturn(pub ::ethers::core::types::Bytes);
+    ///Container type for all return fields from the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2181,11 +1484,11 @@ pub mod log_normal {
     pub struct InitReturn {
         pub valid: bool,
         pub invariant: ::ethers::core::types::I256,
-        pub rx: ::ethers::core::types::U256,
-        pub ry: ::ethers::core::types::U256,
-        pub l: ::ethers::core::types::U256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `sigma` function with signature `sigma()` and selector `0xafdf31cd`
+    ///Container type for all return fields from the `internalParams` function with signature `internalParams(uint256)` and selector `0x1edb71e5`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2198,8 +1501,13 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    pub struct SigmaReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `staticSlot` function with signature `staticSlot()` and selector `0x2e2d7969`
+    pub struct InternalParamsReturn {
+        pub sigma: DynamicParam,
+        pub tau: DynamicParam,
+        pub strike: DynamicParam,
+        pub swap_fee: ::ethers::core::types::U256,
+    }
+    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2212,8 +1520,14 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    pub struct StaticSlotReturn(pub LogNormParameters);
-    ///Container type for all return fields from the `strikePrice` function with signature `strikePrice()` and selector `0xc52987cf`
+    pub struct ValidateAllocateOrDeallocateReturn {
+        pub valid: bool,
+        pub invariant: ::ethers::core::types::I256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub total_liquidity: ::ethers::core::types::U256,
+    }
+    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -2226,77 +1540,7 @@ pub mod log_normal {
         Eq,
         Hash
     )]
-    pub struct StrikePriceReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `swapFee` function with signature `swapFee()` and selector `0x54cf2aeb`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct SwapFeeReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `targetSigma` function with signature `targetSigma()` and selector `0xc1652612`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct TargetSigmaReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `targetStrike` function with signature `targetStrike()` and selector `0x3e1e3392`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct TargetStrikeReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `tau` function with signature `tau()` and selector `0xcfc4af55`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct TauReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `validate` function with signature `validate(bytes)` and selector `0xc16e50ef`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct ValidateReturn {
+    pub struct ValidateSwapReturn {
         pub valid: bool,
         pub invariant: ::ethers::core::types::I256,
         pub liquidity_delta: ::ethers::core::types::I256,

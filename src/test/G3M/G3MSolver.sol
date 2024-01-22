@@ -28,7 +28,7 @@ contract G3MSolver {
         strategy = _strategy;
     }
 
-    function getPoolParams(uint256 poolId)
+    function fetchPoolParams(uint256 poolId)
         public
         view
         returns (G3M.PublicParams memory)
@@ -103,7 +103,7 @@ contract G3MSolver {
         uint256 rx,
         uint256 ry
     ) public view returns (uint256) {
-        return computeNextLiquidity(rx, ry, getPoolParams(poolId));
+        return computeNextLiquidity(rx, ry, fetchPoolParams(poolId));
     }
 
     function getNextReserveX(
@@ -111,7 +111,7 @@ contract G3MSolver {
         uint256 ry,
         uint256 L
     ) public view returns (uint256) {
-        return computeNextRx(ry, L, getPoolParams(poolId));
+        return computeNextRx(ry, L, fetchPoolParams(poolId));
     }
 
     function getNextReserveY(
@@ -119,7 +119,7 @@ contract G3MSolver {
         uint256 rx,
         uint256 L
     ) public view returns (uint256) {
-        return computeNextRy(rx, L, getPoolParams(poolId));
+        return computeNextRy(rx, L, fetchPoolParams(poolId));
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -132,9 +132,13 @@ contract G3MSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             getReservesAndLiquidity(poolId);
-        G3M.PublicParams memory poolParams = getPoolParams(poolId);
+        G3M.PublicParams memory poolParams = fetchPoolParams(poolId);
 
         uint256 amountOut;
+
+        uint256 startComputedL =
+            computeNextLiquidity(startReserves.rx, startReserves.ry, fetchPoolParams(poolId));
+
         {
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
@@ -147,7 +151,7 @@ contract G3MSolver {
                 deltaL += 1;
 
                 endReserves.rx = startReserves.rx + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.ry =
                     getNextReserveY(poolId, endReserves.rx, endReserves.L);
@@ -169,7 +173,7 @@ contract G3MSolver {
                 deltaL += 1;
 
                 endReserves.ry = startReserves.ry + amountIn;
-                endReserves.L = startReserves.L + deltaL;
+                endReserves.L = startComputedL + deltaL;
 
                 endReserves.rx =
                     getNextReserveX(poolId, endReserves.ry, endReserves.L);
@@ -200,8 +204,18 @@ contract G3MSolver {
         view
         returns (uint256 price)
     {
-        G3M.PublicParams memory params = getPoolParams(poolId);
+        G3M.PublicParams memory params = fetchPoolParams(poolId);
         (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
         price = computePrice(rx, ry, params);
+    }
+
+    function checkSwapConstant(
+        uint256 poolId,
+        bytes calldata data
+    ) public view returns (int256) {
+        (uint256 rx, uint256 ry, uint256 L) =
+            abi.decode(data, (uint256, uint256, uint256));
+        G3M.PublicParams memory params = fetchPoolParams(poolId);
+        return tradingFunction(rx, ry, L, params);
     }
 }

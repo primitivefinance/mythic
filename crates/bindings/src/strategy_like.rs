@@ -22,7 +22,17 @@ pub mod strategy_like {
                             name: ::std::borrow::ToOwned::to_owned(
                                 "getReservesAndLiquidity",
                             ),
-                            inputs: ::std::vec![],
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::string::String::new(),
@@ -62,7 +72,17 @@ pub mod strategy_like {
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("internalPrice"),
-                            inputs: ::std::vec![],
+                            inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
+                            ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::string::String::new(),
@@ -85,6 +105,15 @@ pub mod strategy_like {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("simulateSwap"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("swapXIn"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bool,
@@ -142,31 +171,20 @@ pub mod strategy_like {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("source"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("source"),
-                            inputs: ::std::vec![],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-                (
                     ::std::borrow::ToOwned::to_owned("swap"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("swap"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
+                                        256usize,
+                                    ),
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("uint256"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("data"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Bytes,
@@ -231,9 +249,10 @@ pub mod strategy_like {
                 ),
             )
         }
-        ///Calls the contract's `getReservesAndLiquidity` (0xebadef01) function
+        ///Calls the contract's `getReservesAndLiquidity` (0xce153bf4) function
         pub fn get_reserves_and_liquidity(
             &self,
+            pool_id: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<
             M,
             (
@@ -243,20 +262,22 @@ pub mod strategy_like {
             ),
         > {
             self.0
-                .method_hash([235, 173, 239, 1], ())
+                .method_hash([206, 21, 59, 244], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `internalPrice` (0x859310b6) function
+        ///Calls the contract's `internalPrice` (0x3b4d1030) function
         pub fn internal_price(
             &self,
+            pool_id: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<M, ::ethers::core::types::U256> {
             self.0
-                .method_hash([133, 147, 16, 182], ())
+                .method_hash([59, 77, 16, 48], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `simulateSwap` (0x0ac33034) function
+        ///Calls the contract's `simulateSwap` (0x3928ff97) function
         pub fn simulate_swap(
             &self,
+            pool_id: ::ethers::core::types::U256,
             swap_x_in: bool,
             amount_in: ::ethers::core::types::U256,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -269,27 +290,17 @@ pub mod strategy_like {
             ),
         > {
             self.0
-                .method_hash([10, 195, 48, 52], (swap_x_in, amount_in))
+                .method_hash([57, 40, 255, 151], (pool_id, swap_x_in, amount_in))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `source` (0x67e828bf) function
-        pub fn source(
-            &self,
-        ) -> ::ethers::contract::builders::ContractCall<
-            M,
-            ::ethers::core::types::Address,
-        > {
-            self.0
-                .method_hash([103, 232, 40, 191], ())
-                .expect("method not found (this should never happen)")
-        }
-        ///Calls the contract's `swap` (0x627dd56a) function
+        ///Calls the contract's `swap` (0xbd0625ab) function
         pub fn swap(
             &self,
+            pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([98, 125, 213, 106], data)
+                .method_hash([189, 6, 37, 171], (pool_id, data))
                 .expect("method not found (this should never happen)")
         }
     }
@@ -299,7 +310,7 @@ pub mod strategy_like {
             Self::new(contract.address(), contract.client())
         }
     }
-    ///Container type for all input parameters for the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity()` and selector `0xebadef01`
+    ///Container type for all input parameters for the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity(uint256)` and selector `0xce153bf4`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -312,9 +323,14 @@ pub mod strategy_like {
         Eq,
         Hash
     )]
-    #[ethcall(name = "getReservesAndLiquidity", abi = "getReservesAndLiquidity()")]
-    pub struct GetReservesAndLiquidityCall;
-    ///Container type for all input parameters for the `internalPrice` function with signature `internalPrice()` and selector `0x859310b6`
+    #[ethcall(
+        name = "getReservesAndLiquidity",
+        abi = "getReservesAndLiquidity(uint256)"
+    )]
+    pub struct GetReservesAndLiquidityCall {
+        pub pool_id: ::ethers::core::types::U256,
+    }
+    ///Container type for all input parameters for the `internalPrice` function with signature `internalPrice(uint256)` and selector `0x3b4d1030`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -327,9 +343,11 @@ pub mod strategy_like {
         Eq,
         Hash
     )]
-    #[ethcall(name = "internalPrice", abi = "internalPrice()")]
-    pub struct InternalPriceCall;
-    ///Container type for all input parameters for the `simulateSwap` function with signature `simulateSwap(bool,uint256)` and selector `0x0ac33034`
+    #[ethcall(name = "internalPrice", abi = "internalPrice(uint256)")]
+    pub struct InternalPriceCall {
+        pub pool_id: ::ethers::core::types::U256,
+    }
+    ///Container type for all input parameters for the `simulateSwap` function with signature `simulateSwap(uint256,bool,uint256)` and selector `0x3928ff97`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -342,12 +360,13 @@ pub mod strategy_like {
         Eq,
         Hash
     )]
-    #[ethcall(name = "simulateSwap", abi = "simulateSwap(bool,uint256)")]
+    #[ethcall(name = "simulateSwap", abi = "simulateSwap(uint256,bool,uint256)")]
     pub struct SimulateSwapCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub swap_x_in: bool,
         pub amount_in: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `source` function with signature `source()` and selector `0x67e828bf`
+    ///Container type for all input parameters for the `swap` function with signature `swap(uint256,bytes)` and selector `0xbd0625ab`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -360,23 +379,9 @@ pub mod strategy_like {
         Eq,
         Hash
     )]
-    #[ethcall(name = "source", abi = "source()")]
-    pub struct SourceCall;
-    ///Container type for all input parameters for the `swap` function with signature `swap(bytes)` and selector `0x627dd56a`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthCall,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[ethcall(name = "swap", abi = "swap(bytes)")]
+    #[ethcall(name = "swap", abi = "swap(uint256,bytes)")]
     pub struct SwapCall {
+        pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
     ///Container type for all of the contract's call
@@ -394,7 +399,6 @@ pub mod strategy_like {
         GetReservesAndLiquidity(GetReservesAndLiquidityCall),
         InternalPrice(InternalPriceCall),
         SimulateSwap(SimulateSwapCall),
-        Source(SourceCall),
         Swap(SwapCall),
     }
     impl ::ethers::core::abi::AbiDecode for StrategyLikeCalls {
@@ -417,11 +421,6 @@ pub mod strategy_like {
             ) {
                 return Ok(Self::SimulateSwap(decoded));
             }
-            if let Ok(decoded) = <SourceCall as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::Source(decoded));
-            }
             if let Ok(decoded) = <SwapCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
@@ -442,7 +441,6 @@ pub mod strategy_like {
                 Self::SimulateSwap(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
-                Self::Source(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Swap(element) => ::ethers::core::abi::AbiEncode::encode(element),
             }
         }
@@ -455,7 +453,6 @@ pub mod strategy_like {
                 }
                 Self::InternalPrice(element) => ::core::fmt::Display::fmt(element, f),
                 Self::SimulateSwap(element) => ::core::fmt::Display::fmt(element, f),
-                Self::Source(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Swap(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
@@ -475,17 +472,12 @@ pub mod strategy_like {
             Self::SimulateSwap(value)
         }
     }
-    impl ::core::convert::From<SourceCall> for StrategyLikeCalls {
-        fn from(value: SourceCall) -> Self {
-            Self::Source(value)
-        }
-    }
     impl ::core::convert::From<SwapCall> for StrategyLikeCalls {
         fn from(value: SwapCall) -> Self {
             Self::Swap(value)
         }
     }
-    ///Container type for all return fields from the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity()` and selector `0xebadef01`
+    ///Container type for all return fields from the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity(uint256)` and selector `0xce153bf4`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -503,7 +495,7 @@ pub mod strategy_like {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::U256,
     );
-    ///Container type for all return fields from the `internalPrice` function with signature `internalPrice()` and selector `0x859310b6`
+    ///Container type for all return fields from the `internalPrice` function with signature `internalPrice(uint256)` and selector `0x3b4d1030`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -517,7 +509,7 @@ pub mod strategy_like {
         Hash
     )]
     pub struct InternalPriceReturn(pub ::ethers::core::types::U256);
-    ///Container type for all return fields from the `simulateSwap` function with signature `simulateSwap(bool,uint256)` and selector `0x0ac33034`
+    ///Container type for all return fields from the `simulateSwap` function with signature `simulateSwap(uint256,bool,uint256)` and selector `0x3928ff97`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -536,18 +528,4 @@ pub mod strategy_like {
         pub estimated_price: ::ethers::core::types::U256,
         pub payload: ::ethers::core::types::Bytes,
     }
-    ///Container type for all return fields from the `source` function with signature `source()` and selector `0x67e828bf`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthAbiType,
-        ::ethers::contract::EthAbiCodec,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    pub struct SourceReturn(pub ::ethers::core::types::Address);
 }

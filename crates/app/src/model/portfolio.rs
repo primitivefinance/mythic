@@ -357,8 +357,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 raw_log.data.clone(),
             )?;
 
-            let amount_x = EthersU256::from(parsed_log.xxxxxxx);
-            let amount_y = EthersU256::from(parsed_log.yyyyyy);
+            let amount_x = EthersU256::from(parsed_log.reserve_x);
+            let amount_y = EthersU256::from(parsed_log.reserve_y);
 
             // Try getting the prices from the series
             let external_x_price = self
@@ -829,7 +829,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
         let protocol = self.protocol(client.clone()).await?;
-        let result = protocol.get_reserves_and_liquidity().await;
+
+        let total_pools = protocol.nonce().call().await?;
+
+        // Returns early with 0 values if there are no pools.
+        // todo: handle this case a little better
+        if total_pools.is_zero() {
+            return Ok((AlloyU256::ZERO, AlloyU256::ZERO, AlloyU256::ZERO));
+        }
+
+        let result = protocol.get_reserves_and_liquidity(U256::from(0)).await;
         let (reserve_x, reserve_y, liquidity) = match result {
             Ok(result) => result,
             Err(error) => {
@@ -848,7 +857,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<AlloyU256> {
         let solver = self.solver(client.clone()).await?;
-        let internal_price = solver.internal_price().await;
+        let internal_price = solver.internal_price(ethers::types::U256::from(0)).await;
         let internal_price = match internal_price {
             Ok(internal_price) => internal_price,
             Err(error) => {
@@ -865,11 +874,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         client: Arc<M>,
     ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
-        let strategy = self.strategy(client.clone()).await?;
-        let (strike_price, volatility, time_remaining) = strategy.get_params().await?;
-        let strike_price = from_ethers_u256(strike_price);
-        let volatility = from_ethers_u256(volatility);
-        let time_remaining = from_ethers_u256(time_remaining);
+        let solver = self.solver(client.clone()).await?;
+        let pool_params = solver
+            .fetch_pool_params(ethers::types::U256::from(0))
+            .call()
+            .await?;
+        let strike_price = from_ethers_u256(pool_params.strike);
+        let volatility = from_ethers_u256(pool_params.sigma);
+        let time_remaining = from_ethers_u256(pool_params.tau);
         Ok((strike_price, volatility, time_remaining))
     }
 

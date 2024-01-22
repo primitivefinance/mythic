@@ -62,17 +62,6 @@ function computeInitialPoolData2(
     return abi.encode(amountX, rY, L, params);
 }
 
-/// @dev Finds the root of the swapConstant given the independent variable liquidity.
-function computeNextLiquidity(
-    uint256 rX,
-    uint256 rY,
-    G3M.PublicParams memory params
-) pure returns (uint256 L) {
-    return uint256(int256(rX).powWad(int256(params.wX))).mulWadUp(
-        uint256(int256(rY).powWad(int256(params.wY)))
-    );
-}
-
 /// @dev Finds the root of the swapConstant given the independent variable rX.
 function computeNextRy(
     uint256 rX,

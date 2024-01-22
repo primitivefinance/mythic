@@ -7,8 +7,8 @@ use crate::{
     agents::{
         base::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin},
         pm::{
-            arbitrageur::Arbitrageur, liquidity_provider::LiquidityProvider,
-            submitter::VolatilityTargetingSubmitter,
+            arbitrageur::Arbitrageur, g3m_arbitrageur::G3mArbitrageur,
+            liquidity_provider::LiquidityProvider, submitter::VolatilityTargetingSubmitter,
         },
     },
 };
@@ -72,27 +72,44 @@ impl Scenario for DFMMScenario {
             PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
         let steps = price_changer.trajectory.paths[0].len() - 1;
 
-        println!("path: {:?}", price_changer.trajectory.paths[0]);
         let lex = from_ethers_address(price_changer.liquid_exchange.address());
         let lex_events = price_changer.liquid_exchange.events();
         agents.add(price_changer);
 
         // 2. Portfolio manager deploys a Dynamic Function MM & updates its parameters.
-        let pm = VolatilityTargetingSubmitter::new(&environment, &config, "portfolio_manager", lex)
-            .await?;
-        let market = from_ethers_address(pm.protocol_client.protocol.address());
-        let solver = from_ethers_address(pm.protocol_client.solver.address());
+        let pm = VolatilityTargetingSubmitter::new(
+            &environment,
+            &config,
+            "portfolio_manager",
+            lex,
+            token_admin.arbx.address(),
+            token_admin.arby.address(),
+        )
+        .await?;
+
+        let protocol_client = pm.protocol_client.clone();
         let market_events = pm.protocol_client.protocol.events();
         agents.add(pm);
 
         // 3. Liquidity provider initializes the DFMM.
-        let lp = LiquidityProvider::new(&environment, &config, "lp", &token_admin, market, solver)
-            .await?;
+        let lp = LiquidityProvider::new(
+            &environment,
+            &config,
+            "lp",
+            &token_admin,
+            protocol_client.clone(),
+        )
+        .await?;
         agents.add(lp);
 
         // 4. Arbitrageur arbitrages between the DFMM and the Liquid Exchange.
-        let arbitrageur = Arbitrageur::new(&environment, &token_admin, lex, market, solver).await?;
+        let arbitrageur =
+            Arbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
         agents.add(arbitrageur.clone());
+
+        let g3m_arbitrageur =
+            G3mArbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
+        agents.add(g3m_arbitrageur.clone());
 
         EventLogger::builder()
             .directory(config.output_directory.clone())
@@ -101,7 +118,11 @@ impl Scenario for DFMMScenario {
             .add(market_events, "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
-            .add(arbitrageur.atomic_arbitrage.events(), "atomic_arbitrage")
+            .add(arbitrageur.atomic_arbitrage.events(), "ln_atomic_arbitrage")
+            .add(
+                g3m_arbitrageur.atomic_arbitrage.events(),
+                "g3m_atomic_arbitrage",
+            )
             .run()
             .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

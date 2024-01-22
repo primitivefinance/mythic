@@ -85,8 +85,8 @@ contract G3M is IStrategy {
             revert InvalidWeightX();
         }
 
-        internalParams[poolId].wX.lastComputedValue = wX;
-        internalParams[poolId].wX.lastUpdateAt = block.timestamp;
+        internalParams[poolId].wX.last = wX;
+        internalParams[poolId].wX.lastSync = block.timestamp;
         internalParams[poolId].swapFee = swapFee;
 
         invariant = tradingFunction(
@@ -168,8 +168,16 @@ contract G3M is IStrategy {
         } else {
             revert("invalid swap: inputs x and y have the same sign!");
         }
-
-        liquidityDelta = int256(nextL) - int256(startL);
+        
+        uint256 poolId = poolId;
+        liquidityDelta = int256(nextL)
+            - int256(
+                computeNextLiquidity(
+                    startRx,
+                    startRy,
+                    abi.decode(getPoolParams(poolId), (PublicParams))
+                )
+            );
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
         bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
@@ -178,6 +186,12 @@ contract G3M is IStrategy {
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
         InternalParams memory params = abi.decode(data, (InternalParams));
         internalParams[poolId] = params;
+    }
+
+    function setWeightX(uint256 poolId, uint256 target, uint256 end) external {
+      InternalParams memory params = internalParams[poolId];
+      params.wX = params.wX.set(target, end);
+      internalParams[poolId] = params;
     }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {

@@ -18,7 +18,7 @@ use settings::{
     Parameterized, SimulationConfig,
 };
 use thiserror::Error;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, trace, warn};
 
 pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
     let cwd = std::env::current_dir().unwrap();
