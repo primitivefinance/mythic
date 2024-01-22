@@ -105,7 +105,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
     pub async fn snapshot(&self) -> anyhow::Result<AnvilSave> {
-        if let Some(_) = &self.anvil {
+        if self.anvil.is_some() {
             let block_number = self
                 .client
                 .as_ref()
@@ -164,7 +164,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
 
         let mut arbiter_client = None;
         if let Some(arbiter_instance) = arbiter.as_ref() {
-            arbiter_client = Some(RevmMiddleware::new(&arbiter_instance, Some(SANDBOX_LABEL))?);
+            arbiter_client = Some(RevmMiddleware::new(arbiter_instance, Some(SANDBOX_LABEL))?);
         }
 
         let mut client = None;
