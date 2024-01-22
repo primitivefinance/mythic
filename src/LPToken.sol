@@ -14,10 +14,11 @@ contract LPToken is ERC20 {
     constructor(
         string memory name_,
         string memory symbol_,
+        address to,
         uint256 amount
     ) ERC20(name_, symbol_, 18) {
         dfmm = msg.sender;
-        _mint(msg.sender, amount);
+        _mint(to, amount);
     }
 
     function mint(address to, uint256 amount) external OnlyDFMM {

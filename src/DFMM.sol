@@ -72,7 +72,8 @@ contract DFMM is IDFMM {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
-        LPToken liquidityToken = new LPToken("NAME", "SYMBOL", totalLiquidity);
+        LPToken liquidityToken =
+            new LPToken("NAME", "SYMBOL", msg.sender, totalLiquidity);
 
         Pool memory pool = Pool({
             inited: true,
