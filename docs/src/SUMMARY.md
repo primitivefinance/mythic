@@ -1,4 +1,5 @@
 # Summary
+[Excalibur](./index.md)
 
 - [App](./app/index.md)
     - [Architecture](./app/architecture.md)
