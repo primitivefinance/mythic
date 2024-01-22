@@ -13,7 +13,7 @@ contract G3MSetUp is SetUp {
 
     uint256 public POOL_ID;
 
-    G3M.PublicParams defaultParams = G3M.PublicParams({
+    G3M.G3MParams defaultParams = G3M.G3MParams({
         wX: 0.5 ether,
         wY: 0.5 ether,
         swapFee: TEST_SWAP_FEE

@@ -19,7 +19,7 @@ using FixedPointMathLib for int256;
 function computeLGivenX(
     uint256 rx,
     uint256 S,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (uint256 L) {
     int256 d1 = computeD1({ S: S, params: params });
     int256 cdf = Gaussian.cdf(d1);
@@ -33,7 +33,7 @@ function computeLGivenX(
 function computeYGivenL(
     uint256 L,
     uint256 S,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (uint256 ry) {
     int256 d2 = computeD2(S, params);
     int256 cdf = Gaussian.cdf(d2);
@@ -47,7 +47,7 @@ function computeYGivenL(
 function computeXGivenL(
     uint256 L,
     uint256 S,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (uint256 rx) {
     int256 d1 = computeD1(S, params);
     int256 cdf = Gaussian.cdf(d1);
@@ -61,7 +61,7 @@ function computeXGivenL(
 /// @return d1 = (ln(S/K) + tau * sigma^2 / 2) / (sigma * sqrt(tau))
 function computeD1(
     uint256 S,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (int256 d1) {
     (uint256 K, uint256 sigma, uint256 tau) =
         (params.strike, params.sigma, params.tau);
@@ -78,7 +78,7 @@ function computeD1(
 /// @return d2 = d1 - sigma * sqrt(tau), alternatively d2 = (ln(S/K) - tau * sigma^2 / 2) / (sigma * sqrt(tau))
 function computeD2(
     uint256 S,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (int256 d2) {
     (uint256 K, uint256 sigma, uint256 tau) =
         (params.strike, params.sigma, params.tau);
@@ -93,8 +93,8 @@ function computeD2(
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveYWad.
 function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
-    (uint256 rx, uint256 L,, LogNormal.PublicParams memory params) =
-        abi.decode(data, (uint256, uint256, int256, LogNormal.PublicParams));
+    (uint256 rx, uint256 L,, LogNormal.LogNormalParams memory params) =
+        abi.decode(data, (uint256, uint256, int256, LogNormal.LogNormalParams));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -102,8 +102,8 @@ function findRootY(bytes memory data, uint256 ry) pure returns (int256) {
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the reserveXWad.
 function findRootX(bytes memory data, uint256 rx) pure returns (int256) {
-    (uint256 ry, uint256 L,, LogNormal.PublicParams memory params) =
-        abi.decode(data, (uint256, uint256, int256, LogNormal.PublicParams));
+    (uint256 ry, uint256 L,, LogNormal.LogNormalParams memory params) =
+        abi.decode(data, (uint256, uint256, int256, LogNormal.LogNormalParams));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -114,8 +114,8 @@ function findRootLiquidity(
     bytes memory data,
     uint256 L
 ) pure returns (int256) {
-    (uint256 rx, uint256 ry,, LogNormal.PublicParams memory params) =
-        abi.decode(data, (uint256, uint256, int256, LogNormal.PublicParams));
+    (uint256 rx, uint256 ry,, LogNormal.LogNormalParams memory params) =
+        abi.decode(data, (uint256, uint256, int256, LogNormal.LogNormalParams));
     return tradingFunction({ rx: rx, ry: ry, L: L, params: params });
 }
 
@@ -123,7 +123,7 @@ function findRootLiquidity(
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 ry = computeYGivenL(L, initialPrice, params);
@@ -139,7 +139,7 @@ function computeNextLiquidity(
     uint256 ry,
     int256 invariant,
     uint256 currentL,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (uint256 nextL) {
     uint256 lower;
     uint256 upper;
@@ -173,7 +173,7 @@ function computeNextRy(
     uint256 L,
     int256 invariant,
     uint256 currentRy,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (uint256 ry) {
     uint256 upper;
     uint256 lower;
@@ -200,7 +200,7 @@ function computeNextRx(
     uint256 L,
     int256 invariant,
     uint256 currentRx,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (uint256 rx) {
     uint256 upper;
     uint256 lower;

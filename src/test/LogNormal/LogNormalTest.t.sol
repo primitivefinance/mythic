@@ -37,7 +37,7 @@ contract LogNormalTest is Test {
     modifier realisticEth() {
         vm.warp(0);
 
-        LogNormal.PublicParams memory params = LogNormal.PublicParams({
+        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
             strike: ONE * 2300,
             sigma: ONE,
             tau: ONE,
@@ -64,7 +64,7 @@ contract LogNormalTest is Test {
     modifier basic() {
         vm.warp(0);
 
-        LogNormal.PublicParams memory params = LogNormal.PublicParams({
+        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
             strike: ONE,
             sigma: ONE,
             tau: ONE,

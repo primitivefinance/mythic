@@ -11,7 +11,7 @@ function tradingFunction(
     uint256 rx,
     uint256 ry,
     uint256 L,
-    LogNormal.PublicParams memory params
+    LogNormal.LogNormalParams memory params
 ) pure returns (int256) {
     require(rx < L, "tradingFunction: invalid x");
 

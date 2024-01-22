@@ -43,10 +43,10 @@ contract G3MHelper {
     function getPoolParams(uint256 poolId)
         public
         view
-        returns (G3M.PublicParams memory params)
+        returns (G3M.G3MParams memory params)
     {
         bytes memory data = g3m.getPoolParams(poolId);
-        params = abi.decode(data, (G3M.PublicParams));
+        params = abi.decode(data, (G3M.G3MParams));
     }
 
     function prepareFeeUpdate(uint256 swapFee)
