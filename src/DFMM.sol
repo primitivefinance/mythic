@@ -302,7 +302,7 @@ contract DFMM is IDFMM {
         uint256 poolId,
         bool isAllocate,
         uint256 deltaL
-    ) private {
+    ) internal {
         LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
         uint256 totalSupply = liquidityToken.totalSupply();
         uint256 totalLiquidity = pools[poolId].totalLiquidity;
