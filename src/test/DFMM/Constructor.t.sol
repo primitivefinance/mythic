@@ -9,5 +9,8 @@ contract DFMMConstructorTest is DFMMSetUp {
 
         LPToken lpToken = LPToken(dfmm.lpTokenImplementation());
         assertTrue(lpToken.initialized());
+        assertEq(lpToken.name(), "");
+        assertEq(lpToken.symbol(), "");
+        assertEq(lpToken.decimals(), 18);
     }
 }
