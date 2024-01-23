@@ -116,8 +116,6 @@ contract DFMM is IDFMM {
         return (poolId, reserveX, reserveY, totalLiquidity);
     }
 
-    function clone() private returns (address cloneAddress) { }
-
     /// @inheritdoc IDFMM
     function allocate(
         uint256 poolId,
