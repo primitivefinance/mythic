@@ -154,6 +154,11 @@ pub struct RawDataModel<A: Ord, V> {
     pub user_token_balances: Option<BTreeMap<A, Vec<(u64, V)>>>,
     // Tracks the global state of pools.
     pub pool_state: Option<BTreeMap<u64, PoolState<A, V>>>,
+    // Tracks the prices of the tokens in the user_token_balances
+    // mapping reported by the external exchange
+    pub external_prices: Option<BTreeMap<A, Vec<(u64, V)>>>,
+    // Used to filter out the liquidity tokens from the user_token_balances mapping.
+    pub liquidity_token_addresses: Option<Vec<A>>,
 
     // old stuff below
 
@@ -407,6 +412,35 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    /// todo: update to work with prices correctly, since current exchange
+    /// assumes price of asset token.
+    async fn update_token_prices_mapping<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
+        let current_block = self.fetch_block_number(client.clone()).await?;
+        let token_addresses: Vec<_> = self
+            .user_token_balances
+            .as_ref()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect();
+        for token_address in token_addresses {
+            let new_price = self
+                .fetch_external_price_of_token(client.clone(), token_address)
+                .await?;
+            self.external_prices
+                .as_mut()
+                .unwrap()
+                .get_mut(&token_address)
+                .unwrap()
+                .push((current_block, new_price));
+        }
+
+        Ok(())
+    }
+
     /// Fetches the raw pool state from the protocol. Should only be used to
     /// initialize the immutable state of a pool upon pool initialization.
     pub async fn fetch_pool_state<M: Middleware + 'static>(
@@ -530,6 +564,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let new_pool_state = self.fetch_pool_state(client.clone(), pool_id).await?;
+        let liquidity_token_address = new_pool_state.liquidity_token.clone().unwrap();
 
         let pool_state_map = self.pool_state.get_or_insert_with(BTreeMap::new);
 
@@ -573,6 +608,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             pool_state_map.insert(pool_id, new_pool_state);
         }
 
+        // Update the liquidity_token_addresses mapping if it missing the new pool's
+        // liquidity token address.
+        let liquidity_token_addresses = self.liquidity_token_addresses.get_or_insert_with(Vec::new);
+        if !liquidity_token_addresses.contains(&liquidity_token_address) {
+            liquidity_token_addresses.push(liquidity_token_address);
+        }
+
         Ok(())
     }
 
@@ -588,6 +630,63 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             }
         }
         Ok(())
+    }
+
+    /// Gets the series of USD values for each token the user has with a
+    /// non-zero balance.
+    pub fn get_user_balances_usd<M: Middleware + 'static>(
+        &self,
+    ) -> Result<Vec<(AlloyAddress, Vec<(u64, AlloyU256)>)>> {
+        // Filter the liquidity token addresses from the user_token_balances
+        // keys, then separate them into two different vectors of addresses.
+        let liquidity_token_addresses = self
+            .liquidity_token_addresses
+            .as_ref()
+            .ok_or(Error::msg("Liquidity token addresses not set"))?;
+
+        let non_liquidity_token_addresses: Vec<_> = self
+            .user_token_balances
+            .as_ref()
+            .unwrap()
+            .keys()
+            .cloned()
+            .filter(|address| !liquidity_token_addresses.contains(address))
+            .collect();
+
+        // For each non-liquidity token address, then for each element in the series,
+        // build a series of balance * price.
+        let mut all_token_balances_usd = vec![];
+        for token_address in non_liquidity_token_addresses {
+            let balance_series = self
+                .user_token_balances
+                .as_ref()
+                .unwrap()
+                .get(&token_address)
+                .unwrap();
+            let price_series = self
+                .external_prices
+                .as_ref()
+                .unwrap()
+                .get(&token_address)
+                .unwrap();
+
+            let balance_usd_series = balance_series
+                .iter()
+                .zip(price_series.iter())
+                .map(|((block, balance), (_, price))| {
+                    let balance_usd = balance
+                        .checked_mul(*price)
+                        .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                        .checked_div(ALLOY_WAD)
+                        .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                    Ok((*block, balance_usd))
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            all_token_balances_usd.push((token_address, balance_usd_series));
+        }
+
+        Ok(all_token_balances_usd)
     }
 
     pub async fn fetch_user_historical_tx<M: Middleware + 'static>(
@@ -1116,6 +1215,35 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_external_price<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
+    ) -> Result<AlloyU256> {
+        let external_exchange = self
+            .external_exchange_address
+            .ok_or(Error::msg("External exchange address not set"))?;
+
+        // todo: replace
+
+        let lex = arbiter_bindings::bindings::liquid_exchange::LiquidExchange::new(
+            to_ethers_address(external_exchange),
+            client.clone(),
+        );
+        let price = lex.price().await;
+        let price = match price {
+            Ok(price) => price,
+            Err(error) => {
+                tracing::warn!("Error fetching external price: {:?}", error);
+                return Err(anyhow!("Error fetching external price"));
+            }
+        };
+        let price = from_ethers_u256(price);
+
+        Ok(price)
+    }
+
+    /// todo: external exchange contract needs updates for this
+    async fn fetch_external_price_of_token<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+        _token_address: AlloyAddress,
     ) -> Result<AlloyU256> {
         let external_exchange = self
             .external_exchange_address
