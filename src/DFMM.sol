@@ -306,12 +306,14 @@ contract DFMM is IDFMM {
         LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
         uint256 totalSupply = liquidityToken.totalSupply();
         uint256 totalLiquidity = pools[poolId].totalLiquidity;
-        uint256 amount =
-            deltaL.mulWadDown(totalSupply.divWadDown(totalLiquidity));
 
         if (isAllocate) {
+            uint256 amount =
+                deltaL.mulWadDown(totalSupply.divWadDown(totalLiquidity));
             liquidityToken.mint(msg.sender, amount);
         } else {
+            uint256 amount =
+                deltaL.mulWadUp(totalSupply.divWadUp(totalLiquidity));
             liquidityToken.burn(msg.sender, amount);
         }
     }
