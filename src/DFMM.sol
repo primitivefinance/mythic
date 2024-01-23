@@ -15,6 +15,7 @@ contract DFMM is IDFMM {
 
     Pool[] public pools;
     uint256 private _locked = 1;
+    address public immutable lpTokenImplementation;
 
     modifier initialized(uint256 poolId) {
         if (!pools[poolId].inited) revert NotInitialized();
@@ -26,6 +27,11 @@ contract DFMM is IDFMM {
         _locked = 2;
         _;
         _locked = 1;
+    }
+
+    constructor() {
+        lpTokenImplementation = address(new LPToken());
+        LPToken(lpTokenImplementation).initialize("", "");
     }
 
     function multicall(bytes[] memory data) external returns (bytes[] memory) {
@@ -72,8 +78,10 @@ contract DFMM is IDFMM {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
-        LPToken liquidityToken =
-            new LPToken("LPToken", "LPToken", msg.sender, totalLiquidity);
+        // LPToken liquidityToken = new LPToken();
+        LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
+        liquidityToken.initialize("LPToken", "LPToken");
+        liquidityToken.mint(msg.sender, totalLiquidity);
 
         Pool memory pool = Pool({
             inited: true,
@@ -108,6 +116,8 @@ contract DFMM is IDFMM {
 
         return (poolId, reserveX, reserveY, totalLiquidity);
     }
+
+    function clone() private returns (address cloneAddress) { }
 
     /// @inheritdoc IDFMM
     function allocate(
@@ -304,6 +314,40 @@ contract DFMM is IDFMM {
             liquidityToken.mint(msg.sender, amount);
         } else {
             liquidityToken.burn(msg.sender, amount);
+        }
+    }
+
+    error ERC1167FailedCreateClone();
+
+    /**
+     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
+     *
+     * This function uses the create opcode, which should never revert.
+     */
+    function clone(address implementation)
+        internal
+        returns (address instance)
+    {
+        /// @solidity memory-safe-assembly
+        assembly {
+            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes
+            // of the `implementation` address with the bytecode before the address.
+            mstore(
+                0x00,
+                or(
+                    shr(0xe8, shl(0x60, implementation)),
+                    0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000
+                )
+            )
+            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.
+            mstore(
+                0x20,
+                or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3)
+            )
+            instance := create(0, 0x09, 0x37)
+        }
+        if (instance == address(0)) {
+            revert ERC1167FailedCreateClone();
         }
     }
 
