@@ -45,6 +45,8 @@ interface IDFMM {
 
     error NotController();
 
+    error ERC1167FailedCreateClone();
+
     // Events
 
     event LogPoolStats(

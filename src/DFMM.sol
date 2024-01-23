@@ -316,8 +316,6 @@ contract DFMM is IDFMM {
         }
     }
 
-    error ERC1167FailedCreateClone();
-
     /**
      * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
      *
