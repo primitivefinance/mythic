@@ -104,13 +104,14 @@ impl Model {
         }
 
         let portfolio = self.networks.get_mut(&self.current.unwrap()).unwrap();
+        let pool_id = 0; // todo: fix this
 
         // Gets the current position info. This should be updated prior to calling this
         // function.
-        let pos_info = portfolio.get_position_info()?;
+        let pos_info = portfolio.get_position_info(pool_id)?;
 
         // Include unallocated balances in the portfolio as well.
-        let unallocated_pos_info = portfolio.get_unallocated_positions_info()?;
+        let unallocated_pos_info = portfolio.get_unallocated_positions_info(pool_id)?;
 
         // Clones the user's current portfolio to mutate it.
         let mut portfolio = self.user.portfolio.clone();

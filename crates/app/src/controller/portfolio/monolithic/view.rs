@@ -39,6 +39,7 @@ impl MonolithicPresenter {
 
     pub fn sync_strategy_preview(
         &mut self,
+        current_price: f64,
         strike_price: f64,
         volatility: f64,
         time_remaining: f64,
@@ -69,7 +70,7 @@ impl MonolithicPresenter {
 
             // histogram
             let histogram_data = connected_model
-                .derive_liquidity_histogram(strike_price, volatility, time_remaining)
+                .derive_liquidity_histogram(current_price, strike_price, volatility, time_remaining)
                 .expect("Failed to derive histogram data.");
 
             let x_range = (0.0, histogram_data.max_bin as f32);
@@ -92,11 +93,7 @@ impl MonolithicPresenter {
             return label("Timestamp: N/A").caption().tertiary();
         }
 
-        let data = self
-            .model
-            .get_current()
-            .unwrap()
-            .raw_last_chain_data_sync_timestamp;
+        let data = self.model.get_current().unwrap().last_sync;
         match data {
             Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
             None => label("Timestamp: N/A").caption().tertiary(),
@@ -193,13 +190,22 @@ impl MonolithicPresenter {
             .cloned();
 
         if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
+            let pool_id = 0; // todo: get pool id from position
             let external_price = match position.asset.symbol.as_str() {
-                "X" => connected_model.raw_external_spot_price.to_label(),
-                "Y" => connected_model.raw_external_quote_price.to_label(),
+                "X" => Some(
+                    connected_model
+                        .get_external_price_of_pool_asset(pool_id)
+                        .unwrap(),
+                )
+                .to_label(),
+
+                "Y" => Some(ALLOY_WAD).to_label(), // todo: fix
                 _ => label("n/a").title3().quantitative(),
             };
 
-            let aum = connected_model.derive_internal_portfolio_value().to_label();
+            let aum = connected_model
+                .derive_internal_portfolio_value(pool_id)
+                .to_label();
 
             let health = connected_model.derive_portfolio_health();
             let health = match health {
@@ -237,7 +243,7 @@ impl MonolithicPresenter {
         self.model
             .get_current()
             .unwrap()
-            .raw_user_historical_transactions
+            .user_history
             .clone()
             .unwrap_or_default()
     }

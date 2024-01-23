@@ -154,14 +154,29 @@ impl Monolithic {
         if let Some(client) = self.client.clone() {
             if let (Some(signer), Some(_)) = (client.signer.as_ref(), client.dfmm_client.as_ref()) {
                 let _submitter = signer.address();
+                let pool_id = 0; // todo: get pool id from the model.
 
-                let asset_token = self.model.get_current().map(|x| x.raw_asset_token).unwrap();
+                // Get the tokens from the user's data token list.
+                let token_list = self.model.user.coins.clone();
+
+                // todo: add asset selection to create flow
+                let (asset_token, quote_token) = token_list.tokens.into_iter().fold(
+                    (None, None),
+                    |(asset_token, quote_token), token| {
+                        if token.symbol == self.create.chosen_asset.clone().unwrap().symbol {
+                            (Some(token.address), quote_token)
+                        } else if token.symbol == self.create.chosen_quote.clone().unwrap().symbol {
+                            (asset_token, Some(token.address))
+                        } else {
+                            (asset_token, quote_token)
+                        }
+                    },
+                );
                 let asset_token = match asset_token {
                     Some(x) => x,
                     None => return Err(anyhow::anyhow!("No asset token")),
                 };
 
-                let quote_token = self.model.get_current().map(|x| x.raw_quote_token).unwrap();
                 let quote_token = match quote_token {
                     Some(x) => x,
                     None => return Err(anyhow::anyhow!("No quote token")),
@@ -180,7 +195,10 @@ impl Monolithic {
                 }
 
                 // Does not panic because it's caught in the above if statement.
-                let asset_price = self.model.get_current().unwrap().raw_external_spot_price;
+                let asset_price = self
+                    .model
+                    .get_current()
+                    .and_then(|x| Some(x.get_external_price_of_pool_asset(pool_id).unwrap()));
                 let asset_price = match asset_price {
                     Some(x) => format_ether(x).parse::<f64>(),
                     None => return Err(anyhow::anyhow!("No asset price")),
@@ -296,7 +314,18 @@ impl Monolithic {
                 self.create.liquidity = Some(liquidity);
 
                 if let Some(connected_model) = self.model.get_current() {
-                    let external_price = connected_model.raw_external_spot_price;
+                    let pool_id = 0; // todo: get pool id from the model.
+                    let pool_state = connected_model.get_pool_state(pool_id).unwrap();
+                    let asset_token = pool_state
+                        .asset_token
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("No asset token in pool state for pool id: {}", pool_id)
+                        })
+                        .unwrap();
+                    let external_price = connected_model
+                        .external_prices
+                        .as_ref()
+                        .and_then(|x| x.get(&asset_token).cloned().unwrap().last().map(|x| x.1));
                     let external_price = match external_price {
                         Some(x) => format_ether(x).parse::<f64>().unwrap(),
                         None => return Command::none(),
@@ -305,6 +334,7 @@ impl Monolithic {
                     // Sync the strategy preview chart.
                     let parameters = liquidity.to_parameters(external_price);
                     self.presenter.sync_strategy_preview(
+                        external_price,
                         parameters.strike_price_wad,
                         parameters.sigma_percent_wad,
                         parameters.time_remaining_years_wad,
