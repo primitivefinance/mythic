@@ -368,7 +368,7 @@ impl State for Monolithic {
                     self.price_process.clone(),
                     self.model
                         .get_current()
-                        .map(|x| x.raw_external_exchange_address)
+                        .map(|x| x.external_exchange_address)
                         .unwrap_or_else(|| None),
                 ) {
                     // Step the price process.
