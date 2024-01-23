@@ -61,6 +61,7 @@ impl Agent for LiquidityProvider {
                 g_init_params,
             )
             .await?;
+
         Ok(())
     }
 
@@ -91,7 +92,7 @@ impl LiquidityProvider {
         token_admin
             .mint(
                 from_ethers_address(client.address()),
-                parse_ether("100")?,
+                parse_ether("10_000_000")?,
                 parse_ether("10_000_000")?,
             )
             .await?;

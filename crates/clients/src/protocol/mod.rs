@@ -7,10 +7,12 @@ use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use bindings::{
-    dfmm::DFMM,
+    dfmm::{Pool as PoolStruct, DFMM},
     g3m::G3M,
+    g3m_helper::G3MHelper,
     g3m_solver::G3MSolver,
     log_normal::LogNormal,
+    log_normal_helper::LogNormalHelper,
     log_normal_solver::LogNormalSolver,
     shared_types::{
         G3Mparams as G3mParameters, InitParams, LogNormalParams as LogNormalParameters,
@@ -53,8 +55,10 @@ pub struct ProtocolClient<C> {
     pub protocol: DFMM<C>,
     pub ln_solver: LogNormalSolver<C>,
     pub ln_strategy: LogNormal<C>,
+    pub ln_helper: LogNormalHelper<C>,
     pub g_solver: G3MSolver<C>,
     pub g_strategy: G3M<C>,
+    pub g_helper: G3MHelper<C>,
     pub pools: BTreeMap<U256, Pool>,
     pub tokens: BTreeMap<Address, TokenData>,
 }
@@ -66,8 +70,10 @@ impl<C> Clone for ProtocolClient<C> {
             protocol: self.protocol.clone(),
             ln_solver: self.ln_solver.clone(),
             ln_strategy: self.ln_strategy.clone(),
+            ln_helper: self.ln_helper.clone(),
             g_solver: self.g_solver.clone(),
             g_strategy: self.g_strategy.clone(),
+            g_helper: self.g_helper.clone(),
             pools: self.pools.clone(),
             tokens: self.tokens.clone(),
         }
@@ -99,13 +105,22 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .send()
             .await?;
 
+        let ln_helper = LogNormalHelper::deploy(client.clone(), ln_strategy.address())?
+            .send()
+            .await?;
+        let g_helper = G3MHelper::deploy(client.clone(), g_strategy.address())?
+            .send()
+            .await?;
+
         Ok(Self {
             client,
             protocol,
             ln_solver,
             ln_strategy,
+            ln_helper,
             g_solver,
             g_strategy,
+            g_helper,
             pools: BTreeMap::new(),
             tokens: BTreeMap::new(),
         })
@@ -116,14 +131,18 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         protocol_address: Address,
         ln_solver_address: Address,
         ln_strategy_address: Address,
+        ln_helper_address: Address,
         g_solver_address: Address,
         g_strategy_address: Address,
+        g_helper_address: Address,
     ) -> Result<Self> {
         let protocol = DFMM::new(protocol_address, client.clone());
         let ln_strategy = LogNormal::new(ln_strategy_address, client.clone());
         let g_strategy = G3M::new(g_strategy_address, client.clone());
         let ln_solver = LogNormalSolver::new(ln_solver_address, client.clone());
         let g_solver = G3MSolver::new(g_solver_address, client.clone());
+        let ln_helper = LogNormalHelper::new(ln_helper_address, client.clone());
+        let g_helper = G3MHelper::new(g_helper_address, client.clone());
 
         // todo: get protocol nonce then loop through pools to generate token list and
         // pool list
@@ -132,8 +151,10 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             protocol,
             ln_solver,
             ln_strategy,
+            ln_helper,
             g_solver,
             g_strategy,
+            g_helper,
             pools: BTreeMap::new(),
             tokens: BTreeMap::new(),
         })
@@ -145,6 +166,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let g_strategy = G3M::new(self.g_strategy.address(), client.clone());
         let ln_solver = LogNormalSolver::new(self.ln_solver.address(), client.clone());
         let g_solver = G3MSolver::new(self.g_solver.address(), client.clone());
+        let ln_helper = LogNormalHelper::new(self.ln_helper.address(), client.clone());
+        let g_helper = G3MHelper::new(self.g_helper.address(), client.clone());
         let pools = self.pools.clone();
         let tokens = self.tokens.clone();
 
@@ -153,8 +176,10 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             protocol,
             ln_strategy,
             ln_solver,
+            ln_helper,
             g_strategy,
             g_solver,
+            g_helper,
             pools,
             tokens,
         })
@@ -198,6 +223,40 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok((self.get_token(pool.token_x)?, self.get_token(pool.token_y)?))
     }
 
+    pub async fn get_pool_struct(&self, pool_id: U256) -> Result<Pool> {
+        let pool_data: PoolStruct = self.protocol.get_pool(pool_id).call().await?;
+
+        let token_x = pool_data.token_x;
+        let token_y = pool_data.token_y;
+        let strategy = pool_data.strategy;
+        let ln_address = self.ln_strategy.address();
+        let g_address = self.g_strategy.address();
+
+        let kind = match strategy {
+            _ if strategy == ln_address => PoolKind::LogNormal,
+            _ if strategy == g_address => PoolKind::G3M,
+            _ => anyhow::bail!("Invalid strategy address"),
+        };
+
+        let pool = Pool {
+            kind,
+            token_x,
+            token_y,
+            pool_id,
+        };
+
+        Ok(pool)
+    }
+
+    pub async fn get_pool(&self, pool_id: U256) -> Result<Pool> {
+        let pool = match self.pools.get(&pool_id) {
+            Some(value) => value.to_owned(),
+            None => self.get_pool_struct(pool_id).await?,
+        };
+
+        Ok(pool)
+    }
+
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn init_pool(
         &mut self,
@@ -232,7 +291,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                     token_y,
                     pool_id,
                 };
-                self.pools.insert(pool_id, pool).unwrap();
+                self.pools.insert(pool_id, pool);
 
                 Ok(tx)
             }
@@ -326,8 +385,9 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_internal_price(&self, pool_id: U256) -> Result<U256> {
-        let kind = self.pools.get(&pool_id).unwrap().kind;
-        match kind {
+        let pool = self.get_pool(pool_id).await?;
+
+        match pool.kind {
             PoolKind::G3M => Ok(self.g_solver.internal_price(pool_id).call().await?),
             PoolKind::LogNormal => Ok(self.ln_solver.internal_price(pool_id).call().await?),
         }
@@ -335,7 +395,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_params(&self, pool_id: U256) -> Result<PoolParams> {
-        let pool = self.pools.get(&pool_id).unwrap();
+        let pool = self.get_pool(pool_id).await?;
 
         match pool.kind {
             PoolKind::G3M => Ok(PoolParams::G3M(
@@ -351,44 +411,45 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     pub async fn set_strike_price(
         &self,
         pool_id: U256,
-        target_strike_price_wad: f64,
+        target_strike_price: f64,
         next_timestamp: u64,
     ) -> Result<Option<TransactionReceipt>> {
-        // let target_strike_price_wad = to_wad(target_strike_price_wad);
-        // let tx = self
-        // .ln_strategy
-        // .set_strike_price(
-        // pool_id,
-        // target_strike_price_wad,
-        // ethers::types::U256::from(next_timestamp),
-        // )
-        // .send()
-        // .await?
-        // .await?;
-        // Ok(tx)
-        todo!("@kinrezc fix")
+        let target_strike_wad = to_wad(target_strike_price);
+        let timestamp_wad = ethers::types::U256::from(next_timestamp);
+        let update_data = self
+            .ln_helper
+            .prepare_strike_update(target_strike_wad, timestamp_wad)
+            .call()
+            .await?;
+        let tx = self
+            .protocol
+            .update(pool_id, update_data)
+            .send()
+            .await?
+            .await?;
+        Ok(tx)
     }
 
     pub async fn set_weight_x(
         &self,
-        _pool_id: U256,
-        _target_wx: f64,
-        _next_timestamp: u64,
+        pool_id: U256,
+        target_wx: f64,
+        next_timestamp: u64,
     ) -> Result<Option<TransactionReceipt>> {
-        // let target_wx_wad = to_wad(target_wx);
-        // let tx = self
-        // .g_strategy
-        // .set_weight_x(
-        // pool_id,
-        // target_wx_wad,
-        // ethers::types::U256::from(next_timestamp),
-        // )
-        // .send()
-        // .await?
-        // .await?;
-        // Ok(tx)
-
-        todo!("@kinrezc fix")
+        let target_wx_wad = to_wad(target_wx);
+        let timestamp_wad = ethers::types::U256::from(next_timestamp);
+        let update_data = self
+            .g_helper
+            .prepare_weight_x_update(target_wx_wad, timestamp_wad)
+            .call()
+            .await?;
+        let tx = self
+            .protocol
+            .update(pool_id, update_data)
+            .send()
+            .await?
+            .await?;
+        Ok(tx)
     }
 }
 

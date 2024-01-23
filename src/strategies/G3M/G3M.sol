@@ -86,7 +86,6 @@ contract G3M is IStrategy {
         }
 
         internalParams[poolId].wX.lastComputedValue = wX;
-        internalParams[poolId].wX.lastUpdateAt = block.timestamp;
         internalParams[poolId].swapFee = swapFee;
 
         invariant = tradingFunction(

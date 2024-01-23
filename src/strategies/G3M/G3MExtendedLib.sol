@@ -51,17 +51,6 @@ function computeInitialPoolData(
     return abi.encode(amountX, rY, L, params.wX, params.swapFee);
 }
 
-function computeInitialPoolData2(
-    uint256 amountX,
-    uint256 initialPrice,
-    G3M.G3MParams memory params
-) pure returns (bytes memory) {
-    uint256 L = computeLGivenX(amountX, initialPrice, params);
-    uint256 rY = computeYGivenL(L, initialPrice, params);
-    L = computeNextLiquidity(amountX, rY, params);
-    return abi.encode(amountX, rY, L, params);
-}
-
 /// @dev Finds the root of the swapConstant given the independent variable rX.
 function computeNextRy(
     uint256 rX,
