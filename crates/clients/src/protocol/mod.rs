@@ -146,11 +146,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let ln_solver = LogNormalSolver::new(self.ln_solver.address(), client.clone());
         let g_solver = G3MSolver::new(self.g_solver.address(), client.clone());
         let pools = self.pools.clone();
-        let mut tokens = BTreeMap::new();
-        for (key, value) in self.tokens.iter() {
-            let token = value.clone();
-            tokens.insert(*key, token);
-        }
+        let tokens = self.tokens.clone();
 
         Ok(Self {
             client,
@@ -176,7 +172,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             symbol,
             decimals,
         };
-        self.tokens.insert(address, token_data).unwrap();
+        self.tokens.insert(address, token_data);
         Ok(())
     }
 
@@ -261,7 +257,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                     token_y,
                     pool_id,
                 };
-                self.pools.insert(pool_id, pool).unwrap();
+                self.pools.insert(pool_id, pool);
 
                 Ok(tx)
             }
