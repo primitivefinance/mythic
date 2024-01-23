@@ -255,10 +255,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 from_ethers_address(exc_client.address().unwrap()),
                 from_ethers_address(lex),
                 from_ethers_address(protocol),
+                from_ethers_address(dev_client.solver.address()),
                 from_ethers_address(strategy),
-                from_ethers_address(solver),
-                from_ethers_address(token_x),
-                from_ethers_address(token_y),
             );
         }
 

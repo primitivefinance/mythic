@@ -37,7 +37,7 @@ use cfmm_math::trading_functions::rmm::{
 use chrono::{DateTime, Utc};
 use ethers::types::transaction::eip2718::TypedTransaction;
 use serde::{Deserialize, Serialize};
-use sim::{from_ethers_u256, to_ethers_address};
+use sim::{from_ethers_address, from_ethers_u256, to_ethers_address, to_ethers_u256};
 
 use super::*;
 use crate::components::chart::{
@@ -78,21 +78,98 @@ pub struct TokenInfo {
     pub decimals: u8,
 }
 
-/// The model!
+/// Tracks global pool state and the individual token balances of the respective
+/// pool's tokens for the connected user.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct RawDataModel<A, V> {
+pub struct PoolState<A, V> {
+    pub id: Option<V>,
+    pub controller: Option<A>,
+    pub strategy: Option<A>,
+    pub asset_token: Option<A>,
+    pub quote_token: Option<A>,
+    pub liquidity_token: Option<A>,
+
+    // Tracks the internal price of the pool as reported by the solver contract.
+    pub internal_price: Option<Vec<(u64, V)>>,
+    // Tracks the total virtual liquidity of the pool. Not the same as liquidity token.
+    pub total_liquidity: Option<Vec<(u64, V)>>,
+    // Tracks the pool's token reserves.
+    pub asset_reserve: Option<Vec<(u64, V)>>,
+    pub quote_reserve: Option<Vec<(u64, V)>>,
+    // Tracks the total supply of the liquidity token to compute the user's
+    // percentage of the pool.
+    pub liquidity_token_total_supply: Option<Vec<(u64, V)>>,
+    // Tracks the strategy specific state. Only one can be set per pool.
+    pub log_normal_strategy: Option<LogNormalStrategyState<V>>,
+    pub g3m_strategy: Option<G3MStrategyState<V>>,
+    // Swap fee is specific to strategy, but all strategies have a swap fee.
+    pub swap_fee_wad: Option<V>,
+}
+
+/// todo: support/integrate the dynamic params and time series data of the
+/// dynamic params.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LogNormalStrategyState<V> {
+    pub strike_price: V,
+    pub volatility: V,
+    pub time_remaining: V,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct G3MStrategyState<V> {
+    // todo!
+    pub todo: V,
+}
+
+/// The model!
+/// - user_address must be set to a valid address via `setup` before calling
+///   `update`.
+/// - external_exchange_address must be set to a valid address via `setup`
+///   before calling `update`.
+/// - dfmm_address must be set to a valid address via `setup` before calling
+///   `update`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct RawDataModel<A: Ord, V> {
+    // Network id for the chain that this model is connected to / fetching data from.
     pub chain_id: Option<u64>,
+    // Signer's public address.
+    pub user_address: Option<A>,
+    // An external exchange address that can be used to fetch pricing info.
+    pub external_exchange_address: Option<A>,
+    // The address of the DFMM smart contract.
+    pub dfmm_address: Option<A>,
+    // The address of the solver for the log normal strategy.
+    pub log_normal_solver_address: Option<A>,
+    // The address of the solver for the g3m strategy.
+    pub g3m_solver_address: Option<A>,
+    // Timestamp of the most recent model update.
+    pub last_sync: Option<DateTime<Utc>>,
+    // Block number of the most recent model update.
+    pub last_sync_block: Option<u64>,
+    // Tracks all the user's transactions with the DFMM protocol.
+    pub user_history: Option<Vec<HistoricalTx>>,
+    // Block number of the most recent model update that fetched user history.
+    pub last_user_history_sync_block: Option<u64>,
+    // Balances of tokens held directly by the connected user.
+    pub user_token_balances: Option<BTreeMap<A, Vec<(u64, V)>>>,
+    // Tracks the global state of pools.
+    pub pool_state: Option<BTreeMap<u64, PoolState<A, V>>>,
+
+    // old stuff below
 
     // Cached data is updated only once.
     pub cached: Cached,
 
-    // Must set these addresses.
-    pub user_address: Option<A>,
-    pub raw_external_exchange_address: Option<A>,
+    // Address of the DFMM smart contract. todo: update to use new name.
     pub raw_protocol_address: Option<A>,
+    // Address of the strategy being used in the DFMM pool. todo: this can be folded into pool
+    // data.
     pub raw_strategy_address: Option<A>,
+    // Address of the helper smart contract to build orders for the strategy.
     pub raw_solver_address: Option<A>,
+    // Address of the asset or "X" token of the pool.
     pub raw_asset_token: Option<A>,
+    // Address of the quote or "Y" token of the pool.
     pub raw_quote_token: Option<A>,
 
     // Balances of tokens.
@@ -143,6 +220,7 @@ sol! {
         function name() external view returns(string name);
         function symbol() external view returns(string symbol);
         function decimals() external view returns(uint8 decimals);
+        function totalSupply() external view returns(uint);
     }
 }
 
@@ -217,24 +295,25 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Sets up the model with the required addresses needed to fetch all the
     /// data in the model.
+    /// - user_address is the public address of the signer used in the
+    ///   application to send transactions.
+    /// - external_exchange_address is the address of the external exchange used
+    ///   to fetch prices.
+    /// - dfmm_address is the address of the DFMM protocol.
     #[allow(clippy::too_many_arguments)]
     pub fn setup(
         &mut self,
         user_address: AlloyAddress,
         external_exchange_address: AlloyAddress,
-        protocol_address: AlloyAddress,
-        strategy_address: AlloyAddress,
-        solver_address: AlloyAddress,
-        asset_token: AlloyAddress,
-        quote_token: AlloyAddress,
+        dfmm_address: AlloyAddress,
+        log_normal_solver_address: AlloyAddress,
+        g3m_solver_address: AlloyAddress,
     ) {
         self.user_address = Some(user_address);
-        self.raw_external_exchange_address = Some(external_exchange_address);
-        self.raw_protocol_address = Some(protocol_address);
-        self.raw_strategy_address = Some(strategy_address);
-        self.raw_solver_address = Some(solver_address);
-        self.raw_asset_token = Some(asset_token);
-        self.raw_quote_token = Some(quote_token);
+        self.external_exchange_address = Some(external_exchange_address);
+        self.dfmm_address = Some(dfmm_address);
+        self.log_normal_solver_address = Some(log_normal_solver_address);
+        self.g3m_solver_address = Some(g3m_solver_address);
     }
 
     /// Updates the ENTIRE model! Wow!
@@ -291,6 +370,223 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // Finally update cached data, which will only update if conditions are met.
         self.update_cached(client.clone()).await?;
 
+        Ok(())
+    }
+
+    // Updates all the token balance series' for the user for the current block.
+    async fn update_token_balance_mapping<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+    ) -> Result<()> {
+        let user_address = self
+            .user_address
+            .ok_or(Error::msg("User address not set"))?;
+
+        // For each token tracked in the token_balances mapping, fetch the balances and
+        // update the model.
+        let current_block = self.fetch_block_number(client.clone()).await?;
+        let token_addresses: Vec<_> = self
+            .user_token_balances
+            .as_ref()
+            .unwrap()
+            .keys()
+            .cloned()
+            .collect();
+        for token_address in token_addresses {
+            let new_balance = self
+                .fetch_balance_of(client.clone(), token_address, user_address)
+                .await?;
+            self.user_token_balances
+                .as_mut()
+                .unwrap()
+                .get_mut(&token_address)
+                .unwrap()
+                .push((current_block, new_balance));
+        }
+
+        Ok(())
+    }
+
+    /// Fetches the raw pool state from the protocol. Should only be used to
+    /// initialize the immutable state of a pool upon pool initialization.
+    pub async fn fetch_pool_state<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+        pool_id: u64,
+    ) -> Result<PoolState<AlloyAddress, AlloyU256>>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
+        let parsed_pool_id = EthersU256::from(pool_id);
+
+        let dfmm = self.protocol(client.clone()).await?;
+        let current_block = self.fetch_block_number(client.clone()).await?;
+
+        let (
+            _inited,
+            controller,
+            strategy,
+            asset_token,
+            quote_token,
+            asset_reserve,
+            quote_reserve,
+            total_liquidity,
+            liquidity_token,
+        ) = dfmm.pools(parsed_pool_id).call().await?;
+
+        let asset_reserve: Option<Vec<(u64, AlloyU256)>> = if asset_reserve.is_zero() {
+            None
+        } else {
+            Some(vec![(current_block, from_ethers_u256(asset_reserve))])
+        };
+
+        let quote_reserve: Option<Vec<(u64, AlloyU256)>> = if quote_reserve.is_zero() {
+            None
+        } else {
+            Some(vec![(current_block, from_ethers_u256(quote_reserve))])
+        };
+
+        let total_liquidity: Option<Vec<(u64, AlloyU256)>> = if total_liquidity.is_zero() {
+            None
+        } else {
+            Some(vec![(current_block, from_ethers_u256(total_liquidity))])
+        };
+
+        let payload = IERC20::totalSupplyCall {};
+        let payload = ethers::types::Bytes::from(payload.abi_encode());
+
+        let mut tx = TypedTransaction::default();
+        tx.set_to(liquidity_token).set_data(payload);
+
+        // Send the call to the token contract.
+        let total_supply = client.call(&tx, None).await?;
+        let decoded: <IERC20::totalSupplyCall as SolCall>::Return =
+            IERC20::totalSupplyCall::abi_decode_returns(&total_supply, false)?;
+        let total_supply = decoded._0;
+
+        let liquidity_token_total_supply: Option<Vec<(u64, AlloyU256)>> = if total_supply.is_zero()
+        {
+            None
+        } else {
+            Some(vec![(current_block, total_supply)])
+        };
+
+        // todo: add g3m strategy check/integration
+        let strategy_instance =
+            self.log_normal_strategy(client.clone(), from_ethers_address(strategy))?;
+
+        let (strike_price, volatility, time_remaining, swap_fee_wad) = strategy_instance
+            .internal_params(parsed_pool_id)
+            .call()
+            .await
+            .map_err(|error| anyhow!(error))?;
+
+        let strike_price = strike_price.last_computed_value;
+        let volatility = volatility.last_computed_value;
+        let time_remaining = time_remaining.last_computed_value;
+
+        let log_normal_strategy = Some(LogNormalStrategyState {
+            strike_price: from_ethers_u256(strike_price),
+            volatility: from_ethers_u256(volatility),
+            time_remaining: from_ethers_u256(time_remaining),
+        });
+
+        let solver_address = self
+            .log_normal_solver_address
+            .ok_or(Error::msg("Solver address not set"))?;
+        let solver = self.get_solver(client.clone(), solver_address).await?;
+        let internal_price = solver.internal_price(parsed_pool_id).call().await?;
+
+        let internal_price = if internal_price.is_zero() {
+            None
+        } else {
+            Some(vec![(current_block, from_ethers_u256(internal_price))])
+        };
+
+        Ok(PoolState {
+            id: Some(from_ethers_u256(parsed_pool_id)),
+            controller: Some(from_ethers_address(controller)),
+            strategy: Some(from_ethers_address(strategy)),
+            asset_token: Some(from_ethers_address(asset_token)),
+            quote_token: Some(from_ethers_address(quote_token)),
+            liquidity_token: Some(from_ethers_address(liquidity_token)),
+            internal_price,
+            total_liquidity,
+            asset_reserve,
+            quote_reserve,
+            liquidity_token_total_supply,
+            log_normal_strategy,
+            g3m_strategy: None,
+            swap_fee_wad: Some(from_ethers_u256(swap_fee_wad)),
+        })
+    }
+
+    pub async fn update_pool<M: Middleware + 'static>(
+        &mut self,
+        client: Arc<M>,
+        pool_id: u64,
+    ) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
+        let new_pool_state = self.fetch_pool_state(client.clone(), pool_id).await?;
+
+        let pool_state_map = self.pool_state.get_or_insert_with(BTreeMap::new);
+
+        if let Some(existing_pool_state) = pool_state_map.get_mut(&pool_id) {
+            // Append new series data to existing pool state
+            if let Some(new_internal_price) = new_pool_state.internal_price {
+                existing_pool_state
+                    .internal_price
+                    .get_or_insert_with(Vec::new)
+                    .extend(new_internal_price);
+            }
+            if let Some(new_total_liquidity) = new_pool_state.total_liquidity {
+                existing_pool_state
+                    .total_liquidity
+                    .get_or_insert_with(Vec::new)
+                    .extend(new_total_liquidity);
+            }
+            if let Some(new_asset_reserve) = new_pool_state.asset_reserve {
+                existing_pool_state
+                    .asset_reserve
+                    .get_or_insert_with(Vec::new)
+                    .extend(new_asset_reserve);
+            }
+            if let Some(new_quote_reserve) = new_pool_state.quote_reserve {
+                existing_pool_state
+                    .quote_reserve
+                    .get_or_insert_with(Vec::new)
+                    .extend(new_quote_reserve);
+            }
+            if let Some(new_liquidity_token_total_supply) =
+                new_pool_state.liquidity_token_total_supply
+            {
+                existing_pool_state
+                    .liquidity_token_total_supply
+                    .get_or_insert_with(Vec::new)
+                    .extend(new_liquidity_token_total_supply);
+            }
+            // Add other fields as needed
+        } else {
+            // Insert new pool state as is
+            pool_state_map.insert(pool_id, new_pool_state);
+        }
+
+        Ok(())
+    }
+
+    /// Updates the state of all the pools.
+    pub async fn update_all_pools<M: Middleware + 'static>(&mut self, client: Arc<M>) -> Result<()>
+    where
+        <M as ethers::providers::Middleware>::Error: 'static,
+    {
+        if let Some(pool_state_map) = &self.pool_state {
+            let pool_ids: Vec<_> = pool_state_map.keys().cloned().collect();
+            for pool_id in pool_ids {
+                self.update_pool(client.clone(), pool_id).await?;
+            }
+        }
         Ok(())
     }
 
@@ -537,6 +833,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn update_last_sync_timestamp(&mut self) -> Result<()> {
         let timestamp = Utc::now();
         self.raw_last_chain_data_sync_timestamp = Some(timestamp);
+        self.last_sync = Some(timestamp);
 
         Ok(())
     }
@@ -561,6 +858,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(strategy)
     }
 
+    /// Gets the strategy contract instance given a pool's strategy address.
+    pub fn log_normal_strategy<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+        address: AlloyAddress,
+    ) -> Result<LogNormal<M>> {
+        let strategy = LogNormal::new(to_ethers_address(address), client.clone());
+        Ok(strategy)
+    }
+
     /// Gets the strategy contract instance given the model's strategy address.
     pub async fn solver<M: Middleware + 'static>(
         &self,
@@ -571,6 +878,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .ok_or(Error::msg("Solver address not set"))?;
         let converted_address = to_ethers_address(solver_address);
         let solver = LogNormalSolver::new(converted_address, client.clone());
+        Ok(solver)
+    }
+
+    /// Gets a pool's strategy's solver contract instance given an address.
+    pub async fn get_solver<M: Middleware + 'static>(
+        &self,
+        client: Arc<M>,
+        address: AlloyAddress,
+    ) -> Result<LogNormalSolver<M>> {
+        let solver = LogNormalSolver::new(to_ethers_address(address), client.clone());
         Ok(solver)
     }
 
@@ -685,6 +1002,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     ) -> Result<()> {
         let block_number = self.fetch_block_number(client.clone()).await?;
         self.raw_last_chain_data_sync_block = Some(block_number);
+        self.last_sync_block = Some(block_number);
         Ok(())
     }
 
@@ -800,7 +1118,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<AlloyU256> {
         let external_exchange = self
-            .raw_external_exchange_address
+            .external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
 
         // todo: replace
@@ -2076,6 +2394,14 @@ pub struct HistogramData {
     pub bin_size: u32,
     pub data: BTreeMap<u32, u32>,
     pub notable_bars: BTreeMap<u32, u32>,
+}
+
+/// Formats WAD values into stringified floating point decimals, then parses
+/// them into f64.
+/// todo: take an optional decimal argument for using format_units instead.
+pub fn format_and_parse(value: AlloyU256) -> Result<f64> {
+    let formatted = alloy_primitives::utils::format_ether(value);
+    formatted.parse::<f64>().map_err(|e| e.into())
 }
 
 #[cfg(test)]
