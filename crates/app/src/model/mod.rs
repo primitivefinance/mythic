@@ -132,6 +132,8 @@ impl Model {
 
         // Build a list of all individual positions, which are tokens, from the
         // unallocated and allocated positions.
+        tracing::info!("unallocated tokens are: {:?}", unallocated_positions);
+        tracing::info!("allocated tokens are: {:?}", allocated_positions);
         let position_tokens = unallocated_positions
             .iter()
             .map(|position| position.token_address.clone())
@@ -164,6 +166,8 @@ impl Model {
         // Create the data type `Position` to be entered into the portfolio using the
         // total value to compute its weight, for each position token.
         let mut positions = vec![];
+
+        tracing::info!("Position tokens are: {:?}", position_tokens);
         for token in position_tokens {
             let mut is_allocated = false;
             let (balance, price) = if let Some(position) = unallocated_positions
