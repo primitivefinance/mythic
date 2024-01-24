@@ -1,7 +1,7 @@
 use std::env;
 
 use chrono::Utc;
-use datatypes::portfolio::position::{PositionLayer, Positions};
+use datatypes::portfolio::position::{Position, PositionLayer, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
@@ -143,36 +143,35 @@ impl MonolithicPresenter {
 
     pub fn get_unallocated_positions(&self) -> (Positions, Vec<String>) {
         let portfolio = self.model.user.portfolio.clone();
-        let position_x = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
-            .find(|x| x.asset.symbol == "X")
-            .cloned()
-            .unwrap_or_default();
-
-        let position_y = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
-            .find(|x| x.asset.symbol == "Y")
-            .cloned()
-            .unwrap_or_default();
 
         let current_dir = env::current_dir().unwrap();
         let ether_logo_path = current_dir.clone().join("assets/logos/ether_logo.png");
         let usdc_logo_path = current_dir.clone().join("assets/logos/usdc_logo.png");
 
-        let logos = vec![
-            ether_logo_path.to_str().unwrap().to_string(),
-            usdc_logo_path.to_str().unwrap().to_string(),
-        ];
+        let positions = portfolio.positions.clone();
+        let mut unallocated_positions = vec![];
+        for position in positions.0.iter() {
+            let logo = if position.asset.tags.contains(&"ether".to_string()) {
+                ether_logo_path.to_str().unwrap().to_string()
+            } else if position.asset.tags.contains(&"stablecoin".to_string()) {
+                usdc_logo_path.to_str().unwrap().to_string()
+            } else {
+                continue;
+            };
+            unallocated_positions.push((position.clone(), logo));
+        }
 
-        (vec![position_x, position_y].into(), logos)
+        let unallocated_positions_vec: Vec<Position> = unallocated_positions
+            .iter()
+            .map(|(position, _logo)| position.clone())
+            .collect();
+        let logos_vec: Vec<String> = unallocated_positions
+            .iter()
+            .map(|(_position, logo)| logo.clone())
+            .collect();
+
+        tracing::debug!("unallocated_positions_vec: {:?}", unallocated_positions_vec);
+        (unallocated_positions_vec.into(), logos_vec)
     }
 
     pub fn get_metrics(
