@@ -9,4 +9,11 @@ contract DFMMAllocateTest is DFMMSetUp {
         vm.expectRevert(stdError.indexOOBError);
         dfmm.allocate(32, empty);
     }
+
+    function test_DFMM_allocate_RevertsWhenNoPoolWasInitialized() public {
+        dfmm = new DFMM();
+        bytes memory empty;
+        vm.expectRevert(stdError.indexOOBError);
+        dfmm.allocate(0, empty);
+    }
 }
