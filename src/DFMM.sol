@@ -13,9 +13,13 @@ import "./LPToken.sol";
 contract DFMM is IDFMM {
     using FixedPointMathLib for uint256;
 
+    /// @inheritdoc IDFMM
     Pool[] public pools;
-    uint256 private _locked = 1;
+
+    /// @inheritdoc IDFMM
     address public immutable lpTokenImplementation;
+
+    uint256 private _locked = 1;
 
     modifier lock() {
         if (_locked == 2) revert Locked();

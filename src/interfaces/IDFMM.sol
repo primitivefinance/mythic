@@ -145,6 +145,12 @@ interface IDFMM {
 
     // Getters
 
+    /**
+     * @notice Address of the implementation of the liquidity token
+     * contract.
+     */
+    function lpTokenImplementation() external view returns (address);
+
     function getReservesAndLiquidity(uint256 poolId)
         external
         view
