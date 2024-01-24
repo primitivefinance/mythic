@@ -5,6 +5,7 @@ use datatypes::portfolio::position::{Position, PositionLayer, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
+use self::logos::lp_logo;
 use super::{inventory::Inventory, *};
 use crate::{
     components::{
@@ -143,20 +144,43 @@ impl MonolithicPresenter {
         (vec![position_x, position_y].into(), logos)
     }
 
-    pub fn get_unallocated_positions(&self) -> (Positions, Vec<String>) {
+    pub fn get_allocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
         let portfolio = self.model.user.portfolio.clone();
+        let positions = portfolio.positions.clone();
+        // Filter the positions to the liquidity_token addresses in the model's
+        // liquidity token mapping.
+        let liquidity_tokens = self
+            .model
+            .get_current()
+            .unwrap()
+            .liquidity_token_addresses
+            .clone()
+            .unwrap_or_default();
 
-        let current_dir = env::current_dir().unwrap();
-        let ether_logo_path = current_dir.clone().join("assets/logos/ether_logo.png");
-        let usdc_logo_path = current_dir.clone().join("assets/logos/usdc_logo.png");
+        tracing::info!("Liquidity tokens: {:?}", liquidity_tokens);
+        tracing::info!("Positions: {:?}", positions.0);
+        let allocated_positions_vec: Vec<Position> = positions
+            .0
+            .iter()
+            .filter(|x| liquidity_tokens.contains(&x.asset.address))
+            .cloned()
+            .collect::<Vec<Position>>();
+        let logos_vec: Vec<svg::Handle> = allocated_positions_vec
+            .iter()
+            .map(|_: &Position| lp_logo())
+            .collect();
+        (allocated_positions_vec.into(), logos_vec)
+    }
 
+    pub fn get_unallocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
+        let portfolio = self.model.user.portfolio.clone();
         let positions = portfolio.positions.clone();
         let mut unallocated_positions = vec![];
         for position in positions.0.iter() {
             let logo = if position.asset.tags.contains(&"ether".to_string()) {
-                ether_logo_path.to_str().unwrap().to_string()
+                ether_logo()
             } else if position.asset.tags.contains(&"stablecoin".to_string()) {
-                usdc_logo_path.to_str().unwrap().to_string()
+                usdc_logo()
             } else {
                 continue;
             };
@@ -167,7 +191,7 @@ impl MonolithicPresenter {
             .iter()
             .map(|(position, _logo)| position.clone())
             .collect();
-        let logos_vec: Vec<String> = unallocated_positions
+        let logos_vec: Vec<svg::Handle> = unallocated_positions
             .iter()
             .map(|(_position, logo)| logo.clone())
             .collect();
@@ -259,7 +283,8 @@ impl MonolithicView {
         aum: impl ToString,
         unallocated_positions: Positions,
         allocated_positions: Positions,
-        logos: Vec<svg::Handle>,
+        unallocated_logos: Vec<svg::Handle>,
+        allocated_logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
     ) -> Container<'a, Message>
@@ -274,7 +299,8 @@ impl MonolithicView {
                         aum,
                         unallocated_positions,
                         allocated_positions,
-                        logos,
+                        unallocated_logos,
+                        allocated_logos,
                         on_allocate,
                         on_select_position,
                     ))

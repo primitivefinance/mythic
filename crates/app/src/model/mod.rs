@@ -116,10 +116,11 @@ impl Model {
             return Ok(());
         }
 
-        let portfolio = self.networks.get_mut(&self.current.unwrap()).unwrap();
+        let chain_id = self.current.unwrap();
+        let model = self.networks.get_mut(&chain_id).unwrap();
         let coin_list = self.user.coins.clone();
-        let unallocated_positions = portfolio.get_unallocated_positions(coin_list.clone())?;
-        let allocated_positions = portfolio.get_allocated_positions()?;
+        let unallocated_positions = model.get_unallocated_positions(coin_list.clone())?;
+        let allocated_positions = model.get_allocated_positions()?;
 
         // Clones the user's current portfolio to mutate it.
         let mut portfolio = self.user.portfolio.clone();
@@ -189,8 +190,43 @@ impl Model {
                 .tokens
                 .iter()
                 .find(|coin| coin.address == token)
-                .cloned()
-                .unwrap_or_else(|| Coin::default());
+                .cloned();
+
+            // If coin is None, then we need to insert the coin into the coinlist using its
+            // token metadata in the portfolio model.
+            let coin_metadata = model
+                .clone()
+                .token_metadata
+                .unwrap()
+                .get(&token)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Failed to get token metadata for token: {:?}", token)
+                })?
+                .clone();
+
+            // Add the coin to the coinlist.
+            let coin = match coin {
+                Some(coin) => coin,
+                None => {
+                    // If no coin is available, create a new one using its existing metadata.
+
+                    let mut coin = Coin::new(
+                        coin_metadata.symbol,
+                        coin_metadata.name,
+                        coin_metadata.decimals,
+                    );
+                    coin.address = token;
+                    coin.chain_id = chain_id;
+                    coin.tags = vec!["lp".to_string()];
+
+                    // Add the coin to the coinlist of the user.
+                    // todo: this is kind of hidden for a big operation and should have an
+                    // intermediary function to manage the coinlist updates.
+                    self.user.coins.tokens.push(coin.clone());
+
+                    coin
+                }
+            };
 
             let layer = match is_allocated {
                 true => PositionLayer::Liquidity,

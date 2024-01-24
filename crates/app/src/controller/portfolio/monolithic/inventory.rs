@@ -16,7 +16,8 @@ impl Inventory {
         aum: impl ToString,
         unallocated_positions: Positions,
         allocated_positions: Positions,
-        logos: Vec<svg::Handle>,
+        unallocated_logos: Vec<svg::Handle>,
+        allocated_logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message,
     ) -> Container<'a, Message>
@@ -54,7 +55,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            iced::widget::svg(logos[i].clone()),
+                            iced::widget::svg(unallocated_logos[i].clone()),
                         )))
                         .on_press(on_select_position(x.asset.address))
                         .into()
@@ -74,7 +75,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            iced::widget::svg(logos[i].clone()),
+                            iced::widget::svg(allocated_logos[i].clone()),
                         )))
                         .on_press(on_select_position(x.asset.address))
                         .into()
