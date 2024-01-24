@@ -338,40 +338,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             tracing::warn!("User history update failed: {:?}", err);
         }
 
-        if let Err(err) = self.sync_historical_creates_with_tracked_pools().await {
-            tracing::warn!("Historical creates sync failed: {:?}", err);
-        }
-
         if let Err(err) = self.update_all_pools(client.clone()).await {
             tracing::warn!("Pool update failed: {:?}", err);
         }
 
         if let Err(err) = self.sync_liquidity_tokens_to_balance_mapping() {
             tracing::warn!("Liquidity token sync failed: {:?}", err);
-        }
-
-        Ok(())
-    }
-
-    /// Gets the pool ids from the historical transactions and adds them to the
-    /// pool state mapping.
-    async fn sync_historical_creates_with_tracked_pools(&mut self) -> Result<()> {
-        let historical_txs = self
-            .user_history
-            .as_ref()
-            .ok_or(Error::msg("User history not set"))?;
-
-        let historical_creates: Vec<_> = historical_txs
-            .iter()
-            .filter(|tx| tx.action == ProtocolActions::CreatePosition)
-            .collect();
-
-        let historical_create_pool_ids: Vec<_> =
-            historical_creates.iter().map(|tx| tx.pool_id).collect();
-
-        let pool_state = self.pool_state.get_or_insert_with(BTreeMap::new);
-        for pool_id in historical_create_pool_ids {
-            pool_state.entry(pool_id).or_insert_with(PoolState::default);
         }
 
         Ok(())
@@ -606,6 +578,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             self.user_token_balances
                 .entry(liquidity_token_address.clone())
                 .or_insert_with(Vec::new);
+            tracing::debug!(
+                "Added liquidity token address {} to user token balances",
+                liquidity_token_address
+            );
         }
 
         Ok(())
@@ -679,12 +655,23 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        if let Some(pool_state_map) = &self.pool_state {
-            let pool_ids: Vec<_> = pool_state_map.keys().cloned().collect();
-            for pool_id in pool_ids {
-                self.update_pool(client.clone(), pool_id).await?;
-            }
+        let historical_txs = self
+            .user_history
+            .as_ref()
+            .ok_or(Error::msg("User history not set"))?;
+
+        let historical_creates: Vec<_> = historical_txs
+            .iter()
+            .filter(|tx| tx.action == ProtocolActions::CreatePosition)
+            .collect();
+
+        let historical_create_pool_ids: Vec<_> =
+            historical_creates.iter().map(|tx| tx.pool_id).collect();
+
+        for pool_id in historical_create_pool_ids {
+            self.update_pool(client.clone(), pool_id).await?;
         }
+
         Ok(())
     }
 
@@ -1204,7 +1191,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .find(|(_, pool_state)| {
                 pool_state
                     .liquidity_token
-                    .map(|address| address == liquidity_token_address)
+                    .map(|address| address.eq(&liquidity_token_address))
                     .unwrap_or(false)
             })
             .map(|(pool_id, _)| *pool_id)
@@ -1908,6 +1895,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn transform_series_over_block_number(
         series: Vec<(u64, AlloyU256)>,
     ) -> Result<(CartesianRanges, ChartLineSeries)> {
+        if series.is_empty() {
+            return Err(Error::msg("Series is empty"));
+        }
+
         let mut transformed = Vec::new();
 
         for (block, value) in series {
