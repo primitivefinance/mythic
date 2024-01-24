@@ -67,8 +67,10 @@ interface IDFMM {
      * @param totalLiquidity Initial liquidity in the pool.
      */
     event Init(
-        address indexed account,
+        address account,
         address indexed strategy,
+        address indexed tokenX,
+        address indexed tokenY,
         uint256 poolId,
         uint256 reserveX,
         uint256 reserveY,

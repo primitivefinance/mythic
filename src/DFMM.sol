@@ -105,6 +105,8 @@ contract DFMM is IDFMM {
         emit Init(
             msg.sender,
             params.strategy,
+            params.tokenX,
+            params.tokenY,
             poolId,
             reserveX,
             reserveY,
