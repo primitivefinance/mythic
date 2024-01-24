@@ -35,6 +35,7 @@ use cfmm_math::trading_functions::rmm::{
     compute_x_given_price, compute_y_given_l_rust, compute_y_given_x_rust, liq_distribution,
 };
 use chrono::{DateTime, Utc};
+use datatypes::portfolio::coin_list::{self, CoinList};
 use ethers::types::transaction::eip2718::TypedTransaction;
 use serde::{Deserialize, Serialize};
 use sim::{from_ethers_address, from_ethers_u256, to_ethers_address, to_ethers_u256};
@@ -1088,18 +1089,17 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Gets the "unallocated position" balances.
-    /// todo: this gets the unallocated token balances of tokens that match a
-    /// pool id's tokens. makes it a little confusing... we can fix later.
-    pub fn get_unallocated_positions_info(&self, pool_id: u64) -> Result<StrategyPosition> {
-        let pool_state = self.get_pool_state(pool_id)?;
-        let (asset_token, quote_token) = (
-            pool_state.asset_token.ok_or(Error::msg(
-                "get_position_info: Asset token address not set for pool state",
-            ))?,
-            pool_state.quote_token.ok_or(Error::msg(
-                "get_position_info: Quote token address not set for pool state",
-            ))?,
-        );
+    /// todo: work on this to make it more accurate. Probably need to refactor
+    /// position types a bit.
+    pub fn get_unallocated_positions_info(&self, coin_list: CoinList) -> Result<StrategyPosition> {
+        let coins = coin_list.tokens;
+        if coins.len() != 2 {
+            return Err(Error::msg(
+                "get_position_info: Coin list must have 2 tokens",
+            ));
+        }
+        let asset_token = coins[0].address;
+        let quote_token = coins[1].address;
 
         let balance_x = self.user_token_balances[&asset_token]
             .last()
@@ -1464,15 +1464,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn derive_total_aum(&self) -> Result<AlloyU256> {
         // todo: this naming is confusing but the external portfolio value is the
         // unallocated value.
-        let external_portfolio_value = self.derive_external_portfolio_value();
-        let external_portfolio_value = match external_portfolio_value {
-            Ok(external_portfolio_value) => external_portfolio_value,
-            Err(error) => {
-                tracing::warn!("Error fetching external portfolio value: {:?}", error);
-                // set value to 0
-                AlloyU256::ZERO
-            }
-        };
+        // todo: maybe handle this more explicitly?
+        let external_portfolio_value = self.derive_external_portfolio_value().unwrap_or_default();
         // todo: handle the scenario that the user has the ability to create an
         // allocated position with unallocated tokens, track that?
         // let unallocated_position_value = self.derive_unallocated_position_value()?;
@@ -1517,10 +1510,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the value of the unallocated positions.
-    /// todo: errors on get_pool_state don't propagate up.
-    pub fn derive_unallocated_position_value(&self) -> Result<AlloyU256> {
-        let pool_id = 0; // todo: fix this
-        let unallocated_position = self.get_unallocated_positions_info(pool_id)?;
+    pub fn derive_unallocated_position_value(&self, coin_list: CoinList) -> Result<AlloyU256> {
+        let unallocated_position = self.get_unallocated_positions_info(coin_list)?;
         let unallocated_position_value = unallocated_position.compute_value()?;
         let unallocated_position_value =
             alloy_primitives::utils::parse_ether(&format!("{}", unallocated_position_value))?;

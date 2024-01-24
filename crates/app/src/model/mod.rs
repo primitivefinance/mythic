@@ -20,6 +20,7 @@ use self::{
     user::{Saveable, UserProfile},
 };
 use super::*;
+use crate::model::portfolio::StrategyPosition;
 
 pub const COIN_X: &str = r#"{
     "symbol": "X",
@@ -78,8 +79,9 @@ impl Model {
         client: Arc<M>,
     ) -> anyhow::Result<()> {
         let chain_id = client.get_chainid().await?;
-        let network = RawDataModel::new(chain_id.as_u64());
-        self.networks.insert(chain_id.as_u64(), network);
+        self.networks
+            .entry(chain_id.as_u64())
+            .or_insert_with(|| RawDataModel::new(chain_id.as_u64()));
         self.current = Some(chain_id.as_u64());
         Ok(())
     }
@@ -108,10 +110,20 @@ impl Model {
 
         // Gets the current position info. This should be updated prior to calling this
         // function.
-        let pos_info = portfolio.get_position_info(pool_id)?;
+        let pos_info = portfolio.get_position_info(pool_id);
+        let pos_info = match pos_info {
+            Ok(pos_info) => pos_info,
+            Err(err) => {
+                tracing::warn!("No position info found for pool id: {} {}", pool_id, err);
+                StrategyPosition::default()
+            }
+        };
 
         // Include unallocated balances in the portfolio as well.
-        let unallocated_pos_info = portfolio.get_unallocated_positions_info(pool_id)?;
+        let unallocated_pos_info =
+            portfolio.get_unallocated_positions_info(self.user.coins.clone())?;
+
+        tracing::debug!("Got unallocated positions: {:?}", unallocated_pos_info);
 
         // Clones the user's current portfolio to mutate it.
         let mut portfolio = self.user.portfolio.clone();
