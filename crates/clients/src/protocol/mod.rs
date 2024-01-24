@@ -126,6 +126,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from(
         client: Arc<C>,
         protocol_address: Address,
