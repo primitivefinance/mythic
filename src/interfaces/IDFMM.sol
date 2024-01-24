@@ -6,7 +6,6 @@ interface IDFMM {
     // Structs
 
     struct Pool {
-        bool inited;
         address controller;
         address strategy;
         address tokenX;
@@ -45,6 +44,8 @@ interface IDFMM {
 
     error NotController();
 
+    error ERC1167FailedCreateClone();
+
     // Events
 
     event LogPoolStats(
@@ -66,8 +67,10 @@ interface IDFMM {
      * @param totalLiquidity Initial liquidity in the pool.
      */
     event Init(
-        address indexed account,
+        address account,
         address indexed strategy,
+        address indexed tokenX,
+        address indexed tokenY,
         uint256 poolId,
         uint256 reserveX,
         uint256 reserveY,
@@ -144,6 +147,12 @@ interface IDFMM {
 
     // Getters
 
+    /**
+     * @notice Address of the implementation of the liquidity token
+     * contract.
+     */
+    function lpTokenImplementation() external view returns (address);
+
     function getReservesAndLiquidity(uint256 poolId)
         external
         view
@@ -157,7 +166,6 @@ interface IDFMM {
         external
         view
         returns (
-            bool inited,
             address controller,
             address strategy,
             address tokenX,

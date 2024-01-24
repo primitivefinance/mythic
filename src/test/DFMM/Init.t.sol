@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../DFMM.sol";
-import "../../interfaces/IDFMM.sol";
 import "./SetUp.sol";
 
 contract DFMMInit is DFMMSetUp {
@@ -93,8 +91,10 @@ contract DFMMInit is DFMMSetUp {
     }
 
     event Init(
-        address indexed account,
+        address account,
         address indexed strategy,
+        address indexed tokenX,
+        address indexed tokenY,
         uint256 poolId,
         uint256 reserveX,
         uint256 reserveY,
@@ -104,19 +104,35 @@ contract DFMMInit is DFMMSetUp {
     function test_DFMM_init_EmitsInitEvent() public {
         bytes memory data = abi.encode(uint256(1));
 
+        address tokenX = address(0xbeef);
+        address tokenY = address(0xdead);
+
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
-            tokenX: address(0xbeef),
-            tokenY: address(0xdead),
+            tokenX: tokenX,
+            tokenY: tokenY,
             data: data
         });
 
         vm.expectEmit(true, true, true, true, address(dfmm));
         emit Init(
-            address(this), address(strategy), 0, 2 ether, 3 ether, 4 ether
+            address(this),
+            address(strategy),
+            tokenX,
+            tokenY,
+            0,
+            2 ether,
+            3 ether,
+            4 ether
         );
 
         dfmm.init(params);
+    }
+
+    function test_DFMM_init_DeploysLPTokenClone() public init {
+        (,,,,,,, address liquidityToken) = dfmm.pools(POOL_ID);
+        assertTrue(liquidityToken != address(0));
+        assertTrue(liquidityToken.code.length > 0);
     }
 
     function test_DFMM_init_RevertsWhenSameTokens() public {

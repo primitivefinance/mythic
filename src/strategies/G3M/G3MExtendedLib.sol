@@ -87,3 +87,14 @@ function computeNextRx(
         ).powWad(int256(ONE.divWadUp(params.wX)))
     );
 }
+
+/// @dev Computes the approximated spot price given current reserves and liquidity.
+function computePrice(
+    uint256 rX,
+    uint256 rY,
+    G3M.G3MParams memory params
+) pure returns (uint256 price) {
+    uint256 n = rX.divWadDown(params.wX);
+    uint256 d = rY.divWadDown(params.wY);
+    price = n.divWadDown(d);
+}

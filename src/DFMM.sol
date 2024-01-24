@@ -13,19 +13,24 @@ import "./LPToken.sol";
 contract DFMM is IDFMM {
     using FixedPointMathLib for uint256;
 
+    /// @inheritdoc IDFMM
     Pool[] public pools;
-    uint256 private _locked = 1;
 
-    modifier initialized(uint256 poolId) {
-        if (!pools[poolId].inited) revert NotInitialized();
-        _;
-    }
+    /// @inheritdoc IDFMM
+    address public immutable lpTokenImplementation;
+
+    uint256 private _locked = 1;
 
     modifier lock() {
         if (_locked == 2) revert Locked();
         _locked = 2;
         _;
         _locked = 1;
+    }
+
+    constructor() {
+        lpTokenImplementation = address(new LPToken());
+        LPToken(lpTokenImplementation).initialize("", "");
     }
 
     function multicall(bytes[] memory data) external returns (bytes[] memory) {
@@ -72,11 +77,11 @@ contract DFMM is IDFMM {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
-        LPToken liquidityToken =
-            new LPToken("LPToken", "LPToken", msg.sender, totalLiquidity);
+        LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
+        liquidityToken.initialize("", "");
+        liquidityToken.mint(msg.sender, totalLiquidity);
 
         Pool memory pool = Pool({
-            inited: true,
             controller: msg.sender,
             strategy: params.strategy,
             tokenX: params.tokenX,
@@ -100,6 +105,8 @@ contract DFMM is IDFMM {
         emit Init(
             msg.sender,
             params.strategy,
+            params.tokenX,
+            params.tokenY,
             poolId,
             reserveX,
             reserveY,
@@ -113,7 +120,7 @@ contract DFMM is IDFMM {
     function allocate(
         uint256 poolId,
         bytes calldata data
-    ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
+    ) external lock returns (uint256, uint256, uint256) {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, true, data);
 
@@ -132,7 +139,7 @@ contract DFMM is IDFMM {
     function deallocate(
         uint256 poolId,
         bytes calldata data
-    ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
+    ) external lock returns (uint256, uint256, uint256) {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, false, data);
 
@@ -154,7 +161,7 @@ contract DFMM is IDFMM {
     function swap(
         uint256 poolId,
         bytes calldata data
-    ) external lock initialized(poolId) returns (uint256, uint256) {
+    ) external lock returns (uint256, uint256) {
         (
             bool valid,
             int256 swapConstantGrowth,
@@ -179,12 +186,17 @@ contract DFMM is IDFMM {
     }
 
     /// @inheritdoc IDFMM
-    function update(
-        uint256 poolId,
-        bytes calldata data
-    ) external lock initialized(poolId) {
+    function update(uint256 poolId, bytes calldata data) external lock {
         if (msg.sender != pools[poolId].controller) revert NotController();
         IStrategy(pools[poolId].strategy).update(poolId, data);
+    }
+
+    function updateController(
+        uint256 poolId,
+        address newController
+    ) external lock {
+        if (msg.sender != pools[poolId].controller) revert NotController();
+        pools[poolId].controller = newController;
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.
@@ -207,6 +219,12 @@ contract DFMM is IDFMM {
 
         isSwapXForY = adjustedReserveX > originalReserveX;
 
+        if (isSwapXForY) {
+            require(originalReserveY > adjustedReserveY, "invalid swap");
+        } else {
+            require(originalReserveX > adjustedReserveX, "invalid swap");
+        }
+
         inputToken = isSwapXForY ? pools[poolId].tokenX : pools[poolId].tokenY;
         outputToken = isSwapXForY ? pools[poolId].tokenY : pools[poolId].tokenX;
         inputAmount = isSwapXForY
@@ -215,12 +233,6 @@ contract DFMM is IDFMM {
         outputAmount = isSwapXForY
             ? originalReserveY - adjustedReserveY
             : originalReserveX - adjustedReserveX;
-
-        if (isSwapXForY) {
-            require(originalReserveY > adjustedReserveY, "invalid swap");
-        } else {
-            require(originalReserveX > adjustedReserveX, "invalid swap");
-        }
 
         // Do the state updates to the reserves before calling untrusted addresses.
         pools[poolId].reserveX = adjustedReserveX;
@@ -293,17 +305,51 @@ contract DFMM is IDFMM {
         uint256 poolId,
         bool isAllocate,
         uint256 deltaL
-    ) private {
+    ) internal {
         LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
         uint256 totalSupply = liquidityToken.totalSupply();
         uint256 totalLiquidity = pools[poolId].totalLiquidity;
-        uint256 amount =
-            deltaL.mulWadDown(totalSupply.divWadDown(totalLiquidity));
 
         if (isAllocate) {
+            uint256 amount =
+                deltaL.mulWadDown(totalSupply.divWadDown(totalLiquidity));
             liquidityToken.mint(msg.sender, amount);
         } else {
+            uint256 amount =
+                deltaL.mulWadUp(totalSupply.divWadUp(totalLiquidity));
             liquidityToken.burn(msg.sender, amount);
+        }
+    }
+
+    /**
+     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
+     *
+     * This function uses the create opcode, which should never revert.
+     */
+    function clone(address implementation)
+        internal
+        returns (address instance)
+    {
+        /// @solidity memory-safe-assembly
+        assembly {
+            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes
+            // of the `implementation` address with the bytecode before the address.
+            mstore(
+                0x00,
+                or(
+                    shr(0xe8, shl(0x60, implementation)),
+                    0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000
+                )
+            )
+            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.
+            mstore(
+                0x20,
+                or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3)
+            )
+            instance := create(0, 0x09, 0x37)
+        }
+        if (instance == address(0)) {
+            revert ERC1167FailedCreateClone();
         }
     }
 
@@ -329,6 +375,11 @@ contract DFMM is IDFMM {
         );
     }
 
+    /**
+     * @dev This function should NOT be used in a non-view call, as the
+     * values can be manipulated. In the future this function might be
+     * removed.
+     */
     function liquidityOf(
         address account,
         uint256 poolId

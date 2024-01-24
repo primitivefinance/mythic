@@ -6,7 +6,6 @@ import "./SetUp.sol";
 contract LogNormalInitTest is LogNormalSetUp {
     function test_LogNormal_init_StoresPoolParameters() public init {
         (
-            bool inited,
             address controller,
             address strategy,
             address tokenX,
@@ -16,7 +15,6 @@ contract LogNormalInitTest is LogNormalSetUp {
             uint256 totalLiquidity,
         ) = dfmm.pools(POOL_ID);
 
-        assertEq(inited, true);
         assertEq(controller, address(this));
         assertEq(strategy, address(logNormal));
         assertEq(tokenX, address(tokenX));
