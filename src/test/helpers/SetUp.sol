@@ -32,4 +32,13 @@ contract SetUp is Test {
         IDFMM.Pool memory pool = dfmm.getPool(poolId);
         return pool.controller;
     }
+
+    function getPoolLiquidityToken(uint256 poolId)
+        public
+        view
+        returns (address)
+    {
+        IDFMM.Pool memory pool = dfmm.getPool(poolId);
+        return pool.liquidityToken;
+    }
 }
