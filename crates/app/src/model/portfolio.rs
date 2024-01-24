@@ -1167,10 +1167,23 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         coin_list: CoinList,
     ) -> Result<Vec<UnallocatedPosition>> {
-        let coins = coin_list.tokens;
+        let mut coins = coin_list.tokens;
         if coins.is_empty() {
             return Ok(Vec::new());
         }
+
+        // Get the liquidity tokens and filter them from the coins list, so that we
+        // don't mistakenly make the liquidity tokens an unallocated position.
+        let liquidity_token_addresses = self
+            .liquidity_token_addresses
+            .as_ref()
+            .cloned()
+            .unwrap_or(Vec::new());
+
+        let coins = coins
+            .drain(..)
+            .filter(|coin| !liquidity_token_addresses.contains(&coin.address))
+            .collect::<Vec<_>>();
 
         let mut unallocated_positions = vec![];
         for coin in coins {
