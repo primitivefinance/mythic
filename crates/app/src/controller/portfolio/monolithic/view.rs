@@ -81,6 +81,8 @@ impl MonolithicPresenter {
                 .x_range(x_range)
                 .y_range(y_range)
                 .notable_bars(histogram_data.notable_bars);
+
+            tracing::info!("Updated strategy preview.");
         }
     }
 
@@ -170,7 +172,6 @@ impl MonolithicPresenter {
             .map(|(_position, logo)| logo.clone())
             .collect();
 
-        tracing::debug!("unallocated_positions_vec: {:?}", unallocated_positions_vec);
         (unallocated_positions_vec.into(), logos_vec)
     }
 
