@@ -151,7 +151,8 @@ pub struct RawDataModel<A: Ord, V> {
     // Block number of the most recent model update that fetched user history.
     pub last_user_history_sync_block: Option<u64>,
     // Balances of tokens held directly by the connected user.
-    pub user_token_balances: Option<BTreeMap<A, Vec<(u64, V)>>>,
+    #[serde(default)]
+    pub user_token_balances: BTreeMap<A, Vec<(u64, V)>>,
     // Tracks the global state of pools.
     pub pool_state: Option<BTreeMap<u64, PoolState<A, V>>>,
     // Tracks the prices of the tokens in the user_token_balances
@@ -313,20 +314,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // For each token tracked in the token_balances mapping, fetch the balances and
         // update the model.
         let current_block = self.fetch_block_number(client.clone()).await?;
-        let token_addresses: Vec<_> = self
-            .user_token_balances
-            .as_ref()
-            .unwrap()
-            .keys()
-            .cloned()
-            .collect();
+        let token_addresses: Vec<_> = self.user_token_balances.keys().cloned().collect();
         for token_address in token_addresses {
             let new_balance = self
                 .fetch_balance_of(client.clone(), token_address, user_address)
                 .await?;
             self.user_token_balances
-                .as_mut()
-                .unwrap()
                 .get_mut(&token_address)
                 .unwrap()
                 .push((current_block, new_balance));
@@ -342,13 +335,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         client: Arc<M>,
     ) -> Result<()> {
         let current_block = self.fetch_block_number(client.clone()).await?;
-        let token_addresses: Vec<_> = self
-            .user_token_balances
-            .as_ref()
-            .unwrap()
-            .keys()
-            .cloned()
-            .collect();
+        let token_addresses: Vec<_> = self.user_token_balances.keys().cloned().collect();
         for token_address in token_addresses {
             let new_price = self
                 .fetch_external_price_of_token(client.clone(), token_address)
@@ -599,13 +586,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     where
         <M as ethers::providers::Middleware>::Error: 'static,
     {
-        let token_addresses: Vec<_> = self
-            .user_token_balances
-            .as_ref()
-            .unwrap()
-            .keys()
-            .cloned()
-            .collect();
+        let token_addresses: Vec<_> = self.user_token_balances.keys().cloned().collect();
         for token_address in token_addresses {
             if self
                 .token_metadata
@@ -636,8 +617,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let non_liquidity_token_addresses: Vec<_> = self
             .user_token_balances
-            .as_ref()
-            .unwrap()
             .keys()
             .cloned()
             .filter(|address| !liquidity_token_addresses.contains(address))
@@ -647,12 +626,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // build a series of balance * price.
         let mut all_token_balances_usd = vec![];
         for token_address in non_liquidity_token_addresses {
-            let balance_series = self
-                .user_token_balances
-                .as_ref()
-                .unwrap()
-                .get(&token_address)
-                .unwrap();
+            let balance_series = self.user_token_balances.get(&token_address).unwrap();
             let price_series = self
                 .external_prices
                 .as_ref()
@@ -703,8 +677,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let liquidity_token_balance_series = self
             .user_token_balances
-            .as_ref()
-            .unwrap()
             .get(&liquidity_token_address)
             .ok_or(Error::msg(format!(
                 "Liquidity token balance series not set for pool id {}",
@@ -1121,18 +1093,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             ))?,
         );
 
-        let balance_x = self
-            .user_token_balances
-            .as_ref()
-            .ok_or(Error::msg("get_position_info: User token balances not set"))?[&asset_token]
+        let balance_x = self.user_token_balances[&asset_token]
             .last()
             .map(|(_, balance)| balance)
             .unwrap_or(&AlloyU256::ZERO);
 
-        let balance_y = self
-            .user_token_balances
-            .as_ref()
-            .ok_or(Error::msg("get_position_info: User token balances not set"))?[&quote_token]
+        let balance_y = self.user_token_balances[&quote_token]
             .last()
             .map(|(_, balance)| balance)
             .unwrap_or(&AlloyU256::ZERO);
@@ -2559,8 +2525,6 @@ mod tests {
 
         let saved_balance = model
             .user_token_balances
-            .as_ref()
-            .unwrap()
             .get(&converted_token_address)
             .unwrap()
             .last()

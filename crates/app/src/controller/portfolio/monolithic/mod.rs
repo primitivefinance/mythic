@@ -315,32 +315,41 @@ impl Monolithic {
 
                 if let Some(connected_model) = self.model.get_current() {
                     let pool_id = 0; // todo: get pool id from the model.
-                    let pool_state = connected_model.get_pool_state(pool_id).unwrap();
-                    let asset_token = pool_state
-                        .asset_token
-                        .ok_or_else(|| {
-                            anyhow::anyhow!("No asset token in pool state for pool id: {}", pool_id)
-                        })
-                        .unwrap();
-                    let external_price = connected_model
-                        .external_prices
-                        .as_ref()
-                        .and_then(|x| x.get(&asset_token).cloned().unwrap().last().map(|x| x.1));
-                    let external_price = match external_price {
-                        Some(x) => format_ether(x).parse::<f64>().unwrap(),
-                        None => return Command::none(),
-                    };
+                    let pool_state = connected_model.get_pool_state(pool_id);
 
-                    // Sync the strategy preview chart.
-                    let parameters = liquidity.to_parameters(external_price);
-                    self.presenter.sync_strategy_preview(
-                        external_price,
-                        parameters.strike_price_wad,
-                        parameters.sigma_percent_wad,
-                        parameters.time_remaining_years_wad,
-                    );
+                    match pool_state {
+                        Ok(pool_state) => {
+                            let asset_token = pool_state
+                                .asset_token
+                                .ok_or_else(|| {
+                                    anyhow::anyhow!(
+                                        "No asset token in pool state for pool id: {}",
+                                        pool_id
+                                    )
+                                })
+                                .unwrap();
+                            let external_price =
+                                connected_model.external_prices.as_ref().and_then(|x| {
+                                    x.get(&asset_token).cloned().unwrap().last().map(|x| x.1)
+                                });
+                            let external_price = match external_price {
+                                Some(x) => format_ether(x).parse::<f64>().unwrap(),
+                                None => return Command::none(),
+                            };
 
-                    Command::perform(async {}, |_| Message::Refresh)
+                            // Sync the strategy preview chart.
+                            let parameters = liquidity.to_parameters(external_price);
+                            self.presenter.sync_strategy_preview(
+                                external_price,
+                                parameters.strike_price_wad,
+                                parameters.sigma_percent_wad,
+                                parameters.time_remaining_years_wad,
+                            );
+
+                            Command::perform(async {}, |_| Message::Refresh)
+                        }
+                        Err(_) => return Command::none(),
+                    }
                 } else {
                     Command::none()
                 }
