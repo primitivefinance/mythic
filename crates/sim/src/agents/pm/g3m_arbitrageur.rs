@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use alloy_primitives::{
-    utils::{format_ether, parse_ether},
-    Address, U256,
-};
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
-use clients::protocol::ProtocolClient;
+use clients::protocol::{PoolParams, ProtocolClient};
+use ethers::{
+    types::{I256, U256},
+    utils::{format_ether, parse_ether},
+};
+use tracing::log::info;
 
 use super::{
     agents::base::token_admin::TokenAdmin,
@@ -14,7 +15,7 @@ use super::{
     Environment, Result, RevmMiddleware, *,
 };
 
-pub const WAD: U256 = U256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
+pub const WAD: U256 = U256([1_000_000_000_000_000_000, 0, 0, 0]);
 
 #[derive(Debug, Clone)]
 pub struct G3mArbitrageur {
@@ -58,8 +59,7 @@ impl G3mArbitrageur {
         let protocol_client = protocol_client.bind(client.clone())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
-        let liquid_exchange =
-            LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
+        let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         // Deploy the arbitrageur's atomic contract to atomically swap between
         // exchanges.
@@ -83,17 +83,17 @@ impl G3mArbitrageur {
 
         token_admin
             .mint(
-                from_ethers_address(client.address()),
-                parse_ether(100_000_000.to_string().as_str()).unwrap(),
-                parse_ether(100_000_000.to_string().as_str()).unwrap(),
+                client.address(),
+                parse_ether(100_000_000).unwrap(),
+                parse_ether(100_000_000).unwrap(),
             )
             .await?;
 
-        arbx.approve(atomic_arbitrage.address(), ethers::types::U256::MAX)
+        arbx.approve(atomic_arbitrage.address(), U256::MAX)
             .send()
             .await?
             .await?;
-        arby.approve(atomic_arbitrage.address(), ethers::types::U256::MAX)
+        arby.approve(atomic_arbitrage.address(), U256::MAX)
             .send()
             .await?
             .await?;
@@ -127,55 +127,39 @@ impl G3mArbitrageur {
     async fn detect_arbitrage(&self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        let liquid_exchange_price_wad = from_ethers_u256(liquid_exchange_price_wad);
 
         let target_exchange_price_wad = self
             .protocol_client
-            .g_solver
-            .internal_price(ethers::types::U256::from(1))
-            .call()
+            .get_internal_price(U256::from(1))
             .await?;
-        let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
-        debug!("=== Start Loop ===");
-        // info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
-        // info!("Price[G3M]: {:?}", format_ether(target_exchange_price_wad));
+        info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
+        info!("Price[G3M]: {:?}", format_ether(target_exchange_price_wad));
 
         match liquid_exchange_price_wad {
             _ if liquid_exchange_price_wad > target_exchange_price_wad => {
-                // Raise the portfolio price by selling asset for quote
                 Ok(Swap::RaiseExchangePrice(liquid_exchange_price_wad))
             }
             _ if liquid_exchange_price_wad < target_exchange_price_wad => {
-                // Lower the exchange price by selling asset for quote
                 Ok(Swap::LowerExchangePrice(liquid_exchange_price_wad))
             }
-            _ => {
-                // Prices are within the no-arbitrage bounds, so we don't have an arbitrage.
-                Ok(Swap::None)
-            }
+            _ => Ok(Swap::None),
         }
     }
 
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
-        let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
+        let i_wad = I256::from_raw(WAD);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let pool_params = self
-            .protocol_client
-            .g_solver
-            .fetch_pool_params(ethers::types::U256::from(1))
-            .call()
-            .await?;
-        let (wx, wy) = (
-            I256::from_raw(pool_params.w_x),
-            I256::from_raw(pool_params.w_y),
-        );
-        let gamma =
-            I256::from_raw(ethers::utils::parse_ether("1")?) - I256::from_raw(pool_params.swap_fee);
+        let pool_params = self.protocol_client.get_params(U256::from(1)).await?;
+        let (wx, wy, swap_fee) = match pool_params {
+            PoolParams::G3M(g3m_params) => (g3m_params.w_x, g3m_params.w_y, g3m_params.swap_fee),
+            _ => anyhow::bail!("Attempted to fetch pool params for G3M, received LogNormal"),
+        };
+
+        let (wx, wy) = (I256::from_raw(wx), I256::from_raw(wy));
+        let gamma = I256::from_raw(WAD) - I256::from_raw(swap_fee);
         let (rx, ry, liq) = self
             .protocol_client
-            .protocol
-            .get_reserves_and_liquidity(ethers::types::U256::from(1))
-            .call()
+            .get_reserves_and_liquidity(U256::from(1))
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
         Ok(ArbInputs {
@@ -247,70 +231,68 @@ impl Agent for G3mArbitrageur {
 
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                // info!(
-                //     "Signal[RAISE PRICE]: {:?}",
-                //     format_units(target_price, "ether")?
-                // );
+                info!(
+                    "[G3M]: Signal[RAISE PRICE]: {:?}",
+                    format_ether(target_price)
+                );
                 let x_in = false;
                 let mut input = self.get_dy().await?;
-                if (input < ethers::types::I256::from(0)) {
-                    input = ethers::types::I256::from(0);
+                if (input < I256::from(0)) {
+                    input = I256::from(0);
                 }
                 let input = input.into_raw();
 
-                debug!("Optimal y input: {:?}", input);
+                debug!("[G3M]: Optimal y input: {:?}", input);
 
                 let tx = self
                     .atomic_arbitrage
-                    .raise_exchange_price(ethers::types::U256::from(1), input);
+                    .raise_exchange_price(U256::from(1), input);
 
                 let output = tx.send().await;
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
                 let arby_balance = arby.balance_of(self.client.address()).call().await?;
-                debug!("arby_balance after: {:?}", arby_balance);
+                debug!("[G3M]: arby_balance after: {:?}", arby_balance);
 
                 match output {
                     Ok(output) => {
+                        let internal_price = self
+                            .protocol_client
+                            .get_internal_price(U256::from(1))
+                            .await?;
+                        info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                        info!("Price Post Swap [G3M]: {:?}", format_ether(internal_price));
                         output.await?;
                     }
                     Err(e) => {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            // info!("Execution revert: {:?} Gas Used: {:?}",
-                            // output, gas_used);
+                            info!("[G3M]: Swap failed");
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
 
-                let internal_price = self
-                    .protocol_client
-                    .get_internal_price(ethers::types::U256::from(1))
-                    .await?;
-                let internal_price = from_ethers_u256(internal_price);
-                // info!("Price[LEX]: {:?}", format_ether(target_price));
-                // info!("Price[G3M]: {:?}", format_ether(internal_price));
-                debug!("=== End Loop ===");
+                debug!("[G3M]: === End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
-                // info!(
-                //     "Signal[LOWER PRICE] {:?}",
-                //     format_units(target_price, "ether")?
-                // );
-
+                info!(
+                    "[G3M]: Signal[LOWER PRICE] {:?}",
+                    format_ether(target_price)
+                );
                 let x_in = true;
                 let liquid_exchange_price = self.liquid_exchange.price().call().await?;
                 let mut input = self.get_dx().await?;
-                if (input < ethers::types::I256::from(0)) {
-                    input = ethers::types::I256::from(0);
+                if (input < I256::from(0)) {
+                    input = I256::from(0);
                 }
                 let input = input.into_raw();
-                let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
-                debug!("Optimal x input: {:?}", input);
+                let input = input * liquid_exchange_price / WAD;
+                debug!("[G3M]: Optimal x input: {:?}", input);
 
                 let tx = self
                     .atomic_arbitrage
-                    .lower_exchange_price(ethers::types::U256::from(1), input);
+                    .lower_exchange_price(U256::from(1), input);
                 let output = tx.send().await;
 
                 let arbx_balance = arbx.balance_of(self.client.address()).call().await?;
@@ -318,47 +300,38 @@ impl Agent for G3mArbitrageur {
                 let (reserve_x, reserve_y, liquidity) = self
                     .protocol_client
                     .protocol
-                    .get_reserves_and_liquidity(ethers::types::U256::from(1))
+                    .get_reserves_and_liquidity(U256::from(1))
                     .call()
                     .await?;
                 let pool_params = self
                     .protocol_client
                     .g_solver
-                    .fetch_pool_params(ethers::types::U256::from(1))
+                    .fetch_pool_params(U256::from(1))
                     .call()
                     .await?;
-                debug!(
-                    "====Params[POST-SWAP] wx: {:?} wy: {:?}",
-                    pool_params.w_x, pool_params.w_y
-                );
-                debug!(
-                    "====Reserves[POST-SWAP] reserve_x: {:?} reserve_y: {:?} liquidity: {:?}=====",
-                    reserve_x, reserve_y, liquidity
-                );
 
                 match output {
                     Ok(output) => {
+                        let internal_price = self
+                            .protocol_client
+                            .get_internal_price(U256::from(1))
+                            .await?;
+                        info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                        info!("Price Post Swap [G3M]: {:?}", format_ether(internal_price));
                         output.await?;
                     }
                     Err(e) => {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            // info!("Execution revert: {:?} Gas Used: {:?}",
-                            // output, gas_used);
+                            info!("[G3M]: Swap failed");
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
                 trace!("Sent arbitrage.");
 
-                let internal_price = self
-                    .protocol_client
-                    .get_internal_price(ethers::types::U256::from(1))
-                    .await?;
-                let internal_price = from_ethers_u256(internal_price);
-                debug!("Price[LEX]: {:?}", format_ether(target_price));
-                debug!("Price[G3M]: {:?}", format_ether(internal_price));
-                debug!("=== End Loop ===");
+                debug!("[G3M]: === End Loop ===");
             }
             Swap::None => {
                 trace!("No arbitrage opportunity");

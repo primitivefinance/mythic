@@ -1,7 +1,7 @@
 use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
-use alloy_primitives::utils::parse_ether;
 use bindings::lex::Lex;
+use ethers::utils::parse_ether;
 use itertools::iproduct;
 use RustQuant::stochastics::{
     GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
@@ -116,9 +116,9 @@ impl PriceChanger {
 
             token_admin
                 .mint(
-                    from_ethers_address(liquid_exchange.address()),
-                    parse_ether(1_000_000_u64.to_string().as_str()).unwrap(),
-                    parse_ether(1_000_000_u64.to_string().as_str()).unwrap(),
+                    liquid_exchange.address(),
+                    parse_ether(1_000_000)?,
+                    parse_ether(1_000_000)?,
                 )
                 .await?;
             if parameters.backtest {
