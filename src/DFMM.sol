@@ -375,6 +375,11 @@ contract DFMM is IDFMM {
         );
     }
 
+    /**
+     * @dev This function should NOT be used in a non-view call, as the
+     * values can be manipulated. In the future this function might be
+     * removed.
+     */
     function liquidityOf(
         address account,
         uint256 poolId
