@@ -122,11 +122,6 @@ version = "1"
 default-features = false
 features = ["user-hooks"]
 
-[[bench]]
-name = "ui_benchmark"
-harness = false
-path = "benches/ui_benchmarks.rs"
-
 [package.metadata.bundle]
 name = "Excalibur"
 identifier = "xyz.primitive.excalibur"

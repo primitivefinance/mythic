@@ -20,14 +20,14 @@ jobs:
 
     - name: Install mdbook
       run: |
-        cd journal
+        cd documentation
         mkdir mdbook
         curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.14/mdbook-v0.4.14-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
-        echo "$GITHUB_WORKSPACE/journal/mdbook" >> $GITHUB_PATH
+        echo "$GITHUB_WORKSPACE/documentation/mdbook" >> $GITHUB_PATH
 
     - name: Install mdbook-template
       run: |
-        cd journal
+        cd documentation
         mkdir mdbook-template
         curl -sSL https://github.com/sgoudham/mdbook-template/releases/latest/download/mdbook-template-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook-template
         echo `pwd`/mdbook-template >> $GITHUB_PATH
@@ -45,5 +45,5 @@ jobs:
 
     - name: Run tests
       run: |
-        cd journal
+        cd documentation
         mdbook test

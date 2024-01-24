@@ -1,4 +1,6 @@
-# Testing CI/CD Locally
+# CI/CD
+
+## Testing CI/CD Locally
 
 To test CI/CD locally, you can use Docker and Act. Here are the steps:
 
