@@ -94,9 +94,10 @@ impl LiquidityProvider {
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
-        // This is a horrible way of doing this, but this is implicitly the address of the
-        // submitter because that's who we're cloning the protocol client from.  Eventually this
-        // should be updated so that we get the appropriate address from agent mapping.
+        // This is a horrible way of doing this, but this is implicitly the address of
+        // the submitter because that's who we're cloning the protocol client
+        // from.  Eventually this should be updated so that we get the
+        // appropriate address from agent mapping.
         let controller = protocol_client.client.address();
 
         let protocol_client = protocol_client.bind(client.clone())?;

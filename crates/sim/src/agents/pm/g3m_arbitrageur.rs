@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
-use clients::protocol::ProtocolClient;
+use clients::protocol::{PoolParams, ProtocolClient};
 use ethers::{
     types::{I256, U256},
     utils::{format_ether, parse_ether},
@@ -149,22 +149,18 @@ impl G3mArbitrageur {
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
         let i_wad = I256::from_raw(parse_ether("1")?);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let pool_params = self
-            .protocol_client
-            .g_solver
-            .fetch_pool_params(U256::from(1))
-            .call()
-            .await?;
-        let (wx, wy) = (
-            I256::from_raw(pool_params.w_x),
-            I256::from_raw(pool_params.w_y),
-        );
-        let gamma = I256::from_raw(parse_ether("1")?) - I256::from_raw(pool_params.swap_fee);
+        let pool_params = self.protocol_client.get_params(U256::from(1)).await?;
+        let (wx, wy, swap_fee) = match pool_params {
+            PoolParams::G3M(g3m_params) => (g3m_params.w_x, g3m_params.w_y, g3m_params.swap_fee),
+            _ => anyhow::bail!("Attempted to fetch pool params for G3M, received LogNormal"),
+        };
+
+        let (wx, wy) = (I256::from_raw(wx), I256::from_raw(wy));
+        let gamma = I256::from_raw(WAD) - I256::from_raw(swap_fee);
+        info!("G3M gamma: {:?}", gamma);
         let (rx, ry, liq) = self
             .protocol_client
-            .protocol
             .get_reserves_and_liquidity(U256::from(1))
-            .call()
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
         Ok(ArbInputs {
@@ -213,13 +209,14 @@ impl G3mArbitrageur {
             liq,
         } = self.get_arb_inputs_as_i256().await?;
         let ratio = wy * i_wad / wx;
-        info!("[G3M]: ratio {:?}", ratio);
 
         let inside = ratio * target_price_wad / i_wad;
-        info!("[G3M]: inside {:?}", inside);
+        let pow = self.arb_math.pow(inside, wx).call().await?;
+        info!("[G3M]: pow: {:?}", liq * pow / i_wad);
+        info!("[G3M]: dy_first: {:?}", liq * pow / i_wad - ry);
         let delta_y =
             (liq * self.arb_math.pow(inside, wx).call().await? / i_wad - ry) * (i_wad / gamma);
-        info!("[G3M]: delta_y {:?}", delta_y);
+        info!("[G3M]: delta_y: {:?}", delta_y);
 
         Ok(delta_y)
     }
@@ -275,7 +272,8 @@ impl Agent for G3mArbitrageur {
                     .protocol_client
                     .get_internal_price(U256::from(1))
                     .await?;
-                let internal_price = from_ethers_u256(internal_price);
+                debug!("Price[LEX]: {:?}", format_ether(target_price));
+                debug!("Price[G3M]: {:?}", format_ether(internal_price));
                 debug!("[G3M]: === End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {

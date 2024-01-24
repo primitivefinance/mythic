@@ -2,8 +2,7 @@ use std::sync::Arc;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use clients::protocol::{PoolParams, ProtocolClient};
-use ethers::types::Address;
-use ethers::utils::format_ether;
+use ethers::{types::Address, utils::format_ether};
 use itertools::iproduct;
 use tracing::{debug, info};
 
@@ -199,7 +198,6 @@ impl VolatilityTargetingSubmitter {
                 }
                 if g_portfolio_rv < self.target_volatility {
                     let mut new_weight = wx_float + 0.0025;
-                    debug!("new weight: {}", new_weight);
                     if new_weight >= 0.99 {
                         new_weight = 0.99;
                     }

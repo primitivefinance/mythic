@@ -401,6 +401,14 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         }
     }
 
+    pub async fn get_reserves_and_liquidity(&self, pool_id: U256) -> Result<(U256, U256, U256)> {
+        Ok(self
+            .protocol
+            .get_reserves_and_liquidity(pool_id)
+            .call()
+            .await?)
+    }
+
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn get_params(&self, pool_id: U256) -> Result<PoolParams> {
         let pool = self.get_pool(pool_id).await?;

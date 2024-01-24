@@ -83,7 +83,7 @@ function computePrice(
     uint256 rY,
     G3M.G3MParams memory params
 ) pure returns (uint256 price) {
-    uint256 n = rX.divWadDown(params.wX);
-    uint256 d = rY.divWadDown(params.wY);
+    uint256 n = rY.divWadDown(params.wY);
+    uint256 d = rX.divWadDown(params.wX);
     price = n.divWadDown(d);
 }

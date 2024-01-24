@@ -397,7 +397,7 @@ contract AtomicV2 {
     function _payout() internal {
         // Get the Y balance after the swap.
         intermediateTokenYEndBalance = TokenLike(quote).balanceOf(address(this));
-
+        /*
         if (intermediateTokenYEndBalance < intermediateTokenYStartBalance) {
             emit Loss(
                 intermediateTokenYStartBalance - intermediateTokenYEndBalance
@@ -419,6 +419,7 @@ contract AtomicV2 {
             intermediateTokenYEndBalance - intermediateTokenYStartBalance;
         cumulativeProfit += profit;
         emit Profit(profit);
+        */
 
         TokenLike(quote).transfer(msg.sender, intermediateTokenYEndBalance);
     }
