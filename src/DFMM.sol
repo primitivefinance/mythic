@@ -194,6 +194,14 @@ contract DFMM is IDFMM {
         IStrategy(pools[poolId].strategy).update(poolId, data);
     }
 
+    function updateController(
+        uint256 poolId,
+        address newController
+    ) external lock initialized(poolId) {
+        if (msg.sender != pools[poolId].controller) revert NotController();
+        pools[poolId].controller = newController;
+    }
+
     /// @dev Computes the changes in reserves and transfers the tokens in and out.
     function _settle(
         uint256 poolId,
