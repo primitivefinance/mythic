@@ -119,7 +119,7 @@ impl VolatilityTargetingSubmitter {
                     protocol_client.add_token(
                         token_x,
                         "Arbiter Token X".into(),
-                        "ARBX".into(),
+                        "arbx".into(),
                         18,
                     )?;
                     protocol_client.add_token(
