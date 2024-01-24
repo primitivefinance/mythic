@@ -363,6 +363,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                 Ok(init_params)
             }
             PoolParams::LogNormal(log_normal_params) => {
+                tracing::info!("log normal solver address: {:?}", self.ln_solver.address());
                 let init_data = self
                     .ln_solver
                     .get_initial_pool_data(init_reserve_x_wad, init_price_wad, log_normal_params)

@@ -4,7 +4,7 @@
 
 use std::time::Instant;
 
-use clients::{dev::DevClient, ledger::LedgerClient};
+use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
 use datatypes::portfolio::coin::Coin;
 use iced::{
     font,
@@ -76,7 +76,10 @@ pub fn load_user_data() -> anyhow::Result<Model> {
 }
 
 /// Contracts that we start up the client with
-pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token_y", "lex"];
+/// ORDER MATTERS HERE WHICH IS VERY BIG BAD.
+pub const CONTRACT_NAMES: [&str; 6] = [
+    "protocol", "strategy", "token_x", "token_y", "lex", "solver",
+];
 
 /// Loads any async data or disk data into the application's state types.
 /// On load, the application will emit the Ready message to the root
@@ -154,20 +157,32 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 // If the contract value's label contains the name, add it to the exc_client.
                 // todo: need better loading of contracts from storage.
                 for (address, contact) in contracts.get_all() {
-                    if contact.label.contains(name) {
+                    if contact.label == *name {
                         exc_client.add_contract(name, *address);
                     }
                 }
             }
         }
+
+        // todo: better contract naming/storage management.
+        let protocol_client = ProtocolClient::from(
+            exc_client.get_client(),
+            exc_client.contracts.get("protocol").unwrap().clone(),
+            exc_client.contracts.get("solver").unwrap().clone(),
+            exc_client.contracts.get("strategy").unwrap().clone(),
+            Address::zero(),
+            Address::zero(),
+        )?;
+        exc_client.connect_dfmm(protocol_client).await?;
     }
+
+    // Connect a signer to the client so we can send transactions.
+    let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
+    let sender = signer.address();
+    exc_client.connect_signer(signer).await?;
 
     // If we are loading a fresh instance, deploy the contracts.
     if !loaded_snapshot {
-        let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
-        let sender = signer.address();
-
-        exc_client.connect_signer(signer).await?;
         let client = exc_client.get_client();
 
         let dev_client = DevClient::deploy(client, sender).await?;
@@ -238,7 +253,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         );
 
         model.user.contacts.add(
-            lex,
+            solver,
             contacts::ContactValue {
                 label: "solver".to_string(),
                 class: contacts::Class::Contract,

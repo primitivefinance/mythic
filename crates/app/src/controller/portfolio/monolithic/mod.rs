@@ -159,24 +159,25 @@ impl Monolithic {
                 // Get the tokens from the user's data token list.
                 let token_list = self.model.user.coins.clone();
 
-                // todo: add asset selection to create flow
-                let (asset_token, quote_token) = token_list.tokens.into_iter().fold(
-                    (None, None),
-                    |(asset_token, quote_token), token| {
-                        if token.symbol == self.create.chosen_asset.clone().unwrap().symbol {
-                            (Some(token.address), quote_token)
-                        } else if token.symbol == self.create.chosen_quote.clone().unwrap().symbol {
-                            (asset_token, Some(token.address))
-                        } else {
-                            (asset_token, quote_token)
-                        }
-                    },
-                );
+                // Find the asset token, which has a tag of "ether".
+                let asset_token = token_list
+                    .tokens
+                    .clone()
+                    .into_iter()
+                    .find(|token| token.tags.contains(&"ether".to_string()))
+                    .map(|token| token.address);
                 let asset_token = match asset_token {
                     Some(x) => x,
                     None => return Err(anyhow::anyhow!("No asset token")),
                 };
 
+                // Find the quote token, which has a tag of "stablecoin".
+                let quote_token = token_list
+                    .tokens
+                    .clone()
+                    .into_iter()
+                    .find(|token| token.tags.contains(&"stablecoin".to_string()))
+                    .map(|token| token.address);
                 let quote_token = match quote_token {
                     Some(x) => x,
                     None => return Err(anyhow::anyhow!("No quote token")),
@@ -198,15 +199,9 @@ impl Monolithic {
                 let asset_price = self
                     .model
                     .get_current()
-                    .and_then(|x| Some(x.get_external_price_of_pool_asset(pool_id).unwrap()));
-                let asset_price = match asset_price {
-                    Some(x) => format_ether(x).parse::<f64>(),
-                    None => return Err(anyhow::anyhow!("No asset price")),
-                };
-                let asset_price = match asset_price {
-                    Ok(x) => x,
-                    Err(_) => return Err(anyhow::anyhow!("Failed to parse")),
-                };
+                    .unwrap()
+                    .price_of_token(asset_token)?;
+                let asset_price = format_and_parse(asset_price)?;
 
                 let parameters = self.create.liquidity;
                 let parameters: LiquidityTypes = match parameters {
@@ -239,6 +234,16 @@ impl Monolithic {
                 )?);
 
                 let client = client.clone();
+                tracing::info!(
+                    "Sending transaction to address: {:?}",
+                    client
+                        .dfmm_client
+                        .clone()
+                        .unwrap()
+                        .protocol
+                        .address()
+                        .clone()
+                );
                 return Ok(Command::perform(
                     async move {
                         let dfmm = client
