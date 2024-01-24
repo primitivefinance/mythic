@@ -154,7 +154,6 @@ impl Monolithic {
         if let Some(client) = self.client.clone() {
             if let (Some(signer), Some(_)) = (client.signer.as_ref(), client.dfmm_client.as_ref()) {
                 let _submitter = signer.address();
-                let pool_id = 0; // todo: get pool id from the model.
 
                 // Get the tokens from the user's data token list.
                 let token_list = self.model.user.coins.clone();

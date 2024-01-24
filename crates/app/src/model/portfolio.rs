@@ -193,7 +193,7 @@ sol! {
 // view returns(uint liquidity); }
 // }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]
 pub enum ProtocolActions {
     #[default]
     Empty,
@@ -220,6 +220,7 @@ pub struct HistoricalTx {
     pub action: ProtocolActions,
     pub position_name: String,
     pub market_value: f64,
+    pub pool_id: u64,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -299,6 +300,16 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    /// Adds a pool_id to the pool state mapping, which will be tracked in
+    /// future model updates.
+    pub fn add_pool(&mut self, pool_id: u64) -> Result<()> {
+        self.pool_state
+            .get_or_insert_with(BTreeMap::new)
+            .entry(pool_id)
+            .or_insert_with(PoolState::default);
+        Ok(())
+    }
+
     /// Updates the ENTIRE model! Wow!
     pub async fn update<M: Middleware + 'static>(&mut self, client: Arc<M>) -> Result<()>
     where
@@ -327,8 +338,40 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             tracing::warn!("User history update failed: {:?}", err);
         }
 
+        if let Err(err) = self.sync_historical_creates_with_tracked_pools().await {
+            tracing::warn!("Historical creates sync failed: {:?}", err);
+        }
+
         if let Err(err) = self.update_all_pools(client.clone()).await {
             tracing::warn!("Pool update failed: {:?}", err);
+        }
+
+        if let Err(err) = self.sync_liquidity_tokens_to_balance_mapping() {
+            tracing::warn!("Liquidity token sync failed: {:?}", err);
+        }
+
+        Ok(())
+    }
+
+    /// Gets the pool ids from the historical transactions and adds them to the
+    /// pool state mapping.
+    async fn sync_historical_creates_with_tracked_pools(&mut self) -> Result<()> {
+        let historical_txs = self
+            .user_history
+            .as_ref()
+            .ok_or(Error::msg("User history not set"))?;
+
+        let historical_creates: Vec<_> = historical_txs
+            .iter()
+            .filter(|tx| tx.action == ProtocolActions::CreatePosition)
+            .collect();
+
+        let historical_create_pool_ids: Vec<_> =
+            historical_creates.iter().map(|tx| tx.pool_id).collect();
+
+        let pool_state = self.pool_state.get_or_insert_with(BTreeMap::new);
+        for pool_id in historical_create_pool_ids {
+            pool_state.entry(pool_id).or_insert_with(PoolState::default);
         }
 
         Ok(())
@@ -550,6 +593,22 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             g3m_strategy: None,
             swap_fee_wad: Some(from_ethers_u256(swap_fee_wad)),
         })
+    }
+
+    /// Ensures all liquidity token addresses are keys in the balance mapping.
+    pub fn sync_liquidity_tokens_to_balance_mapping(&mut self) -> Result<()> {
+        let liquidity_token_addresses = self
+            .liquidity_token_addresses
+            .as_ref()
+            .ok_or(Error::msg("Liquidity token addresses not set"))?;
+
+        for liquidity_token_address in liquidity_token_addresses {
+            self.user_token_balances
+                .entry(liquidity_token_address.clone())
+                .or_insert_with(Vec::new);
+        }
+
+        Ok(())
     }
 
     pub async fn update_pool<M: Middleware + 'static>(
@@ -861,6 +920,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         ))
     }
 
+    /// Indexes the "Init" events emitted by the protocol when the user creates
+    /// a new position.
     pub async fn fetch_user_historical_tx<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -926,16 +987,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
             let pool_id = parsed_log.pool_id.as_u64();
 
-            let pool_state = self
-                .pool_state
-                .as_ref()
-                .ok_or(Error::msg("Pool state not set"))?
-                .get(&pool_id)
-                .ok_or(Error::msg(format!(
-                    "Missing pool state for pool id {}",
-                    pool_id
-                )))?
-                .clone();
+            // Get the pool state for the given pool id.
+            let pool_state = self.fetch_pool_state(client.clone(), pool_id).await?;
+            // Get the token metadata for the pool's assets.
+            let token_x_metadata = self
+                .fetch_token_info(client.clone(), pool_state.asset_token.unwrap())
+                .await?;
+            let token_y_metadata = self
+                .fetch_token_info(client.clone(), pool_state.quote_token.unwrap())
+                .await?;
 
             let amount_x = EthersU256::from(parsed_log.reserve_x);
             let amount_y = EthersU256::from(parsed_log.reserve_y);
@@ -948,22 +1008,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 .quote_token
                 .ok_or(Error::msg("Quote token address not set for pool state"))?;
 
-            let external_x_price = self
-                .external_prices
-                .as_ref()
-                .ok_or(Error::msg("External price series not set"))?
-                .get(&x_token_address)
-                .ok_or(Error::msg(format!(
-                    "Missing external price series for x token address {}",
-                    x_token_address
-                )))?
-                .iter()
-                .find(|(block, _)| *block == block_number)
-                .map(|(_, price)| *price)
-                .ok_or(Error::msg(format!(
-                    "Missing external price for x token address {} at block {}",
-                    x_token_address, block_number
-                )))?;
+            let external_x_price = self.price_of_token(x_token_address)?;
 
             // todo: need to add an external quote price series.
             let external_y_price = ALLOY_WAD;
@@ -991,29 +1036,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
             let market_value = amount_x + amount_y;
 
-            let token_x_info = self
-                .token_metadata
-                .as_ref()
-                .ok_or(Error::msg("Token metadata not set"))?
-                .get(&x_token_address)
-                .ok_or(Error::msg(format!(
-                    "Missing token metadata for x token address {}",
-                    x_token_address
-                )))?
-                .clone();
-
-            let token_y_info = self
-                .token_metadata
-                .as_ref()
-                .ok_or(Error::msg("Token metadata not set"))?
-                .get(&y_token_address)
-                .ok_or(Error::msg(format!(
-                    "Missing token metadata for y token address {}",
-                    y_token_address
-                )))?
-                .clone();
-
-            let position_name = format!("{} / {}", token_x_info.symbol, token_y_info.symbol);
+            let position_name =
+                format!("{} / {}", token_x_metadata.symbol, token_y_metadata.symbol);
 
             historical_tx.push(HistoricalTx {
                 tx_hash,
@@ -1022,6 +1046,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 action,
                 position_name,
                 market_value,
+                pool_id,
             });
         }
 
