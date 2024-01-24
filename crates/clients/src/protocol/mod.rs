@@ -248,6 +248,14 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok(pool)
     }
 
+    pub async fn update_controller(&self, pool_id: U256, new_controller: Address) -> Result<()> {
+        self.protocol
+            .update_controller(pool_id, new_controller)
+            .send()
+            .await?;
+        Ok(())
+    }
+
     pub async fn get_pool(&self, pool_id: U256) -> Result<Pool> {
         let pool = match self.pools.get(&pool_id) {
             Some(value) => value.to_owned(),

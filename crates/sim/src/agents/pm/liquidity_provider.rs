@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use alloy_primitives::{utils::parse_ether, U256};
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use clients::protocol::{G3mF64, LogNormalF64, PoolInitParamsF64, ProtocolClient};
+use ethers::{types::U256, utils::parse_ether};
 
 use super::*;
 use crate::agents::base::token_admin::TokenAdmin;
@@ -11,6 +11,7 @@ use crate::agents::base::token_admin::TokenAdmin;
 pub struct LiquidityProvider {
     pub client: Arc<RevmMiddleware>,
     pub protocol_client: ProtocolClient<RevmMiddleware>,
+    controller: Address,
     token_x: Address,
     token_y: Address,
     init_x_wad: f64,
@@ -62,6 +63,13 @@ impl Agent for LiquidityProvider {
             )
             .await?;
 
+        self.protocol_client
+            .update_controller(ethers::types::U256::from(0), self.controller)
+            .await?;
+        self.protocol_client
+            .update_controller(ethers::types::U256::from(1), self.controller)
+            .await?;
+
         Ok(())
     }
 
@@ -86,29 +94,27 @@ impl LiquidityProvider {
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
+        // This is a horrible way of doing this, but this is implicitly the address of the
+        // submitter because that's who we're cloning the protocol client from.  Eventually this
+        // should be updated so that we get the appropriate address from agent mapping.
+        let controller = protocol_client.client.address();
 
         let protocol_client = protocol_client.bind(client.clone())?;
 
         token_admin
             .mint(
-                from_ethers_address(client.address()),
+                client.address(),
                 parse_ether("10_000_000")?,
                 parse_ether("10_000_000")?,
             )
             .await?;
 
-        arbx.approve(
-            protocol_client.protocol.address(),
-            to_ethers_u256(U256::MAX),
-        )
-        .send()
-        .await?;
-        arby.approve(
-            protocol_client.protocol.address(),
-            to_ethers_u256(U256::MAX),
-        )
-        .send()
-        .await?;
+        arbx.approve(protocol_client.protocol.address(), U256::MAX)
+            .send()
+            .await?;
+        arby.approve(protocol_client.protocol.address(), U256::MAX)
+            .send()
+            .await?;
 
         if let Some(AgentParameters::LiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
@@ -116,6 +122,7 @@ impl LiquidityProvider {
             Ok(Self {
                 client,
                 protocol_client,
+                controller,
                 token_x: arbx.address(),
                 token_y: arby.address(),
                 init_x_wad: params.x_liquidity.0,

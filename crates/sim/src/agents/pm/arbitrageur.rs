@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
-use alloy_primitives::{
-    utils::{format_ether, parse_ether},
-    Address, U256,
-};
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
 use clients::protocol::ProtocolClient;
+use ethers::{
+    types::{Address, U256},
+    utils::{format_ether, parse_ether},
+};
 
 use super::{
     agents::base::token_admin::TokenAdmin, bindings::atomic_v2::AtomicV2, Environment, Result,
     RevmMiddleware, *,
 };
 
-pub const WAD: U256 = U256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
+pub const WAD: U256 = U256([1_000_000_000_000_000_000, 0, 0, 0]);
 
 #[derive(Debug, Clone)]
 pub struct Arbitrageur {
@@ -56,8 +56,7 @@ impl Arbitrageur {
         let protocol_client = protocol_client.bind(client.clone())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
-        let liquid_exchange =
-            LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
+        let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         // Deploy the arbitrageur's atomic contract to atomically swap between
         // exchanges.
@@ -79,17 +78,17 @@ impl Arbitrageur {
 
         token_admin
             .mint(
-                from_ethers_address(client.address()),
-                parse_ether(100_000_000.to_string().as_str()).unwrap(),
-                parse_ether(100_000_000.to_string().as_str()).unwrap(),
+                client.address(),
+                parse_ether(100_000_000)?,
+                parse_ether(100_000_000)?,
             )
             .await?;
 
-        arbx.approve(atomic_arbitrage.address(), ethers::types::U256::MAX)
+        arbx.approve(atomic_arbitrage.address(), U256::MAX)
             .send()
             .await?
             .await?;
-        arby.approve(atomic_arbitrage.address(), ethers::types::U256::MAX)
+        arby.approve(atomic_arbitrage.address(), U256::MAX)
             .send()
             .await?
             .await?;
@@ -122,15 +121,13 @@ impl Arbitrageur {
     async fn detect_arbitrage(&self) -> Result<Swap> {
         // Update the prices the for the arbitrageur.
         let liquid_exchange_price_wad = self.liquid_exchange.price().call().await?;
-        let liquid_exchange_price_wad = from_ethers_u256(liquid_exchange_price_wad);
 
         let target_exchange_price_wad = self
             .protocol_client
             .ln_solver
-            .internal_price(ethers::types::U256::from(0))
+            .internal_price(U256::from(0))
             .call()
             .await?;
-        let target_exchange_price_wad = from_ethers_u256(target_exchange_price_wad);
         debug!("=== Start Loop ===");
         // info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
         // info!(
@@ -155,7 +152,7 @@ impl Arbitrageur {
     }
 
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
-        let i_wad = I256::from_raw(ethers::utils::parse_ether("1")?);
+        let i_wad = I256::from_raw(WAD);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
         let pool_params = self
             .protocol_client
@@ -168,12 +165,11 @@ impl Arbitrageur {
             I256::from_raw(pool_params.sigma),
             I256::from_raw(pool_params.tau),
         );
-        let gamma =
-            I256::from_raw(ethers::utils::parse_ether("1")?) - I256::from_raw(pool_params.swap_fee);
+        let gamma = i_wad - I256::from_raw(pool_params.swap_fee);
         let (rx, ry, liq) = self
             .protocol_client
             .protocol
-            .get_reserves_and_liquidity(ethers::types::U256::from(0))
+            .get_reserves_and_liquidity(U256::from(0))
             .call()
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
@@ -377,7 +373,6 @@ impl Agent for Arbitrageur {
                     .protocol_client
                     .get_internal_price(ethers::types::U256::from(0))
                     .await?;
-                let internal_price = from_ethers_u256(internal_price);
                 debug!("Price[LEX]: {:?}", format_ether(target_price));
                 debug!("Price[LOGNORM]: {:?}", format_ether(internal_price));
                 debug!("=== End Loop ===");

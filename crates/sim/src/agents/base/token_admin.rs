@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use alloy_primitives::{Address, U256};
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use datatypes::TokenData;
+use ethers::types::{Address, U256};
 
 use super::*;
 
@@ -67,17 +67,8 @@ impl TokenAdmin {
     }
 
     pub async fn mint(&self, to: Address, amount_x: U256, amount_y: U256) -> Result<()> {
-        let to = ethers::types::Address::from(to.into_array());
-        self.arbx
-            .mint(to, to_ethers_u256(amount_x))
-            .send()
-            .await?
-            .await?;
-        self.arby
-            .mint(to, to_ethers_u256(amount_y))
-            .send()
-            .await?
-            .await?;
+        self.arbx.mint(to, amount_x).send().await?.await?;
+        self.arby.mint(to, amount_y).send().await?.await?;
         Ok(())
     }
 }

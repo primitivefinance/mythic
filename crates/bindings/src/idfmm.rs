@@ -247,6 +247,28 @@ pub mod idfmm {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("lpTokenImplementation"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "lpTokenImplementation",
+                            ),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("pools"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -263,13 +285,6 @@ pub mod idfmm {
                                 },
                             ],
                             outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("inited"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Bool,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("bool"),
-                                    ),
-                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("controller"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
@@ -514,10 +529,20 @@ pub mod idfmm {
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("account"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
+                                    indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("strategy"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    indexed: true,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("tokenX"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    indexed: true,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("tokenY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
                                     indexed: true,
                                 },
@@ -663,6 +688,17 @@ pub mod idfmm {
                 ),
             ]),
             errors: ::core::convert::From::from([
+                (
+                    ::std::borrow::ToOwned::to_owned("ERC1167FailedCreateClone"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned(
+                                "ERC1167FailedCreateClone",
+                            ),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
                 (
                     ::std::borrow::ToOwned::to_owned("Invalid"),
                     ::std::vec![
@@ -862,6 +898,17 @@ pub mod idfmm {
                 .method_hash([20, 85, 241, 252], (params,))
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `lpTokenImplementation` (0xb462cd25) function
+        pub fn lp_token_implementation(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<
+            M,
+            ::ethers::core::types::Address,
+        > {
+            self.0
+                .method_hash([180, 98, 205, 37], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `pools` (0xac4afa38) function
         pub fn pools(
             &self,
@@ -869,7 +916,6 @@ pub mod idfmm {
         ) -> ::ethers::contract::builders::ContractCall<
             M,
             (
-                bool,
                 ::ethers::core::types::Address,
                 ::ethers::core::types::Address,
                 ::ethers::core::types::Address,
@@ -962,6 +1008,21 @@ pub mod idfmm {
             Self::new(contract.address(), contract.client())
         }
     }
+    ///Custom Error type `ERC1167FailedCreateClone` with signature `ERC1167FailedCreateClone()` and selector `0xc2f868f4`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "ERC1167FailedCreateClone", abi = "ERC1167FailedCreateClone()")]
+    pub struct ERC1167FailedCreateClone;
     ///Custom Error type `Invalid` with signature `Invalid(bool,uint256)` and selector `0xeec0da52`
     #[derive(
         Clone,
@@ -1082,6 +1143,7 @@ pub mod idfmm {
         Hash
     )]
     pub enum IDFMMErrors {
+        ERC1167FailedCreateClone(ERC1167FailedCreateClone),
         Invalid(Invalid),
         InvalidSwapInputTransfer(InvalidSwapInputTransfer),
         InvalidSwapOutputTransfer(InvalidSwapOutputTransfer),
@@ -1102,6 +1164,11 @@ pub mod idfmm {
                 data,
             ) {
                 return Ok(Self::RevertString(decoded));
+            }
+            if let Ok(decoded) = <ERC1167FailedCreateClone as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::ERC1167FailedCreateClone(decoded));
             }
             if let Ok(decoded) = <Invalid as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -1144,6 +1211,9 @@ pub mod idfmm {
     impl ::ethers::core::abi::AbiEncode for IDFMMErrors {
         fn encode(self) -> ::std::vec::Vec<u8> {
             match self {
+                Self::ERC1167FailedCreateClone(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::Invalid(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::InvalidSwapInputTransfer(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
@@ -1169,6 +1239,10 @@ pub mod idfmm {
         fn valid_selector(selector: [u8; 4]) -> bool {
             match selector {
                 [0x08, 0xc3, 0x79, 0xa0] => true,
+                _ if selector
+                    == <ERC1167FailedCreateClone as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
                 _ if selector
                     == <Invalid as ::ethers::contract::EthError>::selector() => true,
                 _ if selector
@@ -1201,6 +1275,9 @@ pub mod idfmm {
     impl ::core::fmt::Display for IDFMMErrors {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
+                Self::ERC1167FailedCreateClone(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
                 Self::Invalid(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InvalidSwapInputTransfer(element) => {
                     ::core::fmt::Display::fmt(element, f)
@@ -1219,6 +1296,11 @@ pub mod idfmm {
     impl ::core::convert::From<::std::string::String> for IDFMMErrors {
         fn from(value: String) -> Self {
             Self::RevertString(value)
+        }
+    }
+    impl ::core::convert::From<ERC1167FailedCreateClone> for IDFMMErrors {
+        fn from(value: ERC1167FailedCreateClone) -> Self {
+            Self::ERC1167FailedCreateClone(value)
         }
     }
     impl ::core::convert::From<Invalid> for IDFMMErrors {
@@ -1318,13 +1400,16 @@ pub mod idfmm {
     )]
     #[ethevent(
         name = "Init",
-        abi = "Init(address,address,uint256,uint256,uint256,uint256)"
+        abi = "Init(address,address,address,address,uint256,uint256,uint256,uint256)"
     )]
     pub struct InitFilter {
-        #[ethevent(indexed)]
         pub account: ::ethers::core::types::Address,
         #[ethevent(indexed)]
         pub strategy: ::ethers::core::types::Address,
+        #[ethevent(indexed)]
+        pub token_x: ::ethers::core::types::Address,
+        #[ethevent(indexed)]
+        pub token_y: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub reserve_x: ::ethers::core::types::U256,
         pub reserve_y: ::ethers::core::types::U256,
@@ -1529,6 +1614,21 @@ pub mod idfmm {
     pub struct InitCall {
         pub params: InitParams,
     }
+    ///Container type for all input parameters for the `lpTokenImplementation` function with signature `lpTokenImplementation()` and selector `0xb462cd25`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "lpTokenImplementation", abi = "lpTokenImplementation()")]
+    pub struct LpTokenImplementationCall;
     ///Container type for all input parameters for the `pools` function with signature `pools(uint256)` and selector `0xac4afa38`
     #[derive(
         Clone,
@@ -1598,6 +1698,7 @@ pub mod idfmm {
         Deallocate(DeallocateCall),
         GetReservesAndLiquidity(GetReservesAndLiquidityCall),
         Init(InitCall),
+        LpTokenImplementation(LpTokenImplementationCall),
         Pools(PoolsCall),
         Swap(SwapCall),
         Update(UpdateCall),
@@ -1626,6 +1727,11 @@ pub mod idfmm {
                 data,
             ) {
                 return Ok(Self::Init(decoded));
+            }
+            if let Ok(decoded) = <LpTokenImplementationCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::LpTokenImplementation(decoded));
             }
             if let Ok(decoded) = <PoolsCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -1658,6 +1764,9 @@ pub mod idfmm {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::LpTokenImplementation(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::Pools(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Swap(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Update(element) => ::ethers::core::abi::AbiEncode::encode(element),
@@ -1673,6 +1782,9 @@ pub mod idfmm {
                     ::core::fmt::Display::fmt(element, f)
                 }
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
+                Self::LpTokenImplementation(element) => {
+                    ::core::fmt::Display::fmt(element, f)
+                }
                 Self::Pools(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Swap(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Update(element) => ::core::fmt::Display::fmt(element, f),
@@ -1697,6 +1809,11 @@ pub mod idfmm {
     impl ::core::convert::From<InitCall> for IDFMMCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
+        }
+    }
+    impl ::core::convert::From<LpTokenImplementationCall> for IDFMMCalls {
+        fn from(value: LpTokenImplementationCall) -> Self {
+            Self::LpTokenImplementation(value)
         }
     }
     impl ::core::convert::From<PoolsCall> for IDFMMCalls {
@@ -1787,6 +1904,20 @@ pub mod idfmm {
         pub ::ethers::core::types::U256,
         pub ::ethers::core::types::U256,
     );
+    ///Container type for all return fields from the `lpTokenImplementation` function with signature `lpTokenImplementation()` and selector `0xb462cd25`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct LpTokenImplementationReturn(pub ::ethers::core::types::Address);
     ///Container type for all return fields from the `pools` function with signature `pools(uint256)` and selector `0xac4afa38`
     #[derive(
         Clone,
@@ -1801,7 +1932,6 @@ pub mod idfmm {
         Hash
     )]
     pub struct PoolsReturn {
-        pub inited: bool,
         pub controller: ::ethers::core::types::Address,
         pub strategy: ::ethers::core::types::Address,
         pub token_x: ::ethers::core::types::Address,

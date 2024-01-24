@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use alloy_primitives::Address;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use clients::protocol::{PoolParams, ProtocolClient};
+use ethers::types::Address;
 use ethers::utils::format_ether;
 use itertools::iproduct;
 use tracing::{debug, info};
@@ -106,7 +106,7 @@ impl VolatilityTargetingSubmitter {
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
-        let lex = LiquidExchange::new(to_ethers_address(liquid_exchange_address), client.clone());
+        let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         if let Some(AgentParameters::VolatilityTargetingSubmitter(params)) =
             config.agent_parameters.get(&label)
