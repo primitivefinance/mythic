@@ -131,6 +131,12 @@ contract DFMMInit is DFMMSetUp {
         dfmm.init(params);
     }
 
+    function test_DFMM_init_DeploysLPTokenClone() public init {
+        (,,,,,,, address liquidityToken) = dfmm.pools(POOL_ID);
+        assertTrue(liquidityToken != address(0));
+        assertTrue(liquidityToken.code.length > 0);
+    }
+
     function test_DFMM_init_RevertsWhenSameTokens() public {
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
