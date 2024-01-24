@@ -24,7 +24,7 @@ use self::{
 use super::*;
 use crate::{
     components::system::{ExcaliburChart, ExcaliburContainer},
-    model::portfolio::{AlloyAddress, ALLOY_WAD},
+    model::portfolio::{format_and_parse, AlloyAddress, ALLOY_WAD},
     view::portfolio_view::PortfolioPresenter,
 };
 
@@ -364,7 +364,25 @@ impl State for Monolithic {
 
     fn load(&self) -> Command<Self::AppMessage> {
         let model = self.model.clone();
-        Command::perform(async {}, |_| Self::AppMessage::UpdateDataModel(Ok(model)))
+        let coins = model.user.coins.clone();
+        let base_asset = coins.tokens.first().unwrap().clone();
+        let quote_asset = coins.tokens.last().unwrap().clone();
+
+        let update_base_asset = Command::perform(async {}, move |_| {
+            Self::AppMessage::Form(FormMessage::Asset(base_asset.clone()))
+        });
+        let update_quote_asset = Command::perform(async {}, move |_| {
+            Self::AppMessage::Form(FormMessage::Quote(quote_asset.clone()))
+        });
+        let update_data_model = Command::perform(async {}, move |_| {
+            Self::AppMessage::UpdateDataModel(Ok(model.clone()))
+        });
+
+        Command::batch(vec![
+            update_base_asset,
+            update_quote_asset,
+            update_data_model,
+        ])
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
@@ -621,7 +639,10 @@ fn price_process_update_after_step(
 
             match result {
                 Ok(_tx) => {
-                    tracing::info!("Updated price");
+                    tracing::info!(
+                        "Updated external price process to: {:?}",
+                        format_and_parse(new_price)?
+                    );
                     Ok(())
                 }
                 Err(e) => {

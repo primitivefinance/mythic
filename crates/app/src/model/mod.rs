@@ -245,11 +245,35 @@ impl Model {
 
         let chain_id = client.get_chainid().await?;
 
+        // Try updating the token list.
+        self.update_tracked_tokens()?;
+
         self.networks
             .get_mut(&chain_id.as_u64())
             .unwrap()
             .update(client)
             .await?;
+
+        Ok(())
+    }
+
+    /// Syncs the user's token list to the data model. By adding it to the data
+    /// model, the token's balance will be tracked.
+    pub fn update_tracked_tokens(&mut self) -> anyhow::Result<()> {
+        // Exit early if no network is actively connected.
+        if self.current.is_none() {
+            return Ok(());
+        }
+
+        let coin_list = self.user.coins.clone();
+
+        // For each coin, add it to the token balance mapping.
+        for coin in coin_list.tokens.clone() {
+            let coin = coin.clone();
+            let chain_id = self.current.unwrap();
+            let network = self.networks.get_mut(&chain_id).unwrap();
+            network.add_token(coin.address)?;
+        }
 
         Ok(())
     }

@@ -102,13 +102,13 @@ impl MonolithicPresenter {
 
     pub fn get_aum(&self) -> String {
         if self.model.get_current().is_none() {
-            return "N/A".to_string();
+            return "N/A Network".to_string();
         }
 
         let aum = self.model.get_current().unwrap().derive_total_aum();
         match aum {
             Ok(data) => alloy_primitives::utils::format_ether(data),
-            Err(_) => "N/A".to_string(),
+            Err(_) => "N/A Value".to_string(),
         }
     }
 
