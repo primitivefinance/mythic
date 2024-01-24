@@ -159,7 +159,10 @@ impl PortfolioPresenter {
             let data = match data {
                 Ok(data) => data,
                 Err(e) => {
-                    tracing::error!("Failed to get portfolio value series: {:}", e);
+                    tracing::warn!(
+                        "Failed to get portfolio value series when trying to sync: {:}",
+                        e
+                    );
                     return;
                 }
             };
@@ -168,7 +171,7 @@ impl PortfolioPresenter {
             match asset_value_series {
                 Ok(data) => data,
                 Err(e) => {
-                    tracing::error!("Failed to get asset value series: {:}", e);
+                    tracing::warn!("Failed to get asset value series: {:}", e);
                     return;
                 }
             };
