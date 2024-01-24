@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../DFMM.sol";
-import "../../interfaces/IDFMM.sol";
 import "./SetUp.sol";
 
 contract DFMMInit is DFMMSetUp {
