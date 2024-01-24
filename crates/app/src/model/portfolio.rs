@@ -382,6 +382,27 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    pub fn price_of_token(&self, token_address: AlloyAddress) -> Result<AlloyU256> {
+        let external_prices = self
+            .external_prices
+            .as_ref()
+            .ok_or(Error::msg("External prices not set"))?;
+        let price_series = external_prices
+            .get(&token_address)
+            .ok_or(Error::msg(format!(
+                "Missing external price series for token address {}",
+                token_address
+            )))?;
+        let price = price_series
+            .last()
+            .ok_or(Error::msg(format!(
+                "Missing external price for token address {}",
+                token_address
+            )))?
+            .1;
+        Ok(price)
+    }
+
     pub fn get_external_price_of_pool_asset(&self, pool_id: u64) -> Result<AlloyU256> {
         let pool_state = self.get_pool_state(pool_id)?;
         let asset_token = pool_state
