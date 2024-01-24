@@ -647,6 +647,23 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             liquidity_token_addresses.push(liquidity_token_address);
         }
 
+        // Update the liquidity token's metadata if it is missing from the
+        // token_metadata mapping.
+        if self
+            .token_metadata
+            .get_or_insert_with(BTreeMap::new)
+            .get(&liquidity_token_address)
+            .is_none()
+        {
+            let token_info = self
+                .fetch_token_info(client.clone(), liquidity_token_address)
+                .await?;
+            self.token_metadata
+                .as_mut()
+                .unwrap()
+                .insert(liquidity_token_address, token_info);
+        }
+
         Ok(())
     }
 
@@ -1214,6 +1231,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .as_ref()
             .cloned()
             .unwrap_or(Vec::new());
+
+        tracing::info!("Found allocated positions: {:?}", filtered_tokens);
 
         if filtered_tokens.is_empty() {
             return Ok(Vec::new());

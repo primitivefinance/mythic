@@ -444,14 +444,15 @@ impl State for Monolithic {
     }
 
     fn view(&self) -> Element<Self::ViewMessage> {
-        let (allocated_positions, logos) = self.presenter.get_positions();
-        let (unallocated_positions, _) = self.presenter.get_unallocated_positions();
+        let (allocated_positions, allocated_logos) = self.presenter.get_allocated_positions();
+        let (unallocated_positions, unallocated_logos) = self.presenter.get_unallocated_positions();
         let mut content = Column::new().spacing(Sizes::Xl);
         content = content.push(MonolithicView::layout(
             self.presenter.get_aum(),
             unallocated_positions,
             allocated_positions,
-            logos,
+            unallocated_logos,
+            allocated_logos,
             Some(Message::StartAllocate),
             Message::SelectPosition,
         ));
