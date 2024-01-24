@@ -17,11 +17,6 @@ contract DFMM is IDFMM {
     uint256 private _locked = 1;
     address public immutable lpTokenImplementation;
 
-    modifier initialized(uint256 poolId) {
-        if (!pools[poolId].inited) revert NotInitialized();
-        _;
-    }
-
     modifier lock() {
         if (_locked == 2) revert Locked();
         _locked = 2;
@@ -83,7 +78,6 @@ contract DFMM is IDFMM {
         liquidityToken.mint(msg.sender, totalLiquidity);
 
         Pool memory pool = Pool({
-            inited: true,
             controller: msg.sender,
             strategy: params.strategy,
             tokenX: params.tokenX,
@@ -120,7 +114,7 @@ contract DFMM is IDFMM {
     function allocate(
         uint256 poolId,
         bytes calldata data
-    ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
+    ) external lock returns (uint256, uint256, uint256) {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, true, data);
 
@@ -139,7 +133,7 @@ contract DFMM is IDFMM {
     function deallocate(
         uint256 poolId,
         bytes calldata data
-    ) external lock initialized(poolId) returns (uint256, uint256, uint256) {
+    ) external lock returns (uint256, uint256, uint256) {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, false, data);
 
@@ -161,7 +155,7 @@ contract DFMM is IDFMM {
     function swap(
         uint256 poolId,
         bytes calldata data
-    ) external lock initialized(poolId) returns (uint256, uint256) {
+    ) external lock returns (uint256, uint256) {
         (
             bool valid,
             int256 swapConstantGrowth,
@@ -186,10 +180,7 @@ contract DFMM is IDFMM {
     }
 
     /// @inheritdoc IDFMM
-    function update(
-        uint256 poolId,
-        bytes calldata data
-    ) external lock initialized(poolId) {
+    function update(uint256 poolId, bytes calldata data) external lock {
         if (msg.sender != pools[poolId].controller) revert NotController();
         IStrategy(pools[poolId].strategy).update(poolId, data);
     }
@@ -197,7 +188,7 @@ contract DFMM is IDFMM {
     function updateController(
         uint256 poolId,
         address newController
-    ) external lock initialized(poolId) {
+    ) external lock {
         if (msg.sender != pools[poolId].controller) revert NotController();
         pools[poolId].controller = newController;
     }

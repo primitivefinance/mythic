@@ -6,7 +6,6 @@ interface IDFMM {
     // Structs
 
     struct Pool {
-        bool inited;
         address controller;
         address strategy;
         address tokenX;
@@ -159,7 +158,6 @@ interface IDFMM {
         external
         view
         returns (
-            bool inited,
             address controller,
             address strategy,
             address tokenX,
