@@ -274,7 +274,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 decimals: 18,
                 chain_id,
                 logo_uri: "".to_string(),
-                tags: vec!["mock".to_string()],
+                tags: vec!["mock".to_string(), "ether".to_string()],
             };
             model.user.coins += coin;
         }
@@ -287,7 +287,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 decimals: 18,
                 chain_id,
                 logo_uri: "".to_string(),
-                tags: vec!["mock".to_string()],
+                tags: vec!["mock".to_string(), "stablecoin".to_string()],
             };
             model.user.coins += coin;
         }

@@ -55,6 +55,7 @@ pub const ALLOY_WAD: AlloyU256 = AlloyU256::from_limbs([1_000_000_000_000_000_00
 pub enum RawDataModelError {
     CheckedMul,
     CheckedDiv,
+    CheckedAdd,
 }
 
 impl From<RawDataModelError> for Error {
@@ -62,6 +63,7 @@ impl From<RawDataModelError> for Error {
         match error {
             RawDataModelError::CheckedMul => Error::msg("Checked mul error"),
             RawDataModelError::CheckedDiv => Error::msg("Checked div error"),
+            RawDataModelError::CheckedAdd => Error::msg("Checked add error"),
         }
     }
 }
@@ -228,6 +230,26 @@ pub struct StrategyPosition {
     pub external_price: f64,
     pub internal_price: f64,
     pub quote_price: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AllocatedPosition {
+    pub token_x_address: AlloyAddress,
+    pub token_y_address: AlloyAddress,
+    pub token_l_address: AlloyAddress,
+    pub claimable_balance_x: f64,
+    pub claimable_balance_y: f64,
+    pub liquidity_balance: f64,
+    pub liquidity_value: f64,
+    pub external_price: f64,
+    pub internal_price: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UnallocatedPosition {
+    pub token_address: AlloyAddress,
+    pub balance: f64,
+    pub external_price: f64,
 }
 
 impl StrategyPosition {
@@ -1086,6 +1108,146 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     ) -> Result<LogNormalSolver<M>> {
         let solver = LogNormalSolver::new(to_ethers_address(address), client.clone());
         Ok(solver)
+    }
+
+    /// For each token in the coin_list, gets the user's balance and the
+    /// external price of the token using the model's saved data in the
+    /// respective mappings.
+    pub fn get_unallocated_positions(
+        &self,
+        coin_list: CoinList,
+    ) -> Result<Vec<UnallocatedPosition>> {
+        let coins = coin_list.tokens;
+        if coins.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut unallocated_positions = vec![];
+        for coin in coins {
+            let token_address = coin.address;
+            let balance = self.user_token_balances[&token_address]
+                .last()
+                .map(|(_, balance)| balance)
+                .unwrap_or(&AlloyU256::ZERO);
+            let external_price = self.external_prices.as_ref().ok_or(Error::msg(
+                "get_unallocated_positions: External price series not set",
+            ))?[&token_address]
+                .last()
+                .map(|(_, price)| price)
+                .unwrap_or(&AlloyU256::ZERO);
+            unallocated_positions.push(UnallocatedPosition {
+                token_address,
+                balance: format_and_parse(*balance)?,
+                external_price: format_and_parse(*external_price)?,
+            });
+        }
+
+        Ok(unallocated_positions)
+    }
+
+    /// Gets the pool id of a given liquidity token.
+    pub fn get_pool_id_of_liquidity_token(
+        &self,
+        liquidity_token_address: AlloyAddress,
+    ) -> Result<u64> {
+        let pool_state_map = self.pool_state.as_ref().ok_or(Error::msg(
+            "Pool state is not set when attempting to find pool of liquidity token.",
+        ))?;
+        let pool_id = pool_state_map
+            .iter()
+            .find(|(_, pool_state)| {
+                pool_state
+                    .liquidity_token
+                    .map(|address| address == liquidity_token_address)
+                    .unwrap_or(false)
+            })
+            .map(|(pool_id, _)| *pool_id)
+            .ok_or(Error::msg(format!(
+                "Missing pool id for liquidity token address {}",
+                liquidity_token_address
+            )))?;
+
+        Ok(pool_id)
+    }
+
+    /// Filters all the tokens in `token_balance_mapping` for the liquidity
+    /// tokens, then gets the user's balance of the liquidity tokens and
+    /// derives their value using `derive_user_allocated_position_usd`.
+    /// Returns a vector of the token's balance and value for each liquidity
+    /// token.
+    pub fn get_allocated_positions(&self) -> Result<Vec<AllocatedPosition>> {
+        let filtered_tokens = self
+            .liquidity_token_addresses
+            .as_ref()
+            .cloned()
+            .unwrap_or(Vec::new());
+
+        if filtered_tokens.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut allocated_positions = vec![];
+        for liquidity_token in filtered_tokens {
+            let balance = self.user_token_balances[&liquidity_token]
+                .last()
+                .map(|(_, balance)| balance)
+                .unwrap_or(&AlloyU256::ZERO);
+            let pool_id = self.get_pool_id_of_liquidity_token(liquidity_token)?;
+            let pool_state = self.get_pool_state(pool_id)?.clone();
+            let (token_x_address, token_y_address) = (
+                pool_state
+                    .asset_token
+                    .ok_or(Error::msg("Asset token address not set for pool state"))?,
+                pool_state
+                    .quote_token
+                    .ok_or(Error::msg("Quote token address not set for pool state"))?,
+            );
+            let internal_asset_price = self.get_internal_price_of_pool_asset(pool_id)?;
+            let (claimable_assets, claimable_quotes) =
+                self.derive_user_allocated_balances(pool_id)?;
+            let claimable_assets = claimable_assets
+                .last()
+                .map(|(_, balance)| balance)
+                .unwrap_or(&AlloyU256::ZERO);
+            let claimable_quotes = claimable_quotes
+                .last()
+                .map(|(_, balance)| balance)
+                .unwrap_or(&AlloyU256::ZERO);
+            let external_asset_price = self.external_prices.as_ref().ok_or(Error::msg(
+                "get_allocated_positions: External price series not set",
+            ))?[&token_x_address]
+                .last()
+                .map(|(_, price)| price)
+                .unwrap_or(&AlloyU256::ZERO);
+            let external_quote_price = ALLOY_WAD; // todo: fix price of other tokens in lex.
+            let asset_value = claimable_assets
+                .checked_mul(*external_asset_price)
+                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .checked_div(ALLOY_WAD)
+                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            let quote_value = claimable_quotes
+                .checked_mul(external_quote_price)
+                .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                .checked_div(ALLOY_WAD)
+                .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+            let value = asset_value
+                .checked_add(quote_value)
+                .ok_or(anyhow!(RawDataModelError::CheckedAdd))?;
+            let allocated_position = AllocatedPosition {
+                token_x_address,
+                token_y_address,
+                token_l_address: liquidity_token,
+                claimable_balance_x: format_and_parse(*claimable_assets)?,
+                claimable_balance_y: format_and_parse(*claimable_quotes)?,
+                liquidity_balance: format_and_parse(*balance)?,
+                liquidity_value: format_and_parse(value)?,
+                external_price: format_and_parse(*external_asset_price)?,
+                internal_price: format_and_parse(internal_asset_price)?,
+            };
+            allocated_positions.push(allocated_position);
+        }
+
+        Ok(allocated_positions)
     }
 
     /// Gets the "unallocated position" balances.

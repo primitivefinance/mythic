@@ -98,6 +98,17 @@ impl Model {
         })
     }
 
+    /// Fetches the balances and values of the user's tokens.
+    /// - Uses the model's `token_balance_mapping` to get token balances, which
+    ///   includes unallocated "raw" tokens held by the user, and allocated
+    ///   positions in the form of liquidity tokens.
+    /// - Uses the model's `external_prices` mapping to get the external prices
+    ///   of raw tokens.
+    /// - Uses the model's `derive_user_allocated_balance_usd` to get the value
+    ///   of liquidity tokens.
+    /// - Combines these values into a `Portfolio` of `Position`s with the
+    ///   computed weights.
+    ///
     /// Returns early with an `Ok` result if the model is not connected to a
     /// network.
     pub fn update_portfolio_positions(&mut self) -> anyhow::Result<()> {
@@ -106,139 +117,104 @@ impl Model {
         }
 
         let portfolio = self.networks.get_mut(&self.current.unwrap()).unwrap();
-        let pool_id = 0; // todo: fix this
-
-        // Gets the current position info. This should be updated prior to calling this
-        // function.
-        let pos_info = portfolio.get_position_info(pool_id);
-        let pos_info = match pos_info {
-            Ok(pos_info) => pos_info,
-            Err(err) => {
-                tracing::warn!("No position info found for pool id: {} {}", pool_id, err);
-                StrategyPosition::default()
-            }
-        };
-
-        // Include unallocated balances in the portfolio as well.
-        let unallocated_pos_info =
-            portfolio.get_unallocated_positions_info(self.user.coins.clone())?;
-
-        tracing::debug!("Got unallocated positions: {:?}", unallocated_pos_info);
+        let coin_list = self.user.coins.clone();
+        let unallocated_positions = portfolio.get_unallocated_positions(coin_list.clone())?;
+        let allocated_positions = portfolio.get_allocated_positions()?;
 
         // Clones the user's current portfolio to mutate it.
         let mut portfolio = self.user.portfolio.clone();
 
-        let total_balance_x = pos_info.balance_x + unallocated_pos_info.balance_x;
-        let total_balance_y = pos_info.balance_y + unallocated_pos_info.balance_y;
+        // Construct the portfolio by combining the value of all positions to derive the
+        // weights of each individual position.
+        // todo: ignore the token x and token y values of a liquidity position, and just
+        // use the liquidity token as its own position.
 
-        // Based on the price of x and the balances, compute the weights of both.
-        // todo: this code should be somewhere else, right?
-        let total_value =
-            total_balance_x * pos_info.external_price + total_balance_y * pos_info.quote_price;
+        // Build a list of all individual positions, which are tokens, from the
+        // unallocated and allocated positions.
+        let position_tokens = unallocated_positions
+            .iter()
+            .map(|position| position.token_address.clone())
+            .chain(
+                allocated_positions
+                    .iter()
+                    .map(|position| position.token_l_address.clone()),
+            )
+            .collect::<Vec<AlloyAddress>>();
 
-        let position_x_weight = pos_info.balance_x * pos_info.external_price / total_value;
-        // If total_value is 0, there's no active positions!
-        if position_x_weight.is_nan() {
-            return Err(anyhow::anyhow!("Position X weight is NaN, 0 total value."));
+        // Find the total value of all of these positions by looping over each position,
+        // and multiplying its balance by price.
+        let total_value = unallocated_positions
+            .iter()
+            .map(|pos| {
+                let balance = pos.balance.clone();
+                let price = pos.external_price.clone();
+                balance * price
+            })
+            .sum::<f64>()
+            + allocated_positions
+                .iter()
+                .map(|pos| {
+                    let balance = pos.liquidity_balance.clone();
+                    let price = pos.liquidity_value.clone();
+                    balance * price
+                })
+                .sum::<f64>();
+
+        // Create the data type `Position` to be entered into the portfolio using the
+        // total value to compute its weight, for each position token.
+        let mut positions = vec![];
+        for token in position_tokens {
+            let mut is_allocated = false;
+            let (balance, price) = if let Some(position) = unallocated_positions
+                .iter()
+                .find(|pos| pos.token_address == token)
+            {
+                (position.balance.clone(), position.external_price.clone())
+            } else if let Some(position) = allocated_positions
+                .iter()
+                .find(|pos| pos.token_l_address == token)
+            {
+                is_allocated = true;
+                (
+                    position.liquidity_balance.clone(),
+                    position.liquidity_value.clone() / position.liquidity_balance.clone(),
+                )
+            } else {
+                continue;
+            };
+
+            let weight = balance * price / total_value;
+
+            let coin = coin_list
+                .tokens
+                .iter()
+                .find(|coin| coin.address == token)
+                .cloned()
+                .unwrap_or_else(|| Coin::default());
+
+            let layer = match is_allocated {
+                true => PositionLayer::Liquidity,
+                false => PositionLayer::RawBalance,
+            };
+
+            let position = Position::new(
+                coin,
+                Some(price),
+                Some(balance),
+                Some(Weight {
+                    id: Uuid::new_v4(),
+                    value: weight,
+                }),
+                None,
+            )
+            .layer(layer);
+
+            positions.push(position);
         }
 
-        let position_y_weight = pos_info.balance_y / total_value;
-        // If total_value is 0, there's no active positions!
-        if position_y_weight.is_nan() {
-            return Err(anyhow::anyhow!("Position Y weight is NaN, 0 total value."));
-        }
-
-        let unallocated_x_weight =
-            unallocated_pos_info.balance_x * unallocated_pos_info.external_price / total_value;
-        // If total_value is 0, there's no active positions!
-        if unallocated_x_weight.is_nan() {
-            return Err(anyhow::anyhow!(
-                "Unallocated X weight is NaN, 0 total value."
-            ));
-        }
-
-        let unallocated_y_weight = unallocated_pos_info.balance_y / total_value;
-        // If total_value is 0, there's no active positions!
-        if unallocated_y_weight.is_nan() {
-            return Err(anyhow::anyhow!(
-                "Unallocated Y weight is NaN, 0 total value."
-            ));
-        }
-
-        let position_x_weight = Weight {
-            id: Uuid::new_v4(),
-            value: position_x_weight,
-        };
-        let position_y_weight = Weight {
-            id: Uuid::new_v4(),
-            value: position_y_weight,
-        };
-
-        let unallocated_x_weight = Weight {
-            id: Uuid::new_v4(),
-            value: unallocated_x_weight,
-        };
-        let unallocated_y_weight = Weight {
-            id: Uuid::new_v4(),
-            value: unallocated_y_weight,
-        };
-
-        tracing::info!(
-            "Updating portfolio positions: x: {}, y: {} x unallocated: {}, y unallocated: {}",
-            position_x_weight,
-            position_y_weight,
-            unallocated_x_weight,
-            unallocated_y_weight
-        );
-
-        let coin_x: Coin = serde_json::from_str(COIN_X).expect("No x token");
-        let coin_y: Coin = serde_json::from_str(COIN_Y).expect("No y token");
-
-        let position_x = Position::new(
-            coin_x.clone(),
-            Some(pos_info.external_price),
-            Some(pos_info.balance_x),
-            Some(position_x_weight),
-            None,
-        )
-        .layer(PositionLayer::Liquidity);
-
-        let position_y = Position::new(
-            coin_y.clone(),
-            Some(pos_info.quote_price),
-            Some(pos_info.balance_y),
-            Some(position_y_weight),
-            None,
-        )
-        .layer(PositionLayer::Liquidity);
-
-        let unallocated_position_x = Position::new(
-            coin_x,
-            Some(unallocated_pos_info.external_price),
-            Some(unallocated_pos_info.balance_x),
-            Some(unallocated_x_weight),
-            None,
-        )
-        .layer(PositionLayer::RawBalance);
-
-        let unallocated_position_y = Position::new(
-            coin_y,
-            Some(unallocated_pos_info.quote_price),
-            Some(unallocated_pos_info.balance_y),
-            Some(unallocated_y_weight),
-            None,
-        )
-        .layer(PositionLayer::RawBalance);
-
-        // Workaround is to override the positions directly.
-        let positions = Positions::new(vec![
-            position_x,
-            position_y,
-            unallocated_position_x,
-            unallocated_position_y,
-        ]);
-        portfolio.positions = positions;
-        tracing::debug!("Updated portfolio positions: {}", portfolio.positions);
+        // Workaround to NaN errors in portfolio position changes is to override the
+        // positions directly.
+        portfolio.positions = Positions::new(positions);
 
         self.user.update_portfolio(&portfolio)
     }
