@@ -37,6 +37,8 @@ impl Inventory {
             .map(|x| x.weight.unwrap_or_default().value)
             .sum::<f64>();
 
+        tracing::info!("Aum: {}", aum.to_string());
+
         let total_value = aum.to_string().parse::<f64>().unwrap_or_default();
         let allocated_value = total_value * allocated_weight_sum;
         let unallocated_value = total_value * unallocated_weight_sum;

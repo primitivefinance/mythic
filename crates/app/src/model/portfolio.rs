@@ -267,6 +267,15 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.g3m_solver_address = Some(g3m_solver_address);
     }
 
+    /// Adds a token to the token balance mapping, which is the universal token
+    /// list that will be tracked and updated by the model.
+    pub fn add_token(&mut self, token_address: AlloyAddress) -> Result<()> {
+        self.user_token_balances
+            .entry(token_address)
+            .or_insert(Vec::new());
+        Ok(())
+    }
+
     /// Updates the ENTIRE model! Wow!
     pub async fn update<M: Middleware + 'static>(&mut self, client: Arc<M>) -> Result<()>
     where
@@ -340,12 +349,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             let new_price = self
                 .fetch_external_price_of_token(client.clone(), token_address)
                 .await?;
-            self.external_prices
-                .as_mut()
-                .unwrap()
-                .get_mut(&token_address)
-                .unwrap()
-                .push((current_block, new_price));
+            let external_prices = self.external_prices.get_or_insert_with(BTreeMap::new);
+            let price_series = external_prices
+                .entry(token_address)
+                .or_insert_with(Vec::new);
+            price_series.push((current_block, new_price));
         }
 
         Ok(())
@@ -590,8 +598,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         for token_address in token_addresses {
             if self
                 .token_metadata
-                .as_ref()
-                .unwrap()
+                .get_or_insert_with(BTreeMap::new)
                 .get(&token_address)
                 .is_none()
             {
@@ -613,7 +620,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let liquidity_token_addresses = self
             .liquidity_token_addresses
             .as_ref()
-            .ok_or(Error::msg("Liquidity token addresses not set"))?;
+            .cloned()
+            .unwrap_or(Vec::new());
 
         let non_liquidity_token_addresses: Vec<_> = self
             .user_token_balances
@@ -1456,8 +1464,46 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn derive_total_aum(&self) -> Result<AlloyU256> {
         // todo: this naming is confusing but the external portfolio value is the
         // unallocated value.
-        let external_portfolio_value = self.derive_external_portfolio_value()?;
-        let unallocated_position_value = self.derive_unallocated_position_value()?;
+        let external_portfolio_value = self.derive_external_portfolio_value();
+        let external_portfolio_value = match external_portfolio_value {
+            Ok(external_portfolio_value) => external_portfolio_value,
+            Err(error) => {
+                tracing::warn!("Error fetching external portfolio value: {:?}", error);
+                // set value to 0
+                AlloyU256::ZERO
+            }
+        };
+        // todo: handle the scenario that the user has the ability to create an
+        // allocated position with unallocated tokens, track that?
+        // let unallocated_position_value = self.derive_unallocated_position_value()?;
+
+        let unallocated_values_series = self.get_user_balances_usd();
+        let unallocated_values_series = match unallocated_values_series {
+            Ok(unallocated_values_series) => unallocated_values_series,
+            Err(error) => {
+                tracing::warn!("Error fetching unallocated position value: {:?}", error);
+                // set value to 0
+                vec![]
+            }
+        };
+        // Make a new series of all the last values of the series in this vec
+        let unallocated_values_series = unallocated_values_series
+            .iter()
+            .map(|series| series.1.last().unwrap().1)
+            .collect::<Vec<_>>();
+        // Sum the series
+        let unallocated_position_value =
+            unallocated_values_series
+                .iter()
+                .try_fold(AlloyU256::ZERO, |acc, value| {
+                    acc.checked_add(*value)
+                        .ok_or_else(|| anyhow!("Failed to add unallocated values"))
+                })?;
+
+        tracing::debug!(
+            "Computed unallocated position value: {}",
+            unallocated_position_value
+        );
 
         let total_aum = external_portfolio_value
             .checked_add(unallocated_position_value)
@@ -1471,6 +1517,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the value of the unallocated positions.
+    /// todo: errors on get_pool_state don't propagate up.
     pub fn derive_unallocated_position_value(&self) -> Result<AlloyU256> {
         let pool_id = 0; // todo: fix this
         let unallocated_position = self.get_unallocated_positions_info(pool_id)?;
