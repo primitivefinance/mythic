@@ -147,7 +147,7 @@ impl G3mArbitrageur {
     }
 
     pub async fn get_arb_inputs_as_i256(&self) -> Result<ArbInputs> {
-        let i_wad = I256::from_raw(parse_ether("1")?);
+        let i_wad = I256::from_raw(WAD);
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
         let pool_params = self.protocol_client.get_params(U256::from(1)).await?;
         let (wx, wy, swap_fee) = match pool_params {
@@ -157,7 +157,6 @@ impl G3mArbitrageur {
 
         let (wx, wy) = (I256::from_raw(wx), I256::from_raw(wy));
         let gamma = I256::from_raw(WAD) - I256::from_raw(swap_fee);
-        info!("G3M gamma: {:?}", gamma);
         let (rx, ry, liq) = self
             .protocol_client
             .get_reserves_and_liquidity(U256::from(1))
@@ -211,12 +210,8 @@ impl G3mArbitrageur {
         let ratio = wy * i_wad / wx;
 
         let inside = ratio * target_price_wad / i_wad;
-        let pow = self.arb_math.pow(inside, wx).call().await?;
-        info!("[G3M]: pow: {:?}", liq * pow / i_wad);
-        info!("[G3M]: dy_first: {:?}", liq * pow / i_wad - ry);
         let delta_y =
             (liq * self.arb_math.pow(inside, wx).call().await? / i_wad - ry) * (i_wad / gamma);
-        info!("[G3M]: delta_y: {:?}", delta_y);
 
         Ok(delta_y)
     }
@@ -236,7 +231,10 @@ impl Agent for G3mArbitrageur {
 
         match self.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
-                info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));
+                info!(
+                    "[G3M]: Signal[RAISE PRICE]: {:?}",
+                    format_ether(target_price)
+                );
                 let x_in = false;
                 let mut input = self.get_dy().await?;
                 if (input < I256::from(0)) {
@@ -257,27 +255,31 @@ impl Agent for G3mArbitrageur {
 
                 match output {
                     Ok(output) => {
+                        let internal_price = self
+                            .protocol_client
+                            .get_internal_price(U256::from(1))
+                            .await?;
+                        info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                        info!("Price Post Swap [G3M]: {:?}", format_ether(internal_price));
                         output.await?;
                     }
                     Err(e) => {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            info!("[G3M]: Swap failed");
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
 
-                let internal_price = self
-                    .protocol_client
-                    .get_internal_price(U256::from(1))
-                    .await?;
-                debug!("Price[LEX]: {:?}", format_ether(target_price));
-                debug!("Price[G3M]: {:?}", format_ether(internal_price));
                 debug!("[G3M]: === End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
-                info!("Signal[LOWER PRICE] {:?}", format_ether(target_price));
+                info!(
+                    "[G3M]: Signal[LOWER PRICE] {:?}",
+                    format_ether(target_price)
+                );
                 let x_in = true;
                 let liquid_exchange_price = self.liquid_exchange.price().call().await?;
                 let mut input = self.get_dx().await?;
@@ -285,7 +287,7 @@ impl Agent for G3mArbitrageur {
                     input = I256::from(0);
                 }
                 let input = input.into_raw();
-                let input = input * liquid_exchange_price / parse_ether("1")?;
+                let input = input * liquid_exchange_price / WAD;
                 debug!("[G3M]: Optimal x input: {:?}", input);
 
                 let tx = self
@@ -310,25 +312,26 @@ impl Agent for G3mArbitrageur {
 
                 match output {
                     Ok(output) => {
+                        let internal_price = self
+                            .protocol_client
+                            .get_internal_price(U256::from(1))
+                            .await?;
+                        info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                        info!("Price Post Swap [G3M]: {:?}", format_ether(internal_price));
                         output.await?;
                     }
                     Err(e) => {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            info!("[G3M]: Swap failed");
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
                 trace!("Sent arbitrage.");
 
-                let internal_price = self
-                    .protocol_client
-                    .get_internal_price(U256::from(1))
-                    .await?;
-                debug!("Price[LEX]: {:?}", format_ether(target_price));
-                debug!("Price[G3M]: {:?}", format_ether(internal_price));
-                debug!("=== End Loop ===");
+                debug!("[G3M]: === End Loop ===");
             }
             Swap::None => {
                 trace!("No arbitrage opportunity");

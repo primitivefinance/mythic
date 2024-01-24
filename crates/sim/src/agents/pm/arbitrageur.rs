@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use arbiter_core::middleware::errors::RevmMiddlewareError;
-use clients::protocol::ProtocolClient;
+use clients::protocol::{PoolParams, ProtocolClient};
 use ethers::{
     types::{Address, U256},
     utils::{format_ether, parse_ether},
 };
+use tracing::info;
 
 use super::{
     agents::base::token_admin::TokenAdmin, bindings::atomic_v2::AtomicV2, Environment, Result,
@@ -129,11 +130,11 @@ impl Arbitrageur {
             .call()
             .await?;
         debug!("=== Start Loop ===");
-        // info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
-        // info!(
-        //     "Price[LOGNORM]: {:?}",
-        //     format_ether(target_exchange_price_wad)
-        // );
+        info!("Price[LEX]: {:?}", format_ether(liquid_exchange_price_wad));
+        info!(
+            "Price[LOGNORM]: {:?}",
+            format_ether(target_exchange_price_wad)
+        );
 
         match liquid_exchange_price_wad {
             _ if liquid_exchange_price_wad > target_exchange_price_wad => {
@@ -156,21 +157,27 @@ impl Arbitrageur {
         let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
         let pool_params = self
             .protocol_client
-            .ln_solver
-            .fetch_pool_params(ethers::types::U256::from(0))
-            .call()
+            .get_params(ethers::types::U256::from(0))
             .await?;
+        let (strike, sigma, tau, swap_fee) = match pool_params {
+            PoolParams::LogNormal(ln_params) => (
+                ln_params.strike,
+                ln_params.sigma,
+                ln_params.tau,
+                ln_params.swap_fee,
+            ),
+            _ => anyhow::bail!("Attempted to fetch pool params for LogNormal, received G3M"),
+        };
+
         let (strike, sigma, tau) = (
-            I256::from_raw(pool_params.strike),
-            I256::from_raw(pool_params.sigma),
-            I256::from_raw(pool_params.tau),
+            I256::from_raw(strike),
+            I256::from_raw(sigma),
+            I256::from_raw(tau),
         );
-        let gamma = i_wad - I256::from_raw(pool_params.swap_fee);
+        let gamma = i_wad - I256::from_raw(swap_fee);
         let (rx, ry, liq) = self
             .protocol_client
-            .protocol
             .get_reserves_and_liquidity(U256::from(0))
-            .call()
             .await?;
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
         Ok(ArbInputs {
@@ -285,32 +292,34 @@ impl Agent for Arbitrageur {
 
                 match output {
                     Ok(output) => {
+                        let internal_price = self
+                            .protocol_client
+                            .get_internal_price(ethers::types::U256::from(0))
+                            .await?;
+                        info!("Price Post Swap[LEX]: {:?}", format_ether(target_price));
+                        info!(
+                            "Price Post Swap[LOGNORM]: {:?}",
+                            format_ether(internal_price)
+                        );
                         output.await?;
                     }
                     Err(e) => {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            // info!("Execution revert: {:?} Gas Used: {:?}",
-                            // output, gas_used);
+                            info!("[LOGNORM]: Swap failed");
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
 
-                let internal_price = self
-                    .protocol_client
-                    .get_internal_price(ethers::types::U256::from(0))
-                    .await?;
-                let internal_price = from_ethers_u256(internal_price);
-                // info!("Price[LEX]: {:?}", format_ether(target_price));
-                // info!("Price[LOGNORM]: {:?}", format_ether(internal_price));
                 debug!("=== End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
-                // info!(
-                //     "Signal[LOWER PRICE] {:?}",
-                //     format_units(target_price, "ether")?
-                // );
+                info!(
+                    "[LogNorm]: Signal[LOWER PRICE] {:?}",
+                    format_ether(target_price)
+                );
 
                 let x_in = true;
                 let liquid_exchange_price = self.liquid_exchange.price().call().await?;
@@ -356,25 +365,26 @@ impl Agent for Arbitrageur {
 
                 match output {
                     Ok(output) => {
+                        let internal_price = self
+                            .protocol_client
+                            .get_internal_price(ethers::types::U256::from(0))
+                            .await?;
+                        info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                        info!(
+                            "Price Post Swap [LOGNORM]: {:?}",
+                            format_ether(internal_price)
+                        );
                         output.await?;
                     }
                     Err(e) => {
                         if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
-                            // info!("Execution revert: {:?} Gas Used: {:?}",
-                            // output, gas_used);
+                            info!("[LOGNORM]: Swap failed");
+                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
                 }
-                trace!("Sent arbitrage.");
-
-                let internal_price = self
-                    .protocol_client
-                    .get_internal_price(ethers::types::U256::from(0))
-                    .await?;
-                debug!("Price[LEX]: {:?}", format_ether(target_price));
-                debug!("Price[LOGNORM]: {:?}", format_ether(internal_price));
                 debug!("=== End Loop ===");
             }
             Swap::None => {
