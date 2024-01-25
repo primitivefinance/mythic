@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../lib/DynamicParamLib.sol";
+import "src/lib/DynamicParamLib.sol";
 
 contract DynamicParamLibTest is Test {
     using DynamicParamLib for DynamicParam;

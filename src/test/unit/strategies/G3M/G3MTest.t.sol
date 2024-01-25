@@ -5,9 +5,9 @@ import "forge-std/Test.sol";
 import "forge-std/console2.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 
-import "../../strategies/G3M/G3M.sol";
-import "../../DFMM.sol";
-import "../helpers/Lex.sol";
+import "src/strategies/G3M/G3M.sol";
+import "src/DFMM.sol";
+import "src/test/helpers/Lex.sol";
 import "./G3MSolver.sol";
 
 contract G3MTest is Test {
