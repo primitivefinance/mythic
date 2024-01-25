@@ -45,11 +45,10 @@ impl Agent for ParameterManager {
     async fn step(&mut self) -> Result<()> {
         let time = self.client.get_block_timestamp().await?.as_u64();
         let asset_price = self.get_asset_price().await?;
-        let portfolio_price = self.get_portfolio_price(self.pool_id).await?;
-        self.initialize_position_data_if_empty(&mut self.data, portfolio_price, asset_price);
+        let portfolio_price = self.get_portfolio_price().await?;
         if time >= self.next_update_time {
             self.next_update_time = time + self.update_frequency;
-            self.update_position_data(&mut self.data, portfolio_price, asset_price, time);
+            self.update_position_data(portfolio_price, asset_price, time);
             self.calculate_rv()?;
             self.execute_smooth_rebalance().await?;
         }
@@ -72,7 +71,6 @@ impl ParameterManager {
         protocol_client: ProtocolClient<RevmMiddleware>,
         label: impl Into<String>,
         liquid_exchange_address: Address,
-        token_admin: &TokenAdmin,
         pool_id: U256,
     ) -> Result<Self> {
         let label: String = label.into();
@@ -92,8 +90,8 @@ impl ParameterManager {
                     target_volatility: parameters.target_volatility.0,
                     sensitivity: parameters.sensitivity.0,
                     max_change: parameters.max_change.0,
-                    data: PositionData::new(),
-                    pool_id: U256,
+                    data: PositionData::new()?,
+                    pool_id,
                 }),
             }
         } else {
@@ -108,7 +106,7 @@ impl ParameterManager {
         parse_ether_to_f64(price)
     }
 
-    async fn get_portfolio_price(&self, pool_id: u64) -> Result<f64> {
+    async fn get_portfolio_price(&self) -> Result<f64> {
         let (rx, ry, _liq) = self
             .protocol_client
             .get_reserves_and_liquidity(self.pool_id)
@@ -118,27 +116,15 @@ impl ParameterManager {
         Ok(rx * self.get_asset_price().await? + ry)
     }
 
-    fn initialize_position_data_if_empty(
-        &self,
-        data: &mut PositionData,
-        portfolio_price: f64,
-        asset_price: f64,
-    ) {
-        if data.portfolio_prices.is_empty() {
-            data.portfolio_prices.push((portfolio_price, 0));
-            data.asset_prices.push((asset_price, 0));
+    fn update_position_data(&mut self, portfolio_price: f64, asset_price: f64, timestamp: u64) {
+        if self.data.portfolio_prices.is_empty() {
+            self.data.portfolio_prices.push((portfolio_price, 0));
+            self.data.asset_prices.push((asset_price, 0));
         }
-    }
-
-    fn update_position_data(
-        &self,
-        data: &mut PositionData,
-        portfolio_price: f64,
-        asset_price: f64,
-        timestamp: u64,
-    ) {
-        data.asset_prices.push((asset_price, timestamp));
-        data.portfolio_prices.push((portfolio_price, timestamp));
+        self.data.asset_prices.push((asset_price, timestamp));
+        self.data
+            .portfolio_prices
+            .push((portfolio_price, timestamp));
     }
 
     async fn execute_smooth_rebalance(&mut self) -> Result<()> {
@@ -176,8 +162,8 @@ impl ParameterManager {
                 let current_strike_float = parse_ether_to_f64(current_strike)?;
                 let mut new_strike = current_strike_float;
                 let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
-                if scaling_factor > self.max_strike_change {
-                    scaling_factor = self.max_strike_change;
+                if scaling_factor > self.max_change {
+                    scaling_factor = self.max_change;
                 }
                 if portfolio_rv > self.target_volatility {
                     new_strike -= scaling_factor;
@@ -231,7 +217,7 @@ pub struct ParameterManagerParameters<P: Parameterized> {
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub enum Specialty<P: Parameterized> {
-    VolatilityTargeting(ParameterManagerParameters<P>),
+    VolatilityTargeting(VolatilityTargetingParameters<P>),
 }
 
 impl From<ParameterManagerParameters<Multiple>> for Vec<ParameterManagerParameters<Single>> {
@@ -247,13 +233,39 @@ impl From<Specialty<Multiple>> for Vec<Specialty<Single>> {
     fn from(item: Specialty<Multiple>) -> Self {
         match item {
             Specialty::VolatilityTargeting(parameters) => {
-                let parameters: Vec<ParameterManagerParameters<Single>> = parameters.into();
+                let parameters: Vec<VolatilityTargetingParameters<Single>> = parameters.into();
                 parameters
                     .into_iter()
                     .map(Specialty::VolatilityTargeting)
                     .collect()
             }
         }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct VolatilityTargetingParameters<P: Parameterized> {
+    pub target_volatility: P,
+    pub update_frequency: P,
+    pub sensitivity: P,
+    pub max_change: P,
+}
+
+impl From<VolatilityTargetingParameters<Multiple>> for Vec<VolatilityTargetingParameters<Single>> {
+    fn from(item: VolatilityTargetingParameters<Multiple>) -> Self {
+        iproduct!(
+            item.target_volatility.parameters(),
+            item.update_frequency.parameters(),
+            item.sensitivity.parameters(),
+            item.max_change.parameters()
+        )
+        .map(|(tv, uf, s, mc)| VolatilityTargetingParameters {
+            target_volatility: Single(tv),
+            update_frequency: Single(uf),
+            sensitivity: Single(s),
+            max_change: Single(mc),
+        })
+        .collect()
     }
 }
 

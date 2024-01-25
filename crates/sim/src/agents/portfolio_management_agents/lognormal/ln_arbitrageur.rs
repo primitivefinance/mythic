@@ -9,13 +9,12 @@ use ethers::{
 use tracing::info;
 
 use self::agents::portfolio_management_agents::base::arbitrageur::Arbitrageur;
-
 use super::{
     agent::*, agents::base_agents::token_admin::TokenAdmin, Environment, Result, RevmMiddleware, *,
 };
 
 #[derive(Debug, Clone)]
-pub struct LnArbitrageur(Arbitrageur);
+pub struct LnArbitrageur(pub Arbitrageur);
 
 pub struct ArbInputs {
     pub i_wad: I256,
@@ -51,8 +50,8 @@ impl LnArbitrageur {
 
     pub async fn get_arb_inputs(&self) -> Result<ArbInputs> {
         let i_wad = I256::from_raw(WAD);
-        let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let pool_params = self.protocol_client.get_params(self.0.pool_id).await?;
+        let target_price_wad = I256::from_raw(self.0.liquid_exchange.price().call().await?);
+        let pool_params = self.0.protocol_client.get_params(self.0.pool_id).await?;
 
         let (strike, sigma, tau, swap_fee) = match pool_params {
             PoolParams::LogNormal(ln_params) => (
@@ -62,7 +61,6 @@ impl LnArbitrageur {
                 ln_params.swap_fee,
             ),
             PoolParams::G3M(_) => bail!("Failed to parse LogNormal params, received G3M"),
-            _ => bail!("Failed to parse pool params in ln_arbitrageur"),
         };
 
         let (strike, sigma, tau, swap_fee) = (
@@ -73,6 +71,7 @@ impl LnArbitrageur {
         );
         let gamma = i_wad - swap_fee;
         let (rx, ry, liq) = self
+            .0
             .protocol_client
             .get_reserves_and_liquidity(self.0.pool_id)
             .await?;
@@ -104,12 +103,13 @@ impl LnArbitrageur {
         } = self.get_arb_inputs().await?;
 
         let log_p = self
+            .0
             .atomic_arbitrage
             .log(target_price_wad * i_wad / strike)
             .call()
             .await?;
         let inner_p = log_p * i_wad / sigma + (sigma / 2);
-        let cdf_p = self.atomic_arbitrage.cdf(inner_p).call().await?;
+        let cdf_p = self.0.atomic_arbitrage.cdf(inner_p).call().await?;
         let delta = liq * (i_wad - cdf_p) / i_wad;
         let dx = (delta - rx) * i_wad * i_wad
             / (((gamma - i_wad) * (i_wad - cdf_p)) / (rx * i_wad / liq) + i_wad);
@@ -131,12 +131,13 @@ impl LnArbitrageur {
         } = self.get_arb_inputs().await?;
 
         let log_p = self
+            .0
             .atomic_arbitrage
             .log(target_price_wad * i_wad / strike)
             .call()
             .await?;
         let inner_p = log_p * i_wad / sigma - (sigma / 2);
-        let cdf_p = self.atomic_arbitrage.cdf(inner_p).call().await?;
+        let cdf_p = self.0.atomic_arbitrage.cdf(inner_p).call().await?;
         let delta = (liq * strike) / i_wad * (cdf_p) / i_wad;
         let dy = (delta - ry) * i_wad * i_wad
             / (((gamma - i_wad) * cdf_p) / (ry * i_wad * i_wad / (strike * liq)) + i_wad);
@@ -149,13 +150,14 @@ impl LnArbitrageur {
 impl Agent for LnArbitrageur {
     #[allow(unused)]
     async fn step(&mut self) -> Result<()> {
-        match self.detect_arbitrage().await? {
+        match self.0.detect_arbitrage().await? {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));
                 let x_in = false;
                 let input = self.get_dy().await?.into_raw();
 
                 let tx = self
+                    .0
                     .atomic_arbitrage
                     .raise_exchange_price(self.0.pool_id, input);
 
@@ -164,6 +166,7 @@ impl Agent for LnArbitrageur {
                 match output {
                     Ok(output) => {
                         let internal_price = self
+                            .0
                             .protocol_client
                             .get_internal_price(self.0.pool_id)
                             .await?;
@@ -191,12 +194,13 @@ impl Agent for LnArbitrageur {
                 );
 
                 let x_in = true;
-                let liquid_exchange_price = self.liquid_exchange.price().call().await?;
+                let liquid_exchange_price = self.0.liquid_exchange.price().call().await?;
                 let input = self.get_dx().await?.into_raw();
 
                 let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
 
                 let tx = self
+                    .0
                     .atomic_arbitrage
                     .lower_exchange_price(ethers::types::U256::from(0), input);
                 let output = tx.send().await;
@@ -204,6 +208,7 @@ impl Agent for LnArbitrageur {
                 match output {
                     Ok(output) => {
                         let internal_price = self
+                            .0
                             .protocol_client
                             .get_internal_price(self.0.pool_id)
                             .await?;
@@ -224,7 +229,7 @@ impl Agent for LnArbitrageur {
                     }
                 }
             }
-            Swap::None => {
+            _ => {
                 trace!("No arbitrage opportunity");
             }
         }
@@ -232,7 +237,7 @@ impl Agent for LnArbitrageur {
     }
 
     fn client(&self) -> Arc<RevmMiddleware> {
-        self.client.clone()
+        self.0.client.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

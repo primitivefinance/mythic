@@ -66,6 +66,7 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
 enum Swap {
     RaiseExchangePrice(U256),
     LowerExchangePrice(U256),
+    None,
 }
 
 #[derive(Clone, Error, Debug, Serialize, Deserialize)]

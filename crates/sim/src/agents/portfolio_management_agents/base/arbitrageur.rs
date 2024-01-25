@@ -1,10 +1,10 @@
+use std::sync::Arc;
+
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
 use clients::protocol::ProtocolClient;
 use ethers::{types::U256, utils::parse_ether};
-use std::sync::Arc;
 
 use super::{
-    agent::*,
     agents::base_agents::token_admin::TokenAdmin,
     bindings::{arb_math::ArbMath, atomic_v2::AtomicV2},
     Environment, Result, RevmMiddleware, *,

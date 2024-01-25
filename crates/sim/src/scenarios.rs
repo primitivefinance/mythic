@@ -3,7 +3,6 @@ use clients::protocol::ProtocolClient;
 use revm::db::{CacheDB, EmptyDB};
 
 use self::agents::portfolio_management_agents::{g3m::g3m_setup, lognormal::ln_setup};
-
 use super::*;
 use crate::{
     agent::Agents,
@@ -72,7 +71,7 @@ impl Scenario for DFMMScenario {
         let lex_events = price_changer.liquid_exchange.events();
         agents.add(price_changer);
 
-        let base_client = RevmMiddleware::new(&environment, "base".into());
+        let base_client = RevmMiddleware::new(&environment, "base".into()).unwrap();
         let base_protocol_client = ProtocolClient::new(
             base_client.clone(),
             token_admin.arbx.address(),
@@ -87,10 +86,12 @@ impl Scenario for DFMMScenario {
             &environment,
             &config,
             base_protocol_client.clone(),
-            lex.address(),
+            lex,
             &token_admin,
             g3m_pool_id,
-        );
+        )
+        .await?;
+        let g3m_arb_events = g3m_arb.0.atomic_arbitrage.events();
         agents.add(g3m_lp);
         agents.add(g3m_arb);
         agents.add(g3m_manager);
@@ -101,10 +102,12 @@ impl Scenario for DFMMScenario {
             &environment,
             &config,
             base_protocol_client.clone(),
-            lex.address(),
+            lex,
             &token_admin,
             ln_pool_id,
-        );
+        )
+        .await?;
+        let ln_arb_events = ln_arb.0.atomic_arbitrage.events();
         agents.add(ln_lp);
         agents.add(ln_arb);
         agents.add(ln_manager);
@@ -113,11 +116,11 @@ impl Scenario for DFMMScenario {
             .directory(config.output_directory.clone())
             .file_name(config.output_file_name.clone().unwrap())
             .add(lex_events, "lex")
-            .add(base_protocol_client.protocol.address(), "dfmm")
+            .add(base_protocol_client.protocol.events(), "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
-            .add(g3m_arb.atomic_arbitrage.events(), "ln_atomic_arbitrage")
-            .add(ln_arb.atomic_arbitrage.events(), "g3m_atomic_arbitrage")
+            .add(g3m_arb_events, "g3m_atomic_arbitrage")
+            .add(ln_arb_events, "ln_atomic_arbitrage")
             .run()
             .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

@@ -1,20 +1,24 @@
+use std::sync::Arc;
+
 use arbiter_core::middleware::errors::RevmMiddlewareError;
 use clients::protocol::{PoolParams, ProtocolClient};
 use ethers::{
     types::{I256, U256},
     utils::format_ether,
 };
-use std::sync::Arc;
 use tracing::log::info;
 
 use super::{
-    agent::*, agents::base_agents::token_admin::TokenAdmin,
-    agents::portfolio_management_agents::base::arbitrageur::Arbitrageur, Environment, Result,
-    RevmMiddleware, *,
+    agent::*,
+    agents::{
+        base_agents::token_admin::TokenAdmin,
+        portfolio_management_agents::base::arbitrageur::Arbitrageur,
+    },
+    Environment, Result, RevmMiddleware, *,
 };
 
 #[derive(Debug, Clone)]
-pub struct G3mArbitrageur(Arbitrageur);
+pub struct G3mArbitrageur(pub Arbitrageur);
 
 pub struct G3mArbInputs {
     pub i_wad: I256,
@@ -49,13 +53,12 @@ impl G3mArbitrageur {
 
     pub async fn get_arb_inputs(&self) -> Result<G3mArbInputs> {
         let i_wad = I256::from_raw(WAD);
-        let target_price_wad = I256::from_raw(self.liquid_exchange.price().call().await?);
-        let pool_params = self.protocol_client.get_params(self.0.pool_id).await?;
+        let target_price_wad = I256::from_raw(self.0.liquid_exchange.price().call().await?);
+        let pool_params = self.0.protocol_client.get_params(self.0.pool_id).await?;
 
         let (wx, wy, swap_fee) = match pool_params {
             PoolParams::G3M(g3m_params) => (g3m_params.w_x, g3m_params.w_y, g3m_params.swap_fee),
             PoolParams::LogNormal(_) => bail!("Failed to parse G3M params, received LogNormal"),
-            _ => bail!("Failed to parse pool params in g3m_arbitrageur"),
         };
 
         let (wx, wy, swap_fee) = (
@@ -65,6 +68,7 @@ impl G3mArbitrageur {
         );
         let gamma = i_wad - swap_fee;
         let (rx, ry, liq) = self
+            .0
             .protocol_client
             .get_reserves_and_liquidity(self.0.pool_id)
             .await?;
@@ -98,7 +102,7 @@ impl G3mArbitrageur {
 
         let inside = ratio * i_wad / target_price_wad;
         let delta_x =
-            (liq * self.arb_math.pow(inside, wy).call().await? / i_wad - rx) * (i_wad / gamma);
+            (liq * self.0.arb_math.pow(inside, wy).call().await? / i_wad - rx) * (i_wad / gamma);
 
         Ok(delta_x)
     }
@@ -118,7 +122,7 @@ impl G3mArbitrageur {
 
         let inside = ratio * target_price_wad / i_wad;
         let delta_y =
-            (liq * self.arb_math.pow(inside, wx).call().await? / i_wad - ry) * (i_wad / gamma);
+            (liq * self.0.arb_math.pow(inside, wx).call().await? / i_wad - ry) * (i_wad / gamma);
 
         Ok(delta_y)
     }
@@ -142,6 +146,7 @@ impl Agent for G3mArbitrageur {
                 let input = input.into_raw();
 
                 let tx = self
+                    .0
                     .atomic_arbitrage
                     .raise_exchange_price(self.0.pool_id, input);
 
@@ -150,6 +155,7 @@ impl Agent for G3mArbitrageur {
                 match output {
                     Ok(output) => {
                         let internal_price = self
+                            .0
                             .protocol_client
                             .get_internal_price(self.0.pool_id)
                             .await?;
@@ -175,7 +181,7 @@ impl Agent for G3mArbitrageur {
                     format_ether(target_price)
                 );
                 let x_in = true;
-                let liquid_exchange_price = self.liquid_exchange.price().call().await?;
+                let liquid_exchange_price = self.0.liquid_exchange.price().call().await?;
                 let input = self.get_dx().await?;
                 if (input < I256::from(0)) {
                     bail!("Encountered negative X input for G3m swap")
@@ -183,6 +189,7 @@ impl Agent for G3mArbitrageur {
                 let input = input.into_raw() * liquid_exchange_price / WAD;
 
                 let tx = self
+                    .0
                     .atomic_arbitrage
                     .lower_exchange_price(U256::from(1), input);
 
@@ -191,6 +198,7 @@ impl Agent for G3mArbitrageur {
                 match output {
                     Ok(output) => {
                         let internal_price = self
+                            .0
                             .protocol_client
                             .get_internal_price(self.0.pool_id)
                             .await?;
@@ -219,7 +227,7 @@ impl Agent for G3mArbitrageur {
     }
 
     fn client(&self) -> Arc<RevmMiddleware> {
-        self.client.clone()
+        self.0.client.clone()
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -1,12 +1,12 @@
 pub mod base_agents;
 pub mod portfolio_management_agents;
 
-use super::*;
-
 use base_agents::{block_admin::*, price_changer::*, token_admin::*};
 use portfolio_management_agents::{
     base::parameter_manager::*, g3m::g3m_liquidity_provider::*, lognormal::ln_liquidity_provider::*,
 };
+
+use super::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
@@ -22,7 +22,8 @@ impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
     fn from(item: AgentParameters<Multiple>) -> Self {
         match item {
             AgentParameters::LogNormalLiquidityProvider(parameters) => {
-                let parameters: Vec<G3mLiquidityProviderParameters<Single>> = parameters.into();
+                let parameters: Vec<LogNormalLiquidityProviderParameters<Single>> =
+                    parameters.into();
                 parameters
                     .into_iter()
                     .map(AgentParameters::LogNormalLiquidityProvider)

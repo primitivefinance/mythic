@@ -2,7 +2,6 @@ use clients::protocol::ProtocolClient;
 use ethers::abi::Address;
 
 use self::{g3m_arbitrageur::G3mArbitrageur, g3m_liquidity_provider::G3mLiquidityProvider};
-
 use super::{ParameterManager, *};
 pub mod g3m_arbitrageur;
 pub mod g3m_liquidity_provider;
@@ -21,7 +20,6 @@ pub async fn g3m_setup(
         protocol_client.clone(),
         "g3m_manager",
         liquid_exchange_address,
-        token_admin,
         pool_id,
     )
     .await?;

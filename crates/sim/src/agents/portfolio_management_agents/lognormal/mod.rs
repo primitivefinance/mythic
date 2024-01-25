@@ -21,7 +21,6 @@ pub async fn ln_setup(
         protocol_client.clone(),
         "ln_manager",
         liquid_exchange_address,
-        token_admin,
         pool_id,
     )
     .await?;

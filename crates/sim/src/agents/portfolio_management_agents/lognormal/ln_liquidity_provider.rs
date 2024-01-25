@@ -1,7 +1,8 @@
+use std::sync::Arc;
+
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use clients::protocol::{LogNormalF64, PoolInitParamsF64, ProtocolClient};
 use ethers::{types::U256, utils::parse_ether};
-use std::sync::Arc;
 
 use super::{agent::*, *};
 use crate::agents::base_agents::token_admin::TokenAdmin;
@@ -27,12 +28,12 @@ impl Agent for LogNormalLiquidityProvider {
         let initial_x = parse_ether(self.initial_x_amount)?;
         let initial_price = parse_ether(self.initial_price)?;
 
-        let next_pool_id = self.protocol_client.next_pool_id().await?;
+        let next_pool_id = self.protocol_client.get_next_pool_id().await?;
 
         let init_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
-            strike: self.init_strike_price_wad,
-            sigma: self.init_sigma_percent_wad,
-            tau: self.init_tau_years_wad,
+            strike: self.initial_strike,
+            sigma: self.initial_sigma,
+            tau: self.initial_tau,
             swap_fee: 0.003,
         });
 
@@ -47,7 +48,7 @@ impl Agent for LogNormalLiquidityProvider {
             .await?;
 
         self.protocol_client
-            .update_controller(ethers::types::U256::from(0), self.controller)
+            .update_controller(next_pool_id, self.controller)
             .await?;
 
         Ok(())
@@ -94,7 +95,7 @@ impl LogNormalLiquidityProvider {
             .send()
             .await?;
 
-        if let Some(AgentParameters::LiquidityProvider(params)) =
+        if let Some(AgentParameters::LogNormalLiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
         {
             Ok(Self {
@@ -110,9 +111,7 @@ impl LogNormalLiquidityProvider {
                 initial_tau: params.tau.0,
             })
         } else {
-            Err(anyhow::bail!(
-                "No parameters found for `LogNormalLiquidityProvider`"
-            ))
+            anyhow::bail!("No parameters found for `LogNormalLiquidityProvider`")
         }
     }
 }

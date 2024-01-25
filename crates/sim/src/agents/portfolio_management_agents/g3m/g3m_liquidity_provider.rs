@@ -1,7 +1,8 @@
+use std::sync::Arc;
+
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use clients::protocol::{G3mF64, PoolInitParamsF64, ProtocolClient};
 use ethers::{types::U256, utils::parse_ether};
-use std::sync::Arc;
 
 use super::{agent::*, *};
 use crate::agents::base_agents::token_admin::TokenAdmin;
@@ -22,22 +23,22 @@ pub struct G3mLiquidityProvider {
 impl Agent for G3mLiquidityProvider {
     #[tracing::instrument(skip(self), level = "trace")]
     async fn init(&mut self) -> Result<()> {
-        let init_x = parse_ether(self.init_x_wad)?;
-        let init_price = parse_ether(self.init_price_wad)?;
+        let init_x = parse_ether(self.initial_x_amount)?;
+        let init_price = parse_ether(self.initial_price)?;
 
         let init_params = PoolInitParamsF64::G3M(G3mF64 {
-            wx: self.init_weight_x_wad,
+            wx: self.initial_wx,
             swap_fee: 0.003,
         });
 
-        let next_pool_id = self.protocol_client.next_pool_id().await?;
+        let next_pool_id = self.protocol_client.get_next_pool_id().await?;
 
         self.protocol_client
             .init_pool(self.token_x, self.token_y, init_x, init_price, init_params)
             .await?;
 
         self.protocol_client
-            .update_controller(ethers::types::U256::from(1), self.controller)
+            .update_controller(next_pool_id, self.controller)
             .await?;
 
         Ok(())
@@ -84,7 +85,7 @@ impl G3mLiquidityProvider {
             .send()
             .await?;
 
-        if let Some(AgentParameters::LiquidityProvider(params)) =
+        if let Some(AgentParameters::G3mLiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
         {
             Ok(Self {
