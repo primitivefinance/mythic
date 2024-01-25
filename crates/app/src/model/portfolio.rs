@@ -719,6 +719,23 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(())
     }
 
+    // todo: figure out how to get the price of the token we care about/focused on.
+    pub fn get_current_price(&self) -> Result<AlloyU256> {
+        // Get the external price of the ETH token.
+        let token_address = self.token_metadata.as_ref().unwrap().keys().next().unwrap();
+        let external_price = self
+            .external_prices
+            .as_ref()
+            .unwrap()
+            .get(token_address)
+            .unwrap()
+            .last()
+            .unwrap()
+            .1;
+
+        Ok(external_price)
+    }
+
     /// Gets the series of USD values for each token the user has with a
     /// non-zero balance.
     pub fn get_user_balances_usd(&self) -> Result<Vec<(AlloyAddress, Vec<(u64, AlloyU256)>)>> {
