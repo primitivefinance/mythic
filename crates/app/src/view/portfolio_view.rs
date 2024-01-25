@@ -288,7 +288,9 @@ impl PortfolioPresenter {
 
     pub fn get_external_portfolio_value(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            connected_model.derive_external_portfolio_value().to_label()
+            connected_model
+                .derive_external_portfolio_value(0)
+                .to_label()
         } else {
             label("N/A").title1().secondary()
         }
