@@ -758,6 +758,24 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
                         .checked_div(ALLOY_WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+
+                    // temp override until lex is updated.
+                    // check if the token is a stable token and if so, set the price to 1.
+                    let token_info = self
+                        .token_metadata
+                        .as_ref()
+                        .unwrap()
+                        .get(&token_address)
+                        .ok_or(Error::msg(format!(
+                            "Token info not set for token address {}",
+                            token_address
+                        )))?;
+                    let is_stable = token_info.symbol == "Y"
+                        || token_info.symbol == "TKNY"
+                        || token_info.symbol == "USDC";
+                    // use the token balance as the value since 1 token = 1 usd
+                    let balance_usd = if is_stable { *balance } else { balance_usd };
+
                     Ok((*block, balance_usd))
                 })
                 .collect::<Result<Vec<_>>>()?;
@@ -1192,16 +1210,24 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 .last()
                 .map(|(_, balance)| balance)
                 .unwrap_or(&AlloyU256::ZERO);
+
             let external_price = self.external_prices.as_ref().ok_or(Error::msg(
                 "get_unallocated_positions: External price series not set",
             ))?[&token_address]
                 .last()
                 .map(|(_, price)| price)
                 .unwrap_or(&AlloyU256::ZERO);
+
+            // todo: temp override until lex is fixed.
+            let external_price = match coin.tags.contains(&"stablecoin".to_string()) {
+                true => ALLOY_WAD,
+                false => *external_price,
+            };
+
             unallocated_positions.push(UnallocatedPosition {
                 token_address,
                 balance: format_and_parse(*balance)?,
-                external_price: format_and_parse(*external_price)?,
+                external_price: format_and_parse(external_price)?,
             });
         }
 

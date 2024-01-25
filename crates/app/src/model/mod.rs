@@ -132,8 +132,6 @@ impl Model {
 
         // Build a list of all individual positions, which are tokens, from the
         // unallocated and allocated positions.
-        tracing::info!("unallocated tokens are: {:?}", unallocated_positions);
-        tracing::info!("allocated tokens are: {:?}", allocated_positions);
         let position_tokens = unallocated_positions
             .iter()
             .map(|position| position.token_address.clone())
