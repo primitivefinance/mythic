@@ -25,8 +25,8 @@ contract LogNormalSetUp is SetUp {
     bytes defaultInitialPoolData =
         computeInitialPoolData(defaultReserveX, defaultPrice, defaultParams);
 
-    function setUp() public {
-        globalSetUp();
+    function setUp() public override {
+        SetUp.setUp();
 
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);

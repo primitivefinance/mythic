@@ -13,20 +13,16 @@ contract G3MSetUp is SetUp {
 
     uint256 public POOL_ID;
 
-    G3M.G3MParams defaultParams = G3M.G3MParams({
-        wX: 0.5 ether,
-        wY: 0.5 ether,
-        swapFee: TEST_SWAP_FEE
-    });
+    G3M.G3MParams defaultParams =
+        G3M.G3MParams({ wX: 0.5 ether, wY: 0.5 ether, swapFee: TEST_SWAP_FEE });
     uint256 defaultReserveX = 1 ether;
     uint256 defaultStrikePrice = 1 ether;
     bytes defaultInitialPoolData = computeInitialPoolData(
         defaultReserveX, defaultStrikePrice, defaultParams
     );
 
-    function setUp() public {
-        globalSetUp();
-
+    function setUp() public override {
+        SetUp.setUp();
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);
         tokenX.mint(address(this), 100e18);

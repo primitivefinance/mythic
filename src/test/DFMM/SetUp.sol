@@ -8,8 +8,8 @@ contract DFMMSetUp is SetUp {
     MockStrategy strategy;
     uint256 public POOL_ID;
 
-    function setUp() public {
-        globalSetUp();
+    function setUp() public override {
+        SetUp.setUp();
         strategy = new MockStrategy(address(dfmm));
     }
 
