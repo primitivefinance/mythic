@@ -20,7 +20,7 @@ contract LogNormalSolver {
     }
 
     uint256 public constant BISECTION_EPSILON = 1;
-    uint256 public constant MAX_BISECTION_ITERS = 90;
+    uint256 public constant MAX_BISECTION_ITERS = 120;
 
     address public strategy;
 

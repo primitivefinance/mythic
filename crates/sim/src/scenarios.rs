@@ -1,15 +1,14 @@
 use arbiter_core::data_collection::EventLogger;
+use clients::protocol::ProtocolClient;
 use revm::db::{CacheDB, EmptyDB};
+
+use self::agents::portfolio_management_agents::{g3m::g3m_setup, lognormal::ln_setup};
 
 use super::*;
 use crate::{
     agent::Agents,
-    agents::{
-        base::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin},
-        pm::{
-            arbitrageur::Arbitrageur, g3m_arbitrageur::G3mArbitrageur,
-            liquidity_provider::LiquidityProvider, submitter::VolatilityTargetingSubmitter,
-        },
+    agents::base_agents::{
+        block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin,
     },
 };
 
@@ -65,9 +64,6 @@ impl Scenario for DFMMScenario {
         let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
         agents.add(token_admin.clone());
 
-        // ----- Scenario Specific ----- //
-
-        // 1. Price changer deploys a Liquid Exchange.
         let price_changer =
             PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
         let steps = price_changer.trajectory.paths[0].len() - 1;
@@ -76,53 +72,52 @@ impl Scenario for DFMMScenario {
         let lex_events = price_changer.liquid_exchange.events();
         agents.add(price_changer);
 
-        // 2. Portfolio manager deploys a Dynamic Function MM & updates its parameters.
-        let pm = VolatilityTargetingSubmitter::new(
-            &environment,
-            &config,
-            "portfolio_manager",
-            lex,
+        let base_client = RevmMiddleware::new(&environment, "base".into());
+        let base_protocol_client = ProtocolClient::new(
+            base_client.clone(),
             token_admin.arbx.address(),
             token_admin.arby.address(),
+            0.003,
         )
         .await?;
 
-        let protocol_client = pm.protocol_client.clone();
-        let market_events = pm.protocol_client.protocol.events();
-        agents.add(pm);
+        let g3m_pool_id = base_protocol_client.get_next_pool_id().await?;
 
-        // 3. Liquidity provider initializes the DFMM.
-        let lp = LiquidityProvider::new(
+        let (g3m_lp, g3m_arb, g3m_manager) = g3m_setup(
             &environment,
             &config,
-            "lp",
+            base_protocol_client.clone(),
+            lex.address(),
             &token_admin,
-            protocol_client.clone(),
-        )
-        .await?;
-        agents.add(lp);
+            g3m_pool_id,
+        );
+        agents.add(g3m_lp);
+        agents.add(g3m_arb);
+        agents.add(g3m_manager);
 
-        // 4. Arbitrageur arbitrages between the DFMM and the Liquid Exchange.
-        let arbitrageur =
-            Arbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
-        agents.add(arbitrageur.clone());
+        let ln_pool_id = base_protocol_client.get_next_pool_id().await?;
 
-        let g3m_arbitrageur =
-            G3mArbitrageur::new(&environment, &token_admin, lex, protocol_client.clone()).await?;
-        agents.add(g3m_arbitrageur.clone());
+        let (ln_lp, ln_arb, ln_manager) = ln_setup(
+            &environment,
+            &config,
+            base_protocol_client.clone(),
+            lex.address(),
+            &token_admin,
+            ln_pool_id,
+        );
+        agents.add(ln_lp);
+        agents.add(ln_arb);
+        agents.add(ln_manager);
 
         EventLogger::builder()
             .directory(config.output_directory.clone())
             .file_name(config.output_file_name.clone().unwrap())
             .add(lex_events, "lex")
-            .add(market_events, "dfmm")
+            .add(base_protocol_client.protocol.address(), "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
-            .add(arbitrageur.atomic_arbitrage.events(), "ln_atomic_arbitrage")
-            .add(
-                g3m_arbitrageur.atomic_arbitrage.events(),
-                "g3m_atomic_arbitrage",
-            )
+            .add(g3m_arb.atomic_arbitrage.events(), "ln_atomic_arbitrage")
+            .add(ln_arb.atomic_arbitrage.events(), "g3m_atomic_arbitrage")
             .run()
             .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

@@ -332,7 +332,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         }
     }
 
-    async fn get_next_pool_id(&self) -> Result<U256> {
+    pub async fn get_next_pool_id(&self) -> Result<U256> {
         let pool_id = self.protocol.nonce().call().await?;
         Ok(pool_id)
     }

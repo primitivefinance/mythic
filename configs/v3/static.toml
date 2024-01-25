@@ -64,7 +64,7 @@ specialty.VolatilityTargeting.max_strike_change.fixed = 0.06
 # Liquidity provider settings
 [agent.lp.LiquidityProvider]
 # The amount of `token_x` to provide in ether
-x_liquidity.fixed = 10
+x_liquidity.fixed = 100
 # The initial price of the pair
 initial_price.fixed = 1.0
 # inital parameters

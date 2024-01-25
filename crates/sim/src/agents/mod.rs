@@ -1,35 +1,45 @@
-pub mod base;
-pub mod pm;
+pub mod base_agents;
+pub mod portfolio_management_agents;
 
-use base::{block_admin::*, price_changer::*, token_admin::*};
-use pm::{liquidity_provider::*, submitter::*};
+use super::*;
 
-use super::{agent::Agent, *};
+use base_agents::{block_admin::*, price_changer::*, token_admin::*};
+use portfolio_management_agents::{
+    base::parameter_manager::*, g3m::g3m_liquidity_provider::*, lognormal::ln_liquidity_provider::*,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
-    LiquidityProvider(LiquidityProviderParameters<P>),
+    G3mLiquidityProvider(G3mLiquidityProviderParameters<P>),
+    LogNormalLiquidityProvider(LogNormalLiquidityProviderParameters<P>),
     BlockAdmin(BlockAdminParameters),
     TokenAdmin(TokenAdminParameters),
     PriceChanger(PriceChangerParameters<P>),
-    VolatilityTargetingSubmitter(SubmitterParameters<P>),
+    ParameterManager(ParameterManagerParameters<P>),
 }
 
 impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
     fn from(item: AgentParameters<Multiple>) -> Self {
         match item {
-            AgentParameters::VolatilityTargetingSubmitter(parameters) => {
-                let parameters: Vec<SubmitterParameters<Single>> = parameters.into();
+            AgentParameters::LogNormalLiquidityProvider(parameters) => {
+                let parameters: Vec<G3mLiquidityProviderParameters<Single>> = parameters.into();
                 parameters
                     .into_iter()
-                    .map(AgentParameters::VolatilityTargetingSubmitter)
+                    .map(AgentParameters::LogNormalLiquidityProvider)
                     .collect()
             }
-            AgentParameters::LiquidityProvider(parameters) => {
-                let parameters: Vec<LiquidityProviderParameters<Single>> = parameters.into();
+            AgentParameters::G3mLiquidityProvider(parameters) => {
+                let parameters: Vec<G3mLiquidityProviderParameters<Single>> = parameters.into();
                 parameters
                     .into_iter()
-                    .map(AgentParameters::LiquidityProvider)
+                    .map(AgentParameters::G3mLiquidityProvider)
+                    .collect()
+            }
+            AgentParameters::ParameterManager(parameters) => {
+                let parameters: Vec<ParameterManagerParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::ParameterManager)
                     .collect()
             }
             AgentParameters::PriceChanger(parameters) => {
