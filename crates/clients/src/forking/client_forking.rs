@@ -355,7 +355,8 @@ impl Forker {
 
     /// Loads an Arbiter [`Environment`] with a database..
     pub fn load_env(&self, db: CacheDB<EmptyDB>) -> Environment {
-        EnvironmentBuilder::new().db(db).build()
+        // todo: fix with new functionality, does not work now.
+        EnvironmentBuilder::new().build()
     }
 
     /// Overrides `environment` with a database that was loaded from an
@@ -367,7 +368,8 @@ impl Forker {
         let _ = self.environment.stop();
 
         self.last_db = Some(db.clone());
-        self.environment = EnvironmentBuilder::new().db(db.clone()).build();
+        // todo: fix with new functionality, does not work now.
+        self.environment = EnvironmentBuilder::new().build();
 
         tracing::debug!("Environment evolved with db: {:?}", db.clone());
         self

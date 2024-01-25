@@ -205,7 +205,7 @@ impl Scroll {
         let result = client
             .clone()
             .apply_cheatcode(cheatcodes::Cheatcodes::Access {
-                address: revm_primitives::Address::from(type_casted.to_fixed_bytes()),
+                address: type_casted,
             })
             .await?;
 

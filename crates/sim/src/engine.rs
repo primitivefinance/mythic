@@ -85,7 +85,7 @@ impl ArbiterInstance {
     /// snapshot of its db.
     pub fn stop(self) -> Result<SnapshotDB> {
         let db = self.environment.stop()?;
-        Ok(Self::snapshot(&db.clone().unwrap()))
+        todo!()
     }
 
     pub fn snapshot(db: &CacheDB<EmptyDB>) -> SnapshotDB {
@@ -200,7 +200,8 @@ impl ArbiterInstanceManager {
     }
 
     pub fn db(mut self, db: CacheDB<EmptyDB>) -> Self {
-        self.builder = self.builder.db(db);
+        // todo: fix, does not work now.
+        // self.builder = self.builder.db(db);
         self
     }
 
@@ -220,9 +221,10 @@ impl ArbiterInstanceManager {
         scenario: impl Scenario,
     ) -> ArbiterInstance {
         let db = self.builder.db.clone();
+        // todo: fix db!!!
         let environment = self.builder.clone().build();
         let (agents, steps, environment) = scenario
-            .setup(db, environment, config.clone())
+            .setup(None, environment, config.clone())
             .await
             .unwrap();
         ArbiterInstance::new(environment, config.clone(), agents, steps)
@@ -261,7 +263,8 @@ impl ArbiterInstanceManager {
     }
 
     pub fn load_from_snapshot(mut self, snapshot: SnapshotDB) -> Self {
-        self.builder = self.builder.db(CacheDB::from(snapshot));
+        // todo: fix, does not work now.
+        self.builder = self.builder;
         self
     }
 }
