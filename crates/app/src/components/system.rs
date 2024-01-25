@@ -494,6 +494,16 @@ impl ExcaliburText {
         }
     }
 
+    pub fn usd(self) -> Self {
+        let value = format!("{} USD", self.value);
+        Self { value, ..self }
+    }
+
+    pub fn usd_symbol(self) -> Self {
+        let value = format!("${}", self.value);
+        Self { value, ..self }
+    }
+
     pub fn style(mut self, color: iced::Color) -> Self {
         self.color = ExcaliburColor::Custom(color);
         self
