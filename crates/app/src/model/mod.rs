@@ -104,8 +104,8 @@ impl Model {
     ///   positions in the form of liquidity tokens.
     /// - Uses the model's `external_prices` mapping to get the external prices
     ///   of raw tokens.
-    /// - Uses the model's `derive_user_allocated_balance_usd` to get the value
-    ///   of liquidity tokens.
+    /// - Uses the model's `derive_position_value_series` to get the value of
+    ///   liquidity tokens.
     /// - Combines these values into a `Portfolio` of `Position`s with the
     ///   computed weights.
     ///

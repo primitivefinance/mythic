@@ -4,7 +4,6 @@ mod metrics;
 pub mod tx_history;
 mod view;
 
-use alloy_primitives::utils::format_ether;
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,

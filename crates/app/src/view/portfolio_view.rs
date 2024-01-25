@@ -168,54 +168,6 @@ impl PortfolioPresenter {
                 }
             };
 
-            let asset_value_series = connected_model.derive_asset_value_series(pool_id);
-            match asset_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::warn!("Failed to get asset value series: {:}", e);
-                    return;
-                }
-            };
-
-            let quote_value_series = connected_model.derive_quote_value_series(pool_id);
-            match quote_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get quote value series: {:}", e);
-                    return;
-                }
-            };
-
-            let unallocated_value_series =
-                connected_model.derive_unallocated_portfolio_value_series();
-            match unallocated_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get unallocated value series: {:}", e);
-                    return;
-                }
-            };
-
-            let protocol_quote_value_series =
-                connected_model.derive_protocol_quote_value_series(pool_id);
-            match protocol_quote_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get protocol quote value series: {:}", e);
-                    return;
-                }
-            };
-
-            let protocol_asset_value_series =
-                connected_model.derive_protocol_asset_value_series(pool_id);
-            match protocol_asset_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get protocol asset value series: {:}", e);
-                    return;
-                }
-            };
-
             // todo: make series toggleable.
             self.portfolio_value_series.override_series(vec![data.1]);
             self.portfolio_value_series.update_x_range(data.0.x_range);
