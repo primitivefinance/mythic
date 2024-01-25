@@ -71,7 +71,9 @@ contract DFMM is IDFMM {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity
-        ) = IStrategy(params.strategy).init(pools.length, params.data);
+        ) = IStrategy(params.strategy).init(
+            msg.sender, pools.length, params.data
+        );
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
@@ -169,7 +171,9 @@ contract DFMM is IDFMM {
             uint256 adjustedReserveX,
             uint256 adjustedReserveY,
             uint256 adjustedTotalLiquidity
-        ) = IStrategy(pools[poolId].strategy).validateSwap(poolId, data);
+        ) = IStrategy(pools[poolId].strategy).validateSwap(
+            msg.sender, poolId, data
+        );
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
@@ -277,7 +281,7 @@ contract DFMM is IDFMM {
             uint256 adjustedReserveY,
             uint256 adjustedTotalLiquidity
         ) = IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
-            poolId, data
+            msg.sender, poolId, data
         );
 
         if (!valid) {

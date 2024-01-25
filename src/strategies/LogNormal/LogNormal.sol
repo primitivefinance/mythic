@@ -50,6 +50,7 @@ contract LogNormal is IStrategy {
     /// @dev Decodes and validates pool initialization parameters.
     /// Sets the `slot` state variable.
     function init(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -103,6 +104,7 @@ contract LogNormal is IStrategy {
     }
 
     function validateAllocateOrDeallocate(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -131,6 +133,7 @@ contract LogNormal is IStrategy {
 
     /// @dev Reverts if the caller is not a contract with the Core interface.
     function validateSwap(
+        address,
         uint256 poolId,
         bytes memory data
     )

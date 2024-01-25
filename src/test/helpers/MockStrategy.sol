@@ -12,6 +12,7 @@ contract MockStrategy is IStrategy {
     }
 
     function init(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -44,6 +45,7 @@ contract MockStrategy is IStrategy {
     }
 
     function validateAllocateOrDeallocate(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -81,6 +83,7 @@ contract MockStrategy is IStrategy {
     }
 
     function validateSwap(
+        address,
         uint256 poolId,
         bytes calldata data
     )

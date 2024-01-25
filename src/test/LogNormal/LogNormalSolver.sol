@@ -34,7 +34,8 @@ contract LogNormalSolver {
         returns (LogNormal.LogNormalParams memory)
     {
         return abi.decode(
-            IStrategy(strategy).getPoolParams(poolId), (LogNormal.LogNormalParams)
+            IStrategy(strategy).getPoolParams(poolId),
+            (LogNormal.LogNormalParams)
         );
     }
 
@@ -106,7 +107,8 @@ contract LogNormalSolver {
     ) public view returns (uint256) {
         bytes memory data = abi.encode(rx, ry, L);
         int256 invariant = IStrategy(strategy).computeSwapConstant(poolId, data);
-        return computeNextLiquidity(rx, ry, invariant, L, fetchPoolParams(poolId));
+        return
+            computeNextLiquidity(rx, ry, invariant, L, fetchPoolParams(poolId));
     }
 
     function getNextReserveX(
@@ -190,7 +192,8 @@ contract LogNormalSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-        (bool valid,,,,,) = IStrategy(strategy).validateSwap(poolId, swapData);
+        (bool valid,,,,,) =
+            IStrategy(strategy).validateSwap(address(this), poolId, swapData);
         return (
             valid,
             amountOut,

@@ -7,6 +7,7 @@ interface IStrategy {
     error NotDFMM();
 
     function init(
+        address sender,
         uint256 poolId,
         bytes calldata data
     )
@@ -20,6 +21,7 @@ interface IStrategy {
         );
 
     function validateAllocateOrDeallocate(
+        address sender,
         uint256 poolId,
         bytes calldata data
     )
@@ -34,6 +36,7 @@ interface IStrategy {
         );
 
     function validateSwap(
+        address sender,
         uint256 poolId,
         bytes calldata data
     )

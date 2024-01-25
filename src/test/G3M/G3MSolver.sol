@@ -136,8 +136,9 @@ contract G3MSolver {
 
         uint256 amountOut;
 
-        uint256 startComputedL =
-            computeNextLiquidity(startReserves.rx, startReserves.ry, fetchPoolParams(poolId));
+        uint256 startComputedL = computeNextLiquidity(
+            startReserves.rx, startReserves.ry, fetchPoolParams(poolId)
+        );
 
         {
             if (swapXIn) {
@@ -189,7 +190,10 @@ contract G3MSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-        (bool valid,,,,,) = IStrategy(strategy).validateSwap(poolId, swapData);
+
+        uint256 poolId = poolId;
+        (bool valid,,,,,) =
+            IStrategy(strategy).validateSwap(address(this), poolId, swapData);
         return (
             valid,
             amountOut,

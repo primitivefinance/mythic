@@ -46,6 +46,7 @@ contract G3M is IStrategy {
     /// @dev Decodes and validates pool initialization parameters.
     /// Sets the `slot` state variable.
     function init(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -100,6 +101,7 @@ contract G3M is IStrategy {
     }
 
     function validateAllocateOrDeallocate(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -128,6 +130,7 @@ contract G3M is IStrategy {
 
     /// @dev Reverts if the caller is not a contract with the Core interface.
     function validateSwap(
+        address,
         uint256 poolId,
         bytes memory data
     )
@@ -142,8 +145,7 @@ contract G3M is IStrategy {
             uint256 nextL
         )
     {
-        G3MParams memory params =
-            abi.decode(getPoolParams(poolId), (G3MParams));
+        G3MParams memory params = abi.decode(getPoolParams(poolId), (G3MParams));
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             IDFMM(dfmm).getReservesAndLiquidity(poolId);
@@ -165,14 +167,12 @@ contract G3M is IStrategy {
         } else {
             revert("invalid swap: inputs x and y have the same sign!");
         }
-        
+
         uint256 poolId = poolId;
         liquidityDelta = int256(nextL)
             - int256(
                 computeNextLiquidity(
-                    startRx,
-                    startRy,
-                    abi.decode(getPoolParams(poolId), (G3MParams))
+                    startRx, startRy, abi.decode(getPoolParams(poolId), (G3MParams))
                 )
             );
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
