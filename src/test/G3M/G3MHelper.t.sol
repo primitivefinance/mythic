@@ -10,4 +10,16 @@ contract G3MHelperTest is Test {
         bytes memory data = encodeFeeUpdate(newSwapFee);
         assertEq(newSwapFee, decodeFeeUpdate(data));
     }
+
+    function test_G3MHelper_encodeWeightXUpdate() public {
+        uint256 targetWeightX = 0.5 ether;
+        uint256 targetTimestamp = 42;
+
+        bytes memory data = encodeWeightXUpdate(targetWeightX, targetTimestamp);
+
+        (uint256 decodedTargetWeightX, uint256 decodedTargetTimestamp) =
+            decodeWeightXUpdate(data);
+        assertEq(targetWeightX, decodedTargetWeightX);
+        assertEq(targetTimestamp, decodedTargetTimestamp);
+    }
 }
