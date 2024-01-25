@@ -37,6 +37,7 @@ pub async fn g3m_setup(
         "g3m_lp",
         token_admin,
         protocol_client.clone(),
+        manager.client.address(),
     )
     .await?;
     Ok((lp, arbitrageur, manager))

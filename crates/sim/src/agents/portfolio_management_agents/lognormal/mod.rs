@@ -38,6 +38,7 @@ pub async fn ln_setup(
         "ln_lp",
         token_admin,
         protocol_client.clone(),
+        manager.client.address(),
     )
     .await?;
     Ok((lp, arbitrageur, manager))

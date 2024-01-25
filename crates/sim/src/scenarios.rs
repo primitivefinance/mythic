@@ -80,22 +80,6 @@ impl Scenario for DFMMScenario {
         )
         .await?;
 
-        let g3m_pool_id = base_protocol_client.get_next_pool_id().await?;
-
-        let (g3m_lp, g3m_arb, g3m_manager) = g3m_setup(
-            &environment,
-            &config,
-            base_protocol_client.clone(),
-            lex,
-            &token_admin,
-            g3m_pool_id,
-        )
-        .await?;
-        let g3m_arb_events = g3m_arb.0.atomic_arbitrage.events();
-        agents.add(g3m_lp);
-        agents.add(g3m_arb);
-        agents.add(g3m_manager);
-
         let ln_pool_id = base_protocol_client.get_next_pool_id().await?;
 
         let (ln_lp, ln_arb, ln_manager) = ln_setup(
@@ -111,6 +95,22 @@ impl Scenario for DFMMScenario {
         agents.add(ln_lp);
         agents.add(ln_arb);
         agents.add(ln_manager);
+
+        let g3m_pool_id = base_protocol_client.get_next_pool_id().await? + U256::from(1);
+
+        let (g3m_lp, g3m_arb, g3m_manager) = g3m_setup(
+            &environment,
+            &config,
+            base_protocol_client.clone(),
+            lex,
+            &token_admin,
+            g3m_pool_id,
+        )
+        .await?;
+        let g3m_arb_events = g3m_arb.0.atomic_arbitrage.events();
+        agents.add(g3m_lp);
+        agents.add(g3m_arb);
+        agents.add(g3m_manager);
 
         EventLogger::builder()
             .directory(config.output_directory.clone())

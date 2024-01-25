@@ -60,21 +60,20 @@ impl G3mLiquidityProvider {
         label: impl Into<String>,
         token_admin: &TokenAdmin,
         protocol_client: ProtocolClient<RevmMiddleware>,
+        controller: Address,
     ) -> Result<Self> {
         let label = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 
-        let controller = protocol_client.client.address();
-
         let protocol_client = protocol_client.bind(client.clone())?;
 
         token_admin
             .mint(
                 client.address(),
-                parse_ether("10_000_000")?,
-                parse_ether("10_000_000")?,
+                parse_ether(10_000_000)?,
+                parse_ether(10_000_000)?,
             )
             .await?;
 

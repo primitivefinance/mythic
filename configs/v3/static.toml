@@ -43,11 +43,7 @@ process.GBM.volatility.fixed = 0.35
 #process.OU.theta.fixed = 10
 
 # Rmm portfolio manager params 
-[agent.portfolio_manager.VolatilityTargetingSubmitter]
-sigma.fixed = 1.0
-tau.fixed = 1.0
-strike_price.fixed = 1.0
-fee.fixed = 30
+[agent.g3m_manager.ParameterManager]
 ## Volatility targeting specialty settings
 # The frequency which weights are updated
 # update_frequency = 450 # 1 update per 30 timestep day
@@ -59,12 +55,27 @@ specialty.VolatilityTargeting.target_volatility.fixed = 0.15
 # The sensitivity factor of the vol differential 
 specialty.VolatilityTargeting.sensitivity.fixed = 0.0115
 # Max strike update
-specialty.VolatilityTargeting.max_strike_change.fixed = 0.06
+specialty.VolatilityTargeting.max_change.fixed = 0.06
+
+[agent.ln_manager.ParameterManager]
+## Volatility targeting specialty settings
+# The frequency which weights are updated
+# update_frequency = 450 # 1 update per 30 timestep day
+# update_frequency = 300 # 1 update per 20 timestep day
+# update_frequency = 150 # 1 update per 10 timestep day
+specialty.VolatilityTargeting.update_frequency.fixed = 75 # 1 update per 5 timestep day
+# The target volatility
+specialty.VolatilityTargeting.target_volatility.fixed = 0.15
+# The sensitivity factor of the vol differential 
+specialty.VolatilityTargeting.sensitivity.fixed = 0.0115
+# Max strike update
+specialty.VolatilityTargeting.max_change.fixed = 0.06
+
 
 # Liquidity provider settings
-[agent.lp.LiquidityProvider]
+[agent.g3m_lp.G3mLiquidityProvider]
 # The amount of `token_x` to provide in ether
-x_liquidity.fixed = 100
+initial_x_amount.fixed = 100
 # The initial price of the pair
 initial_price.fixed = 1.0
 # inital parameters
@@ -72,3 +83,13 @@ sigma.fixed = 1.0
 tau.fixed = 1.0
 strike_price.fixed = 1.0
 wx.fixed = 0.5
+
+[agent.ln_lp.LogNormalLiquidityProvider]
+# The amount of `token_x` to provide in ether
+initial_x_amount.fixed = 100
+# The initial price of the pair
+initial_price.fixed = 1.0
+# inital parameters
+sigma.fixed = 1.0
+tau.fixed = 1.0
+strike_price.fixed = 1.0
