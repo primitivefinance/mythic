@@ -470,15 +470,16 @@ impl State for Monolithic {
 
             content = content.push(ExcaliburContainer::default().build(FormView::chart_layout(
                 &self.chart_presenter.portfolio_value_series,
-                label("Portfolio Value").title2(),
+                label("Allocated Value").title2(),
                 self.presenter.get_last_sync_timestamp(),
             )));
 
-            content = content.push(ExcaliburContainer::default().build(FormView::chart_layout(
-                &self.chart_presenter.portfolio_strategy_plot,
-                label("Strategy").title2(),
-                self.presenter.get_last_sync_timestamp(),
-            )));
+            // todo: find a better place for the strategy preview chart.
+            // content = content.push(ExcaliburContainer::default().
+            // build(FormView::chart_layout( &self.chart_presenter.
+            // portfolio_strategy_plot, label("Strategy").title2(),
+            // self.presenter.get_last_sync_timestamp(),
+            // )));
         }
 
         if self.allocate {

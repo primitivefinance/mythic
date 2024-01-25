@@ -191,7 +191,7 @@ impl Inventory {
                                     .width(Length::FillPortion(1))
                                     .push(
                                         ExcaliburTooltip::default().padding(Sizes::Sm).info().build(
-                                            "Your portfolio of allocated and unallocated positions, filtered by the default token list.",
+                                            "Your portfolio of allocated and unallocated positions filtered by the default token list.",
                                         )
                                     ),
                             ),

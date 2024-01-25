@@ -164,8 +164,9 @@ impl MonolithicPresenter {
         if self.model.get_current().is_none() {
             return "N/A Network".to_string();
         }
+        let pool_id = 0; // todo: fix
 
-        let aum = self.model.get_current().unwrap().derive_total_aum();
+        let aum = self.model.get_current().unwrap().derive_total_aum(pool_id);
         match aum {
             Ok(data) => alloy_primitives::utils::format_ether(data),
             Err(_) => "N/A Value".to_string(),
@@ -270,20 +271,51 @@ impl MonolithicPresenter {
 
         if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
             let pool_id = 0; // todo: get pool id from position
-            let external_price = match position.asset.symbol.as_str() {
-                "X" => Some(
-                    connected_model
-                        .get_external_price_of_pool_asset(pool_id)
-                        .unwrap(),
-                )
-                .to_label(),
+            let is_lp = position.asset.tags.contains(&"lp".to_string());
+            let is_stablecoin = if !is_lp {
+                position.asset.tags.contains(&"stablecoin".to_string())
+            } else {
+                false
+            };
+            let is_ether = if !is_lp {
+                position.asset.tags.contains(&"ether".to_string())
+            } else {
+                false
+            };
 
-                "Y" => Some(ALLOY_WAD).to_label(), // todo: fix
-                _ => label("n/a").title3().quantitative(),
+            // If lp, external price is the
+
+            let external_price = match is_lp {
+                true => {
+                    let lp_token_price = connected_model
+                        .derive_lp_token_price_series(pool_id)
+                        .unwrap_or_default();
+                    let lp_token_price = lp_token_price
+                        .last()
+                        .unwrap_or(&(0, alloy_primitives::utils::parse_ether("0.0").unwrap()))
+                        .1;
+
+                    Ok(lp_token_price).to_label()
+                }
+                false => match is_stablecoin {
+                    true => {
+                        let external_price = Ok(ALLOY_WAD).to_label();
+                        external_price
+                    }
+                    false => match is_ether {
+                        true => {
+                            let external_price = connected_model
+                                .price_of_token(position.asset.address)
+                                .to_label();
+                            external_price
+                        }
+                        false => label("n/a").title3().secondary(),
+                    },
+                },
             };
 
             let aum = connected_model
-                .derive_internal_portfolio_value(pool_id)
+                .derive_external_portfolio_value(pool_id)
                 .to_label();
 
             let health = connected_model.derive_portfolio_health();

@@ -890,6 +890,83 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         ))
     }
 
+    /// Computes the amount of reserves claimable in total given all the
+    /// liquidity.
+    fn derive_total_claimable_balances(
+        &self,
+        pool_id: u64,
+    ) -> Result<(Vec<(u64, AlloyU256)>, Vec<(u64, AlloyU256)>)> {
+        // Get the pool state of the given pool id.
+        let pool_state = self
+            .pool_state
+            .as_ref()
+            .unwrap()
+            .get(&pool_id)
+            .ok_or(Error::msg(format!(
+                "Pool state not set for pool id {}",
+                pool_id
+            )))?
+            .clone();
+
+        // Get the liquidity token balance series for the given pool id of the user.
+        let liquidity_token_address = pool_state
+            .liquidity_token
+            .ok_or(Error::msg("Liquidity token address not set for pool state"))?;
+
+        // Get the total liquidity token supply series for the given pool id.
+        let liquidity_token_total_supply_series = pool_state.liquidity_token_total_supply.ok_or(
+            Error::msg("Liquidity token total supply series not set for pool state"),
+        )?;
+
+        // Get the reserves of the pool.
+        let asset_reserve_series = pool_state
+            .asset_reserve
+            .ok_or(Error::msg("Asset reserve series not set for pool state"))?;
+
+        let quote_reserve_series = pool_state
+            .quote_reserve
+            .ok_or(Error::msg("Quote reserve series not set for pool state"))?;
+
+        // Compute new series of the user's claimable token balance by multiplying
+        // the user's liquidity token balance by the respective reserves, then dividing
+        // by the total liquidity token supply.
+        let claimable_asset_balance_series = liquidity_token_total_supply_series
+            .iter()
+            .zip(asset_reserve_series.iter())
+            .zip(liquidity_token_total_supply_series.iter())
+            .map(
+                |(((block, liquidity_token_balance), (_, asset_reserve)), (_, total_supply))| {
+                    let claimable_asset_balance = liquidity_token_balance
+                        .checked_mul(*asset_reserve)
+                        .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                        .checked_div(*total_supply)
+                        .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                    Ok((*block, claimable_asset_balance))
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
+
+        let claimable_quote_balance_series = liquidity_token_total_supply_series
+            .iter()
+            .zip(quote_reserve_series.iter())
+            .zip(liquidity_token_total_supply_series.iter())
+            .map(
+                |(((block, liquidity_token_balance), (_, quote_reserve)), (_, total_supply))| {
+                    let claimable_quote_balance = liquidity_token_balance
+                        .checked_mul(*quote_reserve)
+                        .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                        .checked_div(*total_supply)
+                        .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                    Ok((*block, claimable_quote_balance))
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
+
+        // Return the new series of the user's claimable token balance in USD, which can
+        // be summed to find the allocated position's value over time.
+        Ok((asset_reserve_series, quote_reserve_series))
+    }
+
     /// Computes the value of an allocated position of the given pool id.
     /// Sums the value of the position's claimable token balance and returns the
     /// series.
@@ -1358,6 +1435,67 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(allocated_positions)
     }
 
+    /// Computes the price of each lp token in USD using the external prices of
+    /// the tokens stored in the external prices mapping.
+    pub fn derive_lp_token_price_series(&self, pool_id: u64) -> Result<Vec<(u64, AlloyU256)>> {
+        let pool_state = self.get_pool_state(pool_id)?.clone();
+        let (claimable_assets, claimable_quotes) = self.derive_total_claimable_balances(pool_id)?;
+        let claimable_assets_series = claimable_assets
+            .into_iter()
+            .map(|(block, balance)| (block, balance))
+            .collect::<Vec<_>>();
+        let claimable_quotes_series = claimable_quotes
+            .into_iter()
+            .map(|(block, balance)| (block, balance))
+            .collect::<Vec<_>>();
+        let external_asset_price_series = self.external_prices.as_ref().ok_or(Error::msg(
+            "derive_lp_token_price_series: External price series not set",
+        ))?[&pool_state.asset_token.unwrap()]
+            .clone();
+        let external_quote_price = ALLOY_WAD; // todo: fix price of other tokens in lex.
+        let total_supply_series = pool_state
+            .liquidity_token_total_supply
+            .ok_or(Error::msg(
+                "Liquidity token total supply series not set for pool state",
+            ))?
+            .clone();
+
+        let lp_token_price_series = claimable_assets_series
+            .iter()
+            .zip(claimable_quotes_series.iter())
+            .zip(external_asset_price_series.iter())
+            .zip(total_supply_series.iter())
+            .map(
+                |(
+                    (((block, claimable_assets), (_, claimable_quotes)), (_, external_asset_price)),
+                    (_, total_supply),
+                )| {
+                    let asset_value = claimable_assets
+                        .checked_mul(*external_asset_price)
+                        .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                        .checked_div(ALLOY_WAD)
+                        .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                    let quote_value = claimable_quotes
+                        .checked_mul(external_quote_price)
+                        .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                        .checked_div(ALLOY_WAD)
+                        .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                    let total_value = asset_value
+                        .checked_add(quote_value)
+                        .ok_or(anyhow!(RawDataModelError::CheckedAdd))?;
+                    let price_per_lp = total_value
+                        .checked_mul(ALLOY_WAD)
+                        .ok_or(anyhow!(RawDataModelError::CheckedMul))?
+                        .checked_div(*total_supply)
+                        .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
+                    Ok((*block, price_per_lp))
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(lp_token_price_series)
+    }
+
     /// Gets the "unallocated position" balances.
     /// todo: work on this to make it more accurate. Probably need to refactor
     /// position types a bit.
@@ -1731,11 +1869,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Sum of external portfolio value (allocated positions) and unallocated
     /// positions' value.
-    pub fn derive_total_aum(&self) -> Result<AlloyU256> {
+    pub fn derive_total_aum(&self, pool_id: u64) -> Result<AlloyU256> {
         // todo: this naming is confusing but the external portfolio value is the
         // unallocated value.
         // todo: maybe handle this more explicitly?
-        let external_portfolio_value = self.derive_external_portfolio_value().unwrap_or_default();
+        let external_portfolio_value = self
+            .derive_external_portfolio_value(pool_id)
+            .unwrap_or_default();
         // todo: handle the scenario that the user has the ability to create an
         // allocated position with unallocated tokens, track that?
         // let unallocated_position_value = self.derive_unallocated_position_value()?;
@@ -1763,11 +1903,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                         .ok_or_else(|| anyhow!("Failed to add unallocated values"))
                 })?;
 
-        tracing::debug!(
-            "Computed unallocated position value: {}",
-            unallocated_position_value
-        );
-
         let total_aum = external_portfolio_value
             .checked_add(unallocated_position_value)
             .ok_or(anyhow!(
@@ -1790,9 +1925,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the portfolio value of the user's strategy deposits according
     /// to an external price.
-    pub fn derive_external_portfolio_value(&self) -> Result<AlloyU256> {
-        let pool_id = 0;
-
+    pub fn derive_external_portfolio_value(&self, pool_id: u64) -> Result<AlloyU256> {
         let pool_state = self.get_pool_state(pool_id)?;
         let (asset_token, quote_token) = (
             pool_state.asset_token.ok_or(Error::msg(
@@ -1809,30 +1942,21 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .last()
             .unwrap()
             .1;
-        let quote_price_wad = self
-            .external_prices
-            .as_ref()
-            .ok_or(Error::msg("External prices not set"))?[&quote_token]
-            .last()
-            .unwrap()
-            .1;
+        // todo: hardcoded stablecoin price
+        let quote_price_wad = ALLOY_WAD;
         let (claimable_assets, claimable_quotes) = self.derive_user_allocated_balances(pool_id)?;
         let (asset_reserve_wad, quote_reserve_wad) = (
-            pool_state
-                .asset_reserve
+            claimable_assets
+                .last()
                 .ok_or(Error::msg(
                     "derive_external_portfolio_value: Asset reserve not set",
                 ))?
-                .last()
-                .unwrap()
                 .1,
-            pool_state
-                .quote_reserve
+            claimable_quotes
+                .last()
                 .ok_or(Error::msg(
                     "derive_external_portfolio_value: Quote reserve not set",
                 ))?
-                .last()
-                .unwrap()
                 .1,
         );
 
@@ -1865,8 +1989,18 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // todo: using the global reserves of the market for now.
         let (claimable_assets, claimable_quotes) = self.derive_user_allocated_balances(pool_id)?;
-        let asset_balance_wad = claimable_assets.last().unwrap().1;
-        let quote_balance_wad = claimable_quotes.last().unwrap().1;
+        let asset_balance_wad = claimable_assets
+            .last()
+            .ok_or(Error::msg(
+                "derive_internal_portfolio_value: Asset balance not set",
+            ))?
+            .1;
+        let quote_balance_wad = claimable_quotes
+            .last()
+            .ok_or(Error::msg(
+                "derive_internal_portfolio_value: Quote balance not set",
+            ))?
+            .1;
 
         Self::compute_portfolio_value_real(
             internal_price,
@@ -2021,15 +2155,24 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         &self,
         pool_id: u64,
     ) -> Result<(CartesianRanges, ChartLineSeries)> {
-        let (asset_value_series, quote_value_series) =
-            self.derive_user_allocated_balance_usd(pool_id)?;
+        let lp_token_price_series = self.derive_lp_token_price_series(pool_id)?;
+        let pool_state = self.get_pool_state(pool_id)?;
+        let liquidity_token = pool_state
+            .liquidity_token
+            .ok_or(Error::msg("Liquidity token not set"))?;
+        let lp_token_balances =
+            self.user_token_balances
+                .get(&liquidity_token)
+                .ok_or(Error::msg(
+                    "Liquidity token balances not set for user token balances",
+                ))?;
 
-        // Sum the values into a single series.
-        let series = asset_value_series
+        // Multiply the values into a single series.
+        let series = lp_token_price_series
             .iter()
-            .zip(quote_value_series.iter())
-            .map(|((block, asset_value), (_, quote_value))| {
-                let portfolio_value = asset_value + quote_value;
+            .zip(lp_token_balances.iter())
+            .map(|((block, lp_token_price), (_, lp_token_balance))| {
+                let portfolio_value = lp_token_price * lp_token_balance / ALLOY_WAD;
                 (*block, portfolio_value)
             })
             .collect::<Vec<(u64, AlloyU256)>>();
