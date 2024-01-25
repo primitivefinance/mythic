@@ -48,7 +48,8 @@ function computeInitialPoolData(
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 rY = computeYGivenL(L, initialPrice, params);
     L = computeNextLiquidity(amountX, rY, params);
-    return abi.encode(amountX, rY, L, params.wX, params.swapFee);
+    return
+        abi.encode(amountX, rY, L, params.wX, params.swapFee, params.controller);
 }
 
 /// @dev Finds the root of the swapConstant given the independent variable rX.

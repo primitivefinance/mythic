@@ -43,7 +43,8 @@ contract G3MTest is Test {
         G3M.G3MParams memory params = G3M.G3MParams({
             wX: 0.5 ether,
             wY: 0.5 ether,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(this)
         });
         uint256 init_p = ONE;
         uint256 init_x = ONE;

@@ -41,7 +41,8 @@ contract LogNormalTest is Test {
             strike: ONE * 2300,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(this)
         });
         uint256 init_p = ONE * 2345;
         uint256 init_x = ONE * 10;
@@ -68,7 +69,8 @@ contract LogNormalTest is Test {
             strike: ONE,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(this)
         });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
