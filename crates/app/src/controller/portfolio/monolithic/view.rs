@@ -93,7 +93,7 @@ impl MonolithicPresenter {
         }
 
         let connected_model = self.model.get_current().unwrap();
-        let current_price = connected_model.get_current_price().unwrap();
+        let current_price = connected_model.get_current_price().unwrap_or_default();
         let current_price = format_and_parse(current_price).unwrap();
 
         // For each liquidity type, derive the liquidity distribution to determine the
