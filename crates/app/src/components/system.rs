@@ -1392,6 +1392,32 @@ impl ExcaliburHistogram {
         self.chart.notable_bars = notable_bars;
         self
     }
+
+    pub fn get_bin_threshold_increasing(&self, threshold: u64) -> f32 {
+        // Find the key in the chart's data which crosses this threshold increasing, and
+        // return the key's value.
+        for (key, value) in self.chart.data.iter() {
+            if *value as u64 >= threshold {
+                return *key as f32;
+            }
+        }
+
+        // If we don't find a key that crosses the threshold, return the first key.
+        *self.chart.data.keys().next().unwrap() as f32
+    }
+
+    pub fn get_bin_threshold_decreasing(&self, threshold: u64) -> f32 {
+        // Find the key in the chart's data which crosses this threshold decreasing, and
+        // return the key's value.
+        for (key, value) in self.chart.data.iter().rev() {
+            if *value as u64 <= threshold {
+                return *key as f32;
+            }
+        }
+
+        // If we don't find a key that crosses the threshold, return the last key.
+        *self.chart.data.keys().last().unwrap() as f32
+    }
 }
 
 #[derive(Clone)]

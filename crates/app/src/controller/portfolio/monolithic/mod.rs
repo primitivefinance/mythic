@@ -495,6 +495,7 @@ impl State for Monolithic {
                         FormMessage::Duration,
                         FormMessage::EndPrice,
                         FormMessage::Liquidity,
+                        self.presenter.get_liquidity_choices(),
                     )
                     .map(Message::Form),
             );

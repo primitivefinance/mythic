@@ -5,7 +5,7 @@ use datatypes::portfolio::position::{Position, PositionLayer, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
-use self::logos::lp_logo;
+use self::{create::LiquidityChoices, logos::lp_logo};
 use super::{inventory::Inventory, *};
 use crate::{
     components::{
@@ -87,6 +87,63 @@ impl MonolithicPresenter {
         }
     }
 
+    pub fn get_liquidity_choices(&self) -> Vec<LiquidityChoices> {
+        if self.model.get_current().is_none() {
+            return vec![];
+        }
+
+        let connected_model = self.model.get_current().unwrap();
+        let current_price = connected_model.get_current_price().unwrap();
+        let current_price = format_and_parse(current_price).unwrap();
+
+        // For each liquidity type, derive the liquidity distribution to determine the
+        // effective price range.
+        let liquidity_types = LiquidityTypes::all();
+
+        let mut choices = vec![];
+        for liquidity_type in liquidity_types.iter() {
+            let params = liquidity_type.to_parameters(current_price);
+            let (strike_price, volatility, time_remaining) = (
+                params.strike_price_wad,
+                params.sigma_percent_wad,
+                params.time_remaining_years_wad,
+            );
+
+            // histogram
+            let histogram_data = connected_model
+                .derive_liquidity_histogram(current_price, strike_price, volatility, time_remaining)
+                .expect("Failed to derive histogram data.");
+
+            // Find the price range by filtering out all bin values in the histogram_data
+            // that are < 1.
+            let price_range = histogram_data
+                .data
+                .iter()
+                .filter(|x| *x.1 > 1)
+                .map(|x| *x.0 as f32 / 100.0)
+                .collect::<Vec<f32>>();
+
+            let price_range = if price_range.is_empty() {
+                (0.0, 0.0)
+            } else {
+                (
+                    price_range[0] as f64,
+                    price_range[price_range.len() - 1] as f64,
+                )
+            };
+
+            choices.push(LiquidityChoices {
+                liquidity_type: liquidity_type.clone(),
+                last_price: current_price,
+                price_range,
+            });
+        }
+
+        // Price ranges begin or end where the bin count is > or < 1.
+
+        choices
+    }
+
     pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {
         self.historical_txs = txs;
     }
@@ -157,8 +214,6 @@ impl MonolithicPresenter {
             .clone()
             .unwrap_or_default();
 
-        tracing::info!("Liquidity tokens: {:?}", liquidity_tokens);
-        tracing::info!("Positions: {:?}", positions.0);
         let allocated_positions_vec: Vec<Position> = positions
             .0
             .iter()
