@@ -56,8 +56,11 @@ contract DFMM is IDFMM {
         }
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
+
+        // TODO: Add name / symbol
         liquidityToken.initialize("", "");
         liquidityToken.mint(msg.sender, totalLiquidity);
+        // TODO: Burn some initial liquidity
 
         Pool memory pool = Pool({
             controller: msg.sender,
