@@ -44,7 +44,6 @@ LedgerClient is the SDK in our repository built on top of the summa-coins librar
 When communicating with the ledger device we need to acquire a lock on the `HIDTransport`. This means that if there is another application talking to the ledger, this will not work. After obtaining the lock on the ledger we can interact with the ethereum application if it is open. If it is not open we will only be able to send instructions that return meta-data about the application. For example, we can check the version of the application. 
 
 ```rust ignore
-extern crate clients;
 use clients::ledger::LedgerClient;
 
 let ledger = LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
