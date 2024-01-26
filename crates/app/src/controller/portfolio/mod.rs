@@ -2,6 +2,7 @@
 
 pub mod monolithic;
 
+use arbiter_core::middleware::RevmMiddleware;
 use iced::widget::Container;
 
 use super::*;
@@ -41,11 +42,14 @@ impl From<Message> for view::Message {
 pub struct PortfolioRoot {
     pub page: Page,
     pub monolithic: monolithic::Monolithic,
-    pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    pub client: Option<Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>>,
 }
 
 impl PortfolioRoot {
-    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
+    pub fn new(
+        client: Option<Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>>,
+        model: Model,
+    ) -> Self {
         Self {
             page: Page::default(),
             monolithic: monolithic::Monolithic::new(client.clone(), model.clone()),

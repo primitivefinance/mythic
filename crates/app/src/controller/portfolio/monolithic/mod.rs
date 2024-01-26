@@ -5,6 +5,7 @@ pub mod tx_history;
 mod view;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use arbiter_core::middleware::RevmMiddleware;
 use cfmm_math::trading_functions::rmm::{
     compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
 };
@@ -80,7 +81,7 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 
 #[derive(Debug, Clone, Default)]
 pub struct Monolithic {
-    client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    client: Option<Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>>,
     model: Model,
     presenter: MonolithicPresenter,
     chart_presenter: PortfolioPresenter,
@@ -92,7 +93,10 @@ pub struct Monolithic {
 }
 
 impl Monolithic {
-    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
+    pub fn new(
+        client: Option<Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>>,
+        model: Model,
+    ) -> Self {
         let presenter = MonolithicPresenter::new(model.clone());
         let chart_presenter = PortfolioPresenter::default();
 
@@ -523,11 +527,10 @@ impl State for Monolithic {
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
         if let Some(client) = self.client.clone() {
-            let provider = client.get_client();
             let mut subscriptions: Vec<Subscription<Message>> = vec![];
 
             // Fetches the most recent block and updates the model.
-            subscriptions.push(listen_to_blocks(provider));
+            subscriptions.push(listen_to_blocks(client.get_client().clone()));
 
             // Steps the price process forward.
             // todo: remove this in favor of a live price feed.
@@ -546,15 +549,20 @@ impl State for Monolithic {
 
 /// Fetches the most recent block and updates the model with the state in the
 /// new block.
-pub fn listen_to_blocks(
-    provider: Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>,
-) -> Subscription<Message> {
+pub fn listen_to_blocks<M>(client: Arc<M>) -> Subscription<Message>
+where
+    M: Middleware + 'static,
+    M::Provider: PubsubClient,
+{
     struct Blocks;
+
+    let client_clone = client.clone();
 
     subscription::channel(
         std::any::TypeId::of::<Blocks>(),
         0,
         |mut output| async move {
+            let provider = client_clone.provider().clone();
             let mut subscription = provider.subscribe_blocks().await.unwrap();
             loop {
                 while let Some(block) = subscription.next().await {
@@ -602,7 +610,7 @@ impl std::fmt::Debug for PriceProcess {
 fn price_process_update_after_step(
     process: PriceProcess,
     exchange: AlloyAddress,
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    client: Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>,
 ) -> Command<Message> {
     let mut next_price = None;
 

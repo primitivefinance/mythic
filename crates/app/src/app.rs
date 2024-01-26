@@ -38,6 +38,7 @@
 
 use std::time::Duration;
 
+use arbiter_core::middleware::RevmMiddleware;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
@@ -139,7 +140,7 @@ impl Windows {
 /// components will need.
 pub struct App {
     /// Connection to networks.
-    pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    pub client: Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>,
     /// Data module of the application.
     pub model: Model,
     /// State of the active window and sidebar the user is viewing.
@@ -195,7 +196,7 @@ impl App {
     ///   and a Command to load the application.
     pub fn new(
         model: Model,
-        client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+        client: Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>,
     ) -> (Self, Command<Message>) {
         let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
         let mut sidebar = Sidebar::new();
@@ -800,7 +801,7 @@ pub struct AnvilSave {
 // LocalWallet as parameters. It returns a Result of AnvilSave.
 #[tracing::instrument(skip(client))]
 async fn save_snapshot(
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    client: Arc<ExcaliburMiddleware<RevmMiddleware, RevmMiddleware>>,
 ) -> anyhow::Result<AnvilSave> {
     // Log a debug message indicating that a snapshot save attempt is being made.
     tracing::debug!("Attempting to save anvil snapshot");

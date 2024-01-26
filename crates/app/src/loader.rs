@@ -4,6 +4,7 @@
 
 use std::time::Instant;
 
+use arbiter_core::middleware::RevmMiddleware;
 use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
 use datatypes::portfolio::coin::Coin;
 use iced::{
@@ -25,8 +26,8 @@ use crate::{
     model::user::Saveable,
 };
 
-type LoadResult =
-    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
+type LoadResult<M, S> =
+    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<M, S>>), anyhow::Error>;
 
 #[derive(Debug)]
 pub enum Message {
@@ -35,7 +36,7 @@ pub enum Message {
     Loaded(super::Flags),
     Connected,
     LoadingFailed,
-    Ready(LoadResult),
+    Ready(LoadResult<RevmMiddleware, RevmMiddleware>),
     BrandFontLoaded,
     IconFontLoaded,
     Quit,
@@ -85,105 +86,93 @@ pub const CONTRACT_NAMES: [&str; 6] = [
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
-pub async fn load_app(flags: super::Flags) -> LoadResult {
+pub async fn load_app(flags: super::Flags) -> LoadResult<RevmMiddleware, RevmMiddleware> {
     // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
     // Create a new middleware client to make calls to the network.
-    let mut exc_client = ExcaliburMiddleware::new(None, None, None).await?;
-
-    // Start and connect to an anvil instance.
-    let anvil = start_anvil(None)?;
-    exc_client.connect_anvil(anvil).await?;
-
-    let chain_id = if let Some(anvil) = &exc_client.anvil {
-        anvil.chain_id()
-    } else {
-        31337
-    };
-
+    let mut exc_client: ExcaliburMiddleware<RevmMiddleware, RevmMiddleware> =
+        ExcaliburMiddleware::new(None, None, None).await?;
+    let chain_id = 31337;
     let client = exc_client.get_client();
 
     // todo: try the connection to the sandbox next
     // Connect the model to the desired network.
     model.connect_to_network(client.clone()).await?;
+    let loaded_snapshot = false;
 
     // If profile has an anvil snapshot, load it.
-    let loaded_snapshot = if let Some(AnvilSave {
-        snapshot,
-        block_number,
-    }) = &model.user.anvil_snapshot
-    {
-        tracing::debug!(
-            "Attempting to load snapshot: {}",
-            &snapshot[..10.min(snapshot.len())],
-        );
-
-        let success = client
-            .clone()
-            .provider()
-            .request::<[String; 1], bool>("anvil_loadState", [snapshot.to_string()])
-            .await
-            .expect("Failed to load snapshot.");
-
-        tracing::info!("Loaded snapshot: {:?}", success);
-
-        if success {
-            tracing::info!("Syncing Anvil to block: {}", block_number);
-            client
-                .clone()
-                .provider()
-                .request::<[u64; 1], ()>("anvil_mine", [*block_number])
-                .await
-                .expect("Failed to sync to block.");
-        }
-
-        success
-    } else {
-        false
-    };
+    // let loaded_snapshot = if let Some(AnvilSave {
+    // snapshot,
+    // block_number,
+    // }) = &model.user.anvil_snapshot
+    // {
+    // tracing::debug!(
+    // "Attempting to load snapshot: {}",
+    // &snapshot[..10.min(snapshot.len())],
+    // );
+    //
+    // let success = client
+    // .clone()
+    // .provider()
+    // .request::<[String; 1], bool>("anvil_loadState", [snapshot.to_string()])
+    // .await
+    // .expect("Failed to load snapshot.");
+    //
+    // tracing::info!("Loaded snapshot: {:?}", success);
+    //
+    // if success {
+    // tracing::info!("Syncing Anvil to block: {}", block_number);
+    // client
+    // .clone()
+    // .provider()
+    // .request::<[u64; 1], ()>("anvil_mine", [*block_number])
+    // .await
+    // .expect("Failed to sync to block.");
+    // }
+    //
+    // success
+    // } else {
+    // false
+    // };
 
     // To synchronize a loaded snapshot with the necessary state:
     // 1. Get the "saved" addresses from the user's contact book.
     // 2. Sync the addresses to the exc_client.
     // 3. Sync the addresses to the model.
-    if loaded_snapshot {
-        for name in CONTRACT_NAMES.iter() {
-            if let Some(contracts) = model
-                .user
-                .contacts
-                .get_class_list(contacts::Class::Contract)
-            {
-                // If the contract value's label contains the name, add it to the exc_client.
-                // todo: need better loading of contracts from storage.
-                for (address, contact) in contracts.get_all() {
-                    if contact.label == *name {
-                        exc_client.add_contract(name, *address);
-                    }
-                }
-            }
-        }
-
-        // todo: better contract naming/storage management.
-        let protocol_client = ProtocolClient::from(
-            exc_client.get_client(),
-            exc_client.contracts.get("protocol").unwrap().clone(),
-            exc_client.contracts.get("solver").unwrap().clone(),
-            exc_client.contracts.get("strategy").unwrap().clone(),
-            Address::zero(),
-            Address::zero(),
-        )?;
-        exc_client.connect_dfmm(protocol_client).await?;
-    }
-
-    // Connect a signer to the client so we can send transactions.
-    let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
-    let sender = signer.address();
-    exc_client.connect_signer(signer).await?;
+    // if loaded_snapshot {
+    // for name in CONTRACT_NAMES.iter() {
+    // if let Some(contracts) = model
+    // .user
+    // .contacts
+    // .get_class_list(contacts::Class::Contract)
+    // {
+    // If the contract value's label contains the name, add it to the exc_client.
+    // todo: need better loading of contracts from storage.
+    // for (address, contact) in contracts.get_all() {
+    // if contact.label == *name {
+    // exc_client.add_contract(name, *address);
+    // }
+    // }
+    // }
+    // }
+    //
+    // todo: better contract naming/storage management.
+    // let protocol_client = ProtocolClient::from(
+    // exc_client.get_client(),
+    // exc_client.contracts.get("protocol").unwrap().clone(),
+    // exc_client.contracts.get("solver").unwrap().clone(),
+    // exc_client.contracts.get("strategy").unwrap().clone(),
+    // Address::zero(),
+    // Address::zero(),
+    // )?;
+    // exc_client.connect_dfmm(protocol_client).await?;
+    // }
 
     // If we are loading a fresh instance, deploy the contracts.
     if !loaded_snapshot {
         let client = exc_client.get_client();
+        let sender = client.address();
 
         let dev_client = DevClient::deploy(client, sender).await?;
         exc_client.connect_dfmm(dev_client.protocol.clone()).await?;

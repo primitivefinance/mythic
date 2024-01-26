@@ -24,9 +24,9 @@ pub type NetworkClient<P, S> = SignerMiddleware<Provider<P>, S>;
 /// - Contracts are a stateful map of human readable contract identifiers to
 ///   addresses.
 /// - note: if AnvilInstance is some, then the client is the client for Anvil.
-pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
+pub struct ExcaliburMiddleware<M: Middleware + Signer + PubsubClient, S: Signer> {
     /// ACTIVE CLIENT CONNECTION
-    pub client: Option<Arc<NetworkClient<P, S>>>,
+    pub client: Option<Arc<M>>,
     /// ACTIVE SIGNER
     pub signer: Option<S>,
     /// ANY CONTRACTS
@@ -40,10 +40,12 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     /// ANVIL
     pub anvil: Option<AnvilInstance>,
     /// PROTOCOL
-    pub dfmm_client: Option<ProtocolClient<NetworkClient<P, S>>>,
+    pub dfmm_client: Option<ProtocolClient<M>>,
 }
 
-impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
+impl<M: Middleware + Signer + PubsubClient, S: Signer> std::fmt::Debug
+    for ExcaliburMiddleware<M, S>
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ExcaliburMiddleware")
             .field("client", &self.client)
@@ -51,15 +53,18 @@ impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
     }
 }
 
-impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
+impl<M: Middleware + Signer + PubsubClient, S: Signer> ExcaliburMiddleware<M, S> {
     /// Returns a ref to the unwrapped client
-    pub fn get_client(&self) -> Arc<NetworkClient<P, S>> {
+    pub fn get_client(&self) -> Arc<M> {
         self.client.as_ref().unwrap().clone()
     }
 
     /// Returns the address of the signer, if there is one.
     pub fn address(&self) -> Option<Address> {
-        self.signer.as_ref().map(|signer| signer.address())
+        self.signer
+            .as_ref()
+            .map(|signer| signer.address())
+            .or_else(|| self.client.as_ref().map(|client| client.address()))
     }
 
     /// Adds a new contract to the contracts map.
@@ -135,7 +140,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
     }
 }
 
-impl ExcaliburMiddleware<Ws, LocalWallet> {
+impl ExcaliburMiddleware<RevmMiddleware, RevmMiddleware> {
     /// Creates a new Excalibur middleware instance, setting the anvil and/or
     /// arbiter instances if provided.
     /// - If anvil is available, then the client is automatically connected to
@@ -145,106 +150,34 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
     /// - Else, no client is connected and it must be connected to while the app
     ///   is running.
     pub async fn new(
-        anvil: Option<AnvilInstance>,
+        _anvil: Option<AnvilInstance>,
         arbiter: Option<Environment>,
-        signer: Option<LocalWallet>,
+        signer: Option<RevmMiddleware>,
     ) -> anyhow::Result<Self> {
-        let mut anvil_client = None;
-        if let Some(anvil_instance) = anvil.as_ref() {
-            let signer = signer
-                .clone()
-                .unwrap_or_else(|| LocalWallet::from(anvil_instance.keys()[0].clone()));
-
-            anvil_client = Some(Arc::new(
-                Provider::<Ws>::connect(&anvil_instance.ws_endpoint())
-                    .await?
-                    .with_signer(signer.with_chain_id(anvil_instance.chain_id())),
-            ));
+        let mut environment = arbiter;
+        if environment.is_none() {
+            environment = Some(EnvironmentBuilder::new().build());
         }
 
-        let mut arbiter_client = None;
-        if let Some(arbiter_instance) = arbiter.as_ref() {
-            arbiter_client = Some(RevmMiddleware::new(arbiter_instance, Some(SANDBOX_LABEL))?);
-        }
-
-        let mut client = None;
-        if let Some(anvil_client) = anvil_client.clone() {
-            client = Some(anvil_client);
-        }
+        let arbiter_client = RevmMiddleware::new(environment.as_ref().unwrap(), None)?;
 
         Ok(Self {
-            client,
-            signer,
+            client: Some(arbiter_client.clone()),
+            signer: None,
             contracts: HashMap::new(),
             ledger: None,
-            arbiter,
-            arbiter_client,
-            anvil,
+            arbiter: environment,
+            arbiter_client: None,
+            anvil: None,
             dfmm_client: None,
         })
-    }
-
-    /// Connects to a network via a websocket endpoint.
-    #[tracing::instrument(skip(self), level = "debug")]
-    pub async fn connect_ws(&mut self, endpoint: &str, chain_id: u64) -> anyhow::Result<()> {
-        let signer = self.signer.clone().unwrap();
-        let client = Arc::new(
-            Provider::<Ws>::connect(endpoint)
-                .await?
-                .interval(std::time::Duration::from_millis(100))
-                .with_signer(signer.with_chain_id(chain_id)),
-        );
-
-        self.client = Some(client);
-        Ok(())
-    }
-
-    /// Connects a signer to the client.
-    /// todo: replacing the client like this... are there side effects?
-    #[tracing::instrument(skip(self), level = "debug")]
-    pub async fn connect_signer(&mut self, signer: LocalWallet) -> anyhow::Result<()> {
-        let provider = self.client.as_ref().unwrap().provider().clone();
-        let chain_id = provider.get_chainid().await?.as_u64();
-        let signer = signer.with_chain_id(chain_id);
-
-        let signer_client = Arc::new(
-            provider
-                .interval(std::time::Duration::from_millis(100))
-                .with_signer(signer),
-        );
-        self.client = Some(signer_client.clone());
-
-        // Override the dfmm_client if it exists with the new signer.
-        if let Some(dfmm_client) = self.dfmm_client.as_ref() {
-            self.dfmm_client = Some(dfmm_client.clone().bind(signer_client.clone())?);
-        }
-
-        Ok(())
-    }
-
-    /// Connects the middleware to a running anvil instance.
-    #[tracing::instrument(skip(self, anvil), level = "debug")]
-    pub async fn connect_anvil(&mut self, anvil: AnvilInstance) -> anyhow::Result<()> {
-        let signer = LocalWallet::from(anvil.keys()[0].clone());
-        let client = Arc::new(
-            Provider::<Ws>::connect(&anvil.ws_endpoint())
-                .await?
-                .interval(std::time::Duration::from_millis(100))
-                .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
-        );
-
-        self.anvil = Some(anvil);
-        self.client = Some(client);
-        self.signer = Some(signer);
-
-        Ok(())
     }
 
     /// Connects the middleware to the dfmm protocol client.
     #[tracing::instrument(skip(self), level = "debug")]
     pub async fn connect_dfmm(
         &mut self,
-        client: ProtocolClient<NetworkClient<Ws, LocalWallet>>,
+        client: ProtocolClient<RevmMiddleware>,
     ) -> anyhow::Result<()> {
         self.dfmm_client = Some(client);
         Ok(())
@@ -295,6 +228,7 @@ mod tests {
         Ok(anvil)
     }
 
+    #[cfg(feature = "anvil")]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_excalibur_local() -> anyhow::Result<()> {
         let client = ExcaliburMiddleware::new(None, None, None).await?;

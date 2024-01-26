@@ -42,6 +42,8 @@ pub const COIN_Y: &str = r#"{
     "logo_uri": ""
 }"#;
 
+pub const DEFAULT_ARBITER_CHAIN_ID: u64 = 0;
+
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
     pub networks: HashMap<ChainId, RawDataModel<AlloyAddress, AlloyU256>>,
@@ -78,7 +80,10 @@ impl Model {
         &mut self,
         client: Arc<M>,
     ) -> anyhow::Result<()> {
-        let chain_id = client.get_chainid().await?;
+        let chain_id = match client.get_chainid().await {
+            Ok(id) => id,
+            Err(_) => U256::from(DEFAULT_ARBITER_CHAIN_ID),
+        };
         self.networks
             .entry(chain_id.as_u64())
             .or_insert_with(|| RawDataModel::new(chain_id.as_u64()));
