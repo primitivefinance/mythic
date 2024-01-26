@@ -206,19 +206,18 @@ contract DFMM is IDFMM {
         isSwapXForY = adjustedReserveX > originalReserveX;
 
         if (isSwapXForY) {
-            require(originalReserveY > adjustedReserveY, "invalid swap");
+            if (adjustedReserveY >= originalReserveY) revert InvalidSwap();
+            inputToken = pools[poolId].tokenX;
+            outputToken = pools[poolId].tokenY;
+            inputAmount = adjustedReserveX - originalReserveX;
+            outputAmount = originalReserveY - adjustedReserveY;
         } else {
-            require(originalReserveX > adjustedReserveX, "invalid swap");
+            if (adjustedReserveX >= originalReserveX) revert InvalidSwap();
+            inputToken = pools[poolId].tokenY;
+            outputToken = pools[poolId].tokenX;
+            inputAmount = adjustedReserveY - originalReserveY;
+            outputAmount = originalReserveX - adjustedReserveX;
         }
-
-        inputToken = isSwapXForY ? pools[poolId].tokenX : pools[poolId].tokenY;
-        outputToken = isSwapXForY ? pools[poolId].tokenY : pools[poolId].tokenX;
-        inputAmount = isSwapXForY
-            ? adjustedReserveX - originalReserveX
-            : adjustedReserveY - originalReserveY;
-        outputAmount = isSwapXForY
-            ? originalReserveY - adjustedReserveY
-            : originalReserveX - adjustedReserveX;
 
         // Do the state updates to the reserves before calling untrusted addresses.
         pools[poolId].reserveX = adjustedReserveX;
