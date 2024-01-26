@@ -1,9 +1,8 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "src/strategies/G3M/G3M.sol";
-import "src/strategies/G3M/G3MLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
