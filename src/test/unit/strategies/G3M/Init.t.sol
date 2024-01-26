@@ -4,33 +4,36 @@ pragma solidity ^0.8.13;
 import "./SetUp.sol";
 
 contract G3MInitTest is G3MSetUp {
-    function test_G3M_init_StoresPoolParameters() public init {
-        (
-            address strategy,
-            address tokenX,
-            address tokenY,
-            uint256 reserveX,
-            uint256 reserveY,
-            uint256 totalLiquidity,
-        ) = dfmm.pools(POOL_ID);
+    using DynamicParamLib for DynamicParam;
 
-        assertEq(strategy, address(g3m));
-        assertEq(tokenX, address(tokenX));
-        assertEq(tokenY, address(tokenY));
-        assertEq(reserveX, defaultReserveX);
-        assertEq(reserveY, reserveY);
-        assertEq(totalLiquidity, totalLiquidity);
+    function test_G3M_init_SetInternalParams() public init {
+        (DynamicParam memory wX, uint256 swapFee, address controller) =
+            g3m.internalParams(POOL_ID);
+
+        assertEq(wX.actualized(), defaultParams.wX);
+        assertEq(swapFee, defaultParams.swapFee);
+        assertEq(controller, defaultParams.controller);
     }
 
-    function test_G3M_init_RevertsIfInvalidTokens() public {
+    function test_G3M_init_RevertsWhenInvalidWeightX() public {
+        G3M.G3MParams memory params = G3M.G3MParams({
+            wX: 1.1 ether,
+            wY: 0.5 ether,
+            swapFee: TEST_SWAP_FEE,
+            controller: address(this)
+        });
+
+        bytes memory defaultInitialPoolData =
+            computeInitialPoolData(defaultReserveX, defaultStrikePrice, params);
+
         IDFMM.InitParams memory initParams = IDFMM.InitParams({
             strategy: address(g3m),
             tokenX: address(tokenX),
-            tokenY: address(tokenX),
+            tokenY: address(tokenY),
             data: defaultInitialPoolData
         });
 
-        vm.expectRevert(IDFMM.InvalidTokens.selector);
+        vm.expectRevert(G3M.InvalidWeightX.selector);
         dfmm.init(initParams);
     }
 
