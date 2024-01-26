@@ -250,6 +250,10 @@ contract DFMM is IDFMM {
 
     // Internals
 
+    /**
+     * @dev Validates the adjusted reserves and liquidity and updates the
+     * reserves and liquidity of a pool during an allocation or deallocation.
+     */
     function _updatePoolReserves(
         uint256 poolId,
         bool isAllocate,
@@ -286,6 +290,9 @@ contract DFMM is IDFMM {
         pools[poolId].totalLiquidity = adjustedTotalLiquidity;
     }
 
+    /**
+     * @dev Mints or burns liquidity tokens.
+     */
     function _manageTokens(
         uint256 poolId,
         bool isAllocate,
@@ -308,8 +315,8 @@ contract DFMM is IDFMM {
 
     /**
      * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
-     *
      * This function uses the create opcode, which should never revert.
+     * This function is taken from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Clones.sol#L23.
      */
     function clone(address implementation)
         internal
@@ -340,14 +347,17 @@ contract DFMM is IDFMM {
 
     // Lens
 
+    /// @notice Returns the amount of initialized pools.
     function nonce() external view returns (uint256) {
         return pools.length;
     }
 
+    /// @notice Returns the pool `poolId` as a Pool struct.
     function getPool(uint256 poolId) external view returns (Pool memory) {
         return pools[poolId];
     }
 
+    /// @notice Returns the reserves and liquidity of pool `poolId`.
     function getReservesAndLiquidity(uint256 poolId)
         external
         view
@@ -361,6 +371,8 @@ contract DFMM is IDFMM {
     }
 
     /**
+     * @notice Returns the amount of liquidity owned by `account` for
+     * the pool `poolId`.
      * @dev This function should NOT be used in a non-view call, as the
      * values can be manipulated. In the future this function might be
      * removed.
