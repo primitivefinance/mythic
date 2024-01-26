@@ -20,7 +20,7 @@ pub fn excalibur_logo() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO, None).unwrap()
 }
 
-const EXCALIBUR_LOGO_2: &[u8] = include_bytes!("../../../../assets/logos/excalibur_logo_2.png");
+const EXCALIBUR_LOGO_2: &[u8] = include_bytes!("../../../../assets/logos/daggeremoji.png");
 
 pub fn excalibur_logo_2() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO_2, None).unwrap()
