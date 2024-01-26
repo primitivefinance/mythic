@@ -63,7 +63,6 @@ contract DFMM is IDFMM {
         // TODO: Burn some initial liquidity
 
         Pool memory pool = Pool({
-            controller: msg.sender,
             strategy: params.strategy,
             tokenX: params.tokenX,
             tokenY: params.tokenY,
@@ -170,16 +169,7 @@ contract DFMM is IDFMM {
 
     /// @inheritdoc IDFMM
     function update(uint256 poolId, bytes calldata data) external lock {
-        if (msg.sender != pools[poolId].controller) revert NotController();
         IStrategy(pools[poolId].strategy).update(poolId, data);
-    }
-
-    function updateController(
-        uint256 poolId,
-        address newController
-    ) external lock {
-        if (msg.sender != pools[poolId].controller) revert NotController();
-        pools[poolId].controller = newController;
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.

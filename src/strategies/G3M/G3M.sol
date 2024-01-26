@@ -18,6 +18,7 @@ contract G3M is IStrategy {
     struct InternalParams {
         DynamicParam wX;
         uint256 swapFee;
+        address controller;
     }
 
     /// @dev Parameterization of the G3M curve.
@@ -25,6 +26,7 @@ contract G3M is IStrategy {
         uint256 wX;
         uint256 wY;
         uint256 swapFee;
+        address controller;
     }
 
     address public immutable dfmm;
@@ -60,7 +62,7 @@ contract G3M is IStrategy {
             uint256 totalLiquidity
         )
     {
-        (valid, invariant, reserveX, reserveY, totalLiquidity,,) =
+        (valid, invariant, reserveX, reserveY, totalLiquidity,,,) =
             _decodeInit(poolId, data);
     }
 
@@ -76,11 +78,12 @@ contract G3M is IStrategy {
             uint256 reserveY,
             uint256 totalLiquidity,
             uint256 wX,
-            uint256 swapFee
+            uint256 swapFee,
+            address controller
         )
     {
-        (reserveX, reserveY, totalLiquidity, wX, swapFee) =
-            abi.decode(data, (uint256, uint256, uint256, uint256, uint256));
+        (reserveX, reserveY, totalLiquidity, wX, swapFee, controller) = abi
+            .decode(data, (uint256, uint256, uint256, uint256, uint256, address));
 
         if (wX >= ONE) {
             revert InvalidWeightX();
@@ -88,6 +91,7 @@ contract G3M is IStrategy {
 
         internalParams[poolId].wX.lastComputedValue = wX;
         internalParams[poolId].swapFee = swapFee;
+        internalParams[poolId].controller = controller;
 
         invariant = tradingFunction(
             reserveX,
@@ -200,6 +204,7 @@ contract G3M is IStrategy {
         params.wX = internalParams[poolId].wX.actualized();
         params.wY = ONE - params.wX;
         params.swapFee = internalParams[poolId].swapFee;
+        params.controller = internalParams[poolId].controller;
 
         return abi.encode(params);
     }

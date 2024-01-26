@@ -13,8 +13,12 @@ contract G3MSetUp is SetUp {
 
     uint256 public POOL_ID;
 
-    G3M.G3MParams defaultParams =
-        G3M.G3MParams({ wX: 0.5 ether, wY: 0.5 ether, swapFee: TEST_SWAP_FEE });
+    G3M.G3MParams defaultParams = G3M.G3MParams({
+        wX: 0.5 ether,
+        wY: 0.5 ether,
+        swapFee: TEST_SWAP_FEE,
+        controller: address(this)
+    });
     uint256 defaultReserveX = 1 ether;
     uint256 defaultStrikePrice = 1 ether;
     bytes defaultInitialPoolData = computeInitialPoolData(

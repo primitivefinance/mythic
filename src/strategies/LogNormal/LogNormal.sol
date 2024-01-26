@@ -24,6 +24,7 @@ contract LogNormal is IStrategy {
         DynamicParam tau;
         DynamicParam strike;
         uint256 swapFee;
+        address controller;
     }
 
     /// @dev Parameterization of the Log Normal curve.
@@ -32,6 +33,7 @@ contract LogNormal is IStrategy {
         uint256 sigma;
         uint256 tau;
         uint256 swapFee;
+        address controller;
     }
 
     address public dfmm;
@@ -92,6 +94,7 @@ contract LogNormal is IStrategy {
         internalParams[poolId].tau.lastComputedValue = params.tau;
         internalParams[poolId].strike.lastComputedValue = params.strike;
         internalParams[poolId].swapFee = params.swapFee;
+        internalParams[poolId].controller = params.controller;
 
         invariant = tradingFunction(
             reserveX,

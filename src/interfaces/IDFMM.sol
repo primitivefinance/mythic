@@ -6,7 +6,6 @@ interface IDFMM {
     // Structs
 
     struct Pool {
-        address controller;
         address strategy;
         address tokenX;
         address tokenY;
@@ -41,8 +40,6 @@ interface IDFMM {
 
     /// @dev Thrown when the transfer of the output amount is invalid.
     error InvalidSwapOutputTransfer();
-
-    error NotController();
 
     error ERC1167FailedCreateClone();
 
@@ -166,7 +163,6 @@ interface IDFMM {
         external
         view
         returns (
-            address controller,
             address strategy,
             address tokenX,
             address tokenY,

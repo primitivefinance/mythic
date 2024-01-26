@@ -17,7 +17,8 @@ contract LogNormalSetUp is SetUp {
         strike: ONE,
         sigma: ONE,
         tau: ONE,
-        swapFee: TEST_SWAP_FEE
+        swapFee: TEST_SWAP_FEE,
+        controller: address(this)
     });
 
     uint256 defaultReserveX = ONE;
@@ -65,7 +66,8 @@ contract LogNormalSetUp is SetUp {
             strike: 2500 ether,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(this)
         });
 
         IDFMM.InitParams memory defaultInitParams = IDFMM.InitParams({

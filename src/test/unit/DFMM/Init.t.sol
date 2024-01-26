@@ -130,7 +130,7 @@ contract DFMMInit is DFMMSetUp {
     }
 
     function test_DFMM_init_DeploysLPTokenClone() public init {
-        (,,,,,,, address liquidityToken) = dfmm.pools(POOL_ID);
+        (,,,,,, address liquidityToken) = dfmm.pools(POOL_ID);
         assertTrue(liquidityToken != address(0));
         assertTrue(liquidityToken.code.length > 0);
     }

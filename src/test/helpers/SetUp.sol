@@ -28,11 +28,6 @@ contract SetUp is Test {
         tokenY.approve(address(dfmm), type(uint256).max);
     }
 
-    function getPoolController(uint256 poolId) public view returns (address) {
-        IDFMM.Pool memory pool = dfmm.getPool(poolId);
-        return pool.controller;
-    }
-
     function getPoolLiquidityToken(uint256 poolId)
         public
         view

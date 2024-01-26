@@ -6,7 +6,6 @@ import "./SetUp.sol";
 contract G3MInitTest is G3MSetUp {
     function test_G3M_init_StoresPoolParameters() public init {
         (
-            address controller,
             address strategy,
             address tokenX,
             address tokenY,
@@ -15,7 +14,6 @@ contract G3MInitTest is G3MSetUp {
             uint256 totalLiquidity,
         ) = dfmm.pools(POOL_ID);
 
-        assertEq(controller, address(this));
         assertEq(strategy, address(g3m));
         assertEq(tokenX, address(tokenX));
         assertEq(tokenY, address(tokenY));
