@@ -139,9 +139,10 @@ impl Agent for G3mArbitrageur {
                     format_ether(target_price)
                 );
                 let x_in = false;
-                let input = self.get_dy().await?;
+                let mut input = self.get_dy().await?;
                 if (input < I256::from(0)) {
-                    bail!("Encountered negative Y input for G3m swap")
+                    input = I256::from(0);
+                    info!("Encountered negative Y input for G3m swap")
                 }
                 let input = input.into_raw();
 
@@ -172,8 +173,6 @@ impl Agent for G3mArbitrageur {
                         }
                     }
                 }
-
-                debug!("[G3M]: === End Loop ===");
             }
             Swap::LowerExchangePrice(target_price) => {
                 info!(
@@ -182,9 +181,10 @@ impl Agent for G3mArbitrageur {
                 );
                 let x_in = true;
                 let liquid_exchange_price = self.0.liquid_exchange.price().call().await?;
-                let input = self.get_dx().await?;
+                let mut input = self.get_dx().await?;
                 if (input < I256::from(0)) {
-                    bail!("Encountered negative X input for G3m swap")
+                    info!("Encountered negative X input for G3m swap");
+                    input = I256::from(0);
                 }
                 let input = input.into_raw() * liquid_exchange_price / WAD;
 
