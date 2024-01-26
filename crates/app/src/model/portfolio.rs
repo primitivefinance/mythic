@@ -834,7 +834,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let current_block = self.fetch_block_number(client.clone()).await?;
 
         let (
-            _inited,
             controller,
             strategy,
             asset_token,
