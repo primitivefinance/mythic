@@ -5,7 +5,6 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "src/interfaces/IStrategy.sol";
 import "src/interfaces/IDFMM.sol";
-import "src/solvers/LogNormal/BisectionLib.sol";
 import "src/solvers/G3M/G3MExtendedLib.sol";
 
 contract G3MSolver {
@@ -18,9 +17,6 @@ contract G3MSolver {
         uint256 ry;
         uint256 L;
     }
-
-    uint256 public constant BISECTION_EPSILON = 1;
-    uint256 public constant MAX_BISECTION_ITERS = 90;
 
     address public strategy;
 
