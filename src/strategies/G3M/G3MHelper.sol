@@ -6,7 +6,8 @@ import "./G3M.sol";
 enum G3MUpdateCode {
     Invalid,
     SwapFee,
-    WeightX
+    WeightX,
+    Controller
 }
 
 function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
@@ -31,6 +32,20 @@ function decodeWeightXUpdate(bytes memory data)
 {
     (, targetWeightX, targetTimestamp) =
         abi.decode(data, (G3MUpdateCode, uint256, uint256));
+}
+
+function encodeControllerUpdate(uint256 controller)
+    pure
+    returns (bytes memory data)
+{
+    return abi.encode(G3MUpdateCode.Controller, controller);
+}
+
+function decodeControllerUpdate(bytes memory data)
+    pure
+    returns (uint256 controller)
+{
+    (, controller) = abi.decode(data, (G3MUpdateCode, uint256));
 }
 
 contract G3MHelper {
@@ -62,5 +77,13 @@ contract G3MHelper {
         uint256 targetTimestamp
     ) public pure returns (bytes memory) {
         return encodeWeightXUpdate(targetWeightX, targetTimestamp);
+    }
+
+    function prepareControllerUpdate(uint256 controller)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return encodeControllerUpdate(controller);
     }
 }
