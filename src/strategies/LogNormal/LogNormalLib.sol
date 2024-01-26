@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "./LogNormalMath.sol";
 import "./LogNormal.sol";
+import "forge-std/console2.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -91,11 +92,16 @@ function tradingFunction(
     LogNormal.LogNormalParams memory params
 ) pure returns (int256) {
     require(rx < L, "tradingFunction: invalid x");
+    //console2.log(rx);
+    //console2.log(ry);
+    //console2.log(L);
+    //console2.log(params.strike.mulWadDown(L));
 
     int256 AAAAA;
     int256 BBBBB;
     if (FixedPointMathLib.divWadDown(rx, L) >= ONE) {
         AAAAA = int256(2 ** 255 - 1);
+        revert ErrorA(AAAAA);
     } else {
         AAAAA = Gaussian.ppf(int256(FixedPointMathLib.divWadDown(rx, L)));
     }
@@ -105,6 +111,7 @@ function tradingFunction(
         ) >= ONE
     ) {
         BBBBB = int256(2 ** 255 - 1);
+        revert ErrorB(BBBBB);
     } else {
         BBBBB = Gaussian.ppf(
             int256(

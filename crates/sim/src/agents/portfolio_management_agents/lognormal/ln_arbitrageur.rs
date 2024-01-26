@@ -64,6 +64,10 @@ impl LnArbitrageur {
             PoolParams::G3M(_) => bail!("Failed to parse LogNormal params, received G3M"),
         };
 
+        info!("strike: {:?}", format_ether(strike));
+        info!("sigma: {:?}", format_ether(sigma));
+        info!("tau: {:?}", format_ether(tau));
+
         let (strike, sigma, tau, swap_fee) = (
             I256::from_raw(strike),
             I256::from_raw(sigma),
@@ -76,6 +80,9 @@ impl LnArbitrageur {
             .protocol_client
             .get_reserves_and_liquidity(self.0.pool_id)
             .await?;
+        info!("rx: {:?}", format_ether(rx));
+        info!("ry: {:?}", format_ether(ry));
+        info!("liq: {:?}", format_ether(liq));
         let (rx, ry, liq) = (I256::from_raw(rx), I256::from_raw(ry), I256::from_raw(liq));
         Ok(ArbInputs {
             i_wad,

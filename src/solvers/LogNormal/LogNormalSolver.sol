@@ -19,7 +19,7 @@ contract LogNormalSolver {
         uint256 L;
     }
 
-    uint256 public constant BISECTION_EPSILON = 1;
+    uint256 public constant BISECTION_EPSILON = 0;
     uint256 public constant MAX_BISECTION_ITERS = 120;
 
     address public strategy;
@@ -187,6 +187,7 @@ contract LogNormalSolver {
             uint256 startComputedL = getNextLiquidity(
                 poolId, startReserves.rx, startReserves.ry, startReserves.L
             );
+            console2.log("computedL start", startComputedL);
 
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
@@ -197,8 +198,10 @@ contract LogNormalSolver {
                 endReserves.rx = startReserves.rx + amountIn;
                 endReserves.L = startComputedL + deltaL;
 
+                console2.log("before computing ry");
                 endReserves.ry =
                     getNextReserveY(poolId, endReserves.rx, endReserves.L);
+                console2.log(endReserves.ry);
                 endReserves.ry += 1;
 
                 require(
@@ -215,9 +218,11 @@ contract LogNormalSolver {
                 endReserves.ry = startReserves.ry + amountIn;
                 endReserves.L = startComputedL + deltaL;
 
+                console2.log("before next rx");
                 endReserves.rx =
                     getNextReserveX(poolId, endReserves.ry, endReserves.L);
                 endReserves.rx += 1;
+                console2.log("next rx", endReserves.rx);
 
                 require(
                     endReserves.rx < startReserves.rx,

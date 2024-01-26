@@ -160,6 +160,7 @@ impl ParameterManager {
             PoolParams::LogNormal(log_normal_params) => {
                 let current_strike = log_normal_params.strike;
                 let current_strike_float = parse_ether_to_f64(current_strike)?;
+                tracing::info!("current_strike: {:?}", current_strike_float);
                 let mut new_strike = current_strike_float;
                 let mut scaling_factor = vol_diff * self.sensitivity / self.target_volatility;
                 if scaling_factor > self.max_change {
@@ -170,6 +171,7 @@ impl ParameterManager {
                 } else {
                     new_strike += scaling_factor;
                 }
+                tracing::info!("new_strike: {:?}", new_strike);
                 self.protocol_client
                     .set_strike_price(self.pool_id, new_strike, self.next_update_time)
                     .await?;

@@ -75,7 +75,7 @@ specialty.VolatilityTargeting.max_change.fixed = 0.06
 # Liquidity provider settings
 [agent.g3m_lp.G3mLiquidityProvider]
 # The amount of `token_x` to provide in ether
-initial_x_amount.fixed = 1
+initial_x_amount.fixed = 100
 # The initial price of the pair
 initial_price.fixed = 1.0
 # inital parameters

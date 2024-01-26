@@ -156,6 +156,7 @@ contract G3M is IStrategy {
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
+        console2.log(invariant);
         // todo: remove this
         liquidityDelta = int256(nextL);
         valid = -(EPSILON) < invariant && invariant < EPSILON;

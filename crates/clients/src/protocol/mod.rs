@@ -108,6 +108,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let ln_helper = LogNormalHelper::deploy(client.clone(), ln_strategy.address())?
             .send()
             .await?;
+
         let g_helper = G3MHelper::deploy(client.clone(), g_strategy.address())?
             .send()
             .await?;

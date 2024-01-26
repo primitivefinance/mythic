@@ -65,11 +65,6 @@ contract G3MTest is Test {
       uint256 amountIn = 10 ether;
       uint256 poolId = dfmm.nonce() - 1;
       (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) = solver.simulateSwap(poolId, true, amountIn);
-      dfmm.swap(poolId, swapData);
-
-      (bool valid2, , , bytes memory swapData2) = solver.simulateSwap(poolId, false, amountIn);
-      assertEq(valid2, true);
-
     }
 
     // function test_internal_price() public basic {

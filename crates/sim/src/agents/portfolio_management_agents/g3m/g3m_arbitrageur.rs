@@ -105,7 +105,6 @@ impl G3mArbitrageur {
         let delta_x =
             (liq * self.0.arb_math.pow(inside, wy).call().await? / i_wad - rx) * (i_wad / gamma);
 
-        info!("delta_x: {:?}", delta_x);
         Ok(delta_x)
     }
 
@@ -126,7 +125,6 @@ impl G3mArbitrageur {
         let delta_y =
             (liq * self.0.arb_math.pow(inside, wx).call().await? / i_wad - ry) * (i_wad / gamma);
 
-        info!("delta_y: {:?}", delta_y);
         Ok(delta_y)
     }
 }

@@ -7,6 +7,7 @@ import "src/strategies/LogNormal/LogNormalLib.sol";
 import "src/strategies/LogNormal/LogNormal.sol";
 import "../../interfaces/IDFMM.sol";
 import "./BisectionLib.sol";
+import "forge-std/console2.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -126,13 +127,17 @@ function computeInitialPoolData(
     LogNormal.LogNormalParams memory params
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
+    console2.log(L);
     uint256 ry = computeYGivenL(L, initialPrice, params);
+    console2.log(ry);
     int256 invariant =
         tradingFunction({ rx: amountX, ry: ry, L: L, params: params });
+    console2.log("invariant", invariant);
     L = computeNextLiquidity(amountX, ry, invariant, L, params);
+    console2.log("nextLiquidity", L);
     return abi.encode(amountX, ry, L, params);
 }
-
+// TODO(matt): use the O(1) findXGivenL or findYGivenL as first pass approximation for bisection bounds
 /// @dev Finds the root of the invariant given the independent variables reserveXWad and reserveYWad.
 function computeNextLiquidity(
     uint256 rx,
@@ -150,10 +155,13 @@ function computeNextLiquidity(
         return currentL;
     } else if (invariant < 0) {
         upper = currentL;
-        lower = rx > yOverK ? rx + 1 : yOverK + 1;
+        //lower = rx > yOverK ? rx + 1 : yOverK + 1;
+        //lower = yOverK + 10_000_000;
+        lower = currentL.mulDivDown(50, 100);
         iters = 256;
     } else {
-        upper = 1e27;
+        //upper = 1e27;
+        upper = currentL.mulDivUp(150, 100);
         lower = currentL;
         iters = 256;
     }
@@ -179,9 +187,13 @@ function computeNextRy(
     uint256 lower;
     if (invariant < 0) {
         lower = currentRy;
-        upper = currentRy.mulDivUp(200, 100);
+        //uint256 upper_a = currentRy.mulDivUp(150, 100);
+        //uint256 upper_b = params.strike.mulWadDown(L) - 1_000;
+        //upper = upper_a > upper_b ? upper_b : upper_a;
+        //upper = params.strike.mulWadDown(L) - 1_000;
+        upper = currentRy.mulDivUp(150, 100);
     } else {
-        lower = currentRy.mulDivDown(30, 100);
+        lower = currentRy.mulDivDown(50, 100);
         upper = currentRy; // Can use `currentRy` as upper because function is monotonic and this is only invoked if swapping x in --> must satisfy currentRy > nextRy
     }
     ry = bisection(
@@ -206,9 +218,9 @@ function computeNextRx(
     uint256 lower;
     if (invariant < 0) {
         lower = currentRx;
-        upper = currentRx.mulDivUp(200, 100);
+        upper = currentRx.mulDivUp(150, 100);
     } else {
-        lower = currentRx.mulDivDown(30, 100);
+        lower = currentRx.mulDivDown(50, 100);
         upper = currentRx; // can use `currentRx` as upper because function is monotonic and this is only invoked if swapping y in --> must satisfy currentRx > nextRx
     }
     rx = bisection(
