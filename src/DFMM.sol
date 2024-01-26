@@ -169,7 +169,7 @@ contract DFMM is IDFMM {
 
     /// @inheritdoc IDFMM
     function update(uint256 poolId, bytes calldata data) external lock {
-        IStrategy(pools[poolId].strategy).update(poolId, data);
+        IStrategy(pools[poolId].strategy).update(msg.sender, poolId, data);
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.

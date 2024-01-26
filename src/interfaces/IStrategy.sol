@@ -5,6 +5,7 @@ pragma solidity ^0.8.13;
 interface IStrategy {
     error InvalidUpdateCode();
     error NotDFMM();
+    error InvalidSender();
 
     function init(
         address sender,
@@ -51,7 +52,11 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
-    function update(uint256 poolId, bytes calldata data) external;
+    function update(
+        address sender,
+        uint256 poolId,
+        bytes calldata data
+    ) external;
 
     function computeSwapConstant(
         uint256 poolId,

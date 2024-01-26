@@ -188,7 +188,11 @@ contract G3M is IStrategy {
     }
 
     /// @inheritdoc IStrategy
-    function update(uint256 poolId, bytes calldata data) external onlyDFMM {
+    function update(
+        address sender,
+        uint256 poolId,
+        bytes calldata data
+    ) external onlyDFMM {
         G3MUpdateCode updateCode = abi.decode(data, (G3MUpdateCode));
 
         if (updateCode == G3MUpdateCode.SwapFee) {

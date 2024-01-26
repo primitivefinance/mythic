@@ -189,7 +189,11 @@ contract LogNormal is IStrategy {
     }
 
     /// @inheritdoc IStrategy
-    function update(uint256 poolId, bytes calldata data) external onlyDFMM {
+    function update(
+        address sender,
+        uint256 poolId,
+        bytes calldata data
+    ) external onlyDFMM {
         LogNormalUpdateCode updateCode = abi.decode(data, (LogNormalUpdateCode));
 
         if (updateCode == LogNormalUpdateCode.SwapFee) {
