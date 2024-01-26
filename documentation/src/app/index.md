@@ -1,13 +1,7 @@
-# App
-
-## A Vision
-Excalibur aims to be a be-all-end all desktop application to service modern decentralized finance. 
-The changing financial landscape requires new tools for management for everyone.
-It begins with a portfolio management application that allows users to manage their assets and strategies.
-These strategies are given not just as Ethereum smart contracts, but they are strapped alongside of the ability to simulate them in a sandbox environment, deploy them to a network, monitor their status, feed updates to offline agents, update the onchain system, and more.
+# Application 
 
 ## Contract Interface
-Instead of a generalized block explorer like etherscan, Excalibur is a focused block explorer that knows all about specific contract's possible transactions and interactions. 
+Excalibur delivers a custom contract interface. 
 This lets us work with state changes in a much more human digestible way.
 
 ## Agents
@@ -15,10 +9,8 @@ Agents are created as a client with an address.
 Each transaction can have a view that goes into more detail of whats going on in the transaction.
 Agents are the glue for the relationship between a simultion and strategy or offline and online.  
 
-When we run a sim, we are looking at the heuristics defined by the strategy, its basically whats important to us, since we plan on executing it.
+When we run a sim, we are looking at the heuristics defined by the strategy, its  what is important to us, since we plan on executing it.
 These, at the momeent, are more specific to the portfolio management app.
-
-Portfolio management -> strategy -> simulation -> agents mock our execution -> simulation terminal renders the simulation -> execution will execute the strategy.
 
 ## RPC Management
 We should make it easy to manage rpcs. 
