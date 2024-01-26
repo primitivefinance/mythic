@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arbiter_core::middleware::errors::RevmMiddlewareError;
-use clients::protocol::{PoolParams, ProtocolClient};
+use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{Address, U256},
     utils::format_ether,
@@ -42,6 +42,7 @@ impl LnArbitrageur {
             token_admin,
             liquid_exchange_address,
             protocol_client,
+            PoolKind::LogNormal,
             pool_id,
         )
         .await?;
@@ -113,6 +114,7 @@ impl LnArbitrageur {
         let delta = liq * (i_wad - cdf_p) / i_wad;
         let dx = (delta - rx) * i_wad * i_wad
             / (((gamma - i_wad) * (i_wad - cdf_p)) / (rx * i_wad / liq) + i_wad);
+        info!("dx: {:?}", dx / i_wad);
         Ok(dx / i_wad)
     }
 
@@ -141,11 +143,12 @@ impl LnArbitrageur {
         let delta = (liq * strike) / i_wad * (cdf_p) / i_wad;
         let dy = (delta - ry) * i_wad * i_wad
             / (((gamma - i_wad) * cdf_p) / (ry * i_wad * i_wad / (strike * liq)) + i_wad);
+        info!("dy: {:?}", dy / i_wad);
 
         Ok(dy / i_wad)
     }
 }
-// TODO: make sure we're swapping on low and high vol strategies
+
 #[async_trait::async_trait]
 impl Agent for LnArbitrageur {
     #[allow(unused)]
@@ -202,7 +205,7 @@ impl Agent for LnArbitrageur {
                 let tx = self
                     .0
                     .atomic_arbitrage
-                    .lower_exchange_price(ethers::types::U256::from(0), input);
+                    .lower_exchange_price(self.0.pool_id, input);
                 let output = tx.send().await;
 
                 match output {

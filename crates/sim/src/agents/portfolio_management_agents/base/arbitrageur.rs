@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
-use clients::protocol::ProtocolClient;
+use clients::protocol::{pool::PoolKind, ProtocolClient};
 use ethers::{types::U256, utils::parse_ether};
 
 use super::{
@@ -35,6 +35,7 @@ impl Arbitrageur {
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
         protocol_client: ProtocolClient<RevmMiddleware>,
+        kind: PoolKind,
         pool_id: U256,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
@@ -44,12 +45,17 @@ impl Arbitrageur {
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
 
+        let solver = match kind {
+            PoolKind::G3M => protocol_client.g_solver.address(),
+            PoolKind::LogNormal => protocol_client.ln_solver.address(),
+        };
+
         // Deploy the arbitrageur's atomic contract to atomically swap between
         // exchanges.
         let atomic_arbitrage = AtomicV2::deploy(
             client.clone(),
             (
-                protocol_client.g_solver.address(),
+                solver,
                 protocol_client.protocol.address(),
                 liquid_exchange.address(),
                 token_admin.arbx.address(),
@@ -106,6 +112,12 @@ impl Arbitrageur {
             .protocol_client
             .get_internal_price(self.pool_id)
             .await?;
+
+        tracing::info!(
+            "lex price: {:?} dex price: {:?}",
+            liquid_exchange_price_wad,
+            target_exchange_price_wad
+        );
 
         match liquid_exchange_price_wad {
             _ if liquid_exchange_price_wad > target_exchange_price_wad => {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use arbiter_core::middleware::errors::RevmMiddlewareError;
-use clients::protocol::{PoolParams, ProtocolClient};
+use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{I256, U256},
     utils::format_ether,
@@ -45,6 +45,7 @@ impl G3mArbitrageur {
             token_admin,
             liquid_exchange_address,
             protocol_client,
+            PoolKind::G3M,
             pool_id,
         )
         .await?;
@@ -104,6 +105,7 @@ impl G3mArbitrageur {
         let delta_x =
             (liq * self.0.arb_math.pow(inside, wy).call().await? / i_wad - rx) * (i_wad / gamma);
 
+        info!("delta_x: {:?}", delta_x);
         Ok(delta_x)
     }
 
@@ -124,6 +126,7 @@ impl G3mArbitrageur {
         let delta_y =
             (liq * self.0.arb_math.pow(inside, wx).call().await? / i_wad - ry) * (i_wad / gamma);
 
+        info!("delta_y: {:?}", delta_y);
         Ok(delta_y)
     }
 }
@@ -191,7 +194,7 @@ impl Agent for G3mArbitrageur {
                 let tx = self
                     .0
                     .atomic_arbitrage
-                    .lower_exchange_price(U256::from(1), input);
+                    .lower_exchange_price(self.0.pool_id, input);
 
                 let output = tx.send().await;
 

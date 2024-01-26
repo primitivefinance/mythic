@@ -1,7 +1,7 @@
 //! Dynamic Function Market Making Protocol Client
 //!
 //! Middleware layer for agents to communicate with the DFMM protocol.
-mod pool;
+pub mod pool;
 
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 

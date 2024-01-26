@@ -156,36 +156,10 @@ contract LogNormal is IStrategy {
         LogNormalParams memory params =
             abi.decode(getPoolParams(poolId), (LogNormalParams));
 
-        (uint256 startRx, uint256 startRy, uint256 startL) =
-            IDFMM(dfmm).getReservesAndLiquidity(poolId);
-
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
-
-        // Rounding up is advantageous towards the protocol, to make sure swap fees
-        // are fully paid for.
-        uint256 minLiquidityDelta;
-        uint256 amountIn;
-        uint256 fees;
-        if (nextRx > startRx) {
-            amountIn = nextRx - startRx;
-            fees = amountIn.mulWadUp(params.swapFee);
-            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
-        } else if (nextRy > startRy) {
-            // δl = δx * L / X, where δx = delta x * fee
-            amountIn = nextRy - startRy;
-            fees = amountIn.mulWadUp(params.swapFee);
-            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
-        } else {
-            // should never get here!
-            revert("invalid swap: inputs x and y have the same sign!");
-        }
-
-        liquidityDelta = int256(nextL) - int256(startL);
-
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
-
-        bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
-        valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
+        liquidityDelta = int256(nextL);
+        valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
     /// @inheritdoc IStrategy

@@ -179,9 +179,9 @@ function computeNextRy(
     uint256 lower;
     if (invariant < 0) {
         lower = currentRy;
-        upper = currentRy.mulDivUp(150, 100);
+        upper = currentRy.mulDivUp(200, 100);
     } else {
-        lower = currentRy.mulDivDown(50, 100);
+        lower = currentRy.mulDivDown(30, 100);
         upper = currentRy; // Can use `currentRy` as upper because function is monotonic and this is only invoked if swapping x in --> must satisfy currentRy > nextRy
     }
     ry = bisection(
@@ -206,9 +206,9 @@ function computeNextRx(
     uint256 lower;
     if (invariant < 0) {
         lower = currentRx;
-        upper = currentRx.mulDivUp(150, 100);
+        upper = currentRx.mulDivUp(200, 100);
     } else {
-        lower = currentRx.mulDivDown(50, 100);
+        lower = currentRx.mulDivDown(30, 100);
         upper = currentRx; // can use `currentRx` as upper because function is monotonic and this is only invoked if swapping y in --> must satisfy currentRx > nextRx
     }
     rx = bisection(
