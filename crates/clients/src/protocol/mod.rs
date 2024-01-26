@@ -363,6 +363,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                 Ok(init_params)
             }
             PoolParams::LogNormal(log_normal_params) => {
+                tracing::info!("log normal solver address: {:?}", self.ln_solver.address());
                 let init_data = self
                     .ln_solver
                     .get_initial_pool_data(init_reserve_x_wad, init_price_wad, log_normal_params)
@@ -390,6 +391,28 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .await?;
 
         Ok(tx)
+    }
+
+    /// alex: testing out some blocking in the application
+    pub async fn create_position(
+        &self,
+        token_x: Address,
+        token_y: Address,
+        init_reserve_x_wad: U256,
+        init_price_wad: U256,
+        init_params: PoolInitParamsF64,
+    ) -> Result<Option<TransactionReceipt>> {
+        let payload = self
+            .get_init_payload(
+                token_x,
+                token_y,
+                init_reserve_x_wad,
+                init_price_wad,
+                init_params,
+            )
+            .await?;
+
+        self.initialize_pool(payload).await
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
