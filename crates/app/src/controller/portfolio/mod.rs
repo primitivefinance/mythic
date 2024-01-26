@@ -64,6 +64,12 @@ impl State for PortfolioRoot {
     type AppMessage = app::Message;
     type ViewMessage = view::Message;
 
+    fn load(&self) -> Command<Self::AppMessage> {
+        self.monolithic
+            .load()
+            .map(|x| Message::Monolithic(x).into())
+    }
+
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::Message::Portfolio(message)) => match message {

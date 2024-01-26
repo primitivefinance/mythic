@@ -146,81 +146,92 @@ impl Monolithic {
         let txs = self.presenter.get_historical_txs();
         self.presenter.cache_historical_txs(txs);
 
+        // Re-cache liquidity choices.
+        let choices = self.presenter.get_liquidity_choices();
+        self.presenter.cache_liquidity_choices(choices);
+
         Command::none()
     }
 
     pub fn handle_submit_allocate(&mut self) -> anyhow::Result<Command<Message>> {
         if let Some(client) = self.client.clone() {
             if let (Some(signer), Some(_)) = (client.signer.as_ref(), client.dfmm_client.as_ref()) {
-                let _submitter = signer.address();
-
-                // Get the tokens from the user's data token list.
-                let token_list = self.model.user.coins.clone();
-
-                // Find the asset token, which has a tag of "ether".
-                let asset_token = token_list
-                    .tokens
-                    .clone()
-                    .into_iter()
-                    .find(|token| token.tags.contains(&"ether".to_string()))
-                    .map(|token| token.address);
-                let asset_token = match asset_token {
-                    Some(x) => x,
-                    None => return Err(anyhow::anyhow!("No asset token")),
-                };
-
-                // Find the quote token, which has a tag of "stablecoin".
-                let quote_token = token_list
-                    .tokens
-                    .clone()
-                    .into_iter()
-                    .find(|token| token.tags.contains(&"stablecoin".to_string()))
-                    .map(|token| token.address);
-                let quote_token = match quote_token {
-                    Some(x) => x,
-                    None => return Err(anyhow::anyhow!("No quote token")),
-                };
-
-                let deposit_amount_dollars = self.create.amount.clone();
-                let deposit_amount_dollars = match deposit_amount_dollars {
-                    Some(x) => x.parse::<f64>().unwrap(),
-                    None => return Err(anyhow::anyhow!("No deposit amount")),
-                };
-
                 if self.model.get_current().is_none() {
                     return Err(anyhow::anyhow!(
                         "Data model is not connected to any network."
                     ));
                 }
 
-                // Does not panic because it's caught in the above if statement.
-                let asset_price = self
-                    .model
-                    .get_current()
-                    .unwrap()
-                    .price_of_token(asset_token)?;
-                let asset_price = format_and_parse(asset_price)?;
-
                 let parameters = self.create.liquidity;
-                let parameters: LiquidityTypes = match parameters {
-                    Some(x) => x,
-                    None => return Err(anyhow::anyhow!("No liquidity parameters")),
-                };
-                let parameters = parameters.to_parameters(asset_price);
-
+                let deposit_amount_dollars = self.create.amount.clone();
+                let model_clone = self.model.clone();
                 let client = client.clone();
+
                 tracing::info!(
-                    "Sending transaction to address: {:?}",
+                    "Sending create position transaction to contract: {:?} from signer: {:?}",
                     client
                         .dfmm_client
                         .clone()
                         .unwrap()
                         .protocol
                         .address()
-                        .clone()
+                        .clone(),
+                    signer.address()
                 );
                 return Ok(Command::perform(
                     async move {
+                        let data_model = model_clone.get_current().unwrap();
+                        let token_list = model_clone.user.coins.clone();
+                        // Find the asset token, which has a tag of "ether".
+                        let asset_token = token_list
+                            .tokens
+                            .clone()
+                            .into_iter()
+                            .find(|token| token.tags.contains(&"ether".to_string()))
+                            .map(|token| token.address);
+                        let asset_token = match asset_token {
+                            Some(x) => x,
+                            None => {
+                                return Err(anyhow::anyhow!("No asset token")).map_err(Arc::new)
+                            }
+                        };
+                        // Does not panic because it's caught in the above if statement.
+                        let asset_price = data_model.price_of_token(asset_token)?;
+                        let asset_price = format_and_parse(asset_price)?;
+
+                        let parameters: LiquidityTypes = match parameters {
+                            Some(x) => x,
+                            None => {
+                                return Err(anyhow::anyhow!("No liquidity parameters"))
+                                    .map_err(Arc::new)
+                            }
+                        };
+                        let parameters = parameters.to_parameters(asset_price);
+
+                        // Get the tokens from the user's data token list.
+                        let token_list = model_clone.user.coins.clone();
+
+                        // Find the quote token, which has a tag of "stablecoin".
+                        let quote_token = token_list
+                            .tokens
+                            .clone()
+                            .into_iter()
+                            .find(|token| token.tags.contains(&"stablecoin".to_string()))
+                            .map(|token| token.address);
+                        let quote_token = match quote_token {
+                            Some(x) => x,
+                            None => {
+                                return Err(anyhow::anyhow!("No quote token")).map_err(Arc::new)
+                            }
+                        };
+
+                        let deposit_amount_dollars = match deposit_amount_dollars {
+                            Some(x) => x.parse::<f64>().unwrap(),
+                            None => {
+                                return Err(anyhow::anyhow!("No deposit amount")).map_err(Arc::new)
+                            }
+                        };
+
                         let (amount_x, _amount_y, _total_liquidity) = get_deposits_given_price(
                             asset_price,
                             deposit_amount_dollars,
@@ -240,14 +251,16 @@ impl Monolithic {
                             alloy_primitives::utils::parse_ether(&format!("{}", asset_price))
                                 .map_err(|err| {
                                     Arc::new(anyhow::anyhow!("Error parsing price: {:?}", err))
-                                })?;
+                                })
+                                .unwrap();
                         let init_price_wad = to_ethers_u256(init_price_wad);
 
                         let init_reserve_x_wad = to_ethers_u256(
                             alloy_primitives::utils::parse_ether(&format!("{}", amount_x))
                                 .map_err(|err| {
                                     Arc::new(anyhow::anyhow!("Error parsing amount: {:?}", err))
-                                })?,
+                                })
+                                .unwrap(),
                         );
 
                         let dfmm = client
@@ -255,19 +268,17 @@ impl Monolithic {
                             .as_ref()
                             .unwrap_or_else(|| panic!("No DFMM client in ExcaliburMiddleware"));
 
-                        let payload = dfmm
-                            .get_init_payload(
-                                to_ethers_address(asset_token),
-                                to_ethers_address(quote_token),
-                                init_reserve_x_wad,
-                                init_price_wad,
-                                payload_params,
-                            )
-                            .await?;
-
                         // todo: handle mutable update to the pools array in the protocol client
                         // separately.
-                        dfmm.initialize_pool(payload).map_err(Arc::new).await
+                        dfmm.create_position(
+                            to_ethers_address(asset_token),
+                            to_ethers_address(quote_token),
+                            init_reserve_x_wad,
+                            init_price_wad,
+                            payload_params,
+                        )
+                        .map_err(Arc::new)
+                        .await
                     },
                     Message::AllocateResult,
                 ));
@@ -332,14 +343,12 @@ impl Monolithic {
                         .find(|token| token.tags.contains(&"ether".to_string()))
                         .map(|token| token.address);
 
-                    tracing::info!("Asset token: {:?}", asset_token);
                     let asset_token = match asset_token {
                         Some(x) => x,
                         None => return Command::none(),
                     };
 
                     let external_price = connected_model.price_of_token(asset_token);
-                    tracing::info!("External price: {:?}", external_price);
                     let external_price = match external_price {
                         Ok(x) => format_and_parse(x).unwrap(),
                         Err(_) => return Command::none(),
@@ -501,7 +510,7 @@ impl State for Monolithic {
                         FormMessage::Duration,
                         FormMessage::EndPrice,
                         FormMessage::Liquidity,
-                        self.presenter.get_liquidity_choices(),
+                        &self.presenter.liquidity_choices,
                     )
                     .map(Message::Form),
             );

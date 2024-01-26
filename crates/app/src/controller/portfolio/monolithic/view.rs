@@ -20,6 +20,7 @@ use crate::{
 pub struct MonolithicPresenter {
     model: Model,
     pub historical_txs: Vec<HistoricalTx>,
+    pub liquidity_choices: Vec<LiquidityChoices>,
     pub cached_strategy_preview: ExcaliburChart,
     pub cached_strategy_histogram: ExcaliburHistogram,
 }
@@ -148,6 +149,10 @@ impl MonolithicPresenter {
         self.historical_txs = txs;
     }
 
+    pub fn cache_liquidity_choices(&mut self, choices: Vec<LiquidityChoices>) {
+        self.liquidity_choices = choices;
+    }
+
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         if self.model.get_current().is_none() {
             return label("Timestamp: N/A").caption().tertiary();
@@ -203,8 +208,6 @@ impl MonolithicPresenter {
     }
 
     pub fn get_allocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
-        let portfolio = self.model.user.portfolio.clone();
-        let positions = portfolio.positions.clone();
         // Filter the positions to the liquidity_token addresses in the model's
         // liquidity token mapping.
         let liquidity_tokens = self
@@ -215,7 +218,11 @@ impl MonolithicPresenter {
             .clone()
             .unwrap_or_default();
 
-        let allocated_positions_vec: Vec<Position> = positions
+        let allocated_positions_vec: Vec<Position> = self
+            .model
+            .user
+            .portfolio
+            .positions
             .0
             .iter()
             .filter(|x| liquidity_tokens.contains(&x.asset.address))
@@ -229,10 +236,8 @@ impl MonolithicPresenter {
     }
 
     pub fn get_unallocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
-        let portfolio = self.model.user.portfolio.clone();
-        let positions = portfolio.positions.clone();
         let mut unallocated_positions = vec![];
-        for position in positions.0.iter() {
+        for position in self.model.user.portfolio.positions.0.iter() {
             let logo = if position.asset.tags.contains(&"ether".to_string()) {
                 ether_logo()
             } else if position.asset.tags.contains(&"stablecoin".to_string()) {

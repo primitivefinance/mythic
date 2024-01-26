@@ -209,7 +209,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
 
         let signer_client = Arc::new(
             provider
-                .interval(std::time::Duration::from_millis(100))
+                .interval(std::time::Duration::from_millis(10))
                 .with_signer(signer),
         );
         self.client = Some(signer_client.clone());
@@ -229,7 +229,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         let client = Arc::new(
             Provider::<Ws>::connect(&anvil.ws_endpoint())
                 .await?
-                .interval(std::time::Duration::from_millis(100))
+                .interval(std::time::Duration::from_millis(10))
                 .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
         );
 
