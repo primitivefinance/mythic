@@ -22,4 +22,10 @@ contract G3MHelperTest is Test {
         assertEq(targetWeightX, decodedTargetWeightX);
         assertEq(targetTimestamp, decodedTargetTimestamp);
     }
+
+    function test_G3MLib_encodeControllerUpdate() public {
+        address controller = address(0xdeadbeef);
+        bytes memory data = encodeControllerUpdate(controller);
+        assertEq(controller, decodeControllerUpdate(data));
+    }
 }
