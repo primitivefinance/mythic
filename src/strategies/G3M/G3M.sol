@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IDFMM.sol";
-import "../../interfaces/IStrategy.sol";
-import "../../lib/DynamicParamLib.sol";
+import "src/interfaces/IDFMM.sol";
+import "src/interfaces/IStrategy.sol";
+import "src/lib/DynamicParamLib.sol";
+import "src/solvers/G3M/G3MHelper.sol";
 import "./G3MLib.sol";
-import "./G3MHelper.sol";
 
 /**
  * @notice Geometric Mean Market Maker.

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IDFMM.sol";
-import "../../interfaces/IStrategy.sol";
-import "../../lib/DynamicParamLib.sol";
+import "src/interfaces/IDFMM.sol";
+import "src/interfaces/IStrategy.sol";
+import "src/lib/DynamicParamLib.sol";
+import "src/lib/StrategyLib.sol";
+import "src/solvers/LogNormal/LogNormalHelper.sol";
 import "./LogNormalLib.sol";
-import "./LogNormalHelper.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price

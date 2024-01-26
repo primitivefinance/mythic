@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
-import "src/interfaces/IStrategy.sol";
 import "src/interfaces/IDFMM.sol";
-import "src/strategies/LogNormal/BisectionLib.sol";
-import "src/strategies/G3M/G3MExtendedLib.sol";
+import "src/interfaces/IStrategy.sol";
+import "./BisectionLib.sol";
+import "./LogNormalExtendedLib.sol";
 
-contract G3MSolver {
+contract LogNormalSolver {
     using FixedPointMathLib for uint256;
     using FixedPointMathLib for int256;
 
@@ -31,10 +31,11 @@ contract G3MSolver {
     function fetchPoolParams(uint256 poolId)
         public
         view
-        returns (G3M.G3MParams memory)
+        returns (LogNormal.LogNormalParams memory)
     {
         return abi.decode(
-            IStrategy(strategy).getPoolParams(poolId), (G3M.G3MParams)
+            IStrategy(strategy).getPoolParams(poolId),
+            (LogNormal.LogNormalParams)
         );
     }
 
@@ -49,7 +50,7 @@ contract G3MSolver {
     function getInitialPoolData(
         uint256 rx,
         uint256 S,
-        G3M.G3MParams memory params
+        LogNormal.LogNormalParams memory params
     ) public pure returns (bytes memory) {
         return computeInitialPoolData(rx, S, params);
     }
@@ -101,9 +102,13 @@ contract G3MSolver {
     function getNextLiquidity(
         uint256 poolId,
         uint256 rx,
-        uint256 ry
+        uint256 ry,
+        uint256 L
     ) public view returns (uint256) {
-        return computeNextLiquidity(rx, ry, fetchPoolParams(poolId));
+        bytes memory data = abi.encode(rx, ry, L);
+        int256 invariant = IStrategy(strategy).computeSwapConstant(poolId, data);
+        return
+            computeNextLiquidity(rx, ry, invariant, L, fetchPoolParams(poolId));
     }
 
     function getNextReserveX(
@@ -111,7 +116,10 @@ contract G3MSolver {
         uint256 ry,
         uint256 L
     ) public view returns (uint256) {
-        return computeNextRx(ry, L, fetchPoolParams(poolId));
+        (uint256 rx,,) = getReservesAndLiquidity(poolId);
+        bytes memory data = abi.encode(rx, ry, L);
+        int256 invariant = IStrategy(strategy).computeSwapConstant(poolId, data);
+        return computeNextRx(ry, L, invariant, rx, fetchPoolParams(poolId));
     }
 
     function getNextReserveY(
@@ -119,7 +127,10 @@ contract G3MSolver {
         uint256 rx,
         uint256 L
     ) public view returns (uint256) {
-        return computeNextRy(rx, L, fetchPoolParams(poolId));
+        (, uint256 ry,) = getReservesAndLiquidity(poolId);
+        bytes memory data = abi.encode(rx, ry, L);
+        int256 invariant = IStrategy(strategy).computeSwapConstant(poolId, data);
+        return computeNextRy(rx, L, invariant, ry, fetchPoolParams(poolId));
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -132,23 +143,18 @@ contract G3MSolver {
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
             getReservesAndLiquidity(poolId);
-        G3M.G3MParams memory poolParams = fetchPoolParams(poolId);
+        LogNormal.LogNormalParams memory poolParams = fetchPoolParams(poolId);
 
         uint256 amountOut;
-
-        uint256 startComputedL = computeNextLiquidity(
-            startReserves.rx, startReserves.ry, fetchPoolParams(poolId)
-        );
-
         {
+            uint256 startComputedL = getNextLiquidity(
+                poolId, startReserves.rx, startReserves.ry, startReserves.L
+            );
+
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
-                uint256 weightedPrice = uint256(
-                    int256(startReserves.ry.divWadUp(startReserves.rx)).powWad(
-                        int256(poolParams.wY)
-                    )
-                );
-                uint256 deltaL = fees.mulWadUp(weightedPrice);
+                uint256 deltaL =
+                    fees.mulWadUp(startComputedL).divWadUp(startReserves.rx);
                 deltaL += 1;
 
                 endReserves.rx = startReserves.rx + amountIn;
@@ -165,12 +171,8 @@ contract G3MSolver {
                 amountOut = startReserves.ry - endReserves.ry;
             } else {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
-                uint256 weightedPrice = uint256(
-                    int256(startReserves.rx.divWadUp(startReserves.ry)).powWad(
-                        int256(poolParams.wX)
-                    )
-                );
-                uint256 deltaL = fees.mulWadUp(weightedPrice);
+                uint256 deltaL =
+                    fees.mulWadUp(startComputedL).divWadUp(startReserves.ry);
                 deltaL += 1;
 
                 endReserves.ry = startReserves.ry + amountIn;
@@ -190,14 +192,18 @@ contract G3MSolver {
 
         bytes memory swapData =
             abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
-
-        uint256 poolId = poolId;
         (bool valid,,,,,) =
             IStrategy(strategy).validateSwap(address(this), poolId, swapData);
         return (
             valid,
             amountOut,
-            computePrice(endReserves.rx, endReserves.ry, poolParams),
+            computePrice({
+                rx: endReserves.rx,
+                L: endReserves.L,
+                K: poolParams.strike,
+                sigma: poolParams.sigma,
+                tau: poolParams.tau
+            }),
             swapData
         );
     }
@@ -208,18 +214,8 @@ contract G3MSolver {
         view
         returns (uint256 price)
     {
-        G3M.G3MParams memory params = fetchPoolParams(poolId);
-        (uint256 rx, uint256 ry,) = getReservesAndLiquidity(poolId);
-        price = computePrice(rx, ry, params);
-    }
-
-    function checkSwapConstant(
-        uint256 poolId,
-        bytes calldata data
-    ) public view returns (int256) {
-        (uint256 rx, uint256 ry, uint256 L) =
-            abi.decode(data, (uint256, uint256, uint256));
-        G3M.G3MParams memory params = fetchPoolParams(poolId);
-        return tradingFunction(rx, ry, L, params);
+        LogNormal.LogNormalParams memory params = fetchPoolParams(poolId);
+        (uint256 rx,, uint256 L) = getReservesAndLiquidity(poolId);
+        price = computePrice(rx, L, params.strike, params.sigma, params.tau);
     }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./G3M.sol";
+import "src/strategies/G3M/G3M.sol";
 
 enum G3MUpdateCode {
     Invalid,

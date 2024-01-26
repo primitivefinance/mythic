@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "src/strategies/G3M/G3M.sol";
-import "src/strategies/G3M/G3MHelper.sol";
+import "src/solvers/G3M/G3MHelper.sol";
+import "src/solvers/G3M/G3MSolver.sol";
 import "../../DFMM/SetUp.sol";
-import "./G3MSolver.sol";
 
 contract G3MSetUp is SetUp {
     G3M g3m;

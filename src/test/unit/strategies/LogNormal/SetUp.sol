@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "src/strategies/LogNormal/LogNormal.sol";
-import "src/strategies/LogNormal/LogNormalHelper.sol";
+import "src/solvers/LogNormal/LogNormalHelper.sol";
+import "src/solvers/LogNormal/LogNormalSolver.sol";
 import "../../DFMM/SetUp.sol";
-import "./LogNormalSolver.sol";
 
 contract LogNormalSetUp is SetUp {
     LogNormal logNormal;
