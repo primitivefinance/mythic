@@ -39,6 +39,43 @@ contract LogNormalSolver {
         );
     }
 
+    function prepareFeeUpdate(uint256 swapFee)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return encodeFeeUpdate(swapFee);
+    }
+
+    function prepareStrikeUpdate(
+        uint256 targetStrike,
+        uint256 targetTimestamp
+    ) external pure returns (bytes memory) {
+        return encodeStrikeUpdate(targetStrike, targetTimestamp);
+    }
+
+    function prepareSigmaUpdate(
+        uint256 targetSigma,
+        uint256 targetTimestamp
+    ) external pure returns (bytes memory) {
+        return encodeSigmaUpdate(targetSigma, targetTimestamp);
+    }
+
+    function prepareTauUpdate(
+        uint256 targetTau,
+        uint256 targetTimestamp
+    ) external pure returns (bytes memory) {
+        return encodeTauUpdate(targetTau, targetTimestamp);
+    }
+
+    function prepareControllerUpdate(uint256 controller)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return encodeControllerUpdate(controller);
+    }
+
     function getReservesAndLiquidity(uint256 poolId)
         public
         view

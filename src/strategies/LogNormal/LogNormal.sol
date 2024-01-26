@@ -5,7 +5,6 @@ import "src/interfaces/IDFMM.sol";
 import "src/interfaces/IStrategy.sol";
 import "src/lib/DynamicParamLib.sol";
 import "src/lib/StrategyLib.sol";
-import "src/solvers/LogNormal/LogNormalHelper.sol";
 import "./LogNormalLib.sol";
 
 /// @notice Log Normal has three variable parameters:
