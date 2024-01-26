@@ -208,29 +208,6 @@ impl Monolithic {
                 };
                 let parameters = parameters.to_parameters(asset_price);
 
-                let (amount_x, _amount_y, _total_liquidity) = get_deposits_given_price(
-                    asset_price,
-                    deposit_amount_dollars,
-                    parameters.strike_price_wad,
-                    parameters.sigma_percent_wad,
-                    parameters.time_remaining_years_wad,
-                );
-
-                let payload_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
-                    sigma: parameters.sigma_percent_wad,
-                    strike: parameters.strike_price_wad,
-                    tau: parameters.time_remaining_years_wad,
-                    swap_fee: 0.003,
-                });
-
-                let init_price_wad =
-                    alloy_primitives::utils::parse_ether(&format!("{}", asset_price))?;
-                let init_price_wad = to_ethers_u256(init_price_wad);
-
-                let init_reserve_x_wad = to_ethers_u256(alloy_primitives::utils::parse_ether(
-                    &format!("{}", amount_x),
-                )?);
-
                 let client = client.clone();
                 tracing::info!(
                     "Sending transaction to address: {:?}",
@@ -244,6 +221,35 @@ impl Monolithic {
                 );
                 return Ok(Command::perform(
                     async move {
+                        let (amount_x, _amount_y, _total_liquidity) = get_deposits_given_price(
+                            asset_price,
+                            deposit_amount_dollars,
+                            parameters.strike_price_wad,
+                            parameters.sigma_percent_wad,
+                            parameters.time_remaining_years_wad,
+                        );
+
+                        let payload_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
+                            sigma: parameters.sigma_percent_wad,
+                            strike: parameters.strike_price_wad,
+                            tau: parameters.time_remaining_years_wad,
+                            swap_fee: 0.003,
+                        });
+
+                        let init_price_wad =
+                            alloy_primitives::utils::parse_ether(&format!("{}", asset_price))
+                                .map_err(|err| {
+                                    Arc::new(anyhow::anyhow!("Error parsing price: {:?}", err))
+                                })?;
+                        let init_price_wad = to_ethers_u256(init_price_wad);
+
+                        let init_reserve_x_wad = to_ethers_u256(
+                            alloy_primitives::utils::parse_ether(&format!("{}", amount_x))
+                                .map_err(|err| {
+                                    Arc::new(anyhow::anyhow!("Error parsing amount: {:?}", err))
+                                })?,
+                        );
+
                         let dfmm = client
                             .dfmm_client
                             .as_ref()

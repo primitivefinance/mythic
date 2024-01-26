@@ -316,6 +316,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // Updates the model state.
 
+        if let Err(err) = self.update_token_prices_mapping(client.clone()).await {
+            tracing::warn!("Token price mapping update failed: {:?}", err);
+        }
+
         if let Err(err) = self.update_historical_txs(client.clone()).await {
             tracing::warn!("User history update failed: {:?}", err);
         }
@@ -334,10 +338,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         if let Err(err) = self.update_token_info_mapping(client.clone()).await {
             tracing::warn!("Token info mapping update failed: {:?}", err);
-        }
-
-        if let Err(err) = self.update_token_prices_mapping(client.clone()).await {
-            tracing::warn!("Token price mapping update failed: {:?}", err);
         }
 
         Ok(())
@@ -402,10 +402,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             self.user_token_balances
                 .entry(liquidity_token_address.clone())
                 .or_insert_with(Vec::new);
-            tracing::debug!(
-                "Added liquidity token address {} to user token balances",
-                liquidity_token_address
-            );
         }
 
         Ok(())
@@ -766,7 +762,18 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 .quote_token
                 .ok_or(Error::msg("Quote token address not set for pool state"))?;
 
-            let external_x_price = self.price_of_token(x_token_address)?;
+            let external_price_series = self.external_prices.as_ref().ok_or(Error::msg(
+                "External prices mapping not set for user token balances",
+            ))?;
+
+            let external_x_price = external_price_series[&x_token_address]
+                .iter()
+                .find(|(block, _)| *block == block_number)
+                .map(|(_, price)| *price)
+                .ok_or(Error::msg(format!(
+                    "Missing external price for historical tx at block {}",
+                    block_number
+                )))?;
 
             // todo: need to add an external quote price series.
             let external_y_price = ALLOY_WAD;
@@ -1745,15 +1752,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             )
             .collect::<Result<Vec<_>>>()?;
 
-        tracing::debug!(
-            "Last lp token price in series is {:?}",
-            lp_token_price_series.last()
-        );
-        tracing::debug!(
-            "Last block in lp topken price series is {:?}",
-            lp_token_price_series.last().map(|(block, _)| block)
-        );
-
         Ok(lp_token_price_series)
     }
 
@@ -2168,12 +2166,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     "Liquidity token balances not set for user token balances",
                 ))?;
 
-        tracing::debug!("Lp token balance length: {}", lp_token_balances.len());
-        tracing::debug!(
-            "lp token price series length: {}",
-            lp_token_price_series.len()
-        );
-
         // Multiply the values into a single series.
         let series = lp_token_price_series
             .iter()
@@ -2198,20 +2190,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             })
             .collect::<Vec<(u64, AlloyU256)>>();
 
-        tracing::debug!(
-            "First block in lp price series: {:?}",
-            lp_token_price_series.first().map(|(block, _)| block)
-        );
-
-        tracing::debug!(
-            "Last block in lp series: {:?}",
-            series.first().map(|(block, _)| block)
-        );
-
-        tracing::debug!(
-            "Last block in series: {:?}",
-            series.last().map(|(block, _)| block)
-        );
         let mut result = Self::transform_series_over_block_number(series)?;
 
         result.1.legend = "Portfolio Value".to_string();
