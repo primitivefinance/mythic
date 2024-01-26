@@ -23,6 +23,7 @@ multiline_func_header = 'params_first'
 quote_style = 'double'
 tab_width = 4
 wrap_comments = false
+number_underscore = "thousands"
 
 [rpc_endpoints]
 local = "http://localhost:8545"
