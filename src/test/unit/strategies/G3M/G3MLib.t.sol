@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "src/solvers/G3M/G3MHelper.sol";
+import "src/strategies/G3M/G3MLib.sol";
 
 contract G3MHelperTest is Test {
     function test_G3MHelper_encodeFeeUpdate() public {

@@ -28,6 +28,29 @@ contract G3MSolver {
         strategy = _strategy;
     }
 
+    function prepareFeeUpdate(uint256 swapFee)
+        public
+        pure
+        returns (bytes memory data)
+    {
+        return encodeFeeUpdate(swapFee);
+    }
+
+    function prepareWeightXUpdate(
+        uint256 targetWeightX,
+        uint256 targetTimestamp
+    ) public pure returns (bytes memory) {
+        return encodeWeightXUpdate(targetWeightX, targetTimestamp);
+    }
+
+    function prepareControllerUpdate(uint256 controller)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return encodeControllerUpdate(controller);
+    }
+
     function fetchPoolParams(uint256 poolId)
         public
         view

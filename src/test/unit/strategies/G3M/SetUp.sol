@@ -2,13 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "src/strategies/G3M/G3M.sol";
-import "src/solvers/G3M/G3MHelper.sol";
 import "src/solvers/G3M/G3MSolver.sol";
 import "../../DFMM/SetUp.sol";
 
 contract G3MSetUp is SetUp {
     G3M g3m;
-    G3MHelper helper;
     G3MSolver solver;
 
     uint256 public POOL_ID;
@@ -36,7 +34,6 @@ contract G3MSetUp is SetUp {
         dfmm = new DFMM();
         g3m = new G3M(address(dfmm));
         solver = new G3MSolver(address(g3m));
-        helper = new G3MHelper(address(g3m));
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);

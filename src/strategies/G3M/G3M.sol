@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "src/interfaces/IDFMM.sol";
 import "src/interfaces/IStrategy.sol";
 import "src/lib/DynamicParamLib.sol";
-import "src/solvers/G3M/G3MHelper.sol";
 import "./G3MLib.sol";
 
 /**

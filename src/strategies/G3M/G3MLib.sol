@@ -8,6 +8,51 @@ import "./G3M.sol";
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
 
+enum G3MUpdateCode {
+    Invalid,
+    SwapFee,
+    WeightX,
+    Controller
+}
+
+function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
+    return abi.encode(G3MUpdateCode.SwapFee, uint256(swapFee));
+}
+
+function decodeFeeUpdate(bytes memory data) pure returns (uint256) {
+    (, uint256 swapFee) = abi.decode(data, (G3MUpdateCode, uint256));
+    return swapFee;
+}
+
+function encodeWeightXUpdate(
+    uint256 targetWeightX,
+    uint256 targetTimestamp
+) pure returns (bytes memory data) {
+    return abi.encode(G3MUpdateCode.WeightX, targetWeightX, targetTimestamp);
+}
+
+function decodeWeightXUpdate(bytes memory data)
+    pure
+    returns (uint256 targetWeightX, uint256 targetTimestamp)
+{
+    (, targetWeightX, targetTimestamp) =
+        abi.decode(data, (G3MUpdateCode, uint256, uint256));
+}
+
+function encodeControllerUpdate(uint256 controller)
+    pure
+    returns (bytes memory data)
+{
+    return abi.encode(G3MUpdateCode.Controller, controller);
+}
+
+function decodeControllerUpdate(bytes memory data)
+    pure
+    returns (uint256 controller)
+{
+    (, controller) = abi.decode(data, (G3MUpdateCode, uint256));
+}
+
 function tradingFunction(
     uint256 rX,
     uint256 rY,
