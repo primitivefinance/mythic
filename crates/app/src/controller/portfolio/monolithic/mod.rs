@@ -530,7 +530,11 @@ impl State for Monolithic {
             let mut subscriptions: Vec<Subscription<Message>> = vec![];
 
             // Fetches the most recent block and updates the model.
-            subscriptions.push(listen_to_blocks(client.get_client().clone()));
+            // subscriptions.push(listen_to_blocks(client.get_client().clone()));
+            subscriptions.push(
+                iced::time::every(std::time::Duration::from_secs(5))
+                    .map(|_| Self::AppMessage::SyncModel(Block::default())),
+            );
 
             // Steps the price process forward.
             // todo: remove this in favor of a live price feed.

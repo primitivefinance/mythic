@@ -274,7 +274,10 @@ impl Model {
             client.get_block_number().await?
         );
 
-        let chain_id = client.get_chainid().await?;
+        let chain_id = client.get_chainid().await.unwrap_or_else(|_| {
+            tracing::warn!("Failed to get chain id, using default.");
+            U256::from(DEFAULT_ARBITER_CHAIN_ID)
+        });
 
         // Try updating the token list.
         self.update_tracked_tokens()?;

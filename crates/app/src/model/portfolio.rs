@@ -1903,7 +1903,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // Make a new series of all the last values of the series in this vec
         let unallocated_values_series = unallocated_values_series
             .iter()
-            .map(|series| series.1.last().unwrap().1)
+            .map(|series| series.1.last().unwrap_or(&(0, AlloyU256::ZERO)).1)
             .collect::<Vec<_>>();
         // Sum the series
         let unallocated_position_value =
