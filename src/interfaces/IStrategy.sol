@@ -1,12 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-/// @dev Contract that holds the strategy parameterization and validation function.
+/**
+ * @title Strategy Interface.
+ * @author Primitive
+ * @notice All the strategy contracts must implement this interface.
+ */
 interface IStrategy {
+    // Errors
+
+    /// @dev Thrown when the update code is invalid.
     error InvalidUpdateCode();
+
+    /// @dev Thrown when the sender is not the DFMM contract.
     error NotDFMM();
+
+    /// @dev Thrown when the sender is authorized.
     error InvalidSender();
 
+    // Setters
+
+    /**
+     * @notice Intializes a new pool.
+     * @param sender Address that called the DFMM contract.
+     * @param poolId Id of the pool to initialize.
+     * @param data Pool parameters encoded as bytes.
+     * @return valid True if the initialization is valid.
+     * @return swapConstantGrowth Initial swap growth.
+     * @return reserveX Initial reserve of token X.
+     * @return reserveY Initial reserve of token Y.
+     * @return totalLiquidity Initial liquidity of the pool.
+     */
     function init(
         address sender,
         uint256 poolId,
