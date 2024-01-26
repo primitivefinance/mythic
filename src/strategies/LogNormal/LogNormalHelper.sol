@@ -4,10 +4,12 @@ pragma solidity ^0.8.13;
 import "./LogNormal.sol";
 
 enum LogNormalUpdateCode {
+    Invalid,
     SwapFee,
     Strike,
     Sigma,
-    Tau
+    Tau,
+    Controller
 }
 
 function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
@@ -64,6 +66,20 @@ function decodeTauUpdate(bytes memory data)
         abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
 }
 
+function encodeControllerUpdate(uint256 controller)
+    pure
+    returns (bytes memory data)
+{
+    return abi.encode(LogNormalUpdateCode.Controller, controller);
+}
+
+function decodeControllerUpdate(bytes memory data)
+    pure
+    returns (uint256 controller)
+{
+    (, controller) = abi.decode(data, (LogNormalUpdateCode, uint256));
+}
+
 contract LogNormalHelper {
     LogNormal public immutable logNormal;
 
@@ -107,5 +123,13 @@ contract LogNormalHelper {
         uint256 targetTimestamp
     ) external pure returns (bytes memory) {
         return encodeTauUpdate(targetTau, targetTimestamp);
+    }
+
+    function prepareControllerUpdate(uint256 controller)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return encodeControllerUpdate(controller);
     }
 }
