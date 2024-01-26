@@ -194,6 +194,8 @@ contract LogNormal is IStrategy {
         uint256 poolId,
         bytes calldata data
     ) external onlyDFMM {
+        if (sender != internalParams[poolId].controller) revert InvalidSender();
+
         LogNormalUpdateCode updateCode = abi.decode(data, (LogNormalUpdateCode));
 
         if (updateCode == LogNormalUpdateCode.SwapFee) {
@@ -209,6 +211,8 @@ contract LogNormal is IStrategy {
             (uint256 targetStrike, uint256 targetTimestamp) =
                 decodeStrikeUpdate(data);
             internalParams[poolId].strike.set(targetStrike, targetTimestamp);
+        } else if (updateCode == LogNormalUpdateCode.Controller) {
+            internalParams[poolId].controller = decodeControllerUpdate(data);
         } else {
             revert InvalidUpdateCode();
         }

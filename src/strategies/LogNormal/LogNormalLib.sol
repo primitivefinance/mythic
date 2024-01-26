@@ -70,7 +70,7 @@ function decodeTauUpdate(bytes memory data)
         abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
 }
 
-function encodeControllerUpdate(uint256 controller)
+function encodeControllerUpdate(address controller)
     pure
     returns (bytes memory data)
 {
@@ -79,9 +79,9 @@ function encodeControllerUpdate(uint256 controller)
 
 function decodeControllerUpdate(bytes memory data)
     pure
-    returns (uint256 controller)
+    returns (address controller)
 {
-    (, controller) = abi.decode(data, (LogNormalUpdateCode, uint256));
+    (, controller) = abi.decode(data, (LogNormalUpdateCode, address));
 }
 
 function tradingFunction(
