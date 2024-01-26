@@ -4,14 +4,14 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "src/strategies/G3M/G3MLib.sol";
 
-contract G3MHelperTest is Test {
-    function test_G3MHelper_encodeFeeUpdate() public {
+contract G3MLibTest is Test {
+    function test_G3MLib_encodeFeeUpdate() public {
         uint256 newSwapFee = 0.004 ether;
         bytes memory data = encodeFeeUpdate(newSwapFee);
         assertEq(newSwapFee, decodeFeeUpdate(data));
     }
 
-    function test_G3MHelper_encodeWeightXUpdate() public {
+    function test_G3MLib_encodeWeightXUpdate() public {
         uint256 targetWeightX = 0.5 ether;
         uint256 targetTimestamp = 42;
 
