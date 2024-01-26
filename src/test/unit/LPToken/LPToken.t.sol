@@ -25,7 +25,7 @@ contract LPTokenTest is Test {
         string memory name = "LPToken";
         string memory symbol = "LPT";
         lpToken.initialize(name, symbol);
-        vm.expectRevert("Already initialized");
+        vm.expectRevert(LPToken.AlreadyInitialized.selector);
         lpToken.initialize(name, symbol);
     }
 }
