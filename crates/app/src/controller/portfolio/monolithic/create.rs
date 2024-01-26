@@ -383,7 +383,7 @@ impl FormView {
                     .push(
                         Column::with_children(
                             liquidity_choices
-                                .into_iter()
+                                .iter()
                                 .map(|x| {
                                     Self::strategy_template(
                                         Some(on_select_liquidity(x.liquidity_type)),

@@ -7,7 +7,6 @@
 use chrono::{DateTime, Utc};
 use datatypes::portfolio::position::Positions;
 
-use self::model::portfolio::AlloyAddress;
 use super::{model::portfolio::AlloyU256, *};
 use crate::components::{
     double_labeled_data,

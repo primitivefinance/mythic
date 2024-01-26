@@ -1,7 +1,7 @@
 use iced::widget::{component, text_input, Component};
 
 use super::*;
-
+#[allow(dead_code)]
 pub fn create_input_component<Message>(
     value: Option<String>,
     on_change: impl Fn(Option<String>) -> Message + 'static,

@@ -20,27 +20,6 @@ use self::{
     user::{Saveable, UserProfile},
 };
 use super::*;
-use crate::model::portfolio::StrategyPosition;
-
-pub const COIN_X: &str = r#"{
-    "symbol": "X",
-    "name": "X",
-    "decimals": 18,
-    "tags": [],
-    "chain_id": 31337,
-    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
-    "logo_uri": ""
-}"#;
-
-pub const COIN_Y: &str = r#"{
-    "symbol": "Y",
-    "name": "Y",
-    "decimals": 18,
-    "tags": [],
-    "chain_id": 31337,
-    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa4",
-    "logo_uri": ""
-}"#;
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {

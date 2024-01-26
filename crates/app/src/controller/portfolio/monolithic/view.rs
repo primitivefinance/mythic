@@ -1,7 +1,5 @@
-use std::env;
-
 use chrono::Utc;
-use datatypes::portfolio::position::{Position, PositionLayer, Positions};
+use datatypes::portfolio::position::{Position, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
@@ -134,7 +132,7 @@ impl MonolithicPresenter {
             };
 
             choices.push(LiquidityChoices {
-                liquidity_type: liquidity_type.clone(),
+                liquidity_type: *liquidity_type,
                 last_price: current_price,
                 price_range,
             });
@@ -176,35 +174,6 @@ impl MonolithicPresenter {
             Ok(data) => alloy_primitives::utils::format_ether(data),
             Err(_) => "N/A Value".to_string(),
         }
-    }
-
-    // todo: position fetching and stuff from portfolio is not clean
-    pub fn get_positions(&self) -> (Positions, Vec<svg::Handle>) {
-        let portfolio = self.model.user.portfolio.clone();
-        let position_x = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
-            .find(|x| x.asset.symbol == "X")
-            .cloned()
-            .unwrap_or_default();
-
-        let position_y = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
-            .find(|x| x.asset.symbol == "Y")
-            .cloned()
-            .unwrap_or_default();
-
-        // todo: get in a better way...
-        let logos = vec![ether_logo(), usdc_logo()];
-
-        (vec![position_x, position_y].into(), logos)
     }
 
     pub fn get_allocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
@@ -303,10 +272,7 @@ impl MonolithicPresenter {
                     Ok(lp_token_price).to_label()
                 }
                 false => match is_stablecoin {
-                    true => {
-                        let external_price = Ok(ALLOY_WAD).to_label();
-                        external_price
-                    }
+                    true => Ok(ALLOY_WAD).to_label(),
                     false => match is_ether {
                         true => {
                             let external_price = connected_model

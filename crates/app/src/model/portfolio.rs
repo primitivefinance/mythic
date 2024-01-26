@@ -35,10 +35,10 @@ use cfmm_math::trading_functions::rmm::{
     compute_x_given_price, compute_y_given_l_rust, compute_y_given_x_rust, liq_distribution,
 };
 use chrono::{DateTime, Utc};
-use datatypes::portfolio::coin_list::{self, CoinList};
+use datatypes::portfolio::coin_list::CoinList;
 use ethers::types::transaction::eip2718::TypedTransaction;
 use serde::{Deserialize, Serialize};
-use sim::{from_ethers_address, from_ethers_u256, to_ethers_address, to_ethers_u256};
+use sim::{from_ethers_address, from_ethers_u256, to_ethers_address};
 
 use super::*;
 use crate::components::chart::{
@@ -285,9 +285,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Adds a token to the token balance mapping, which is the universal token
     /// list that will be tracked and updated by the model.
     pub fn add_token(&mut self, token_address: AlloyAddress) -> Result<()> {
-        self.user_token_balances
-            .entry(token_address)
-            .or_insert(Vec::new());
+        self.user_token_balances.entry(token_address).or_default();
         Ok(())
     }
 
@@ -297,7 +295,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         self.pool_state
             .get_or_insert_with(BTreeMap::new)
             .entry(pool_id)
-            .or_insert_with(PoolState::default);
+            .or_default();
         Ok(())
     }
 
@@ -400,7 +398,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         for liquidity_token_address in liquidity_token_addresses {
             self.user_token_balances
-                .entry(liquidity_token_address.clone())
+                .entry(*liquidity_token_address)
                 .or_insert_with(Vec::new);
         }
 
@@ -758,9 +756,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             let x_token_address = pool_state
                 .asset_token
                 .ok_or(Error::msg("Asset token address not set for pool state"))?;
-            let y_token_address = pool_state
-                .quote_token
-                .ok_or(Error::msg("Quote token address not set for pool state"))?;
 
             let external_price_series = self.external_prices.as_ref().ok_or(Error::msg(
                 "External prices mapping not set for user token balances",
@@ -931,6 +926,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         })
     }
 
+    #[allow(dead_code)]
     async fn fetch_external_price<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -988,7 +984,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     // Protocol state
-
+    #[allow(dead_code)]
     async fn fetch_reserves_and_liquidity<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -1017,6 +1013,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok((reserve_x, reserve_y, liquidity))
     }
 
+    #[allow(dead_code)]
     async fn fetch_internal_price<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -1038,6 +1035,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(internal_price)
     }
 
+    #[allow(dead_code)]
     async fn fetch_strategy_params<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -1799,6 +1797,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         })
     }
 
+    #[allow(dead_code)]
     fn get_log_normal_solver<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
@@ -1935,7 +1934,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// to an external price.
     pub fn derive_external_portfolio_value(&self, pool_id: u64) -> Result<AlloyU256> {
         let pool_state = self.get_pool_state(pool_id)?;
-        let (asset_token, quote_token) = (
+        let (asset_token, _quote_token) = (
             pool_state.asset_token.ok_or(Error::msg(
                 "derive_external_portfolio_value: Asset token not set",
             ))?,
@@ -1989,7 +1988,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .unwrap()
             .1;
 
-        let quote_token = pool_state.quote_token.ok_or(Error::msg(
+        let _quote_token = pool_state.quote_token.ok_or(Error::msg(
             "derive_internal_portfolio_value: Quote token not set",
         ))?;
 
@@ -2210,7 +2209,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         for (_, balance_series) in all_usd_balances {
             for (block, balance) in balance_series {
                 let mut found = false;
-                for (i, (existing_block, existing_balance)) in
+                for (_i, (existing_block, existing_balance)) in
                     unallocated_series.iter_mut().enumerate()
                 {
                     if *existing_block == block {
@@ -2679,7 +2678,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     pub fn get_token_value_and_info(
         &self,
-        token_address: AlloyAddress,
+        _token_address: AlloyAddress,
     ) -> Result<(Vec<(u64, AlloyU256)>, TokenInfo)> {
         let usd_balances = self.get_user_balances_usd()?.clone();
 

@@ -26,13 +26,13 @@ impl Inventory {
     {
         let _current_dir = std::env::current_dir().unwrap();
 
-        let allocated_weight_sum = allocated_positions
+        let _allocated_weight_sum = allocated_positions
             .0
             .iter()
             .map(|x| x.weight.unwrap_or_default().value)
             .sum::<f64>();
 
-        let unallocated_weight_sum = unallocated_positions
+        let _unallocated_weight_sum = unallocated_positions
             .0
             .iter()
             .map(|x| x.weight.unwrap_or_default().value)

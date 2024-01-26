@@ -117,6 +117,7 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
 }
 
 /// Renders a label and text input inside a column.
+#[allow(dead_code)]
 pub fn labeled_input<'a, Message>(
     text: String,
     value: Option<String>,

@@ -12,8 +12,8 @@ use self::{
 use super::*;
 use crate::{
     components::{
-        system::{label, Card, ExcaliburButton},
-        tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
+        system::{label, ExcaliburButton},
+        tables::builder::TableBuilder,
     },
     model::rpcs::{RPCList, RPCValue},
 };

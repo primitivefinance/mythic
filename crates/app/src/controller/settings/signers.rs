@@ -8,12 +8,10 @@ use clients::ledger::{types::DerivationType, *};
 use self::system::{ExcaliburContainer, ExcaliburTable};
 use super::*;
 use crate::components::{
-    system::{label, Card, ExcaliburButton},
+    system::{label, ExcaliburButton},
     tables::{
         builder::TableBuilder,
         cells::{self, CellBuilder},
-        columns::ColumnBuilder,
-        rows::RowBuilder,
     },
 };
 
@@ -58,14 +56,12 @@ impl SignerManagement {
     }
 
     pub fn get_table(&self, headers: Vec<String>) -> TableBuilder<Message> {
-        let mut cells: Vec<Vec<CellBuilder<Message>>> = Vec::new();
-
-        cells.push(vec![
+        let cells: Vec<Vec<CellBuilder<Message>>> = vec![vec![
             CellBuilder::new().value(Some("Example Wallet".to_string())),
             cells::CellBuilder::new().value(Some(
                 "0x0000000000000000000000000000000000000000".to_string(),
             )),
-        ]);
+        ]];
 
         ExcaliburTable::new().headers(headers).build_custom(cells)
     }
