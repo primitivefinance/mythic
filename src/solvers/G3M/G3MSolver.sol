@@ -39,7 +39,7 @@ contract G3MSolver {
         return encodeWeightXUpdate(targetWeightX, targetTimestamp);
     }
 
-    function prepareControllerUpdate(uint256 controller)
+    function prepareControllerUpdate(address controller)
         public
         pure
         returns (bytes memory)

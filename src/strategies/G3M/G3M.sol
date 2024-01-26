@@ -192,6 +192,7 @@ contract G3M is IStrategy {
         uint256 poolId,
         bytes calldata data
     ) external onlyDFMM {
+        if (sender != internalParams[poolId].controller) revert InvalidSender();
         G3MUpdateCode updateCode = abi.decode(data, (G3MUpdateCode));
 
         if (updateCode == G3MUpdateCode.SwapFee) {
@@ -200,6 +201,8 @@ contract G3M is IStrategy {
             (uint256 targetWeightX, uint256 targetTimestamp) =
                 decodeWeightXUpdate(data);
             internalParams[poolId].wX.set(targetWeightX, targetTimestamp);
+        } else if (updateCode == G3MUpdateCode.Controller) {
+            internalParams[poolId].controller = decodeControllerUpdate(data);
         } else {
             revert InvalidUpdateCode();
         }

@@ -68,7 +68,7 @@ contract LogNormalSolver {
         return encodeTauUpdate(targetTau, targetTimestamp);
     }
 
-    function prepareControllerUpdate(uint256 controller)
+    function prepareControllerUpdate(address controller)
         external
         pure
         returns (bytes memory)
