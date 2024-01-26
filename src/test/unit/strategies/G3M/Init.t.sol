@@ -33,4 +33,10 @@ contract G3MInitTest is G3MSetUp {
         vm.expectRevert(IDFMM.InvalidTokens.selector);
         dfmm.init(initParams);
     }
+
+    function test_G3M_init_RevertsWhenSenderNotDFMM() public {
+        vm.expectRevert(IStrategy.NotDFMM.selector);
+        bytes memory empty;
+        g3m.init(address(this), 0, empty);
+    }
 }
