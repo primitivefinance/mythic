@@ -1065,6 +1065,7 @@ impl ExcaliburButton {
             .text_color(color)
             .border_radius(border_radius)
             .disabled()
+            .background_color(ExcaliburColor::Custom(Color::from_rgba(0.8, 0.2, 0.2, 0.1)).into())
             .text_color(disabled_color)
             .border_radius(border_radius);
         Self { style }

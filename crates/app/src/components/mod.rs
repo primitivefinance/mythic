@@ -508,7 +508,7 @@ pub fn navigation_steps<'a, Message>(
 where
     Message: 'a + Clone + Default,
 {
-    let mut content = Column::new().push(label(title).title3().build());
+    let mut content = Column::new().push(label(title).secondary().build());
 
     for NavigationStep {
         icon,
