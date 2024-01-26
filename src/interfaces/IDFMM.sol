@@ -50,17 +50,6 @@ interface IDFMM {
 
     // Events
 
-    event LogPoolStats(
-        uint256 rx,
-        uint256 ry,
-        uint256 L,
-        int256 invariant,
-        uint256 sigma,
-        uint256 strike,
-        uint256 tau,
-        uint256 timestamp
-    );
-
     /**
      * @notice Emitted when the pool is initialized.
      * @param account Address initializing the pool.
