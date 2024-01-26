@@ -36,10 +36,12 @@ contract LogNormal is IStrategy {
         address controller;
     }
 
+    /// @inheritdoc IStrategy
     address public dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
+    /// @param dfmm_ Address of the DFMM contract.
     constructor(address dfmm_) {
         dfmm = dfmm_;
     }
@@ -49,8 +51,7 @@ contract LogNormal is IStrategy {
         _;
     }
 
-    /// @dev Decodes and validates pool initialization parameters.
-    /// Sets the `slot` state variable.
+    /// @inheritdoc IStrategy
     function init(
         address,
         uint256 poolId,
@@ -106,6 +107,7 @@ contract LogNormal is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
+    /// @inheritdoc IStrategy
     function validateAllocateOrDeallocate(
         address,
         uint256 poolId,
@@ -134,7 +136,7 @@ contract LogNormal is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
-    /// @dev Reverts if the caller is not a contract with the Core interface.
+    /// @inheritdoc IStrategy
     function validateSwap(
         address,
         uint256 poolId,
@@ -186,6 +188,7 @@ contract LogNormal is IStrategy {
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 
+    /// @inheritdoc IStrategy
     function update(uint256 poolId, bytes calldata data) external onlyDFMM {
         LogNormalUpdateCode updateCode = abi.decode(data, (LogNormalUpdateCode));
 
@@ -207,6 +210,7 @@ contract LogNormal is IStrategy {
         }
     }
 
+    /// @inheritdoc IStrategy
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
         LogNormalParams memory params;
 
@@ -218,7 +222,7 @@ contract LogNormal is IStrategy {
         return abi.encode(params);
     }
 
-    /// @dev Computes the result of the tradingFunction().
+    /// @inheritdoc IStrategy
     function computeSwapConstant(
         uint256 poolId,
         bytes memory data
