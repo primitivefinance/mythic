@@ -3,10 +3,10 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
-import "../../strategies/LogNormal/BisectionLib.sol";
-import "../../strategies/LogNormal/LogNormalExtendedLib.sol";
-import "../../interfaces/IDFMM.sol";
-import "../../interfaces/IStrategy.sol";
+import "src/strategies/LogNormal/BisectionLib.sol";
+import "src/strategies/LogNormal/LogNormalExtendedLib.sol";
+import "src/interfaces/IDFMM.sol";
+import "src/interfaces/IStrategy.sol";
 
 contract LogNormalSolver {
     using FixedPointMathLib for uint256;

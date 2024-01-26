@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../strategies/G3M/G3M.sol";
-import "../../strategies/G3M/G3MHelper.sol";
-import "../DFMM/SetUp.sol";
+import "src/strategies/G3M/G3M.sol";
+import "src/strategies/G3M/G3MHelper.sol";
+import "../../DFMM/SetUp.sol";
 import "./G3MSolver.sol";
 
 contract G3MSetUp is SetUp {
@@ -25,9 +25,8 @@ contract G3MSetUp is SetUp {
         defaultReserveX, defaultStrikePrice, defaultParams
     );
 
-    function setUp() public {
-        globalSetUp();
-
+    function setUp() public override {
+        SetUp.setUp();
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);
         tokenX.mint(address(this), 100e18);

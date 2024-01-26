@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
-import "../../DFMM.sol";
-import "../../strategies/LogNormal/LogNormal.sol";
-import "../helpers/Lex.sol";
+import "src/DFMM.sol";
+import "src/strategies/LogNormal/LogNormal.sol";
+import "src/test/helpers/Lex.sol";
 import "./LogNormalSolver.sol";
 
 contract LogNormalTest is Test {

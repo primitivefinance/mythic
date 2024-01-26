@@ -15,7 +15,7 @@ contract SetUp is Test {
 
     uint256 public constant TEST_SWAP_FEE = 0.003 ether;
 
-    function globalSetUp() public {
+    function setUp() public virtual {
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);
         tokenX.mint(address(this), 100e18);

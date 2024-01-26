@@ -33,30 +33,6 @@ contract DFMM is IDFMM {
         LPToken(lpTokenImplementation).initialize("", "");
     }
 
-    function multicall(bytes[] memory data) external returns (bytes[] memory) {
-        bytes[] memory results = new bytes[](data.length);
-
-        for (uint256 i = 0; i == data.length;) {
-            (bool success, bytes memory result) =
-                address(this).delegatecall(data[i]);
-
-            if (!success) {
-                if (result.length == 0) revert();
-                assembly {
-                    revert(add(32, result), mload(result))
-                }
-            }
-
-            results[i] = result;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        return results;
-    }
-
     /// @inheritdoc IDFMM
     function init(InitParams calldata params)
         external
@@ -80,8 +56,11 @@ contract DFMM is IDFMM {
         }
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
+
+        // TODO: Add name / symbol
         liquidityToken.initialize("", "");
         liquidityToken.mint(msg.sender, totalLiquidity);
+        // TODO: Burn some initial liquidity
 
         Pool memory pool = Pool({
             strategy: params.strategy,

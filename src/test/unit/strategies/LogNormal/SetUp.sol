@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../strategies/LogNormal/LogNormal.sol";
-import "../../strategies/LogNormal/LogNormalHelper.sol";
-import "../DFMM/SetUp.sol";
+import "src/strategies/LogNormal/LogNormal.sol";
+import "src/strategies/LogNormal/LogNormalHelper.sol";
+import "../../DFMM/SetUp.sol";
 import "./LogNormalSolver.sol";
 
 contract LogNormalSetUp is SetUp {
@@ -26,8 +26,8 @@ contract LogNormalSetUp is SetUp {
     bytes defaultInitialPoolData =
         computeInitialPoolData(defaultReserveX, defaultPrice, defaultParams);
 
-    function setUp() public {
-        globalSetUp();
+    function setUp() public override {
+        SetUp.setUp();
 
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);
