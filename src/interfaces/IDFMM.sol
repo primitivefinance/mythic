@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-/// @dev Contract that holds the reserve and liquidity state.
+/**
+ * @title DFMM Interface
+ * @author Primitive
+ */
 interface IDFMM {
     // Structs
 
@@ -23,9 +26,6 @@ interface IDFMM {
     }
 
     // Errors
-
-    /// @dev Thrown when the pool has not been initialized yet.
-    error NotInitialized();
 
     /// @dev Thrown when the invariant is invalid.
     error Invalid(bool negative, uint256 swapConstantGrowth);
