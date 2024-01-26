@@ -8,8 +8,11 @@ import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
 import "./LPToken.sol";
 
-/// @title DFMM
-/// @notice Dynamic Function Market Maker
+/**
+ * @title DFMM
+ * @author Primitive
+ * @notice Dynamic Function Market Maker
+ */
 contract DFMM is IDFMM {
     using FixedPointMathLib for uint256;
 
@@ -21,6 +24,9 @@ contract DFMM is IDFMM {
 
     uint256 private _locked = 1;
 
+    uint256 private constant BURNT_LIQUIDITY = 1000;
+
+    /// @dev Prevents reentrancy.
     modifier lock() {
         if (_locked == 2) revert Locked();
         _locked = 2;
@@ -28,6 +34,11 @@ contract DFMM is IDFMM {
         _locked = 1;
     }
 
+    /**
+     * @dev The implementation of the LPToken contract is also
+     * deployed at the same time. It'll be used later to deploy
+     * new LPTokens using the [clone factory pattern](https://eips.ethereum.org/EIPS/eip-1167).
+     */
     constructor() {
         lpTokenImplementation = address(new LPToken());
         LPToken(lpTokenImplementation).initialize("", "");
@@ -59,8 +70,8 @@ contract DFMM is IDFMM {
 
         // TODO: Add name / symbol
         liquidityToken.initialize("", "");
-        liquidityToken.mint(msg.sender, totalLiquidity);
-        // TODO: Burn some initial liquidity
+        liquidityToken.mint(msg.sender, totalLiquidity - BURNT_LIQUIDITY);
+        liquidityToken.burn(address(0), BURNT_LIQUIDITY);
 
         Pool memory pool = Pool({
             strategy: params.strategy,
