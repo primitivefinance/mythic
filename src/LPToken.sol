@@ -12,6 +12,14 @@ pragma solidity ^0.8.13;
  */
 contract LPToken {
     /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error NotDFMM();
+
+    error AlreadyInitialized();
+
+    /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
@@ -59,12 +67,12 @@ contract LPToken {
     bool public initialized;
 
     modifier onlyDFMM() {
-        require(msg.sender == dfmm, "Only DFMM");
+        if (msg.sender != dfmm) revert NotDFMM();
         _;
     }
 
     modifier onlyNotInitialized() {
-        require(initialized == false, "Already initialized");
+        if (initialized) revert AlreadyInitialized();
         _;
     }
 
