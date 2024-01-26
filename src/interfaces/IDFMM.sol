@@ -30,11 +30,13 @@ interface IDFMM {
     /// @dev Thrown when the invariant is invalid.
     error Invalid(bool negative, uint256 swapConstantGrowth);
 
+    /// @dev Thrown when pool tokens are identical.
     error InvalidTokens();
 
     /// @dev Thrown when a new call is made during a locked state.
     error Locked();
 
+    /// @dev Thrown when the reserves are invalid after a swap.
     error InvalidSwap();
 
     /// @dev Thrown when the transfer of the input amount is invalid.
@@ -43,6 +45,7 @@ interface IDFMM {
     /// @dev Thrown when the transfer of the output amount is invalid.
     error InvalidSwapOutputTransfer();
 
+    /// @dev Thrown when a clone contract could not be deployed.
     error ERC1167FailedCreateClone();
 
     // Events
