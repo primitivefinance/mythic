@@ -22,8 +22,10 @@ contract DFMM is IDFMM {
     /// @inheritdoc IDFMM
     address public immutable lpTokenImplementation;
 
+    /// @dev Part of the reentrancy lock, 1 = unlocked, 2 = locked.
     uint256 private _locked = 1;
 
+    /// @dev Amount of liquidity that is burnt on initialization.
     uint256 private constant BURNT_LIQUIDITY = 1000;
 
     /// @dev Prevents reentrancy.
@@ -71,7 +73,7 @@ contract DFMM is IDFMM {
         // TODO: Add name / symbol
         liquidityToken.initialize("", "");
         liquidityToken.mint(msg.sender, totalLiquidity - BURNT_LIQUIDITY);
-        liquidityToken.burn(address(0), BURNT_LIQUIDITY);
+        liquidityToken.mint(address(0), BURNT_LIQUIDITY);
 
         Pool memory pool = Pool({
             strategy: params.strategy,
