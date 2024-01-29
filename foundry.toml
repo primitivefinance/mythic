@@ -4,7 +4,7 @@ remappings = [
     "forge-std/=lib/solstat/lib/forge-std/src/",
     "solmate/=lib/solstat/lib/solmate/src/",
 ]
-solc_version = "0.8.19"
+solc_version = "0.8.22"
 bytecode_hash = "none"
 cbor_metadata = false
 extra_output = ["storageLayout"]
