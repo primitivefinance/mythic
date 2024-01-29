@@ -72,7 +72,7 @@ contract LogNormalTest is Test {
             swapFee: TEST_SWAP_FEE
         });
         uint256 init_p = ONE;
-        uint256 init_x = 10_000 ether;
+        uint256 init_x = ONE;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
@@ -114,15 +114,31 @@ contract LogNormalTest is Test {
         _;
     }
 
-    function test_ln_swap() public revert_scenario{
-      //uint256 amountIn = 14526834915112268048;
-      //uint256 amountIn = 14526834915112268048;
-      //uint256 amountIn = 458791065529438333;
-      uint256 amountIn = 122323264836466551124;
+    function test_ln_swap_x_in() public basic {
+      bool xIn = true;
+      uint256 amountIn = 0.1 ether;
       uint256 poolId = dfmm.nonce() - 1;
-      (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) = solver.simulateSwap(poolId, true, amountIn);
+      (,,,bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
 
       dfmm.swap(poolId, swapData);
+    }
+
+    function test_ln_swap_y_in() public basic {
+      bool xIn = false;
+      uint256 amountIn = 0.1 ether;
+      uint256 poolId = dfmm.nonce() - 1;
+      (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+
+      dfmm.swap(poolId, swapData);
+    }
+
+    function test_price_formulas() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        (uint256 rx, uint256 ry, uint256 L) = solver.getReservesAndLiquidity(poolId);
+        uint256 priceGivenY = solver.getPriceGivenYL(poolId, ry, L);
+        uint256 priceGivenX = solver.getPriceGivenXL(poolId, rx, L);
+
+        assertEq(priceGivenY, priceGivenX);
     }
 
 

@@ -99,7 +99,8 @@ contract LogNormalSolver {
         (uint256 rx,, uint256 L) = getReservesAndLiquidity(poolId);
         (uint256 nextRx, uint256 nextL) =
             computeAllocationGivenX(true, amountX, rx, L);
-        uint256 nextRy = getNextReserveY(poolId, nextRx, nextL);
+        uint256 approximatedPrice = getPriceGivenXL(poolId, nextRx, nextL);
+        uint256 nextRy = getNextReserveY(poolId, nextRx, nextL, approximatedPrice);
         return (nextRx, nextRy, nextL);
     }
 
@@ -110,7 +111,8 @@ contract LogNormalSolver {
         (, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
         (uint256 nextRy, uint256 nextL) =
             computeAllocationGivenX(true, amountY, ry, L);
-        uint256 nextRx = getNextReserveX(poolId, nextRy, nextL);
+        uint256 approximatedPrice = getPriceGivenYL(poolId, nextRy, nextL);
+        uint256 nextRx = getNextReserveX(poolId, nextRy, nextL, approximatedPrice);
         return (nextRx, nextRy, nextL);
     }
 
@@ -121,7 +123,8 @@ contract LogNormalSolver {
         (uint256 rx,, uint256 L) = getReservesAndLiquidity(poolId);
         (uint256 nextRx, uint256 nextL) =
             computeAllocationGivenX(false, amountX, rx, L);
-        uint256 nextRy = getNextReserveY(poolId, nextRx, nextL);
+        uint256 approximatedPrice = getPriceGivenXL(poolId, nextRx, nextL);
+        uint256 nextRy = getNextReserveY(poolId, nextRx, nextL, approximatedPrice);
         return (nextRx, nextRy, nextL);
     }
 
@@ -132,7 +135,8 @@ contract LogNormalSolver {
         (, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
         (uint256 nextRy, uint256 nextL) =
             computeAllocationGivenX(false, amountY, ry, L);
-        uint256 nextRx = getNextReserveX(poolId, nextRy, nextL);
+        uint256 approximatedPrice = getPriceGivenYL(poolId, nextRy, nextL);
+        uint256 nextRx = getNextReserveX(poolId, nextRy, nextL, approximatedPrice);
         return (nextRx, nextRy, nextL);
     }
 
@@ -151,23 +155,25 @@ contract LogNormalSolver {
     function getNextReserveX(
         uint256 poolId,
         uint256 ry,
-        uint256 L
+        uint256 L,
+        uint256 S
     ) public view returns (uint256) {
-        (uint256 rx,,) = getReservesAndLiquidity(poolId);
-        bytes memory data = abi.encode(rx, ry, L);
+        uint256 approximatedRx = computeXGivenL(L, S, fetchPoolParams(poolId));
+        bytes memory data = abi.encode(approximatedRx, ry, L);
         int256 invariant = IStrategy(strategy).computeSwapConstant(poolId, data);
-        return computeNextRx(ry, L, invariant, rx, fetchPoolParams(poolId));
+        return computeNextRx(ry, L, invariant, approximatedRx, fetchPoolParams(poolId));
     }
 
     function getNextReserveY(
         uint256 poolId,
         uint256 rx,
-        uint256 L
+        uint256 L,
+        uint256 S 
     ) public view returns (uint256) {
-        (, uint256 ry,) = getReservesAndLiquidity(poolId);
-        bytes memory data = abi.encode(rx, ry, L);
+        uint256 approximatedRy = computeYGivenL(L, S, fetchPoolParams(poolId));
+        bytes memory data = abi.encode(rx, approximatedRy, L);
         int256 invariant = IStrategy(strategy).computeSwapConstant(poolId, data);
-        return computeNextRy(rx, L, invariant, ry, fetchPoolParams(poolId));
+        return computeNextRy(rx, L, invariant, approximatedRy, fetchPoolParams(poolId));
     }
 
     /// @dev Estimates a swap's reserves and adjustments and returns its validity.
@@ -187,7 +193,6 @@ contract LogNormalSolver {
             uint256 startComputedL = getNextLiquidity(
                 poolId, startReserves.rx, startReserves.ry, startReserves.L
             );
-            console2.log("computedL start", startComputedL);
 
             if (swapXIn) {
                 uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
@@ -197,11 +202,10 @@ contract LogNormalSolver {
 
                 endReserves.rx = startReserves.rx + amountIn;
                 endReserves.L = startComputedL + deltaL;
+                uint256 approxPrice = getPriceGivenXL(poolId, endReserves.rx, endReserves.L);
 
-                console2.log("before computing ry");
                 endReserves.ry =
-                    getNextReserveY(poolId, endReserves.rx, endReserves.L);
-                console2.log(endReserves.ry);
+                    getNextReserveY(poolId, endReserves.rx, endReserves.L, approxPrice);
                 endReserves.ry += 1;
 
                 require(
@@ -217,12 +221,11 @@ contract LogNormalSolver {
 
                 endReserves.ry = startReserves.ry + amountIn;
                 endReserves.L = startComputedL + deltaL;
+                uint256 approxPrice = getPriceGivenYL(poolId, endReserves.ry, endReserves.L);
 
-                console2.log("before next rx");
                 endReserves.rx =
-                    getNextReserveX(poolId, endReserves.ry, endReserves.L);
+                    getNextReserveX(poolId, endReserves.ry, endReserves.L, approxPrice);
                 endReserves.rx += 1;
-                console2.log("next rx", endReserves.rx);
 
                 require(
                     endReserves.rx < startReserves.rx,
@@ -239,12 +242,10 @@ contract LogNormalSolver {
         return (
             valid,
             amountOut,
-            computePrice({
+            computePriceGivenX({
                 rx: endReserves.rx,
                 L: endReserves.L,
-                K: poolParams.strike,
-                sigma: poolParams.sigma,
-                tau: poolParams.tau
+                params: poolParams
             }),
             swapData
         );
@@ -256,8 +257,24 @@ contract LogNormalSolver {
         view
         returns (uint256 price)
     {
-        LogNormal.LogNormalParams memory params = fetchPoolParams(poolId);
         (uint256 rx,, uint256 L) = getReservesAndLiquidity(poolId);
-        price = computePrice(rx, L, params.strike, params.sigma, params.tau);
+        price = computePriceGivenX(rx, L, fetchPoolParams(poolId));
     }
+
+    function getPriceGivenYL(uint256 poolId, uint256 ry, uint256 L)
+        public
+        view
+        returns (uint256 price)
+    {
+        price = computePriceGivenY(ry, L, fetchPoolParams(poolId));
+    }
+
+    function getPriceGivenXL(uint256 poolId, uint256 rx, uint256 L)
+        public
+        view
+        returns (uint256 price)
+    {
+        price = computePriceGivenX(rx, L, fetchPoolParams(poolId));
+    }
+
 }
