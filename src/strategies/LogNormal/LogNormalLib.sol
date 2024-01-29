@@ -97,7 +97,6 @@ function tradingFunction(
     int256 BBBBB;
     if (FixedPointMathLib.divWadDown(rx, L) >= ONE) {
         AAAAA = int256(2 ** 255 - 1);
-        revert ErrorA(AAAAA);
     } else {
         AAAAA = Gaussian.ppf(int256(FixedPointMathLib.divWadDown(rx, L)));
     }
@@ -107,7 +106,6 @@ function tradingFunction(
         ) >= ONE
     ) {
         BBBBB = int256(2 ** 255 - 1);
-        revert ErrorB(BBBBB);
     } else {
         BBBBB = Gaussian.ppf(
             int256(

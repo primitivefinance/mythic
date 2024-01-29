@@ -6,9 +6,9 @@ import "forge-std/console2.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 
 import "../../strategies/G3M/G3M.sol";
+import "../../solvers/G3M/G3MSolver.sol";
 import "../../DFMM.sol";
 import "../helpers/Lex.sol";
-import "./G3MSolver.sol";
 
 contract G3MTest is Test {
     using stdStorage for StdStorage;
@@ -43,7 +43,8 @@ contract G3MTest is Test {
         G3M.G3MParams memory params = G3M.G3MParams({
             wX: 0.5 ether,
             wY: 0.5 ether,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = ONE;
         uint256 init_x = 100 ether;

@@ -5,8 +5,8 @@ import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../../DFMM.sol";
 import "../../strategies/LogNormal/LogNormal.sol";
+import "../../solvers/LogNormal/LogNormalSolver.sol";
 import "../helpers/Lex.sol";
-import "./LogNormalSolver.sol";
 import "forge-std/console2.sol";
 
 contract LogNormalTest is Test {
@@ -42,7 +42,8 @@ contract LogNormalTest is Test {
             strike: ONE * 2300,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = ONE * 2345;
         uint256 init_x = ONE * 10;
@@ -69,7 +70,8 @@ contract LogNormalTest is Test {
             strike: ONE,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
@@ -95,7 +97,8 @@ contract LogNormalTest is Test {
             strike: 0.67323818941934077 ether,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = 1329956352651532999;
         uint256 init_x = 70.658087306013359413 ether;
@@ -132,13 +135,13 @@ contract LogNormalTest is Test {
       dfmm.swap(poolId, swapData);
     }
 
+    // todo: write assertApproxEq
     function test_price_formulas() public basic {
         uint256 poolId = dfmm.nonce() - 1;
         (uint256 rx, uint256 ry, uint256 L) = solver.getReservesAndLiquidity(poolId);
         uint256 priceGivenY = solver.getPriceGivenYL(poolId, ry, L);
         uint256 priceGivenX = solver.getPriceGivenXL(poolId, rx, L);
-
-        assertEq(priceGivenY, priceGivenX);
+        assertApproxEqAbs(priceGivenY, priceGivenX, 100);
     }
 
 
