@@ -111,7 +111,8 @@ impl PortfolioPresenter {
     /// the model changes or the user forces it.
     pub fn sync_portfolio_strategy_curve(&mut self) {
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.derive_portfolio_strategy_plot();
+            let pool_id = 0;
+            let data = connected_model.derive_portfolio_strategy_plot(pool_id);
             let data = match data {
                 Ok(data) => data,
                 Err(_) => {
@@ -130,8 +131,10 @@ impl PortfolioPresenter {
     /// Syncs the currently connected model's notable points on the strategy
     /// plot.
     pub fn sync_portfolio_strategy_points(&mut self) {
+        let pool_id = 0;
+
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.derive_portfolio_strategy_points();
+            let data = connected_model.derive_portfolio_strategy_points(pool_id);
             let data = match data {
                 Ok(data) => data,
                 Err(_) => {
@@ -149,59 +152,17 @@ impl PortfolioPresenter {
     /// when the model changes or the user forces it.
     /// Only updates the connected model.
     pub fn sync_portfolio_value_series(&mut self) {
+        let pool_id = 0;
         if let Some(connected_model) = self.model.get_current() {
             // Get the series data.
-            let data = connected_model.derive_portfolio_value_series();
+            let data = connected_model.derive_portfolio_value_series(pool_id);
             let data = match data {
                 Ok(data) => data,
                 Err(e) => {
-                    tracing::error!("Failed to get portfolio value series: {:}", e);
-                    return;
-                }
-            };
-
-            let asset_value_series = connected_model.derive_asset_value_series();
-            match asset_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get asset value series: {:}", e);
-                    return;
-                }
-            };
-
-            let quote_value_series = connected_model.derive_quote_value_series();
-            match quote_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get quote value series: {:}", e);
-                    return;
-                }
-            };
-
-            let unallocated_value_series =
-                connected_model.derive_unallocated_portfolio_value_series();
-            match unallocated_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get unallocated value series: {:}", e);
-                    return;
-                }
-            };
-
-            let protocol_quote_value_series = connected_model.derive_protocol_quote_value_series();
-            match protocol_quote_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get protocol quote value series: {:}", e);
-                    return;
-                }
-            };
-
-            let protocol_asset_value_series = connected_model.derive_protocol_asset_value_series();
-            match protocol_asset_value_series {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::error!("Failed to get protocol asset value series: {:}", e);
+                    tracing::warn!(
+                        "Failed to get portfolio value series when trying to sync: {:}",
+                        e
+                    );
                     return;
                 }
             };
@@ -216,34 +177,43 @@ impl PortfolioPresenter {
     }
 
     pub fn get_block_number(&self) -> Option<u64> {
-        self.model
-            .get_current()
-            .and_then(|x| x.raw_last_chain_data_sync_block)
+        self.model.get_current().and_then(|x| x.last_sync_block)
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
-        self.model
-            .get_current()
-            .and_then(|x| x.raw_last_chain_data_sync_timestamp)
+        self.model.get_current().and_then(|x| x.last_sync)
     }
+
+    // todo: make this easier to fetch
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
+        let pool_id = 0;
         self.model
             .get_current()
-            .and_then(|x| x.raw_internal_spot_price)
+            .and_then(|x| Some(x.get_internal_price_of_pool_asset(pool_id).unwrap()))
             .to_label()
     }
 
+    // todo: make this easier to fetch
     pub fn get_external_price(&self) -> ExcaliburText {
+        let pool_id = 0;
         self.model
             .get_current()
-            .and_then(|x| x.raw_external_spot_price)
+            .and_then(|x| {
+                Some(
+                    x.get_external_price_of_pool_asset(pool_id)
+                        .unwrap_or_default(),
+                )
+            })
             .to_label()
     }
 
     pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
+        let pool_id = 0; // todo: fix poolid
         if let Some(connected_model) = self.model.get_current() {
-            connected_model.derive_internal_portfolio_value().to_label()
+            connected_model
+                .derive_internal_portfolio_value(pool_id)
+                .to_label()
         } else {
             label("N/A").title1().secondary()
         }
@@ -269,7 +239,9 @@ impl PortfolioPresenter {
 
     pub fn get_external_portfolio_value(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            connected_model.derive_external_portfolio_value().to_label()
+            connected_model
+                .derive_external_portfolio_value(0)
+                .to_label()
         } else {
             label("N/A").title1().secondary()
         }
@@ -277,7 +249,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.raw_last_chain_data_sync_timestamp;
+            let data = connected_model.last_sync;
             match data {
                 Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
                 None => label("Timestamp: N/A").caption().tertiary(),
@@ -289,7 +261,7 @@ impl PortfolioPresenter {
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
         if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.raw_last_chain_data_sync_block;
+            let data = connected_model.last_sync_block;
             match data {
                 Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
                 None => label("Block: N/A").caption().tertiary(),

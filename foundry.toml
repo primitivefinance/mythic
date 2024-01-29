@@ -8,6 +8,7 @@ solc_version = "0.8.19"
 bytecode_hash = "none"
 cbor_metadata = false
 extra_output = ["storageLayout"]
+via_ir = true
 
 # these are defaults. explicitly setting them here for clarity.
 libs = ["lib"]

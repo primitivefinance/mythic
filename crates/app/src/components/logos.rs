@@ -20,7 +20,7 @@ pub fn excalibur_logo() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO, None).unwrap()
 }
 
-const EXCALIBUR_LOGO_2: &[u8] = include_bytes!("../../../../assets/logos/excalibur_logo_2.png");
+const EXCALIBUR_LOGO_2: &[u8] = include_bytes!("../../../../assets/logos/daggeremoji.png");
 
 pub fn excalibur_logo_2() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO_2, None).unwrap()
@@ -28,6 +28,7 @@ pub fn excalibur_logo_2() -> icon::Icon {
 
 const ETHER_LOGO: &[u8] = include_bytes!("../../../../assets/logos/ethtokenicon.svg");
 const USDC_LOGO: &[u8] = include_bytes!("../../../../assets/logos/usdcvector.svg");
+const LP_LOGO: &[u8] = include_bytes!("../../../../assets/logos/ethusdclp.svg");
 
 pub fn ether_logo() -> iced::widget::svg::Handle {
     svg::Handle::from_memory(ETHER_LOGO)
@@ -35,6 +36,10 @@ pub fn ether_logo() -> iced::widget::svg::Handle {
 
 pub fn usdc_logo() -> iced::widget::svg::Handle {
     svg::Handle::from_memory(USDC_LOGO)
+}
+
+pub fn lp_logo() -> iced::widget::svg::Handle {
+    svg::Handle::from_memory(LP_LOGO)
 }
 
 pub struct PhiLogo {

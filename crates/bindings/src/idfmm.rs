@@ -529,12 +529,12 @@ pub mod idfmm {
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("account"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: false,
+                                    indexed: true,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("strategy"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    indexed: true,
+                                    indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("tokenX"),
@@ -1403,8 +1403,8 @@ pub mod idfmm {
         abi = "Init(address,address,address,address,uint256,uint256,uint256,uint256)"
     )]
     pub struct InitFilter {
-        pub account: ::ethers::core::types::Address,
         #[ethevent(indexed)]
+        pub account: ::ethers::core::types::Address,
         pub strategy: ::ethers::core::types::Address,
         #[ethevent(indexed)]
         pub token_x: ::ethers::core::types::Address,
