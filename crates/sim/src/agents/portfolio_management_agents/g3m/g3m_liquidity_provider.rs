@@ -67,7 +67,7 @@ impl G3mLiquidityProvider {
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 
-        let protocol_client = protocol_client.bind(client.clone())?;
+        let protocol_client = protocol_client.connect(client.clone())?;
 
         token_admin
             .mint(

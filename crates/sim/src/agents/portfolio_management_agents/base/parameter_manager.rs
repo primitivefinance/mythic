@@ -75,7 +75,7 @@ impl ParameterManager {
     ) -> Result<Self> {
         let label: String = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
-        let protocol_client = protocol_client.bind(client.clone())?;
+        let protocol_client = protocol_client.connect(client.clone())?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         if let Some(AgentParameters::ParameterManager(params)) = config.agent_parameters.get(&label)

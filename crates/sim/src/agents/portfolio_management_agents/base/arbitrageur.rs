@@ -40,7 +40,7 @@ impl Arbitrageur {
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
         let client = RevmMiddleware::new(environment, Some(name))?;
-        let protocol_client = protocol_client.bind(client.clone())?;
+        let protocol_client = protocol_client.connect(client.clone())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
