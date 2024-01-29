@@ -90,17 +90,6 @@ contract DFMMInit is DFMMSetUp {
         assertEq(tokenY.balanceOf(address(this)), tokenYPreBalance - reserveY);
     }
 
-    event Init(
-        address indexed account,
-        address strategy,
-        address indexed tokenX,
-        address indexed tokenY,
-        uint256 poolId,
-        uint256 reserveX,
-        uint256 reserveY,
-        uint256 totalLiquidity
-    );
-
     function test_DFMM_init_EmitsInitEvent() public {
         bytes memory data = abi.encode(uint256(1));
 
@@ -115,7 +104,7 @@ contract DFMMInit is DFMMSetUp {
         });
 
         vm.expectEmit(true, true, true, true, address(dfmm));
-        emit Init(
+        emit IDFMM.Init(
             address(this),
             address(strategy),
             tokenX,
