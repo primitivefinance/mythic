@@ -121,6 +121,28 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
+    pub fn from_deployed(
+        client: Arc<C>,
+        protocol_addr: Address,
+        ln_strategy_addr: Address,
+        ln_solver_addr: Address,
+        ln_helper_addr: Address,
+        g_strategy_addr: Address,
+        g_solver_addr: Address,
+        g_helper_addr: Address,
+    ) -> Result<Self> {
+        Ok(Self {
+            client: client.clone(),
+            protocol: DFMM::new(protocol_addr, client.clone()),
+            ln_strategy: LogNormal::new(ln_strategy_addr, client.clone()),
+            ln_solver: LogNormalSolver::new(ln_solver_addr, client.clone()),
+            ln_helper: LogNormalHelper::new(ln_helper_addr, client.clone()),
+            g_strategy: G3M::new(g_strategy_addr, client.clone()),
+            g_solver: G3MSolver::new(g_solver_addr, client.clone()),
+            g_helper: G3MHelper::new(g_helper_addr, client.clone()),
+        })
+    }
+
     pub fn connect(&self, client: Arc<C>) -> Result<Self> {
         Ok(Self {
             client: client.clone(),

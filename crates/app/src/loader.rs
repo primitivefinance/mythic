@@ -165,7 +165,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         }
 
         // todo: better contract naming/storage management.
-        let protocol_client = ProtocolClient::from(
+        let protocol_client = ProtocolClient::from_deployed(
             exc_client.get_client(),
             *exc_client.contracts.get("protocol").unwrap(),
             *exc_client.contracts.get("solver").unwrap(),

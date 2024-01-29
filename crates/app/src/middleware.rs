@@ -216,7 +216,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
 
         // Override the dfmm_client if it exists with the new signer.
         if let Some(dfmm_client) = self.dfmm_client.as_ref() {
-            self.dfmm_client = Some(dfmm_client.clone().bind(signer_client.clone())?);
+            self.dfmm_client = Some(dfmm_client.clone().connect(signer_client.clone())?);
         }
 
         Ok(())
