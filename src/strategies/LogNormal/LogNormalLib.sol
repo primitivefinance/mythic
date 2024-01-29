@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
 import "./LogNormalMath.sol";
@@ -6,6 +6,83 @@ import "./LogNormal.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
+
+enum LogNormalUpdateCode {
+    Invalid,
+    SwapFee,
+    Strike,
+    Sigma,
+    Tau,
+    Controller
+}
+
+function encodeFeeUpdate(uint256 swapFee) pure returns (bytes memory) {
+    return abi.encode(LogNormalUpdateCode.SwapFee, uint256(swapFee));
+}
+
+function decodeFeeUpdate(bytes memory data) pure returns (uint256) {
+    (, uint256 swapFee) = abi.decode(data, (LogNormalUpdateCode, uint256));
+    return swapFee;
+}
+
+function encodeStrikeUpdate(
+    uint256 targetStrike,
+    uint256 targetTimestamp
+) pure returns (bytes memory) {
+    return abi.encode(LogNormalUpdateCode.Strike, targetStrike, targetTimestamp);
+}
+
+function decodeStrikeUpdate(bytes memory data)
+    pure
+    returns (uint256 targetStrike, uint256 targetTimestamp)
+{
+    (, targetStrike, targetTimestamp) =
+        abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
+}
+
+function encodeSigmaUpdate(
+    uint256 targetSigma,
+    uint256 targetTimestamp
+) pure returns (bytes memory) {
+    return abi.encode(LogNormalUpdateCode.Sigma, targetSigma, targetTimestamp);
+}
+
+function decodeSigmaUpdate(bytes memory data)
+    pure
+    returns (uint256 targetSigma, uint256 targetTimestamp)
+{
+    (, targetSigma, targetTimestamp) =
+        abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
+}
+
+function encodeTauUpdate(
+    uint256 targetTau,
+    uint256 targetTimestamp
+) pure returns (bytes memory) {
+    return abi.encode(LogNormalUpdateCode.Tau, targetTau, targetTimestamp);
+}
+
+function decodeTauUpdate(bytes memory data)
+    pure
+    returns (uint256 targetTau, uint256 targetTimestamp)
+{
+    (, targetTau, targetTimestamp) =
+        abi.decode(data, (LogNormalUpdateCode, uint256, uint256));
+}
+
+function encodeControllerUpdate(address controller)
+    pure
+    returns (bytes memory data)
+{
+    return abi.encode(LogNormalUpdateCode.Controller, controller);
+}
+
+function decodeControllerUpdate(bytes memory data)
+    pure
+    returns (address controller)
+{
+    (, controller) = abi.decode(data, (LogNormalUpdateCode, address));
+}
 
 function tradingFunction(
     uint256 rx,

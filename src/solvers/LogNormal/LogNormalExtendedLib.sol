@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
+import "src/strategies/LogNormal/LogNormalLib.sol";
+import "src/strategies/LogNormal/LogNormal.sol";
 import "../../interfaces/IDFMM.sol";
-import "./LogNormalLib.sol";
-import "./LogNormal.sol";
 import "./BisectionLib.sol";
 
 using FixedPointMathLib for uint256;

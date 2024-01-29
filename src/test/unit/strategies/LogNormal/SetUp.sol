@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../../strategies/LogNormal/LogNormal.sol";
-import "../../strategies/LogNormal/LogNormalHelper.sol";
-import "../DFMM/SetUp.sol";
-import "./LogNormalSolver.sol";
+import "src/strategies/LogNormal/LogNormal.sol";
+import "src/solvers/LogNormal/LogNormalSolver.sol";
+import "../../DFMM/SetUp.sol";
 
 contract LogNormalSetUp is SetUp {
     LogNormal logNormal;
     LogNormalSolver solver;
-    LogNormalHelper helper;
 
     uint256 public POOL_ID;
 
@@ -17,7 +15,8 @@ contract LogNormalSetUp is SetUp {
         strike: ONE,
         sigma: ONE,
         tau: ONE,
-        swapFee: TEST_SWAP_FEE
+        swapFee: TEST_SWAP_FEE,
+        controller: address(this)
     });
 
     uint256 defaultReserveX = ONE;
@@ -25,8 +24,8 @@ contract LogNormalSetUp is SetUp {
     bytes defaultInitialPoolData =
         computeInitialPoolData(defaultReserveX, defaultPrice, defaultParams);
 
-    function setUp() public {
-        globalSetUp();
+    function setUp() public override {
+        SetUp.setUp();
 
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);
@@ -37,7 +36,6 @@ contract LogNormalSetUp is SetUp {
         dfmm = new DFMM();
         logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
-        helper = new LogNormalHelper(address(logNormal));
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);
@@ -65,7 +63,8 @@ contract LogNormalSetUp is SetUp {
             strike: 2500 ether,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(this)
         });
 
         IDFMM.InitParams memory defaultInitParams = IDFMM.InitParams({

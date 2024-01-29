@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IDFMM.sol";
-import "../../interfaces/IStrategy.sol";
-import "../../lib/DynamicParamLib.sol";
+import "src/interfaces/IDFMM.sol";
+import "src/interfaces/IStrategy.sol";
+import "src/lib/DynamicParamLib.sol";
+import "src/lib/StrategyLib.sol";
 import "./LogNormalLib.sol";
-import "./LogNormalHelper.sol";
 
 /// @notice Log Normal has three variable parameters:
 /// K - strike price
@@ -24,6 +24,7 @@ contract LogNormal is IStrategy {
         DynamicParam tau;
         DynamicParam strike;
         uint256 swapFee;
+        address controller;
     }
 
     /// @dev Parameterization of the Log Normal curve.
@@ -32,12 +33,15 @@ contract LogNormal is IStrategy {
         uint256 sigma;
         uint256 tau;
         uint256 swapFee;
+        address controller;
     }
 
+    /// @inheritdoc IStrategy
     address public dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
+    /// @param dfmm_ Address of the DFMM contract.
     constructor(address dfmm_) {
         dfmm = dfmm_;
     }
@@ -47,9 +51,9 @@ contract LogNormal is IStrategy {
         _;
     }
 
-    /// @dev Decodes and validates pool initialization parameters.
-    /// Sets the `slot` state variable.
+    /// @inheritdoc IStrategy
     function init(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -91,6 +95,7 @@ contract LogNormal is IStrategy {
         internalParams[poolId].tau.lastComputedValue = params.tau;
         internalParams[poolId].strike.lastComputedValue = params.strike;
         internalParams[poolId].swapFee = params.swapFee;
+        internalParams[poolId].controller = params.controller;
 
         invariant = tradingFunction(
             reserveX,
@@ -102,7 +107,9 @@ contract LogNormal is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
+    /// @inheritdoc IStrategy
     function validateAllocateOrDeallocate(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -129,8 +136,9 @@ contract LogNormal is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
-    /// @dev Reverts if the caller is not a contract with the Core interface.
+    /// @inheritdoc IStrategy
     function validateSwap(
+        address,
         uint256 poolId,
         bytes memory data
     )
@@ -180,7 +188,13 @@ contract LogNormal is IStrategy {
         valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
     }
 
-    function update(uint256 poolId, bytes calldata data) external onlyDFMM {
+    /// @inheritdoc IStrategy
+    function update(
+        address sender,
+        uint256 poolId,
+        bytes calldata data
+    ) external onlyDFMM {
+        if (sender != internalParams[poolId].controller) revert InvalidSender();
         LogNormalUpdateCode updateCode = abi.decode(data, (LogNormalUpdateCode));
 
         if (updateCode == LogNormalUpdateCode.SwapFee) {
@@ -196,11 +210,14 @@ contract LogNormal is IStrategy {
             (uint256 targetStrike, uint256 targetTimestamp) =
                 decodeStrikeUpdate(data);
             internalParams[poolId].strike.set(targetStrike, targetTimestamp);
+        } else if (updateCode == LogNormalUpdateCode.Controller) {
+            internalParams[poolId].controller = decodeControllerUpdate(data);
         } else {
             revert InvalidUpdateCode();
         }
     }
 
+    /// @inheritdoc IStrategy
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
         LogNormalParams memory params;
 
@@ -212,7 +229,7 @@ contract LogNormal is IStrategy {
         return abi.encode(params);
     }
 
-    /// @dev Computes the result of the tradingFunction().
+    /// @inheritdoc IStrategy
     function computeSwapConstant(
         uint256 poolId,
         bytes memory data

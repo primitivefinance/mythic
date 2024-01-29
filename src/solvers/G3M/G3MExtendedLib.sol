@@ -1,9 +1,8 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
-import "./G3MLib.sol";
-import "./G3M.sol";
+import "src/strategies/G3M/G3M.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -48,7 +47,8 @@ function computeInitialPoolData(
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 rY = computeYGivenL(L, initialPrice, params);
     L = computeNextLiquidity(amountX, rY, params);
-    return abi.encode(amountX, rY, L, params.wX, params.swapFee);
+    return
+        abi.encode(amountX, rY, L, params.wX, params.swapFee, params.controller);
 }
 
 /// @dev Finds the root of the swapConstant given the independent variable rX.
