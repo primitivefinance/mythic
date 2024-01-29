@@ -190,7 +190,7 @@ impl PortfolioPresenter {
         let pool_id = 0;
         self.model
             .get_current()
-            .and_then(|x| Some(x.get_internal_price_of_pool_asset(pool_id).unwrap()))
+            .map(|x| x.get_internal_price_of_pool_asset(pool_id).unwrap())
             .to_label()
     }
 
@@ -199,11 +199,9 @@ impl PortfolioPresenter {
         let pool_id = 0;
         self.model
             .get_current()
-            .and_then(|x| {
-                Some(
-                    x.get_external_price_of_pool_asset(pool_id)
-                        .unwrap_or_default(),
-                )
+            .map(|x| {
+                x.get_external_price_of_pool_asset(pool_id)
+                    .unwrap_or_default()
             })
             .to_label()
     }

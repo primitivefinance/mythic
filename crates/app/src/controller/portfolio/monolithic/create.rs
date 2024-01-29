@@ -92,7 +92,7 @@ impl Form {
         on_select_duration: impl Fn(Times) -> Message + 'a,
         on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
         on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
-        liquidity_choices: &Vec<LiquidityChoices>,
+        liquidity_choices: &[LiquidityChoices],
     ) -> Element<'_, Message>
     where
         Message: 'a + Default + Clone,
@@ -370,7 +370,7 @@ impl FormView {
         _choice_liquidity: Vec<LiquidityTypes>,
         chosen_liquidity: Option<LiquidityTypes>,
         on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
-        liquidity_choices: &Vec<LiquidityChoices>,
+        liquidity_choices: &[LiquidityChoices],
     ) -> Container<'a, Message>
     where
         Message: 'a + Default + Clone,

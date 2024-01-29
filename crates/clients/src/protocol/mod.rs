@@ -121,6 +121,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_deployed(
         client: Arc<C>,
         protocol_addr: Address,
@@ -156,7 +157,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
-    pub async fn get_pool_struct(&self, pool_id: U256) -> Result<Pool> {
+    pub async fn get_pool(&self, pool_id: U256) -> Result<Pool> {
         let pool_data: PoolStruct = self.protocol.get_pool(pool_id).call().await?;
 
         let token_x = pool_data.token_x;
@@ -187,10 +188,6 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .send()
             .await?;
         Ok(())
-    }
-
-    pub async fn get_pool(&self, pool_id: U256) -> Result<Pool> {
-        Ok(self.get_pool_struct(pool_id).await?)
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
