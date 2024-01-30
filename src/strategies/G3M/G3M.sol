@@ -153,11 +153,35 @@ contract G3M is IStrategy {
     {
         G3MParams memory params = abi.decode(getPoolParams(poolId), (G3MParams));
 
+        (uint256 startRx, uint256 startRy, uint256 startL) =
+            IDFMM(dfmm).getReservesAndLiquidity(poolId);
+
         (nextRx, nextRy, nextL) = abi.decode(data, (uint256, uint256, uint256));
 
+        uint256 amountIn;
+        uint256 fees;
+        uint256 minLiquidityDelta;
+
+        if (nextRx > startRx) {
+            amountIn = nextRx - startRx;
+            fees = amountIn.mulWadUp(params.swapFee);
+            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
+        } else if (nextRy > startRy) {
+            amountIn = nextRy - startRy;
+            fees = amountIn.mulWadUp(params.swapFee);
+            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
+        } else {
+            revert("invalid swap: inputs x and y have the same sign!");
+        }
+
+        liquidityDelta = int256(nextL)
+            - int256(
+                computeNextLiquidity(
+                    startRx, startRy, abi.decode(getPoolParams(poolId), (G3MParams))
+                )
+            );
+
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
-        // todo: remove this
-        liquidityDelta = int256(nextL);
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
