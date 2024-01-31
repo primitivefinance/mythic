@@ -183,9 +183,7 @@ contract LogNormal is IStrategy {
         liquidityDelta = int256(nextL) - int256(startL);
 
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
-
-        bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
-        valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
+        valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
     /// @inheritdoc IStrategy

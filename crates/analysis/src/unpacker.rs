@@ -1,6 +1,6 @@
 use std::{collections::HashMap, env};
 
-use sim::agents::{base::price_changer::PriceProcess, AgentParameters};
+use sim::agents::{base_agents::price_changer::PriceProcess, AgentParameters};
 use tokio::{fs, sync::mpsc, task};
 
 use super::*;

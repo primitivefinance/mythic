@@ -7,9 +7,12 @@ import "src/strategies/LogNormal/LogNormalLib.sol";
 import "src/strategies/LogNormal/LogNormal.sol";
 import "../../interfaces/IDFMM.sol";
 import "./BisectionLib.sol";
+import "forge-std/console2.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
+
+uint256 constant MAX_ITER = 64;
 
 /// @dev Computes reserves L given rx, S.
 /// @param rx The reserve of x.
@@ -133,90 +136,103 @@ function computeInitialPoolData(
     return abi.encode(amountX, ry, L, params);
 }
 
-/// @dev Finds the root of the invariant given the independent variables reserveXWad and reserveYWad.
 function computeNextLiquidity(
-    uint256 rx,
-    uint256 ry,
-    int256 invariant,
-    uint256 currentL,
-    LogNormal.LogNormalParams memory params
-) pure returns (uint256 nextL) {
-    uint256 lower;
-    uint256 upper;
-    uint256 iters;
-    uint256 yOverK = ry.divWadDown(params.strike);
-
-    if (invariant < EPSILON && invariant > -(EPSILON)) {
-        return currentL;
-    } else if (invariant < 0) {
-        upper = currentL;
-        lower = rx > yOverK ? rx + 1 : yOverK + 1;
-        iters = 256;
-    } else {
-        upper = 1e27;
-        lower = currentL;
-        iters = 256;
+  uint256 rx,
+  uint256 ry,
+  int256 invariant,
+  uint256 approximatedL,
+  LogNormal.LogNormalParams memory params
+) pure returns (uint256 L) {
+  uint256 upper = approximatedL;
+  uint256 lower = approximatedL;
+  int256 computedInvariant = invariant;
+  if (computedInvariant < 0) {
+    while (computedInvariant < 0) {
+      lower = lower.mulDivDown(999, 1_000);
+      computedInvariant =
+        tradingFunction({ rx: rx, ry: ry, L: lower, params: params });
     }
-    nextL = bisection(
-        abi.encode(rx, ry, invariant, params),
-        lower,
-        upper,
-        uint256(EPSILON),
-        iters,
-        findRootLiquidity
-    );
+  } else {
+    while (computedInvariant > 0) {
+      upper = upper.mulDivUp(1_001, 1_000);
+      computedInvariant = 
+        tradingFunction({ rx: rx, ry: ry, L: upper, params: params });
+    }
+  }
+  L = bisection(
+      abi.encode(rx, ry, computedInvariant, params),
+      lower,
+      upper,
+      uint256(EPSILON),
+      MAX_ITER,
+      findRootLiquidity 
+  );
 }
 
-/// @dev Finds the root of the invariant given the independent variable reserveXWad.
-function computeNextRy(
-    uint256 rx,
-    uint256 L,
-    int256 invariant,
-    uint256 currentRy,
-    LogNormal.LogNormalParams memory params
-) pure returns (uint256 ry) {
-    uint256 upper;
-    uint256 lower;
-    if (invariant < 0) {
-        lower = currentRy;
-        upper = currentRy.mulDivUp(150, 100);
-    } else {
-        lower = currentRy.mulDivDown(50, 100);
-        upper = currentRy; // Can use `currentRy` as upper because function is monotonic and this is only invoked if swapping x in --> must satisfy currentRy > nextRy
-    }
-    ry = bisection(
-        abi.encode(rx, L, invariant, params),
-        lower,
-        upper,
-        uint256(EPSILON),
-        256,
-        findRootY
-    );
-}
-
-/// @dev Finds the root of the invariant given the independent variable reserveYWad.
 function computeNextRx(
-    uint256 ry,
-    uint256 L,
-    int256 invariant,
-    uint256 currentRx,
-    LogNormal.LogNormalParams memory params
+  uint256 ry,
+  uint256 L,
+  int256 invariant,
+  uint256 approximatedRx,
+  LogNormal.LogNormalParams memory params
 ) pure returns (uint256 rx) {
-    uint256 upper;
-    uint256 lower;
-    if (invariant < 0) {
-        lower = currentRx;
-        upper = currentRx.mulDivUp(150, 100);
-    } else {
-        lower = currentRx.mulDivDown(50, 100);
-        upper = currentRx; // can use `currentRx` as upper because function is monotonic and this is only invoked if swapping y in --> must satisfy currentRx > nextRx
+  uint256 upper = approximatedRx;
+  uint256 lower = approximatedRx;
+  int256 computedInvariant = invariant;
+  if (computedInvariant < 0) {
+    while (computedInvariant < 0) {
+      upper = upper.mulDivUp(1_001, 1_000);
+      computedInvariant = 
+        tradingFunction({ rx: upper, ry: ry, L: L, params: params });
     }
-    rx = bisection(
-        abi.encode(ry, L, invariant, params),
-        lower,
-        upper,
-        uint256(EPSILON),
-        256,
-        findRootX
-    );
+  } else {
+    while (computedInvariant > 0) {
+      lower = lower.mulDivDown(999, 1_000);
+      computedInvariant =
+        tradingFunction({ rx: lower, ry: ry, L: L, params: params });
+    }
+  }
+  rx = bisection(
+      abi.encode(ry, L, computedInvariant, params),
+      lower,
+      upper,
+      uint256(EPSILON),
+      MAX_ITER,
+      findRootX
+  );
 }
+
+function computeNextRy(
+  uint256 rx,
+  uint256 L,
+  int256 invariant,
+  uint256 approximatedRy,
+  LogNormal.LogNormalParams memory params
+) pure returns (uint256 ry) {
+  uint256 upper = approximatedRy;
+  uint256 lower = approximatedRy;
+  int256 computedInvariant = invariant;
+  if (computedInvariant < 0) {
+    while (computedInvariant < 0) {
+      upper = upper.mulDivUp(1_001, 1_000);
+      computedInvariant = 
+        tradingFunction({ rx: rx, ry: upper, L: L, params: params });
+    }
+  } else {
+    while (computedInvariant > 0) {
+      lower = lower.mulDivDown(999, 1_000);
+      computedInvariant =
+        tradingFunction({ rx: rx, ry: lower, L: L, params: params });
+    }
+  }
+  ry = bisection(
+      abi.encode(rx, L, computedInvariant, params),
+      lower,
+      upper,
+      uint256(EPSILON),
+      MAX_ITER,
+      findRootY
+  );
+}
+
+

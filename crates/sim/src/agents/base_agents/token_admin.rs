@@ -4,7 +4,7 @@ use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use datatypes::TokenData;
 use ethers::types::{Address, U256};
 
-use super::*;
+use super::{agent::*, *};
 
 #[derive(Clone, Debug)]
 pub struct TokenAdmin {

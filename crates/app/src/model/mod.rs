@@ -113,11 +113,11 @@ impl Model {
         // unallocated and allocated positions.
         let position_tokens = unallocated_positions
             .iter()
-            .map(|position| position.token_address.clone())
+            .map(|position| position.token_address)
             .chain(
                 allocated_positions
                     .iter()
-                    .map(|position| position.token_l_address.clone()),
+                    .map(|position| position.token_l_address),
             )
             .collect::<Vec<AlloyAddress>>();
 
@@ -126,16 +126,16 @@ impl Model {
         let total_value = unallocated_positions
             .iter()
             .map(|pos| {
-                let balance = pos.balance.clone();
-                let price = pos.external_price.clone();
+                let balance = pos.balance;
+                let price = pos.external_price;
                 balance * price
             })
             .sum::<f64>()
             + allocated_positions
                 .iter()
                 .map(|pos| {
-                    let balance = pos.liquidity_balance.clone();
-                    let price = pos.liquidity_value.clone();
+                    let balance = pos.liquidity_balance;
+                    let price = pos.liquidity_value;
                     balance * price
                 })
                 .sum::<f64>();
@@ -151,15 +151,15 @@ impl Model {
                 .iter()
                 .find(|pos| pos.token_address == token)
             {
-                (position.balance.clone(), position.external_price.clone())
+                (position.balance, position.external_price)
             } else if let Some(position) = allocated_positions
                 .iter()
                 .find(|pos| pos.token_l_address == token)
             {
                 is_allocated = true;
                 (
-                    position.liquidity_balance.clone(),
-                    position.liquidity_value.clone() / position.liquidity_balance.clone(),
+                    position.liquidity_balance,
+                    position.liquidity_value / position.liquidity_balance,
                 )
             } else {
                 continue;

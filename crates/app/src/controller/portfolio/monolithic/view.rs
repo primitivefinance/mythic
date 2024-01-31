@@ -274,12 +274,9 @@ impl MonolithicPresenter {
                 false => match is_stablecoin {
                     true => Ok(ALLOY_WAD).to_label(),
                     false => match is_ether {
-                        true => {
-                            let external_price = connected_model
-                                .price_of_token(position.asset.address)
-                                .to_label();
-                            external_price
-                        }
+                        true => connected_model
+                            .price_of_token(position.asset.address)
+                            .to_label(),
                         false => label("n/a").title3().secondary(),
                     },
                 },

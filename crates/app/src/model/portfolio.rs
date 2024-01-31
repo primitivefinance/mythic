@@ -380,9 +380,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 .fetch_external_price_of_token(client.clone(), token_address)
                 .await?;
             let external_prices = self.external_prices.get_or_insert_with(BTreeMap::new);
-            let price_series = external_prices
-                .entry(token_address)
-                .or_insert_with(Vec::new);
+            let price_series = external_prices.entry(token_address).or_default();
             price_series.push((current_block, new_price));
         }
 
@@ -399,7 +397,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         for liquidity_token_address in liquidity_token_addresses {
             self.user_token_balances
                 .entry(*liquidity_token_address)
-                .or_insert_with(Vec::new);
+                .or_default();
         }
 
         Ok(())
@@ -414,7 +412,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         <M as ethers::providers::Middleware>::Error: 'static,
     {
         let new_pool_state = self.fetch_pool_state(client.clone(), pool_id).await?;
-        let liquidity_token_address = new_pool_state.liquidity_token.clone().unwrap();
+        let liquidity_token_address = new_pool_state.liquidity_token.unwrap();
 
         let pool_state_map = self.pool_state.get_or_insert_with(BTreeMap::new);
 
@@ -1054,13 +1052,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     // ----- Getters ----- //
 
     pub fn get_pool_state(&self, pool_id: u64) -> Result<PoolState<AlloyAddress, AlloyU256>> {
-        Ok(self
-            .pool_state
+        self.pool_state
             .as_ref()
             .ok_or(Error::msg("Pool state not set"))?
             .get(&pool_id)
             .cloned()
-            .ok_or(Error::msg(format!("Pool with id {} not found", pool_id)))?)
+            .ok_or(Error::msg(format!("Pool with id {} not found", pool_id)))
     }
 
     pub fn price_of_token(&self, token_address: AlloyAddress) -> Result<AlloyU256> {
@@ -1145,6 +1142,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Gets the series of USD values for each token the user has with a
     /// non-zero balance.
+    #[allow(clippy::type_complexity)]
     pub fn get_user_balances_usd(&self) -> Result<Vec<(AlloyAddress, Vec<(u64, AlloyU256)>)>> {
         // Filter the liquidity token addresses from the user_token_balances
         // keys, then separate them into two different vectors of addresses.
@@ -1152,7 +1150,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .liquidity_token_addresses
             .as_ref()
             .cloned()
-            .unwrap_or(Vec::new());
+            .unwrap_or_default();
 
         let non_liquidity_token_addresses: Vec<_> = self
             .user_token_balances
@@ -1212,6 +1210,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the amount of reserves claimable in total given all the
     /// liquidity.
+    #[allow(clippy::type_complexity)]
     fn get_reserves(&self, pool_id: u64) -> Result<(Vec<(u64, AlloyU256)>, Vec<(u64, AlloyU256)>)> {
         // Get the pool state of the given pool id.
         let pool_state = self.get_pool_state(pool_id)?;
@@ -1490,6 +1489,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Computes the value of an allocated position of the given pool id.
     /// Sums the value of the position's claimable token balance and returns the
     /// series.
+    #[allow(clippy::type_complexity)]
     fn derive_position_value_series(
         &self,
         pool_id: u64,
@@ -1579,6 +1579,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the amount of reserves claimable given the user's liquidity.
+    #[allow(clippy::type_complexity)]
     fn derive_user_allocated_balances(
         &self,
         pool_id: u64,
@@ -1670,14 +1671,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     pub fn derive_lp_token_price_series(&self, pool_id: u64) -> Result<Vec<(u64, AlloyU256)>> {
         let pool_state = self.get_pool_state(pool_id)?.clone();
         let (claimable_assets, claimable_quotes) = self.get_reserves(pool_id)?;
-        let claimable_assets_series = claimable_assets
-            .into_iter()
-            .map(|(block, balance)| (block, balance))
-            .collect::<Vec<_>>();
-        let claimable_quotes_series = claimable_quotes
-            .into_iter()
-            .map(|(block, balance)| (block, balance))
-            .collect::<Vec<_>>();
+        let claimable_assets_series = claimable_assets.into_iter().collect::<Vec<_>>();
+        let claimable_quotes_series = claimable_quotes.into_iter().collect::<Vec<_>>();
         let external_asset_price_series = self.external_prices.as_ref().ok_or(Error::msg(
             "derive_lp_token_price_series: External price series not set",
         ))?[&pool_state.asset_token.unwrap()]
@@ -2209,9 +2204,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         for (_, balance_series) in all_usd_balances {
             for (block, balance) in balance_series {
                 let mut found = false;
-                for (_i, (existing_block, existing_balance)) in
-                    unallocated_series.iter_mut().enumerate()
-                {
+                for (existing_block, existing_balance) in unallocated_series.iter_mut() {
                     if *existing_block == block {
                         *existing_balance += balance;
                         found = true;
@@ -2274,7 +2267,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let asset_token = pool_state
             .asset_token
-            .clone()
             .ok_or(Error::msg("Asset token not set"))?;
 
         let last_asset_reserve = pool_state

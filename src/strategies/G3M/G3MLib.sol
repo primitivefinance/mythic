@@ -59,10 +59,14 @@ function tradingFunction(
     uint256 L,
     G3M.G3MParams memory params
 ) pure returns (int256) {
-    uint256 a = uint256(int256(rX).powWad(int256(params.wX)));
-    uint256 b = uint256(int256(rY).powWad(int256(params.wY)));
+    //uint256 a = uint256(int256(rX).powWad(int256(params.wX)));
+    //uint256 b = uint256(int256(rY).powWad(int256(params.wY)));
+    //return int256(a.mulWadUp(b)) - int256(L);
 
-    return int256(a.mulWadUp(b)) - int256(L);
+    uint256 a = uint256(int256(rX.divWadDown(L)).powWad(int256(params.wX)));
+    uint256 b = uint256(int256(rY.divWadDown(L)).powWad(int256(params.wY)));
+
+    return int256(a.mulWadUp(b)) - int256(1 ether);
 }
 
 /// @dev Finds the root of the swapConstant given the independent variable liquidity.

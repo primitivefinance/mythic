@@ -174,16 +174,15 @@ contract G3M is IStrategy {
             revert("invalid swap: inputs x and y have the same sign!");
         }
 
-        uint256 poolId = poolId;
         liquidityDelta = int256(nextL)
             - int256(
                 computeNextLiquidity(
                     startRx, startRy, abi.decode(getPoolParams(poolId), (G3MParams))
                 )
             );
+
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
-        bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
-        valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
+        valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
     /// @inheritdoc IStrategy
