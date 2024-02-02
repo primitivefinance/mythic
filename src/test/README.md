@@ -26,6 +26,11 @@ This section is just a draft and random notes for now:
 
 ### Potential exploits
 
-- Faulty strategy allowing to withdraw more tokens than the pool reserves.
-- Rounding issues allowing to get more and more tokens by allocating and deallocating back and forth
-- 
+Potential exploits and how we can prevent them:
+
+| Exploit | Prevention |
+|---|---|
+| Faulty strategy allowing to withdraw more tokens than the pool reserves. | Pool reserves are tracked in the `Pool` structure and the amount of tokens out is withdrawn before performing the actual transfer, this means that removing more than the pool reserves will trigger an underflow and revert the transaction. |
+| Rounding issues allowing to get more and more tokens by allocating and deallocating back and forth. | The amount of minted or burnt liquidity is always rounded in the favor of the DFMM. |
+| Sending tokens directly into the DFMM contract to manipulate the reserves and withdraw more than the pool reserves. | The reserves are not fetched using `balanceOf` but are tracked in the `Pool` structure. During a `transfer` the amount of tokens received is checked and only what is expected is added to the reserves. |
+| Receiving more tokens by swapping back and forth. | TBD |
