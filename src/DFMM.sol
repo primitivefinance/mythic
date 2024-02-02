@@ -106,7 +106,7 @@ contract DFMM is IDFMM {
             totalLiquidity
         );
 
-        return (poolId, reserveX, reserveY, totalLiquidity);
+        return (poolId, reserveX, reserveY, totalLiquidity - BURNT_LIQUIDITY);
     }
 
     /// @inheritdoc IDFMM
