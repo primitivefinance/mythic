@@ -95,18 +95,24 @@ contract DFMM is IDFMM {
             ERC20(params.tokenY), msg.sender, address(this), reserveY
         );
 
-        emit Init(
-            msg.sender,
-            params.strategy,
-            params.tokenX,
-            params.tokenY,
-            poolId,
-            reserveX,
-            reserveY,
-            totalLiquidity
-        );
+        emitInit(poolId);
 
         return (poolId, reserveX, reserveY, totalLiquidity - BURNT_LIQUIDITY);
+    }
+
+    function emitInit(uint256 poolId) private {
+        Pool memory pool = pools[poolId];
+
+        emit Init(
+            msg.sender,
+            pool.strategy,
+            pool.tokenX,
+            pool.tokenY,
+            poolId,
+            pool.reserveX,
+            pool.reserveY,
+            pool.totalLiquidity
+        );
     }
 
     /// @inheritdoc IDFMM
