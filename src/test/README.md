@@ -34,3 +34,5 @@ Potential exploits and how we can prevent them:
 | Rounding issues allowing to get more and more tokens by allocating and deallocating back and forth. | The amount of minted or burnt liquidity is always rounded in the favor of the DFMM. |
 | Sending tokens directly into the DFMM contract to manipulate the reserves and withdraw more than the pool reserves. | The reserves are not fetched using `balanceOf` but are tracked in the `Pool` structure. During a `transfer` the amount of tokens received is checked and only what is expected is added to the reserves. |
 | Receiving more tokens by swapping back and forth. | TBD |
+| LPTs inflation attack | A small portion of the initial LPTs is burnt |
+| Reentrancy | All the functions are using a reentrancy lock and external calls are performed at the end of each function. |
