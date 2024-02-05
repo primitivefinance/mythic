@@ -46,7 +46,7 @@ function computeInitialPoolData(
 ) pure returns (bytes memory) {
     uint256 L = computeLGivenX(amountX, initialPrice, params);
     uint256 rY = computeYGivenL(L, initialPrice, params);
-    L = computeNextLiquidity(amountX, rY, params);
+    L = G3MLib.computeNextLiquidity(amountX, rY, params);
     return
         abi.encode(amountX, rY, L, params.wX, params.swapFee, params.controller);
 }

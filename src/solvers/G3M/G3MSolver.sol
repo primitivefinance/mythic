@@ -29,14 +29,14 @@ contract G3MSolver {
         pure
         returns (bytes memory data)
     {
-        return encodeFeeUpdate(swapFee);
+        return G3MLib.encodeFeeUpdate(swapFee);
     }
 
     function prepareWeightXUpdate(
         uint256 targetWeightX,
         uint256 targetTimestamp
     ) public pure returns (bytes memory) {
-        return encodeWeightXUpdate(targetWeightX, targetTimestamp);
+        return G3MLib.encodeWeightXUpdate(targetWeightX, targetTimestamp);
     }
 
     function prepareControllerUpdate(address controller)
@@ -44,7 +44,7 @@ contract G3MSolver {
         pure
         returns (bytes memory)
     {
-        return encodeControllerUpdate(controller);
+        return G3MLib.encodeControllerUpdate(controller);
     }
 
     function fetchPoolParams(uint256 poolId)
@@ -122,7 +122,7 @@ contract G3MSolver {
         uint256 rx,
         uint256 ry
     ) public view returns (uint256) {
-        return computeNextLiquidity(rx, ry, fetchPoolParams(poolId));
+        return G3MLib.computeNextLiquidity(rx, ry, fetchPoolParams(poolId));
     }
 
     function getNextReserveX(
@@ -155,7 +155,7 @@ contract G3MSolver {
 
         uint256 amountOut;
 
-        uint256 startComputedL = computeNextLiquidity(
+        uint256 startComputedL = G3MLib.computeNextLiquidity(
             startReserves.rx, startReserves.ry, fetchPoolParams(poolId)
         );
 
@@ -239,6 +239,6 @@ contract G3MSolver {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
         G3M.G3MParams memory params = fetchPoolParams(poolId);
-        return tradingFunction(rx, ry, L, params);
+        return G3MLib.tradingFunction(rx, ry, L, params);
     }
 }
