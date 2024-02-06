@@ -5,6 +5,20 @@ Excalibur is an Ethereum Application Client optimized for speed and security.
 ## Use case
 Use Excalibur to directly interface with applications deployed on EVM networks.
 
+## Building the Windows .msi installer
+
+We use `cargo-wix` to build Windows installers so Excalibur can be installed on Windows.
+
+1. Create the wix file that is used to build the installer: `cargo wix init --package excalibur-app --force`
+2. Run wix: `cargo wix --package excalibur-app --nocapture --name Excalibur`. The name flag will make this the application name saved in Program Files.
+
+## Building the MacOS .dmg installer
+
+We use `cargo-bundle` to build MacOS and Linux bundles, but have not tested Excalibur on Linux.
+
+1. Run `cargo bundle --target {target}`. target should match rust compiler targets.
+
+
 ## Ethereum Application Client
 
 ### Problem
