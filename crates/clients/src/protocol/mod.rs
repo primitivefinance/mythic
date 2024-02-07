@@ -20,16 +20,17 @@ use bindings::{
 };
 use ethers::utils::parse_ether;
 use pool::{Pool, PoolKind};
+use serde::{Deserialize, Serialize};
 
 use super::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct G3mF64 {
     pub wx: f64,
     pub swap_fee: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogNormalF64 {
     pub sigma: f64,
     pub strike: f64,
@@ -37,7 +38,7 @@ pub struct LogNormalF64 {
     pub swap_fee: f64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PoolInitParamsF64 {
     G3M(G3mF64),
     LogNormal(LogNormalF64),
@@ -48,7 +49,6 @@ pub enum PoolParams {
     G3M(G3mParameters),
     LogNormal(LogNormalParameters),
 }
-
 #[derive(Debug)]
 pub struct ProtocolClient<C> {
     pub client: Arc<C>,
@@ -76,14 +76,21 @@ impl<C> Clone for ProtocolClient<C> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ProtocolClientAddresses {
+    pub protocol: Address,
+    pub ln_solver: Address,
+    pub ln_strategy: Address,
+    pub ln_helper: Address,
+    pub g_solver: Address,
+    pub g_strategy: Address,
+    pub g_helper: Address,
+}
+
+impl<C> ProtocolClient<C> {}
 impl<C: Middleware + 'static> ProtocolClient<C> {
     #[tracing::instrument(level = "trace", ret)]
-    pub async fn new(
-        client: Arc<C>,
-        token_x: Address,
-        token_y: Address,
-        swap_fee_percent_wad: f64,
-    ) -> Result<Self> {
+    pub async fn new(client: Arc<C>) -> Result<Self> {
         let protocol = DFMM::deploy(client.clone(), ())?.send().await?;
         let ln_strategy = LogNormal::deploy(client.clone(), protocol.address())?
             .send()
@@ -121,26 +128,28 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_deployed(
-        client: Arc<C>,
-        protocol_addr: Address,
-        ln_strategy_addr: Address,
-        ln_solver_addr: Address,
-        ln_helper_addr: Address,
-        g_strategy_addr: Address,
-        g_solver_addr: Address,
-        g_helper_addr: Address,
-    ) -> Result<Self> {
+    pub fn addresses(&self) -> ProtocolClientAddresses {
+        ProtocolClientAddresses {
+            protocol: self.protocol.address(),
+            ln_solver: self.ln_solver.address(),
+            ln_strategy: self.ln_strategy.address(),
+            ln_helper: self.ln_helper.address(),
+            g_solver: self.g_solver.address(),
+            g_strategy: self.g_strategy.address(),
+            g_helper: self.g_helper.address(),
+        }
+    }
+
+    pub fn from_deployed(client: Arc<C>, addresses: ProtocolClientAddresses) -> Result<Self> {
         Ok(Self {
             client: client.clone(),
-            protocol: DFMM::new(protocol_addr, client.clone()),
-            ln_strategy: LogNormal::new(ln_strategy_addr, client.clone()),
-            ln_solver: LogNormalSolver::new(ln_solver_addr, client.clone()),
-            ln_helper: LogNormalHelper::new(ln_helper_addr, client.clone()),
-            g_strategy: G3M::new(g_strategy_addr, client.clone()),
-            g_solver: G3MSolver::new(g_solver_addr, client.clone()),
-            g_helper: G3MHelper::new(g_helper_addr, client.clone()),
+            protocol: DFMM::new(addresses.protocol, client.clone()),
+            ln_strategy: LogNormal::new(addresses.ln_strategy, client.clone()),
+            ln_solver: LogNormalSolver::new(addresses.ln_solver, client.clone()),
+            ln_helper: LogNormalHelper::new(addresses.ln_helper, client.clone()),
+            g_strategy: G3M::new(addresses.g_strategy, client.clone()),
+            g_solver: G3MSolver::new(addresses.g_solver, client.clone()),
+            g_helper: G3MHelper::new(addresses.g_helper, client.clone()),
         })
     }
 
@@ -190,16 +199,17 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn init_pool(
+    pub async fn init_pool<S: ToString>(
         &self,
         token_x: Address,
         token_y: Address,
-        init_reserve_x_wad: U256,
-        init_price_wad: U256,
+        init_x: S,
+        init_price: S,
         init_params: PoolInitParamsF64,
     ) -> Result<TransactionReceipt> {
         let pool_params = to_init_params_wad(init_params)?;
+        let init_reserve_x_wad = to_wad(init_x);
+        let init_price_wad = to_wad(init_price);
 
         match pool_params {
             PoolParams::G3M(g3m_params) => {
@@ -269,7 +279,6 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
                 Ok(init_params)
             }
             PoolParams::LogNormal(log_normal_params) => {
-                tracing::info!("log normal solver address: {:?}", self.ln_solver.address());
                 let init_data = self
                     .ln_solver
                     .get_initial_pool_data(init_reserve_x_wad, init_price_wad, log_normal_params)
@@ -399,7 +408,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 }
 
-fn to_wad(value: f64) -> U256 {
+fn to_wad<S: ToString>(value: S) -> U256 {
     parse_ether(value).unwrap()
 }
 
@@ -407,7 +416,7 @@ fn to_init_params_wad(init_params: PoolInitParamsF64) -> Result<PoolParams> {
     match init_params {
         PoolInitParamsF64::G3M(g3m_params) => Ok(PoolParams::G3M(G3mParameters {
             w_x: to_wad(g3m_params.wx),
-            w_y: to_wad(1.0) - to_wad(g3m_params.wx),
+            w_y: to_wad(1) - to_wad(g3m_params.wx),
             swap_fee: to_wad(g3m_params.swap_fee),
         })),
         PoolInitParamsF64::LogNormal(ln_params) => Ok(PoolParams::LogNormal(LogNormalParameters {

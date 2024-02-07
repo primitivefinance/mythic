@@ -65,15 +65,8 @@ impl<C: Middleware + 'static> DevClient<C> {
             .await?
             .await?;
 
-        let swap_fee_percent_wad = 0.003;
         tracing::trace!("Deploying protocol");
-        let protocol = ProtocolClient::new(
-            client.clone(),
-            token_x.address(),
-            token_y.address(),
-            swap_fee_percent_wad,
-        )
-        .await?;
+        let protocol = ProtocolClient::new(client.clone()).await?;
 
         tracing::trace!("Approving tokens");
         token_x
@@ -140,12 +133,15 @@ impl<C: Middleware + 'static> DevClient<C> {
         let token_x = self.token_x.address();
         let token_y = self.token_y.address();
 
-        self.token_x.mint(sender, amount_x_wad).send().await?;
+        self.token_x
+            .mint(sender, ethers::utils::parse_ether(amount_x)?)
+            .send()
+            .await?;
         self.token_y.mint(sender, amount_y_wad).send().await?;
 
         let tx = self
             .protocol
-            .init_pool(token_x, token_y, amount_x_wad, price_wad, init_params)
+            .init_pool(token_x, token_y, amount_x, price, init_params)
             .await?;
 
         Ok(tx)
