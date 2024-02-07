@@ -89,10 +89,10 @@ fn main() -> Result<()> {
     }
 
     match &args.command {
-        Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,
         Some(Commands::Analyze) => todo!(),
-        Some(Commands::Ui) => app::run(args.dev)?,
-        None => app::run(args.dev)?,
+        Some(Commands::Simulate { config_path }) => todo!(),
+        Some(Commands::Ui) => todo!(),
+        None => sim_v2::run()?,
     }
     Ok(())
 }

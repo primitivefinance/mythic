@@ -1,0 +1,16 @@
+[[token_admin]]
+TokenAdmin = { init_token_data = [
+    { name = "US Dollar Coin", symbol = "USDC", decimals = 18 },
+    { name = "Wrapped Ether", symbol = "WETH", decimals = 18 },
+] }
+
+[[protocol_manager]]
+ProtocolManager = {}
+
+[[liquidity_provider]]
+LiquidityProvider = { pool_init_data = [
+    { token_x = "US Dollar Coin", token_y = "Wrapped Ether", init_x_amount = 10, init_price = 1, sigma = 1, strike = 1, tau = 1, swap_fee = 0.003 },
+] }
+
+[[price_changer]]
+PriceChanger = {}
