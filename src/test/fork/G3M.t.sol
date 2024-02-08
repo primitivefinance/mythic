@@ -20,6 +20,7 @@ contract G3MTestFork is Test {
     DFMM dfmm;
     ERC20 usdc;
     ERC20 weth;
+    ERC20 dai;
     G3M g3m;
 
     function setUp() public {
@@ -27,6 +28,7 @@ contract G3MTestFork is Test {
 
         usdc = ERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
         weth = ERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+        dai = ERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
 
         vm.prank(
             USDC(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).masterMinter()

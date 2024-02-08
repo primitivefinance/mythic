@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "src/strategies/G3M/G3M.sol";
+import "forge-std/console2.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -74,7 +75,9 @@ function computeInitialPoolData(
     G3M.G3MParams memory params
 ) pure returns (bytes memory) {
     uint256 rY = computeY(amountX, initialPrice, params);
+    console2.log("ry", rY);
     uint256 L = computeL(amountX, rY, params);
+    console2.log("L in computeInitial", L);
 
     return
         abi.encode(amountX, rY, L, params.wX, params.swapFee, params.controller);

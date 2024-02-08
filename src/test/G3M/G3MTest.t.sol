@@ -26,7 +26,7 @@ contract G3MTest is Test {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
         MockERC20(tokenX).mint(address(this), 100e18);
-        MockERC20(tokenY).mint(address(this), 100e18);
+        MockERC20(tokenY).mint(address(this), 100_000_000e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
         dfmm = new DFMM();
@@ -35,6 +35,27 @@ contract G3MTest is Test {
 
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
+    }
+
+    function test_G3M_init() public {
+        uint256 reserveX = 1 ether;
+        uint256 price = 2000 * 10 ** 18;
+
+        G3M.G3MParams memory params = G3M.G3MParams({
+            wX: 0.5 ether,
+            wY: 0.5 ether,
+            swapFee: 0,
+            controller: address(this)
+        });
+
+        dfmm.init(
+            IDFMM.InitParams({
+                strategy: address(g3m),
+                tokenX: tokenX,
+                tokenY: tokenY,
+                data: computeInitialPoolData(reserveX, price, params)
+            })
+        );
     }
 
     /// @dev Initializes a basic pool in dfmm.
