@@ -41,7 +41,7 @@ pub mod idfmm {
                             ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -50,7 +50,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -59,7 +59,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaL"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -98,7 +98,7 @@ pub mod idfmm {
                             ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -107,7 +107,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -116,7 +116,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("deltaL"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -205,7 +205,7 @@ pub mod idfmm {
                             ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -214,7 +214,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -223,7 +223,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("reserveY"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -232,7 +232,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("totalLiquidity"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -285,13 +285,6 @@ pub mod idfmm {
                                 },
                             ],
                             outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::borrow::ToOwned::to_owned("controller"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("strategy"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
@@ -378,7 +371,7 @@ pub mod idfmm {
                             ],
                             outputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("inputAmount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -387,7 +380,7 @@ pub mod idfmm {
                                     ),
                                 },
                                 ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
+                                    name: ::std::borrow::ToOwned::to_owned("outputAmount"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
                                     ),
@@ -580,71 +573,6 @@ pub mod idfmm {
                     ],
                 ),
                 (
-                    ::std::borrow::ToOwned::to_owned("LogPoolStats"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Event {
-                            name: ::std::borrow::ToOwned::to_owned("LogPoolStats"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("rx"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("ry"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("L"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("invariant"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Int(256usize),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("sigma"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("strike"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("tau"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                                ::ethers::core::abi::ethabi::EventParam {
-                                    name: ::std::borrow::ToOwned::to_owned("timestamp"),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    indexed: false,
-                                },
-                            ],
-                            anonymous: false,
-                        },
-                    ],
-                ),
-                (
                     ::std::borrow::ToOwned::to_owned("Swap"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Event {
@@ -728,6 +656,15 @@ pub mod idfmm {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("InvalidSwap"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("InvalidSwap"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("InvalidSwapInputTransfer"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::AbiError {
@@ -763,24 +700,6 @@ pub mod idfmm {
                     ::std::vec![
                         ::ethers::core::abi::ethabi::AbiError {
                             name: ::std::borrow::ToOwned::to_owned("Locked"),
-                            inputs: ::std::vec![],
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("NotController"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::AbiError {
-                            name: ::std::borrow::ToOwned::to_owned("NotController"),
-                            inputs: ::std::vec![],
-                        },
-                    ],
-                ),
-                (
-                    ::std::borrow::ToOwned::to_owned("NotInitialized"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::AbiError {
-                            name: ::std::borrow::ToOwned::to_owned("NotInitialized"),
                             inputs: ::std::vec![],
                         },
                     ],
@@ -919,7 +838,6 @@ pub mod idfmm {
                 ::ethers::core::types::Address,
                 ::ethers::core::types::Address,
                 ::ethers::core::types::Address,
-                ::ethers::core::types::Address,
                 ::ethers::core::types::U256,
                 ::ethers::core::types::U256,
                 ::ethers::core::types::U256,
@@ -979,16 +897,6 @@ pub mod idfmm {
         ) -> ::ethers::contract::builders::Event<::std::sync::Arc<M>, M, InitFilter> {
             self.0.event()
         }
-        ///Gets the contract's `LogPoolStats` event
-        pub fn log_pool_stats_filter(
-            &self,
-        ) -> ::ethers::contract::builders::Event<
-            ::std::sync::Arc<M>,
-            M,
-            LogPoolStatsFilter,
-        > {
-            self.0.event()
-        }
         ///Gets the contract's `Swap` event
         pub fn swap_filter(
             &self,
@@ -1041,6 +949,21 @@ pub mod idfmm {
         pub negative: bool,
         pub swap_constant_growth: ::ethers::core::types::U256,
     }
+    ///Custom Error type `InvalidSwap` with signature `InvalidSwap()` and selector `0x11157667`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "InvalidSwap", abi = "InvalidSwap()")]
+    pub struct InvalidSwap;
     ///Custom Error type `InvalidSwapInputTransfer` with signature `InvalidSwapInputTransfer()` and selector `0x80f64074`
     #[derive(
         Clone,
@@ -1101,36 +1024,6 @@ pub mod idfmm {
     )]
     #[etherror(name = "Locked", abi = "Locked()")]
     pub struct Locked;
-    ///Custom Error type `NotController` with signature `NotController()` and selector `0x23019e67`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthError,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[etherror(name = "NotController", abi = "NotController()")]
-    pub struct NotController;
-    ///Custom Error type `NotInitialized` with signature `NotInitialized()` and selector `0x87138d5c`
-    #[derive(
-        Clone,
-        ::ethers::contract::EthError,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
-    #[etherror(name = "NotInitialized", abi = "NotInitialized()")]
-    pub struct NotInitialized;
     ///Container type for all of the contract's custom errors
     #[derive(
         Clone,
@@ -1145,12 +1038,11 @@ pub mod idfmm {
     pub enum IDFMMErrors {
         ERC1167FailedCreateClone(ERC1167FailedCreateClone),
         Invalid(Invalid),
+        InvalidSwap(InvalidSwap),
         InvalidSwapInputTransfer(InvalidSwapInputTransfer),
         InvalidSwapOutputTransfer(InvalidSwapOutputTransfer),
         InvalidTokens(InvalidTokens),
         Locked(Locked),
-        NotController(NotController),
-        NotInitialized(NotInitialized),
         /// The standard solidity revert string, with selector
         /// Error(string) -- 0x08c379a0
         RevertString(::std::string::String),
@@ -1175,6 +1067,11 @@ pub mod idfmm {
             ) {
                 return Ok(Self::Invalid(decoded));
             }
+            if let Ok(decoded) = <InvalidSwap as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InvalidSwap(decoded));
+            }
             if let Ok(decoded) = <InvalidSwapInputTransfer as ::ethers::core::abi::AbiDecode>::decode(
                 data,
             ) {
@@ -1195,16 +1092,6 @@ pub mod idfmm {
             ) {
                 return Ok(Self::Locked(decoded));
             }
-            if let Ok(decoded) = <NotController as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::NotController(decoded));
-            }
-            if let Ok(decoded) = <NotInitialized as ::ethers::core::abi::AbiDecode>::decode(
-                data,
-            ) {
-                return Ok(Self::NotInitialized(decoded));
-            }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
@@ -1215,6 +1102,9 @@ pub mod idfmm {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Invalid(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::InvalidSwap(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::InvalidSwapInputTransfer(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -1225,12 +1115,6 @@ pub mod idfmm {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Locked(element) => ::ethers::core::abi::AbiEncode::encode(element),
-                Self::NotController(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
-                Self::NotInitialized(element) => {
-                    ::ethers::core::abi::AbiEncode::encode(element)
-                }
                 Self::RevertString(s) => ::ethers::core::abi::AbiEncode::encode(s),
             }
         }
@@ -1246,6 +1130,8 @@ pub mod idfmm {
                 _ if selector
                     == <Invalid as ::ethers::contract::EthError>::selector() => true,
                 _ if selector
+                    == <InvalidSwap as ::ethers::contract::EthError>::selector() => true,
+                _ if selector
                     == <InvalidSwapInputTransfer as ::ethers::contract::EthError>::selector() => {
                     true
                 }
@@ -1260,14 +1146,6 @@ pub mod idfmm {
                 _ if selector == <Locked as ::ethers::contract::EthError>::selector() => {
                     true
                 }
-                _ if selector
-                    == <NotController as ::ethers::contract::EthError>::selector() => {
-                    true
-                }
-                _ if selector
-                    == <NotInitialized as ::ethers::contract::EthError>::selector() => {
-                    true
-                }
                 _ => false,
             }
         }
@@ -1279,6 +1157,7 @@ pub mod idfmm {
                     ::core::fmt::Display::fmt(element, f)
                 }
                 Self::Invalid(element) => ::core::fmt::Display::fmt(element, f),
+                Self::InvalidSwap(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InvalidSwapInputTransfer(element) => {
                     ::core::fmt::Display::fmt(element, f)
                 }
@@ -1287,8 +1166,6 @@ pub mod idfmm {
                 }
                 Self::InvalidTokens(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Locked(element) => ::core::fmt::Display::fmt(element, f),
-                Self::NotController(element) => ::core::fmt::Display::fmt(element, f),
-                Self::NotInitialized(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
             }
         }
@@ -1306,6 +1183,11 @@ pub mod idfmm {
     impl ::core::convert::From<Invalid> for IDFMMErrors {
         fn from(value: Invalid) -> Self {
             Self::Invalid(value)
+        }
+    }
+    impl ::core::convert::From<InvalidSwap> for IDFMMErrors {
+        fn from(value: InvalidSwap) -> Self {
+            Self::InvalidSwap(value)
         }
     }
     impl ::core::convert::From<InvalidSwapInputTransfer> for IDFMMErrors {
@@ -1326,16 +1208,6 @@ pub mod idfmm {
     impl ::core::convert::From<Locked> for IDFMMErrors {
         fn from(value: Locked) -> Self {
             Self::Locked(value)
-        }
-    }
-    impl ::core::convert::From<NotController> for IDFMMErrors {
-        fn from(value: NotController) -> Self {
-            Self::NotController(value)
-        }
-    }
-    impl ::core::convert::From<NotInitialized> for IDFMMErrors {
-        fn from(value: NotInitialized) -> Self {
-            Self::NotInitialized(value)
         }
     }
     #[derive(
@@ -1427,32 +1299,6 @@ pub mod idfmm {
         Eq,
         Hash
     )]
-    #[ethevent(
-        name = "LogPoolStats",
-        abi = "LogPoolStats(uint256,uint256,uint256,int256,uint256,uint256,uint256,uint256)"
-    )]
-    pub struct LogPoolStatsFilter {
-        pub rx: ::ethers::core::types::U256,
-        pub ry: ::ethers::core::types::U256,
-        pub l: ::ethers::core::types::U256,
-        pub invariant: ::ethers::core::types::I256,
-        pub sigma: ::ethers::core::types::U256,
-        pub strike: ::ethers::core::types::U256,
-        pub tau: ::ethers::core::types::U256,
-        pub timestamp: ::ethers::core::types::U256,
-    }
-    #[derive(
-        Clone,
-        ::ethers::contract::EthEvent,
-        ::ethers::contract::EthDisplay,
-        serde::Serialize,
-        serde::Deserialize,
-        Default,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash
-    )]
     #[ethevent(name = "Swap", abi = "Swap(address,uint256,bool,uint256,uint256)")]
     pub struct SwapFilter {
         #[ethevent(indexed)]
@@ -1478,7 +1324,6 @@ pub mod idfmm {
         AllocateFilter(AllocateFilter),
         DeallocateFilter(DeallocateFilter),
         InitFilter(InitFilter),
-        LogPoolStatsFilter(LogPoolStatsFilter),
         SwapFilter(SwapFilter),
     }
     impl ::ethers::contract::EthLogDecode for IDFMMEvents {
@@ -1494,9 +1339,6 @@ pub mod idfmm {
             if let Ok(decoded) = InitFilter::decode_log(log) {
                 return Ok(IDFMMEvents::InitFilter(decoded));
             }
-            if let Ok(decoded) = LogPoolStatsFilter::decode_log(log) {
-                return Ok(IDFMMEvents::LogPoolStatsFilter(decoded));
-            }
             if let Ok(decoded) = SwapFilter::decode_log(log) {
                 return Ok(IDFMMEvents::SwapFilter(decoded));
             }
@@ -1509,9 +1351,6 @@ pub mod idfmm {
                 Self::AllocateFilter(element) => ::core::fmt::Display::fmt(element, f),
                 Self::DeallocateFilter(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InitFilter(element) => ::core::fmt::Display::fmt(element, f),
-                Self::LogPoolStatsFilter(element) => {
-                    ::core::fmt::Display::fmt(element, f)
-                }
                 Self::SwapFilter(element) => ::core::fmt::Display::fmt(element, f),
             }
         }
@@ -1529,11 +1368,6 @@ pub mod idfmm {
     impl ::core::convert::From<InitFilter> for IDFMMEvents {
         fn from(value: InitFilter) -> Self {
             Self::InitFilter(value)
-        }
-    }
-    impl ::core::convert::From<LogPoolStatsFilter> for IDFMMEvents {
-        fn from(value: LogPoolStatsFilter) -> Self {
-            Self::LogPoolStatsFilter(value)
         }
     }
     impl ::core::convert::From<SwapFilter> for IDFMMEvents {
@@ -1844,11 +1678,11 @@ pub mod idfmm {
         Eq,
         Hash
     )]
-    pub struct AllocateReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
+    pub struct AllocateReturn {
+        pub delta_x: ::ethers::core::types::U256,
+        pub delta_y: ::ethers::core::types::U256,
+        pub delta_l: ::ethers::core::types::U256,
+    }
     ///Container type for all return fields from the `deallocate` function with signature `deallocate(uint256,bytes)` and selector `0x9d942f9a`
     #[derive(
         Clone,
@@ -1862,11 +1696,11 @@ pub mod idfmm {
         Eq,
         Hash
     )]
-    pub struct DeallocateReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
+    pub struct DeallocateReturn {
+        pub delta_x: ::ethers::core::types::U256,
+        pub delta_y: ::ethers::core::types::U256,
+        pub delta_l: ::ethers::core::types::U256,
+    }
     ///Container type for all return fields from the `getReservesAndLiquidity` function with signature `getReservesAndLiquidity(uint256)` and selector `0xce153bf4`
     #[derive(
         Clone,
@@ -1898,12 +1732,12 @@ pub mod idfmm {
         Eq,
         Hash
     )]
-    pub struct InitReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
+    pub struct InitReturn {
+        pub pool_id: ::ethers::core::types::U256,
+        pub reserve_x: ::ethers::core::types::U256,
+        pub reserve_y: ::ethers::core::types::U256,
+        pub total_liquidity: ::ethers::core::types::U256,
+    }
     ///Container type for all return fields from the `lpTokenImplementation` function with signature `lpTokenImplementation()` and selector `0xb462cd25`
     #[derive(
         Clone,
@@ -1932,7 +1766,6 @@ pub mod idfmm {
         Hash
     )]
     pub struct PoolsReturn {
-        pub controller: ::ethers::core::types::Address,
         pub strategy: ::ethers::core::types::Address,
         pub token_x: ::ethers::core::types::Address,
         pub token_y: ::ethers::core::types::Address,
@@ -1954,8 +1787,8 @@ pub mod idfmm {
         Eq,
         Hash
     )]
-    pub struct SwapReturn(
-        pub ::ethers::core::types::U256,
-        pub ::ethers::core::types::U256,
-    );
+    pub struct SwapReturn {
+        pub input_amount: ::ethers::core::types::U256,
+        pub output_amount: ::ethers::core::types::U256,
+    }
 }

@@ -9,14 +9,10 @@ use anyhow::Result;
 use bindings::{
     dfmm::{Pool as PoolStruct, DFMM},
     g3m::G3M,
-    g3m_helper::G3MHelper,
-    g3m_solver::G3MSolver,
+    g3m_solver::{G3MSolver, G3Mparams},
     log_normal::LogNormal,
-    log_normal_helper::LogNormalHelper,
-    log_normal_solver::LogNormalSolver,
-    shared_types::{
-        G3Mparams as G3mParameters, InitParams, LogNormalParams as LogNormalParameters,
-    },
+    log_normal_solver::{LogNormalParams, LogNormalSolver},
+    shared_types::InitParams,
 };
 use ethers::utils::parse_ether;
 use pool::{Pool, PoolKind};
@@ -27,6 +23,7 @@ use super::*;
 pub struct G3mF64 {
     pub wx: f64,
     pub swap_fee: f64,
+    pub controller: Address,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +32,7 @@ pub struct LogNormalF64 {
     pub strike: f64,
     pub tau: f64,
     pub swap_fee: f64,
+    pub controller: Address,
 }
 
 #[derive(Debug, Clone)]
@@ -45,8 +43,8 @@ pub enum PoolInitParamsF64 {
 
 #[derive(Debug, Clone)]
 pub enum PoolParams {
-    G3M(G3mParameters),
-    LogNormal(LogNormalParameters),
+    G3M(G3Mparams),
+    LogNormal(LogNormalParams),
 }
 
 #[derive(Debug)]
@@ -55,10 +53,8 @@ pub struct ProtocolClient<C> {
     pub protocol: DFMM<C>,
     pub ln_solver: LogNormalSolver<C>,
     pub ln_strategy: LogNormal<C>,
-    pub ln_helper: LogNormalHelper<C>,
     pub g_solver: G3MSolver<C>,
     pub g_strategy: G3M<C>,
-    pub g_helper: G3MHelper<C>,
 }
 
 impl<C> Clone for ProtocolClient<C> {
@@ -68,10 +64,8 @@ impl<C> Clone for ProtocolClient<C> {
             protocol: self.protocol.clone(),
             ln_solver: self.ln_solver.clone(),
             ln_strategy: self.ln_strategy.clone(),
-            ln_helper: self.ln_helper.clone(),
             g_solver: self.g_solver.clone(),
             g_strategy: self.g_strategy.clone(),
-            g_helper: self.g_helper.clone(),
         }
     }
 }
@@ -101,23 +95,13 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .send()
             .await?;
 
-        let ln_helper = LogNormalHelper::deploy(client.clone(), ln_strategy.address())?
-            .send()
-            .await?;
-
-        let g_helper = G3MHelper::deploy(client.clone(), g_strategy.address())?
-            .send()
-            .await?;
-
         Ok(Self {
             client,
             protocol,
             ln_solver,
             ln_strategy,
-            ln_helper,
             g_solver,
             g_strategy,
-            g_helper,
         })
     }
 
@@ -127,20 +111,16 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         protocol_addr: Address,
         ln_strategy_addr: Address,
         ln_solver_addr: Address,
-        ln_helper_addr: Address,
         g_strategy_addr: Address,
         g_solver_addr: Address,
-        g_helper_addr: Address,
     ) -> Result<Self> {
         Ok(Self {
             client: client.clone(),
             protocol: DFMM::new(protocol_addr, client.clone()),
             ln_strategy: LogNormal::new(ln_strategy_addr, client.clone()),
             ln_solver: LogNormalSolver::new(ln_solver_addr, client.clone()),
-            ln_helper: LogNormalHelper::new(ln_helper_addr, client.clone()),
             g_strategy: G3M::new(g_strategy_addr, client.clone()),
             g_solver: G3MSolver::new(g_solver_addr, client.clone()),
-            g_helper: G3MHelper::new(g_helper_addr, client.clone()),
         })
     }
 
@@ -150,10 +130,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             protocol: self.protocol.connect(client.clone()).into(),
             ln_strategy: self.ln_strategy.connect(client.clone()).into(),
             ln_solver: self.ln_solver.connect(client.clone()).into(),
-            ln_helper: self.ln_helper.connect(client.clone()).into(),
             g_strategy: self.g_strategy.connect(client.clone()).into(),
             g_solver: self.g_solver.connect(client.clone()).into(),
-            g_helper: self.g_helper.connect(client.clone()).into(),
         })
     }
 
@@ -181,14 +159,14 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
         Ok(pool)
     }
-
-    pub async fn update_controller(&self, pool_id: U256, new_controller: Address) -> Result<()> {
-        self.protocol
-            .update_controller(pool_id, new_controller)
-            .send()
-            .await?;
-        Ok(())
-    }
+    // todo(matt): fix this
+    // pub async fn update_controller(&self, pool_id: U256, new_controller: Address)
+    // -> Result<()> { self.protocol
+    // .update_controller(pool_id, new_controller)
+    // .send()
+    // .await?;
+    // Ok(())
+    // }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
     pub async fn init_pool(
@@ -363,7 +341,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let target_strike_wad = to_wad(target_strike_price);
         let timestamp_wad = ethers::types::U256::from(next_timestamp);
         let update_data = self
-            .ln_helper
+            .ln_solver
             .prepare_strike_update(target_strike_wad, timestamp_wad)
             .call()
             .await?;
@@ -385,7 +363,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let target_wx_wad = to_wad(target_wx);
         let timestamp_wad = ethers::types::U256::from(next_timestamp);
         let update_data = self
-            .g_helper
+            .g_solver
             .prepare_weight_x_update(target_wx_wad, timestamp_wad)
             .call()
             .await?;
@@ -405,16 +383,18 @@ fn to_wad(value: f64) -> U256 {
 
 fn to_init_params_wad(init_params: PoolInitParamsF64) -> Result<PoolParams> {
     match init_params {
-        PoolInitParamsF64::G3M(g3m_params) => Ok(PoolParams::G3M(G3mParameters {
+        PoolInitParamsF64::G3M(g3m_params) => Ok(PoolParams::G3M(G3Mparams {
             w_x: to_wad(g3m_params.wx),
             w_y: to_wad(1.0) - to_wad(g3m_params.wx),
             swap_fee: to_wad(g3m_params.swap_fee),
+            controller: g3m_params.controller,
         })),
-        PoolInitParamsF64::LogNormal(ln_params) => Ok(PoolParams::LogNormal(LogNormalParameters {
+        PoolInitParamsF64::LogNormal(ln_params) => Ok(PoolParams::LogNormal(LogNormalParams {
             sigma: to_wad(ln_params.sigma),
             strike: to_wad(ln_params.strike),
             tau: to_wad(ln_params.tau),
             swap_fee: to_wad(ln_params.swap_fee),
+            controller: ln_params.controller,
         })),
     }
 }

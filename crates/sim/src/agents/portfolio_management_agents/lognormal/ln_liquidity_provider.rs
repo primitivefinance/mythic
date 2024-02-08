@@ -35,6 +35,7 @@ impl Agent for LogNormalLiquidityProvider {
             sigma: self.initial_sigma,
             tau: self.initial_tau,
             swap_fee: 0.003,
+            controller: self.controller,
         });
 
         self.protocol_client
@@ -45,10 +46,6 @@ impl Agent for LogNormalLiquidityProvider {
                 initial_price,
                 init_params,
             )
-            .await?;
-
-        self.protocol_client
-            .update_controller(next_pool_id, self.controller)
             .await?;
 
         Ok(())

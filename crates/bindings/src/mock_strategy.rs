@@ -121,6 +121,13 @@ pub mod mock_strategy {
                             name: ::std::borrow::ToOwned::to_owned("init"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
@@ -194,6 +201,13 @@ pub mod mock_strategy {
                             name: ::std::borrow::ToOwned::to_owned("update"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sender"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
@@ -224,6 +238,13 @@ pub mod mock_strategy {
                                 "validateAllocateOrDeallocate",
                             ),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
@@ -295,6 +316,13 @@ pub mod mock_strategy {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("validateSwap"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
@@ -373,6 +401,15 @@ pub mod mock_strategy {
             events: ::std::collections::BTreeMap::new(),
             errors: ::core::convert::From::from([
                 (
+                    ::std::borrow::ToOwned::to_owned("InvalidSender"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("InvalidSender"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("InvalidUpdateCode"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::AbiError {
@@ -400,13 +437,13 @@ pub mod mock_strategy {
         __abi,
     );
     #[rustfmt::skip]
-    const __BYTECODE: &[u8] = b"`\xA0\x80`@R4a\0\xDCW`@Q`\x1Fa\x08\x118\x81\x90\x03\x91\x82\x01`\x1F\x19\x16\x83\x01\x91`\x01`\x01`@\x1B\x03\x83\x11\x84\x84\x10\x17a\0\xC6W\x80\x84\x92` \x94`@R\x839\x81\x01\x03\x12a\0vWQ`\x01`\x01`\xA0\x1B\x03\x81\x16\x81\x03a\0qW`\x80R`@Qa\x06\xE7\x90\x81a\x01*\x829`\x80Q\x81a\x01@\x01R\xF3[`\0\x80\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x90\xFD[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[bF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01Ra7\xB7`\xF1\x1B`d\x82\x01R`\x84\x90\xFD\xFE`@`\x80\x81R`\x04\x90\x816\x10\x15a\0rW[\x90` `\x84\x92Q\x91bF\x1B\xCD`\xE5\x1B\x83R\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01Rtnor receive functions`X\x1B`d\x82\x01R\xFD[`\0\x805`\xE0\x1C\x80b.RK\x14a\x03\x9BW\x80c\x02\x16\xB88\x14a\x03\x86W\x80c2\x14\x89\x0F\x14a\x03MW\x80c\x8E-\xD4\0\x14a\x02>W\x80c\x9F\x83\x13{\x14a\x01oW\x80c\xAF\xBA\x13\xC4\x14a\x01-Wc\xDC\x17\x83U\x14a\0\xCAWPa\0\x11V[\x904a\x01(W` \x80`\x03\x196\x01\x12a\x01#W\x91\x81Q\x92\x83\x91\x81\x83R``Q\x91\x82\x81\x85\x01R\x81[\x83\x81\x10a\x01\x0EWPP\x82\x82\x01\x84\x01R`\x1F\x01`\x1F\x19\x16\x81\x01\x03\x01\x90\xF3[`\x80\x81\x01Q\x87\x82\x01\x87\x01R\x86\x94P\x81\x01a\0\xF1V[a\x04\xEFV[a\x04\x9FV[P4a\x01(W6`\x03\x19\x01\x12a\x01#WQ\x7F\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`\x01`\x01`\xA0\x1B\x03\x16\x81R` \x90\xF3[P4a\x01(Wa\x01~6a\x05\xE8V[\x83\x92P\x82\x91\x82\x91\x82\x91\x90` \x90\x82\x01\x82\x90\x03\x12a\x01#W5`\x01\x81\x14a\x02\tW[`\x02\x14a\x01\xDCW[a\x01\xD8\x93\x94\x95Q\x95\x86\x95\x86\x91\x92`\x80\x93\x96\x95\x94\x91\x96`\xA0\x84\x01\x97\x15\x15\x84R` \x84\x01R`@\x83\x01R``\x82\x01R\x01RV[\x03\x90\xF3[Pg\r\xE0\xB6\xB3\xA7d\0\0\x93P`\x01\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91Ph\x05k\xC7^-c\x10\0\0\x90P\x80a\x01\xA7V[g\r\xE0\xB6\xB3\xA7d\0\0\x95P`\x01\x94Pg7\x82\xDA\xCE\x9D\x90\0\0\x93Pg)\xA2$\x1A\xF6,\0\0\x92Pg\x1B\xC1mgN\xC8\0\0\x91Pa\x01\x9FV[P4a\x01(Wa\x02M6a\x05\xE8V[\x83\x92P\x82\x91\x82\x91\x82\x91\x90` \x90\x82\x01\x82\x90\x03\x12a\x01#W5`\x01\x81\x03a\x02\xC3WPPPPPP`\x01a\x01\xD8g\r\xE0\xB6\xB3\xA7d\0\0\x92h\x02\xB5\xE3\xAF\x16\xB1\x88\0\0\x80gEc\x91\x82D\xF4\0\0\x92[Q\x95\x86\x95\x86\x91\x92`\x80\x93\x96\x95\x94\x91\x96`\xA0\x84\x01\x97\x15\x15\x84R` \x84\x01R`@\x83\x01R``\x82\x01R\x01RV[`\t\x81\x03a\x03\x04WPPPPPP`\x01a\x01\xD8g\r\xE0\xB6\xB3\xA7d\0\0\x92h\x05k\xC7^-c\x10\0\0h\x06\x81U\xA46v\xE0\0\0\x90g\x8A\xC7#\x04\x89\xE8\0\0\x92a\x02\x98V[`\x08\x14a\x03\x17W[a\x01\xD8\x93\x94\x95a\x02\x98V[Pg\r\xE0\xB6\xB3\xA7d\0\0\x93P`\x01\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91Ph\x05k\xC7^-c\x10\0\0\x90Ph\x06\x81U\xA46v\xE0\0\0a\x03\x0CV[P\x904a\x01(W`\xC0\x91a\x03`6a\x05\xE8V[PPP\x80\x82Q\x92\x81\x84R\x81` \x85\x01R\x83\x01R\x80``\x83\x01R\x80`\x80\x83\x01R`\xA0\x82\x01R\xF3[P4a\x01(Wa\x03\x956a\x05\xE8V[PPP\x80\xF3[P\x904a\x04\x9FW\x80`\x03\x196\x01\x12a\x01#Wg\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x92`$\x805\x85\x81\x11a\x04\x9AW6`#\x82\x01\x12\x15a\x04\x95W\x80\x83\x015\x92\x86\x84\x11a\x04\x83W\x84Q\x96`\x1F\x85\x01`\x1F\x19\x90\x81\x16`?\x01\x16\x88\x01\x90\x81\x11\x88\x82\x10\x17a\x04qW\x85R\x83\x87R6\x83\x85\x84\x01\x01\x11a\x04\x1FWP\x91` \x95\x81\x87\x93\x87\x95\x01\x84\x83\x017\x01\x01RQ\x90\x81R\xF3[`\x84\x90`'\x84` \x88Q\x93bF\x1B\xCD`\xE5\x1B\x85R\x84\x01R\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R\xFD[cNH{q`\xE0\x1B\x87R`A\x82R\x83\x87\xFD[cNH{q`\xE0\x1B\x86R`A\x90R\x81\x85\xFD[a\x05\x8FV[a\x05?V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01Ra7\xB7`\xF1\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x90\xFD[`@`\x03\x19\x82\x01\x12a\x01#W`\x045\x91`$5g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x92\x83\x82\x11a\x04\x9AW\x80`#\x83\x01\x12\x15a\x04\x95W\x81`\x04\x015\x93\x84\x11a\x06\x8EW`$\x84\x83\x01\x01\x11a\x065W`$\x01\x91\x90V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x90\xFD";
+    const __BYTECODE: &[u8] = b"`\xA0`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`@Qa\t\x128\x03\x80a\t\x12\x839\x81\x01`@\x81\x90Ra\0|\x91a\0\x8DV[`\x01`\x01`\xA0\x1B\x03\x16`\x80Ra\x01\x08V[`\0` \x82\x84\x03\x12\x15a\0\xEAW`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[\x81Q`\x01`\x01`\xA0\x1B\x03\x81\x16\x81\x14a\x01\x01W`\0\x80\xFD[\x93\x92PPPV[`\x80Qa\x07\xEFa\x01#`\09`\0a\x02\x12\x01Ra\x07\xEF`\0\xF3\xFE`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\xC9W`\x005`\xE0\x1C\x80c\x8A\x04\xBD\xD5\x11a\0\xA8W\x80c\x8A\x04\xBD\xD5\x14a\x01\xE4W\x80c\xAC\xAD)\x89\x14a\x01\xF7W\x80c\xAF\xBA\x13\xC4\x14a\x02\rW\x80c\xDC\x17\x83U\x14a\x02LWa\0\xC9V[\x80b.RK\x14a\x01.W\x80ch\xBD>8\x14a\x01WW\x80cs\xCB-\x03\x14a\x01\xA7W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01Da\x01<6`\x04a\x04\xF2V[`\0\x92\x91PPV[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x01xa\x01e6`\x04a\x06\x06V[P`\0\x93\x84\x93P\x83\x92P\x82\x91P\x81\x90\x81\x90V[`@\x80Q\x96\x15\x15\x87R` \x87\x01\x95\x90\x95R\x93\x85\x01\x92\x90\x92R``\x84\x01R`\x80\x83\x01R`\xA0\x82\x01R`\xC0\x01a\x01NV[a\x01\xBAa\x01\xB56`\x04a\x06\x06V[a\x02mV[`@\x80Q\x95\x15\x15\x86R` \x86\x01\x94\x90\x94R\x92\x84\x01\x91\x90\x91R``\x83\x01R`\x80\x82\x01R`\xA0\x01a\x01NV[a\x01\xBAa\x01\xF26`\x04a\x06\x06V[a\x03\x02V[a\x02\x0Ba\x02\x056`\x04a\x06\x06V[PPPPV[\0[a\x024\x7F\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x81V[`@Q`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x81R` \x01a\x01NV[a\x02`a\x02Z6`\x04a\x07NV[P``\x90V[`@Qa\x01N\x91\x90a\x07jV[`\0\x80\x80\x80\x80\x80a\x02\x80\x87\x89\x01\x89a\x07NV[\x90P\x80`\x01\x03a\x02\xBBW`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Pg\x1B\xC1mgN\xC8\0\0\x93Pg)\xA2$\x1A\xF6,\0\0\x92Pg7\x82\xDA\xCE\x9D\x90\0\0\x91P[\x80`\x02\x03a\x02\xF6W`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Ph\x05k\xC7^-c\x10\0\0\x93Ph\x05k\xC7^-c\x10\0\0\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91P[P\x94P\x94P\x94P\x94P\x94V[`\0\x80\x80\x80\x80\x80a\x03\x15\x87\x89\x01\x89a\x07NV[\x90P\x80`\x01\x03a\x03VW`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Ph\x02\xB5\xE3\xAF\x16\xB1\x88\0\0\x93Ph\x02\xB5\xE3\xAF\x16\xB1\x88\0\0\x92PgEc\x91\x82D\xF4\0\0\x91Pa\x02\xF6V[\x80`\t\x03a\x03\x95W`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Ph\x05k\xC7^-c\x10\0\0\x93Ph\x06\x81U\xA46v\xE0\0\0\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91Pa\x02\xF6V[\x80`\x08\x03a\x02\xF6WP`\x01\x99g\r\xE0\xB6\xB3\xA7d\0\0\x99Ph\x06\x81U\xA46v\xE0\0\0\x98Ph\x05k\xC7^-c\x10\0\0\x97Pg\x8A\xC7#\x04\x89\xE8\0\0\x96P\x94PPPPPV[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x81\xFD[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[\x82\x81\x837P`\0\x91\x01RV[`\0\x80`@\x83\x85\x03\x12\x15a\x05\x08Wa\x05\x08a\x03\xD7V[\x825\x91P` \x83\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x05*Wa\x05*a\x04'V[\x81\x85\x01\x91P\x85`\x1F\x83\x01\x12a\x05AWa\x05Aa\x04wV[\x815\x81\x81\x11\x15a\x05SWa\x05Sa\x04\xD0V[`@Q`\x1F\x82\x01`\x1F\x19\x90\x81\x16`?\x01\x16\x81\x01\x90\x83\x82\x11\x81\x83\x10\x17\x15a\x05{Wa\x05{a\x04\xD0V[\x81`@R\x82\x81R\x88` \x84\x87\x01\x01\x11\x15a\x05\xE6W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`'`$\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R\x93P`\x84\x84\xFD[a\x05\xF7\x83` \x83\x01` \x88\x01a\x04\xE6V[\x80\x95PPPPPP\x92P\x92\x90PV[`\0\x80`\0\x80``\x85\x87\x03\x12\x15a\x06\x1FWa\x06\x1Fa\x03\xD7V[\x845`\x01`\x01`\xA0\x1B\x03\x81\x16\x81\x14a\x066W`\0\x80\xFD[\x93P` \x85\x015\x92P`@\x85\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x06]Wa\x06]a\x04'V[\x81\x87\x01\x91P\x87`\x1F\x83\x01\x12a\x06tWa\x06ta\x04wV[\x815\x81\x81\x11\x15a\x06\xD7W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x81\xFD[\x88` \x82\x85\x01\x01\x11\x15a\x07?W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R\x91P`\x84\x82\xFD[\x95\x98\x94\x97PP` \x01\x94PPPV[`\0` \x82\x84\x03\x12\x15a\x07cWa\x07ca\x03\xD7V[P5\x91\x90PV[`\0` \x80\x83R\x83Q\x80` \x85\x01R`\0[\x81\x81\x10\x15a\x07\x98W\x85\x81\x01\x83\x01Q\x85\x82\x01`@\x01R\x82\x01a\x07|V[P`\0`@\x82\x86\x01\x01R`@`\x1F\x19`\x1F\x83\x01\x16\x85\x01\x01\x92PPP\x92\x91PPV\xFE\xA2dipfsX\"\x12 \x11\x7F\x0C\x87+M\xE2~]\x88\xA9at\xE2?\x7F\x08Q\xD4?RZ)\xF2\x7F|O\xCC\x0F_GhdsolcC\0\x08\x16\x003";
     /// The bytecode of the contract.
     pub static MOCKSTRATEGY_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
         __BYTECODE,
     );
     #[rustfmt::skip]
-    const __DEPLOYED_BYTECODE: &[u8] = b"`@`\x80\x81R`\x04\x90\x816\x10\x15a\0rW[\x90` `\x84\x92Q\x91bF\x1B\xCD`\xE5\x1B\x83R\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01Rtnor receive functions`X\x1B`d\x82\x01R\xFD[`\0\x805`\xE0\x1C\x80b.RK\x14a\x03\x9BW\x80c\x02\x16\xB88\x14a\x03\x86W\x80c2\x14\x89\x0F\x14a\x03MW\x80c\x8E-\xD4\0\x14a\x02>W\x80c\x9F\x83\x13{\x14a\x01oW\x80c\xAF\xBA\x13\xC4\x14a\x01-Wc\xDC\x17\x83U\x14a\0\xCAWPa\0\x11V[\x904a\x01(W` \x80`\x03\x196\x01\x12a\x01#W\x91\x81Q\x92\x83\x91\x81\x83R``Q\x91\x82\x81\x85\x01R\x81[\x83\x81\x10a\x01\x0EWPP\x82\x82\x01\x84\x01R`\x1F\x01`\x1F\x19\x16\x81\x01\x03\x01\x90\xF3[`\x80\x81\x01Q\x87\x82\x01\x87\x01R\x86\x94P\x81\x01a\0\xF1V[a\x04\xEFV[a\x04\x9FV[P4a\x01(W6`\x03\x19\x01\x12a\x01#WQ\x7F\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0`\x01`\x01`\xA0\x1B\x03\x16\x81R` \x90\xF3[P4a\x01(Wa\x01~6a\x05\xE8V[\x83\x92P\x82\x91\x82\x91\x82\x91\x90` \x90\x82\x01\x82\x90\x03\x12a\x01#W5`\x01\x81\x14a\x02\tW[`\x02\x14a\x01\xDCW[a\x01\xD8\x93\x94\x95Q\x95\x86\x95\x86\x91\x92`\x80\x93\x96\x95\x94\x91\x96`\xA0\x84\x01\x97\x15\x15\x84R` \x84\x01R`@\x83\x01R``\x82\x01R\x01RV[\x03\x90\xF3[Pg\r\xE0\xB6\xB3\xA7d\0\0\x93P`\x01\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91Ph\x05k\xC7^-c\x10\0\0\x90P\x80a\x01\xA7V[g\r\xE0\xB6\xB3\xA7d\0\0\x95P`\x01\x94Pg7\x82\xDA\xCE\x9D\x90\0\0\x93Pg)\xA2$\x1A\xF6,\0\0\x92Pg\x1B\xC1mgN\xC8\0\0\x91Pa\x01\x9FV[P4a\x01(Wa\x02M6a\x05\xE8V[\x83\x92P\x82\x91\x82\x91\x82\x91\x90` \x90\x82\x01\x82\x90\x03\x12a\x01#W5`\x01\x81\x03a\x02\xC3WPPPPPP`\x01a\x01\xD8g\r\xE0\xB6\xB3\xA7d\0\0\x92h\x02\xB5\xE3\xAF\x16\xB1\x88\0\0\x80gEc\x91\x82D\xF4\0\0\x92[Q\x95\x86\x95\x86\x91\x92`\x80\x93\x96\x95\x94\x91\x96`\xA0\x84\x01\x97\x15\x15\x84R` \x84\x01R`@\x83\x01R``\x82\x01R\x01RV[`\t\x81\x03a\x03\x04WPPPPPP`\x01a\x01\xD8g\r\xE0\xB6\xB3\xA7d\0\0\x92h\x05k\xC7^-c\x10\0\0h\x06\x81U\xA46v\xE0\0\0\x90g\x8A\xC7#\x04\x89\xE8\0\0\x92a\x02\x98V[`\x08\x14a\x03\x17W[a\x01\xD8\x93\x94\x95a\x02\x98V[Pg\r\xE0\xB6\xB3\xA7d\0\0\x93P`\x01\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91Ph\x05k\xC7^-c\x10\0\0\x90Ph\x06\x81U\xA46v\xE0\0\0a\x03\x0CV[P\x904a\x01(W`\xC0\x91a\x03`6a\x05\xE8V[PPP\x80\x82Q\x92\x81\x84R\x81` \x85\x01R\x83\x01R\x80``\x83\x01R\x80`\x80\x83\x01R`\xA0\x82\x01R\xF3[P4a\x01(Wa\x03\x956a\x05\xE8V[PPP\x80\xF3[P\x904a\x04\x9FW\x80`\x03\x196\x01\x12a\x01#Wg\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x92`$\x805\x85\x81\x11a\x04\x9AW6`#\x82\x01\x12\x15a\x04\x95W\x80\x83\x015\x92\x86\x84\x11a\x04\x83W\x84Q\x96`\x1F\x85\x01`\x1F\x19\x90\x81\x16`?\x01\x16\x88\x01\x90\x81\x11\x88\x82\x10\x17a\x04qW\x85R\x83\x87R6\x83\x85\x84\x01\x01\x11a\x04\x1FWP\x91` \x95\x81\x87\x93\x87\x95\x01\x84\x83\x017\x01\x01RQ\x90\x81R\xF3[`\x84\x90`'\x84` \x88Q\x93bF\x1B\xCD`\xE5\x1B\x85R\x84\x01R\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R\xFD[cNH{q`\xE0\x1B\x87R`A\x82R\x83\x87\xFD[cNH{q`\xE0\x1B\x86R`A\x90R\x81\x85\xFD[a\x05\x8FV[a\x05?V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01Ra7\xB7`\xF1\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x90\xFD[`@`\x03\x19\x82\x01\x12a\x01#W`\x045\x91`$5g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x92\x83\x82\x11a\x04\x9AW\x80`#\x83\x01\x12\x15a\x04\x95W\x81`\x04\x015\x93\x84\x11a\x06\x8EW`$\x84\x83\x01\x01\x11a\x065W`$\x01\x91\x90V[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R`\x84\x90\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x90\xFD";
+    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@R4\x80\x15a\0]W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01\x90\x81Ra7\xB7`\xF1\x1B`d\x83\x01R`\x84\x82\xFD[P`\x046\x10a\0\xC9W`\x005`\xE0\x1C\x80c\x8A\x04\xBD\xD5\x11a\0\xA8W\x80c\x8A\x04\xBD\xD5\x14a\x01\xE4W\x80c\xAC\xAD)\x89\x14a\x01\xF7W\x80c\xAF\xBA\x13\xC4\x14a\x02\rW\x80c\xDC\x17\x83U\x14a\x02LWa\0\xC9V[\x80b.RK\x14a\x01.W\x80ch\xBD>8\x14a\x01WW\x80cs\xCB-\x03\x14a\x01\xA7W[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`5`$\x82\x01R\x7FContract does not have fallback `D\x82\x01\x90\x81Rtnor receive functions`X\x1B`d\x83\x01R`\x84\x82\xFD[a\x01Da\x01<6`\x04a\x04\xF2V[`\0\x92\x91PPV[`@Q\x90\x81R` \x01[`@Q\x80\x91\x03\x90\xF3[a\x01xa\x01e6`\x04a\x06\x06V[P`\0\x93\x84\x93P\x83\x92P\x82\x91P\x81\x90\x81\x90V[`@\x80Q\x96\x15\x15\x87R` \x87\x01\x95\x90\x95R\x93\x85\x01\x92\x90\x92R``\x84\x01R`\x80\x83\x01R`\xA0\x82\x01R`\xC0\x01a\x01NV[a\x01\xBAa\x01\xB56`\x04a\x06\x06V[a\x02mV[`@\x80Q\x95\x15\x15\x86R` \x86\x01\x94\x90\x94R\x92\x84\x01\x91\x90\x91R``\x83\x01R`\x80\x82\x01R`\xA0\x01a\x01NV[a\x01\xBAa\x01\xF26`\x04a\x06\x06V[a\x03\x02V[a\x02\x0Ba\x02\x056`\x04a\x06\x06V[PPPPV[\0[a\x024\x7F\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x81V[`@Q`\x01`\x01`\xA0\x1B\x03\x90\x91\x16\x81R` \x01a\x01NV[a\x02`a\x02Z6`\x04a\x07NV[P``\x90V[`@Qa\x01N\x91\x90a\x07jV[`\0\x80\x80\x80\x80\x80a\x02\x80\x87\x89\x01\x89a\x07NV[\x90P\x80`\x01\x03a\x02\xBBW`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Pg\x1B\xC1mgN\xC8\0\0\x93Pg)\xA2$\x1A\xF6,\0\0\x92Pg7\x82\xDA\xCE\x9D\x90\0\0\x91P[\x80`\x02\x03a\x02\xF6W`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Ph\x05k\xC7^-c\x10\0\0\x93Ph\x05k\xC7^-c\x10\0\0\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91P[P\x94P\x94P\x94P\x94P\x94V[`\0\x80\x80\x80\x80\x80a\x03\x15\x87\x89\x01\x89a\x07NV[\x90P\x80`\x01\x03a\x03VW`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Ph\x02\xB5\xE3\xAF\x16\xB1\x88\0\0\x93Ph\x02\xB5\xE3\xAF\x16\xB1\x88\0\0\x92PgEc\x91\x82D\xF4\0\0\x91Pa\x02\xF6V[\x80`\t\x03a\x03\x95W`\x01\x95Pg\r\xE0\xB6\xB3\xA7d\0\0\x94Ph\x05k\xC7^-c\x10\0\0\x93Ph\x06\x81U\xA46v\xE0\0\0\x92Pg\x8A\xC7#\x04\x89\xE8\0\0\x91Pa\x02\xF6V[\x80`\x08\x03a\x02\xF6WP`\x01\x99g\r\xE0\xB6\xB3\xA7d\0\0\x99Ph\x06\x81U\xA46v\xE0\0\0\x98Ph\x05k\xC7^-c\x10\0\0\x97Pg\x8A\xC7#\x04\x89\xE8\0\0\x96P\x94PPPPPV[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: tuple data too sho`D\x82\x01Ra\x1C\x9D`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FABI decoding: invalid tuple offs`D\x82\x01Ra\x19]`\xF2\x1B`d\x82\x01R`\x84\x81\xFD[`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x1C\x9C\x98^H\x1B\xD9\x99\x9C\xD9]`\xAA\x1B`d\x82\x01R`\x84\x81\xFD[cNH{q`\xE0\x1B`\0R`A`\x04R`$`\0\xFD[\x82\x81\x837P`\0\x91\x01RV[`\0\x80`@\x83\x85\x03\x12\x15a\x05\x08Wa\x05\x08a\x03\xD7V[\x825\x91P` \x83\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x05*Wa\x05*a\x04'V[\x81\x85\x01\x91P\x85`\x1F\x83\x01\x12a\x05AWa\x05Aa\x04wV[\x815\x81\x81\x11\x15a\x05SWa\x05Sa\x04\xD0V[`@Q`\x1F\x82\x01`\x1F\x19\x90\x81\x16`?\x01\x16\x81\x01\x90\x83\x82\x11\x81\x83\x10\x17\x15a\x05{Wa\x05{a\x04\xD0V[\x81`@R\x82\x81R\x88` \x84\x87\x01\x01\x11\x15a\x05\xE6W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`'`$\x82\x01R\x7FABI decoding: invalid byte array`D\x82\x01Rf\x04\r\x8C\xAD\xCC\xEE\x8D`\xCB\x1B`d\x82\x01R\x93P`\x84\x84\xFD[a\x05\xF7\x83` \x83\x01` \x88\x01a\x04\xE6V[\x80\x95PPPPPP\x92P\x92\x90PV[`\0\x80`\0\x80``\x85\x87\x03\x12\x15a\x06\x1FWa\x06\x1Fa\x03\xD7V[\x845`\x01`\x01`\xA0\x1B\x03\x81\x16\x81\x14a\x066W`\0\x80\xFD[\x93P` \x85\x015\x92P`@\x85\x015g\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\x80\x82\x11\x15a\x06]Wa\x06]a\x04'V[\x81\x87\x01\x91P\x87`\x1F\x83\x01\x12a\x06tWa\x06ta\x04wV[\x815\x81\x81\x11\x15a\x06\xD7W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rj\x0ENL/$\r\x8C\xAD\xCC\xEE\x8D`\xAB\x1B`d\x82\x01R`\x84\x81\xFD[\x88` \x82\x85\x01\x01\x11\x15a\x07?W`@QbF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`+`$\x82\x01R\x7FABI decoding: invalid calldata a`D\x82\x01Rjrray stride`\xA8\x1B`d\x82\x01R\x91P`\x84\x82\xFD[\x95\x98\x94\x97PP` \x01\x94PPPV[`\0` \x82\x84\x03\x12\x15a\x07cWa\x07ca\x03\xD7V[P5\x91\x90PV[`\0` \x80\x83R\x83Q\x80` \x85\x01R`\0[\x81\x81\x10\x15a\x07\x98W\x85\x81\x01\x83\x01Q\x85\x82\x01`@\x01R\x82\x01a\x07|V[P`\0`@\x82\x86\x01\x01R`@`\x1F\x19`\x1F\x83\x01\x16\x85\x01\x01\x92PPP\x92\x91PPV\xFE\xA2dipfsX\"\x12 \x11\x7F\x0C\x87+M\xE2~]\x88\xA9at\xE2?\x7F\x08Q\xD4?RZ)\xF2\x7F|O\xCC\x0F_GhdsolcC\0\x08\x16\x003";
     /// The deployed bytecode of the contract.
     pub static MOCKSTRATEGY_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
         __DEPLOYED_BYTECODE,
@@ -522,9 +559,10 @@ pub mod mock_strategy {
                 .method_hash([220, 23, 131, 85], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `init` (0x9f83137b) function
+        ///Calls the contract's `init` (0x73cb2d03) function
         pub fn init(
             &self,
+            p0: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -538,22 +576,24 @@ pub mod mock_strategy {
             ),
         > {
             self.0
-                .method_hash([159, 131, 19, 123], (pool_id, data))
+                .method_hash([115, 203, 45, 3], (p0, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `update` (0x0216b838) function
+        ///Calls the contract's `update` (0xacad2989) function
         pub fn update(
             &self,
+            sender: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([2, 22, 184, 56], (pool_id, data))
+                .method_hash([172, 173, 41, 137], (sender, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateAllocateOrDeallocate` (0x8e2dd400) function
+        ///Calls the contract's `validateAllocateOrDeallocate` (0x8a04bdd5) function
         pub fn validate_allocate_or_deallocate(
             &self,
+            p0: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -567,12 +607,13 @@ pub mod mock_strategy {
             ),
         > {
             self.0
-                .method_hash([142, 45, 212, 0], (pool_id, data))
+                .method_hash([138, 4, 189, 213], (p0, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateSwap` (0x3214890f) function
+        ///Calls the contract's `validateSwap` (0x68bd3e38) function
         pub fn validate_swap(
             &self,
+            p0: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -587,7 +628,7 @@ pub mod mock_strategy {
             ),
         > {
             self.0
-                .method_hash([50, 20, 137, 15], (pool_id, data))
+                .method_hash([104, 189, 62, 56], (p0, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
     }
@@ -597,6 +638,21 @@ pub mod mock_strategy {
             Self::new(contract.address(), contract.client())
         }
     }
+    ///Custom Error type `InvalidSender` with signature `InvalidSender()` and selector `0xddb5de5e`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "InvalidSender", abi = "InvalidSender()")]
+    pub struct InvalidSender;
     ///Custom Error type `InvalidUpdateCode` with signature `InvalidUpdateCode()` and selector `0x235d2b3d`
     #[derive(
         Clone,
@@ -639,6 +695,7 @@ pub mod mock_strategy {
         Hash
     )]
     pub enum MockStrategyErrors {
+        InvalidSender(InvalidSender),
         InvalidUpdateCode(InvalidUpdateCode),
         NotDFMM(NotDFMM),
         /// The standard solidity revert string, with selector
@@ -654,6 +711,11 @@ pub mod mock_strategy {
                 data,
             ) {
                 return Ok(Self::RevertString(decoded));
+            }
+            if let Ok(decoded) = <InvalidSender as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InvalidSender(decoded));
             }
             if let Ok(decoded) = <InvalidUpdateCode as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -671,6 +733,9 @@ pub mod mock_strategy {
     impl ::ethers::core::abi::AbiEncode for MockStrategyErrors {
         fn encode(self) -> ::std::vec::Vec<u8> {
             match self {
+                Self::InvalidSender(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::InvalidUpdateCode(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -684,6 +749,10 @@ pub mod mock_strategy {
             match selector {
                 [0x08, 0xc3, 0x79, 0xa0] => true,
                 _ if selector
+                    == <InvalidSender as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector
                     == <InvalidUpdateCode as ::ethers::contract::EthError>::selector() => {
                     true
                 }
@@ -696,6 +765,7 @@ pub mod mock_strategy {
     impl ::core::fmt::Display for MockStrategyErrors {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
+                Self::InvalidSender(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InvalidUpdateCode(element) => ::core::fmt::Display::fmt(element, f),
                 Self::NotDFMM(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
@@ -705,6 +775,11 @@ pub mod mock_strategy {
     impl ::core::convert::From<::std::string::String> for MockStrategyErrors {
         fn from(value: String) -> Self {
             Self::RevertString(value)
+        }
+    }
+    impl ::core::convert::From<InvalidSender> for MockStrategyErrors {
+        fn from(value: InvalidSender) -> Self {
+            Self::InvalidSender(value)
         }
     }
     impl ::core::convert::From<InvalidUpdateCode> for MockStrategyErrors {
@@ -767,7 +842,7 @@ pub mod mock_strategy {
     pub struct GetPoolParamsCall {
         pub pool_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
+    ///Container type for all input parameters for the `init` function with signature `init(address,uint256,bytes)` and selector `0x73cb2d03`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -780,12 +855,13 @@ pub mod mock_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "init", abi = "init(uint256,bytes)")]
+    #[ethcall(name = "init", abi = "init(address,uint256,bytes)")]
     pub struct InitCall {
+        pub p0: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `update` function with signature `update(uint256,bytes)` and selector `0x0216b838`
+    ///Container type for all input parameters for the `update` function with signature `update(address,uint256,bytes)` and selector `0xacad2989`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -798,12 +874,13 @@ pub mod mock_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "update", abi = "update(uint256,bytes)")]
+    #[ethcall(name = "update", abi = "update(address,uint256,bytes)")]
     pub struct UpdateCall {
+        pub sender: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
+    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(address,uint256,bytes)` and selector `0x8a04bdd5`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -818,13 +895,14 @@ pub mod mock_strategy {
     )]
     #[ethcall(
         name = "validateAllocateOrDeallocate",
-        abi = "validateAllocateOrDeallocate(uint256,bytes)"
+        abi = "validateAllocateOrDeallocate(address,uint256,bytes)"
     )]
     pub struct ValidateAllocateOrDeallocateCall {
+        pub p0: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
+    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(address,uint256,bytes)` and selector `0x68bd3e38`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -837,8 +915,9 @@ pub mod mock_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "validateSwap", abi = "validateSwap(uint256,bytes)")]
+    #[ethcall(name = "validateSwap", abi = "validateSwap(address,uint256,bytes)")]
     pub struct ValidateSwapCall {
+        pub p0: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
@@ -1022,7 +1101,7 @@ pub mod mock_strategy {
     pub struct GetPoolParamsReturn {
         pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all return fields from the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
+    ///Container type for all return fields from the `init` function with signature `init(address,uint256,bytes)` and selector `0x73cb2d03`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1042,7 +1121,7 @@ pub mod mock_strategy {
         pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
+    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(address,uint256,bytes)` and selector `0x8a04bdd5`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -1062,7 +1141,7 @@ pub mod mock_strategy {
         pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
+    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(address,uint256,bytes)` and selector `0x68bd3e38`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

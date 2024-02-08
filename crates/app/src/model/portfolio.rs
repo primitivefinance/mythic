@@ -827,7 +827,6 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let current_block = self.fetch_block_number(client.clone()).await?;
 
         let (
-            controller,
             strategy,
             asset_token,
             quote_token,
@@ -878,11 +877,12 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let strategy_instance =
             self.log_normal_strategy(client.clone(), from_ethers_address(strategy))?;
 
-        let (strike_price, volatility, time_remaining, swap_fee_wad) = strategy_instance
-            .internal_params(parsed_pool_id)
-            .call()
-            .await
-            .map_err(|error| anyhow!(error))?;
+        let (strike_price, volatility, time_remaining, swap_fee_wad, controller) =
+            strategy_instance
+                .internal_params(parsed_pool_id)
+                .call()
+                .await
+                .map_err(|error| anyhow!(error))?;
 
         let strike_price = strike_price.last_computed_value;
         let volatility = volatility.last_computed_value;

@@ -135,6 +135,7 @@ impl<C: Middleware + 'static> DevClient<C> {
             sigma: sigma_percent_wad,
             tau: tau_years_wad,
             swap_fee: 0.003,
+            controller: sender,
         });
 
         let token_x = self.token_x.address();

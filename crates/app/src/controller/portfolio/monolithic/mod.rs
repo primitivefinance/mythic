@@ -245,6 +245,7 @@ impl Monolithic {
                             strike: parameters.strike_price_wad,
                             tau: parameters.time_remaining_years_wad,
                             swap_fee: 0.003,
+                            controller: Address::zero(),
                         });
 
                         let init_price_wad =
