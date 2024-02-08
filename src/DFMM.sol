@@ -56,7 +56,7 @@ contract DFMM is IDFMM {
 
         (
             bool valid,
-            int256 swapConstantGrowth,
+            int256 invariant,
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity
@@ -65,7 +65,7 @@ contract DFMM is IDFMM {
         );
 
         if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+            revert Invalid(invariant < 0, abs(invariant));
         }
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
@@ -163,7 +163,7 @@ contract DFMM is IDFMM {
     ) external lock returns (uint256, uint256) {
         (
             bool valid,
-            int256 swapConstantGrowth,
+            int256 invariant,
             ,
             uint256 adjustedReserveX,
             uint256 adjustedReserveY,
@@ -173,7 +173,7 @@ contract DFMM is IDFMM {
         );
 
         if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+            revert Invalid(invariant < 0, abs(invariant));
         }
 
         pools[poolId].totalLiquidity = adjustedTotalLiquidity;

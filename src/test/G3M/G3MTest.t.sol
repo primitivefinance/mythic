@@ -37,7 +37,7 @@ contract G3MTest is Test {
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
     }
 
-    function test_G3M_init() public {
+    function test_G3M_init_18() public {
         uint256 reserveX = 1 ether;
         uint256 price = 2000 * 10 ** 18;
 

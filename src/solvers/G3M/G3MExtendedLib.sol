@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "src/strategies/G3M/G3M.sol";
-import "forge-std/console2.sol";
+import "../BisectionLib.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
@@ -75,9 +75,16 @@ function computeInitialPoolData(
     G3M.G3MParams memory params
 ) pure returns (bytes memory) {
     uint256 rY = computeY(amountX, initialPrice, params);
-    console2.log("ry", rY);
     uint256 L = computeL(amountX, rY, params);
-    console2.log("L in computeInitial", L);
+
+    int256 invariant = G3MLib.tradingFunction({
+        rX: amountX,
+        rY: rY,
+        L: L,
+        params: params
+    });
+
+    L = computeNextLiquidity(amountX, rY, invariant, L, params);
 
     return
         abi.encode(amountX, rY, L, params.wX, params.swapFee, params.controller);
@@ -118,4 +125,57 @@ function computePrice(
     uint256 n = rY.divWadDown(params.wY);
     uint256 d = rX.divWadDown(params.wX);
     price = n.divWadDown(d);
+}
+/// @dev This is a pure anonymous function defined at the file level, which allows
+/// it to be passed as an argument to another function. BisectionLib.sol takes this
+/// function as an argument to find the root of the trading function given the liquidity.
+function findRootLiquidity(
+    bytes memory data,
+    uint256 L
+) pure returns (int256) {
+    (uint256 rX, uint256 rY,, G3M.G3MParams memory params) =
+        abi.decode(data, (uint256, uint256, int256, G3M.G3MParams));
+        return G3MLib.tradingFunction({ rX: rX, rY: rY, L: L, params: params });
+}
+
+
+function computeNextLiquidity(
+    uint256 rX,
+    uint256 rY,
+    int256 invariant,
+    uint256 approximatedL,
+    G3M.G3MParams memory params
+) pure returns (uint256 L) {
+    uint256 upper = approximatedL;
+    uint256 lower = approximatedL;
+    int256 computedInvariant = invariant;
+    if (computedInvariant < 0) {
+        while (computedInvariant < 0) {
+            lower = lower.mulDivDown(999, 1000);
+            computedInvariant = G3MLib.tradingFunction({
+                rX: rX,
+                rY: rY,
+                L: lower,
+                params: params
+            });
+        }
+    } else {
+        while (computedInvariant > 0) {
+            upper = upper.mulDivUp(1_001, 1_000);
+            computedInvariant = G3MLib.tradingFunction({
+                rX: rX,
+                rY: rY,
+                L: upper,
+                params: params
+            });
+        }
+    }
+    L = bisection(
+        abi.encode(rX, rY, computedInvariant, params),
+        lower,
+        upper,
+        uint256(1),
+        256,
+        findRootLiquidity
+    );
 }

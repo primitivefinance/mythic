@@ -5,7 +5,7 @@ import "solmate/tokens/ERC20.sol";
 import "solstat/Gaussian.sol";
 import "src/interfaces/IDFMM.sol";
 import "src/interfaces/IStrategy.sol";
-import "./BisectionLib.sol";
+import "../BisectionLib.sol";
 import "./LogNormalExtendedLib.sol";
 
 contract LogNormalSolver {

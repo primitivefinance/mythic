@@ -7,7 +7,6 @@ import "../../DFMM.sol";
 import "../../strategies/LogNormal/LogNormal.sol";
 import "../../solvers/LogNormal/LogNormalSolver.sol";
 import "../helpers/Lex.sol";
-import "forge-std/console2.sol";
 
 contract LogNormalTest is Test {
     using stdStorage for StdStorage;

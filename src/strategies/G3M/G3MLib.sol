@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import "solmate/utils/FixedPointMathLib.sol";
 import "../../lib/StrategyLib.sol";
-import "forge-std/console2.sol";
 import "./G3M.sol";
 
 library G3MLib {
@@ -72,17 +71,8 @@ library G3MLib {
         uint256 L,
         G3M.G3MParams memory params
     ) internal pure returns (int256) {
-      /*
-        uint256 a = uint256(int256(rX).powWad(int256(params.wX)));
-        uint256 b = uint256(int256(rY).powWad(int256(params.wY)));
-        return int256(a.mulWadUp(b)) - int256(L);
-        */
         uint256 a = uint256(int256(rX.divWadDown(L)).powWad(int256(params.wX)));
         uint256 b = uint256(int256(rY.divWadDown(L)).powWad(int256(params.wY)));
-
-        console2.log(a);
-        console2.log(b);
-
 
         return int256(a.mulWadUp(b)) - int256(1 ether);
     }

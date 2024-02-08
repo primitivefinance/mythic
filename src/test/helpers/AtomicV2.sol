@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.14;
 
-import "forge-std/console2.sol";
 import "solstat/Gaussian.sol";
 import "solmate/utils/FixedPointMathLib.sol";
-import "src/solvers/LogNormal/BisectionLib.sol";
+import "src/solvers/BisectionLib.sol";
 
 interface LiquidExchange {
     function swap(address token, uint256 amount) external;
@@ -169,13 +168,10 @@ contract AtomicV2 {
         uint256 iteration = 0;
         uint256 start = best_guess.mulDivDown(30, 1000);
         uint256 end = best_guess.mulDivUp(1000, 100);
-        console2.log("iteration", iteration);
 
         while (start < end && iteration < 64) {
             mid = start + (end - start) / 2;
-            console2.log("mid", mid);
             derivative = derivativeOfProfit(poolId, xForY, mid);
-            console2.log("derivative", derivative);
 
             // Check the sign of the derivative to determine the direction of the bisection
             if (derivative > 0) {
