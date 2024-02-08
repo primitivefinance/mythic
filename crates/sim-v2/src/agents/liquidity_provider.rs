@@ -11,11 +11,11 @@ use super::*;
 pub(crate) struct LiquidityProvider {
     pool_init_data: Vec<PoolInitData>,
     #[serde(skip)]
-    pub client: Option<Arc<RevmMiddleware>>,
+    pub client: Option<Arc<ArbiterMiddleware>>,
     #[serde(skip)]
     pub messager: Option<Messager>,
     #[serde(skip)]
-    protocol_client: Option<ProtocolClient<RevmMiddleware>>,
+    protocol_client: Option<ProtocolClient<ArbiterMiddleware>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -33,16 +33,16 @@ pub struct PoolInitData {
 impl Behavior<Message> for LiquidityProvider {
     async fn startup(
         &mut self,
-        client: Arc<RevmMiddleware>,
+        client: Arc<ArbiterMiddleware>,
         mut messager: Messager,
-    ) -> EventStream<Message> {
+    ) -> Result<EventStream<Message>, ArbiterEngineError> {
         messager
             .send(
                 To::Agent("protocol_manager".to_string()),
                 ProtocolManagerQuery::Connect,
             )
-            .await;
-        let protocol_addresses = messager.get_next().await;
+            .await?;
+        let protocol_addresses = messager.get_next().await?;
         let protocol_addresses =
             serde_json::from_str::<ProtocolClientAddresses>(&protocol_addresses.data).unwrap();
         let protocol_client =
@@ -68,7 +68,7 @@ impl Behavior<Message> for LiquidityProvider {
                         To::Agent("token_admin".to_string()),
                         TokenAdminQuery::MintRequest(mint_request),
                     )
-                    .await;
+                    .await?;
             }
 
             messager
@@ -76,8 +76,8 @@ impl Behavior<Message> for LiquidityProvider {
                     To::Agent("token_admin".to_string()),
                     TokenAdminQuery::GetTokenData(pool.token_x.clone()),
                 )
-                .await;
-            let token_x_data = messager.get_next().await;
+                .await?;
+            let token_x_data = messager.get_next().await?;
             let token_x_data = serde_json::from_str::<TokenData>(&token_x_data.data).unwrap();
             let token_x = ArbiterToken::new(token_x_data.address.unwrap(), client.clone());
             token_x
@@ -91,9 +91,9 @@ impl Behavior<Message> for LiquidityProvider {
                     To::Agent("token_admin".to_string()),
                     TokenAdminQuery::GetTokenData(pool.token_y.clone()),
                 )
-                .await;
-            let token_y_data = messager.get_next().await;
-            let token_y_data = serde_json::from_str::<TokenData>(&token_y_data.data).unwrap();
+                .await?;
+            let token_y_data = messager.get_next().await?;
+            let token_y_data = serde_json::from_str::<TokenData>(&token_y_data.data)?;
             let token_y = ArbiterToken::new(token_y_data.address.unwrap(), client.clone());
             token_y
                 .approve(protocol_client.protocol.address(), MAX)
@@ -132,7 +132,7 @@ impl Behavior<Message> for LiquidityProvider {
                     To::Agent("price_changer".to_string()),
                     PriceChangerQuery::DeployLexWithParams(lex_request),
                 )
-                .await;
+                .await?;
             let reply = messager.get_next().await;
             println!("got reply from lex deployer: {:?}", reply);
         }
@@ -140,11 +140,11 @@ impl Behavior<Message> for LiquidityProvider {
         self.messager = Some(messager.clone());
         self.client = Some(client.clone());
         self.protocol_client = Some(protocol_client);
-        Box::pin(messager.stream())
+        Ok(messager.stream()?)
     }
 
-    async fn process(&mut self, _event: Message) -> Option<MachineHalt> {
+    async fn process(&mut self, _event: Message) -> Result<ControlFlow, ArbiterEngineError> {
         // Liquidity provider does nothing outside of `startup` stage
-        None
+        Ok(Halt)
     }
 }

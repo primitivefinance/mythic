@@ -8,9 +8,9 @@ pub(crate) struct TokenAdmin {
     #[serde(skip)]
     pub token_data: Option<HashMap<String, TokenData>>,
     #[serde(skip)]
-    pub tokens: Option<HashMap<String, ArbiterToken<RevmMiddleware>>>,
+    pub tokens: Option<HashMap<String, ArbiterToken<ArbiterMiddleware>>>,
     #[serde(skip)]
-    pub client: Option<Arc<RevmMiddleware>>,
+    pub client: Option<Arc<ArbiterMiddleware>>,
     #[serde(skip)]
     pub messager: Option<Messager>,
 }
@@ -71,9 +71,9 @@ pub enum TokenAdminQuery {
 impl Behavior<Message> for TokenAdmin {
     async fn startup(
         &mut self,
-        client: Arc<RevmMiddleware>,
+        client: Arc<ArbiterMiddleware>,
         messager: Messager,
-    ) -> EventStream<Message> {
+    ) -> Result<EventStream<Message>, ArbiterEngineError> {
         self.messager = Some(messager.clone());
         self.client = Some(client.clone());
         for token_data in &self.init_token_data {
@@ -99,10 +99,10 @@ impl Behavior<Message> for TokenAdmin {
                 .get_or_insert_with(HashMap::new)
                 .insert(token_data.name.clone(), token.clone());
         }
-        Box::pin(messager.stream())
+        Ok(messager.stream()?)
     }
 
-    async fn process(&mut self, event: Message) -> Option<MachineHalt> {
+    async fn process(&mut self, event: Message) -> Result<ControlFlow, ArbiterEngineError> {
         let query: TokenAdminQuery = serde_json::from_str(&event.data).unwrap();
         match query {
             TokenAdminQuery::AddressOf(token_name) => {
@@ -118,6 +118,6 @@ impl Behavior<Message> for TokenAdmin {
                 self.reply_token_data(token_name, event.from).await
             }
         }
-        None
+        Ok(Continue)
     }
 }

@@ -6,7 +6,7 @@ use super::*;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct PriceChanger {
     #[serde(skip)]
-    pub client: Option<Arc<RevmMiddleware>>,
+    pub client: Option<Arc<ArbiterMiddleware>>,
     #[serde(skip)]
     pub messager: Option<Messager>,
 }
@@ -70,21 +70,21 @@ pub enum PriceChangerQuery {
 impl Behavior<Message> for PriceChanger {
     async fn startup(
         &mut self,
-        client: Arc<RevmMiddleware>,
+        client: Arc<ArbiterMiddleware>,
         messager: Messager,
-    ) -> EventStream<Message> {
+    ) -> Result<EventStream<Message>, ArbiterEngineError> {
         self.client = Some(client.clone());
         self.messager = Some(messager.clone());
-        Box::pin(messager.stream())
+        Ok(messager.stream()?)
     }
 
-    async fn process(&mut self, event: Message) -> Option<MachineHalt> {
+    async fn process(&mut self, event: Message) -> Result<ControlFlow, ArbiterEngineError> {
         let query: PriceChangerQuery = serde_json::from_str(&event.data).unwrap();
         match query {
             PriceChangerQuery::DeployLexWithParams(lex_params) => {
                 self.reply_deploy_lex(lex_params, event.from).await
             }
         };
-        None
+        Ok(Continue)
     }
 }

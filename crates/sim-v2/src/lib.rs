@@ -7,11 +7,16 @@ use agents::{
     liquidity_provider::LiquidityProvider, price_changer::PriceChanger,
     protocol_manager::ProtocolManager, token_admin::TokenAdmin,
 };
-use anyhow::{bail, Error, Result};
+use anyhow::Result;
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
-use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
+use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
 use arbiter_engine::{
-    machine::{Behavior, CreateStateMachine, Engine, EventStream, MachineHalt, StateMachine},
+    errors::ArbiterEngineError,
+    machine::{
+        Behavior, ControlFlow,
+        ControlFlow::{Continue, Halt},
+        CreateStateMachine, Engine, EventStream, StateMachine,
+    },
     messager::{Message, Messager, To},
     world::World,
 };

@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fs};
 
-use arbiter_core::environment::fork::ContractMetadata;
+use arbiter_core::database::fork::ContractMetadata;
 use ethers::{
     prelude::*,
     utils::{hex, keccak256},

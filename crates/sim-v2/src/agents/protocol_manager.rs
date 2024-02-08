@@ -3,9 +3,9 @@ use super::*;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct ProtocolManager {
     #[serde(skip)]
-    protocol_client: Option<ProtocolClient<RevmMiddleware>>,
+    protocol_client: Option<ProtocolClient<ArbiterMiddleware>>,
     #[serde(skip)]
-    pub client: Option<Arc<RevmMiddleware>>,
+    pub client: Option<Arc<ArbiterMiddleware>>,
     #[serde(skip)]
     pub messager: Option<Messager>,
 }
@@ -28,22 +28,22 @@ impl ProtocolManager {
 impl Behavior<Message> for ProtocolManager {
     async fn startup(
         &mut self,
-        client: Arc<RevmMiddleware>,
+        client: Arc<ArbiterMiddleware>,
         messager: Messager,
-    ) -> EventStream<Message> {
+    ) -> Result<EventStream<Message>, ArbiterEngineError> {
         let protocol_client = ProtocolClient::new(client.clone()).await.unwrap();
         println!("built protocol client!");
         self.messager = Some(messager.clone());
         self.client = Some(client.clone());
         self.protocol_client = Some(protocol_client);
-        Box::pin(messager.stream())
+        Ok(messager.stream()?)
     }
 
-    async fn process(&mut self, event: Message) -> Option<MachineHalt> {
+    async fn process(&mut self, event: Message) -> Result<ControlFlow, ArbiterEngineError> {
         let query: ProtocolManagerQuery = serde_json::from_str(&event.data).unwrap();
         match query {
             ProtocolManagerQuery::Connect => self.reply_connect(event.from).await,
         };
-        None
+        Ok(Continue)
     }
 }
