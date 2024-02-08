@@ -38,7 +38,7 @@ contract G3MTest is Test {
     }
 
     function test_G3M_init() public {
-        uint256 reserveX = 1000 ether;
+        uint256 reserveX = 1 ether;
         uint256 price = 2000 * 10 ** 18;
 
         G3M.G3MParams memory params = G3M.G3MParams({

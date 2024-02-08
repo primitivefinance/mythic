@@ -37,7 +37,7 @@ contract G3MTestFork is Test {
             address(this), type(uint256).max
         );
         USDC(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).mint(
-            address(this), 2000 * 10 ** 6
+            address(this), 4000 * 10 ** 6
         );
         deal(address(weth), address(this), 1 ether);
 
@@ -49,7 +49,7 @@ contract G3MTestFork is Test {
     }
 
     function testFork_G3M_init_USDCWETHPool() public {
-        uint256 reserveX = 1 ether;
+        uint256 reserveX = 2 ether;
         uint256 price = 2000 * 10 ** 6;
 
         G3M.G3MParams memory params = G3M.G3MParams({
