@@ -12,7 +12,9 @@ function computeLGivenX(
     uint256 S,
     G3M.G3MParams memory params
 ) pure returns (uint256) {
-    return x.mulWadUp(params.wY.divWadUp(params.wX.mulWadUp(S)));
+    int256 a = int256(params.wY.divWadUp(params.wX).mulWadUp(S));
+    int256 b = a.powWad(int256(params.wY));
+    return x.mulWadUp(uint256(b));
 }
 
 function computeLGivenY(
@@ -39,14 +41,41 @@ function computeYGivenL(
     return params.wY.mulWadUp(L).divWadUp(params.wX.mulWadUp(S));
 }
 
+function computeY(
+    uint256 x,
+    uint256 S,
+    G3M.G3MParams memory params
+) pure returns (uint256) {
+    return params.wY.divWadDown(params.wX).mulWadDown(S).mulWadDown(x);
+}
+
+function computeX(
+    uint256 y,
+    uint256 S,
+    G3M.G3MParams memory params
+) pure returns (uint256) {
+    return params.wX.divWadDown(params.wY.mulWadDown(S)).mulWadDown(y);
+}
+
+function computeL(
+    uint256 x,
+    uint256 y,
+    G3M.G3MParams memory params
+) pure returns (uint256) {
+    uint256 a = uint256(int256(x).powWad(int256(params.wX)));
+    uint256 b = uint256(int256(y).powWad(int256(params.wY)));
+
+    return a.mulWadUp(b);
+}
+
 function computeInitialPoolData(
     uint256 amountX,
     uint256 initialPrice,
     G3M.G3MParams memory params
 ) pure returns (bytes memory) {
-    uint256 L = computeLGivenX(amountX, initialPrice, params);
-    uint256 rY = computeYGivenL(L, initialPrice, params);
-    L = G3MLib.computeNextLiquidity(amountX, rY, params);
+    uint256 rY = computeY(amountX, initialPrice, params);
+    uint256 L = computeL(amountX, rY, params);
+
     return
         abi.encode(amountX, rY, L, params.wX, params.swapFee, params.controller);
 }
