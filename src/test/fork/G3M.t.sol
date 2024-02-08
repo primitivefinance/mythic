@@ -57,10 +57,13 @@ contract G3MTestFork is Test {
             controller: address(this)
         });
 
-        uint256 L = computeLGivenX(reserveX, price, params);
-        console.log("Liquidity:", L);
-        uint256 reserveY = computeYGivenL(L, price, params);
-        console.log("Reserve Y", reserveY);
-        console.log("Reserve X", reserveX);
+        dfmm.init(
+            IDFMM.InitParams({
+                strategy: address(g3m),
+                tokenX: address(weth),
+                tokenY: address(usdc),
+                data: computeInitialPoolData(reserveX, price, params)
+            })
+        );
     }
 }
