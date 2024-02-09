@@ -35,16 +35,15 @@ mod view;
 
 use std::sync::Arc;
 
+use anyhow::Result;
 use app::{App, AppMessage};
+use clap::{ArgAction, Parser, Subcommand};
 use components::{system::ExcaliburTheme, *};
 use controller::*;
+use dotenv::dotenv;
 use loader::{Loader, LoaderMessage};
 use model::Model;
 use styles::*;
-
-use anyhow::Result;
-use clap::{ArgAction, Parser, Subcommand};
-use dotenv::dotenv;
 
 #[derive(Parser)]
 #[clap(name = "Excalibur")]
