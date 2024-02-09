@@ -37,7 +37,7 @@ contract G3MTestFork is Test {
             address(this), type(uint256).max
         );
         USDC(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).mint(
-            address(this), 4000 * 10 ** 6
+            address(this), 2000 * 10 ** 6
         );
         deal(address(weth), address(this), 1 ether);
         deal(address(dai), address(this), 2000 ether);
@@ -61,6 +61,44 @@ contract G3MTestFork is Test {
             controller: address(this)
         });
 
+        uint256 preBalanceX = weth.balanceOf(address(this));
+        uint256 preBalanceY = usdc.balanceOf(address(this));
+        uint256 preBalanceXDFMM = weth.balanceOf(address(dfmm));
+        uint256 preBalanceYDFMM = usdc.balanceOf(address(dfmm));
+
+        dfmm.init(
+            IDFMM.InitParams({
+                strategy: address(g3m),
+                tokenX: address(weth),
+                tokenY: address(usdc),
+                data: computeInitialPoolData(reserveX, price, params)
+            })
+        );
+
+        assertEq(weth.balanceOf(address(this)), preBalanceX - reserveX);
+        assertEq(usdc.balanceOf(address(this)), preBalanceY - 2000 * 10 ** 6);
+        assertEq(weth.balanceOf(address(dfmm)), preBalanceXDFMM + reserveX);
+        assertEq(
+            usdc.balanceOf(address(dfmm)), preBalanceYDFMM + 2000 * 10 ** 6
+        );
+    }
+
+    function testFork_G3M_init_DAIWETHPool() public {
+        uint256 reserveX = 1 ether;
+        uint256 price = 2000 * 10 ** 18;
+
+        G3M.G3MParams memory params = G3M.G3MParams({
+            wX: 0.5 ether,
+            wY: 0.5 ether,
+            swapFee: 0,
+            controller: address(this)
+        });
+
+        uint256 preBalanceX = weth.balanceOf(address(this));
+        uint256 preBalanceY = dai.balanceOf(address(this));
+        uint256 preBalanceXDFMM = weth.balanceOf(address(dfmm));
+        uint256 preBalanceYDFMM = dai.balanceOf(address(dfmm));
+
         dfmm.init(
             IDFMM.InitParams({
                 strategy: address(g3m),
@@ -69,5 +107,10 @@ contract G3MTestFork is Test {
                 data: computeInitialPoolData(reserveX, price, params)
             })
         );
+
+        assertEq(weth.balanceOf(address(this)), preBalanceX - reserveX);
+        assertEq(dai.balanceOf(address(this)), preBalanceY - price);
+        assertEq(weth.balanceOf(address(dfmm)), preBalanceXDFMM + reserveX);
+        assertEq(dai.balanceOf(address(dfmm)), preBalanceYDFMM + price);
     }
 }
