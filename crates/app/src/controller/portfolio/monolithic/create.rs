@@ -92,6 +92,7 @@ impl Form {
         on_select_duration: impl Fn(Times) -> Message + 'a,
         on_change_end_price: impl Fn(Option<String>) -> Message + 'a,
         on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
+        liquidity_choices: &[LiquidityChoices],
     ) -> Element<'_, Message>
     where
         Message: 'a + Default + Clone,
@@ -112,6 +113,7 @@ impl Form {
                     LiquidityTypes::all(),
                     self.liquidity,
                     on_select_liquidity,
+                    liquidity_choices,
                 ),
                 FormView::deposit_form(
                     self.amount.clone(),
@@ -126,7 +128,7 @@ impl Form {
                 ),
                 FormView::chart_layout_histogram(
                     preview_chart,
-                    label("Strategy Preview").secondary(),
+                    label("Liquidity Preview").secondary(),
                     label("Synced").caption2().tertiary(),
                 ),
             ),
@@ -161,17 +163,17 @@ impl LiquidityTypes {
         match self {
             LiquidityTypes::Low => LiquidityTemplateParameters {
                 strike_price_wad: current_price,
-                sigma_percent_wad: 0.7,
+                sigma_percent_wad: 0.85,
                 time_remaining_years_wad: 1.0,
             },
             LiquidityTypes::Med => LiquidityTemplateParameters {
                 strike_price_wad: current_price,
-                sigma_percent_wad: 1.0,
+                sigma_percent_wad: 0.625,
                 time_remaining_years_wad: 1.0,
             },
             LiquidityTypes::High => LiquidityTemplateParameters {
                 strike_price_wad: current_price,
-                sigma_percent_wad: 1.3,
+                sigma_percent_wad: 0.1,
                 time_remaining_years_wad: 1.0,
             },
         }
@@ -185,6 +187,21 @@ impl std::fmt::Display for LiquidityTypes {
             LiquidityTypes::Med => write!(f, "Medium"),
             LiquidityTypes::High => write!(f, "High"),
         }
+    }
+}
+
+impl std::fmt::Display for LiquidityTemplateParameters {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let formatted_strike_price = format!("${:.2}", self.strike_price_wad);
+        let formatted_volatility = format!("{:.2}%", self.sigma_percent_wad * 100.0);
+        let formatted_days_until_expiration =
+            format!("{:.0}", self.time_remaining_years_wad * 365.0);
+
+        write!(
+            f,
+            "strike: {} volatility: {} expires in: ~{} days",
+            formatted_strike_price, formatted_volatility, formatted_days_until_expiration
+        )
     }
 }
 
@@ -353,6 +370,7 @@ impl FormView {
         _choice_liquidity: Vec<LiquidityTypes>,
         chosen_liquidity: Option<LiquidityTypes>,
         on_select_liquidity: impl Fn(LiquidityTypes) -> Message + 'a,
+        liquidity_choices: &[LiquidityChoices],
     ) -> Container<'a, Message>
     where
         Message: 'a + Default + Clone,
@@ -361,34 +379,28 @@ impl FormView {
             Column::new().spacing(Sizes::Md).push(
                 Column::new()
                     .spacing(Sizes::Md)
-                    .push(label("Choose strategy").secondary().build())
+                    .push(label("Choose liquidity concentration").secondary().build())
                     .push(
-                        Column::new()
-                            .spacing(Sizes::Md)
-                            .push(
-                                Self::strategy_template(
-                                    Some(on_select_liquidity(LiquidityTypes::Low)),
-                                    LiquidityTypes::Low,
-                                    chosen_liquidity == Some(LiquidityTypes::Low),
-                                )
-                                .width(Length::Fill),
-                            )
-                            .push(
-                                Self::strategy_template(
-                                    Some(on_select_liquidity(LiquidityTypes::Med)),
-                                    LiquidityTypes::Med,
-                                    chosen_liquidity == Some(LiquidityTypes::Med),
-                                )
-                                .width(Length::Fill),
-                            )
-                            .push(
-                                Self::strategy_template(
-                                    Some(on_select_liquidity(LiquidityTypes::High)),
-                                    LiquidityTypes::High,
-                                    chosen_liquidity == Some(LiquidityTypes::High),
-                                )
-                                .width(Length::Fill),
-                            ),
+                        Column::with_children(
+                            liquidity_choices
+                                .iter()
+                                .map(|x| {
+                                    Self::strategy_template(
+                                        Some(on_select_liquidity(x.liquidity_type)),
+                                        x.liquidity_type,
+                                        chosen_liquidity == Some(x.liquidity_type),
+                                        x.liquidity_type.to_parameters(x.last_price),
+                                        format!(
+                                            "${:.2} - ${:.2}",
+                                            x.price_range.0, x.price_range.1
+                                        ),
+                                    )
+                                    .width(Length::Fill)
+                                    .into()
+                                })
+                                .collect::<Vec<_>>(),
+                        )
+                        .spacing(Sizes::Md),
                     ),
             ),
         )
@@ -397,13 +409,15 @@ impl FormView {
     /// "Cast" for each strategy template option.
     pub fn strategy_template<'a, Message>(
         on_press: Option<Message>,
-        value: impl ToString,
+        value: LiquidityTypes,
         active: bool,
+        tooltip: impl ToString,
+        price_range: impl ToString,
     ) -> Column<'a, Message>
     where
         Message: 'a + Clone + Default,
     {
-        let mut value = label(value).secondary();
+        let mut value = label(value.to_string()).secondary();
         let mut background = ExcaliburColor::Background3;
 
         if active {
@@ -445,7 +459,36 @@ impl FormView {
                                             left: Sizes::Md.into(),
                                             right: Sizes::Md.into(),
                                         })
-                                        .push(ExcaliburTooltip::new().caption().secondary().padding(Sizes::Sm).info().build( "Liquidity types affects the price range of the liquidity."),
+                                        .width(Length::Fill)
+                                        .push(
+                                            ExcaliburTooltip::new()
+                                                .caption()
+                                                .secondary()
+                                                .padding(Sizes::Sm)
+                                                .info()
+                                                .build(tooltip),
+                                        )
+                                        .push(
+                                            Row::new().width(Length::Fill).push(
+                                                Column::new()
+                                                    .push(
+                                                        Row::new()
+                                                            .push(
+                                                                label("Price Range: ")
+                                                                    .secondary()
+                                                                    .caption()
+                                                                    .build(),
+                                                            )
+                                                            .push(
+                                                                label(price_range)
+                                                                    .secondary()
+                                                                    .caption()
+                                                                    .build(),
+                                                            ),
+                                                    )
+                                                    .width(Length::Fill)
+                                                    .align_items(alignment::Alignment::End),
+                                            ),
                                         ),
                                 )
                                 .width(Length::Fill),
@@ -758,6 +801,13 @@ impl FormView {
 
 const LOADING_INDICATOR_SIZE: f32 = 16.0;
 const LOADING_INDICATOR_SPEED_MS: u64 = 85;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LiquidityChoices {
+    pub liquidity_type: LiquidityTypes,
+    pub last_price: f64,
+    pub price_range: (f64, f64),
+}
 
 pub trait EnumList<T> {
     fn to_options() -> Vec<Self>

@@ -1,12 +1,14 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-/// @dev Contract that holds the reserve and liquidity state.
+/**
+ * @title DFMM Interface
+ * @author Primitive
+ */
 interface IDFMM {
     // Structs
 
     struct Pool {
-        address controller;
         address strategy;
         address tokenX;
         address tokenY;
@@ -25,16 +27,17 @@ interface IDFMM {
 
     // Errors
 
-    /// @dev Thrown when the pool has not been initialized yet.
-    error NotInitialized();
-
     /// @dev Thrown when the invariant is invalid.
     error Invalid(bool negative, uint256 swapConstantGrowth);
 
+    /// @dev Thrown when pool tokens are identical.
     error InvalidTokens();
 
     /// @dev Thrown when a new call is made during a locked state.
     error Locked();
+
+    /// @dev Thrown when the reserves are invalid after a swap.
+    error InvalidSwap();
 
     /// @dev Thrown when the transfer of the input amount is invalid.
     error InvalidSwapInputTransfer();
@@ -42,22 +45,10 @@ interface IDFMM {
     /// @dev Thrown when the transfer of the output amount is invalid.
     error InvalidSwapOutputTransfer();
 
-    error NotController();
-
+    /// @dev Thrown when a clone contract could not be deployed.
     error ERC1167FailedCreateClone();
 
     // Events
-
-    event LogPoolStats(
-        uint256 rx,
-        uint256 ry,
-        uint256 L,
-        int256 invariant,
-        uint256 sigma,
-        uint256 strike,
-        uint256 tau,
-        uint256 timestamp
-    );
 
     /**
      * @notice Emitted when the pool is initialized.
@@ -67,8 +58,8 @@ interface IDFMM {
      * @param totalLiquidity Initial liquidity in the pool.
      */
     event Init(
-        address account,
-        address indexed strategy,
+        address indexed account,
+        address strategy,
         address indexed tokenX,
         address indexed tokenY,
         uint256 poolId,
@@ -97,7 +88,7 @@ interface IDFMM {
      * @param account Address deallocating liquidity.
      * @param deltaX Amount of token X being deallocated.
      * @param deltaY Amount of token Y being deallocated.
-     * @param deltaL Amount of liquidity being returned to the pool.
+     * @param deltaL Amount of liquidity being deallocated.
      */
     event Deallocate(
         address indexed account,
@@ -124,33 +115,71 @@ interface IDFMM {
 
     // Setters
 
+    /**
+     * @notice Intializes a new pool.
+     * @param params A struct containing the initialization parameters.
+     * @return poolId Id of the newly initialized pool.
+     * @return reserveX Initial amount of token X in the pool.
+     * @return reserveY Initial amount of token Y in the pool.
+     * @return totalLiquidity Initial amount of liquidity in the pool.
+     */
     function init(InitParams calldata params)
         external
-        returns (uint256, uint256, uint256, uint256);
+        returns (
+            uint256 poolId,
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity
+        );
 
+    /**
+     * @notice Allocates liquidity into the pool `poolId`.
+     * @param poolId Id of the pool to allocate liquidity into.
+     * @param data An array of bytes used by the strategy contract.
+     * @return deltaX Amount of token X allocated into the pool.
+     * @return deltaY Amount of token Y allocated into the pool.
+     * @return deltaL Amount of liquidity received by the allocator.
+     */
     function allocate(
         uint256 poolId,
         bytes calldata data
-    ) external returns (uint256, uint256, uint256);
+    ) external returns (uint256 deltaX, uint256 deltaY, uint256 deltaL);
 
+    /**
+     * @notice Deallocates liquidity from the pool `poolId`.
+     * @param poolId Id of the pool to deallocate liquidity from.
+     * @param data An array of bytes used by the strategy contract.
+     * @return deltaX Amount of token X deallocated from the pool.
+     * @return deltaY Amount of token Y deallocated from the pool.
+     * @return deltaL Amount of liquidity being deallocated.
+     */
     function deallocate(
         uint256 poolId,
         bytes calldata data
-    ) external returns (uint256, uint256, uint256);
+    ) external returns (uint256 deltaX, uint256 deltaY, uint256 deltaL);
 
+    /**
+     * @notice Swaps tokens into pool `poolId`.
+     * @param poolId Id of the pool to swap tokens into.
+     * @param data An array of bytes used by the strategy contract.
+     * @return inputAmount Amount of tokens sent to the DFMM contract.
+     * @return outputAmount Amount of tokens received by the swapper.
+     */
     function swap(
         uint256 poolId,
         bytes calldata data
-    ) external returns (uint256, uint256);
+    ) external returns (uint256 inputAmount, uint256 outputAmount);
 
+    /**
+     * @notice Updates pool `poolId` by calling the associated strategy.
+     * @param poolId Id of the pool to update.
+     * @param data An array of bytes used by the strategy contract.
+     */
     function update(uint256 poolId, bytes calldata data) external;
 
     // Getters
 
-    /**
-     * @notice Address of the implementation of the liquidity token
-     * contract.
-     */
+    /// @notice Address of the implementation of the LPToken contract.
     function lpTokenImplementation() external view returns (address);
 
     function getReservesAndLiquidity(uint256 poolId)
@@ -166,7 +195,6 @@ interface IDFMM {
         external
         view
         returns (
-            address controller,
             address strategy,
             address tokenX,
             address tokenY,

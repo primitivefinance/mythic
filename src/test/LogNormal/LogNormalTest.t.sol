@@ -5,8 +5,9 @@ import "forge-std/Test.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 import "../../DFMM.sol";
 import "../../strategies/LogNormal/LogNormal.sol";
+import "../../solvers/LogNormal/LogNormalSolver.sol";
 import "../helpers/Lex.sol";
-import "./LogNormalSolver.sol";
+import "forge-std/console2.sol";
 
 contract LogNormalTest is Test {
     using stdStorage for StdStorage;
@@ -23,8 +24,8 @@ contract LogNormalTest is Test {
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
-        MockERC20(tokenX).mint(address(this), 100e18);
-        MockERC20(tokenY).mint(address(this), 100000e18);
+        MockERC20(tokenX).mint(address(this), 100_000_000 ether);
+        MockERC20(tokenY).mint(address(this), 100_000_000 ether);
 
         lex = new Lex(tokenX, tokenY, ONE);
         dfmm = new DFMM();
@@ -41,7 +42,8 @@ contract LogNormalTest is Test {
             strike: ONE * 2300,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = ONE * 2345;
         uint256 init_x = ONE * 10;
@@ -68,7 +70,8 @@ contract LogNormalTest is Test {
             strike: ONE,
             sigma: ONE,
             tau: ONE,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = ONE;
         uint256 init_x = ONE;
@@ -86,6 +89,63 @@ contract LogNormalTest is Test {
 
         _;
     }
+
+    modifier revert_scenario() {
+        vm.warp(0);
+
+        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
+            strike: 0.67323818941934077 ether,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
+        });
+        uint256 init_p = 1329956352651532999;
+        uint256 init_x = 70.658087306013359413 ether;
+        bytes memory initData =
+            solver.getInitialPoolData(init_x, init_p, params);
+
+        IDFMM.InitParams memory initParams = IDFMM.InitParams({
+            strategy: address(logNormal),
+            tokenX: tokenX,
+            tokenY: tokenY,
+            data: initData
+        });
+
+        dfmm.init(initParams);
+
+        _;
+    }
+
+    function test_ln_swap_x_in() public basic {
+      bool xIn = true;
+      uint256 amountIn = 0.1 ether;
+      uint256 poolId = dfmm.nonce() - 1;
+      (,,,bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+
+      dfmm.swap(poolId, swapData);
+    }
+
+    function test_ln_swap_y_in() public basic {
+      bool xIn = false;
+      uint256 amountIn = 0.1 ether;
+      uint256 poolId = dfmm.nonce() - 1;
+      (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+
+      dfmm.swap(poolId, swapData);
+    }
+
+    // todo: write assertApproxEq
+    function test_price_formulas() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        (uint256 rx, uint256 ry, uint256 L) = solver.getReservesAndLiquidity(poolId);
+        uint256 priceGivenY = solver.getPriceGivenYL(poolId, ry, L);
+        uint256 priceGivenX = solver.getPriceGivenXL(poolId, rx, L);
+        assertApproxEqAbs(priceGivenY, priceGivenX, 100);
+    }
+
+
+
 
     // function test_internal_price() public basic {
     //     uint256 internalPrice = solver.internalPrice();

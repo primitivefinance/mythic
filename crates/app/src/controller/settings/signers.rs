@@ -5,10 +5,14 @@ use alloy_primitives::Address;
 use anyhow::Error;
 use clients::ledger::{types::DerivationType, *};
 
+use self::system::{ExcaliburContainer, ExcaliburTable};
 use super::*;
 use crate::components::{
-    system::{label, Card, ExcaliburButton},
-    tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
+    system::{label, ExcaliburButton},
+    tables::{
+        builder::TableBuilder,
+        cells::{self, CellBuilder},
+    },
 };
 
 #[derive(Debug, Default, Clone)]
@@ -51,46 +55,31 @@ impl SignerManagement {
         Self::NotConnected
     }
 
+    pub fn get_table(&self, headers: Vec<String>) -> TableBuilder<Message> {
+        let cells: Vec<Vec<CellBuilder<Message>>> = vec![vec![
+            CellBuilder::new().value(Some("Example Wallet".to_string())),
+            cells::CellBuilder::new().value(Some(
+                "0x0000000000000000000000000000000000000000".to_string(),
+            )),
+        ]];
+
+        ExcaliburTable::new().headers(headers).build_custom(cells)
+    }
+
     pub fn signer_table(&self) -> TableBuilder<Message> {
         match self {
-            SignerManagement::NotConnected => TableBuilder::new().padding_cell(Sizes::Md).column(
-                ColumnBuilder::new()
-                    .headers(vec!["Name".to_string(), "Address".to_string()])
-                    .rows(vec![RowBuilder::new()
-                        .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
-                        .cell(
-                            cells::CellBuilder::new().value(Some("0xb0b".to_string())),
-                        )]),
-            ),
-            SignerManagement::Connecting => TableBuilder::new().padding_cell(Sizes::Md).column(
-                ColumnBuilder::new()
-                    .headers(vec!["Name".to_string(), "Address".to_string()])
-                    .rows(vec![RowBuilder::new()
-                        .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
-                        .cell(
-                            cells::CellBuilder::new().value(Some("0xb0b".to_string())),
-                        )]),
-            ),
-            SignerManagement::Connected(_ledger, _address) => {
-                TableBuilder::new().padding_cell(Sizes::Md).column(
-                    ColumnBuilder::new()
-                        .headers(vec!["Name".to_string(), _address.to_string()])
-                        .rows(vec![RowBuilder::new()
-                            .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
-                            .cell(
-                                cells::CellBuilder::new().value(Some("0xb0b".to_string())),
-                            )]),
-                )
+            SignerManagement::NotConnected => {
+                self.get_table(vec!["Name".to_string(), "Primary Address".to_string()])
             }
-            SignerManagement::Error => TableBuilder::new().padding_cell(Sizes::Md).column(
-                ColumnBuilder::new()
-                    .headers(vec!["Name".to_string(), "Address".to_string()])
-                    .rows(vec![RowBuilder::new()
-                        .cell(cells::CellBuilder::new().value(Some("Wallet Name".to_string())))
-                        .cell(
-                            cells::CellBuilder::new().value(Some("0xb0b".to_string())),
-                        )]),
-            ),
+            SignerManagement::Connecting => {
+                self.get_table(vec!["Name".to_string(), "Primary Address".to_string()])
+            }
+            SignerManagement::Connected(_ledger, _address) => {
+                self.get_table(vec!["Name".to_string(), _address.to_string()])
+            }
+            SignerManagement::Error => {
+                self.get_table(vec!["Name".to_string(), "Primary Address".to_string()])
+            }
         }
     }
 
@@ -188,19 +177,18 @@ impl State for SignerManagement {
                 Row::new().spacing(Sizes::Md).push(
                     ExcaliburButton::new()
                         .primary()
-                        .build(
-                            label("Error connecting, Is your ledger plugged in an authenticated?")
-                                .build(),
-                        )
+                        .build(label("Error connecting. Is your ledger plugged in?").build())
                         .padding(Sizes::Sm)
                         .on_press(Message::ConnectLedger),
                 ),
                 Row::<Message>::new().spacing(Sizes::Md),
             ),
         };
-        upper_half = upper_half
-            .push(upper_content)
-            .push(Card::build_container(self.signer_table().build()).padding(Sizes::Md));
+        upper_half = upper_half.push(upper_content).push(
+            ExcaliburContainer::default()
+                .light_border()
+                .build(self.signer_table().build()),
+        );
         lower_half = lower_half.push(lower_content);
         content = content.push(upper_half);
         content = content.push(lower_half);

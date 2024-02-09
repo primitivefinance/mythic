@@ -15,7 +15,7 @@ contract SetUp is Test {
 
     uint256 public constant TEST_SWAP_FEE = 0.003 ether;
 
-    function globalSetUp() public {
+    function setUp() public virtual {
         tokenX = new MockERC20("tokenX", "X", 18);
         tokenY = new MockERC20("tokenY", "Y", 18);
         tokenX.mint(address(this), 100e18);
@@ -26,11 +26,6 @@ contract SetUp is Test {
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);
-    }
-
-    function getPoolController(uint256 poolId) public view returns (address) {
-        IDFMM.Pool memory pool = dfmm.getPool(poolId);
-        return pool.controller;
     }
 
     function getPoolLiquidityToken(uint256 poolId)

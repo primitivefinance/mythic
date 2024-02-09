@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 // compiler version must be greater than or equal to 0.8.17 and less than 0.9.0
 pragma solidity ^0.8.17;
 // import "solmate/utils/FixedPointMathLib.sol"; // This import is correct given Arbiter's foundry.toml

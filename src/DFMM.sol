@@ -1,4 +1,4 @@
-/// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
 import "solmate/utils/FixedPointMathLib.sol";
@@ -8,8 +8,11 @@ import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
 import "./LPToken.sol";
 
-/// @title DFMM
-/// @notice Dynamic Function Market Maker
+/**
+ * @title DFMM
+ * @author Primitive
+ * @notice Dynamic Function Market Maker
+ */
 contract DFMM is IDFMM {
     using FixedPointMathLib for uint256;
 
@@ -19,8 +22,13 @@ contract DFMM is IDFMM {
     /// @inheritdoc IDFMM
     address public immutable lpTokenImplementation;
 
+    /// @dev Part of the reentrancy lock, 1 = unlocked, 2 = locked.
     uint256 private _locked = 1;
 
+    /// @dev Amount of liquidity that is burnt on initialization.
+    uint256 private constant BURNT_LIQUIDITY = 1000;
+
+    /// @dev Prevents reentrancy.
     modifier lock() {
         if (_locked == 2) revert Locked();
         _locked = 2;
@@ -28,33 +36,14 @@ contract DFMM is IDFMM {
         _locked = 1;
     }
 
+    /**
+     * @dev The implementation of the LPToken contract is also
+     * deployed at the same time. It'll be used later to deploy
+     * new LPTokens using the [clone factory pattern](https://eips.ethereum.org/EIPS/eip-1167).
+     */
     constructor() {
         lpTokenImplementation = address(new LPToken());
         LPToken(lpTokenImplementation).initialize("", "");
-    }
-
-    function multicall(bytes[] memory data) external returns (bytes[] memory) {
-        bytes[] memory results = new bytes[](data.length);
-
-        for (uint256 i = 0; i == data.length;) {
-            (bool success, bytes memory result) =
-                address(this).delegatecall(data[i]);
-
-            if (!success) {
-                if (result.length == 0) revert();
-                assembly {
-                    revert(add(32, result), mload(result))
-                }
-            }
-
-            results[i] = result;
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        return results;
     }
 
     /// @inheritdoc IDFMM
@@ -71,18 +60,22 @@ contract DFMM is IDFMM {
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity
-        ) = IStrategy(params.strategy).init(pools.length, params.data);
+        ) = IStrategy(params.strategy).init(
+            msg.sender, pools.length, params.data
+        );
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
+
+        // TODO: Add name / symbol
         liquidityToken.initialize("", "");
-        liquidityToken.mint(msg.sender, totalLiquidity);
+        liquidityToken.mint(msg.sender, totalLiquidity - BURNT_LIQUIDITY);
+        liquidityToken.mint(address(0), BURNT_LIQUIDITY);
 
         Pool memory pool = Pool({
-            controller: msg.sender,
             strategy: params.strategy,
             tokenX: params.tokenX,
             tokenY: params.tokenY,
@@ -169,7 +162,9 @@ contract DFMM is IDFMM {
             uint256 adjustedReserveX,
             uint256 adjustedReserveY,
             uint256 adjustedTotalLiquidity
-        ) = IStrategy(pools[poolId].strategy).validateSwap(poolId, data);
+        ) = IStrategy(pools[poolId].strategy).validateSwap(
+            msg.sender, poolId, data
+        );
 
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
@@ -187,16 +182,7 @@ contract DFMM is IDFMM {
 
     /// @inheritdoc IDFMM
     function update(uint256 poolId, bytes calldata data) external lock {
-        if (msg.sender != pools[poolId].controller) revert NotController();
-        IStrategy(pools[poolId].strategy).update(poolId, data);
-    }
-
-    function updateController(
-        uint256 poolId,
-        address newController
-    ) external lock {
-        if (msg.sender != pools[poolId].controller) revert NotController();
-        pools[poolId].controller = newController;
+        IStrategy(pools[poolId].strategy).update(msg.sender, poolId, data);
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.
@@ -220,19 +206,18 @@ contract DFMM is IDFMM {
         isSwapXForY = adjustedReserveX > originalReserveX;
 
         if (isSwapXForY) {
-            require(originalReserveY > adjustedReserveY, "invalid swap");
+            if (adjustedReserveY >= originalReserveY) revert InvalidSwap();
+            inputToken = pools[poolId].tokenX;
+            outputToken = pools[poolId].tokenY;
+            inputAmount = adjustedReserveX - originalReserveX;
+            outputAmount = originalReserveY - adjustedReserveY;
         } else {
-            require(originalReserveX > adjustedReserveX, "invalid swap");
+            if (adjustedReserveX >= originalReserveX) revert InvalidSwap();
+            inputToken = pools[poolId].tokenY;
+            outputToken = pools[poolId].tokenX;
+            inputAmount = adjustedReserveY - originalReserveY;
+            outputAmount = originalReserveX - adjustedReserveX;
         }
-
-        inputToken = isSwapXForY ? pools[poolId].tokenX : pools[poolId].tokenY;
-        outputToken = isSwapXForY ? pools[poolId].tokenY : pools[poolId].tokenX;
-        inputAmount = isSwapXForY
-            ? adjustedReserveX - originalReserveX
-            : adjustedReserveY - originalReserveY;
-        outputAmount = isSwapXForY
-            ? originalReserveY - adjustedReserveY
-            : originalReserveX - adjustedReserveX;
 
         // Do the state updates to the reserves before calling untrusted addresses.
         pools[poolId].reserveX = adjustedReserveX;
@@ -265,6 +250,10 @@ contract DFMM is IDFMM {
 
     // Internals
 
+    /**
+     * @dev Validates the adjusted reserves and liquidity and updates the
+     * reserves and liquidity of a pool during an allocation or deallocation.
+     */
     function _updatePoolReserves(
         uint256 poolId,
         bool isAllocate,
@@ -277,7 +266,7 @@ contract DFMM is IDFMM {
             uint256 adjustedReserveY,
             uint256 adjustedTotalLiquidity
         ) = IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
-            poolId, data
+            msg.sender, poolId, data
         );
 
         if (!valid) {
@@ -301,6 +290,9 @@ contract DFMM is IDFMM {
         pools[poolId].totalLiquidity = adjustedTotalLiquidity;
     }
 
+    /**
+     * @dev Mints or burns liquidity tokens.
+     */
     function _manageTokens(
         uint256 poolId,
         bool isAllocate,
@@ -323,8 +315,8 @@ contract DFMM is IDFMM {
 
     /**
      * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
-     *
      * This function uses the create opcode, which should never revert.
+     * This function is taken from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Clones.sol#L23.
      */
     function clone(address implementation)
         internal
@@ -355,14 +347,17 @@ contract DFMM is IDFMM {
 
     // Lens
 
+    /// @notice Returns the amount of initialized pools.
     function nonce() external view returns (uint256) {
         return pools.length;
     }
 
+    /// @notice Returns the pool `poolId` as a Pool struct.
     function getPool(uint256 poolId) external view returns (Pool memory) {
         return pools[poolId];
     }
 
+    /// @notice Returns the reserves and liquidity of pool `poolId`.
     function getReservesAndLiquidity(uint256 poolId)
         external
         view
@@ -376,6 +371,8 @@ contract DFMM is IDFMM {
     }
 
     /**
+     * @notice Returns the amount of liquidity owned by `account` for
+     * the pool `poolId`.
      * @dev This function should NOT be used in a non-view call, as the
      * values can be manipulated. In the future this function might be
      * removed.
