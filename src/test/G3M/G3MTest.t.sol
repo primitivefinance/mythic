@@ -6,9 +6,9 @@ import "forge-std/console2.sol";
 import "solmate/test/utils/mocks/MockERC20.sol";
 
 import "../../strategies/G3M/G3M.sol";
+import "../../solvers/G3M/G3MSolver.sol";
 import "../../DFMM.sol";
 import "../helpers/Lex.sol";
-import "./G3MSolver.sol";
 
 contract G3MTest is Test {
     using stdStorage for StdStorage;
@@ -31,7 +31,7 @@ contract G3MTest is Test {
         lex = new Lex(tokenX, tokenY, ONE);
         dfmm = new DFMM();
         g3m = new G3M(address(dfmm));
-        solver = new G3MSolver(address(dfmm));
+        solver = new G3MSolver(address(g3m));
 
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
         MockERC20(tokenY).approve(address(dfmm), type(uint256).max);
@@ -43,10 +43,11 @@ contract G3MTest is Test {
         G3M.G3MParams memory params = G3M.G3MParams({
             wX: 0.5 ether,
             wY: 0.5 ether,
-            swapFee: TEST_SWAP_FEE
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
         });
         uint256 init_p = ONE;
-        uint256 init_x = ONE;
+        uint256 init_x = 100 ether;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
@@ -59,6 +60,12 @@ contract G3MTest is Test {
 
         dfmm.init(initParams);
         _;
+    }
+
+    function test_g3m_swap() public basic {
+      uint256 amountIn = 10 ether;
+      uint256 poolId = dfmm.nonce() - 1;
+      (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) = solver.simulateSwap(poolId, true, amountIn);
     }
 
     // function test_internal_price() public basic {

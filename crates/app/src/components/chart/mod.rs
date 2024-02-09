@@ -1202,7 +1202,7 @@ impl Chart<ChartMessage> for HistogramChart {
         let max_bin = *self.data.keys().max().unwrap_or(&100);
 
         let min_count = *self.data.values().min().unwrap_or(&0) as f32;
-        let max_count = *self.data.values().max().unwrap_or(&100) as f32;
+        let max_count = *self.data.values().max().unwrap_or(&100) as f32 * 1.1;
 
         // Create the initial chart with the builder using the component's
         // CartesianRanges.
@@ -1233,7 +1233,7 @@ impl Chart<ChartMessage> for HistogramChart {
             })
             .y_label_formatter(&|y| format!("{:.2}x", *y / self.histogram_scalar as f32))
             .y_labels(self.y_labels)
-            .y_desc("Leverage")
+            .y_desc("Density")
             .x_desc("Price")
             .draw()
             .expect("Failed to draw chart mesh");

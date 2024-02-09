@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import "../../interfaces/IDFMM.sol";
-import "../../interfaces/IStrategy.sol";
-import "../../lib/DynamicParamLib.sol";
+import "src/interfaces/IDFMM.sol";
+import "src/interfaces/IStrategy.sol";
+import "src/lib/DynamicParamLib.sol";
 import "./G3MLib.sol";
-import "./G3MHelper.sol";
 
 /**
  * @notice Geometric Mean Market Maker.
@@ -18,6 +17,7 @@ contract G3M is IStrategy {
     struct InternalParams {
         DynamicParam wX;
         uint256 swapFee;
+        address controller;
     }
 
     /// @dev Parameterization of the G3M curve.
@@ -25,12 +25,15 @@ contract G3M is IStrategy {
         uint256 wX;
         uint256 wY;
         uint256 swapFee;
+        address controller;
     }
 
+    /// @inheritdoc IStrategy
     address public immutable dfmm;
 
     mapping(uint256 => InternalParams) public internalParams;
 
+    /// @param dfmm_ Address of the DFMM contract.
     constructor(address dfmm_) {
         dfmm = dfmm_;
     }
@@ -38,14 +41,15 @@ contract G3M is IStrategy {
     // TODO: Move these errors into an interface
     error InvalidWeightX();
 
+    /// @dev Restricts the caller to the DFMM contract.
     modifier onlyDFMM() {
         if (msg.sender != address(dfmm)) revert NotDFMM();
         _;
     }
 
-    /// @dev Decodes and validates pool initialization parameters.
-    /// Sets the `slot` state variable.
+    /// @inheritdoc IStrategy
     function init(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -59,7 +63,7 @@ contract G3M is IStrategy {
             uint256 totalLiquidity
         )
     {
-        (valid, invariant, reserveX, reserveY, totalLiquidity,,) =
+        (valid, invariant, reserveX, reserveY, totalLiquidity,,,) =
             _decodeInit(poolId, data);
     }
 
@@ -75,11 +79,12 @@ contract G3M is IStrategy {
             uint256 reserveY,
             uint256 totalLiquidity,
             uint256 wX,
-            uint256 swapFee
+            uint256 swapFee,
+            address controller
         )
     {
-        (reserveX, reserveY, totalLiquidity, wX, swapFee) =
-            abi.decode(data, (uint256, uint256, uint256, uint256, uint256));
+        (reserveX, reserveY, totalLiquidity, wX, swapFee, controller) = abi
+            .decode(data, (uint256, uint256, uint256, uint256, uint256, address));
 
         if (wX >= ONE) {
             revert InvalidWeightX();
@@ -87,6 +92,7 @@ contract G3M is IStrategy {
 
         internalParams[poolId].wX.lastComputedValue = wX;
         internalParams[poolId].swapFee = swapFee;
+        internalParams[poolId].controller = controller;
 
         invariant = tradingFunction(
             reserveX,
@@ -99,7 +105,9 @@ contract G3M is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
+    /// @inheritdoc IStrategy
     function validateAllocateOrDeallocate(
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -126,8 +134,9 @@ contract G3M is IStrategy {
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
-    /// @dev Reverts if the caller is not a contract with the Core interface.
+    /// @inheritdoc IStrategy
     function validateSwap(
+        address,
         uint256 poolId,
         bytes memory data
     )
@@ -142,8 +151,7 @@ contract G3M is IStrategy {
             uint256 nextL
         )
     {
-        G3MParams memory params =
-            abi.decode(getPoolParams(poolId), (G3MParams));
+        G3MParams memory params = abi.decode(getPoolParams(poolId), (G3MParams));
 
         (uint256 startRx, uint256 startRy, uint256 startL) =
             IDFMM(dfmm).getReservesAndLiquidity(poolId);
@@ -165,22 +173,25 @@ contract G3M is IStrategy {
         } else {
             revert("invalid swap: inputs x and y have the same sign!");
         }
-        
-        uint256 poolId = poolId;
+
         liquidityDelta = int256(nextL)
             - int256(
                 computeNextLiquidity(
-                    startRx,
-                    startRy,
-                    abi.decode(getPoolParams(poolId), (G3MParams))
+                    startRx, startRy, abi.decode(getPoolParams(poolId), (G3MParams))
                 )
             );
+
         invariant = tradingFunction(nextRx, nextRy, nextL, params);
-        bool validSwapConstant = -(EPSILON) < invariant && invariant < EPSILON;
-        valid = validSwapConstant && liquidityDelta >= int256(minLiquidityDelta);
+        valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
-    function update(uint256 poolId, bytes calldata data) external onlyDFMM {
+    /// @inheritdoc IStrategy
+    function update(
+        address sender,
+        uint256 poolId,
+        bytes calldata data
+    ) external onlyDFMM {
+        if (sender != internalParams[poolId].controller) revert InvalidSender();
         G3MUpdateCode updateCode = abi.decode(data, (G3MUpdateCode));
 
         if (updateCode == G3MUpdateCode.SwapFee) {
@@ -189,22 +200,26 @@ contract G3M is IStrategy {
             (uint256 targetWeightX, uint256 targetTimestamp) =
                 decodeWeightXUpdate(data);
             internalParams[poolId].wX.set(targetWeightX, targetTimestamp);
+        } else if (updateCode == G3MUpdateCode.Controller) {
+            internalParams[poolId].controller = decodeControllerUpdate(data);
         } else {
             revert InvalidUpdateCode();
         }
     }
 
+    /// @inheritdoc IStrategy
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
         G3MParams memory params;
 
         params.wX = internalParams[poolId].wX.actualized();
         params.wY = ONE - params.wX;
         params.swapFee = internalParams[poolId].swapFee;
+        params.controller = internalParams[poolId].controller;
 
         return abi.encode(params);
     }
 
-    /// @dev Computes the result of the tradingFunction().
+    /// @inheritdoc IStrategy
     function computeSwapConstant(
         uint256 poolId,
         bytes memory data

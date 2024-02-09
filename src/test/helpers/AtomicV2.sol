@@ -4,7 +4,7 @@ pragma solidity ^0.8.14;
 import "forge-std/console2.sol";
 import "solstat/Gaussian.sol";
 import "solmate/utils/FixedPointMathLib.sol";
-import "../../strategies/LogNormal/BisectionLib.sol";
+import "src/solvers/LogNormal/BisectionLib.sol";
 
 interface LiquidExchange {
     function swap(address token, uint256 amount) external;
@@ -397,7 +397,7 @@ contract AtomicV2 {
     function _payout() internal {
         // Get the Y balance after the swap.
         intermediateTokenYEndBalance = TokenLike(quote).balanceOf(address(this));
-        
+
         if (intermediateTokenYEndBalance < intermediateTokenYStartBalance) {
             emit Loss(
                 intermediateTokenYStartBalance - intermediateTokenYEndBalance
@@ -419,7 +419,6 @@ contract AtomicV2 {
             intermediateTokenYEndBalance - intermediateTokenYStartBalance;
         cumulativeProfit += profit;
         emit Profit(profit);
-        
 
         TokenLike(quote).transfer(msg.sender, intermediateTokenYEndBalance);
     }

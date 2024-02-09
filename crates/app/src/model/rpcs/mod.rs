@@ -14,6 +14,16 @@ pub struct RPCValue {
     pub url: String,
 }
 
+impl Default for RPCValue {
+    fn default() -> Self {
+        Self {
+            chain_id: 1,
+            name: "Flashbots".to_string(),
+            url: "rpc.flashbots.net".to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct RPCList {
     pub chains: HashMap<String, RPCValue>,

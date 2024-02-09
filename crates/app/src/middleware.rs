@@ -207,11 +207,18 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         let chain_id = provider.get_chainid().await?.as_u64();
         let signer = signer.with_chain_id(chain_id);
 
-        self.client = Some(Arc::new(
+        let signer_client = Arc::new(
             provider
-                .interval(std::time::Duration::from_millis(100))
+                .interval(std::time::Duration::from_millis(10))
                 .with_signer(signer),
-        ));
+        );
+        self.client = Some(signer_client.clone());
+
+        // Override the dfmm_client if it exists with the new signer.
+        if let Some(dfmm_client) = self.dfmm_client.as_ref() {
+            self.dfmm_client = Some(dfmm_client.clone().connect(signer_client.clone())?);
+        }
+
         Ok(())
     }
 
@@ -222,7 +229,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         let client = Arc::new(
             Provider::<Ws>::connect(&anvil.ws_endpoint())
                 .await?
-                .interval(std::time::Duration::from_millis(100))
+                .interval(std::time::Duration::from_millis(10))
                 .with_signer(signer.clone().with_chain_id(anvil.chain_id())),
         );
 

@@ -1,9 +1,24 @@
-/// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import "solmate/tokens/ERC20.sol";
-
+/**
+ * @title DFMM Liquidity Token
+ * @author Primitive
+ * @dev This ERC20 token is built on top of Solmate implementation
+ * ([see here](https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol)).
+ * This contract extends it by adding restricted `mint` / `burn` functions
+ * and replaces the constructor by an `initialize` function as needed
+ * by the clone factory pattern.
+ */
 contract LPToken {
+    /*//////////////////////////////////////////////////////////////
+                                 ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error NotDFMM();
+
+    error AlreadyInitialized();
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -52,12 +67,12 @@ contract LPToken {
     bool public initialized;
 
     modifier onlyDFMM() {
-        require(msg.sender == dfmm, "Only DFMM");
+        if (msg.sender != dfmm) revert NotDFMM();
         _;
     }
 
     modifier onlyNotInitialized() {
-        require(initialized == false, "Already initialized");
+        if (initialized) revert AlreadyInitialized();
         _;
     }
 
