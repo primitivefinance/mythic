@@ -25,7 +25,7 @@ contract G3MTest is Test {
     function setUp() public {
         tokenX = address(new MockERC20("tokenX", "X", 18));
         tokenY = address(new MockERC20("tokenY", "Y", 18));
-        MockERC20(tokenX).mint(address(this), 100e18);
+        MockERC20(tokenX).mint(address(this), 100_000_000e18);
         MockERC20(tokenY).mint(address(this), 100_000_000e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
@@ -84,9 +84,10 @@ contract G3MTest is Test {
     }
 
     function test_g3m_swap() public basic {
-      uint256 amountIn = 10 ether;
-      uint256 poolId = dfmm.nonce() - 1;
-      (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) = solver.simulateSwap(poolId, true, amountIn);
+        uint256 amountIn = 10 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) =
+            solver.simulateSwap(poolId, true, amountIn);
     }
 
     // function test_internal_price() public basic {
