@@ -3,11 +3,17 @@
 
 use std::collections::HashMap;
 
+use iced::Padding;
+
+use self::{
+    system::{ExcaliburContainer, ExcaliburInputBuilder, ExcaliburTable},
+    tables::cells::CellBuilder,
+};
 use super::*;
 use crate::{
     components::{
-        system::{label, Card, ExcaliburButton},
-        tables::{builder::TableBuilder, cells, columns::ColumnBuilder, rows::RowBuilder},
+        system::{label, ExcaliburButton},
+        tables::builder::TableBuilder,
     },
     model::rpcs::{RPCList, RPCValue},
 };
@@ -70,7 +76,12 @@ pub struct RpcManagement {
 }
 
 impl RpcManagement {
-    pub fn new(storage: RPCList) -> Self {
+    pub fn new(mut storage: RPCList) -> Self {
+        if storage.chains.get("flashbot").is_none() {
+            storage
+                .chains
+                .insert("flashbot".to_owned(), RPCValue::default());
+        }
         Self {
             storage,
             chain_packet: None,
@@ -112,7 +123,7 @@ impl RpcManagement {
     #[allow(dead_code)]
     pub fn view_rpcs(&self) -> Element<'_, Message> {
         let mut content = Column::new();
-
+        tracing::debug!("Chain packet: {:?}", self.storage.list());
         // List all the rpcs from the RPC storage
         for chain_packet in self.storage.list() {
             let mut row = Row::new().spacing(Sizes::Md);
@@ -138,44 +149,85 @@ impl RpcManagement {
             .collect::<Vec<RPCValue>>();
         let selected_rpcs = self.selected_rpcs.clone();
 
-        let table = TableBuilder::new().padding_cell(Sizes::Md).column(
-            ColumnBuilder::new()
-                .headers(vec![
-                    "Name".to_string(),
-                    "Chain ID".to_string(),
-                    "URL".to_string(),
-                    "Select".to_string(),
-                ])
-                .rows(
-                    rpcs.into_iter()
-                        .map(|chain_packet| {
-                            RowBuilder::new()
-                                .cell(
-                                    cells::CellBuilder::new()
-                                        .value(Some(chain_packet.name.clone())),
-                                )
-                                .cell(
-                                    cells::CellBuilder::new()
-                                        .value(Some(chain_packet.chain_id.to_string())),
-                                )
-                                .cell(
-                                    cells::CellBuilder::new().value(Some(chain_packet.url.clone())),
-                                )
-                                .cell(
-                                    cells::CellBuilder::new()
-                                        .checked(
-                                            selected_rpcs.get(&chain_packet.name.clone()).cloned(),
-                                        )
-                                        .on_checkbox(move |x| {
-                                            Message::SelectedRPC(x, Some(chain_packet.name.clone()))
-                                        }),
-                                )
-                        })
-                        .collect::<Vec<RowBuilder<Message>>>(),
-                ),
-        );
+        // let table = TableBuilder::new().padding_cell(Sizes::Md).column(
+        // ColumnBuilder::new()
+        // .headers(vec![
+        // "Name".to_string(),
+        // "Chain ID".to_string(),
+        // "URL".to_string(),
+        // "Select".to_string(),
+        // ])
+        // .rows(
+        // rpcs.into_iter()
+        // .map(|chain_packet| {
+        // RowBuilder::new()
+        // .cell(
+        // cells::CellBuilder::new()
+        // .value(Some(chain_packet.name.clone())),
+        // )
+        // .cell(
+        // cells::CellBuilder::new()
+        // .value(Some(chain_packet.chain_id.to_string())),
+        // )
+        // .cell(
+        // cells::CellBuilder::new().value(Some(chain_packet.url.clone())),
+        // )
+        // .cell(
+        // cells::CellBuilder::new()
+        // .checked(
+        // selected_rpcs.get(&chain_packet.name.clone()).cloned(),
+        // )
+        // .on_checkbox(move |x| {
+        // Message::SelectedRPC(x, Some(chain_packet.name.clone()))
+        // }),
+        // )
+        // })
+        // .collect::<Vec<RowBuilder<Message>>>(),
+        // ),
+        // );
 
-        table
+        let mut cells: Vec<Vec<CellBuilder<Message>>> = Vec::new();
+
+        for rpc in rpcs {
+            cells.push(vec![
+                CellBuilder::new().child(label(&rpc.name.clone()).secondary().build()),
+                CellBuilder::new().child(label(&rpc.chain_id.to_string()).secondary().build()),
+                CellBuilder::new().child(label(&rpc.url.clone()).secondary().build()),
+                CellBuilder::new()
+                    .checked(selected_rpcs.get(&rpc.name.clone()).cloned())
+                    .on_checkbox(move |x| Message::SelectedRPC(x, Some(rpc.name.clone()))),
+            ]);
+        }
+
+        ExcaliburTable::new()
+            .headers(vec![
+                "Name".to_string(),
+                "Chain ID".to_string(),
+                "URL".to_string(),
+                "Select".to_string(),
+            ])
+            .build_custom(cells)
+    }
+
+    pub fn form_item<'a, Message>(
+        title: impl ToString,
+        content: impl Into<Element<'a, Message>>,
+    ) -> Container<'a, Message>
+    where
+        Message: 'a + Default,
+    {
+        ExcaliburContainer::default().transparent().build(
+            Column::new()
+                .spacing(Sizes::Md)
+                .push(label(title).secondary().build())
+                .push(
+                    ExcaliburContainer::default()
+                        .round(Sizes::Sm)
+                        .middle_top()
+                        .light_border()
+                        .build(content),
+                ),
+        )
     }
 }
 
@@ -226,6 +278,11 @@ impl State for RpcManagement {
             }
             Message::Submit => {
                 tracing::debug!("Submitting RPC");
+                let mut storage = self.storage.clone();
+                if let Ok(chain_packet) = self.get_chain_packet() {
+                    let chain_packet_name = chain_packet.name.clone();
+                    storage.chains.insert(chain_packet_name, chain_packet);
+                }
                 self.reset();
             }
             Message::Delete => {
@@ -284,38 +341,77 @@ impl State for RpcManagement {
             .spacing(Sizes::Md)
             .push(label("Manage RPC Settings").title2().build())
             .push(actions)
-            .push(Card::build_container(self.rpc_table().build()).padding(Sizes::Sm));
+            .push(
+                ExcaliburContainer::default()
+                    .light_border()
+                    .build(self.rpc_table().build()),
+            );
 
         let mut lower_half = Column::new().spacing(Sizes::Md);
 
         if let Some(chain_packet) = &self.chain_packet {
-            let labeled_name_input = labeled_input(
-                "Name".to_string(),
-                chain_packet.name.clone(),
-                "Choose a label".to_string(),
-                Message::ChangeName,
+            let labeled_name_input = RpcManagement::form_item(
+                "Name",
+                Column::new().push(
+                    ExcaliburInputBuilder::new()
+                        .light_border()
+                        .border_radius(5.0.into())
+                        .placeholder("Choose a label".to_string())
+                        .width(Length::Fill)
+                        .padding(Padding {
+                            top: Sizes::Sm.into(),
+                            bottom: Sizes::Sm.into(),
+                            left: Sizes::Md.into(),
+                            right: Sizes::Md.into(),
+                        })
+                        .size(system::Typography::Headline)
+                        .build(chain_packet.name.clone(), Message::ChangeName),
+                ),
+            );
+            let labeled_chain_id_input = RpcManagement::form_item(
+                "Chain ID",
+                Column::new().push(
+                    ExcaliburInputBuilder::new()
+                        .light_border()
+                        .border_radius(5.0.into())
+                        .placeholder("Choose a chain id".to_string())
+                        .width(Length::Fill)
+                        .padding(Padding {
+                            top: Sizes::Sm.into(),
+                            bottom: Sizes::Sm.into(),
+                            left: Sizes::Md.into(),
+                            right: Sizes::Md.into(),
+                        })
+                        .size(system::Typography::Headline)
+                        .build(chain_packet.chain_id.clone(), Message::ChangeChainId),
+                ),
             );
 
-            let labeled_chain_id_input = labeled_input(
-                "Chain ID".to_string(),
-                chain_packet.chain_id.clone(),
-                "Choose a chain id".to_string(),
-                Message::ChangeChainId,
-            );
-
-            let labeled_url_input = labeled_input(
-                "URL".to_string(),
-                chain_packet.url.clone(),
-                "Choose a url".to_string(),
-                Message::ChangeUrl,
+            let labeled_url_input = RpcManagement::form_item(
+                "URL",
+                Column::new().push(
+                    ExcaliburInputBuilder::new()
+                        .light_border()
+                        .border_radius(5.0.into())
+                        .placeholder("Choose a url".to_string())
+                        .width(Length::Fill)
+                        .padding(Padding {
+                            top: Sizes::Sm.into(),
+                            bottom: Sizes::Sm.into(),
+                            left: Sizes::Md.into(),
+                            right: Sizes::Md.into(),
+                        })
+                        .size(system::Typography::Headline)
+                        .build(chain_packet.url.clone(), Message::ChangeUrl),
+                ),
             );
 
             let submit_button = ExcaliburButton::new()
                 .primary()
+                .border_radius(5.0.into())
                 .build(label("Add RPC to list").build())
                 .on_press(Message::Submit)
-                .width(Length::Fill)
-                .padding(Sizes::Md);
+                .padding(Sizes::Sm);
 
             let row_1 = Row::new()
                 .spacing(Sizes::Sm)
@@ -328,7 +424,7 @@ impl State for RpcManagement {
                 .push(
                     Column::new()
                         .spacing(Sizes::Md)
-                        .push(label("Instructions").build())
+                        .push(label("Submit").secondary().build())
                         .push(submit_button)
                         .width(Length::FillPortion(2)),
                 );

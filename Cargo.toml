@@ -9,7 +9,7 @@ name = "excalibur"
 path = "bin/main.rs"
 
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "documentation"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -121,11 +121,6 @@ mdbook-katex = "0.5.8"
 version = "1"
 default-features = false
 features = ["user-hooks"]
-
-[[bench]]
-name = "ui_benchmark"
-harness = false
-path = "benches/ui_benchmarks.rs"
 
 [package.metadata.bundle]
 name = "Excalibur"

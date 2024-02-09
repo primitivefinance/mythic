@@ -1,10 +1,9 @@
-use std::env;
-
 use chrono::Utc;
-use datatypes::portfolio::position::{PositionLayer, Positions};
+use datatypes::portfolio::position::{Position, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
+use self::{create::LiquidityChoices, logos::lp_logo};
 use super::{inventory::Inventory, *};
 use crate::{
     components::{
@@ -19,6 +18,7 @@ use crate::{
 pub struct MonolithicPresenter {
     model: Model,
     pub historical_txs: Vec<HistoricalTx>,
+    pub liquidity_choices: Vec<LiquidityChoices>,
     pub cached_strategy_preview: ExcaliburChart,
     pub cached_strategy_histogram: ExcaliburHistogram,
 }
@@ -39,56 +39,124 @@ impl MonolithicPresenter {
 
     pub fn sync_strategy_preview(
         &mut self,
+        current_price: f64,
         strike_price: f64,
         volatility: f64,
         time_remaining: f64,
     ) {
-        let strategy_preview = self.model.portfolio.derive_computed_strategy_plot(
-            strike_price,
-            volatility,
-            time_remaining,
-        );
-        let strategy_preview = match strategy_preview {
-            Ok(data) => data,
-            Err(_) => vec![],
-        };
+        if let Some(connected_model) = self.model.get_current() {
+            let strategy_preview = connected_model.derive_computed_strategy_plot(
+                strike_price,
+                volatility,
+                time_remaining,
+            );
+            let strategy_preview = match strategy_preview {
+                Ok(data) => data,
+                Err(_) => vec![],
+            };
 
-        let liq_dist = strategy_preview[1].clone();
-        let price_curve = strategy_preview[2].clone();
+            let liq_dist = strategy_preview[1].clone();
+            let price_curve = strategy_preview[2].clone();
 
-        // Completely override chart state and start from a fresh context.
-        // This will make the chart "snap" to the new curve by updating its
-        let mut new_preview = ExcaliburChart::new()
-            .x_range(liq_dist.0.x_range)
-            .y_range(liq_dist.0.y_range);
-        new_preview.override_series(vec![liq_dist.1.clone(), price_curve.1]);
-        new_preview.override_ranges_flag(true);
+            // Completely override chart state and start from a fresh context.
+            // This will make the chart "snap" to the new curve by updating its
+            let mut new_preview = ExcaliburChart::new()
+                .x_range(liq_dist.0.x_range)
+                .y_range(liq_dist.0.y_range);
+            new_preview.override_series(vec![liq_dist.1.clone(), price_curve.1]);
+            new_preview.override_ranges_flag(true);
 
-        self.cached_strategy_preview = new_preview;
+            self.cached_strategy_preview = new_preview;
 
-        // histogram
-        let histogram_data = self
-            .model
-            .portfolio
-            .derive_liquidity_histogram(strike_price, volatility, time_remaining)
-            .expect("Failed to derive histogram data.");
+            // histogram
+            let histogram_data = connected_model
+                .derive_liquidity_histogram(current_price, strike_price, volatility, time_remaining)
+                .expect("Failed to derive histogram data.");
 
-        let x_range = (0.0, histogram_data.max_bin as f32);
-        let y_range = (0.0, histogram_data.max_count as f32);
+            let x_range = (0.0, histogram_data.max_bin as f32);
+            let y_range = (0.0, histogram_data.max_count as f32);
 
-        self.cached_strategy_histogram = ExcaliburHistogram::new()
-            .override_data(histogram_data.data)
-            .x_range(x_range)
-            .y_range(y_range)
-            .notable_bars(histogram_data.notable_bars);
+            self.cached_strategy_histogram = ExcaliburHistogram::new()
+                .override_data(histogram_data.data)
+                .x_range(x_range)
+                .y_range(y_range)
+                .notable_bars(histogram_data.notable_bars);
+
+            tracing::info!("Updated strategy preview.");
+        }
+    }
+
+    pub fn get_liquidity_choices(&self) -> Vec<LiquidityChoices> {
+        if self.model.get_current().is_none() {
+            return vec![];
+        }
+
+        let connected_model = self.model.get_current().unwrap();
+        let current_price = connected_model.get_current_price().unwrap_or_default();
+        let current_price = format_and_parse(current_price).unwrap();
+
+        // For each liquidity type, derive the liquidity distribution to determine the
+        // effective price range.
+        let liquidity_types = LiquidityTypes::all();
+
+        let mut choices = vec![];
+        for liquidity_type in liquidity_types.iter() {
+            let params = liquidity_type.to_parameters(current_price);
+            let (strike_price, volatility, time_remaining) = (
+                params.strike_price_wad,
+                params.sigma_percent_wad,
+                params.time_remaining_years_wad,
+            );
+
+            // histogram
+            let histogram_data = connected_model
+                .derive_liquidity_histogram(current_price, strike_price, volatility, time_remaining)
+                .expect("Failed to derive histogram data.");
+
+            // Find the price range by filtering out all bin values in the histogram_data
+            // that are < 1.
+            let price_range = histogram_data
+                .data
+                .iter()
+                .filter(|x| *x.1 > 1)
+                .map(|x| *x.0 as f32 / 100.0)
+                .collect::<Vec<f32>>();
+
+            let price_range = if price_range.is_empty() {
+                (0.0, 0.0)
+            } else {
+                (
+                    price_range[0] as f64,
+                    price_range[price_range.len() - 1] as f64,
+                )
+            };
+
+            choices.push(LiquidityChoices {
+                liquidity_type: *liquidity_type,
+                last_price: current_price,
+                price_range,
+            });
+        }
+
+        // Price ranges begin or end where the bin count is > or < 1.
+
+        choices
     }
 
     pub fn cache_historical_txs(&mut self, txs: Vec<HistoricalTx>) {
         self.historical_txs = txs;
     }
 
+    pub fn cache_liquidity_choices(&mut self, choices: Vec<LiquidityChoices>) {
+        self.liquidity_choices = choices;
+    }
+
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
+        if self.model.get_current().is_none() {
+            return label("Timestamp: N/A").caption().tertiary();
+        }
+
+        let data = self.model.get_current().unwrap().last_sync;
         match data {
             Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
             None => label("Timestamp: N/A").caption().tertiary(),
@@ -96,74 +164,69 @@ impl MonolithicPresenter {
     }
 
     pub fn get_aum(&self) -> String {
-        let aum = self.model.portfolio.derive_total_aum();
+        if self.model.get_current().is_none() {
+            return "N/A Network".to_string();
+        }
+        let pool_id = 0; // todo: fix
+
+        let aum = self.model.get_current().unwrap().derive_total_aum(pool_id);
         match aum {
             Ok(data) => alloy_primitives::utils::format_ether(data),
-            Err(_) => "N/A".to_string(),
+            Err(_) => "N/A Value".to_string(),
         }
     }
 
-    // todo: position fetching and stuff from portfolio is not clean
-    pub fn get_positions(&self) -> (Positions, Vec<svg::Handle>) {
-        let portfolio = self.model.user.portfolio.clone();
-        let position_x = portfolio
+    pub fn get_allocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
+        // Filter the positions to the liquidity_token addresses in the model's
+        // liquidity token mapping.
+        let liquidity_tokens = self
+            .model
+            .get_current()
+            .unwrap()
+            .liquidity_token_addresses
             .clone()
+            .unwrap_or_default();
+
+        let allocated_positions_vec: Vec<Position> = self
+            .model
+            .user
+            .portfolio
             .positions
             .0
             .iter()
-            .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
-            .find(|x| x.asset.symbol == "X")
+            .filter(|x| liquidity_tokens.contains(&x.asset.address))
             .cloned()
-            .unwrap_or_default();
-
-        let position_y = portfolio
-            .clone()
-            .positions
-            .0
+            .collect::<Vec<Position>>();
+        let logos_vec: Vec<svg::Handle> = allocated_positions_vec
             .iter()
-            .filter(|x| x.layer >= Some(PositionLayer::Liquidity))
-            .find(|x| x.asset.symbol == "Y")
-            .cloned()
-            .unwrap_or_default();
-
-        // todo: get in a better way...
-        let logos = vec![ether_logo(), usdc_logo()];
-
-        (vec![position_x, position_y].into(), logos)
+            .map(|_: &Position| lp_logo())
+            .collect();
+        (allocated_positions_vec.into(), logos_vec)
     }
 
-    pub fn get_unallocated_positions(&self) -> (Positions, Vec<String>) {
-        let portfolio = self.model.user.portfolio.clone();
-        let position_x = portfolio
-            .clone()
-            .positions
-            .0
+    pub fn get_unallocated_positions(&self) -> (Positions, Vec<svg::Handle>) {
+        let mut unallocated_positions = vec![];
+        for position in self.model.user.portfolio.positions.0.iter() {
+            let logo = if position.asset.tags.contains(&"ether".to_string()) {
+                ether_logo()
+            } else if position.asset.tags.contains(&"stablecoin".to_string()) {
+                usdc_logo()
+            } else {
+                continue;
+            };
+            unallocated_positions.push((position.clone(), logo));
+        }
+
+        let unallocated_positions_vec: Vec<Position> = unallocated_positions
             .iter()
-            .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
-            .find(|x| x.asset.symbol == "X")
-            .cloned()
-            .unwrap_or_default();
-
-        let position_y = portfolio
-            .clone()
-            .positions
-            .0
+            .map(|(position, _logo)| position.clone())
+            .collect();
+        let logos_vec: Vec<svg::Handle> = unallocated_positions
             .iter()
-            .filter(|x| x.layer.is_none() || x.layer == Some(PositionLayer::RawBalance))
-            .find(|x| x.asset.symbol == "Y")
-            .cloned()
-            .unwrap_or_default();
+            .map(|(_position, logo)| logo.clone())
+            .collect();
 
-        let current_dir = env::current_dir().unwrap();
-        let ether_logo_path = current_dir.clone().join("assets/logos/ether_logo.png");
-        let usdc_logo_path = current_dir.clone().join("assets/logos/usdc_logo.png");
-
-        let logos = vec![
-            ether_logo_path.to_str().unwrap().to_string(),
-            usdc_logo_path.to_str().unwrap().to_string(),
-        ];
-
-        (vec![position_x, position_y].into(), logos)
+        (unallocated_positions_vec.into(), logos_vec)
     }
 
     pub fn get_metrics(
@@ -180,20 +243,50 @@ impl MonolithicPresenter {
             .find(|x| x.asset.address == address)
             .cloned();
 
-        if let Some(position) = position {
-            let external_price = match position.asset.symbol.as_str() {
-                "X" => self.model.portfolio.raw_external_spot_price.to_label(),
-                "Y" => self.model.portfolio.raw_external_quote_price.to_label(),
-                _ => label("n/a").title3().quantitative(),
+        if let (Some(position), Some(connected_model)) = (position, self.model.get_current()) {
+            let pool_id = 0; // todo: get pool id from position
+            let is_lp = position.asset.tags.contains(&"lp".to_string());
+            let is_stablecoin = if !is_lp {
+                position.asset.tags.contains(&"stablecoin".to_string())
+            } else {
+                false
+            };
+            let is_ether = if !is_lp {
+                position.asset.tags.contains(&"ether".to_string())
+            } else {
+                false
             };
 
-            let aum = self
-                .model
-                .portfolio
-                .derive_internal_portfolio_value()
+            // If lp, external price is the
+
+            let external_price = match is_lp {
+                true => {
+                    let lp_token_price = connected_model
+                        .derive_lp_token_price_series(pool_id)
+                        .unwrap_or_default();
+                    let lp_token_price = lp_token_price
+                        .last()
+                        .unwrap_or(&(0, alloy_primitives::utils::parse_ether("0.0").unwrap()))
+                        .1;
+
+                    Ok(lp_token_price).to_label()
+                }
+                false => match is_stablecoin {
+                    true => Ok(ALLOY_WAD).to_label(),
+                    false => match is_ether {
+                        true => connected_model
+                            .price_of_token(position.asset.address)
+                            .to_label(),
+                        false => label("n/a").title3().secondary(),
+                    },
+                },
+            };
+
+            let aum = connected_model
+                .derive_external_portfolio_value(pool_id)
                 .to_label();
 
-            let health = self.model.portfolio.derive_portfolio_health();
+            let health = connected_model.derive_portfolio_health();
             let health = match health {
                 Ok(data) => {
                     let value = alloy_primitives::utils::format_ether(data);
@@ -222,9 +315,14 @@ impl MonolithicPresenter {
     }
 
     pub fn get_historical_txs(&self) -> Vec<HistoricalTx> {
+        if self.model.get_current().is_none() {
+            return vec![];
+        }
+
         self.model
-            .portfolio
-            .raw_user_historical_transactions
+            .get_current()
+            .unwrap()
+            .user_history
             .clone()
             .unwrap_or_default()
     }
@@ -240,7 +338,8 @@ impl MonolithicView {
         aum: impl ToString,
         unallocated_positions: Positions,
         allocated_positions: Positions,
-        logos: Vec<svg::Handle>,
+        unallocated_logos: Vec<svg::Handle>,
+        allocated_logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
     ) -> Container<'a, Message>
@@ -255,7 +354,8 @@ impl MonolithicView {
                         aum,
                         unallocated_positions,
                         allocated_positions,
-                        logos,
+                        unallocated_logos,
+                        allocated_logos,
                         on_allocate,
                         on_select_position,
                     ))

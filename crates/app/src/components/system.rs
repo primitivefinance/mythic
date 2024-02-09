@@ -494,6 +494,16 @@ impl ExcaliburText {
         }
     }
 
+    pub fn usd(self) -> Self {
+        let value = format!("{} USD", self.value);
+        Self { value, ..self }
+    }
+
+    pub fn usd_symbol(self) -> Self {
+        let value = format!("${}", self.value);
+        Self { value, ..self }
+    }
+
     pub fn style(mut self, color: iced::Color) -> Self {
         self.color = ExcaliburColor::Custom(color);
         self
@@ -767,6 +777,7 @@ impl<Message> From<ExcaliburText> for Element<'_, Message> {
 }
 
 /// For constructing Excalibur containers.
+#[allow(dead_code)]
 pub fn panel() -> ExcaliburContainer {
     ExcaliburContainer::default()
 }
@@ -939,7 +950,7 @@ impl ExcaliburContainer {
     }
 
     // Presets
-
+    #[allow(dead_code)]
     pub fn card(mut self) -> Self {
         self.background = ExcaliburColor::Card;
         self.border_radius = Sizes::Sm.into();
@@ -1055,6 +1066,7 @@ impl ExcaliburButton {
             .text_color(color)
             .border_radius(border_radius)
             .disabled()
+            .background_color(ExcaliburColor::Custom(Color::from_rgba(0.8, 0.2, 0.2, 0.1)).into())
             .text_color(disabled_color)
             .border_radius(border_radius);
         Self { style }
@@ -1217,9 +1229,11 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
 }
 
 /// Simple template for a Card built from the Excalibur components.
+#[allow(dead_code)]
 pub struct Card;
 
 impl Card {
+    #[allow(dead_code)]
     pub fn build_container<'a, Message>(
         element: impl Into<Element<'a, Message>>,
     ) -> Container<'a, Message>

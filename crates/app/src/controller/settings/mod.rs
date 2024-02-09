@@ -33,12 +33,14 @@ impl MessageWrapperView for Message {
     type ParentMessage = RootViewMessage;
 }
 
+// normal message which are not clone
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
-    fn from(_message: Message) -> Self {
-        Self::Empty
+    fn from(message: Message) -> Self {
+        Self::View(view::Message::Settings(message))
     }
 }
 
+// for view messages which are clone
 impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Settings(message)
@@ -74,24 +76,17 @@ impl SettingsScreen {
     pub fn pages(&self) -> Vec<NavigationStep<RootViewMessage>> {
         vec![
             NavigationStep::new(
-                Icon::Clock,
-                "rpc",
+                Icon::Lightning,
+                "RPC",
                 Message::Route(Pages::Rpc).into(),
                 self.active == Pages::Rpc,
                 false,
             ),
             NavigationStep::new(
-                Icon::Clock,
-                "signers",
+                Icon::Wallet,
+                "Wallets",
                 Message::Route(Pages::Signers).into(),
                 self.active == Pages::Signers,
-                false,
-            ),
-            NavigationStep::new(
-                Icon::Clock,
-                "contacts",
-                Message::Route(Pages::Contacts).into(),
-                self.active == Pages::Contacts,
                 false,
             ),
         ]
@@ -180,6 +175,7 @@ impl State for SettingsScreen {
                     .signers
                     .update(message)
                     .map(|x| Message::Signers(x).into()),
+
                 Message::Contacts(message) => self
                     .contacts
                     .update(message)
@@ -193,16 +189,12 @@ impl State for SettingsScreen {
     }
 
     fn view(&self) -> Element<'_, RootViewMessage> {
-        let nav = navigation_steps("All", self.pages()).width(Length::FillPortion(1));
+        let nav = navigation_steps("All Settings", self.pages()).width(Length::FillPortion(1));
         let mut content = Row::new().push(nav);
 
         let nav_content = match self.active {
             Pages::Rpc => self.rpc.view().map(move |x| Message::Rpc(x).into()),
             Pages::Signers => self.signers.view().map(move |x| Message::Signers(x).into()),
-            Pages::Contacts => self
-                .contacts
-                .view()
-                .map(move |x| Message::Contacts(x).into()),
             _ => Column::new().into(),
         };
 
@@ -214,6 +206,7 @@ impl State for SettingsScreen {
 
         Container::new(content)
             .center_x()
+            .padding(Sizes::Lg)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()

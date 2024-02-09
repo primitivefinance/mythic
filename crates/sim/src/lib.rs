@@ -8,7 +8,7 @@ pub mod settings;
 use std::{any::Any, path::Path};
 
 use ::config::ConfigError;
-use anyhow::{Error, Result};
+use anyhow::{bail, Error, Result};
 use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
 use ethers::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,10 @@ use settings::{
     Parameterized, SimulationConfig,
 };
 use thiserror::Error;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, trace, warn};
+
+pub const WAD: U256 = U256([1_000_000_000_000_000_000, 0, 0, 0]);
+pub const MAX: U256 = U256::MAX;
 
 pub fn import(config_path: &str) -> Result<SimulationConfig<Multiple>, ConfigError> {
     let cwd = std::env::current_dir().unwrap();
@@ -59,6 +62,13 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
     Ok(())
 }
 
+#[derive(Debug, Clone)]
+enum Swap {
+    RaiseExchangePrice(U256),
+    LowerExchangePrice(U256),
+    None,
+}
+
 #[derive(Clone, Error, Debug, Serialize, Deserialize)]
 pub enum SimulationError {
     #[error("Generic error: {0}")]
@@ -71,6 +81,12 @@ impl From<anyhow::Error> for SimulationError {
     fn from(error: anyhow::Error) -> Self {
         SimulationError::GenericError(error.to_string())
     }
+}
+
+fn parse_ether_to_f64(ether: ethers::types::U256) -> Result<f64> {
+    ethers::utils::format_ether(ether)
+        .parse::<f64>()
+        .map_err(|e| e.into())
 }
 
 pub fn to_ethers_address(address: alloy_primitives::Address) -> ethers::types::Address {

@@ -1,239 +1,390 @@
-/// SPDX-LICENSE-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
-import "./strategies/G3M.sol";
-import "./strategies/LogNormal.sol";
+import "solmate/utils/FixedPointMathLib.sol";
+import "solmate/utils/SafeTransferLib.sol";
+import "solstat/Units.sol";
+import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
-import "./interfaces/ICore.sol";
-import "solmate/tokens/ERC20.sol";
+import "./LPToken.sol";
 
-/// @title DFMM
-/// @notice Dynamic Function Market Maker
-contract DFMM is ICore {
+/**
+ * @title DFMM
+ * @author Primitive
+ * @notice Dynamic Function Market Maker
+ */
+contract DFMM is IDFMM {
     using FixedPointMathLib for uint256;
-    using FixedPointMathLib for int256;
 
-    address public strategy;
-    bool public inited;
-    uint256 public locked = 1;
-    address public tokenX;
-    address public tokenY;
-    uint256 public reserveXWad;
-    uint256 public reserveYWad;
-    uint256 public totalLiquidity;
+    /// @inheritdoc IDFMM
+    Pool[] public pools;
 
-    uint256 public feeGrowth;
+    /// @inheritdoc IDFMM
+    address public immutable lpTokenImplementation;
 
-    mapping(address account => uint256 balance) public balanceOf;
-    mapping(address account => uint256 balance) public feeGrowthLast;
+    /// @dev Part of the reentrancy lock, 1 = unlocked, 2 = locked.
+    uint256 private _locked = 1;
 
-    constructor(
-        bool isLogNormal, // temp way to handle either lognorm or g3m
-        address tokenX_,
-        address tokenY_,
-        uint256 swapFeePercentageWad
-    ) {
-        tokenX = tokenX_;
-        tokenY = tokenY_;
+    /// @dev Amount of liquidity that is burnt on initialization.
+    uint256 private constant BURNT_LIQUIDITY = 1000;
 
-        // todo: can update later to allow for different sources.
-        if (isLogNormal) {
-            strategy =
-                address(new LogNormal(address(this), swapFeePercentageWad));
-        } else {
-            strategy = address(new G3M(address(this), swapFeePercentageWad));
-        }
-    }
-
-    modifier initialized() {
-        if (!inited) revert NotInitialized();
-        _;
-    }
-
+    /// @dev Prevents reentrancy.
     modifier lock() {
-        require(locked == 1, "locked");
-        locked = 0;
+        if (_locked == 2) revert Locked();
+        _locked = 2;
         _;
-        locked = 1;
+        _locked = 1;
     }
 
-    function getReservesAndLiquidity()
-        public
-        view
-        returns (uint256, uint256, uint256)
-    {
-        return (reserveXWad, reserveYWad, totalLiquidity);
+    /**
+     * @dev The implementation of the LPToken contract is also
+     * deployed at the same time. It'll be used later to deploy
+     * new LPTokens using the [clone factory pattern](https://eips.ethereum.org/EIPS/eip-1167).
+     */
+    constructor() {
+        lpTokenImplementation = address(new LPToken());
+        LPToken(lpTokenImplementation).initialize("", "");
     }
 
-    function allocate(bytes calldata data)
-        public
+    /// @inheritdoc IDFMM
+    function init(InitParams calldata params)
+        external
         lock
-        returns (uint256, uint256, uint256)
+        returns (uint256, uint256, uint256, uint256)
     {
-        (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-            IStrategy(strategy).validateAllocateOrDeallocate(data);
-        if (!valid) {
-            revert Invalid(invariant < 0, abs(invariant));
-        }
-        if (
-            balanceOf[msg.sender] != 0 && feeGrowth != feeGrowthLast[msg.sender]
-        ) {
-            uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
-            balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
-        }
-        uint256 deltaX = rx - reserveXWad;
-        uint256 deltaY = ry - reserveYWad;
-        uint256 deltaL = L - totalLiquidity;
-        reserveXWad = rx;
-        reserveYWad = ry;
-        totalLiquidity = L;
-        balanceOf[msg.sender] += deltaL;
-        feeGrowthLast[msg.sender] = feeGrowth;
-        ERC20(tokenX).transferFrom(msg.sender, address(this), deltaX);
-        ERC20(tokenY).transferFrom(msg.sender, address(this), deltaY);
+        if (params.tokenX == params.tokenY) revert InvalidTokens();
 
-        emit Allocate(deltaX, deltaY, deltaL);
-        return (reserveXWad, reserveYWad, totalLiquidity);
-    }
-
-    function deallocate(bytes calldata data)
-        public
-        lock
-        returns (uint256, uint256, uint256)
-    {
-        (bool valid, int256 invariant, uint256 rx, uint256 ry, uint256 L) =
-            IStrategy(strategy).validateAllocateOrDeallocate(data);
-        if (!valid) {
-            revert Invalid(invariant < 0, abs(invariant));
-        }
-
-        if (
-            balanceOf[msg.sender] != 0 && feeGrowth != feeGrowthLast[msg.sender]
-        ) {
-            uint256 growth = feeGrowth.mulWadDown(feeGrowthLast[msg.sender]);
-            balanceOf[msg.sender] = balanceOf[msg.sender].mulWadDown(growth);
-            console2.log("in here");
-        }
-
-        uint256 deltaX = reserveXWad - rx;
-        uint256 deltaY = reserveYWad - ry;
-        uint256 deltaL = totalLiquidity - L;
-        reserveXWad = rx;
-        reserveYWad = ry;
-        totalLiquidity = L;
-        balanceOf[msg.sender] -= deltaL;
-        feeGrowthLast[msg.sender] = feeGrowth;
-        ERC20(tokenX).transfer(msg.sender, deltaX);
-        ERC20(tokenY).transfer(msg.sender, deltaY);
-
-        emit Deallocate(deltaX, deltaY, deltaL);
-        return (reserveXWad, reserveYWad, totalLiquidity);
-    }
-
-    /// @param data The data to be passed to the source strategy contract for pool initialization & validation.
-    function init(bytes calldata data)
-        public
-        lock
-        returns (uint256, uint256, uint256)
-    {
         (
             bool valid,
             int256 swapConstantGrowth,
-            uint256 XXXXXXX,
-            uint256 YYYYYY,
-            uint256 LLLLLL
-        ) = IStrategy(strategy).init(data);
-        if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
-        }
-        inited = true;
-        reserveXWad = XXXXXXX;
-        reserveYWad = YYYYYY;
-        totalLiquidity = LLLLLL;
-        balanceOf[msg.sender] = LLLLLL;
-        feeGrowth = 1 ether;
-        feeGrowthLast[msg.sender] = feeGrowth;
-        ERC20(tokenX).transferFrom(msg.sender, address(this), XXXXXXX);
-        ERC20(tokenY).transferFrom(msg.sender, address(this), YYYYYY);
-        emit Init(msg.sender, strategy, XXXXXXX, YYYYYY, LLLLLL);
-        return (XXXXXXX, YYYYYY, LLLLLL);
-    }
+            uint256 reserveX,
+            uint256 reserveY,
+            uint256 totalLiquidity
+        ) = IStrategy(params.strategy).init(
+            msg.sender, pools.length, params.data
+        );
 
-    /// @param data The data to be passed to the source strategy contract for swap validation.
-    function swap(bytes calldata data) public lock initialized {
-        (
-            bool valid,
-            int256 swapConstantGrowth,
-            int256 liquidityDelta, // this is unused, should we remove it?
-            uint256 XXXXXXX,
-            uint256 YYYYYY,
-            uint256 LLLLLL
-        ) = IStrategy(strategy).validateSwap(data);
         if (!valid) {
             revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
         }
 
-        uint256 preLiquidity = totalLiquidity;
-        totalLiquidity = LLLLLL;
-        uint256 growth = totalLiquidity.divWadDown(preLiquidity);
-        feeGrowth = feeGrowth.mulWadDown(growth);
+        LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
 
-        _settle({ adjustedReserveXWad: XXXXXXX, adjustedReserveYWad: YYYYYY });
+        // TODO: Add name / symbol
+        liquidityToken.initialize("", "");
+        liquidityToken.mint(msg.sender, totalLiquidity - BURNT_LIQUIDITY);
+        liquidityToken.mint(address(0), BURNT_LIQUIDITY);
+
+        Pool memory pool = Pool({
+            strategy: params.strategy,
+            tokenX: params.tokenX,
+            tokenY: params.tokenY,
+            reserveX: reserveX,
+            reserveY: reserveY,
+            totalLiquidity: totalLiquidity,
+            liquidityToken: address(liquidityToken)
+        });
+
+        pools.push(pool);
+        uint256 poolId = pools.length - 1;
+
+        SafeTransferLib.safeTransferFrom(
+            ERC20(params.tokenX), msg.sender, address(this), reserveX
+        );
+        SafeTransferLib.safeTransferFrom(
+            ERC20(params.tokenY), msg.sender, address(this), reserveY
+        );
+
+        emit Init(
+            msg.sender,
+            params.strategy,
+            params.tokenX,
+            params.tokenY,
+            poolId,
+            reserveX,
+            reserveY,
+            totalLiquidity
+        );
+
+        return (poolId, reserveX, reserveY, totalLiquidity);
+    }
+
+    /// @inheritdoc IDFMM
+    function allocate(
+        uint256 poolId,
+        bytes calldata data
+    ) external lock returns (uint256, uint256, uint256) {
+        (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
+            _updatePoolReserves(poolId, true, data);
+
+        SafeTransferLib.safeTransferFrom(
+            ERC20(pools[poolId].tokenX), msg.sender, address(this), deltaX
+        );
+        SafeTransferLib.safeTransferFrom(
+            ERC20(pools[poolId].tokenY), msg.sender, address(this), deltaY
+        );
+
+        emit Allocate(msg.sender, poolId, deltaX, deltaY, deltaL);
+        return (deltaX, deltaY, deltaL);
+    }
+
+    /// @inheritdoc IDFMM
+    function deallocate(
+        uint256 poolId,
+        bytes calldata data
+    ) external lock returns (uint256, uint256, uint256) {
+        (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
+            _updatePoolReserves(poolId, false, data);
+
+        ERC20(pools[poolId].tokenX).transfer(msg.sender, deltaX);
+        ERC20(pools[poolId].tokenY).transfer(msg.sender, deltaY);
+
+        SafeTransferLib.safeTransfer(
+            ERC20(pools[poolId].tokenX), msg.sender, deltaX
+        );
+        SafeTransferLib.safeTransfer(
+            ERC20(pools[poolId].tokenY), msg.sender, deltaY
+        );
+
+        emit Deallocate(msg.sender, poolId, deltaX, deltaY, deltaL);
+        return (deltaX, deltaY, deltaL);
+    }
+
+    /// @inheritdoc IDFMM
+    function swap(
+        uint256 poolId,
+        bytes calldata data
+    ) external lock returns (uint256, uint256) {
+        (
+            bool valid,
+            int256 swapConstantGrowth,
+            ,
+            uint256 adjustedReserveX,
+            uint256 adjustedReserveY,
+            uint256 adjustedTotalLiquidity
+        ) = IStrategy(pools[poolId].strategy).validateSwap(
+            msg.sender, poolId, data
+        );
+
+        if (!valid) {
+            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+        }
+
+        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
+
+        (bool isSwapXForY,,, uint256 inputAmount, uint256 outputAmount) =
+            _settle(poolId, adjustedReserveX, adjustedReserveY);
+
+        emit Swap(msg.sender, poolId, isSwapXForY, inputAmount, outputAmount);
+
+        return (inputAmount, outputAmount);
+    }
+
+    /// @inheritdoc IDFMM
+    function update(uint256 poolId, bytes calldata data) external lock {
+        IStrategy(pools[poolId].strategy).update(msg.sender, poolId, data);
     }
 
     /// @dev Computes the changes in reserves and transfers the tokens in and out.
     function _settle(
-        uint256 adjustedReserveXWad,
-        uint256 adjustedReserveYWad
+        uint256 poolId,
+        uint256 adjustedReserveX,
+        uint256 adjustedReserveY
     )
         internal
         returns (
+            bool isSwapXForY,
             address inputToken,
             address outputToken,
             uint256 inputAmount,
             uint256 outputAmount
         )
     {
-        (uint256 originalReserveXWad, uint256 originalReserveYWad) =
-            (reserveXWad, reserveYWad);
+        uint256 originalReserveX = pools[poolId].reserveX;
+        uint256 originalReserveY = pools[poolId].reserveY;
 
-        if (adjustedReserveXWad > originalReserveXWad) {
-            inputToken = tokenX;
-            outputToken = tokenY;
-            inputAmount = adjustedReserveXWad - originalReserveXWad;
-            require(
-                originalReserveYWad > adjustedReserveYWad,
-                "invalid swap: inputs x and y"
-            );
-            outputAmount = originalReserveYWad - adjustedReserveYWad;
+        isSwapXForY = adjustedReserveX > originalReserveX;
+
+        if (isSwapXForY) {
+            if (adjustedReserveY >= originalReserveY) revert InvalidSwap();
+            inputToken = pools[poolId].tokenX;
+            outputToken = pools[poolId].tokenY;
+            inputAmount = adjustedReserveX - originalReserveX;
+            outputAmount = originalReserveY - adjustedReserveY;
         } else {
-            inputToken = tokenY;
-            outputToken = tokenX;
-            inputAmount = adjustedReserveYWad - originalReserveYWad;
-            require(
-                originalReserveXWad > adjustedReserveXWad,
-                "invalid swap: inputs x and y"
-            );
-            outputAmount = originalReserveXWad - adjustedReserveXWad;
+            if (adjustedReserveX >= originalReserveX) revert InvalidSwap();
+            inputToken = pools[poolId].tokenY;
+            outputToken = pools[poolId].tokenX;
+            inputAmount = adjustedReserveY - originalReserveY;
+            outputAmount = originalReserveX - adjustedReserveX;
         }
 
         // Do the state updates to the reserves before calling untrusted addresses.
-        reserveXWad = adjustedReserveXWad;
-        reserveYWad = adjustedReserveYWad;
+        pools[poolId].reserveX = adjustedReserveX;
+        pools[poolId].reserveY = adjustedReserveY;
 
-        uint256 inputBalance = ERC20(inputToken).balanceOf(address(this));
-        uint256 outputBalance = ERC20(outputToken).balanceOf(address(this));
-        ERC20(inputToken).transferFrom(msg.sender, address(this), inputAmount);
-        ERC20(outputToken).transfer(msg.sender, outputAmount);
-        require(
-            ERC20(inputToken).balanceOf(address(this))
-                >= inputBalance + inputAmount,
-            "invalid swap: input token transfer"
+        uint256 preInputBalance = ERC20(inputToken).balanceOf(address(this));
+        uint256 preOutputBalance = ERC20(outputToken).balanceOf(address(this));
+
+        SafeTransferLib.safeTransferFrom(
+            ERC20(inputToken), msg.sender, address(this), inputAmount
         );
-        require(
-            ERC20(outputToken).balanceOf(address(this))
-                >= outputBalance - outputAmount,
-            "invalid swap: output token transfer"
+
+        SafeTransferLib.safeTransfer(
+            ERC20(outputToken), msg.sender, outputAmount
         );
+
+        uint256 postInputBalance = ERC20(inputToken).balanceOf(address(this));
+        uint256 postOutputBalance = ERC20(outputToken).balanceOf(address(this));
+
+        if (postInputBalance < preInputBalance + inputAmount) {
+            revert InvalidSwapInputTransfer();
+        }
+
+        if (postOutputBalance < preOutputBalance - outputAmount) {
+            revert InvalidSwapOutputTransfer();
+        }
+
+        return (isSwapXForY, inputToken, outputToken, inputAmount, outputAmount);
+    }
+
+    // Internals
+
+    /**
+     * @dev Validates the adjusted reserves and liquidity and updates the
+     * reserves and liquidity of a pool during an allocation or deallocation.
+     */
+    function _updatePoolReserves(
+        uint256 poolId,
+        bool isAllocate,
+        bytes calldata data
+    ) internal returns (uint256 deltaX, uint256 deltaY, uint256 deltaL) {
+        (
+            bool valid,
+            int256 invariant,
+            uint256 adjustedReserveX,
+            uint256 adjustedReserveY,
+            uint256 adjustedTotalLiquidity
+        ) = IStrategy(pools[poolId].strategy).validateAllocateOrDeallocate(
+            msg.sender, poolId, data
+        );
+
+        if (!valid) {
+            revert Invalid(invariant < 0, abs(invariant));
+        }
+
+        deltaX = isAllocate
+            ? adjustedReserveX - pools[poolId].reserveX
+            : pools[poolId].reserveX - adjustedReserveX;
+        deltaY = isAllocate
+            ? adjustedReserveY - pools[poolId].reserveY
+            : pools[poolId].reserveY - adjustedReserveY;
+        deltaL = isAllocate
+            ? adjustedTotalLiquidity - pools[poolId].totalLiquidity
+            : pools[poolId].totalLiquidity - adjustedTotalLiquidity;
+
+        _manageTokens(poolId, isAllocate, deltaL);
+
+        pools[poolId].reserveX = adjustedReserveX;
+        pools[poolId].reserveY = adjustedReserveY;
+        pools[poolId].totalLiquidity = adjustedTotalLiquidity;
+    }
+
+    /**
+     * @dev Mints or burns liquidity tokens.
+     */
+    function _manageTokens(
+        uint256 poolId,
+        bool isAllocate,
+        uint256 deltaL
+    ) internal {
+        LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
+        uint256 totalSupply = liquidityToken.totalSupply();
+        uint256 totalLiquidity = pools[poolId].totalLiquidity;
+
+        if (isAllocate) {
+            uint256 amount =
+                deltaL.mulWadDown(totalSupply.divWadDown(totalLiquidity));
+            liquidityToken.mint(msg.sender, amount);
+        } else {
+            uint256 amount =
+                deltaL.mulWadUp(totalSupply.divWadUp(totalLiquidity));
+            liquidityToken.burn(msg.sender, amount);
+        }
+    }
+
+    /**
+     * @dev Deploys and returns the address of a clone that mimics the behaviour of `implementation`.
+     * This function uses the create opcode, which should never revert.
+     * This function is taken from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/Clones.sol#L23.
+     */
+    function clone(address implementation)
+        internal
+        returns (address instance)
+    {
+        /// @solidity memory-safe-assembly
+        assembly {
+            // Cleans the upper 96 bits of the `implementation` word, then packs the first 3 bytes
+            // of the `implementation` address with the bytecode before the address.
+            mstore(
+                0x00,
+                or(
+                    shr(0xe8, shl(0x60, implementation)),
+                    0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000
+                )
+            )
+            // Packs the remaining 17 bytes of `implementation` with the bytecode after the address.
+            mstore(
+                0x20,
+                or(shl(0x78, implementation), 0x5af43d82803e903d91602b57fd5bf3)
+            )
+            instance := create(0, 0x09, 0x37)
+        }
+        if (instance == address(0)) {
+            revert ERC1167FailedCreateClone();
+        }
+    }
+
+    // Lens
+
+    /// @notice Returns the amount of initialized pools.
+    function nonce() external view returns (uint256) {
+        return pools.length;
+    }
+
+    /// @notice Returns the pool `poolId` as a Pool struct.
+    function getPool(uint256 poolId) external view returns (Pool memory) {
+        return pools[poolId];
+    }
+
+    /// @notice Returns the reserves and liquidity of pool `poolId`.
+    function getReservesAndLiquidity(uint256 poolId)
+        external
+        view
+        returns (uint256, uint256, uint256)
+    {
+        return (
+            pools[poolId].reserveX,
+            pools[poolId].reserveY,
+            pools[poolId].totalLiquidity
+        );
+    }
+
+    /**
+     * @notice Returns the amount of liquidity owned by `account` for
+     * the pool `poolId`.
+     * @dev This function should NOT be used in a non-view call, as the
+     * values can be manipulated. In the future this function might be
+     * removed.
+     */
+    function liquidityOf(
+        address account,
+        uint256 poolId
+    ) public view returns (uint256) {
+        LPToken liquidityToken = LPToken(pools[poolId].liquidityToken);
+        uint256 balance = liquidityToken.balanceOf(account);
+        uint256 totalSupply = liquidityToken.totalSupply();
+        uint256 totalLiquidity = pools[poolId].totalLiquidity;
+        return balance.mulWadDown(totalLiquidity.divWadDown(totalSupply));
     }
 }

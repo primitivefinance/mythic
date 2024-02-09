@@ -16,7 +16,8 @@ impl Inventory {
         aum: impl ToString,
         unallocated_positions: Positions,
         allocated_positions: Positions,
-        logos: Vec<svg::Handle>,
+        unallocated_logos: Vec<svg::Handle>,
+        allocated_logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
         on_select_position: impl Fn(AlloyAddress) -> Message,
     ) -> Container<'a, Message>
@@ -25,21 +26,33 @@ impl Inventory {
     {
         let _current_dir = std::env::current_dir().unwrap();
 
-        let allocated_weight_sum = allocated_positions
+        let _allocated_weight_sum = allocated_positions
             .0
             .iter()
             .map(|x| x.weight.unwrap_or_default().value)
             .sum::<f64>();
 
-        let unallocated_weight_sum = unallocated_positions
+        let _unallocated_weight_sum = unallocated_positions
             .0
             .iter()
             .map(|x| x.weight.unwrap_or_default().value)
             .sum::<f64>();
 
-        let total_value = aum.to_string().parse::<f64>().unwrap_or_default();
-        let allocated_value = total_value * allocated_weight_sum;
-        let unallocated_value = total_value * unallocated_weight_sum;
+        // todo: there's a small discrepancy in aum. could be due to floating point
+        // precision in the non-aum calculations via `market_value()`.
+        // probably not that because discrepancy is more than 1%.
+        let _total_value = aum.to_string().parse::<f64>().unwrap_or_default();
+
+        let unallocated_value = unallocated_positions
+            .0
+            .iter()
+            .map(|position| position.market_value())
+            .sum::<f64>();
+        let allocated_value = allocated_positions
+            .0
+            .iter()
+            .map(|position| position.market_value())
+            .sum::<f64>();
 
         let unallocated_positions = Row::with_children(
             unallocated_positions
@@ -52,7 +65,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            iced::widget::svg(logos[i].clone()),
+                            iced::widget::svg(unallocated_logos[i].clone()),
                         )))
                         .on_press(on_select_position(x.asset.address))
                         .into()
@@ -72,7 +85,7 @@ impl Inventory {
                         .transparent()
                         .build(Self::position_layout::<Message>((
                             x.clone(),
-                            iced::widget::svg(logos[i].clone()),
+                            iced::widget::svg(allocated_logos[i].clone()),
                         )))
                         .on_press(on_select_position(x.asset.address))
                         .into()
@@ -104,6 +117,7 @@ impl Inventory {
                                                     .quantitative()
                                                     .ui_bold()
                                                     .secondary()
+                                                    .usd()
                                                     .build(),
                                             ),
                                     )
@@ -119,6 +133,7 @@ impl Inventory {
                                                     .quantitative()
                                                     .ui_bold()
                                                     .secondary()
+                                                    .usd()
                                                     .build(),
                                             ),
                                     )
@@ -168,7 +183,7 @@ impl Inventory {
                                     .width(Length::FillPortion(1))
                                     .spacing(Sizes::Sm)
                                     .push(label(title).secondary().build())
-                                    .push(label(aum).quantitative().ui_bold().title1().build()),
+                                    .push(label(aum).quantitative().ui_bold().title1().usd().build()),
                             )
                             .push(
                                 Column::new()
@@ -176,7 +191,7 @@ impl Inventory {
                                     .width(Length::FillPortion(1))
                                     .push(
                                         ExcaliburTooltip::default().padding(Sizes::Sm).info().build(
-                                            "Your portfolio of allocated and unallocated positions, filtered by the default token list.",
+                                            "Your portfolio of allocated and unallocated positions filtered by the default token list.",
                                         )
                                     ),
                             ),
@@ -230,13 +245,28 @@ impl Inventory {
         Message: 'a,
     {
         let (position, logo) = position_data;
+        let position_value =
+            position.cost.unwrap_or_default() * position.balance.unwrap_or_default();
+
+        let position_header = Row::new()
+            .spacing(Sizes::Sm)
+            .align_items(alignment::Alignment::Center)
+            .push(label(position.asset.name).secondary().build())
+            .push(label("@").secondary().build())
+            .push(
+                label(format!("{}", position.cost.unwrap_or_default()))
+                    .quantitative()
+                    .usd_symbol()
+                    .build(),
+            );
 
         let position_data = Row::new()
             .spacing(Sizes::Sm)
             .align_items(alignment::Alignment::Center)
             .push(
-                label(format!("{}", position.balance.unwrap_or_default()))
+                label(format!("{}", position_value))
                     .quantitative()
+                    .usd()
                     .build(),
             )
             .push(label("/").secondary().build())
@@ -252,7 +282,7 @@ impl Inventory {
             .build(
                 Column::new()
                     .spacing(Sizes::Sm)
-                    .push(label(position.asset.name).secondary().build())
+                    .push(position_header)
                     .push(Container::new(logo.width(Length::Fixed(48.0))).padding(1))
                     .push(position_data)
                     .align_items(alignment::Alignment::Center),

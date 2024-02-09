@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.13;
 
 import "solstat/Gaussian.sol";
@@ -13,14 +13,7 @@ uint256 constant INFINITY_IS_NOT_REAL = type(uint256).max;
 uint256 constant ZERO = 0;
 
 /// @dev the swap constant should never fall outside of range [-EPSILON, EPSILON]
-int256 constant EPSILON = 10;
-
-/// @dev Structure to hold reserve information
-struct Reserves {
-    uint256 rx;
-    uint256 ry;
-    uint256 L;
-}
+int256 constant EPSILON = 20;
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;

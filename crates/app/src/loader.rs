@@ -4,7 +4,7 @@
 
 use std::time::Instant;
 
-use clients::{dev::DevClient, ledger::LedgerClient};
+use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
 use datatypes::portfolio::coin::Coin;
 use iced::{
     font,
@@ -14,11 +14,7 @@ use iced::{
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use sim::from_ethers_address;
 
-use super::{
-    middleware::*,
-    model::{contacts, user::UserProfile},
-    *,
-};
+use super::{middleware::*, model::contacts, *};
 use crate::{
     app::AnvilSave,
     components::{
@@ -53,30 +49,6 @@ pub struct Loader {
     pub logo: PhiLogo,
 }
 
-/// This function attempts to load a user profile. If it fails, it creates a new
-/// default profile. It then logs the loaded profile's name and file path.
-#[tracing::instrument(level = "debug")]
-pub fn load_profile() -> anyhow::Result<UserProfile> {
-    let profile = UserProfile::load(None);
-    let profile = match profile {
-        Ok(profile) => profile,
-        Err(e) => {
-            tracing::warn!("Failed to load profile: {:?}", e);
-            tracing::info!("Creating a new default profile.");
-
-            UserProfile::create_new(None)?
-        }
-    };
-
-    tracing::debug!(
-        "Loaded profile {:?} at path {:?}",
-        profile.name,
-        profile.file_path()
-    );
-
-    Ok(profile)
-}
-
 /// This function attempts to load user data into a model. If it fails, it
 /// creates a new default model. It then logs the loaded model's user name and
 /// file path.
@@ -103,28 +75,11 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     Ok(model)
 }
 
-/// This function loads a development client. It first logs the loading process,
-/// then creates a signer with the chain id of the client. It then gets the
-/// address of the signer and clones the client. It deploys the development
-/// client and returns it.
-#[tracing::instrument(skip(client), level = "trace")]
-pub async fn load_dev_client(
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-) -> anyhow::Result<DevClient<NetworkClient<Ws, LocalWallet>>> {
-    tracing::debug!("Loading dev client");
-    let signer = client
-        .signer()
-        .unwrap()
-        .clone()
-        .with_chain_id(client.clone().anvil.as_ref().unwrap().chain_id());
-    let sender = signer.address();
-    let client = client.client().unwrap().clone();
-    let dev_client = DevClient::deploy(client, sender).await?;
-    Ok(dev_client)
-}
-
 /// Contracts that we start up the client with
-pub const CONTRACT_NAMES: [&str; 5] = ["protocol", "strategy", "token_x", "token_y", "lex"];
+/// ORDER MATTERS HERE WHICH IS VERY BIG BAD.
+pub const CONTRACT_NAMES: [&str; 6] = [
+    "protocol", "strategy", "token_x", "token_y", "lex", "solver",
+];
 
 /// Loads any async data or disk data into the application's state types.
 /// On load, the application will emit the Ready message to the root
@@ -134,12 +89,24 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
     // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
-    let mut exc_client = ExcaliburMiddleware::setup(true).await?;
+    // Create a new middleware client to make calls to the network.
+    let mut exc_client = ExcaliburMiddleware::new(None, None, None).await?;
+
+    // Start and connect to an anvil instance.
+    let anvil = start_anvil(None)?;
+    exc_client.connect_anvil(anvil).await?;
+
     let chain_id = if let Some(anvil) = &exc_client.anvil {
         anvil.chain_id()
     } else {
         31337
     };
+
+    let client = exc_client.get_client();
+
+    // todo: try the connection to the sandbox next
+    // Connect the model to the desired network.
+    model.connect_to_network(client.clone()).await?;
 
     // If profile has an anvil snapshot, load it.
     let loaded_snapshot = if let Some(AnvilSave {
@@ -152,9 +119,8 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             &snapshot[..10.min(snapshot.len())],
         );
 
-        let client = exc_client.client().unwrap().clone();
-
         let success = client
+            .clone()
             .provider()
             .request::<[String; 1], bool>("anvil_loadState", [snapshot.to_string()])
             .await
@@ -165,6 +131,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         if success {
             tracing::info!("Syncing Anvil to block: {}", block_number);
             client
+                .clone()
                 .provider()
                 .request::<[u64; 1], ()>("anvil_mine", [*block_number])
                 .await
@@ -190,24 +157,41 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 // If the contract value's label contains the name, add it to the exc_client.
                 // todo: need better loading of contracts from storage.
                 for (address, contact) in contracts.get_all() {
-                    if contact.label.contains(name) {
+                    if contact.label == *name {
                         exc_client.add_contract(name, *address);
                     }
                 }
             }
         }
+
+        // todo: better contract naming/storage management.
+        let protocol_client = ProtocolClient::from_deployed(
+            exc_client.get_client(),
+            *exc_client.contracts.get("protocol").unwrap(),
+            *exc_client.contracts.get("solver").unwrap(),
+            *exc_client.contracts.get("strategy").unwrap(),
+            Address::zero(),
+            Address::zero(),
+            Address::zero(),
+            Address::zero(),
+        )?;
+        exc_client.connect_dfmm(protocol_client).await?;
     }
+
+    // Connect a signer to the client so we can send transactions.
+    let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
+    let sender = signer.address();
+    exc_client.connect_signer(signer).await?;
 
     // If we are loading a fresh instance, deploy the contracts.
     if !loaded_snapshot {
-        let signer = exc_client.signer().unwrap().clone().with_chain_id(chain_id);
-        let sender = signer.address();
-        let client = exc_client.client().unwrap().clone();
-        let client = client.with_signer(signer);
-        let dev_client = DevClient::deploy(client.into(), sender).await?;
+        let client = exc_client.get_client();
+
+        let dev_client = DevClient::deploy(client, sender).await?;
+        exc_client.connect_dfmm(dev_client.protocol.clone()).await?;
 
         let protocol = dev_client.protocol.protocol.address();
-        let strategy = dev_client.protocol.get_strategy().await?.address();
+        let strategy = dev_client.protocol.ln_strategy.address();
         let token_x = dev_client.token_x.address();
         let token_y = dev_client.token_y.address();
         let solver = dev_client.solver.address();
@@ -271,7 +255,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         );
 
         model.user.contacts.add(
-            lex,
+            solver,
             contacts::ContactValue {
                 label: "solver".to_string(),
                 class: contacts::Class::Contract,
@@ -283,15 +267,15 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
         tracing::info!("Loaded contacts: {:?}", model.user.contacts);
         // TODO(matt): Create a shared type so that the order of the arguments isn't
         // finicky
-        model.portfolio.setup(
-            from_ethers_address(exc_client.address().unwrap()),
-            from_ethers_address(lex),
-            from_ethers_address(protocol),
-            from_ethers_address(strategy),
-            from_ethers_address(solver),
-            from_ethers_address(token_x),
-            from_ethers_address(token_y),
-        );
+        if let Some(connected_model) = model.get_current_mut() {
+            connected_model.setup(
+                from_ethers_address(exc_client.address().unwrap()),
+                from_ethers_address(lex),
+                from_ethers_address(protocol),
+                from_ethers_address(dev_client.solver.address()),
+                from_ethers_address(strategy),
+            );
+        }
 
         let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
         let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
@@ -307,7 +291,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 decimals: 18,
                 chain_id,
                 logo_uri: "".to_string(),
-                tags: vec!["mock".to_string()],
+                tags: vec!["mock".to_string(), "ether".to_string()],
             };
             model.user.coins += coin;
         }
@@ -320,7 +304,7 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
                 decimals: 18,
                 chain_id,
                 logo_uri: "".to_string(),
-                tags: vec!["mock".to_string()],
+                tags: vec!["mock".to_string(), "stablecoin".to_string()],
             };
             model.user.coins += coin;
         }

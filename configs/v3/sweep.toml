@@ -39,7 +39,7 @@ process.GBM.volatility.fixed = 0.35
 # Rmm portfolio manager params 
 [agent.portfolio_manager.VolatilityTargetingSubmitter]
 sigma.fixed = 1.0
-tau.fixed = 100000.0
+tau.fixed = 1.0
 strike_price.fixed = 1.0
 fee.fixed = 30
 ## Volatility targeting specialty settings

@@ -110,165 +110,162 @@ impl PortfolioPresenter {
     /// todo: these can be computationally costly, we should only do this when
     /// the model changes or the user forces it.
     pub fn sync_portfolio_strategy_curve(&mut self) {
-        // Get the series data.
-        let data = self.model.portfolio.derive_portfolio_strategy_plot();
-        let data = match data {
-            Ok(data) => data,
-            Err(_) => {
-                return;
-            }
-        };
+        if let Some(connected_model) = self.model.get_current() {
+            let pool_id = 0;
+            let data = connected_model.derive_portfolio_strategy_plot(pool_id);
+            let data = match data {
+                Ok(data) => data,
+                Err(_) => {
+                    return;
+                }
+            };
 
-        self.portfolio_strategy_plot.override_series(data.1);
-        self.portfolio_strategy_plot.update_x_range(data.0.x_range);
-        self.portfolio_strategy_plot.update_y_range(data.0.y_range);
-        // Only happens once.
-        self.portfolio_strategy_plot.override_ranges_flag(true);
+            self.portfolio_strategy_plot.override_series(data.1);
+            self.portfolio_strategy_plot.update_x_range(data.0.x_range);
+            self.portfolio_strategy_plot.update_y_range(data.0.y_range);
+            // Only happens once.
+            self.portfolio_strategy_plot.override_ranges_flag(true);
+        }
     }
 
+    /// Syncs the currently connected model's notable points on the strategy
+    /// plot.
     pub fn sync_portfolio_strategy_points(&mut self) {
-        // Get the pois
-        // this does not update the model. it just gets the data from the model and
-        // turns it into a `ChartPoint` struct.
-        let data = self.model.portfolio.derive_portfolio_strategy_points();
-        let data = match data {
-            Ok(data) => data,
-            Err(_) => {
-                return;
-            }
-        };
-        // this updates the chart with the data from the model.
-        self.portfolio_strategy_plot.override_points(data);
+        let pool_id = 0;
+
+        if let Some(connected_model) = self.model.get_current() {
+            let data = connected_model.derive_portfolio_strategy_points(pool_id);
+            let data = match data {
+                Ok(data) => data,
+                Err(_) => {
+                    return;
+                }
+            };
+
+            self.portfolio_strategy_plot.override_points(data);
+        }
     }
 
     /// Does not update the model, only updates the chart data to match the
     /// existing model.
     /// todo: these can be computationally costly, we should only do this
     /// when the model changes or the user forces it.
+    /// Only updates the connected model.
     pub fn sync_portfolio_value_series(&mut self) {
-        // Get the series data.
-        let data = self.model.portfolio.derive_portfolio_value_series();
-        let data = match data {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Failed to get portfolio value series: {:}", e);
-                return;
-            }
-        };
+        let pool_id = 0;
+        if let Some(connected_model) = self.model.get_current() {
+            // Get the series data.
+            let data = connected_model.derive_portfolio_value_series(pool_id);
+            let data = match data {
+                Ok(data) => data,
+                Err(e) => {
+                    tracing::warn!(
+                        "Failed to get portfolio value series when trying to sync: {:}",
+                        e
+                    );
+                    return;
+                }
+            };
 
-        let asset_value_series = self.model.portfolio.derive_asset_value_series();
-        match asset_value_series {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Failed to get asset value series: {:}", e);
-                return;
-            }
-        };
-
-        let quote_value_series = self.model.portfolio.derive_quote_value_series();
-        match quote_value_series {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Failed to get quote value series: {:}", e);
-                return;
-            }
-        };
-
-        let unallocated_value_series = self
-            .model
-            .portfolio
-            .derive_unallocated_portfolio_value_series();
-        match unallocated_value_series {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Failed to get unallocated value series: {:}", e);
-                return;
-            }
-        };
-
-        let protocol_quote_value_series = self.model.portfolio.derive_protocol_quote_value_series();
-        match protocol_quote_value_series {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Failed to get protocol quote value series: {:}", e);
-                return;
-            }
-        };
-
-        let protocol_asset_value_series = self.model.portfolio.derive_protocol_asset_value_series();
-        match protocol_asset_value_series {
-            Ok(data) => data,
-            Err(e) => {
-                tracing::error!("Failed to get protocol asset value series: {:}", e);
-                return;
-            }
-        };
-
-        // todo: make series toggleable.
-        self.portfolio_value_series.override_series(vec![data.1]);
-        self.portfolio_value_series.update_x_range(data.0.x_range);
-        self.portfolio_value_series.update_y_range(data.0.y_range);
-        // Only happens once.
-        self.portfolio_value_series.override_ranges_flag(true);
+            // todo: make series toggleable.
+            self.portfolio_value_series.override_series(vec![data.1]);
+            self.portfolio_value_series.update_x_range(data.0.x_range);
+            self.portfolio_value_series.update_y_range(data.0.y_range);
+            // Only happens once.
+            self.portfolio_value_series.override_ranges_flag(true);
+        }
     }
 
     pub fn get_block_number(&self) -> Option<u64> {
-        self.model.portfolio.raw_last_chain_data_sync_block
+        self.model.get_current().and_then(|x| x.last_sync_block)
     }
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
-        self.model.portfolio.raw_last_chain_data_sync_timestamp
+        self.model.get_current().and_then(|x| x.last_sync)
     }
+
+    // todo: make this easier to fetch
     #[allow(dead_code)]
     pub fn get_internal_price(&self) -> ExcaliburText {
-        self.model.portfolio.raw_internal_spot_price.to_label()
-    }
-
-    pub fn get_external_price(&self) -> ExcaliburText {
-        self.model.portfolio.raw_external_spot_price.to_label()
-    }
-
-    pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
+        let pool_id = 0;
         self.model
-            .portfolio
-            .derive_internal_portfolio_value()
+            .get_current()
+            .map(|x| x.get_internal_price_of_pool_asset(pool_id).unwrap())
             .to_label()
     }
 
+    // todo: make this easier to fetch
+    pub fn get_external_price(&self) -> ExcaliburText {
+        let pool_id = 0;
+        self.model
+            .get_current()
+            .map(|x| {
+                x.get_external_price_of_pool_asset(pool_id)
+                    .unwrap_or_default()
+            })
+            .to_label()
+    }
+
+    pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
+        let pool_id = 0; // todo: fix poolid
+        if let Some(connected_model) = self.model.get_current() {
+            connected_model
+                .derive_internal_portfolio_value(pool_id)
+                .to_label()
+        } else {
+            label("N/A").title1().secondary()
+        }
+    }
+
     pub fn get_portfolio_health(&self) -> ExcaliburText {
-        let data = self.model.portfolio.derive_portfolio_health();
-        match data {
-            Ok(data) => {
-                let value = alloy_primitives::utils::format_ether(data);
-                match value.parse::<f64>() {
-                    Ok(_) => label(value.to_string()).title1().percentage(),
-                    Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
+        if let Some(connected_model) = self.model.get_current() {
+            let data = connected_model.derive_portfolio_health();
+            match data {
+                Ok(data) => {
+                    let value = alloy_primitives::utils::format_ether(data);
+                    match value.parse::<f64>() {
+                        Ok(_) => label(value.to_string()).title1().percentage(),
+                        Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
+                    }
                 }
+                Err(_) => label("N/A").title1().secondary(),
             }
-            Err(_) => label("N/A").title1().secondary(),
+        } else {
+            label("N/A").title1().secondary()
         }
     }
 
     pub fn get_external_portfolio_value(&self) -> ExcaliburText {
-        self.model
-            .portfolio
-            .derive_external_portfolio_value()
-            .to_label()
+        if let Some(connected_model) = self.model.get_current() {
+            connected_model
+                .derive_external_portfolio_value(0)
+                .to_label()
+        } else {
+            label("N/A").title1().secondary()
+        }
     }
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_timestamp;
-        match data {
-            Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
-            None => label("Timestamp: N/A").caption().tertiary(),
+        if let Some(connected_model) = self.model.get_current() {
+            let data = connected_model.last_sync;
+            match data {
+                Some(data) => label(format!("Timestamp: {:}", data)).caption().tertiary(),
+                None => label("Timestamp: N/A").caption().tertiary(),
+            }
+        } else {
+            label("Timestamp: N/A").caption().tertiary()
         }
     }
 
     pub fn get_last_sync_block(&self) -> ExcaliburText {
-        let data = self.model.portfolio.raw_last_chain_data_sync_block;
-        match data {
-            Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
-            None => label("Block: N/A").caption().tertiary(),
+        if let Some(connected_model) = self.model.get_current() {
+            let data = connected_model.last_sync_block;
+            match data {
+                Some(data) => label(format!("Block: {:}", data)).caption().tertiary(),
+                None => label("Block: N/A").caption().tertiary(),
+            }
+        } else {
+            label("Block: N/A").caption().tertiary()
         }
     }
 

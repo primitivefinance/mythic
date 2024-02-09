@@ -379,22 +379,16 @@ impl App {
     /// * `Command<Message>` - A command containing the result of the model
     ///   synchronization.
     fn sync_model(&mut self) -> Command<Message> {
-        if let Some(client) = self.client.client().cloned() {
-            let model = self.model.clone();
-            // todo: fix this clunky provider
-            let provider = Arc::new(client.provider().clone());
-            Command::perform(
-                async move {
-                    let mut model = model;
-                    model.update(provider).await?;
-                    Ok(model)
-                },
-                Message::ModelSyncResult,
-            )
-        } else {
-            tracing::debug!("No client. Not syncing model.");
-            Command::none()
-        }
+        let model = self.model.clone();
+        let provider = self.client.get_client();
+        Command::perform(
+            async move {
+                let mut model = model;
+                model.update(provider).await?;
+                Ok(model)
+            },
+            Message::ModelSyncResult,
+        )
     }
 
     /// Updates the user profile based on the provided message.
