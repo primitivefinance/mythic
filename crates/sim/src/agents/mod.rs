@@ -1,5 +1,5 @@
 pub mod base;
-pub mod portfolio_management_agents;
+pub mod portfolio_management;
 
 use base::{block_admin::*, price_changer::*, token_admin::*};
 use portfolio_management_agents::{
