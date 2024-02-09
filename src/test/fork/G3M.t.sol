@@ -40,17 +40,19 @@ contract G3MTestFork is Test {
             address(this), 4000 * 10 ** 6
         );
         deal(address(weth), address(this), 1 ether);
+        deal(address(dai), address(this), 2000 ether);
 
         dfmm = new DFMM();
         g3m = new G3M(address(dfmm));
 
         usdc.approve(address(dfmm), type(uint256).max);
         weth.approve(address(dfmm), type(uint256).max);
+        dai.approve(address(dfmm), type(uint256).max);
     }
 
     function testFork_G3M_init_USDCWETHPool() public {
-        uint256 reserveX = 2 ether;
-        uint256 price = 2000 * 10 ** 6;
+        uint256 reserveX = 1 ether;
+        uint256 price = 2000 * 10 ** 18;
 
         G3M.G3MParams memory params = G3M.G3MParams({
             wX: 0.5 ether,
@@ -63,7 +65,7 @@ contract G3MTestFork is Test {
             IDFMM.InitParams({
                 strategy: address(g3m),
                 tokenX: address(weth),
-                tokenY: address(usdc),
+                tokenY: address(dai),
                 data: computeInitialPoolData(reserveX, price, params)
             })
         );
