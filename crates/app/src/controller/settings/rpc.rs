@@ -76,7 +76,12 @@ pub struct RpcManagement {
 }
 
 impl RpcManagement {
-    pub fn new(storage: RPCList) -> Self {
+    pub fn new(mut storage: RPCList) -> Self {
+        if storage.chains.get("flashbot").is_none() {
+            storage
+                .chains
+                .insert("flashbot".to_owned(), RPCValue::default());
+        }
         Self {
             storage,
             chain_packet: None,
@@ -118,7 +123,7 @@ impl RpcManagement {
     #[allow(dead_code)]
     pub fn view_rpcs(&self) -> Element<'_, Message> {
         let mut content = Column::new();
-
+        tracing::debug!("Chain packet: {:?}", self.storage.list());
         // List all the rpcs from the RPC storage
         for chain_packet in self.storage.list() {
             let mut row = Row::new().spacing(Sizes::Md);
@@ -273,6 +278,11 @@ impl State for RpcManagement {
             }
             Message::Submit => {
                 tracing::debug!("Submitting RPC");
+                let mut storage = self.storage.clone();
+                if let Ok(chain_packet) = self.get_chain_packet() {
+                    let chain_packet_name = chain_packet.name.clone();
+                    storage.chains.insert(chain_packet_name, chain_packet);
+                }
                 self.reset();
             }
             Message::Delete => {
