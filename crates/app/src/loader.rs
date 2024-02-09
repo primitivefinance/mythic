@@ -14,7 +14,6 @@ use iced::{
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 use sim::from_ethers_address;
 
-use super::{middleware::*, model::contacts, *};
 use crate::{
     app::AnvilSave,
     components::{
@@ -28,11 +27,18 @@ use crate::{
 type LoadResult =
     anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
 
+use self::{
+    middleware::{start_anvil, ExcaliburMiddleware},
+    model::contacts,
+};
+
+use super::*;
+
 #[derive(Debug)]
 pub enum Message {
     View,
     Tick,
-    Loaded(super::Flags),
+    Loaded(Flags),
     Connected,
     LoadingFailed,
     Ready(LoadResult),
@@ -77,7 +83,7 @@ pub fn load_user_data() -> anyhow::Result<Model> {
 
 /// Contracts that we start up the client with
 /// ORDER MATTERS HERE WHICH IS VERY BIG BAD.
-pub const CONTRACT_NAMES: [&str; 6] = [
+const CONTRACT_NAMES: [&str; 6] = [
     "protocol", "strategy", "token_x", "token_y", "lex", "solver",
 ];
 
@@ -85,7 +91,7 @@ pub const CONTRACT_NAMES: [&str; 6] = [
 /// On load, the application will emit the Ready message to the root
 /// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
-pub async fn load_app(flags: super::Flags) -> LoadResult {
+pub async fn load_app(flags: Flags) -> LoadResult {
     // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
@@ -366,7 +372,7 @@ impl Loader {
     /// If any of these operations fail, a LoadingFailed message is returned.
     /// If all operations are successful, a tuple of the Loader and a Command is
     /// returned.
-    pub fn new(flags: super::Flags) -> (Self, Command<Message>) {
+    pub fn new(flags: Flags) -> (Self, Command<Message>) {
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
 
@@ -415,7 +421,7 @@ impl Loader {
 
     /// Takes in the application flags and returns a command to load the
     /// application. The loading process is performed asynchronously.
-    fn load(&mut self, flags: super::Flags) -> Command<Message> {
+    fn load(&mut self, flags: Flags) -> Command<Message> {
         Command::perform(load_app(flags), Message::Ready)
     }
 

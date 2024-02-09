@@ -9,9 +9,7 @@ use self::agents::portfolio_management_agents::{
 use super::*;
 use crate::{
     agent::Agents,
-    agents::base_agents::{
-        block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin,
-    },
+    agents::base::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]

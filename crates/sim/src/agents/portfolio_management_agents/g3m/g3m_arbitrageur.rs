@@ -11,8 +11,7 @@ use tracing::log::info;
 use super::{
     agent::*,
     agents::{
-        base_agents::token_admin::TokenAdmin,
-        portfolio_management_agents::base::arbitrageur::Arbitrageur,
+        base::token_admin::TokenAdmin, portfolio_management_agents::base::arbitrageur::Arbitrageur,
     },
     Environment, Result, RevmMiddleware, *,
 };

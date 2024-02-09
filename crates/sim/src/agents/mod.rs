@@ -1,7 +1,7 @@
-pub mod base_agents;
+pub mod base;
 pub mod portfolio_management_agents;
 
-use base_agents::{block_admin::*, price_changer::*, token_admin::*};
+use base::{block_admin::*, price_changer::*, token_admin::*};
 use portfolio_management_agents::{
     base::parameter_manager::*,
     g3m::{dca_g3m_liquidity_provider::*, g3m_liquidity_provider::*},

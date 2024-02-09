@@ -11,8 +11,7 @@ authors = ["Primitive Bits, Inc."]
 # crates
 datatypes = { path = "../datatypes" }
 clients = { path = "../clients" }
-cfmm_math = { path = "../cfmm_math" }
-
+cfmm_math.workspace = true
 
 # deps
 iced = { version = "=0.10.0", features = [

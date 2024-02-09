@@ -5,7 +5,7 @@ use clients::protocol::{LogNormalF64, PoolInitParamsF64, ProtocolClient};
 use ethers::{types::U256, utils::parse_ether};
 
 use super::{agent::*, *};
-use crate::agents::base_agents::token_admin::TokenAdmin;
+use crate::agents::base::token_admin::TokenAdmin;
 
 #[derive(Debug, Clone)]
 pub struct LogNormalLiquidityProvider {

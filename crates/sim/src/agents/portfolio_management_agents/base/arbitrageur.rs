@@ -5,7 +5,7 @@ use clients::protocol::{pool::PoolKind, ProtocolClient};
 use ethers::{types::U256, utils::parse_ether};
 
 use super::{
-    agents::base_agents::token_admin::TokenAdmin,
+    agents::base::token_admin::TokenAdmin,
     bindings::{arb_math::ArbMath, atomic_v2::AtomicV2},
     Environment, Result, RevmMiddleware, *,
 };
