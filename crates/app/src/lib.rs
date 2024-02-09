@@ -16,7 +16,9 @@
 //! - Add more rules!
 use ethers::prelude::*;
 use iced::{
-    alignment, executor,
+    alignment,
+    event::Event,
+    executor,
     theme::Palette,
     widget::{button, container, scrollable, text, Column, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
@@ -33,10 +35,10 @@ mod view;
 
 use std::sync::Arc;
 
-use app::App;
+use app::{App, AppMessage};
 use components::{system::ExcaliburTheme, *};
 use controller::*;
-use loader::Loader;
+use loader::{Loader, LoaderMessage};
 use model::Model;
 use styles::*;
 
@@ -66,9 +68,9 @@ enum State {
 /// application is forced to quit.
 #[derive(Debug)]
 pub enum Message {
-    Load(Box<loader::LoaderMessage>),
-    Update(Box<app::AppMessage>),
-    Event(iced::event::Event),
+    Load(LoaderMessage),
+    Update(AppMessage),
+    Event(Event),
     Quit,
     ForceQuit,
 }
@@ -121,10 +123,7 @@ impl Application for MVP {
         let (loader, command) = Loader::new(flags);
         let state = State::Loader(loader);
 
-        (
-            MVP { state, tracer },
-            command.map(|msg| Message::Load(Box::new(msg))),
-        )
+        (MVP { state, tracer }, command.map(Message::Load))
     }
 
     /// Returns the title of the application.
@@ -173,14 +172,14 @@ impl Application for MVP {
                 Message::Event(iced::event::Event::Window(iced::window::Event::CloseRequested)),
             ) => {
                 let state_cmd = match self.state {
-                    State::App(ref mut app) => app.exit().map(|msg| Message::Update(Box::new(msg))),
+                    State::App(ref mut app) => app.exit().map(Message::Update),
                     // todo: handle specific closure logic for the loading screen.
                     _ => Command::perform(async {}, |()| Message::ForceQuit),
                 };
 
                 Command::batch(vec![state_cmd])
             }
-            (State::Loader(l), Message::Load(msg)) => match *msg {
+            (State::Loader(l), Message::Load(msg)) => match msg {
                 // 3. Got the message from the loader we are ready to go!
                 loader::LoaderMessage::Ready(Ok((model, client))) => {
                     // 4. Create our app and move to the app state.
@@ -188,7 +187,7 @@ impl Application for MVP {
                     self.state = State::App(app);
 
                     // 5. Get to the next branch.
-                    command.map(|msg| Message::Update(Box::new(msg)))
+                    command.map(Message::Update)
                 }
                 loader::LoaderMessage::Ready(Err(error_message)) => {
                     tracing::error!("Failed to load app: {}", error_message);
@@ -196,16 +195,16 @@ impl Application for MVP {
                 }
                 loader::LoaderMessage::Quit => Command::perform(async {}, |()| Message::ForceQuit),
                 // 2. Loader emits the Load message, update the loader state.
-                _ => l.update(*msg).map(|msg| Message::Load(Box::new(msg))),
+                _ => l.update(msg).map(Message::Load),
             },
             (State::App(app), Message::Update(msg)) => {
-                if let app::AppMessage::QuitReady = *msg {
+                if let app::AppMessage::QuitReady = msg {
                     return Command::perform(async {}, |()| Message::ForceQuit);
                 }
                 // 6. Arrived at main application loop.
                 // note: application loop is by mapping the result of update with Update
                 // message.
-                app.update(*msg).map(|msg| Message::Update(Box::new(msg)))
+                app.update(msg).map(Message::Update)
             }
             _ => Command::none(),
         }
@@ -229,8 +228,8 @@ impl Application for MVP {
     ///   current state.
     fn view(&self) -> Element<Self::Message> {
         match &self.state {
-            State::Loader(loader) => loader.view().map(|msg| Message::Load(Box::new(msg))),
-            State::App(app) => app.view().map(|msg| Message::Update(Box::new(msg))),
+            State::Loader(loader) => loader.view().map(Message::Load),
+            State::App(app) => app.view().map(Message::Update),
         }
     }
 
@@ -256,10 +255,8 @@ impl Application for MVP {
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch(vec![
             match &self.state {
-                State::Loader(loader) => loader
-                    .subscription()
-                    .map(|msg| Message::Load(Box::new(msg))),
-                State::App(app) => app.subscription().map(|msg| Message::Update(Box::new(msg))),
+                State::Loader(loader) => loader.subscription().map(Message::Load),
+                State::App(app) => app.subscription().map(Message::Update),
             },
             iced::subscription::events_with(|event, _status| {
                 if matches!(
