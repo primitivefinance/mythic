@@ -357,8 +357,7 @@ pub async fn connect_to_server() -> anyhow::Result<()> {
     Ok(())
 }
 
-pub const DAGGER_SQUARE_FONT_BYTES: &[u8] =
-    include_bytes!("../../../assets/fonts/DAGGERSQUARE.otf");
+pub const DAGGER_SQUARE_FONT_BYTES: &[u8] = include_bytes!("../assets/fonts/DAGGERSQUARE.otf");
 
 impl Loader {
     /// Creates a new Loader with the given flags and returns a tuple of the
