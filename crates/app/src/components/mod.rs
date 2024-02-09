@@ -35,7 +35,7 @@ use self::{
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
 // These components should return View messages.
-use super::{view::Message, *};
+use super::{view::ViewMessage, *};
 
 /// Renders a tab-like button
 #[allow(dead_code)]
@@ -94,10 +94,10 @@ where
         .align_items(alignment::Alignment::Center)
 }
 #[allow(dead_code)]
-pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
+pub fn copyable_text<'a, E: Into<Element<'a, view::ViewMessage>>>(
     label: E,
     value: String,
-) -> iced::widget::Button<'a, view::Message> {
+) -> iced::widget::Button<'a, view::ViewMessage> {
     let copy_button = button(label)
         .style(
             CustomButtonStyle::text(&iced::Theme::Dark)
@@ -110,7 +110,7 @@ pub fn copyable_text<'a, E: Into<Element<'a, view::Message>>>(
                 .as_custom(),
         )
         .padding(0)
-        .on_press(view::Message::Root(view::RootMessage::CopyToClipboard(
+        .on_press(view::ViewMessage::Root(view::RootMessage::CopyToClipboard(
             value,
         )));
     copy_button
@@ -446,7 +446,7 @@ where
 pub fn custom_icon_button<'a>(
     icon: icons::Icon,
     font_size: u16,
-) -> iced::widget::Button<'a, Message> {
+) -> iced::widget::Button<'a, ViewMessage> {
     let content = text(icon_to_char(icon))
         .font(ICON_FONT)
         .size(font_size)
@@ -488,12 +488,12 @@ where
     }
 }
 
-impl Default for NavigationStep<Message> {
+impl Default for NavigationStep<ViewMessage> {
     fn default() -> Self {
         Self {
             icon: Icon::Check,
             cta: "Default".to_string(),
-            on_press: Message::default(),
+            on_press: ViewMessage::default(),
             active: false,
             disabled: false,
         }

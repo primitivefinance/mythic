@@ -66,8 +66,8 @@ enum State {
 /// application is forced to quit.
 #[derive(Debug)]
 pub enum Message {
-    Load(Box<loader::Message>),
-    Update(Box<app::Message>),
+    Load(Box<loader::LoaderMessage>),
+    Update(Box<app::AppMessage>),
     Event(iced::event::Event),
     Quit,
     ForceQuit,
@@ -182,7 +182,7 @@ impl Application for MVP {
             }
             (State::Loader(l), Message::Load(msg)) => match *msg {
                 // 3. Got the message from the loader we are ready to go!
-                loader::Message::Ready(Ok((model, client))) => {
+                loader::LoaderMessage::Ready(Ok((model, client))) => {
                     // 4. Create our app and move to the app state.
                     let (app, command) = App::new(model, client);
                     self.state = State::App(app);
@@ -190,16 +190,16 @@ impl Application for MVP {
                     // 5. Get to the next branch.
                     command.map(|msg| Message::Update(Box::new(msg)))
                 }
-                loader::Message::Ready(Err(error_message)) => {
+                loader::LoaderMessage::Ready(Err(error_message)) => {
                     tracing::error!("Failed to load app: {}", error_message);
                     Command::none()
                 }
-                loader::Message::Quit => Command::perform(async {}, |()| Message::ForceQuit),
+                loader::LoaderMessage::Quit => Command::perform(async {}, |()| Message::ForceQuit),
                 // 2. Loader emits the Load message, update the loader state.
                 _ => l.update(*msg).map(|msg| Message::Load(Box::new(msg))),
             },
             (State::App(app), Message::Update(msg)) => {
-                if let app::Message::QuitReady = *msg {
+                if let app::AppMessage::QuitReady = *msg {
                     return Command::perform(async {}, |()| Message::ForceQuit);
                 }
                 // 6. Arrived at main application loop.

@@ -63,7 +63,7 @@ pub fn app_span() -> Span {
 
 /// Root message for the Application.
 #[derive(Debug, Default)]
-pub enum Message {
+pub enum AppMessage {
     /// An empty message used as a default.
     #[default]
     Empty,
@@ -72,7 +72,7 @@ pub enum Message {
     /// Exits the application immediately.
     QuitReady,
     /// All children controllers wrap their messages in View.
-    View(view::Message),
+    View(view::ViewMessage),
     /// Modifications to the persistent user profile.
     UpdateUser(UserProfileMessage),
     /// Switches the active "app" to the target Route.
@@ -100,14 +100,14 @@ pub enum UserProfileMessage {
     ClearRPCs,
 }
 
-pub type RootMessage = Message;
-pub type RootViewMessage = view::Message;
+pub type RootMessage = AppMessage;
+pub type RootViewMessage = view::ViewMessage;
 
-impl MessageWrapper for Message {
-    type ParentMessage = Message;
+impl MessageWrapper for AppMessage {
+    type ParentMessage = AppMessage;
 }
 
-impl From<UserProfileMessage> for Message {
+impl From<UserProfileMessage> for AppMessage {
     fn from(message: UserProfileMessage) -> Self {
         Self::UpdateUser(message)
     }
@@ -196,7 +196,7 @@ impl App {
     pub fn new(
         model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-    ) -> (Self, Command<Message>) {
+    ) -> (Self, Command<AppMessage>) {
         let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
         let mut sidebar = Sidebar::new();
         sidebar.page = view::sidebar::Page::Portfolio;
@@ -207,14 +207,14 @@ impl App {
                 windows: Windows::new(dashboard, sidebar),
                 app_clock: AppClock::new(),
             },
-            Command::perform(async {}, |_| Message::Load),
+            Command::perform(async {}, |_| AppMessage::Load),
         )
     }
 
     /// This function is responsible for loading the sidebar and the default
     /// screen. It is called when a user starts the application, after the
     /// new() function.
-    pub fn load(&mut self) -> Command<Message> {
+    pub fn load(&mut self) -> Command<AppMessage> {
         // Load the sidebar and the current window.
         let cmds = vec![
             self.windows.sidebar.load().map(|x| x.into()),
@@ -245,18 +245,18 @@ impl App {
     ///
     /// This function will panic if the `Message::ModelSyncResult` variant is
     /// used and the result is an error.
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: AppMessage) -> Command<AppMessage> {
         // Handle the update clock first.
         self.app_clock.update();
 
         // Handle the update.
         app_span().in_scope(|| match message {
-            Message::Load => self.load(),
-            Message::QuitReady => {
+            AppMessage::Load => self.load(),
+            AppMessage::QuitReady => {
                 // Caught by the lib.rs and exits the application.
                 Command::none()
             }
-            Message::ModelSyncResult(Ok(model)) => {
+            AppMessage::ModelSyncResult(Ok(model)) => {
                 // Update the root model.
                 self.model = model.clone();
 
@@ -264,17 +264,17 @@ impl App {
                 // todo: remove side effects, @alex what did you mean by this?
                 self.windows
                     .screen
-                    .update(Message::ModelSyncResult(Ok(model)))
+                    .update(AppMessage::ModelSyncResult(Ok(model)))
             }
-            Message::ModelSyncResult(Err(e)) => {
+            AppMessage::ModelSyncResult(Err(e)) => {
                 tracing::error!(
                     "Critical failure - sync model threw an error while updating: {:?}",
                     e
                 );
                 Command::none()
             }
-            Message::UpdateUser(msg) => self.update_user(msg),
-            Message::View(view::Message::Root(msg)) => match msg {
+            AppMessage::UpdateUser(msg) => self.update_user(msg),
+            AppMessage::View(view::ViewMessage::Root(msg)) => match msg {
                 view::RootMessage::ModelSyncRequest => self.sync_model(),
                 view::RootMessage::Route(route) => self.switch_window(&route),
                 view::RootMessage::CopyToClipboard(contents) => iced::clipboard::write(contents),
@@ -285,7 +285,7 @@ impl App {
                     tracing::debug!("Confirming exit");
                     self.windows
                         .screen
-                        .update(Message::View(view::Message::Root(msg)))
+                        .update(AppMessage::View(view::ViewMessage::Root(msg)))
                         .map(|x| x)
                 }
             },
@@ -306,13 +306,13 @@ impl App {
     ///
     /// # Returns
     /// * `Element<Message>` - The view of the application.
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<AppMessage> {
         view::app_layout(
             &self.app_clock,
             &self.windows.sidebar,
             self.windows.screen.view(),
         )
-        .map(Message::View)
+        .map(AppMessage::View)
     }
 
     /// Returns the subscription of the current screen.
@@ -324,7 +324,7 @@ impl App {
     ///
     /// # Returns
     /// * `Subscription<Message>` - The subscription of the current screen.
-    pub fn subscription(&self) -> Subscription<Message> {
+    pub fn subscription(&self) -> Subscription<AppMessage> {
         self.windows.screen.subscription()
     }
 
@@ -340,7 +340,7 @@ impl App {
     /// # Returns
     /// * `Command<Message>` - A batch of commands to be executed during the
     ///   exit process.
-    pub fn exit(&mut self) -> Command<Message> {
+    pub fn exit(&mut self) -> Command<AppMessage> {
         // Save the profile to disk.
         let result = self.model.save();
         match result {
@@ -360,7 +360,7 @@ impl App {
                 save_snapshot(self.client.clone()),
                 UserProfileMessage::SaveAnvilSnapshot,
             )
-            .map(Message::UpdateUser);
+            .map(AppMessage::UpdateUser);
             commands.push(cmd);
         }
 
@@ -378,7 +378,7 @@ impl App {
     /// # Returns
     /// * `Command<Message>` - A command containing the result of the model
     ///   synchronization.
-    fn sync_model(&mut self) -> Command<Message> {
+    fn sync_model(&mut self) -> Command<AppMessage> {
         let model = self.model.clone();
         let provider = self.client.get_client();
         Command::perform(
@@ -387,7 +387,7 @@ impl App {
                 model.update(provider).await?;
                 Ok(model)
             },
-            Message::ModelSyncResult,
+            AppMessage::ModelSyncResult,
         )
     }
 
@@ -410,7 +410,7 @@ impl App {
     /// * `Command<Message>` - A command to sync the RPCs after updating the
     ///   user profile.
     // #[allow(unused_assignments)]
-    fn update_user(&mut self, message: UserProfileMessage) -> Command<Message> {
+    fn update_user(&mut self, message: UserProfileMessage) -> Command<AppMessage> {
         let model = &mut self.model;
         match message {
             UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
@@ -428,7 +428,7 @@ impl App {
                 }
 
                 // Exits the application after saving the anvil snapshot.
-                return Command::perform(async {}, |_| Message::QuitReady);
+                return Command::perform(async {}, |_| AppMessage::QuitReady);
             }
             UserProfileMessage::AddAddress(name, address, category) => {
                 model.user.contacts.add(
@@ -468,7 +468,7 @@ impl App {
 
         let rpcs = model.user.rpcs.clone();
         Command::perform(async {}, move |_| {
-            view::Message::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
+            view::ViewMessage::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
         })
         .map(|x| x.into())
     }
@@ -484,7 +484,7 @@ impl App {
     /// window and adds it to the command vector. Finally, it batches all
     /// the commands in the vector and returns them.
     #[allow(unreachable_patterns)]
-    fn switch_window(&mut self, navigate_to: &view::sidebar::Route) -> Command<Message> {
+    fn switch_window(&mut self, navigate_to: &view::sidebar::Route) -> Command<AppMessage> {
         let mut cmds = Vec::new();
 
         let exit_cmd = self.windows.screen.exit();

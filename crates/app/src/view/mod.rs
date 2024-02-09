@@ -20,7 +20,7 @@ pub mod sidebar;
 /// This enables controllers to communicate with controllers above them because
 /// the view messages start at the root application controller.
 #[derive(Debug, Clone, Default)]
-pub enum Message {
+pub enum ViewMessage {
     #[default]
     Empty,
     // Root controller messages are "caught" in flight in the application's
@@ -52,17 +52,17 @@ pub enum RootMessage {
     ModelSyncRequest,
 }
 
-impl MessageWrapperView for Message {
-    type ParentMessage = Message;
+impl MessageWrapperView for ViewMessage {
+    type ParentMessage = ViewMessage;
 }
 
-impl MessageWrapper for Message {
-    type ParentMessage = app::Message;
+impl MessageWrapper for ViewMessage {
+    type ParentMessage = app::AppMessage;
 }
 
-impl From<Message> for app::Message {
-    fn from(message: Message) -> Self {
-        app::Message::View(message)
+impl From<ViewMessage> for app::AppMessage {
+    fn from(message: ViewMessage) -> Self {
+        app::AppMessage::View(message)
     }
 }
 
@@ -73,11 +73,11 @@ impl From<Message> for app::Message {
 /// - Content
 ///
 /// Content is wrapped by its own layout.
-pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
+pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     app_clock: &'a AppClock,
     menu: &'a sidebar::Sidebar,
     content: T,
-) -> Element<'a, Message> {
+) -> Element<'a, ViewMessage> {
     let floating_clock = floating_element(
         Container::new(Column::new())
             .width(Length::Fixed(100.0))
@@ -123,10 +123,10 @@ pub fn app_layout<'a, T: Into<Element<'a, Message>>>(
 }
 
 /// For rendering content inside a screen that implements [`State`].
-pub fn screen_layout<'a, T: Into<Element<'a, Message>>>(
+pub fn screen_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     _window: &'a Page,
     content: T,
-) -> Element<'a, Message> {
+) -> Element<'a, ViewMessage> {
     Container::new(content)
         .center_x()
         .center_y()

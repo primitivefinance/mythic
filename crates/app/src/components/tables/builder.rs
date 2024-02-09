@@ -2,11 +2,11 @@
 
 use super::*;
 
-pub struct TableBuilder<Message>
+pub struct TableBuilder<Msg>
 where
-    Message: 'static + Default,
+    Msg: 'static + Default,
 {
-    columns: Vec<ColumnBuilder<Message>>,
+    columns: Vec<ColumnBuilder<Msg>>,
     spacing_col: Option<Sizes>,
     spacing_row: Option<Sizes>,
     spacing_cell: Option<Sizes>,
@@ -16,18 +16,18 @@ where
     padding_cell_internal: Option<Sizes>,
 }
 
-impl Default for TableBuilder<Message>
+impl<Msg> Default for TableBuilder<Msg>
 where
-    Message: 'static + Default,
+    Msg: 'static + Default,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<Message> TableBuilder<Message>
+impl<Msg> TableBuilder<Msg>
 where
-    Message: 'static + Default,
+    Msg: 'static + Default,
 {
     pub fn new() -> Self {
         Self {
@@ -89,18 +89,18 @@ where
         self
     }
 
-    pub fn column(mut self, column: ColumnBuilder<Message>) -> Self {
+    pub fn column(mut self, column: ColumnBuilder<Msg>) -> Self {
         self.columns.push(column);
         self
     }
 
-    pub fn build<'a>(self) -> Row<'a, Message> {
+    pub fn build<'a>(self) -> Row<'a, Msg> {
         let mut table = Row::new();
 
         for column in self.columns {
             // Specifies the spacing between rows in a column.
             // And the spacing between cells in a row.
-            let column: Column<'static, Message> = column
+            let column: Column<'static, Msg> = column
                 .spacing(self.spacing_row.unwrap_or_default())
                 .spacing_cell(self.spacing_cell.unwrap_or_default())
                 .padding_row(self.padding_row.unwrap_or_default())

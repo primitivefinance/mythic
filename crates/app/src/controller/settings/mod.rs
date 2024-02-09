@@ -36,7 +36,7 @@ impl MessageWrapperView for Message {
 // normal message which are not clone
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
-        Self::View(view::Message::Settings(message))
+        Self::View(view::ViewMessage::Settings(message))
     }
 }
 
@@ -113,7 +113,7 @@ impl State for SettingsScreen {
     }
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
-        if let Self::AppMessage::View(view::Message::Settings(message)) = message {
+        if let Self::AppMessage::View(view::ViewMessage::Settings(message)) = message {
             match message {
                 Message::Rpc(message) => match message {
                     rpc::Message::Delete => {
@@ -161,7 +161,7 @@ impl State for SettingsScreen {
                                 tracing::error!("Failed to submit new RPC packet: {:?}", e);
 
                                 Command::perform(async {}, move |_| {
-                                    view::Message::Settings(settings::Message::Rpc(
+                                    view::ViewMessage::Settings(settings::Message::Rpc(
                                         settings::rpc::Message::Feedback(anyhow!(e).into()),
                                     ))
                                 })

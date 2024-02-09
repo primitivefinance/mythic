@@ -32,24 +32,24 @@ pub enum Location {
 }
 
 impl MessageWrapper for Route {
-    type ParentMessage = app::Message;
+    type ParentMessage = app::AppMessage;
 }
 
 /// For converting a `Route` into a `view::Message` that can be sent to the view
 /// to update the UI.
 impl MessageWrapperView for Route {
-    type ParentMessage = view::Message;
+    type ParentMessage = view::ViewMessage;
 }
 
 impl From<Route> for <Route as MessageWrapper>::ParentMessage {
     fn from(msg: Route) -> Self {
-        app::Message::View(view::Message::Root(view::RootMessage::Route(msg)))
+        app::AppMessage::View(view::ViewMessage::Root(view::RootMessage::Route(msg)))
     }
 }
 
 impl From<Route> for <Route as MessageWrapperView>::ParentMessage {
     fn from(msg: Route) -> Self {
-        view::Message::Root(view::RootMessage::Route(msg))
+        view::ViewMessage::Root(view::RootMessage::Route(msg))
     }
 }
 
@@ -73,7 +73,7 @@ impl Sidebar {
 impl Sidebar {
     /// Renders a section header with a label.
     #[allow(dead_code)]
-    pub fn section<'a>(&self, header: String) -> Row<'a, view::Message> {
+    pub fn section<'a>(&self, header: String) -> Row<'a, view::ViewMessage> {
         Row::new()
             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
             .push(
@@ -87,7 +87,7 @@ impl Sidebar {
     }
 
     /// Renders the inner column below the sidebar's header section.
-    pub fn layout(&self) -> Element<'_, view::Message> {
+    pub fn layout(&self) -> Element<'_, view::ViewMessage> {
         let mut column = Column::new();
         column = column.push(self.page.view().map(|x| x.into()));
         column
@@ -99,7 +99,7 @@ impl Sidebar {
 
 impl controller::State for Sidebar {
     type AppMessage = Route;
-    type ViewMessage = view::Message;
+    type ViewMessage = view::ViewMessage;
 
     fn update(&mut self, message: Route) -> Command<Route> {
         self.state = message.clone();

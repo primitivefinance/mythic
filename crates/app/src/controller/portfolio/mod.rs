@@ -25,11 +25,11 @@ pub enum Page {
 
 impl From<Message> for RootMessage {
     fn from(message: Message) -> Self {
-        Self::View(view::Message::Portfolio(message))
+        Self::View(view::ViewMessage::Portfolio(message))
     }
 }
 
-impl From<Message> for view::Message {
+impl From<Message> for view::ViewMessage {
     fn from(message: Message) -> Self {
         Self::Portfolio(message)
     }
@@ -61,8 +61,8 @@ impl From<PortfolioRoot> for Screen {
 }
 
 impl State for PortfolioRoot {
-    type AppMessage = app::Message;
-    type ViewMessage = view::Message;
+    type AppMessage = app::AppMessage;
+    type ViewMessage = view::ViewMessage;
 
     fn load(&self) -> Command<Self::AppMessage> {
         self.monolithic
@@ -72,15 +72,17 @@ impl State for PortfolioRoot {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Self::AppMessage::View(view::Message::Portfolio(message)) => match message {
+            Self::AppMessage::View(view::ViewMessage::Portfolio(message)) => match message {
                 Message::SyncModel => Command::perform(async {}, |_| {
                     Self::ViewMessage::Root(view::RootMessage::ModelSyncRequest)
                 })
                 .map(Self::AppMessage::View),
                 Message::Empty => Command::none(),
                 Message::Monolithic(monolithic::Message::SyncModel(_block)) => {
-                    Command::perform(async {}, |_| view::Message::Portfolio(Message::SyncModel))
-                        .map(Self::AppMessage::View)
+                    Command::perform(async {}, |_| {
+                        view::ViewMessage::Portfolio(Message::SyncModel)
+                    })
+                    .map(Self::AppMessage::View)
                 }
                 Message::Monolithic(message) => self
                     .monolithic

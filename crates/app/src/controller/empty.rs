@@ -20,8 +20,8 @@ impl From<EmptyScreen> for Screen {
 }
 
 impl State for EmptyScreen {
-    type AppMessage = app::Message;
-    type ViewMessage = view::Message;
+    type AppMessage = app::AppMessage;
+    type ViewMessage = view::ViewMessage;
 
     fn load(&self) -> Command<Self::AppMessage> {
         Command::none()

@@ -144,7 +144,7 @@ pub trait State {
 
 /// Alias for the type of screen.
 /// Windows are like tabs in a browser.
-type WindowScreen = dyn State<ViewMessage = view::Message, AppMessage = app::Message>;
+type WindowScreen = dyn State<ViewMessage = view::ViewMessage, AppMessage = app::AppMessage>;
 
 /// Wraps anything that implements WindowScreen type of State trait into an
 /// easier to use struct.

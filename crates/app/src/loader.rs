@@ -31,11 +31,10 @@ use self::{
     middleware::{start_anvil, ExcaliburMiddleware},
     model::contacts,
 };
-
 use super::*;
 
 #[derive(Debug)]
-pub enum Message {
+pub enum LoaderMessage {
     View,
     Tick,
     Loaded(Flags),
@@ -372,7 +371,7 @@ impl Loader {
     /// If any of these operations fail, a LoadingFailed message is returned.
     /// If all operations are successful, a tuple of the Loader and a Command is
     /// returned.
-    pub fn new(flags: Flags) -> (Self, Command<Message>) {
+    pub fn new(flags: Flags) -> (Self, Command<LoaderMessage>) {
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
 
@@ -393,36 +392,36 @@ impl Loader {
                 Command::perform(connect_to_server(), |res| {
                     if let Err(e) = res {
                         tracing::error!("Failed to connect to server: {:?}", e);
-                        return Message::LoadingFailed;
+                        return LoaderMessage::LoadingFailed;
                     }
 
-                    Message::Connected
+                    LoaderMessage::Connected
                 }),
                 font::load(ICON_FONT_BYTES).map(move |res| {
                     if let Err(e) = res {
                         tracing::error!("Failed to load icon font: {:?}", e);
-                        return Message::LoadingFailed;
+                        return LoaderMessage::LoadingFailed;
                     }
 
-                    Message::IconFontLoaded
+                    LoaderMessage::IconFontLoaded
                 }),
                 font::load(DAGGER_SQUARE_FONT_BYTES).map(move |res| {
                     if let Err(e) = res {
                         tracing::error!("Failed to load icon font: {:?}", e);
-                        return Message::LoadingFailed;
+                        return LoaderMessage::LoadingFailed;
                     }
 
-                    Message::BrandFontLoaded
+                    LoaderMessage::BrandFontLoaded
                 }),
-                Command::perform(async {}, move |_| Message::Loaded(flags)),
+                Command::perform(async {}, move |_| LoaderMessage::Loaded(flags)),
             ]),
         )
     }
 
     /// Takes in the application flags and returns a command to load the
     /// application. The loading process is performed asynchronously.
-    fn load(&mut self, flags: Flags) -> Command<Message> {
-        Command::perform(load_app(flags), Message::Ready)
+    fn load(&mut self, flags: Flags) -> Command<LoaderMessage> {
+        Command::perform(load_app(flags), LoaderMessage::Ready)
     }
 
     /// Updates the state of the loader based on the received message.
@@ -430,11 +429,11 @@ impl Loader {
     /// loader's state accordingly. For example, it updates the progress of
     /// the loading process, handles connection status, and initiates the
     /// loading process.
-    pub fn update(&mut self, message: Message) -> Command<Message> {
+    pub fn update(&mut self, message: LoaderMessage) -> Command<LoaderMessage> {
         self.logo.cache.clear();
 
         match message {
-            Message::Tick => {
+            LoaderMessage::Tick => {
                 self.feedback = self.get_progress_feedback();
 
                 if !self.screen_open {
@@ -447,12 +446,12 @@ impl Loader {
 
                 Command::none()
             }
-            Message::Connected => {
+            LoaderMessage::Connected => {
                 self.screen_open = true;
                 self.load_ticks = 0.0;
                 Command::none()
             }
-            Message::Loaded(flags) => self.load(flags),
+            LoaderMessage::Loaded(flags) => self.load(flags),
             _ => Command::none(),
         }
     }
@@ -482,7 +481,7 @@ impl Loader {
     /// symbols. The symbol changes with each update of the progress bar.
     /// The function also displays a feedback message that corresponds to the
     /// current stage of the loading process.
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<LoaderMessage> {
         let all_symbols = GREEK_SYMBOLS
             .iter()
             .chain(CURRENCY_SYMBOLS.iter())
@@ -533,8 +532,8 @@ impl Loader {
     }
 
     // Every 25ms update the progress bar by 0.001.
-    pub fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(25)).map(|_| Message::Tick)
+    pub fn subscription(&self) -> Subscription<LoaderMessage> {
+        iced::time::every(std::time::Duration::from_millis(25)).map(|_| LoaderMessage::Tick)
     }
 }
 

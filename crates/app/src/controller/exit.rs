@@ -22,8 +22,8 @@ impl From<ExitScreen> for Screen {
 }
 
 impl State for ExitScreen {
-    type AppMessage = app::Message;
-    type ViewMessage = view::Message;
+    type AppMessage = app::AppMessage;
+    type ViewMessage = view::ViewMessage;
 
     fn load(&self) -> Command<Self::AppMessage> {
         Command::none()
@@ -31,11 +31,13 @@ impl State for ExitScreen {
 
     fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
         match message {
-            Self::AppMessage::View(view::Message::Root(message)) => match message {
+            Self::AppMessage::View(view::ViewMessage::Root(message)) => match message {
                 view::RootMessage::ConfirmExit => {
                     self.show_confirm = false;
                     Command::perform(async { Ok::<(), ()>(()) }, |_| {
-                        Self::AppMessage::View(view::Message::Root(view::RootMessage::SaveAndExit))
+                        Self::AppMessage::View(view::ViewMessage::Root(
+                            view::RootMessage::SaveAndExit,
+                        ))
                     })
                 }
                 view::RootMessage::SaveAndExit => {
