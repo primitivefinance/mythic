@@ -6,6 +6,7 @@ import "solstat/Gaussian.sol";
 import "src/interfaces/IStrategy.sol";
 import "src/interfaces/IDFMM.sol";
 import "src/solvers/G3M/G3MExtendedLib.sol";
+import "forge-std/console2.sol";
 
 contract G3MSolver {
     using FixedPointMathLib for uint256;
@@ -219,6 +220,16 @@ contract G3MSolver {
             computePrice(endReserves.rx, endReserves.ry, poolParams),
             swapData
         );
+    }
+
+    function calculateDiffLower(
+        uint256 poolId,
+        uint256 S,
+        uint256 v
+    ) public view returns (int256) {
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
+        (uint256 rx, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
+        return diffLower(S, L, rx, ry, params, v);
     }
 
     /// @dev Computes the internal price using this strategie's slot parameters.

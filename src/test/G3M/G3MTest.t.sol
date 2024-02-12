@@ -90,6 +90,14 @@ contract G3MTest is Test {
             solver.simulateSwap(poolId, true, amountIn);
     }
 
+    function test_diff_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLower =
+            solver.calculateDiffLower(poolId, 0.8 ether, 114.674 ether);
+
+        console2.log(diffLower);
+    }
+
     // function test_internal_price() public basic {
     //     uint256 internalPrice = solver.internalPrice();
 
