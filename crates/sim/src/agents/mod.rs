@@ -8,6 +8,7 @@ use portfolio_management_agents::{
     lognormal::ln_liquidity_provider::*,
 };
 
+use self::portfolio_management_agents::g3m::dca_swapper::DcaSwapperParameters;
 use super::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -19,6 +20,7 @@ pub enum AgentParameters<P: Parameterized> {
     TokenAdmin(TokenAdminParameters),
     PriceChanger(PriceChangerParameters<P>),
     ParameterManager(ParameterManagerParameters<P>),
+    DcaSwapper(DcaSwapperParameters<P>),
 }
 
 impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
@@ -44,6 +46,13 @@ impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
                 parameters
                     .into_iter()
                     .map(AgentParameters::DcaG3mLiquidityProvider)
+                    .collect()
+            }
+            AgentParameters::DcaSwapper(parameters) => {
+                let parameters: Vec<DcaSwapperParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::DcaSwapper)
                     .collect()
             }
             AgentParameters::ParameterManager(parameters) => {

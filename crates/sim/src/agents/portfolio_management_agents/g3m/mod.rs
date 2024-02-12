@@ -1,9 +1,13 @@
 use clients::protocol::ProtocolClient;
 use ethers::abi::Address;
 
-use self::{g3m_arbitrageur::G3mArbitrageur, g3m_liquidity_provider::G3mLiquidityProvider};
+use self::{
+    dca_swapper::DcaSwapper, g3m_arbitrageur::G3mArbitrageur,
+    g3m_liquidity_provider::G3mLiquidityProvider,
+};
 use super::{ParameterManager, *};
 pub mod dca_g3m_liquidity_provider;
+pub mod dca_swapper;
 pub mod g3m_arbitrageur;
 pub mod g3m_liquidity_provider;
 
@@ -51,7 +55,7 @@ pub async fn dca_g3m_setup(
     liquid_exchange_address: Address,
     token_admin: &TokenAdmin,
     pool_id: U256,
-) -> Result<(DcaG3mLiquidityProvider, G3mArbitrageur)> {
+) -> Result<(DcaG3mLiquidityProvider, G3mArbitrageur, DcaSwapper)> {
     let arbitrageur = G3mArbitrageur::new(
         environment,
         token_admin,
@@ -68,5 +72,13 @@ pub async fn dca_g3m_setup(
         protocol_client.clone(),
     )
     .await?;
-    Ok((lp, arbitrageur))
+    let dca_swapper = DcaSwapper::new(
+        environment,
+        config,
+        "dca_swapper",
+        liquid_exchange_address,
+        token_admin,
+    )
+    .await?;
+    Ok((lp, arbitrageur, dca_swapper))
 }

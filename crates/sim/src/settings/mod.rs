@@ -15,6 +15,7 @@ pub enum SimulationType {
     DynamicWeights,
     StablePortfolio,
     RmmVolatilityTargeting,
+    G3mLinearDca,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

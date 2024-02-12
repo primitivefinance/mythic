@@ -85,7 +85,7 @@ impl Scenario for DFMMScenario {
 
         let g3m_pool_id = base_protocol_client.get_next_pool_id().await?;
 
-        let (g3m_lp, g3m_arb) = dca_g3m_setup(
+        let (g3m_lp, g3m_arb, dca_swapper) = dca_g3m_setup(
             &environment,
             &config,
             base_protocol_client.clone(),
@@ -96,7 +96,9 @@ impl Scenario for DFMMScenario {
         .await?;
 
         let g3m_arb_events = g3m_arb.0.atomic_arbitrage.events();
+        let dca_portfolio_tracker_events = dca_swapper.portfolio_tracker.events();
         agents.add(g3m_lp);
+        agents.add(dca_swapper);
         agents.add(g3m_arb);
 
         EventLogger::builder()
@@ -106,6 +108,7 @@ impl Scenario for DFMMScenario {
             .add(base_protocol_client.protocol.events(), "dfmm")
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
+            .add(dca_portfolio_tracker_events, "dca_portfolio_tracker")
             .add(g3m_arb_events, "g3m_atomic_arbitrage")
             .run()
             .map_err(|e| SimulationError::GenericError(e.to_string()))?;
