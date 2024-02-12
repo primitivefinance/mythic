@@ -172,8 +172,6 @@ pub async fn load_app(flags: super::Flags) -> LoadResult {
             *exc_client.contracts.get("strategy").unwrap(),
             Address::zero(),
             Address::zero(),
-            Address::zero(),
-            Address::zero(),
         )?;
         exc_client.connect_dfmm(protocol_client).await?;
     }

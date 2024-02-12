@@ -6,18 +6,19 @@ import "src/strategies/G3M/G3MLib.sol";
 
 contract G3MLibTest is Test {
     function testFuzz_G3MLib_encodeFeeUpdate(uint256 swapFee) public {
-        bytes memory data = encodeFeeUpdate(swapFee);
-        assertEq(swapFee, decodeFeeUpdate(data));
+        bytes memory data = G3MLib.encodeFeeUpdate(swapFee);
+        assertEq(swapFee, G3MLib.decodeFeeUpdate(data));
     }
 
     function testFuzz_G3MLib_encodeWeightXUpdate(
         uint256 targetWeightX,
         uint256 targetTimestamp
     ) public {
-        bytes memory data = encodeWeightXUpdate(targetWeightX, targetTimestamp);
+        bytes memory data =
+            G3MLib.encodeWeightXUpdate(targetWeightX, targetTimestamp);
 
         (uint256 decodedTargetWeightX, uint256 decodedTargetTimestamp) =
-            decodeWeightXUpdate(data);
+            G3MLib.decodeWeightXUpdate(data);
         assertEq(targetWeightX, decodedTargetWeightX);
         assertEq(targetTimestamp, decodedTargetTimestamp);
     }
@@ -25,8 +26,8 @@ contract G3MLibTest is Test {
     function testFuzz_G3MLib_encodeControllerUpdate(address controller)
         public
     {
-        bytes memory data = encodeControllerUpdate(controller);
-        assertEq(controller, decodeControllerUpdate(data));
+        bytes memory data = G3MLib.encodeControllerUpdate(controller);
+        assertEq(controller, G3MLib.decodeControllerUpdate(data));
     }
 
     function test_G3MLib_tradingFunction() public {

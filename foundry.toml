@@ -5,10 +5,6 @@ remappings = [
     "solmate/=lib/solstat/lib/solmate/src/",
 ]
 solc_version = "0.8.22"
-bytecode_hash = "none"
-cbor_metadata = false
-extra_output = ["storageLayout"]
-via_ir = true
 
 # these are defaults. explicitly setting them here for clarity.
 libs = ["lib"]
@@ -28,3 +24,7 @@ number_underscore = "thousands"
 
 [rpc_endpoints]
 local = "http://localhost:8545"
+optimism_sepolia = "${OPTIMISM_SEPOLIA_RPC_URL}"
+
+[etherscan]
+optimism_sepolia = { key = "${ETHERSCAN_API_KEY}" }

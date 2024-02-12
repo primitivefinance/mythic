@@ -111,6 +111,13 @@ pub mod i_strategy {
                             name: ::std::borrow::ToOwned::to_owned("init"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sender"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
@@ -184,6 +191,13 @@ pub mod i_strategy {
                             name: ::std::borrow::ToOwned::to_owned("update"),
                             inputs: ::std::vec![
                                 ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sender"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
+                                ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
                                         256usize,
@@ -214,6 +228,13 @@ pub mod i_strategy {
                                 "validateAllocateOrDeallocate",
                             ),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sender"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
@@ -285,6 +306,13 @@ pub mod i_strategy {
                         ::ethers::core::abi::ethabi::Function {
                             name: ::std::borrow::ToOwned::to_owned("validateSwap"),
                             inputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::borrow::ToOwned::to_owned("sender"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("address"),
+                                    ),
+                                },
                                 ::ethers::core::abi::ethabi::Param {
                                     name: ::std::borrow::ToOwned::to_owned("poolId"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Uint(
@@ -362,6 +390,15 @@ pub mod i_strategy {
             ]),
             events: ::std::collections::BTreeMap::new(),
             errors: ::core::convert::From::from([
+                (
+                    ::std::borrow::ToOwned::to_owned("InvalidSender"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("InvalidSender"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
                 (
                     ::std::borrow::ToOwned::to_owned("InvalidUpdateCode"),
                     ::std::vec![
@@ -459,9 +496,10 @@ pub mod i_strategy {
                 .method_hash([220, 23, 131, 85], pool_id)
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `init` (0x9f83137b) function
+        ///Calls the contract's `init` (0x73cb2d03) function
         pub fn init(
             &self,
+            sender: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -475,22 +513,24 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([159, 131, 19, 123], (pool_id, data))
+                .method_hash([115, 203, 45, 3], (sender, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `update` (0x0216b838) function
+        ///Calls the contract's `update` (0xacad2989) function
         pub fn update(
             &self,
+            sender: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<M, ()> {
             self.0
-                .method_hash([2, 22, 184, 56], (pool_id, data))
+                .method_hash([172, 173, 41, 137], (sender, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateAllocateOrDeallocate` (0x8e2dd400) function
+        ///Calls the contract's `validateAllocateOrDeallocate` (0x8a04bdd5) function
         pub fn validate_allocate_or_deallocate(
             &self,
+            sender: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -504,12 +544,13 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([142, 45, 212, 0], (pool_id, data))
+                .method_hash([138, 4, 189, 213], (sender, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
-        ///Calls the contract's `validateSwap` (0x3214890f) function
+        ///Calls the contract's `validateSwap` (0x68bd3e38) function
         pub fn validate_swap(
             &self,
+            sender: ::ethers::core::types::Address,
             pool_id: ::ethers::core::types::U256,
             data: ::ethers::core::types::Bytes,
         ) -> ::ethers::contract::builders::ContractCall<
@@ -524,7 +565,7 @@ pub mod i_strategy {
             ),
         > {
             self.0
-                .method_hash([50, 20, 137, 15], (pool_id, data))
+                .method_hash([104, 189, 62, 56], (sender, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
     }
@@ -534,6 +575,21 @@ pub mod i_strategy {
             Self::new(contract.address(), contract.client())
         }
     }
+    ///Custom Error type `InvalidSender` with signature `InvalidSender()` and selector `0xddb5de5e`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "InvalidSender", abi = "InvalidSender()")]
+    pub struct InvalidSender;
     ///Custom Error type `InvalidUpdateCode` with signature `InvalidUpdateCode()` and selector `0x235d2b3d`
     #[derive(
         Clone,
@@ -576,6 +632,7 @@ pub mod i_strategy {
         Hash
     )]
     pub enum IStrategyErrors {
+        InvalidSender(InvalidSender),
         InvalidUpdateCode(InvalidUpdateCode),
         NotDFMM(NotDFMM),
         /// The standard solidity revert string, with selector
@@ -591,6 +648,11 @@ pub mod i_strategy {
                 data,
             ) {
                 return Ok(Self::RevertString(decoded));
+            }
+            if let Ok(decoded) = <InvalidSender as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::InvalidSender(decoded));
             }
             if let Ok(decoded) = <InvalidUpdateCode as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -608,6 +670,9 @@ pub mod i_strategy {
     impl ::ethers::core::abi::AbiEncode for IStrategyErrors {
         fn encode(self) -> ::std::vec::Vec<u8> {
             match self {
+                Self::InvalidSender(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::InvalidUpdateCode(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
@@ -621,6 +686,10 @@ pub mod i_strategy {
             match selector {
                 [0x08, 0xc3, 0x79, 0xa0] => true,
                 _ if selector
+                    == <InvalidSender as ::ethers::contract::EthError>::selector() => {
+                    true
+                }
+                _ if selector
                     == <InvalidUpdateCode as ::ethers::contract::EthError>::selector() => {
                     true
                 }
@@ -633,6 +702,7 @@ pub mod i_strategy {
     impl ::core::fmt::Display for IStrategyErrors {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
             match self {
+                Self::InvalidSender(element) => ::core::fmt::Display::fmt(element, f),
                 Self::InvalidUpdateCode(element) => ::core::fmt::Display::fmt(element, f),
                 Self::NotDFMM(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
@@ -642,6 +712,11 @@ pub mod i_strategy {
     impl ::core::convert::From<::std::string::String> for IStrategyErrors {
         fn from(value: String) -> Self {
             Self::RevertString(value)
+        }
+    }
+    impl ::core::convert::From<InvalidSender> for IStrategyErrors {
+        fn from(value: InvalidSender) -> Self {
+            Self::InvalidSender(value)
         }
     }
     impl ::core::convert::From<InvalidUpdateCode> for IStrategyErrors {
@@ -704,7 +779,7 @@ pub mod i_strategy {
     pub struct GetPoolParamsCall {
         pub pool_id: ::ethers::core::types::U256,
     }
-    ///Container type for all input parameters for the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
+    ///Container type for all input parameters for the `init` function with signature `init(address,uint256,bytes)` and selector `0x73cb2d03`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -717,12 +792,13 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "init", abi = "init(uint256,bytes)")]
+    #[ethcall(name = "init", abi = "init(address,uint256,bytes)")]
     pub struct InitCall {
+        pub sender: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `update` function with signature `update(uint256,bytes)` and selector `0x0216b838`
+    ///Container type for all input parameters for the `update` function with signature `update(address,uint256,bytes)` and selector `0xacad2989`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -735,12 +811,13 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "update", abi = "update(uint256,bytes)")]
+    #[ethcall(name = "update", abi = "update(address,uint256,bytes)")]
     pub struct UpdateCall {
+        pub sender: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
+    ///Container type for all input parameters for the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(address,uint256,bytes)` and selector `0x8a04bdd5`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -755,13 +832,14 @@ pub mod i_strategy {
     )]
     #[ethcall(
         name = "validateAllocateOrDeallocate",
-        abi = "validateAllocateOrDeallocate(uint256,bytes)"
+        abi = "validateAllocateOrDeallocate(address,uint256,bytes)"
     )]
     pub struct ValidateAllocateOrDeallocateCall {
+        pub sender: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
-    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
+    ///Container type for all input parameters for the `validateSwap` function with signature `validateSwap(address,uint256,bytes)` and selector `0x68bd3e38`
     #[derive(
         Clone,
         ::ethers::contract::EthCall,
@@ -774,8 +852,9 @@ pub mod i_strategy {
         Eq,
         Hash
     )]
-    #[ethcall(name = "validateSwap", abi = "validateSwap(uint256,bytes)")]
+    #[ethcall(name = "validateSwap", abi = "validateSwap(address,uint256,bytes)")]
     pub struct ValidateSwapCall {
+        pub sender: ::ethers::core::types::Address,
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
@@ -959,7 +1038,7 @@ pub mod i_strategy {
     pub struct GetPoolParamsReturn {
         pub params: ::ethers::core::types::Bytes,
     }
-    ///Container type for all return fields from the `init` function with signature `init(uint256,bytes)` and selector `0x9f83137b`
+    ///Container type for all return fields from the `init` function with signature `init(address,uint256,bytes)` and selector `0x73cb2d03`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -979,7 +1058,7 @@ pub mod i_strategy {
         pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(uint256,bytes)` and selector `0x8e2dd400`
+    ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(address,uint256,bytes)` and selector `0x8a04bdd5`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,
@@ -999,7 +1078,7 @@ pub mod i_strategy {
         pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
-    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(uint256,bytes)` and selector `0x3214890f`
+    ///Container type for all return fields from the `validateSwap` function with signature `validateSwap(address,uint256,bytes)` and selector `0x68bd3e38`
     #[derive(
         Clone,
         ::ethers::contract::EthAbiType,

@@ -94,7 +94,7 @@ contract G3M is IStrategy {
         internalParams[poolId].swapFee = swapFee;
         internalParams[poolId].controller = controller;
 
-        invariant = tradingFunction(
+        invariant = G3MLib.tradingFunction(
             reserveX,
             reserveY,
             totalLiquidity,
@@ -124,7 +124,7 @@ contract G3M is IStrategy {
         (reserveX, reserveY, totalLiquidity) =
             abi.decode(data, (uint256, uint256, uint256));
 
-        invariant = tradingFunction(
+        invariant = G3MLib.tradingFunction(
             reserveX,
             reserveY,
             totalLiquidity,
@@ -174,14 +174,16 @@ contract G3M is IStrategy {
             revert("invalid swap: inputs x and y have the same sign!");
         }
 
+        uint256 poolId = poolId;
+
         liquidityDelta = int256(nextL)
             - int256(
-                computeNextLiquidity(
+                G3MLib.computeNextLiquidity(
                     startRx, startRy, abi.decode(getPoolParams(poolId), (G3MParams))
                 )
             );
 
-        invariant = tradingFunction(nextRx, nextRy, nextL, params);
+        invariant = G3MLib.tradingFunction(nextRx, nextRy, nextL, params);
         valid = -(EPSILON) < invariant && invariant < EPSILON;
     }
 
@@ -192,16 +194,18 @@ contract G3M is IStrategy {
         bytes calldata data
     ) external onlyDFMM {
         if (sender != internalParams[poolId].controller) revert InvalidSender();
-        G3MUpdateCode updateCode = abi.decode(data, (G3MUpdateCode));
+        G3MLib.G3MUpdateCode updateCode =
+            abi.decode(data, (G3MLib.G3MUpdateCode));
 
-        if (updateCode == G3MUpdateCode.SwapFee) {
-            internalParams[poolId].swapFee = decodeFeeUpdate(data);
-        } else if (updateCode == G3MUpdateCode.WeightX) {
+        if (updateCode == G3MLib.G3MUpdateCode.SwapFee) {
+            internalParams[poolId].swapFee = G3MLib.decodeFeeUpdate(data);
+        } else if (updateCode == G3MLib.G3MUpdateCode.WeightX) {
             (uint256 targetWeightX, uint256 targetTimestamp) =
-                decodeWeightXUpdate(data);
+                G3MLib.decodeWeightXUpdate(data);
             internalParams[poolId].wX.set(targetWeightX, targetTimestamp);
-        } else if (updateCode == G3MUpdateCode.Controller) {
-            internalParams[poolId].controller = decodeControllerUpdate(data);
+        } else if (updateCode == G3MLib.G3MUpdateCode.Controller) {
+            internalParams[poolId].controller =
+                G3MLib.decodeControllerUpdate(data);
         } else {
             revert InvalidUpdateCode();
         }
@@ -226,7 +230,7 @@ contract G3M is IStrategy {
     ) external view returns (int256) {
         (uint256 rx, uint256 ry, uint256 L) =
             abi.decode(data, (uint256, uint256, uint256));
-        return tradingFunction(
+        return G3MLib.tradingFunction(
             rx, ry, L, abi.decode(getPoolParams(poolId), (G3MParams))
         );
     }

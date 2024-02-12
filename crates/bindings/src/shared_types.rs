@@ -17,24 +17,6 @@ pub struct DynamicParam {
     pub update_per_second: ::ethers::core::types::I256,
     pub last_update_at: ::ethers::core::types::U256,
 }
-///`G3Mparams(uint256,uint256,uint256)`
-#[derive(
-    Clone,
-    ::ethers::contract::EthAbiType,
-    ::ethers::contract::EthAbiCodec,
-    serde::Serialize,
-    serde::Deserialize,
-    Default,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash
-)]
-pub struct G3Mparams {
-    pub w_x: ::ethers::core::types::U256,
-    pub w_y: ::ethers::core::types::U256,
-    pub swap_fee: ::ethers::core::types::U256,
-}
 ///`InitParams(address,address,address,bytes)`
 #[derive(
     Clone,
@@ -53,25 +35,6 @@ pub struct InitParams {
     pub token_x: ::ethers::core::types::Address,
     pub token_y: ::ethers::core::types::Address,
     pub data: ::ethers::core::types::Bytes,
-}
-///`LogNormalParams(uint256,uint256,uint256,uint256)`
-#[derive(
-    Clone,
-    ::ethers::contract::EthAbiType,
-    ::ethers::contract::EthAbiCodec,
-    serde::Serialize,
-    serde::Deserialize,
-    Default,
-    Debug,
-    PartialEq,
-    Eq,
-    Hash
-)]
-pub struct LogNormalParams {
-    pub strike: ::ethers::core::types::U256,
-    pub sigma: ::ethers::core::types::U256,
-    pub tau: ::ethers::core::types::U256,
-    pub swap_fee: ::ethers::core::types::U256,
 }
 ///`FuzzInterface(address,string[])`
 #[derive(

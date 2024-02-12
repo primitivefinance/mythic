@@ -6,6 +6,7 @@ import "solmate/utils/SafeTransferLib.sol";
 import "solstat/Units.sol";
 import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
+import "./lib/ScalingLib.sol";
 import "./LPToken.sol";
 
 /**
@@ -56,7 +57,7 @@ contract DFMM is IDFMM {
 
         (
             bool valid,
-            int256 swapConstantGrowth,
+            int256 invariant,
             uint256 reserveX,
             uint256 reserveY,
             uint256 totalLiquidity
@@ -65,7 +66,7 @@ contract DFMM is IDFMM {
         );
 
         if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+            revert Invalid(invariant < 0, abs(invariant));
         }
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
@@ -88,25 +89,27 @@ contract DFMM is IDFMM {
         pools.push(pool);
         uint256 poolId = pools.length - 1;
 
-        SafeTransferLib.safeTransferFrom(
-            ERC20(params.tokenX), msg.sender, address(this), reserveX
-        );
-        SafeTransferLib.safeTransferFrom(
-            ERC20(params.tokenY), msg.sender, address(this), reserveY
-        );
+        _transferFrom(params.tokenX, reserveX);
+        _transferFrom(params.tokenY, reserveY);
+
+        emitInit(poolId);
+
+        return (poolId, reserveX, reserveY, totalLiquidity - BURNT_LIQUIDITY);
+    }
+
+    function emitInit(uint256 poolId) private {
+        Pool memory pool = pools[poolId];
 
         emit Init(
             msg.sender,
-            params.strategy,
-            params.tokenX,
-            params.tokenY,
+            pool.strategy,
+            pool.tokenX,
+            pool.tokenY,
             poolId,
-            reserveX,
-            reserveY,
-            totalLiquidity
+            pool.reserveX,
+            pool.reserveY,
+            pool.totalLiquidity
         );
-
-        return (poolId, reserveX, reserveY, totalLiquidity);
     }
 
     /// @inheritdoc IDFMM
@@ -117,12 +120,8 @@ contract DFMM is IDFMM {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, true, data);
 
-        SafeTransferLib.safeTransferFrom(
-            ERC20(pools[poolId].tokenX), msg.sender, address(this), deltaX
-        );
-        SafeTransferLib.safeTransferFrom(
-            ERC20(pools[poolId].tokenY), msg.sender, address(this), deltaY
-        );
+        _transferFrom(pools[poolId].tokenX, deltaX);
+        _transferFrom(pools[poolId].tokenY, deltaY);
 
         emit Allocate(msg.sender, poolId, deltaX, deltaY, deltaL);
         return (deltaX, deltaY, deltaL);
@@ -136,15 +135,8 @@ contract DFMM is IDFMM {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, false, data);
 
-        ERC20(pools[poolId].tokenX).transfer(msg.sender, deltaX);
-        ERC20(pools[poolId].tokenY).transfer(msg.sender, deltaY);
-
-        SafeTransferLib.safeTransfer(
-            ERC20(pools[poolId].tokenX), msg.sender, deltaX
-        );
-        SafeTransferLib.safeTransfer(
-            ERC20(pools[poolId].tokenY), msg.sender, deltaY
-        );
+        _transfer(pools[poolId].tokenX, msg.sender, deltaX);
+        _transfer(pools[poolId].tokenY, msg.sender, deltaY);
 
         emit Deallocate(msg.sender, poolId, deltaX, deltaY, deltaL);
         return (deltaX, deltaY, deltaL);
@@ -157,7 +149,7 @@ contract DFMM is IDFMM {
     ) external lock returns (uint256, uint256) {
         (
             bool valid,
-            int256 swapConstantGrowth,
+            int256 invariant,
             ,
             uint256 adjustedReserveX,
             uint256 adjustedReserveY,
@@ -167,7 +159,7 @@ contract DFMM is IDFMM {
         );
 
         if (!valid) {
-            revert Invalid(swapConstantGrowth < 0, abs(swapConstantGrowth));
+            revert Invalid(invariant < 0, abs(invariant));
         }
 
         pools[poolId].totalLiquidity = adjustedTotalLiquidity;
@@ -226,13 +218,8 @@ contract DFMM is IDFMM {
         uint256 preInputBalance = ERC20(inputToken).balanceOf(address(this));
         uint256 preOutputBalance = ERC20(outputToken).balanceOf(address(this));
 
-        SafeTransferLib.safeTransferFrom(
-            ERC20(inputToken), msg.sender, address(this), inputAmount
-        );
-
-        SafeTransferLib.safeTransfer(
-            ERC20(outputToken), msg.sender, outputAmount
-        );
+        _transferFrom(inputToken, inputAmount);
+        _transfer(outputToken, msg.sender, outputAmount);
 
         uint256 postInputBalance = ERC20(inputToken).balanceOf(address(this));
         uint256 postOutputBalance = ERC20(outputToken).balanceOf(address(this));
@@ -249,6 +236,25 @@ contract DFMM is IDFMM {
     }
 
     // Internals
+
+    /**
+     * @dev Transfers `amount` of `token` from the sender to the contract.
+     * @param token Address of the token to transfer.
+     * @param amount Amount to transfer expressed in WAD.
+     */
+    function _transferFrom(address token, uint256 amount) internal {
+        uint256 downscaledAmount =
+            downscaleUp(amount, computeScalingFactor(token));
+        SafeTransferLib.safeTransferFrom(
+            ERC20(token), msg.sender, address(this), downscaledAmount
+        );
+    }
+
+    function _transfer(address token, address to, uint256 amount) internal {
+        uint256 downscaledAmount =
+            downscaleDown(amount, computeScalingFactor(token));
+        SafeTransferLib.safeTransfer(ERC20(token), to, downscaledAmount);
+    }
 
     /**
      * @dev Validates the adjusted reserves and liquidity and updates the
