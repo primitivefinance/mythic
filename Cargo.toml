@@ -3,13 +3,14 @@ name = "excalibur"
 version = "0.2.0"
 edition = "2021"
 description = "Excalibur: An alternative entrypoint to DeFi."
+authors = ["Primitive Bits, Inc."]
 
 [[bin]]
 name = "excalibur"
-path = "bin/main.rs"
+path = "bin/src/main.rs"
 
 [workspace]
-members = ["crates/*", "documentation"]
+members = ["crates/*", "documentation", "bin"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -34,18 +35,18 @@ revm-primitives = { version = "=1.3.0" }
 alloy-primitives = { version = "0.5.0", features = ["serde"] }
 alloy-sol-types = "0.5.2"
 alloy-providers = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-alloy-networks = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-networks = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
 alloy-rpc-client = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61", features = [
     "pubsub",
     "ws",
     "reqwest",
 ] }
-alloy-rpc-types = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
-alloy-transport-ws = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
-alloy-transport-http = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-rpc-types = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
+alloy-transport-ws = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
+alloy-transport-http = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
 alloy-rlp = "0.3"
-alloy-pubsub = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
-alloy-signer = { git = "https://github.com/alloy-rs/alloy.git", rev =  "0ba6b61" }
+alloy-pubsub = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
+alloy-signer = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
 
 
 reqwest = "=0.11.23"
