@@ -6,6 +6,7 @@ use itertools::Itertools;
 use parameters::*;
 
 pub use self::parameters::Parameterized;
+use self::scenarios::Scenarios;
 use super::*;
 use crate::agents::AgentParameters;
 
@@ -13,14 +14,13 @@ use crate::agents::AgentParameters;
 pub enum SimulationType {
     #[default]
     DynamicWeights,
-    StablePortfolio,
-    RmmVolatilityTargeting,
+    VolatilityTargeting,
     G3mLinearDca,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SimulationConfig<P: Parameterized> {
-    pub simulation: SimulationType,
+    pub scenario: Scenarios,
     pub max_parallel: Option<usize>,
     pub output_directory: String,
     pub output_file_name: Option<String>,
@@ -50,7 +50,7 @@ impl From<SimulationConfig<Multiple>> for Vec<SimulationConfig<Single>> {
         let combinations = map_vector.values().multi_cartesian_product();
         for combination in combinations {
             let mut config = SimulationConfig {
-                simulation: item.simulation,
+                scenario: item.scenario.clone(),
                 max_parallel: item.max_parallel,
                 output_directory: item.output_directory.clone(),
                 output_file_name: Some(index.to_string()),
@@ -74,7 +74,7 @@ where
 {
     fn default() -> Self {
         Self {
-            simulation: SimulationType::DynamicWeights,
+            scenario: Scenarios::Dca,
             max_parallel: None,
             output_directory: "output".to_string(),
             output_file_name: None,
@@ -93,7 +93,7 @@ mod tests {
         let configs: Vec<SimulationConfig<Single>> = configs.into();
         let config = configs[0].clone();
         assert_eq!(configs.len(), 1);
-        assert_eq!(config.simulation, SimulationType::DynamicWeights);
+        assert_eq!(config.scenario, Scenarios::Dca);
         assert_eq!(
             config.output_directory,
             "src/tests/output/static".to_string(),

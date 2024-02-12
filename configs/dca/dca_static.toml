@@ -1,4 +1,4 @@
-simulation = "G3mLinearDca"
+scenario = "Dca"
 output_directory = "analysis/dca/linear_dca/static"
 
 [agent.block_admin.BlockAdmin]
