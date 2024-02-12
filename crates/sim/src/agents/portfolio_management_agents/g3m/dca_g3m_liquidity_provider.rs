@@ -8,32 +8,37 @@ use super::{agent::*, *};
 use crate::agents::base_agents::token_admin::TokenAdmin;
 
 #[derive(Debug, Clone)]
-pub struct G3mLiquidityProvider {
+pub struct DcaG3mLiquidityProvider {
     pub client: Arc<RevmMiddleware>,
     pub protocol_client: ProtocolClient<RevmMiddleware>,
-    pub controller: Address,
     pub token_x: Address,
     pub token_y: Address,
     initial_x_amount: f64,
     initial_price: f64,
-    initial_wx: f64,
+    end_timestamp: f64,
 }
 
 #[async_trait::async_trait]
-impl Agent for G3mLiquidityProvider {
+impl Agent for DcaG3mLiquidityProvider {
     #[tracing::instrument(skip(self), level = "trace")]
     async fn init(&mut self) -> Result<()> {
         let init_x = parse_ether(self.initial_x_amount)?;
         let init_price = parse_ether(self.initial_price)?;
 
         let init_params = PoolInitParamsF64::G3M(G3mF64 {
-            wx: self.initial_wx,
+            wx: 0.9999,
             swap_fee: 0.003,
-            controller: self.controller,
+            controller: self.client.address(),
         });
+
+        let pool_id = self.protocol_client.get_next_pool_id().await?;
 
         self.protocol_client
             .init_pool(self.token_x, self.token_y, init_x, init_price, init_params)
+            .await?;
+
+        self.protocol_client
+            .set_weight_x(pool_id, 0.0001, self.end_timestamp.to_bits())
             .await?;
 
         Ok(())
@@ -48,14 +53,13 @@ impl Agent for G3mLiquidityProvider {
     }
 }
 
-impl G3mLiquidityProvider {
+impl DcaG3mLiquidityProvider {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
         token_admin: &TokenAdmin,
         protocol_client: ProtocolClient<RevmMiddleware>,
-        controller: Address,
     ) -> Result<Self> {
         let label = label.into();
         let client = RevmMiddleware::new(environment, Some(&label))?;
@@ -79,18 +83,17 @@ impl G3mLiquidityProvider {
             .send()
             .await?;
 
-        if let Some(AgentParameters::G3mLiquidityProvider(params)) =
+        if let Some(AgentParameters::DcaG3mLiquidityProvider(params)) =
             config.agent_parameters.get(&label).cloned()
         {
             Ok(Self {
                 client,
                 protocol_client,
-                controller,
                 token_x: arbx.address(),
                 token_y: arby.address(),
                 initial_x_amount: params.initial_x_amount.0,
                 initial_price: params.initial_price.0,
-                initial_wx: params.wx.0,
+                end_timestamp: params.end_timestamp.0,
             })
         } else {
             Err(anyhow::anyhow!(
@@ -101,25 +104,25 @@ impl G3mLiquidityProvider {
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
-pub struct G3mLiquidityProviderParameters<P: Parameterized> {
+pub struct DcaG3mLiquidityProviderParameters<P: Parameterized> {
     pub initial_x_amount: P,
     pub initial_price: P,
-    pub wx: P,
+    pub end_timestamp: P,
 }
 
-impl From<G3mLiquidityProviderParameters<Multiple>>
-    for Vec<G3mLiquidityProviderParameters<Single>>
+impl From<DcaG3mLiquidityProviderParameters<Multiple>>
+    for Vec<DcaG3mLiquidityProviderParameters<Single>>
 {
-    fn from(params: G3mLiquidityProviderParameters<Multiple>) -> Self {
+    fn from(params: DcaG3mLiquidityProviderParameters<Multiple>) -> Self {
         itertools::iproduct!(
             params.initial_x_amount.parameters(),
             params.initial_price.parameters(),
-            params.wx.parameters()
+            params.end_timestamp.parameters()
         )
-        .map(|(ixa, ip, w)| G3mLiquidityProviderParameters {
+        .map(|(ixa, ip, et)| DcaG3mLiquidityProviderParameters {
             initial_x_amount: Single(ixa),
             initial_price: Single(ip),
-            wx: Single(w),
+            end_timestamp: Single(et),
         })
         .collect()
     }

@@ -28,8 +28,6 @@ impl Agent for LogNormalLiquidityProvider {
         let initial_x = parse_ether(self.initial_x_amount)?;
         let initial_price = parse_ether(self.initial_price)?;
 
-        let next_pool_id = self.protocol_client.get_next_pool_id().await?;
-
         let init_params = PoolInitParamsF64::LogNormal(LogNormalF64 {
             strike: self.initial_strike,
             sigma: self.initial_sigma,

@@ -50,8 +50,10 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
     let result = rt.block_on(async move {
         let mut manager = engine::ArbiterInstanceManager::new();
         manager.config_builder.config = import(path)?;
-        let scenario = scenarios::DFMMScenario;
-        manager.run_parallel(scenario).await
+
+        manager
+            .run_parallel(manager.config_builder.config.scenario.clone())
+            .await
     })?;
 
     let duration = instant.elapsed();

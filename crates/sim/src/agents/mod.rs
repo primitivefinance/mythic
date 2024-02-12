@@ -3,19 +3,24 @@ pub mod portfolio_management_agents;
 
 use base_agents::{block_admin::*, price_changer::*, token_admin::*};
 use portfolio_management_agents::{
-    base::parameter_manager::*, g3m::g3m_liquidity_provider::*, lognormal::ln_liquidity_provider::*,
+    base::parameter_manager::*,
+    g3m::{dca_g3m_liquidity_provider::*, g3m_liquidity_provider::*},
+    lognormal::ln_liquidity_provider::*,
 };
 
+use self::portfolio_management_agents::g3m::dca_swapper::DcaSwapperParameters;
 use super::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
     G3mLiquidityProvider(G3mLiquidityProviderParameters<P>),
+    DcaG3mLiquidityProvider(DcaG3mLiquidityProviderParameters<P>),
     LogNormalLiquidityProvider(LogNormalLiquidityProviderParameters<P>),
     BlockAdmin(BlockAdminParameters),
     TokenAdmin(TokenAdminParameters),
     PriceChanger(PriceChangerParameters<P>),
     ParameterManager(ParameterManagerParameters<P>),
+    DcaSwapper(DcaSwapperParameters<P>),
 }
 
 impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
@@ -34,6 +39,20 @@ impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
                 parameters
                     .into_iter()
                     .map(AgentParameters::G3mLiquidityProvider)
+                    .collect()
+            }
+            AgentParameters::DcaG3mLiquidityProvider(parameters) => {
+                let parameters: Vec<DcaG3mLiquidityProviderParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::DcaG3mLiquidityProvider)
+                    .collect()
+            }
+            AgentParameters::DcaSwapper(parameters) => {
+                let parameters: Vec<DcaSwapperParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::DcaSwapper)
                     .collect()
             }
             AgentParameters::ParameterManager(parameters) => {
