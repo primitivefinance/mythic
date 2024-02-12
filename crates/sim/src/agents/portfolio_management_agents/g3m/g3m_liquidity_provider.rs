@@ -32,8 +32,6 @@ impl Agent for G3mLiquidityProvider {
             controller: self.controller,
         });
 
-        let next_pool_id = self.protocol_client.get_next_pool_id().await?;
-
         self.protocol_client
             .init_pool(self.token_x, self.token_y, init_x, init_price, init_params)
             .await?;
