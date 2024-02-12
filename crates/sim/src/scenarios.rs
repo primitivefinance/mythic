@@ -2,7 +2,10 @@ use arbiter_core::data_collection::EventLogger;
 use clients::protocol::ProtocolClient;
 use revm::db::{CacheDB, EmptyDB};
 
-use self::agents::portfolio_management_agents::{g3m::g3m_setup, lognormal::ln_setup};
+use self::agents::portfolio_management_agents::{
+    g3m::{dca_g3m_setup, g3m_setup},
+    lognormal::ln_setup,
+};
 use super::*;
 use crate::{
     agent::Agents,
@@ -80,25 +83,9 @@ impl Scenario for DFMMScenario {
         )
         .await?;
 
-        let ln_pool_id = base_protocol_client.get_next_pool_id().await?;
+        let g3m_pool_id = base_protocol_client.get_next_pool_id().await?;
 
-        let (ln_lp, ln_arb, ln_manager) = ln_setup(
-            &environment,
-            &config,
-            base_protocol_client.clone(),
-            lex,
-            &token_admin,
-            ln_pool_id,
-        )
-        .await?;
-        let ln_arb_events = ln_arb.0.atomic_arbitrage.events();
-        agents.add(ln_lp);
-        agents.add(ln_arb);
-        agents.add(ln_manager);
-
-        let g3m_pool_id = base_protocol_client.get_next_pool_id().await? + U256::from(1);
-
-        let (g3m_lp, g3m_arb, g3m_manager) = g3m_setup(
+        let (g3m_lp, g3m_arb) = dca_g3m_setup(
             &environment,
             &config,
             base_protocol_client.clone(),
@@ -107,10 +94,10 @@ impl Scenario for DFMMScenario {
             g3m_pool_id,
         )
         .await?;
+
         let g3m_arb_events = g3m_arb.0.atomic_arbitrage.events();
         agents.add(g3m_lp);
         agents.add(g3m_arb);
-        agents.add(g3m_manager);
 
         EventLogger::builder()
             .directory(config.output_directory.clone())
@@ -120,7 +107,6 @@ impl Scenario for DFMMScenario {
             .add(token_admin.arbx.events(), "arbx")
             .add(token_admin.arby.events(), "arby")
             .add(g3m_arb_events, "g3m_atomic_arbitrage")
-            .add(ln_arb_events, "ln_atomic_arbitrage")
             .run()
             .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 
