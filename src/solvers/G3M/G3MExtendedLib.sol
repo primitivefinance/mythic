@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "solmate/tokens/ERC20.sol";
 import "src/strategies/G3M/G3M.sol";
 import "../BisectionLib.sol";
-import "forge-std/console2.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
