@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arbiter_core::middleware::errors::RevmMiddlewareError;
+use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{Address, U256},
@@ -10,7 +10,8 @@ use tracing::info;
 
 use self::agents::portfolio_management::base::arbitrageur::Arbitrageur;
 use super::{
-    agent::*, agents::base::token_admin::TokenAdmin, Environment, Result, RevmMiddleware, *,
+    agent::*, agents::base_agents::token_admin::TokenAdmin, ArbiterMiddleware, Environment, Result,
+    *,
 };
 
 #[derive(Debug, Clone)]
@@ -33,7 +34,7 @@ impl LnArbitrageur {
         environment: &Environment,
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         pool_id: U256,
     ) -> Result<Self> {
         let arbitrageur = Arbitrageur::new(
@@ -188,7 +189,7 @@ impl Agent for LnArbitrageur {
                         output.await?;
                     }
                     Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
                             info!("[LOGNORM]: Swap failed");
@@ -230,7 +231,7 @@ impl Agent for LnArbitrageur {
                         output.await?;
                     }
                     Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
                             info!("[LOGNORM]: Swap failed");
@@ -246,7 +247,7 @@ impl Agent for LnArbitrageur {
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.0.client.clone()
     }
 

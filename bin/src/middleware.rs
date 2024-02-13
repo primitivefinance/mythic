@@ -1,9 +1,6 @@
 use std::{collections::HashMap, fmt};
 
-use arbiter_core::{
-    environment::{builder::EnvironmentBuilder, Environment},
-    middleware::RevmMiddleware,
-};
+use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
 use clients::{ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
 
@@ -36,7 +33,7 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     /// ARBITER
     pub arbiter: Option<Environment>,
     /// ARBITER CLIENT
-    pub arbiter_client: Option<Arc<RevmMiddleware>>,
+    pub arbiter_client: Option<Arc<ArbiterMiddleware>>,
     /// ANVIL
     pub anvil: Option<AnvilInstance>,
     /// PROTOCOL
@@ -95,7 +92,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
         arbiter: Environment,
         seed: Option<&str>,
     ) -> anyhow::Result<()> {
-        let arbiter_client = RevmMiddleware::new(&arbiter, seed)?;
+        let arbiter_client = ArbiterMiddleware::new(&arbiter, seed)?;
 
         self.arbiter = Some(arbiter);
         self.arbiter_client = Some(arbiter_client.clone());
@@ -164,7 +161,10 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
 
         let mut arbiter_client = None;
         if let Some(arbiter_instance) = arbiter.as_ref() {
-            arbiter_client = Some(RevmMiddleware::new(arbiter_instance, Some(SANDBOX_LABEL))?);
+            arbiter_client = Some(ArbiterMiddleware::new(
+                arbiter_instance,
+                Some(SANDBOX_LABEL),
+            )?);
         }
 
         let mut client = None;
@@ -273,7 +273,7 @@ pub fn start_anvil(chain_id: Option<u64>) -> anyhow::Result<AnvilInstance> {
 /// Spawns a new Arbiter instance.
 #[allow(dead_code)]
 pub fn start_arbiter() -> anyhow::Result<Environment> {
-    let arbiter = EnvironmentBuilder::new().build();
+    let arbiter = Environment::builder().build();
 
     Ok(arbiter)
 }

@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use alloy_primitives::{Address, U256};
-use arbiter_core::environment::{
-    builder::{BlockSettings, EnvironmentBuilder, GasSettings},
-    Environment,
-};
+use arbiter_core::environment::{Environment, EnvironmentBuilder};
 use revm::db::{CacheDB, DbAccount, EmptyDB};
 use revm_primitives::{AccountInfo, HashMap as Map};
 use serde::{Deserialize, Serialize};
@@ -34,7 +31,7 @@ pub struct ArbiterInstance {
 impl Default for ArbiterInstance {
     fn default() -> Self {
         Self {
-            environment: EnvironmentBuilder::new().build(),
+            environment: Environment::builder().build(),
             config: SimulationConfig::default(),
             agents: Agents::default(),
             steps: 0,
@@ -83,9 +80,9 @@ impl ArbiterInstance {
 
     /// Consumes this instance, stopping the environment and returning the
     /// snapshot of its db.
-    pub fn stop(self) -> Result<SnapshotDB> {
+    pub fn stop(self) -> Result<()> {
         let db = self.environment.stop()?;
-        Ok(Self::snapshot(&db.clone().unwrap()))
+        Ok(())
     }
 
     pub fn snapshot(db: &CacheDB<EmptyDB>) -> SnapshotDB {
@@ -170,7 +167,6 @@ impl From<SnapshotDB> for CacheDB<EmptyDB> {
 #[derive(Debug, Clone)]
 pub struct ArbiterInstanceManager {
     pub instances: Vec<SnapshotDB>,
-    pub builder: EnvironmentBuilder,
     pub config_builder: ConfigBuilder,
 }
 
@@ -178,7 +174,6 @@ impl Default for ArbiterInstanceManager {
     fn default() -> Self {
         Self {
             instances: vec![],
-            builder: EnvironmentBuilder::new(),
             config_builder: ConfigBuilder::new(),
         }
     }
@@ -187,21 +182,6 @@ impl Default for ArbiterInstanceManager {
 impl ArbiterInstanceManager {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn block_settings(mut self, block_settings: BlockSettings) -> Self {
-        self.builder = self.builder.block_settings(block_settings);
-        self
-    }
-
-    pub fn gas_settings(mut self, gas_settings: GasSettings) -> Self {
-        self.builder = self.builder.gas_settings(gas_settings);
-        self
-    }
-
-    pub fn db(mut self, db: CacheDB<EmptyDB>) -> Self {
-        self.builder = self.builder.db(db);
-        self
     }
 
     pub fn override_config(mut self, config: SimulationConfig<Multiple>) -> Self {
@@ -219,12 +199,9 @@ impl ArbiterInstanceManager {
         config: SimulationConfig<Single>,
         scenario: impl Scenario,
     ) -> ArbiterInstance {
-        let db = self.builder.db.clone();
-        let environment = self.builder.clone().build();
-        let (agents, steps, environment) = scenario
-            .setup(db, environment, config.clone())
-            .await
-            .unwrap();
+        let environment = Environment::builder().with_console_logs().build();
+        let (agents, steps, environment) =
+            scenario.setup(environment, config.clone()).await.unwrap();
         ArbiterInstance::new(environment, config.clone(), agents, steps)
     }
 
@@ -243,26 +220,16 @@ impl ArbiterInstanceManager {
     pub fn stop(&mut self, instances: Vec<ArbiterInstance>) {
         for instance in instances {
             let db = instance.stop().unwrap();
-            self.instances.push(db);
         }
     }
 
-    pub async fn run_parallel(
-        &mut self,
-        scenario: impl Scenario,
-    ) -> Result<Vec<SnapshotDB>, Error> {
+    pub async fn run_parallel(&mut self, scenario: impl Scenario) -> Result<(), Error> {
         let start_time = std::time::Instant::now();
         let result = run_parallel(self.clone(), scenario).await;
-        let result = result?.join().unwrap().unwrap();
-        self.instances = result.clone();
+        result?.join().unwrap().unwrap();
         let duration = start_time.elapsed();
         tracing::warn!("Simulation tasks finished in {:?}", duration);
-        Ok(result)
-    }
-
-    pub fn load_from_snapshot(mut self, snapshot: SnapshotDB) -> Self {
-        self.builder = self.builder.db(CacheDB::from(snapshot));
-        self
+        Ok(())
     }
 }
 
@@ -290,7 +257,7 @@ impl<'de> Deserialize<'de> for ArbiterInstanceManager {
     }
 }
 
-type ParallelResult = std::thread::JoinHandle<Result<Vec<SnapshotDB>, Error>>;
+type ParallelResult = std::thread::JoinHandle<Result<Vec<()>, Error>>;
 
 pub async fn run_parallel(
     builder: ArbiterInstanceManager,
@@ -402,79 +369,4 @@ async fn simulation_task(
 
         Ok(instance)
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use arbiter_core::{environment::cheatcodes, middleware::RevmMiddleware};
-
-    use super::*;
-    use crate::{
-        agents::{base_agents::block_admin::BlockAdminParameters, AgentParameters},
-        scenarios::BasicScenario,
-    };
-
-    #[tokio::test]
-    async fn test_serialize_deserialize() {
-        // Start the tracing.
-        tracing_subscriber::fmt()
-            .with_max_level(tracing::Level::TRACE)
-            .init();
-
-        let scenario = BasicScenario {};
-
-        // Make a new manager and add an agent parameter to it.
-        let mut manager = ArbiterInstanceManager::new();
-
-        // todo: figure out the keys for the agent parameters, as if they are not found
-        // it panics.
-        manager.config_builder.config.agent_parameters.insert(
-            "block_admin".to_string(),
-            AgentParameters::BlockAdmin(BlockAdminParameters { timestep_size: 9 }),
-        );
-
-        // Run the sims, returning snapshot dbs to the manager's `instances`.
-        manager.run_parallel(scenario.clone()).await.unwrap();
-
-        // Serializing the manager will serialize its builders and snapshot dbs.
-        let serialized = serde_json::to_string(&manager).unwrap();
-        let mut deserialized: ArbiterInstanceManager = serde_json::from_str(&serialized).unwrap();
-
-        // Load the snapshot into the environment builder, so the built environments use
-        // it.
-        let snapshot = deserialized.instances.first().cloned().unwrap();
-        deserialized = deserialized.load_from_snapshot(snapshot);
-
-        // Build the instances.
-        let instance = deserialized.build(scenario).await;
-
-        // Only care about the first instance, in which we added the block admin.
-        let instance = instance.first().unwrap();
-        let client = RevmMiddleware::new(&instance.environment, Some("test")).unwrap();
-
-        // Try getting the block admin from the instance, which was loaded from the
-        // deserialized snapshot db.
-        let block_admin_address = instance
-            .agents
-            .0
-            .values()
-            .next()
-            .unwrap()
-            .client()
-            .address();
-        let address =
-            revm_primitives::alloy_primitives::Address::from(block_admin_address.as_fixed_bytes());
-        let account = client
-            .apply_cheatcode(cheatcodes::Cheatcodes::Access { address })
-            .await
-            .unwrap();
-
-        let account = match account {
-            cheatcodes::CheatcodesReturn::Access { info, .. } => Some(info),
-            _ => None,
-        };
-
-        assert_eq!(instance.config.agent_parameters.len(), 1);
-        assert!(account.is_some());
-    }
 }

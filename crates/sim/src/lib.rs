@@ -9,7 +9,7 @@ use std::{any::Any, path::Path};
 
 use ::config::ConfigError;
 use anyhow::{bail, Error, Result};
-use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
+use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
 use ethers::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

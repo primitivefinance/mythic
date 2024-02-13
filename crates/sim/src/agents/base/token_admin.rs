@@ -8,9 +8,9 @@ use super::{agent::*, *};
 
 #[derive(Clone, Debug)]
 pub struct TokenAdmin {
-    pub client: Arc<RevmMiddleware>,
-    pub arbx: ArbiterToken<RevmMiddleware>,
-    pub arby: ArbiterToken<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub arbx: ArbiterToken<ArbiterMiddleware>,
+    pub arby: ArbiterToken<ArbiterMiddleware>,
 }
 
 #[async_trait::async_trait]
@@ -19,7 +19,7 @@ impl Agent for TokenAdmin {
         self
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 }
@@ -37,7 +37,7 @@ impl TokenAdmin {
         label: impl Into<String>,
     ) -> Result<Self> {
         let label: String = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label))?;
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
 
         if let Some(AgentParameters::TokenAdmin(parameters)) = config.agent_parameters.get(&label) {
             let arbx = ArbiterToken::deploy(

@@ -11,9 +11,9 @@ use crate::settings::parameters::LinspaceParameters;
 
 #[derive(Clone, Debug)]
 pub struct DcaSwapper {
-    pub client: Arc<RevmMiddleware>,
-    pub liquid_exchange: LiquidExchange<RevmMiddleware>,
-    pub portfolio_tracker: PortfolioTracker<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub liquid_exchange: LiquidExchange<ArbiterMiddleware>,
+    pub portfolio_tracker: PortfolioTracker<ArbiterMiddleware>,
     pub input_token_address: Address,
     pub output_token_address: Address,
     pub swap_times: Vec<U256>,
@@ -57,7 +57,7 @@ impl DcaSwapper {
         liquid_exchange_address: Address,
         token_admin: &TokenAdmin,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, Some(label))?;
+        let client = ArbiterMiddleware::new(environment, Some(label))?;
 
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
 
@@ -180,7 +180,7 @@ impl Agent for DcaSwapper {
         debug!("Exiting swapper step");
         Ok(())
     }
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 

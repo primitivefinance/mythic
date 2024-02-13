@@ -9,8 +9,8 @@ use crate::agents::base::token_admin::TokenAdmin;
 
 #[derive(Debug, Clone)]
 pub struct G3mLiquidityProvider {
-    pub client: Arc<RevmMiddleware>,
-    pub protocol_client: ProtocolClient<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub protocol_client: ProtocolClient<ArbiterMiddleware>,
     pub controller: Address,
     pub token_x: Address,
     pub token_y: Address,
@@ -39,7 +39,7 @@ impl Agent for G3mLiquidityProvider {
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 
@@ -54,11 +54,11 @@ impl G3mLiquidityProvider {
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
         token_admin: &TokenAdmin,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         controller: Address,
     ) -> Result<Self> {
         let label = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label))?;
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 

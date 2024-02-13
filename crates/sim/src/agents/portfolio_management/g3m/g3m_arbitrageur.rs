@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arbiter_core::middleware::errors::RevmMiddlewareError;
+use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{I256, U256},
@@ -10,8 +10,11 @@ use tracing::log::info;
 
 use super::{
     agent::*,
-    agents::{base::token_admin::TokenAdmin, portfolio_management::base::arbitrageur::Arbitrageur},
-    Environment, Result, RevmMiddleware, *,
+    agents::{
+        base_agents::token_admin::TokenAdmin,
+        portfolio_management_agents::base::arbitrageur::Arbitrageur,
+    },
+    ArbiterMiddleware, Environment, Result, *,
 };
 
 #[derive(Debug, Clone)]
@@ -33,7 +36,7 @@ impl G3mArbitrageur {
         environment: &Environment,
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         pool_id: U256,
     ) -> Result<Self> {
         let arbitrageur = Arbitrageur::new(
@@ -142,12 +145,20 @@ impl Agent for G3mArbitrageur {
                     input = I256::from(0);
                     info!("Encountered negative Y input for G3m swap")
                 }
-                let input = input.into_raw();
+                info!("upper bound input: {:?}", input.into_raw());
+
+                let optimal_dy = self
+                    .0
+                    .protocol_client
+                    .g_solver
+                    .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input.into_raw())
+                    .call()
+                    .await?;
 
                 let tx = self
                     .0
                     .atomic_arbitrage
-                    .raise_exchange_price(self.0.pool_id, input);
+                    .raise_exchange_price(self.0.pool_id, optimal_dy);
 
                 let output = tx.send().await;
 
@@ -163,7 +174,7 @@ impl Agent for G3mArbitrageur {
                         output.await?;
                     }
                     Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
                             info!("[G3M]: Swap failed");
@@ -184,7 +195,14 @@ impl Agent for G3mArbitrageur {
                     info!("Encountered negative X input for G3m swap");
                     input = I256::from(0);
                 }
-                let input = input.into_raw() * liquid_exchange_price / WAD;
+                let optimal_dx = self
+                    .0
+                    .protocol_client
+                    .g_solver
+                    .compute_optimal_arb_lower_price(self.0.pool_id, target_price, input.into_raw())
+                    .call()
+                    .await?;
+                let input = optimal_dx * liquid_exchange_price / WAD;
 
                 let tx = self
                     .0
@@ -205,7 +223,7 @@ impl Agent for G3mArbitrageur {
                         output.await?;
                     }
                     Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
                             info!("[G3M]: Swap failed");
@@ -224,7 +242,7 @@ impl Agent for G3mArbitrageur {
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.0.client.clone()
     }
 

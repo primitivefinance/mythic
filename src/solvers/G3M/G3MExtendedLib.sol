@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
 import "src/strategies/G3M/G3M.sol";
+import "forge-std/console2.sol";
 import "../BisectionLib.sol";
 
 using FixedPointMathLib for uint256;
@@ -210,25 +211,33 @@ function diffRaise(
     int256 numerator;
     {
         uint256 first = params.wX.mulWadDown(v + rY);
+        console2.log("first", first);
         uint256 second = lPlusVTimesXOverYPowWx;
+        console2.log("second", second);
         uint256 third = uint256(
             int256((uint256(vPlusYPow.mulWadDown(lPlusVTimesXOverYPowWx))))
                 .powWad(int256(ONE.divWadDown(params.wX)))
         );
+        console2.log("third", third);
         uint256 fourth = L.mulWadDown(ONE - params.wX);
+        console2.log("fourth", fourth);
         uint256 fifth = xOverYPowWx.mulWadDown(v.mulWadDown(params.wX) + rY)
             .mulWadDown(ONE - gamma);
+        console2.log("fifth", fifth);
 
         numerator = int256(first.mulWadDown(second))
             - int256(S.mulWadDown(third).mulWadDown(fourth - fifth));
+        console2.log("num", numerator);
     }
 
     uint256 denominator;
-
     {
         uint256 first = params.wX.mulWadDown(v + rY);
+        console2.log("first", first);
         uint256 second = L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
+        console2.log("second", second);
         denominator = first.mulWadDown(second);
+        console2.log("den", denominator);
     }
 
     if (numerator > 0) {
@@ -247,7 +256,7 @@ function computeOptimalLower(
     G3M.G3MParams memory params
 ) pure returns (uint256 v) {
     uint256 upper = vUpper;
-    uint256 lower = vUpper.mulDivDown(50, 100);
+    uint256 lower = vUpper.mulDivDown(1, 100);
     v = bisection(
         abi.encode(S, rX, rY, L, params),
         lower,
@@ -267,7 +276,7 @@ function computeOptimalRaise(
     G3M.G3MParams memory params
 ) pure returns (uint256 v) {
     uint256 upper = vUpper;
-    uint256 lower = vUpper.mulDivDown(50, 100);
+    uint256 lower = vUpper.mulDivDown(1, 100);
     v = bisection(
         abi.encode(S, rX, rY, L, params),
         lower,

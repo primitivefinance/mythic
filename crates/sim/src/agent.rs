@@ -1,6 +1,6 @@
 use std::{any::Any, fmt::Debug, sync::Arc};
 
-use arbiter_core::middleware::RevmMiddleware;
+use arbiter_core::middleware::ArbiterMiddleware;
 use linked_hash_map::LinkedHashMap;
 
 use super::*;
@@ -26,7 +26,7 @@ pub trait Agent: Sync + Send + Any + Debug {
     }
 
     /// All agents exist as an individual EOA with client.
-    fn client(&self) -> Arc<RevmMiddleware>;
+    fn client(&self) -> Arc<ArbiterMiddleware>;
 
     /// Typecasting to Any so that agents can be converted to other types.
     fn as_any(&self) -> &dyn Any;
@@ -55,7 +55,7 @@ impl Agents {
 
 #[async_trait::async_trait]
 impl Agent for Agents {
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         unimplemented!()
     }
 

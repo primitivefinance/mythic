@@ -28,9 +28,9 @@ impl PositionData {
 
 #[derive(Debug, Clone)]
 pub struct ParameterManager {
-    pub client: Arc<RevmMiddleware>,
-    pub lex: LiquidExchange<RevmMiddleware>,
-    pub protocol_client: ProtocolClient<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub lex: LiquidExchange<ArbiterMiddleware>,
+    pub protocol_client: ProtocolClient<ArbiterMiddleware>,
     pub next_update_time: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
@@ -55,7 +55,7 @@ impl Agent for ParameterManager {
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 
@@ -68,13 +68,13 @@ impl ParameterManager {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         label: impl Into<String>,
         liquid_exchange_address: Address,
         pool_id: U256,
     ) -> Result<Self> {
         let label: String = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label))?;
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
         let protocol_client = protocol_client.connect(client.clone())?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
