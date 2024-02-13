@@ -208,44 +208,35 @@ function diffRaise(
     uint256 lPlusVTimesXOverYPowWx =
         L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
 
-    uint256 numerator;
+    int256 numerator;
     {
         uint256 first = params.wX.mulWadDown(v + rY);
-        console2.log("1st", first);
-
         uint256 second = lPlusVTimesXOverYPowWx;
-        console2.log("2nd", second);
-
         uint256 third = uint256(
             int256((uint256(vPlusYPow.mulWadDown(lPlusVTimesXOverYPowWx))))
                 .powWad(int256(ONE.divWadDown(params.wX)))
         );
-        console2.log("3rd", third);
-
         uint256 fourth = L.mulWadDown(ONE - params.wX);
-        console2.log("4th", fourth);
-
         uint256 fifth = xOverYPowWx.mulWadDown(v.mulWadDown(params.wX) + rY)
             .mulWadDown(ONE - gamma);
-        console2.log("5th", fifth);
 
-        numerator = first.mulWadDown(second)
-            - S.mulWadDown(third).mulWadDown(fourth - fifth);
-        console2.log("num", numerator);
+        numerator = int256(first.mulWadDown(second))
+            - int256(S.mulWadDown(third).mulWadDown(fourth - fifth));
     }
 
     uint256 denominator;
+
     {
         uint256 first = params.wX.mulWadDown(v + rY);
-        console2.log("1st", first);
         uint256 second = L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
-        console2.log("2nd", second);
-
         denominator = first.mulWadDown(second);
-        console2.log("den", denominator);
     }
-    int256 result = -int256(numerator.divWadDown(denominator));
-    return result;
+
+    if (numerator > 0) {
+        return -int256(uint256(numerator).divWadDown(denominator));
+    } else {
+        return int256(uint256(-numerator).divWadDown(denominator));
+    }
 }
 
 function computeOptimalLower(
@@ -257,7 +248,7 @@ function computeOptimalLower(
     G3M.G3MParams memory params
 ) pure returns (uint256 v) {
     uint256 upper = vUpper;
-    uint256 lower = 1000;
+    uint256 lower = vUpper.mulDivDown(50, 100);
     v = bisection(
         abi.encode(S, rX, rY, L, params),
         lower,
@@ -277,7 +268,7 @@ function computeOptimalRaise(
     G3M.G3MParams memory params
 ) pure returns (uint256 v) {
     uint256 upper = vUpper;
-    uint256 lower = 1000;
+    uint256 lower = vUpper.mulDivDown(50, 100);
     v = bisection(
         abi.encode(S, rX, rY, L, params),
         lower,

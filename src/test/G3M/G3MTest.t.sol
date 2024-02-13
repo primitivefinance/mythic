@@ -92,18 +92,36 @@ contract G3MTest is Test {
 
     function test_diff_lower() public basic {
         uint256 poolId = dfmm.nonce() - 1;
-        int256 diffLower =
+        int256 diffLowered =
             solver.calculateDiffLower(poolId, 0.8 ether, 0.114674 ether);
 
-        console2.log(diffLower);
+        console2.log(diffLowered);
     }
 
     function test_diff_raise() public basic {
         uint256 poolId = dfmm.nonce() - 1;
-        int256 diffRaise =
+        int256 diffRaised =
             solver.calculateDiffRaise(poolId, 1.2 ether, 0.0921529 ether);
 
-        console2.log(diffRaise);
+        console2.log(diffRaised);
+    }
+
+    function test_optimal_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
+            poolId, 1.2 ether, 0.0954451 ether
+        );
+
+        console2.log(optimalRaise);
+    }
+
+    function test_optimal_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalLower = solver.computeOptimalArbLowerPrice(
+            poolId, 0.8 ether, 0.134674 ether
+        );
+
+        console2.log(optimalLower);
     }
 
     // function test_internal_price() public basic {
