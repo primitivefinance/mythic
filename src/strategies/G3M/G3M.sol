@@ -31,6 +31,9 @@ contract G3M is IStrategy {
     /// @inheritdoc IStrategy
     address public immutable dfmm;
 
+    /// @inheritdoc IStrategy
+    string public constant name = "G3M";
+
     mapping(uint256 => InternalParams) public internalParams;
 
     /// @param dfmm_ Address of the DFMM contract.
