@@ -93,9 +93,17 @@ contract G3MTest is Test {
     function test_diff_lower() public basic {
         uint256 poolId = dfmm.nonce() - 1;
         int256 diffLower =
-            solver.calculateDiffLower(poolId, 0.8 ether, 114.674 ether);
+            solver.calculateDiffLower(poolId, 0.8 ether, 0.114674 ether);
 
         console2.log(diffLower);
+    }
+
+    function test_diff_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffRaise =
+            solver.calculateDiffRaise(poolId, 1.2 ether, 0.0921529 ether);
+
+        console2.log(diffRaise);
     }
 
     // function test_internal_price() public basic {
