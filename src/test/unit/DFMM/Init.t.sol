@@ -9,8 +9,8 @@ contract DFMMInit is DFMMSetUp {
 
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
-            tokenX: address(0xbeef),
-            tokenY: address(0xdead),
+            tokenX: address(tokenX),
+            tokenY: address(tokenY),
             data: data
         });
 
@@ -28,22 +28,18 @@ contract DFMMInit is DFMMSetUp {
 
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
-            tokenX: address(0xbeef),
-            tokenY: address(0xdead),
+            tokenX: address(tokenX),
+            tokenY: address(tokenY),
             data: data
         });
 
-        (
-            uint256 poolId,
-            uint256 reserveX,
-            uint256 reserveY,
-            uint256 totalLiquidity
-        ) = dfmm.init(params);
+        (uint256 poolId, uint256 reserveX, uint256 reserveY, uint256 liquidity)
+        = dfmm.init(params);
 
         assertEq(poolId, 0);
         assertEq(reserveX, 2 ether);
         assertEq(reserveY, 3 ether);
-        assertEq(totalLiquidity, 4 ether);
+        assertEq(liquidity, 4 ether - 1000);
     }
 
     function test_DFMM_init_IncrementsPoolId() public {
@@ -51,8 +47,8 @@ contract DFMMInit is DFMMSetUp {
 
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
-            tokenX: address(0xbeef),
-            tokenY: address(0xdead),
+            tokenX: address(tokenX),
+            tokenY: address(tokenY),
             data: data
         });
 
@@ -93,13 +89,10 @@ contract DFMMInit is DFMMSetUp {
     function test_DFMM_init_EmitsInitEvent() public {
         bytes memory data = abi.encode(uint256(1));
 
-        address tokenX = address(0xbeef);
-        address tokenY = address(0xdead);
-
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
-            tokenX: tokenX,
-            tokenY: tokenY,
+            tokenX: address(tokenX),
+            tokenY: address(tokenY),
             data: data
         });
 
@@ -107,8 +100,8 @@ contract DFMMInit is DFMMSetUp {
         emit IDFMM.Init(
             address(this),
             address(strategy),
-            tokenX,
-            tokenY,
+            address(tokenX),
+            address(tokenY),
             0,
             2 ether,
             3 ether,
@@ -127,8 +120,8 @@ contract DFMMInit is DFMMSetUp {
     function test_DFMM_init_RevertsWhenSameTokens() public {
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
-            tokenX: address(0xbeef),
-            tokenY: address(0xbeef),
+            tokenX: address(tokenX),
+            tokenY: address(tokenY),
             data: ""
         });
 
