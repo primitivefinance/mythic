@@ -121,7 +121,7 @@ contract DFMMInit is DFMMSetUp {
         IDFMM.InitParams memory params = IDFMM.InitParams({
             strategy: address(strategy),
             tokenX: address(tokenX),
-            tokenY: address(tokenY),
+            tokenY: address(tokenX),
             data: ""
         });
 
