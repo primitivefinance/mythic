@@ -151,6 +151,7 @@ function findRootRaise(bytes memory data, uint256 v) pure returns (int256) {
     return diffRaise({ S: S, rX: rX, rY: rY, L: L, v: v, params: params });
 }
 
+// todo(matt): refactor this to only use int256
 function diffLower(
     uint256 S,
     uint256 rX,
@@ -219,11 +220,6 @@ function diffRaise(
     int256 vTimesXOverYPowWx = iV.wadMul(xOverYPowWx);
     int256 lMinusVTimesXOverYPowWx =
         iL - vTimesXOverYPowWx.wadMul(-I_ONE + gamma);
-    // uint256 xOverYPowWx = uint256(int256(rX.divWadDown(rY)).powWad(wx));
-    // uint256 vPlusYPow = uint256(int256(v + rY).powWad(-int256(ONE) + wx));
-    // uint256 vTimesXOverYPowWx = v.mulWadDown(xOverYPowWx);
-    // uint256 lPlusVTimesXOverYPowWx =
-    //     L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
 
     int256 numerator;
     {
