@@ -4,6 +4,35 @@
 
 ## Repository Structure
 
+```
+src/
+ ├─DFMM.sol
+ ├─...
+ ├─interfaces/
+ │  ├─IDFMM.sol
+ │  └─...
+ ├─lib/
+ │  ├─ScalingLib.sol
+ │  └─...
+ ├─script/
+ │  ├─Deployment.s.sol
+ │  └─...
+ ├─solvers/
+ │  └─G3M/
+ │     ├─G3MSolver.sol
+ │     └─...
+ ├─strategies/
+ │  └─G3M/
+ │     ├─G3MStrategy.sol
+ │     └─...
+ └─test/
+    ├─attack/
+    ├─fork/
+    ├─invariant/
+    ├─unit/
+    └─...
+```
+
 ## Contracts Architecture
 
 ### Initializing and updating a pool
