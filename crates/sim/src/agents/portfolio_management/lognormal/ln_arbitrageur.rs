@@ -160,12 +160,12 @@ impl LnArbitrageur {
 #[async_trait::async_trait]
 impl Agent for LnArbitrageur {
     #[allow(unused)]
-    async fn step(&mut self) -> Result<()> {
-        match self.0.detect_arbitrage().await? {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
+        match self.0.detect_arbitrage().await.unwrap() {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));
                 let x_in = false;
-                let input = self.get_dy().await?.into_raw();
+                let input = self.get_dy().await.unwrap().into_raw();
 
                 let tx = self
                     .0
@@ -205,10 +205,11 @@ impl Agent for LnArbitrageur {
                 );
 
                 let x_in = true;
-                let liquid_exchange_price = self.0.liquid_exchange.price().call().await?;
-                let input = self.get_dx().await?.into_raw();
+                let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
+                let input = self.get_dx().await.unwrap().into_raw();
 
-                let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
+                let input =
+                    input * liquid_exchange_price / ethers::utils::parse_ether("1").unwrap();
 
                 let tx = self
                     .0

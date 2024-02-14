@@ -225,8 +225,18 @@ function diffRaise(
             .mulWadDown(ONE - gamma);
         console2.log("fifth", fifth);
 
-        numerator = int256(first.mulWadDown(second))
-            - int256(S.mulWadDown(third).mulWadDown(fourth - fifth));
+        if (fourth < fifth) {
+            uint256 fourthMinusFifth =
+                uint256(-(int256(fourth) - int256(fifth)));
+            numerator = -(
+                int256(first.mulWadDown(second))
+                    - int256(S.mulWadDown(third).mulWadDown(fourthMinusFifth))
+            );
+        } else {
+            numerator = int256(first.mulWadDown(second))
+                - int256(S.mulWadDown(third).mulWadDown(fourth - fifth));
+        }
+
         console2.log("num", numerator);
     }
 
@@ -256,7 +266,11 @@ function computeOptimalLower(
     G3M.G3MParams memory params
 ) pure returns (uint256 v) {
     uint256 upper = vUpper;
-    uint256 lower = vUpper.mulDivDown(1, 100);
+    uint256 lower = 1000;
+    int256 lowerBoundOutput = diffLower(S, rX, rY, L, lower, params);
+    if (lowerBoundOutput < 0) {
+        return 0;
+    }
     v = bisection(
         abi.encode(S, rX, rY, L, params),
         lower,
@@ -276,7 +290,11 @@ function computeOptimalRaise(
     G3M.G3MParams memory params
 ) pure returns (uint256 v) {
     uint256 upper = vUpper;
-    uint256 lower = vUpper.mulDivDown(1, 100);
+    uint256 lower = 1000;
+    int256 lowerBoundOutput = diffRaise(S, rX, rY, L, lower, params);
+    if (lowerBoundOutput < 0) {
+        return 0;
+    }
     v = bisection(
         abi.encode(S, rX, rY, L, params),
         lower,

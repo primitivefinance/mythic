@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use alloy_primitives::{Address, U256};
-use arbiter_core::environment::{Environment, EnvironmentBuilder};
+use arbiter_core::{
+    environment::{Environment, EnvironmentBuilder},
+    errors::ArbiterCoreError,
+};
+use ethers::types::Bytes;
 use revm::db::{CacheDB, DbAccount, EmptyDB};
 use revm_primitives::{AccountInfo, HashMap as Map};
 use serde::{Deserialize, Serialize};
@@ -62,7 +66,7 @@ impl ArbiterInstance {
         Ok(())
     }
 
-    pub async fn step(&mut self) -> Result<()> {
+    pub async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         for (_, agent) in self.agents.0.iter_mut() {
             agent.step().await?;
         }
@@ -81,7 +85,7 @@ impl ArbiterInstance {
     /// Consumes this instance, stopping the environment and returning the
     /// snapshot of its db.
     pub fn stop(self) -> Result<()> {
-        let db = self.environment.stop()?;
+        self.environment.stop()?;
         Ok(())
     }
 
@@ -219,7 +223,7 @@ impl ArbiterInstanceManager {
 
     pub fn stop(&mut self, instances: Vec<ArbiterInstance>) {
         for instance in instances {
-            let db = instance.stop().unwrap();
+            instance.stop().unwrap();
         }
     }
 
@@ -287,8 +291,7 @@ pub async fn run_parallel(
             let mut snapshots = vec![];
             for handle in handles {
                 let instance = handle.await???;
-                let snapshot = instance.stop()?;
-                snapshots.push(snapshot);
+                instance.stop()?;
             }
 
             let mut errors = errors.lock().await;
@@ -316,24 +319,38 @@ async fn simulation_task(
         if let Some(semaphore) = &semaphore {
             let permit = semaphore.acquire().await.unwrap();
             for i in 0..instance.steps {
-                let result: Result<(), Error> = instance.step().await;
+                let result: Result<(), ArbiterCoreError> = instance.step().await;
 
                 match result {
                     Err(e) => {
-                        tracing::error!(
-                            "Simulation got an error after calling `step` on step {} {:?}",
-                            i,
-                            e
-                        );
+                        match &e {
+                            ArbiterCoreError::ExecutionRevert { output, .. } => {
+                                tracing::error!(
+                                    "Transaction revert at step {} with revert: {:?}",
+                                    i,
+                                    Bytes::from(output.clone())
+                                );
+                                let mut errors_clone_lock = errors_clone.lock().await;
+                                errors_clone_lock.push(e.into());
 
-                        let mut errors_clone_lock = errors_clone.lock().await;
-                        errors_clone_lock.push(e);
+                                // Drop the permit when the simulation is done.
+                                drop(permit);
 
-                        // Drop the permit when the simulation is done.
-                        drop(permit);
+                                // Exits the simulation.
+                                break;
+                            }
+                            _ => {
+                                tracing::error!("Error at step {} with message: {:?}", i, e);
+                                let mut errors_clone_lock = errors_clone.lock().await;
+                                errors_clone_lock.push(e.into());
 
-                        // Exits the simulation.
-                        break;
+                                // Drop the permit when the simulation is done.
+                                drop(permit);
+
+                                // Exits the simulation.
+                                break;
+                            }
+                        };
                     }
                     Ok(_) => {
                         // Continue running the simulation.
@@ -342,7 +359,7 @@ async fn simulation_task(
             }
         } else {
             for i in 0..instance.steps {
-                let result: Result<(), Error> = instance.step().await;
+                let result: Result<(), ArbiterCoreError> = instance.step().await;
 
                 match result {
                     Err(e) => {
@@ -353,7 +370,7 @@ async fn simulation_task(
                         );
 
                         let mut errors_clone_lock = errors_clone.lock().await;
-                        errors_clone_lock.push(e);
+                        errors_clone_lock.push(e.into());
 
                         // Exits the simulation.
                         break;

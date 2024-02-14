@@ -1,5 +1,6 @@
 use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
+use arbiter_core::errors::ArbiterCoreError;
 use bindings::lex::Lex;
 use ethers::utils::parse_ether;
 use itertools::iproduct;
@@ -54,13 +55,13 @@ impl Agent for PriceChanger {
         self
     }
 
-    async fn step(&mut self) -> Result<()> {
-        let current_price = self.liquid_exchange.price().call().await?;
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
+        let current_price = self.liquid_exchange.price().call().await.unwrap();
         debug!("Updating lex price from {:?}", current_price);
         self.update_price().await?;
         debug!(
             "Updated lex price to {:?}",
-            self.liquid_exchange.price().call().await?
+            self.liquid_exchange.price().call().await.unwrap()
         );
         Ok(())
     }
@@ -185,13 +186,14 @@ impl PriceChanger {
 
     /// Update the price of the `LiquidExchange` contract to the next price in
     /// the trajectory and increment the index.
-    pub async fn update_price(&mut self) -> Result<()> {
+    pub async fn update_price(&mut self) -> Result<(), ArbiterCoreError> {
         let price = self.trajectory.paths[0][self.index];
         trace!("Updating price of liquid_exchange to: {}", price);
         self.liquid_exchange
-            .set_price(ethers::utils::parse_ether(price)?)
+            .set_price(ethers::utils::parse_ether(price).unwrap())
             .send()
-            .await?
+            .await
+            .unwrap()
             .await?;
         self.index += 1;
         Ok(())

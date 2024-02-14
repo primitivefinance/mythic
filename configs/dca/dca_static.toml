@@ -17,7 +17,7 @@ decimals = 18
 # Price process parameters
 [agent.price_changer.PriceChanger]
 # True is we want to use historical daily average price data
-backtest = false 
+backtest = false
 # The seed to use (optional)
 seed = 2
 # The number of steps in the process
@@ -46,7 +46,7 @@ process.GBM.volatility.fixed = 0.35
 [agent.dca_swapper.DcaSwapper]
 num_swaps.fixed = 12
 start_timestamp = 15
-end_timestamp = 10_000_000 
+end_timestamp = 10_000_000
 initial_balance = 1.0
 swap_direction = false
 

@@ -3,7 +3,8 @@ use std::sync::Arc;
 use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
-    types::{I256, U256},
+    middleware::gas_oracle::MiddlewareError,
+    types::{Bytes, I256, U256},
     utils::format_ether,
 };
 use tracing::log::info;
@@ -132,15 +133,15 @@ impl G3mArbitrageur {
 #[async_trait::async_trait]
 impl Agent for G3mArbitrageur {
     #[allow(unused)]
-    async fn step(&mut self) -> Result<()> {
-        match self.0.detect_arbitrage().await? {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
+        match self.0.detect_arbitrage().await.unwrap() {
             Swap::RaiseExchangePrice(target_price) => {
                 info!(
                     "[G3M]: Signal[RAISE PRICE]: {:?}",
                     format_ether(target_price)
                 );
                 let x_in = false;
-                let mut input = self.get_dy().await?;
+                let mut input = self.get_dy().await.unwrap();
                 if (input < I256::from(0)) {
                     input = I256::from(0);
                     info!("Encountered negative Y input for G3m swap")
@@ -153,7 +154,27 @@ impl Agent for G3mArbitrageur {
                     .g_solver
                     .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input.into_raw())
                     .call()
-                    .await?;
+                    .await;
+
+                let optimal_dy = match optimal_dy {
+                    Err(ContractError::Revert(bytes)) => {
+                        tracing::error!("revert message: {:?}", bytes);
+                        panic!()
+                    }
+                    Ok(value) => value,
+                    Err(ContractError::MiddlewareError { e }) => {
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } = e {
+                            tracing::error!("revert message: {:?}", Bytes::from(output.clone()));
+                            panic!()
+                        } else {
+                            panic!()
+                        };
+                    }
+                    Err(e) => {
+                        tracing::error!("encountered error: {:?}", e);
+                        panic!()
+                    }
+                };
 
                 let tx = self
                     .0
@@ -178,7 +199,11 @@ impl Agent for G3mArbitrageur {
                             e.as_middleware_error().unwrap()
                         {
                             info!("[G3M]: Swap failed");
-                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            debug!(
+                                "Execution revert: {:?} Gas Used: {:?}",
+                                Bytes::from(output.clone()),
+                                gas_used
+                            );
                         }
                     }
                 }
@@ -189,8 +214,8 @@ impl Agent for G3mArbitrageur {
                     format_ether(target_price)
                 );
                 let x_in = true;
-                let liquid_exchange_price = self.0.liquid_exchange.price().call().await?;
-                let mut input = self.get_dx().await?;
+                let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
+                let mut input = self.get_dx().await.unwrap();
                 if (input < I256::from(0)) {
                     info!("Encountered negative X input for G3m swap");
                     input = I256::from(0);
@@ -201,7 +226,8 @@ impl Agent for G3mArbitrageur {
                     .g_solver
                     .compute_optimal_arb_lower_price(self.0.pool_id, target_price, input.into_raw())
                     .call()
-                    .await?;
+                    .await
+                    .unwrap();
                 let input = optimal_dx * liquid_exchange_price / WAD;
 
                 let tx = self
@@ -227,7 +253,11 @@ impl Agent for G3mArbitrageur {
                             e.as_middleware_error().unwrap()
                         {
                             info!("[G3M]: Swap failed");
-                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                            debug!(
+                                "Execution revert: {:?} Gas Used: {:?}",
+                                Bytes::from(output.clone()),
+                                gas_used
+                            );
                         }
                     }
                 }

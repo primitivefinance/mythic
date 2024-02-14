@@ -67,7 +67,7 @@ contract G3MTest is Test {
             swapFee: TEST_SWAP_FEE,
             controller: address(0)
         });
-        uint256 init_p = ONE;
+        uint256 init_p = 96_404_794_073_283_342;
         uint256 init_x = 1 ether;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
@@ -109,7 +109,7 @@ contract G3MTest is Test {
     function test_optimal_raise() public basic {
         uint256 poolId = dfmm.nonce() - 1;
         uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
-            poolId, 1.2 ether, 0.0954451 ether
+            poolId, 97_168_633_836_479_550, 1_000_638_422_665_479
         );
 
         console2.log(optimalRaise);

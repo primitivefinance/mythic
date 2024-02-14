@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{PoolParams, ProtocolClient};
 use ethers::types::Address;
 use itertools::iproduct;
@@ -42,15 +43,15 @@ pub struct ParameterManager {
 
 #[async_trait::async_trait]
 impl Agent for ParameterManager {
-    async fn step(&mut self) -> Result<()> {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         let time = self.client.get_block_timestamp().await?.as_u64();
         let asset_price = self.get_asset_price().await?;
-        let portfolio_price = self.get_portfolio_price().await?;
+        let portfolio_price = self.get_portfolio_price().await.unwrap();
         if time >= self.next_update_time {
             self.next_update_time = time + self.update_frequency;
             self.update_position_data(portfolio_price, asset_price, time);
-            self.calculate_rv()?;
-            self.execute_smooth_rebalance().await?;
+            self.calculate_rv().unwrap();
+            self.execute_smooth_rebalance().await.unwrap();
         }
         Ok(())
     }
@@ -101,9 +102,9 @@ impl ParameterManager {
         }
     }
 
-    async fn get_asset_price(&self) -> Result<f64> {
-        let price = self.lex.price().call().await?;
-        parse_ether_to_f64(price)
+    async fn get_asset_price(&self) -> Result<f64, ArbiterCoreError> {
+        let price = self.lex.price().call().await.unwrap();
+        Ok(parse_ether_to_f64(price).unwrap())
     }
 
     async fn get_portfolio_price(&self) -> Result<f64> {

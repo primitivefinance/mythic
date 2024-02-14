@@ -6,6 +6,7 @@ pub mod pool;
 use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
+use arbiter_core::errors::ArbiterCoreError;
 use bindings::{
     dfmm::{Pool as PoolStruct, DFMM},
     g3m::G3M,
@@ -135,8 +136,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         })
     }
 
-    pub async fn get_pool(&self, pool_id: U256) -> Result<Pool> {
-        let pool_data: PoolStruct = self.protocol.get_pool(pool_id).call().await?;
+    pub async fn get_pool(&self, pool_id: U256) -> Result<Pool, ArbiterCoreError> {
+        let pool_data: PoolStruct = self.protocol.get_pool(pool_id).call().await.unwrap();
 
         let token_x = pool_data.token_x;
         let token_y = pool_data.token_y;
@@ -147,7 +148,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let kind = match strategy {
             _ if strategy == ln_address => PoolKind::LogNormal,
             _ if strategy == g_address => PoolKind::G3M,
-            _ => anyhow::bail!("Invalid strategy address"),
+            _ => return Err(ArbiterCoreError::MissingDataError),
         };
 
         let pool = Pool {
@@ -300,12 +301,13 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 
     #[tracing::instrument(skip(self), level = "trace", ret)]
-    pub async fn get_internal_price(&self, pool_id: U256) -> Result<U256> {
+    pub async fn get_internal_price(&self, pool_id: U256) -> Result<U256, ArbiterCoreError> {
         let pool = self.get_pool(pool_id).await?;
 
         match pool.kind {
-            PoolKind::G3M => Ok(self.g_solver.internal_price(pool_id).call().await?),
-            PoolKind::LogNormal => Ok(self.ln_solver.internal_price(pool_id).call().await?),
+            PoolKind::G3M => Ok(self.g_solver.internal_price(pool_id).call().await.unwrap()),
+            PoolKind::LogNormal => Ok(self.ln_solver.internal_price(pool_id).call().await.unwrap()),
+            _ => return Err(ArbiterCoreError::MissingDataError),
         }
     }
 

@@ -1,8 +1,9 @@
 use std::{any::Any, sync::Arc};
 
-use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
+use arbiter_core::{
+    environment::Environment, errors::ArbiterCoreError, middleware::ArbiterMiddleware,
+};
 use ethers::providers::Middleware;
-use revm::db::{CacheDB, EmptyDB};
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -45,7 +46,7 @@ impl BlockAdmin {
         }
     }
 
-    pub fn update_block(&mut self) -> Result<()> {
+    pub fn update_block(&mut self) -> Result<(), ArbiterCoreError> {
         self.block_number += 1;
         self.block_timestamp = self.block_number * self.timestep_size;
         self.client
@@ -63,7 +64,7 @@ impl Agent for BlockAdmin {
         Ok(())
     }
 
-    async fn step(&mut self) -> Result<()> {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         trace!("Updating block");
         self.update_block()?;
         trace!("Block updated");

@@ -1,6 +1,6 @@
 use std::{any::Any, fmt::Debug, sync::Arc};
 
-use arbiter_core::middleware::ArbiterMiddleware;
+use arbiter_core::{errors::ArbiterCoreError, middleware::ArbiterMiddleware};
 use linked_hash_map::LinkedHashMap;
 
 use super::*;
@@ -16,7 +16,7 @@ pub trait Agent: Sync + Send + Any + Debug {
 
     /// Executed by each agent inside the main simulation loop.
     /// Ordering is determined by placement in the simulation loop.
-    async fn step(&mut self) -> Result<()> {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         Ok(())
     }
 
