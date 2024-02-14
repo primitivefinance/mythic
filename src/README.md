@@ -2,9 +2,46 @@
 
 ## Overview
 
+## Repository Structure
+
 ## Contracts Architecture
 
-## Repository Structure
+### Initializing and updating a pool
+
+#### Creating a new pool
+
+```mermaid
+flowchart LR
+  A(Pool Creator) --> |Creates pool| B[DFMM]
+  B --> |Forwards pool parameters| C[Strategy]
+  D -...-> |Transfers LP tokens| A
+  C -...-> |Validates the creation| B
+  B --> |Mints new LP tokens| D[LP Token]
+```
+
+#### Updating a pool
+
+```mermaid
+flowchart LR
+    A(Pool Creator) --> |Updates pool| B[DFMM]
+    B --> |Forwards pool parameters| E[Strategy]
+    E -...-> |Validates the update| B
+```
+
+### Providing liquidity
+
+#### Allocating
+
+```mermaid
+flowchart LR
+  A(Liquidity Provider) --> |Provides liquidity| B[DFMM]
+  B --> |Forwards pool new state| D[Strategy]
+  C -...-> |Transfers LP tokens| A
+  D -...-> |Validates pool new state| B
+  B --> |Mints new LP tokens| C[LP Token]
+```
+
+### Arbitrage
 
 ## Deployments
 
