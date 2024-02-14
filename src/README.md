@@ -76,9 +76,9 @@ flowchart LR
 
 | Designation | Network | Address |
 |---|---|---|
-| `DFMM` | Optimism Sepolia | `0xedfC913a848A8a1567CfA8a81158118c20D3D508` |
-| `G3M` | Optimism Sepolia | `0x8fF9a56BCbcB768A84AEc0eA879C38C1fDBE6f4A` |
-| `LogNormal` | Optimism Sepolia | `0xb7a21C0DEDEa8c8525001D8189DE0a5479E9566a` |
+| `DFMM` | Optimism Sepolia | `0x89a023e3cbccf1c96F00749F87D24C9B1124BaE1` |
+| `G3M` | Optimism Sepolia | `0xB5C2c5a4000FB230b289bB54f8b48F4dd8075F3D` |
+| `LogNormal` | Optimism Sepolia | `0x6A74a571c638dDDF13ae52F48A37D1019B916520` |
 
 You can deploy the contracts with the following command:
 
