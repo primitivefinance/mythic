@@ -41,6 +41,7 @@ pub mod safe_transfer_lib;
 pub mod scaling_lib;
 pub mod set_up;
 pub mod shared_types;
+pub mod signed_wad_math_lib;
 pub mod strategy_lib;
 pub mod strategy_like;
 pub mod token_like;

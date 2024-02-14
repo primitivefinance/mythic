@@ -363,7 +363,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         next_timestamp: u64,
     ) -> Result<Option<TransactionReceipt>> {
         let target_wx_wad = to_wad(target_wx);
-        let timestamp_wad = ethers::types::U256::from(next_timestamp);
+        let timestamp_wad = U256::from(next_timestamp);
         let update_data = self
             .g_solver
             .prepare_weight_x_update(target_wx_wad, timestamp_wad)

@@ -5,9 +5,12 @@ import "solmate/tokens/ERC20.sol";
 import "src/strategies/G3M/G3M.sol";
 import "forge-std/console2.sol";
 import "../BisectionLib.sol";
+import "../../lib/SignedWadMath.sol";
+// import { wadMul, wadDiv } from "../../lib/SignedWadMath.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
+using SignedWadMathLib for int256;
 
 function computeLGivenX(
     uint256 x,
@@ -200,61 +203,49 @@ function diffRaise(
     uint256 v,
     G3M.G3MParams memory params
 ) pure returns (int256) {
-    int256 wx = int256(params.wX);
-    uint256 gamma = ONE - params.swapFee;
-    uint256 xOverYPowWx = uint256(int256(rX.divWadDown(rY)).powWad(wx));
-    uint256 vPlusYPow = uint256(int256(v + rY).powWad(-int256(ONE) + wx));
-    uint256 vTimesXOverYPowWx = v.mulWadDown(xOverYPowWx);
-    uint256 lPlusVTimesXOverYPowWx =
-        L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
+    (int256 wx, int256 wy, int256 swapFee) =
+        (int256(params.wX), int256(params.wY), int256(params.swapFee));
+    int256 I_ONE = int256(ONE);
+    int256 iS = int256(S);
+    int256 iX = int256(rX);
+    int256 iY = int256(rY);
+    int256 iL = int256(L);
+    int256 iV = int256(v);
+    int256 gamma = I_ONE - swapFee;
+
+    int256 vPlusYPow = (iV + iY).powWad(-I_ONE + wx);
+
+    int256 xOverYPowWx = (iX.wadDiv(iY)).powWad(wx);
+    int256 vTimesXOverYPowWx = iV.wadMul(xOverYPowWx);
+    int256 lMinusVTimesXOverYPowWx =
+        iL - vTimesXOverYPowWx.wadMul(-I_ONE + gamma);
+    // uint256 xOverYPowWx = uint256(int256(rX.divWadDown(rY)).powWad(wx));
+    // uint256 vPlusYPow = uint256(int256(v + rY).powWad(-int256(ONE) + wx));
+    // uint256 vTimesXOverYPowWx = v.mulWadDown(xOverYPowWx);
+    // uint256 lPlusVTimesXOverYPowWx =
+    //     L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
 
     int256 numerator;
     {
-        uint256 first = params.wX.mulWadDown(v + rY);
-        console2.log("first", first);
-        uint256 second = lPlusVTimesXOverYPowWx;
-        console2.log("second", second);
-        uint256 third = uint256(
-            int256((uint256(vPlusYPow.mulWadDown(lPlusVTimesXOverYPowWx))))
-                .powWad(int256(ONE.divWadDown(params.wX)))
-        );
-        console2.log("third", third);
-        uint256 fourth = L.mulWadDown(ONE - params.wX);
-        console2.log("fourth", fourth);
-        uint256 fifth = xOverYPowWx.mulWadDown(v.mulWadDown(params.wX) + rY)
-            .mulWadDown(ONE - gamma);
-        console2.log("fifth", fifth);
-
-        if (fourth < fifth) {
-            uint256 fourthMinusFifth =
-                uint256(-(int256(fourth) - int256(fifth)));
-            numerator = -(
-                int256(first.mulWadDown(second))
-                    - int256(S.mulWadDown(third).mulWadDown(fourthMinusFifth))
-            );
-        } else {
-            numerator = int256(first.mulWadDown(second))
-                - int256(S.mulWadDown(third).mulWadDown(fourth - fifth));
-        }
-
-        console2.log("num", numerator);
+        int256 first = wx.wadMul(iV + iY);
+        int256 second = lMinusVTimesXOverYPowWx;
+        int256 third =
+            (vPlusYPow.wadMul(lMinusVTimesXOverYPowWx)).powWad(I_ONE.wadDiv(wx));
+        int256 fourth = iL.wadMul(-I_ONE + wx);
+        int256 fifth =
+            xOverYPowWx.wadMul(iV.wadMul(wx) + iY).wadMul(-I_ONE + gamma);
+        numerator =
+            first.wadMul(second) + iS.wadMul(third).wadMul(fourth - fifth);
     }
 
-    uint256 denominator;
+    int256 denominator;
     {
-        uint256 first = params.wX.mulWadDown(v + rY);
-        console2.log("first", first);
-        uint256 second = L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
-        console2.log("second", second);
-        denominator = first.mulWadDown(second);
-        console2.log("den", denominator);
+        int256 first = wx.wadMul(iV + iY);
+        int256 second = -iL + vTimesXOverYPowWx.wadMul(-I_ONE + gamma);
+        denominator = first.wadMul(second);
     }
 
-    if (numerator > 0) {
-        return -int256(uint256(numerator).divWadDown(denominator));
-    } else {
-        return int256(uint256(-numerator).divWadDown(denominator));
-    }
+    return numerator.wadDiv(denominator);
 }
 
 function computeOptimalLower(

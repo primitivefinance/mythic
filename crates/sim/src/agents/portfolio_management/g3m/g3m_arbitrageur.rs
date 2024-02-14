@@ -129,7 +129,7 @@ impl G3mArbitrageur {
         Ok(delta_y)
     }
 }
-// TODO: make sure we're swapping on low and high vol strategies
+
 #[async_trait::async_trait]
 impl Agent for G3mArbitrageur {
     #[allow(unused)]
@@ -146,7 +146,6 @@ impl Agent for G3mArbitrageur {
                     input = I256::from(0);
                     info!("Encountered negative Y input for G3m swap")
                 }
-                info!("upper bound input: {:?}", input.into_raw());
 
                 let optimal_dy = self
                     .0
@@ -154,27 +153,10 @@ impl Agent for G3mArbitrageur {
                     .g_solver
                     .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input.into_raw())
                     .call()
-                    .await;
+                    .await
+                    .unwrap();
 
-                let optimal_dy = match optimal_dy {
-                    Err(ContractError::Revert(bytes)) => {
-                        tracing::error!("revert message: {:?}", bytes);
-                        panic!()
-                    }
-                    Ok(value) => value,
-                    Err(ContractError::MiddlewareError { e }) => {
-                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } = e {
-                            tracing::error!("revert message: {:?}", Bytes::from(output.clone()));
-                            panic!()
-                        } else {
-                            panic!()
-                        };
-                    }
-                    Err(e) => {
-                        tracing::error!("encountered error: {:?}", e);
-                        panic!()
-                    }
-                };
+                info!("optimal_dy: {:?}", optimal_dy);
 
                 let tx = self
                     .0
