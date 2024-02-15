@@ -4,7 +4,7 @@ use arbiter_core::errors::ArbiterCoreError;
 use bindings::lex::Lex;
 use ethers::utils::parse_ether;
 use itertools::iproduct;
-use RustQuant::stochastics::{
+use RustQuant::models::{
     GeometricBrownianMotion, OrnsteinUhlenbeck, StochasticProcess, Trajectories,
 };
 
