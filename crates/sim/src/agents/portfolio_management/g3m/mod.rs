@@ -14,7 +14,7 @@ pub mod g3m_liquidity_provider;
 pub async fn g3m_setup(
     environment: &Environment,
     config: &SimulationConfig<Single>,
-    protocol_client: ProtocolClient<RevmMiddleware>,
+    protocol_client: ProtocolClient<ArbiterMiddleware>,
     liquid_exchange_address: Address,
     token_admin: &TokenAdmin,
     pool_id: U256,
@@ -51,7 +51,7 @@ pub async fn g3m_setup(
 pub async fn dca_g3m_setup(
     environment: &Environment,
     config: &SimulationConfig<Single>,
-    protocol_client: ProtocolClient<RevmMiddleware>,
+    protocol_client: ProtocolClient<ArbiterMiddleware>,
     liquid_exchange_address: Address,
     token_admin: &TokenAdmin,
     pool_id: U256,

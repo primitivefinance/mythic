@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arbiter_core::middleware::errors::RevmMiddlewareError;
+use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{Address, U256},
@@ -10,7 +10,7 @@ use tracing::info;
 
 use self::agents::portfolio_management::base::arbitrageur::Arbitrageur;
 use super::{
-    agent::*, agents::base::token_admin::TokenAdmin, Environment, Result, RevmMiddleware, *,
+    agent::*, agents::base::token_admin::TokenAdmin, ArbiterMiddleware, Environment, Result, *,
 };
 
 #[derive(Debug, Clone)]
@@ -33,7 +33,7 @@ impl LnArbitrageur {
         environment: &Environment,
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         pool_id: U256,
     ) -> Result<Self> {
         let arbitrageur = Arbitrageur::new(
@@ -159,12 +159,12 @@ impl LnArbitrageur {
 #[async_trait::async_trait]
 impl Agent for LnArbitrageur {
     #[allow(unused)]
-    async fn step(&mut self) -> Result<()> {
-        match self.0.detect_arbitrage().await? {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
+        match self.0.detect_arbitrage().await.unwrap() {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));
                 let x_in = false;
-                let input = self.get_dy().await?.into_raw();
+                let input = self.get_dy().await.unwrap().into_raw();
 
                 let tx = self
                     .0
@@ -188,7 +188,7 @@ impl Agent for LnArbitrageur {
                         output.await?;
                     }
                     Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
                             info!("[LOGNORM]: Swap failed");
@@ -204,10 +204,11 @@ impl Agent for LnArbitrageur {
                 );
 
                 let x_in = true;
-                let liquid_exchange_price = self.0.liquid_exchange.price().call().await?;
-                let input = self.get_dx().await?.into_raw();
+                let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
+                let input = self.get_dx().await.unwrap().into_raw();
 
-                let input = input * liquid_exchange_price / ethers::utils::parse_ether("1")?;
+                let input =
+                    input * liquid_exchange_price / ethers::utils::parse_ether("1").unwrap();
 
                 let tx = self
                     .0
@@ -230,7 +231,7 @@ impl Agent for LnArbitrageur {
                         output.await?;
                     }
                     Err(e) => {
-                        if let RevmMiddlewareError::ExecutionRevert { gas_used, output } =
+                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
                             e.as_middleware_error().unwrap()
                         {
                             info!("[LOGNORM]: Swap failed");
@@ -246,7 +247,7 @@ impl Agent for LnArbitrageur {
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.0.client.clone()
     }
 

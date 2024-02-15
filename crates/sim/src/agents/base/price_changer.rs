@@ -1,5 +1,6 @@
 use std::{collections::hash_map::DefaultHasher, hash::Hasher, sync::Arc};
 
+use arbiter_core::errors::ArbiterCoreError;
 use bindings::lex::Lex;
 use ethers::utils::parse_ether;
 use itertools::iproduct;
@@ -13,12 +14,12 @@ use super::{agent::*, *};
 /// the price of the `LiquidExchange`.
 pub struct PriceChanger {
     /// The client for the `PriceChanger`
-    pub client: Arc<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
     /// The path the price process takes.
     pub trajectory: Trajectories,
 
     /// The `LiquidExchange` contract with the admin `Client`.
-    pub liquid_exchange: Lex<RevmMiddleware>,
+    pub liquid_exchange: Lex<ArbiterMiddleware>,
 
     /// The index of the current price in the trajectory.
     pub index: usize,
@@ -54,17 +55,17 @@ impl Agent for PriceChanger {
         self
     }
 
-    async fn step(&mut self) -> Result<()> {
-        let current_price = self.liquid_exchange.price().call().await?;
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
+        let current_price = self.liquid_exchange.price().call().await.unwrap();
         debug!("Updating lex price from {:?}", current_price);
         self.update_price().await?;
         debug!(
             "Updated lex price to {:?}",
-            self.liquid_exchange.price().call().await?
+            self.liquid_exchange.price().call().await.unwrap()
         );
         Ok(())
     }
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 }
@@ -100,7 +101,7 @@ impl PriceChanger {
         token_admin: &token_admin::TokenAdmin,
     ) -> Result<Self> {
         let label: String = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label))?;
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
         if let Some(AgentParameters::PriceChanger(parameters)) = config.agent_parameters.get(&label)
         {
             let liquid_exchange = Lex::deploy(
@@ -185,13 +186,14 @@ impl PriceChanger {
 
     /// Update the price of the `LiquidExchange` contract to the next price in
     /// the trajectory and increment the index.
-    pub async fn update_price(&mut self) -> Result<()> {
+    pub async fn update_price(&mut self) -> Result<(), ArbiterCoreError> {
         let price = self.trajectory.paths[0][self.index];
         trace!("Updating price of liquid_exchange to: {}", price);
         self.liquid_exchange
-            .set_price(ethers::utils::parse_ether(price)?)
+            .set_price(ethers::utils::parse_ether(price).unwrap())
             .send()
-            .await?
+            .await
+            .unwrap()
             .await?;
         self.index += 1;
         Ok(())

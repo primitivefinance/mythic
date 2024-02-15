@@ -7,25 +7,25 @@ use ethers::{types::U256, utils::parse_ether};
 use super::{
     agents::base::token_admin::TokenAdmin,
     bindings::{arb_math::ArbMath, atomic_v2::AtomicV2},
-    Environment, Result, RevmMiddleware, *,
+    ArbiterMiddleware, Environment, Result, *,
 };
 
 #[derive(Debug, Clone)]
 pub struct Arbitrageur {
-    pub client: Arc<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
     /// Connects the Arbitrageur agent to the DFMM protocol.
-    pub protocol_client: ProtocolClient<RevmMiddleware>,
+    pub protocol_client: ProtocolClient<ArbiterMiddleware>,
     /// The arbitrageur's client connection to the liquid exchange.
-    pub liquid_exchange: LiquidExchange<RevmMiddleware>,
+    pub liquid_exchange: LiquidExchange<ArbiterMiddleware>,
     /// Arbitrage vehicle for atomically swapping between exchanges.
-    pub atomic_arbitrage: AtomicV2<RevmMiddleware>,
+    pub atomic_arbitrage: AtomicV2<ArbiterMiddleware>,
     /// Arbiter math to do math for math utilities
-    pub arb_math: ArbMath<RevmMiddleware>,
+    pub arb_math: ArbMath<ArbiterMiddleware>,
     /// Pool arbitrageur is responsible for trading against
     // todo(matt): refactor to handle n pools
     pub pool_id: U256,
-    pub token_x: ArbiterToken<RevmMiddleware>,
-    pub token_y: ArbiterToken<RevmMiddleware>,
+    pub token_x: ArbiterToken<ArbiterMiddleware>,
+    pub token_y: ArbiterToken<ArbiterMiddleware>,
 }
 
 impl Arbitrageur {
@@ -34,12 +34,12 @@ impl Arbitrageur {
         environment: &Environment,
         token_admin: &TokenAdmin,
         liquid_exchange_address: Address,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         kind: PoolKind,
         pool_id: U256,
     ) -> Result<Self> {
         // Create a client for the arbitrageur.
-        let client = RevmMiddleware::new(environment, Some(name))?;
+        let client = ArbiterMiddleware::new(environment, Some(name))?;
         let protocol_client = protocol_client.connect(client.clone())?;
 
         // Get the exchanges and arb contract connected to the arbitrageur client.

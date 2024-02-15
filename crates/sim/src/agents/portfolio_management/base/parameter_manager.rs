@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
+use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{PoolParams, ProtocolClient};
 use ethers::types::Address;
 use itertools::iproduct;
@@ -28,9 +29,9 @@ impl PositionData {
 
 #[derive(Debug, Clone)]
 pub struct ParameterManager {
-    pub client: Arc<RevmMiddleware>,
-    pub lex: LiquidExchange<RevmMiddleware>,
-    pub protocol_client: ProtocolClient<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub lex: LiquidExchange<ArbiterMiddleware>,
+    pub protocol_client: ProtocolClient<ArbiterMiddleware>,
     pub next_update_time: u64,
     pub update_frequency: u64,
     pub target_volatility: f64,
@@ -42,20 +43,20 @@ pub struct ParameterManager {
 
 #[async_trait::async_trait]
 impl Agent for ParameterManager {
-    async fn step(&mut self) -> Result<()> {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         let time = self.client.get_block_timestamp().await?.as_u64();
         let asset_price = self.get_asset_price().await?;
-        let portfolio_price = self.get_portfolio_price().await?;
+        let portfolio_price = self.get_portfolio_price().await.unwrap();
         if time >= self.next_update_time {
             self.next_update_time = time + self.update_frequency;
             self.update_position_data(portfolio_price, asset_price, time);
-            self.calculate_rv()?;
-            self.execute_smooth_rebalance().await?;
+            self.calculate_rv().unwrap();
+            self.execute_smooth_rebalance().await.unwrap();
         }
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 
@@ -68,13 +69,13 @@ impl ParameterManager {
     pub async fn new(
         environment: &Environment,
         config: &SimulationConfig<Single>,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
         label: impl Into<String>,
         liquid_exchange_address: Address,
         pool_id: U256,
     ) -> Result<Self> {
         let label: String = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label))?;
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
         let protocol_client = protocol_client.connect(client.clone())?;
         let lex = LiquidExchange::new(liquid_exchange_address, client.clone());
 
@@ -101,9 +102,9 @@ impl ParameterManager {
         }
     }
 
-    async fn get_asset_price(&self) -> Result<f64> {
-        let price = self.lex.price().call().await?;
-        parse_ether_to_f64(price)
+    async fn get_asset_price(&self) -> Result<f64, ArbiterCoreError> {
+        let price = self.lex.price().call().await.unwrap();
+        Ok(parse_ether_to_f64(price).unwrap())
     }
 
     async fn get_portfolio_price(&self) -> Result<f64> {

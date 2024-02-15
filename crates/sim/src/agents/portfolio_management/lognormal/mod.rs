@@ -10,7 +10,7 @@ pub mod ln_liquidity_provider;
 pub async fn ln_setup(
     environment: &Environment,
     config: &SimulationConfig<Single>,
-    protocol_client: ProtocolClient<RevmMiddleware>,
+    protocol_client: ProtocolClient<ArbiterMiddleware>,
     liquid_exchange_address: Address,
     token_admin: &TokenAdmin,
     pool_id: U256,

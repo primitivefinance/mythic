@@ -1,8 +1,9 @@
 use std::{any::Any, sync::Arc};
 
-use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
+use arbiter_core::{
+    environment::Environment, errors::ArbiterCoreError, middleware::ArbiterMiddleware,
+};
 use ethers::providers::Middleware;
-use revm::db::{CacheDB, EmptyDB};
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -14,7 +15,7 @@ use crate::{
 
 #[derive(Clone, Debug)]
 pub struct BlockAdmin {
-    pub client: Arc<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
     pub timestep_size: u64,
     pub block_timestamp: u64,
     pub block_number: u64,
@@ -27,38 +28,12 @@ pub struct BlockAdminParameters {
 
 impl BlockAdmin {
     pub async fn new(
-        db: Option<CacheDB<EmptyDB>>,
         environment: &Environment,
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
     ) -> Result<Self> {
         let label: String = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label));
-        let client = match client {
-            Ok(client) => client,
-            Err(_) => {
-                // If the account already exists in the Environment's db, then we can use the db
-                // account instead.
-                // todo: figure out how to get the correct address for this account..
-                if db.is_none() {
-                    return Err(anyhow::anyhow!("No account found in db"));
-                }
-
-                todo!("Use db account instead of creating a new one")
-
-                // let address =
-                // db.unwrap().accounts.into_keys().next().unwrap();
-                // let ethers_address =
-                // ethers::types::Address::from(address.into_array());
-                //
-                // RevmMiddleware::new_from_forked_eoa_with_label(
-                // environment,
-                // ethers_address,
-                // Some("block_admin"),
-                // )?
-            }
-        };
-
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
         if let Some(AgentParameters::BlockAdmin(parameters)) = config.agent_parameters.get(&label) {
             Ok(Self {
                 client: client.clone(),
@@ -71,7 +46,7 @@ impl BlockAdmin {
         }
     }
 
-    pub fn update_block(&mut self) -> Result<()> {
+    pub fn update_block(&mut self) -> Result<(), ArbiterCoreError> {
         self.block_number += 1;
         self.block_timestamp = self.block_number * self.timestep_size;
         self.client
@@ -89,7 +64,7 @@ impl Agent for BlockAdmin {
         Ok(())
     }
 
-    async fn step(&mut self) -> Result<()> {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         trace!("Updating block");
         self.update_block()?;
         trace!("Block updated");
@@ -100,7 +75,7 @@ impl Agent for BlockAdmin {
         self
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 }

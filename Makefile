@@ -3,13 +3,13 @@ all:
 	forge clean
 	forge install
 	@echo "Dependency installation complete. Building project artifacts."
-	forge build
-	forge bind --revert-strings debug -b crates/bindings --crate-name bindings --overwrite --force
+	forge build --via-ir
+	forge bind --via-ir --revert-strings debug -b crates/bindings --crate-name bindings --overwrite --force
 	@echo "Build complete. You're welcome ya' filthy animal!"
 
 build:
 	@echo "Building project artifacts."
-	forge bind --revert-strings debug -b crates/bindings --crate-name bindings --overwrite --force
+	forge bind --via-ir --revert-strings debug -b crates/bindings --crate-name bindings --overwrite --force
 	@echo "Build complete. You're welcome ya' filthy animal!"
 
 clean:

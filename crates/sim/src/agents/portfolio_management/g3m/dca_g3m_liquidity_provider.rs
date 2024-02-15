@@ -9,8 +9,8 @@ use crate::agents::base::token_admin::TokenAdmin;
 
 #[derive(Debug, Clone)]
 pub struct DcaG3mLiquidityProvider {
-    pub client: Arc<RevmMiddleware>,
-    pub protocol_client: ProtocolClient<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub protocol_client: ProtocolClient<ArbiterMiddleware>,
     pub token_x: Address,
     pub token_y: Address,
     initial_x_amount: f64,
@@ -26,7 +26,7 @@ impl Agent for DcaG3mLiquidityProvider {
         let init_price = parse_ether(self.initial_price)?;
 
         let init_params = PoolInitParamsF64::G3M(G3mF64 {
-            wx: 0.9999,
+            wx: 0.02,
             swap_fee: 0.003,
             controller: self.client.address(),
         });
@@ -36,15 +36,17 @@ impl Agent for DcaG3mLiquidityProvider {
         self.protocol_client
             .init_pool(self.token_x, self.token_y, init_x, init_price, init_params)
             .await?;
-
-        self.protocol_client
-            .set_weight_x(pool_id, 0.0001, self.end_timestamp.to_bits())
+        let set_weight_tx = self
+            .protocol_client
+            .set_weight_x(pool_id, 0.98, self.end_timestamp as u64)
             .await?;
+        tracing::info!("tx: {:?}", set_weight_tx);
+        tracing::info!("set weight on pool: {:?}", pool_id);
 
         Ok(())
     }
 
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 
@@ -59,10 +61,10 @@ impl DcaG3mLiquidityProvider {
         config: &SimulationConfig<Single>,
         label: impl Into<String>,
         token_admin: &TokenAdmin,
-        protocol_client: ProtocolClient<RevmMiddleware>,
+        protocol_client: ProtocolClient<ArbiterMiddleware>,
     ) -> Result<Self> {
         let label = label.into();
-        let client = RevmMiddleware::new(environment, Some(&label))?;
+        let client = ArbiterMiddleware::new(environment, Some(&label))?;
         let arbx = ArbiterToken::new(token_admin.arbx.address(), client.clone());
         let arby = ArbiterToken::new(token_admin.arby.address(), client.clone());
 

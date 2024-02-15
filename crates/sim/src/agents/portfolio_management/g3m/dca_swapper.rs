@@ -1,19 +1,20 @@
 use std::sync::Arc;
 
 use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::LiquidExchange};
+use arbiter_core::errors::ArbiterCoreError;
 use ethers::utils::{parse_ether, parse_units, ParseUnits};
 
 use super::{
     agent::*, agents::base::token_admin::TokenAdmin, bindings::portfolio_tracker::PortfolioTracker,
-    Environment, Result, RevmMiddleware, *,
+    ArbiterMiddleware, Environment, Result, *,
 };
 use crate::settings::parameters::LinspaceParameters;
 
 #[derive(Clone, Debug)]
 pub struct DcaSwapper {
-    pub client: Arc<RevmMiddleware>,
-    pub liquid_exchange: LiquidExchange<RevmMiddleware>,
-    pub portfolio_tracker: PortfolioTracker<RevmMiddleware>,
+    pub client: Arc<ArbiterMiddleware>,
+    pub liquid_exchange: LiquidExchange<ArbiterMiddleware>,
+    pub portfolio_tracker: PortfolioTracker<ArbiterMiddleware>,
     pub input_token_address: Address,
     pub output_token_address: Address,
     pub swap_times: Vec<U256>,
@@ -57,7 +58,7 @@ impl DcaSwapper {
         liquid_exchange_address: Address,
         token_admin: &TokenAdmin,
     ) -> Result<Self> {
-        let client = RevmMiddleware::new(environment, Some(label))?;
+        let client = ArbiterMiddleware::new(environment, Some(label))?;
 
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
 
@@ -145,19 +146,21 @@ impl DcaSwapper {
 
 #[async_trait::async_trait]
 impl Agent for DcaSwapper {
-    async fn step(&mut self) -> Result<()> {
+    async fn step(&mut self) -> Result<(), ArbiterCoreError> {
         debug!("Entering swapper step");
         if self.swap_direction {
             self.portfolio_tracker
                 .log_portfolio(self.input_token_address, self.output_token_address)
                 .send()
-                .await?
+                .await
+                .unwrap()
                 .await?;
         } else {
             self.portfolio_tracker
                 .log_portfolio(self.output_token_address, self.input_token_address)
                 .send()
-                .await?
+                .await
+                .unwrap()
                 .await?;
         }
         if self.swap_index >= self.swap_times.len() - 1
@@ -172,7 +175,8 @@ impl Agent for DcaSwapper {
             self.liquid_exchange
                 .swap(self.input_token_address, self.amount_in)
                 .send()
-                .await?
+                .await
+                .unwrap()
                 .await?;
             trace!("Swapper swapped and is incrementing index");
             self.swap_index += 1;
@@ -180,7 +184,7 @@ impl Agent for DcaSwapper {
         debug!("Exiting swapper step");
         Ok(())
     }
-    fn client(&self) -> Arc<RevmMiddleware> {
+    fn client(&self) -> Arc<ArbiterMiddleware> {
         self.client.clone()
     }
 

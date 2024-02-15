@@ -9,8 +9,8 @@ use std::{any::Any, path::Path};
 
 use ::config::ConfigError;
 use anyhow::{bail, Error, Result};
-use arbiter_core::{environment::Environment, middleware::RevmMiddleware};
-use ethers::prelude::*;
+use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
+use ethers::{prelude::*, utils::format_ether};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use settings::{
@@ -47,7 +47,7 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
     let instant = std::time::Instant::now();
 
     // Run the sims, returning snapshot dbs to the manager's `instances`.
-    let result = rt.block_on(async move {
+    rt.block_on(async move {
         let mut manager = engine::ArbiterInstanceManager::new();
         manager.config_builder.config = import(path)?;
 
@@ -58,7 +58,6 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
 
     let duration = instant.elapsed();
 
-    tracing::trace!("Simulation result: {:?}", result);
     tracing::info!("Total duration of simulations: {:?}", duration);
 
     Ok(())
@@ -86,9 +85,7 @@ impl From<anyhow::Error> for SimulationError {
 }
 
 fn parse_ether_to_f64(ether: ethers::types::U256) -> Result<f64> {
-    ethers::utils::format_ether(ether)
-        .parse::<f64>()
-        .map_err(|e| e.into())
+    Ok(format_ether(ether).parse::<f64>()?)
 }
 
 pub fn to_ethers_address(address: alloy_primitives::Address) -> ethers::types::Address {

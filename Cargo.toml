@@ -26,8 +26,8 @@ cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
 
 # External
 arbiter-bindings = { version = "0.1.0" }
-arbiter-core = { git = "https://github.com/primitivefinance/arbiter", branch = "experimental/close-with-db" }
-ethers = { version = "=2.0.10", features = ["ws", "openssl", "rustls"] }
+arbiter-core = "0.10.0"
+ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
 # ethereum types
@@ -52,13 +52,13 @@ alloy-signer = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" 
 reqwest = "=0.11.23"
 
 ## Config and parsing
-serde = "=1.0.192"
-serde_json = "=1.0.108"
+serde = "=1.0.196"
+serde_json = "=1.0.113"
 serde_with = { version = "=3.4.0", features = ["chrono_0_4"] }
 config = "0.13.3"
 
 ## Async
-tokio = { version = "=1.35.1", features = ["macros", "full"] }
+tokio = { version = "=1.36.0", features = ["macros", "full"] }
 tokio-util = "=0.7.10"
 async-trait = "=0.1.77"
 
@@ -67,7 +67,7 @@ tracing = "=0.1.40"
 tracing-subscriber = { version = "=0.3.18", features = ["env-filter"] }
 tracing-futures = { version = "=0.2.5", default-features = false }
 anyhow = "=1.0.79"
-thiserror = "=1.0.50"
+thiserror = "=1.0.57"
 
 itertools = "=0.12.0"
 rand = "=0.8.5"
