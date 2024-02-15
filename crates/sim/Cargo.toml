@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 datatypes.workspace = true
 bindings.workspace = true
-cfmm_math.workspace = true
 clients.workspace = true
 
 

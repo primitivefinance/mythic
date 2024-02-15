@@ -2,16 +2,14 @@ use arbiter_core::data_collection::EventLogger;
 use clients::protocol::ProtocolClient;
 use revm::db::{CacheDB, EmptyDB};
 
-use self::agents::portfolio_management_agents::{
+use self::agents::portfolio_management::{
     g3m::{dca_g3m_setup, g3m_setup},
     lognormal::ln_setup,
 };
 use super::*;
 use crate::{
     agent::Agents,
-    agents::base_agents::{
-        block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin,
-    },
+    agents::base::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
