@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use alloy_primitives::{Address, U256};
-use arbiter_core::{
-    environment::{Environment, EnvironmentBuilder},
-    errors::ArbiterCoreError,
-};
+use arbiter_core::{environment::Environment, errors::ArbiterCoreError};
 use ethers::types::Bytes;
 use revm::db::{CacheDB, DbAccount, EmptyDB};
 use revm_primitives::{AccountInfo, HashMap as Map};
@@ -288,7 +285,7 @@ pub async fn run_parallel(
                 ));
             }
 
-            let mut snapshots = vec![];
+            let snapshots = vec![];
             for handle in handles {
                 let instance = handle.await???;
                 instance.stop()?;

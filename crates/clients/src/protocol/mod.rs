@@ -307,7 +307,6 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         match pool.kind {
             PoolKind::G3M => Ok(self.g_solver.internal_price(pool_id).call().await.unwrap()),
             PoolKind::LogNormal => Ok(self.ln_solver.internal_price(pool_id).call().await.unwrap()),
-            _ => return Err(ArbiterCoreError::MissingDataError),
         }
     }
 

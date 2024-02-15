@@ -47,7 +47,7 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
     let instant = std::time::Instant::now();
 
     // Run the sims, returning snapshot dbs to the manager's `instances`.
-    let result = rt.block_on(async move {
+    rt.block_on(async move {
         let mut manager = engine::ArbiterInstanceManager::new();
         manager.config_builder.config = import(path)?;
 
@@ -58,7 +58,6 @@ pub fn run(path: &str, verbosity: Option<u8>) -> Result<()> {
 
     let duration = instant.elapsed();
 
-    tracing::trace!("Simulation result: {:?}", result);
     tracing::info!("Total duration of simulations: {:?}", duration);
 
     Ok(())
