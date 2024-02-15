@@ -10,7 +10,7 @@ authors = ["Primitive Bits, Inc."]
 
 [[bin]]
 name = "excalibur"
-path = "bin/src/main.rs"
+path = "bin/main.rs"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -73,7 +73,8 @@ itertools = "=0.12.0"
 rand = "=0.8.5"
 bytesize = "=1.2.0"
 dotenv = "=0.15.0"
-uuid = { version = "=1.6.1", features = ["v4", "serde"] }
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
+clap = { version = "4.5.0", features = ["derive"] }
 
 # Visualization
 plotters = "=0.3.5"
@@ -97,7 +98,7 @@ clients.workspace = true
 cfmm_math.workspace = true
 sim.workspace = true
 
-clap = { version = "=4.4.14", features = ["derive"] }
+clap.workspace = true
 
 criterion.workspace = true
 analysis.workspace = true
