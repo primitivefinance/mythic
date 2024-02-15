@@ -89,33 +89,6 @@ contract LogNormalTest is Test {
         _;
     }
 
-    modifier revert_scenario() {
-        vm.warp(0);
-
-        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
-            strike: 0.67323818941934077 ether,
-            sigma: ONE,
-            tau: ONE,
-            swapFee: TEST_SWAP_FEE,
-            controller: address(0)
-        });
-        uint256 init_p = 1_329_956_352_651_532_999;
-        uint256 init_x = 70.658087306013359413 ether;
-        bytes memory initData =
-            solver.getInitialPoolData(init_x, init_p, params);
-
-        IDFMM.InitParams memory initParams = IDFMM.InitParams({
-            strategy: address(logNormal),
-            tokenX: tokenX,
-            tokenY: tokenY,
-            data: initData
-        });
-
-        dfmm.init(initParams);
-
-        _;
-    }
-
     function test_ln_swap_x_in() public basic {
         bool xIn = true;
         uint256 amountIn = 0.1 ether;
