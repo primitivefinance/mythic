@@ -27,7 +27,7 @@ contract LogNormalTest is Test {
         MockERC20(tokenY).mint(address(this), 100_000_000 ether);
 
         lex = new Lex(tokenX, tokenY, ONE);
-        dfmm = new DFMM();
+        dfmm = new DFMM(address(0));
         logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
@@ -99,7 +99,7 @@ contract LogNormalTest is Test {
             swapFee: TEST_SWAP_FEE,
             controller: address(0)
         });
-        uint256 init_p = 1329956352651532999;
+        uint256 init_p = 1_329_956_352_651_532_999;
         uint256 init_x = 70.658087306013359413 ether;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
@@ -117,34 +117,32 @@ contract LogNormalTest is Test {
     }
 
     function test_ln_swap_x_in() public basic {
-      bool xIn = true;
-      uint256 amountIn = 0.1 ether;
-      uint256 poolId = dfmm.nonce() - 1;
-      (,,,bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+        bool xIn = true;
+        uint256 amountIn = 0.1 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
 
-      dfmm.swap(poolId, swapData);
+        dfmm.swap(poolId, swapData);
     }
 
     function test_ln_swap_y_in() public basic {
-      bool xIn = false;
-      uint256 amountIn = 0.1 ether;
-      uint256 poolId = dfmm.nonce() - 1;
-      (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+        bool xIn = false;
+        uint256 amountIn = 0.1 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
 
-      dfmm.swap(poolId, swapData);
+        dfmm.swap(poolId, swapData);
     }
 
     // todo: write assertApproxEq
     function test_price_formulas() public basic {
         uint256 poolId = dfmm.nonce() - 1;
-        (uint256 rx, uint256 ry, uint256 L) = solver.getReservesAndLiquidity(poolId);
+        (uint256 rx, uint256 ry, uint256 L) =
+            solver.getReservesAndLiquidity(poolId);
         uint256 priceGivenY = solver.getPriceGivenYL(poolId, ry, L);
         uint256 priceGivenX = solver.getPriceGivenXL(poolId, rx, L);
         assertApproxEqAbs(priceGivenY, priceGivenX, 100);
     }
-
-
-
 
     // function test_internal_price() public basic {
     //     uint256 internalPrice = solver.internalPrice();

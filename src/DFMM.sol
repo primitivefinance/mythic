@@ -50,7 +50,8 @@ contract DFMM is IDFMM {
      * deployed at the same time. It'll be used later to deploy
      * new LPTokens using the [clone factory pattern](https://eips.ethereum.org/EIPS/eip-1167).
      */
-    constructor() {
+    constructor(address weth_) {
+        weth = weth_;
         lpTokenImplementation = address(new LPToken());
         LPToken(lpTokenImplementation).initialize("", "");
     }
