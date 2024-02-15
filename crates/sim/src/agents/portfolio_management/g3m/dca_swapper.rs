@@ -4,8 +4,8 @@ use arbiter_bindings::bindings::{arbiter_token::ArbiterToken, liquid_exchange::L
 use ethers::utils::{parse_ether, parse_units, ParseUnits};
 
 use super::{
-    agent::*, agents::base_agents::token_admin::TokenAdmin,
-    bindings::portfolio_tracker::PortfolioTracker, Environment, Result, RevmMiddleware, *,
+    agent::*, agents::base::token_admin::TokenAdmin, bindings::portfolio_tracker::PortfolioTracker,
+    Environment, Result, RevmMiddleware, *,
 };
 use crate::settings::parameters::LinspaceParameters;
 

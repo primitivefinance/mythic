@@ -2,7 +2,7 @@ use arbiter_core::data_collection::EventLogger;
 use clients::protocol::ProtocolClient;
 use revm::db::{CacheDB, EmptyDB};
 
-use self::agents::portfolio_management_agents::{
+use self::agents::portfolio_management::{
     g3m::{dca_g3m_setup, g3m_setup},
     lognormal::ln_setup,
 };

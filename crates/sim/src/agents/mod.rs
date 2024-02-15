@@ -2,13 +2,16 @@ pub mod base;
 pub mod portfolio_management;
 
 use base::{block_admin::*, price_changer::*, token_admin::*};
-use portfolio_management_agents::{
-    base::parameter_manager::*,
-    g3m::{dca_g3m_liquidity_provider::*, g3m_liquidity_provider::*},
-    lognormal::ln_liquidity_provider::*,
-};
+use portfolio_management::{base::parameter_manager::*, g3m::dca_g3m_liquidity_provider::*};
 
-use self::portfolio_management_agents::g3m::dca_swapper::DcaSwapperParameters;
+use self::portfolio_management::{
+    base::parameter_manager::ParameterManagerParameters,
+    g3m::{
+        dca_g3m_liquidity_provider::DcaG3mLiquidityProviderParameters,
+        dca_swapper::DcaSwapperParameters, g3m_liquidity_provider::G3mLiquidityProviderParameters,
+    },
+    lognormal::ln_liquidity_provider::LogNormalLiquidityProviderParameters,
+};
 use super::*;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
