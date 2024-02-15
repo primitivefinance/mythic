@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "solmate/utils/FixedPointMathLib.sol";
 import "solmate/utils/SafeTransferLib.sol";
+import "solmate/utils/LibString.sol";
 import { WETH } from "solmate/tokens/WETH.sol";
 import "solstat/Units.sol";
 import "./interfaces/IDFMM.sol";
@@ -79,8 +80,9 @@ contract DFMM is IDFMM {
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
 
-        // TODO: Add name / symbol
-        liquidityToken.initialize("", "");
+        string memory tokenMetadata =
+            _prepareTokenMetadata(params.strategy, params.tokenX, params.tokenY);
+        liquidityToken.initialize(tokenMetadata, tokenMetadata);
         liquidityToken.mint(msg.sender, totalLiquidity - BURNT_LIQUIDITY);
         liquidityToken.mint(address(0), BURNT_LIQUIDITY);
 
@@ -117,6 +119,23 @@ contract DFMM is IDFMM {
             pool.reserveX,
             pool.reserveY,
             pool.totalLiquidity
+        );
+    }
+
+    function _prepareTokenMetadata(
+        address strategy,
+        address tokenX,
+        address tokenY
+    ) internal view returns (string memory) {
+        return string.concat(
+            "DFMM-",
+            IStrategy(strategy).name(),
+            "-",
+            ERC20(tokenX).name(),
+            "-",
+            ERC20(tokenY).name(),
+            "-",
+            LibString.toString(pools.length)
         );
     }
 
