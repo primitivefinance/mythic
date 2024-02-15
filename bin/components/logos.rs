@@ -13,22 +13,22 @@ use crate::components::styles::MINT_500;
 
 /// Placeholder for the Excalibur logo.
 #[allow(dead_code)]
-const EXCALIBUR_LOGO: &[u8] = include_bytes!("../../../assets/logos/excalibur_logo.png");
+const EXCALIBUR_LOGO: &[u8] = include_bytes!("../../assets/logos/excalibur_logo.png");
 
 #[allow(dead_code)]
 pub fn excalibur_logo() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO, None).unwrap()
 }
 
-const EXCALIBUR_LOGO_2: &[u8] = include_bytes!("../../../assets/logos/daggeremoji.png");
+const EXCALIBUR_LOGO_2: &[u8] = include_bytes!("../../assets/logos/daggeremoji.png");
 
 pub fn excalibur_logo_2() -> icon::Icon {
     icon::from_file_data(EXCALIBUR_LOGO_2, None).unwrap()
 }
 
-const ETHER_LOGO: &[u8] = include_bytes!("../../../assets/logos/ethtokenicon.svg");
-const USDC_LOGO: &[u8] = include_bytes!("../../../assets/logos/usdcvector.svg");
-const LP_LOGO: &[u8] = include_bytes!("../../../assets/logos/ethusdclp.svg");
+const ETHER_LOGO: &[u8] = include_bytes!("../../assets/logos/ethtokenicon.svg");
+const USDC_LOGO: &[u8] = include_bytes!("../../assets/logos/usdcvector.svg");
+const LP_LOGO: &[u8] = include_bytes!("../../assets/logos/ethusdclp.svg");
 
 pub fn ether_logo() -> iced::widget::svg::Handle {
     svg::Handle::from_memory(ETHER_LOGO)

@@ -1,7 +1,7 @@
 pub mod base;
 pub mod portfolio_management;
 
-use base::{block_admin::*, price_changer::*, token_admin::*};
+use base::{block_admin::*, token_admin::*};
 use portfolio_management::{base::parameter_manager::*, g3m::dca_g3m_liquidity_provider::*};
 
 use self::portfolio_management::{
@@ -13,6 +13,7 @@ use self::portfolio_management::{
     lognormal::ln_liquidity_provider::LogNormalLiquidityProviderParameters,
 };
 use super::*;
+use crate::agents::base::price_changer::PriceChangerParameters;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {
