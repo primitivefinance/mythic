@@ -132,9 +132,9 @@ contract DFMM is IDFMM {
             "DFMM-",
             IStrategy(strategy).name(),
             "-",
-            ERC20(tokenX).name(),
+            ERC20(tokenX).symbol(),
             "-",
-            ERC20(tokenY).name(),
+            ERC20(tokenY).symbol(),
             "-",
             LibString.toString(pools.length)
         );
