@@ -3,7 +3,6 @@ use std::sync::Arc;
 use arbiter_core::errors::ArbiterCoreError;
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
-    middleware::gas_oracle::MiddlewareError,
     types::{Bytes, I256, U256},
     utils::format_ether,
 };
@@ -11,10 +10,7 @@ use tracing::log::info;
 
 use super::{
     agent::*,
-    agents::{
-        base_agents::token_admin::TokenAdmin,
-        portfolio_management_agents::base::arbitrageur::Arbitrageur,
-    },
+    agents::{base::token_admin::TokenAdmin, portfolio_management::base::arbitrageur::Arbitrageur},
     ArbiterMiddleware, Environment, Result, *,
 };
 

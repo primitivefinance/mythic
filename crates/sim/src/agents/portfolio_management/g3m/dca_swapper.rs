@@ -6,7 +6,7 @@ use ethers::utils::{parse_ether, parse_units, ParseUnits};
 
 use super::{
     agent::*, agents::base::token_admin::TokenAdmin, bindings::portfolio_tracker::PortfolioTracker,
-    Environment, Result, RevmMiddleware, *,
+    ArbiterMiddleware, Environment, Result, *,
 };
 use crate::settings::parameters::LinspaceParameters;
 

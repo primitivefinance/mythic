@@ -10,8 +10,7 @@ use tracing::info;
 
 use self::agents::portfolio_management::base::arbitrageur::Arbitrageur;
 use super::{
-    agent::*, agents::base_agents::token_admin::TokenAdmin, ArbiterMiddleware, Environment, Result,
-    *,
+    agent::*, agents::base::token_admin::TokenAdmin, ArbiterMiddleware, Environment, Result, *,
 };
 
 #[derive(Debug, Clone)]
