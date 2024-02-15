@@ -50,6 +50,12 @@ pub async fn connect_to_ledger() -> Result<(Arc<LedgerClient>, Address), Arc<Err
     Ok((ledger, address))
 }
 
+impl Default for SignerManagement {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SignerManagement {
     pub fn new() -> Self {
         Self::NotConnected

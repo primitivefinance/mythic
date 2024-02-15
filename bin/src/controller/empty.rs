@@ -7,6 +7,12 @@ use crate::components::system::label;
 
 pub struct EmptyScreen;
 
+impl Default for EmptyScreen {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EmptyScreen {
     pub fn new() -> Self {
         Self

@@ -25,6 +25,12 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 
 pub struct ContactsManagement;
 
+impl Default for ContactsManagement {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ContactsManagement {
     pub fn new() -> Self {
         Self

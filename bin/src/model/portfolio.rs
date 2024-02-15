@@ -2866,7 +2866,7 @@ mod tests {
             .spawn();
 
         let url = anvil.ws_endpoint().to_string();
-        let wallet: LocalWallet = anvil.keys().get(0).unwrap().clone().into();
+        let wallet: LocalWallet = anvil.keys().first().unwrap().clone().into();
         let wallet = wallet.with_chain_id(anvil.chain_id());
         println!("Connected to URL: {}", url);
 

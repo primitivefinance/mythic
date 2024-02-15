@@ -542,6 +542,12 @@ pub struct Update {
     pub duration: Duration,
 }
 
+impl Default for AppClock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AppClock {
     /// Constructor for AppClock.
     pub fn new() -> Self {
