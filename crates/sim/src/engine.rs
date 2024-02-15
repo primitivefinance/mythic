@@ -410,7 +410,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        agents::{base::block_admin::BlockAdminParameters, AgentParameters},
+        agents::{base_agents::block_admin::BlockAdminParameters, AgentParameters},
         scenarios::BasicScenario,
     };
 

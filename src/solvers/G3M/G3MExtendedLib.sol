@@ -77,12 +77,8 @@ function computeInitialPoolData(
     uint256 rY = computeY(amountX, initialPrice, params);
     uint256 L = computeL(amountX, rY, params);
 
-    int256 invariant = G3MLib.tradingFunction({
-        rX: amountX,
-        rY: rY,
-        L: L,
-        params: params
-    });
+    int256 invariant =
+        G3MLib.tradingFunction({ rX: amountX, rY: rY, L: L, params: params });
 
     L = computeNextLiquidity(amountX, rY, invariant, L, params);
 
@@ -129,15 +125,158 @@ function computePrice(
 /// @dev This is a pure anonymous function defined at the file level, which allows
 /// it to be passed as an argument to another function. BisectionLib.sol takes this
 /// function as an argument to find the root of the trading function given the liquidity.
+
 function findRootLiquidity(
     bytes memory data,
     uint256 L
 ) pure returns (int256) {
     (uint256 rX, uint256 rY,, G3M.G3MParams memory params) =
         abi.decode(data, (uint256, uint256, int256, G3M.G3MParams));
-        return G3MLib.tradingFunction({ rX: rX, rY: rY, L: L, params: params });
+    return G3MLib.tradingFunction({ rX: rX, rY: rY, L: L, params: params });
 }
 
+function findRootLower(bytes memory data, uint256 v) pure returns (int256) {
+    (uint256 S, uint256 rX, uint256 rY, uint256 L, G3M.G3MParams memory params)
+    = abi.decode(data, (uint256, uint256, uint256, uint256, G3M.G3MParams));
+    return diffLower({ S: S, rX: rX, rY: rY, L: L, v: v, params: params });
+}
+
+function findRootRaise(bytes memory data, uint256 v) pure returns (int256) {
+    (uint256 S, uint256 rX, uint256 rY, uint256 L, G3M.G3MParams memory params)
+    = abi.decode(data, (uint256, uint256, uint256, uint256, G3M.G3MParams));
+    return diffRaise({ S: S, rX: rX, rY: rY, L: L, v: v, params: params });
+}
+
+function diffLower(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 v,
+    G3M.G3MParams memory params
+) pure returns (int256) {
+    (int256 wx, int256 wy) = (int256(params.wX), int256(params.wY));
+    uint256 gamma = ONE - params.swapFee;
+    int256 yOverX = int256(rY.divWadDown(rX));
+    uint256 yOverXPowWx = uint256(yOverX.powWad(wx));
+    uint256 yOverXPowWy = uint256(yOverX.powWad(wy));
+
+    uint256 numerator;
+    {
+        uint256 first =
+            L.mulWadDown(params.wX).mulWadDown(rX).mulWadDown(yOverXPowWx);
+        uint256 second = (v - v.mulWadDown(params.wX) + rX).mulWadDown(rY)
+            .mulWadDown(ONE - gamma);
+        uint256 third = uint256(int256(v + rX).powWad(-wx));
+        uint256 fourth = L + v.mulWadDown(yOverXPowWy).mulWadDown(ONE - gamma);
+        numerator = (first - second).mulWadDown(
+            uint256(
+                int256(third.mulWadDown(fourth)).powWad(
+                    int256(ONE.divWadDown(ONE - params.wX))
+                )
+            )
+        );
+    }
+
+    uint256 denominator;
+    {
+        uint256 dFirst = ONE - params.wX;
+        uint256 dSecond = v + rX;
+        uint256 dThird = L.mulWadDown(rX).mulWadDown(uint256(yOverXPowWx));
+        uint256 dFourth = v.mulWadDown(rY).mulWadDown(ONE - gamma);
+        denominator = dFirst.mulWadDown(dSecond).mulWadDown(dThird + dFourth);
+    }
+
+    int256 result = -int256(S) + int256(numerator.divWadDown(denominator));
+    return result;
+}
+
+function diffRaise(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 v,
+    G3M.G3MParams memory params
+) pure returns (int256) {
+    int256 wx = int256(params.wX);
+    uint256 gamma = ONE - params.swapFee;
+    uint256 xOverYPowWx = uint256(int256(rX.divWadDown(rY)).powWad(wx));
+    uint256 vPlusYPow = uint256(int256(v + rY).powWad(-int256(ONE) + wx));
+    uint256 vTimesXOverYPowWx = v.mulWadDown(xOverYPowWx);
+    uint256 lPlusVTimesXOverYPowWx =
+        L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
+
+    int256 numerator;
+    {
+        uint256 first = params.wX.mulWadDown(v + rY);
+        uint256 second = lPlusVTimesXOverYPowWx;
+        uint256 third = uint256(
+            int256((uint256(vPlusYPow.mulWadDown(lPlusVTimesXOverYPowWx))))
+                .powWad(int256(ONE.divWadDown(params.wX)))
+        );
+        uint256 fourth = L.mulWadDown(ONE - params.wX);
+        uint256 fifth = xOverYPowWx.mulWadDown(v.mulWadDown(params.wX) + rY)
+            .mulWadDown(ONE - gamma);
+
+        numerator = int256(first.mulWadDown(second))
+            - int256(S.mulWadDown(third).mulWadDown(fourth - fifth));
+    }
+
+    uint256 denominator;
+
+    {
+        uint256 first = params.wX.mulWadDown(v + rY);
+        uint256 second = L + vTimesXOverYPowWx.mulWadDown(ONE - gamma);
+        denominator = first.mulWadDown(second);
+    }
+
+    if (numerator > 0) {
+        return -int256(uint256(numerator).divWadDown(denominator));
+    } else {
+        return int256(uint256(-numerator).divWadDown(denominator));
+    }
+}
+
+function computeOptimalLower(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 vUpper,
+    G3M.G3MParams memory params
+) pure returns (uint256 v) {
+    uint256 upper = vUpper;
+    uint256 lower = vUpper.mulDivDown(50, 100);
+    v = bisection(
+        abi.encode(S, rX, rY, L, params),
+        lower,
+        upper,
+        uint256(1),
+        256,
+        findRootLower
+    );
+}
+
+function computeOptimalRaise(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 vUpper,
+    G3M.G3MParams memory params
+) pure returns (uint256 v) {
+    uint256 upper = vUpper;
+    uint256 lower = vUpper.mulDivDown(50, 100);
+    v = bisection(
+        abi.encode(S, rX, rY, L, params),
+        lower,
+        upper,
+        uint256(1),
+        256,
+        findRootRaise
+    );
+}
 
 function computeNextLiquidity(
     uint256 rX,
@@ -161,7 +300,7 @@ function computeNextLiquidity(
         }
     } else {
         while (computedInvariant > 0) {
-            upper = upper.mulDivUp(1_001, 1_000);
+            upper = upper.mulDivUp(1001, 1000);
             computedInvariant = G3MLib.tradingFunction({
                 rX: rX,
                 rY: rY,

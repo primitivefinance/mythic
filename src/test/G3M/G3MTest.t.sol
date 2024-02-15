@@ -68,7 +68,7 @@ contract G3MTest is Test {
             controller: address(0)
         });
         uint256 init_p = ONE;
-        uint256 init_x = 1000 ether;
+        uint256 init_x = 1 ether;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
@@ -88,6 +88,40 @@ contract G3MTest is Test {
         uint256 poolId = dfmm.nonce() - 1;
         (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) =
             solver.simulateSwap(poolId, true, amountIn);
+    }
+
+    function test_diff_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLowered =
+            solver.calculateDiffLower(poolId, 0.8 ether, 0.114674 ether);
+
+        console2.log(diffLowered);
+    }
+
+    function test_diff_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffRaised =
+            solver.calculateDiffRaise(poolId, 1.2 ether, 0.0921529 ether);
+
+        console2.log(diffRaised);
+    }
+
+    function test_optimal_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
+            poolId, 1.2 ether, 0.0954451 ether
+        );
+
+        console2.log(optimalRaise);
+    }
+
+    function test_optimal_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalLower = solver.computeOptimalArbLowerPrice(
+            poolId, 0.8 ether, 0.134674 ether
+        );
+
+        console2.log(optimalLower);
     }
 
     // function test_internal_price() public basic {
