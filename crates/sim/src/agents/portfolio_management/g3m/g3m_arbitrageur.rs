@@ -6,7 +6,7 @@ use ethers::{
     types::{Bytes, I256, U256},
     utils::format_ether,
 };
-use tracing::log::info;
+use tracing::info;
 
 use super::{
     agent::*,
