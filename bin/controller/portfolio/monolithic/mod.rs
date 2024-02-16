@@ -12,7 +12,10 @@ use clients::protocol::{LogNormalF64, PoolInitParamsF64};
 use datatypes::portfolio::coin::Coin;
 use iced::{futures::TryFutureExt, subscription, Padding};
 use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
-use RustQuant::{models::GeometricBrownianMotion, stochastics::{StochasticProcess, Trajectories}};
+use RustQuant::{
+    models::GeometricBrownianMotion,
+    stochastics::{StochasticProcess, Trajectories},
+};
 
 use self::{
     create::{FormView, LiquidityTypes, Times},

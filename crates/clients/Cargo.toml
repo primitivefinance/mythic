@@ -14,7 +14,6 @@ coins-bip32 = { git = "https://github.com/summa-tx/coins.git" }
 
 revm.workspace = true
 revm-primitives.workspace = true
-alloy-rpc-types.workspace = true
 thiserror.workspace = true
 bindings.workspace = true
 anyhow.workspace = true

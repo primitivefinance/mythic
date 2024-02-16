@@ -4,9 +4,10 @@ use arbiter_core::errors::ArbiterCoreError;
 use bindings::lex::Lex;
 use ethers::utils::parse_ether;
 use itertools::iproduct;
-use RustQuant::{stochastics::{StochasticProcess, Trajectories}, models::{
-    GeometricBrownianMotion, OrnsteinUhlenbeck,
-}};
+use RustQuant::{
+    models::{GeometricBrownianMotion, OrnsteinUhlenbeck},
+    stochastics::{StochasticProcess, Trajectories},
+};
 
 use super::{agent::*, *};
 

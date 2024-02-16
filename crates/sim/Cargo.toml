@@ -11,7 +11,7 @@ bindings.workspace = true
 clients.workspace = true
 
 
-unit-conversions = "=0.1.13"
+unit-conversions = "0.1.16"
 
 revm.workspace = true
 revm-primitives.workspace = true
