@@ -20,7 +20,7 @@ use std::borrow::Cow;
 use button::*;
 use iced::{
     widget::{pick_list, Button, Container},
-    BorderRadius, Color, Element, Padding, Renderer,
+    Border, Color, Element, Padding, Renderer,
 };
 use iced_aw::{
     graphics::icons::{self, icon_to_char},
@@ -30,7 +30,6 @@ use input::*;
 use styles::*;
 
 use self::{
-    select::custom_pick_list,
     system::{label, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
     tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
 };
@@ -148,12 +147,14 @@ where
 {
     let title = label(title).title3().build();
 
+    let pick_list = pick_list(options, selected, on_selected)
+        .padding(Sizes::Md as u16)
+        .width(Length::Fill);
+
     Column::new()
         .push(title)
         .push(
-            custom_pick_list(options, selected, on_selected, None)
-                .padding(Sizes::Md as u16)
-                .width(Length::Fill),
+            pick_list
         )
         .spacing(Sizes::Md as u16)
         .into()

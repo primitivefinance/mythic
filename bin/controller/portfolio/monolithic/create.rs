@@ -1,17 +1,16 @@
 use std::fmt::{self, Display};
 
 use datatypes::portfolio::coin::Coin;
-use iced::Padding;
+use iced::{widget::pick_list, Border, Padding};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
+use self::select::CustomSelect;
+
 use super::*;
-use crate::components::{
-    select::excalibur_select,
-    system::{
+use crate::components::system::{
         ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburHistogram,
         ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
-    },
-};
+    };
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum SubmitState {
@@ -428,7 +427,7 @@ impl FormView {
         Column::new().push(
             ExcaliburButton::new()
                 .selectable()
-                .border_radius(8.0.into())
+                .border_radius(Border::with_radius(8.0))
                 .active()
                 .background(background)
                 .build(
@@ -450,7 +449,7 @@ impl FormView {
                         .push(
                             ExcaliburContainer::default()
                                 .light_border()
-                                .border_radius([0.0, 0.0, 8.0, 8.0].into())
+                                .border_radius(Border::with_radius(8.0))
                                 .build(
                                     Row::new()
                                         .padding(Padding {
@@ -635,16 +634,29 @@ impl FormView {
     where
         Message: 'a + Default,
     {
+        let select = pick_list(choice_duration, chosen_duration, on_select_duration)
+            .style(
+                CustomSelect::new()
+                    .border_color(ExcaliburColor::Custom(GRAY_600).into())
+                    .border_width(1.0)
+                    .border_radius(8.0.into())
+                    .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+                    .background(ExcaliburColor::Background3.into())
+                    .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+                    .hovered()
+                    .border_color(ExcaliburColor::Custom(GRAY_600).into())
+                    .border_width(1.0)
+                    .border_radius(8.0.into())
+                    .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+                    .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+                    .background(ExcaliburColor::Background4.into())
+                    .as_custom(),
+            )
+            .placeholder("Select duration".to_owned());
         Self::form_item(
             "Duration",
             Column::new().push(
-                excalibur_select(
-                    choice_duration,
-                    chosen_duration,
-                    on_select_duration,
-                    "Select duration",
-                    Some(8.0.into()),
-                )
+            select
                 .padding(Sizes::Md)
                 .width(Length::Fill),
             ),
@@ -660,17 +672,31 @@ impl FormView {
     where
         Message: 'a + Default,
     {
+        let select =     pick_list(choice_liquidity, chosen_liquidity, on_select_liquidity)
+            .style(
+                CustomSelect::new()
+                    .border_color(ExcaliburColor::Custom(GRAY_600).into())
+                    .border_width(1.0)
+                    .border_radius([8.0, 8.0, 0.0, 0.0].into())
+                    .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+                    .background(ExcaliburColor::Background3.into())
+                    .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+                    .hovered()
+                    .border_color(ExcaliburColor::Custom(GRAY_600).into())
+                    .border_width(1.0)
+                    .border_radius([8.0, 8.0, 0.0, 0.0].into())
+                    .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
+                    .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
+                    .background(ExcaliburColor::Background4.into())
+                    .as_custom(),
+            )
+            .placeholder("Select liquidity type".to_owned());
+
         Self::form_item(
             "Liquidity Type",
             Column::new()
                 .push(
-                    excalibur_select(
-                        choice_liquidity,
-                        chosen_liquidity,
-                        on_select_liquidity,
-                        "Select liquidity type",
-                        Some([8.0, 8.0, 0.0, 0.0].into()),
-                    )
+                    select
                     .padding(Sizes::Md)
                     .width(Length::Fill),
                 )

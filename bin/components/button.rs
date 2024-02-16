@@ -8,7 +8,7 @@
 
 use iced::{
     widget::button::{Appearance, StyleSheet},
-    Background, BorderRadius, Color,
+    Background, Border, Color, Shadow,
 };
 
 use super::styles::*;
@@ -41,10 +41,12 @@ impl CustomButtonStyle {
         let default = Appearance {
             shadow_offset: Default::default(),
             background: None,
-            border_radius: Default::default(),
-            border_width: 0.0,
-            border_color: Default::default(),
+            border: Default::default()
+                .radius(0.0)
+                .width(0.0)
+                .color(Default::default()),
             text_color: Color::WHITE,
+            shadow: Shadow::default(),
         };
         Self {
             active: default,
@@ -156,7 +158,7 @@ impl CustomButtonStyle {
         self
     }
 
-    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+    pub fn border_radius(mut self, radius: Border) -> Self {
         match self.current_state {
             ButtonState::Active => self.active.border_radius = radius,
             ButtonState::Hovered => self.hovered.border_radius = radius,

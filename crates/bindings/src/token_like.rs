@@ -7,45 +7,35 @@ pub use token_like::*;
     clippy::upper_case_acronyms,
     clippy::type_complexity,
     dead_code,
-    non_camel_case_types,
+    non_camel_case_types
 )]
 pub mod token_like {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
             constructor: ::core::option::Option::None,
-            functions: ::core::convert::From::from([
-                (
-                    ::std::borrow::ToOwned::to_owned("balanceOf"),
-                    ::std::vec![
-                        ::ethers::core::abi::ethabi::Function {
-                            name: ::std::borrow::ToOwned::to_owned("balanceOf"),
-                            inputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("address"),
-                                    ),
-                                },
-                            ],
-                            outputs: ::std::vec![
-                                ::ethers::core::abi::ethabi::Param {
-                                    name: ::std::string::String::new(),
-                                    kind: ::ethers::core::abi::ethabi::ParamType::Uint(
-                                        256usize,
-                                    ),
-                                    internal_type: ::core::option::Option::Some(
-                                        ::std::borrow::ToOwned::to_owned("uint256"),
-                                    ),
-                                },
-                            ],
-                            constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
-                        },
-                    ],
-                ),
-            ]),
+            functions: ::core::convert::From::from([(
+                ::std::borrow::ToOwned::to_owned("balanceOf"),
+                ::std::vec![::ethers::core::abi::ethabi::Function {
+                    name: ::std::borrow::ToOwned::to_owned("balanceOf"),
+                    inputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                        name: ::std::string::String::new(),
+                        kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                        internal_type: ::core::option::Option::Some(
+                            ::std::borrow::ToOwned::to_owned("address"),
+                        ),
+                    },],
+                    outputs: ::std::vec![::ethers::core::abi::ethabi::Param {
+                        name: ::std::string::String::new(),
+                        kind: ::ethers::core::abi::ethabi::ParamType::Uint(256usize,),
+                        internal_type: ::core::option::Option::Some(
+                            ::std::borrow::ToOwned::to_owned("uint256"),
+                        ),
+                    },],
+                    constant: ::core::option::Option::None,
+                    state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                },],
+            )]),
             events: ::std::collections::BTreeMap::new(),
             errors: ::std::collections::BTreeMap::new(),
             receive: false,
@@ -53,9 +43,8 @@ pub mod token_like {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static TOKENLIKE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
-        __abi,
-    );
+    pub static TOKENLIKE_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> =
+        ::ethers::contract::Lazy::new(__abi);
     pub struct TokenLike<M>(::ethers::contract::Contract<M>);
     impl<M> ::core::clone::Clone for TokenLike<M> {
         fn clone(&self) -> Self {
@@ -75,7 +64,9 @@ pub mod token_like {
     }
     impl<M> ::core::fmt::Debug for TokenLike<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(TokenLike)).field(&self.address()).finish()
+            f.debug_tuple(::core::stringify!(TokenLike))
+                .field(&self.address())
+                .finish()
         }
     }
     impl<M: ::ethers::providers::Middleware> TokenLike<M> {
@@ -85,13 +76,11 @@ pub mod token_like {
             address: T,
             client: ::std::sync::Arc<M>,
         ) -> Self {
-            Self(
-                ::ethers::contract::Contract::new(
-                    address.into(),
-                    TOKENLIKE_ABI.clone(),
-                    client,
-                ),
-            )
+            Self(::ethers::contract::Contract::new(
+                address.into(),
+                TOKENLIKE_ABI.clone(),
+                client,
+            ))
         }
         ///Calls the contract's `balanceOf` (0x70a08231) function
         pub fn balance_of(
@@ -103,8 +92,7 @@ pub mod token_like {
                 .expect("method not found (this should never happen)")
         }
     }
-    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for TokenLike<M> {
+    impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>> for TokenLike<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }
@@ -120,7 +108,7 @@ pub mod token_like {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     #[ethcall(name = "balanceOf", abi = "balanceOf(address)")]
     pub struct BalanceOfCall(pub ::ethers::core::types::Address);
@@ -135,7 +123,7 @@ pub mod token_like {
         Debug,
         PartialEq,
         Eq,
-        Hash
+        Hash,
     )]
     pub struct BalanceOfReturn(pub ::ethers::core::types::U256);
 }

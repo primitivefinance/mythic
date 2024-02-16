@@ -2,61 +2,9 @@
 
 use std::{borrow::Cow, rc::Rc};
 
-use iced::{widget::pick_list::*, Background};
+use iced::{widget::pick_list::*, Background, Border};
 
 use super::*;
-
-pub fn custom_pick_list<'a, Message, T>(
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
-    on_selected: impl Fn(T) -> Message + 'a,
-    placeholder: Option<String>,
-) -> PickList<'a, T, Message>
-where
-    T: ToString + Eq + 'static,
-    [T]: ToOwned<Owned = Vec<T>>,
-{
-    pick_list(options, selected, on_selected)
-        .style(
-            CustomSelect::new()
-                .hovered()
-                .background(HIGHLIGHTED_CONTAINER_COLOR.into())
-                .as_custom(),
-        )
-        .placeholder(placeholder.unwrap_or("Select an option".to_string()))
-}
-#[allow(dead_code)]
-pub fn excalibur_select<'a, Message, T>(
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
-    on_selected: impl Fn(T) -> Message + 'a,
-    placeholder: impl ToString,
-    border_radius: Option<BorderRadius>,
-) -> PickList<'a, T, Message>
-where
-    T: ToString + Eq + 'static,
-    [T]: ToOwned<Owned = Vec<T>>,
-{
-    pick_list(options, selected, on_selected)
-        .style(
-            CustomSelect::new()
-                .border_color(ExcaliburColor::Custom(GRAY_600).into())
-                .border_width(1.0)
-                .border_radius(border_radius.unwrap_or(5.0.into()))
-                .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
-                .background(ExcaliburColor::Background3.into())
-                .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
-                .hovered()
-                .border_color(ExcaliburColor::Custom(GRAY_600).into())
-                .border_width(1.0)
-                .border_radius(border_radius.unwrap_or(5.0.into()))
-                .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
-                .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
-                .background(ExcaliburColor::Background4.into())
-                .as_custom(),
-        )
-        .placeholder(placeholder.to_string())
-}
 
 #[derive(Debug, Clone, Copy)]
 pub struct CustomSelect {
@@ -80,9 +28,10 @@ impl CustomSelect {
             placeholder_color: TERTIARY_LABEL_COLOR,
             handle_color: Color::WHITE,
             background: SELECT_BG_COLOR.into(),
-            border_radius: 5.0.into(),
-            border_width: 0.0,
-            border_color: Default::default(),
+            border: Border::default()
+                .radius(5.0)
+                .width(0.0)
+                .color(Default::default()),
         };
         Self {
             active: default,
@@ -139,7 +88,7 @@ impl CustomSelect {
         self
     }
 
-    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+    pub fn border_radius(mut self, radius: Border) -> Self {
         match self.current_state {
             SelectState::Active => self.active.border_radius = radius,
             SelectState::Hovered => self.hovered.border_radius = radius,
@@ -193,9 +142,7 @@ impl CustomMenu {
             appearance: iced::widget::overlay::menu::Appearance {
                 text_color: Color::WHITE,
                 background: MENU_BG_COLOR.into(),
-                border_width: 1.0,
-                border_radius: 5.0.into(),
-                border_color: Color::BLACK,
+                border: Border::default().radius(5.0).width(1.0).color(Color::BLACK),
                 selected_text_color: Color::WHITE,
                 selected_background: PRIMARY_COLOR.into(),
             },

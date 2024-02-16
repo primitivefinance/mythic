@@ -256,7 +256,10 @@ impl ExcaliburTheme {
             danger: ExcaliburColor::Danger.into(),
         };
 
-        Theme::Custom(Box::new(iced::theme::Custom::new(palette)))
+        Theme::Custom(Box::new(iced::theme::Custom::new(
+            *"ExcaliburTheme",
+            palette,
+        )))
     }
 }
 
@@ -312,13 +315,13 @@ pub const UI_FONT_SEMIBOLD: Font = Font {
     family: iced::font::Family::Name("Yu Gothic UI"),
     weight: iced::font::Weight::Semibold,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false,
+    style: iced::font::Style::Normal,
 };
 pub const UI_FONT_BOLD: Font = Font {
     family: iced::font::Family::Name("Yu Gothic UI"),
     weight: iced::font::Weight::Bold,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false,
+    style: iced::font::Style::Normal,
 };
 pub const BRAND_FONT: Font = Font::with_name("DAGGERSQUARE");
 
@@ -330,7 +333,6 @@ pub enum ExcaliburFonts {
     UIBold,
     Branding,
     Symbol,
-    Icon,
     Custom(iced::Font),
 }
 
@@ -342,7 +344,6 @@ impl ExcaliburFonts {
             ExcaliburFonts::UIBold => UI_FONT_BOLD,
             ExcaliburFonts::Branding => BRAND_FONT,
             ExcaliburFonts::Symbol => SYMBOL_FONT,
-            ExcaliburFonts::Icon => iced_aw::ICON_FONT,
             ExcaliburFonts::Custom(font) => *font,
         }
     }
@@ -787,7 +788,7 @@ pub fn panel() -> ExcaliburContainer {
 #[derive(Debug, Clone, Copy)]
 pub struct ExcaliburContainer {
     pub background: ExcaliburColor,
-    pub border_radius: BorderRadius,
+    pub border_radius: Border,
     pub border_width: f32,
     pub border_color: ExcaliburColor,
     pub text_color: ExcaliburColor,
@@ -816,9 +817,10 @@ impl container::StyleSheet for ExcaliburContainer {
 
         container::Appearance {
             background: Some(iced::Background::Color(background)),
-            border_radius,
-            border_width,
-            border_color,
+            border: Border::default()
+                .color(border_color)
+                .radius(border_radius)
+                .width(border_width),
             ..Default::default()
         }
     }
@@ -918,7 +920,7 @@ impl ExcaliburContainer {
         self
     }
 
-    pub fn border_radius(mut self, size: BorderRadius) -> Self {
+    pub fn border_radius(mut self, size: Border) -> Self {
         self.border_radius = size;
         self
     }
@@ -1017,7 +1019,7 @@ impl ExcaliburButton {
     }
 
     /// Overrides all button states with a border radius.
-    pub fn border_radius(self, border_radius: BorderRadius) -> Self {
+    pub fn border_radius(self, border_radius: Border) -> Self {
         let style = self
             .style
             .active()
@@ -1485,7 +1487,7 @@ impl ExcaliburInputBuilder {
         self
     }
 
-    pub fn border_radius(self, radius: BorderRadius) -> Self {
+    pub fn border_radius(self, radius: Border) -> Self {
         self.style.active().border_radius(radius);
         self.style.focused().border_radius(radius);
         self.style.hovered().border_radius(radius);
@@ -1690,9 +1692,10 @@ impl Default for CustomInputStyle {
     fn default() -> Self {
         let default = text_input::Appearance {
             background: ExcaliburColor::Transparent.into(),
-            border_radius: 0.0.into(),
-            border_width: 0.0,
-            border_color: ExcaliburColor::Transparent.into(),
+            border: Border::default()
+                .radius(0.0)
+                .width(0.0)
+                .color(ExcaliburColor::Transparent),
             icon_color: ExcaliburColor::Label(LabelColors::Primary).into(),
         };
         Self {
@@ -1770,7 +1773,7 @@ impl CustomInputStyle {
         self
     }
 
-    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+    pub fn border_radius(mut self, radius: Border) -> Self {
         match self.current {
             InputState::Active => self.active.border_radius = radius,
             InputState::Focused => self.focused.border_radius = radius,

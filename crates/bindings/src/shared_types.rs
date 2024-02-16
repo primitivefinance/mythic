@@ -9,7 +9,7 @@
     Debug,
     PartialEq,
     Eq,
-    Hash
+    Hash,
 )]
 pub struct DynamicParam {
     pub last_computed_value: ::ethers::core::types::U256,
@@ -28,7 +28,7 @@ pub struct DynamicParam {
     Debug,
     PartialEq,
     Eq,
-    Hash
+    Hash,
 )]
 pub struct InitParams {
     pub strategy: ::ethers::core::types::Address,
@@ -47,7 +47,7 @@ pub struct InitParams {
     Debug,
     PartialEq,
     Eq,
-    Hash
+    Hash,
 )]
 pub struct FuzzInterface {
     pub addr: ::ethers::core::types::Address,
@@ -64,7 +64,7 @@ pub struct FuzzInterface {
     Debug,
     PartialEq,
     Eq,
-    Hash
+    Hash,
 )]
 pub struct FuzzSelector {
     pub addr: ::ethers::core::types::Address,

@@ -7,7 +7,7 @@ use super::*;
 pub struct CustomProgressBar {
     background: iced::Background,
     bar: iced::Background,
-    border_radius: iced::BorderRadius,
+    border_radius: iced::Border,
 }
 
 impl StyleSheet for CustomProgressBar {
@@ -64,7 +64,7 @@ impl CustomProgressBar {
         self
     }
     #[allow(dead_code)]
-    pub fn border_radius(mut self, border_radius: iced::BorderRadius) -> Self {
+    pub fn border_radius(mut self, border_radius: iced::Border) -> Self {
         self.border_radius = border_radius;
         self
     }

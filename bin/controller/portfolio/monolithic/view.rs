@@ -1,6 +1,6 @@
 use chrono::Utc;
 use datatypes::portfolio::position::{Position, Positions};
-use iced::widget::{svg, Space};
+use iced::{widget::{svg, Space}, Border};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
 use self::{create::LiquidityChoices, logos::lp_logo};
@@ -384,14 +384,11 @@ impl MonolithicView {
     where
         Message: 'a,
     {
-        ExcaliburContainer::default()
-            .transparent()
-            .light_border()
-            .build(Self::stacked_containers(
-                ExcaliburContainer::default().transparent().light_border(),
-                ExcaliburContainer::default().transparent(),
-                ExcaliburContainer::default().transparent(),
-                Row::new()
+        let border= Border::with_radius(9.0);
+        let column= Column::with_children(vec![
+            ExcaliburContainer::default().transparent().light_border()
+                .border_radius(border)
+                .build(Row::new()
                     .spacing(Sizes::Sm)
                     .width(Length::Fill)
                     .push(
@@ -404,52 +401,29 @@ impl MonolithicView {
                             .width(Length::FillPortion(1))
                             .push(label(icon_to_char(Info)).icon().secondary().build())
                             .align_items(alignment::Alignment::End),
-                    ),
-                element,
-                Space::new(Length::Fill, 0.0),
-                9.0,
-                800.0,
-            ))
-    }
-
-    /// Stacks three containers into a compact card with a max_height.
-    /// Expects containers to be edited already except for border radius.
-    #[allow(clippy::too_many_arguments)]
-    pub fn stacked_containers<'a, Message>(
-        header: ExcaliburContainer,
-        body: ExcaliburContainer,
-        footer: ExcaliburContainer,
-        header_content: impl Into<Element<'a, Message>>,
-        body_content: impl Into<Element<'a, Message>>,
-        footer_content: impl Into<Element<'a, Message>>,
-        border_radius: f32,
-        max_height: f32,
-    ) -> Column<'a, Message>
-    where
-        Message: 'a,
-    {
-        Column::with_children(vec![
-            header
-                .border_radius([border_radius, border_radius, 0.0, 0.0].into())
-                .build(header_content)
+                    ))
                 .center_x()
                 .padding(Sizes::Sm)
                 .width(Length::Fill)
                 .into(),
-            body.build(body_content)
+            ExcaliburContainer::default().transparent().build(element)
                 .width(Length::Fill)
                 .padding(Sizes::Lg)
                 .center_x()
                 .center_y()
-                .max_height(max_height)
+                .max_height(800.0)
                 .into(),
-            footer
-                .border_radius([0.0, 0.0, border_radius, border_radius].into())
-                .build(footer_content)
+            ExcaliburContainer::default().transparent()
+                .border_radius(border)
+                .build(Space::new(Length::Fill, 0.0))
                 .center_x()
                 .padding(Sizes::Md)
                 .width(Length::Fill)
                 .into(),
-        ])
+        ]);
+        ExcaliburContainer::default()
+            .transparent()
+            .light_border()
+            .build(column)
     }
 }

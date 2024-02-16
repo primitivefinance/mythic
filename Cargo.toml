@@ -118,7 +118,7 @@ statrs.workspace = true
 
 
 # deps
-iced = { version = "=0.10.0", features = [
+iced = { version = "0.12.0", features = [
     "system",
     "tokio",
     "lazy",
