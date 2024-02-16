@@ -1,7 +1,9 @@
 //! Custom progress bar.
 
-use iced::widget::progress_bar::{self, StyleSheet};
-use iced::border::Radius;
+use iced::{
+    border::Radius,
+    widget::progress_bar::{self, StyleSheet},
+};
 
 use super::*;
 

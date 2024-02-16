@@ -42,7 +42,6 @@ use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use self::{system::ExcaliburContainer, view::screen_layout};
-
 use super::{
     controller::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
@@ -309,7 +308,6 @@ impl App {
     /// # Returns
     /// * `Element<Message>` - The view of the application.
     pub fn view(&self) -> Element<AppMessage> {
-
         // let underlay = Column::new()
         //     .width(Length::Fixed(100.0))
         //     .height(Length::Fixed(100.0));
@@ -324,7 +322,6 @@ impl App {
 
         // let floating_clock = floating_element(underlay.into(), element.into());
 
-
         // let content = Container::new(
         //     Row::new()
         //         .push(
@@ -335,9 +332,9 @@ impl App {
         //         )
         //         .push(
         //             Column::new()
-        //                 .push(screen_layout(&self.windows.sidebar.page, self.windows.sidebar.view()))
-        //                 .width(Length::FillPortion(5)),
-        //         ),
+        //                 .push(screen_layout(&self.windows.sidebar.page,
+        // self.windows.sidebar.view()))                 
+        // .width(Length::FillPortion(5)),         ),
         // )
         // .style(
         //     ExcaliburContainer::default()

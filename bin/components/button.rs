@@ -7,7 +7,9 @@
 //! predefined button styles.
 
 use iced::{
-    border::Radius, widget::button::{Appearance, StyleSheet}, Background, Border, Color, Shadow
+    border::Radius,
+    widget::button::{Appearance, StyleSheet},
+    Background, Border, Color, Shadow,
 };
 
 use super::styles::*;

@@ -3,7 +3,9 @@
 use std::collections::BTreeMap;
 
 use iced::{
-    border::{self, Radius}, widget::{component, text_input, tooltip, Component}, Font
+    border::{self, Radius},
+    widget::{component, text_input, tooltip, Component},
+    Font,
 };
 
 use super::{
@@ -255,10 +257,13 @@ impl ExcaliburTheme {
             danger: ExcaliburColor::Danger.into(),
         };
 
-        Theme::Custom(Box::new(iced::theme::Custom::new(
-            "ExcaliburTheme".to_owned(),
-            palette,
-        )).into())
+        Theme::Custom(
+            Box::new(iced::theme::Custom::new(
+                "ExcaliburTheme".to_owned(),
+                palette,
+            ))
+            .into(),
+        )
     }
 }
 
@@ -907,7 +912,6 @@ impl ExcaliburContainer {
         self.border_radius = 0.0.into();
         self
     }
-
 
     pub fn border_radius(mut self, size: border::Radius) -> Self {
         self.border_radius = size;

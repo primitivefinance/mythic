@@ -28,7 +28,7 @@ impl CustomSelect {
             placeholder_color: TERTIARY_LABEL_COLOR,
             handle_color: Color::WHITE,
             background: SELECT_BG_COLOR.into(),
-            border: Border::with_radius(5.0)
+            border: Border::with_radius(5.0),
         };
         Self {
             active: default,
@@ -142,7 +142,7 @@ impl CustomMenu {
                 border: Border {
                     radius: 5.0.into(),
                     width: 1.0,
-                    color: Color::BLACK
+                    color: Color::BLACK,
                 },
                 selected_text_color: Color::WHITE,
                 selected_background: PRIMARY_COLOR.into(),

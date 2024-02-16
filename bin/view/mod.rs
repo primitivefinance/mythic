@@ -1,6 +1,9 @@
-use iced::{advanced, widget::{Column, Container, Row}};
+use iced::{
+    advanced,
+    widget::{Column, Container, Row},
+    Renderer,
+};
 use iced_aw::{floating_element::Anchor, helpers::floating_element, FloatingElement};
-use iced::Renderer;
 use plotters::element;
 
 use self::sidebar::Page;
