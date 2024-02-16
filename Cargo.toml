@@ -12,9 +12,6 @@ authors = ["Primitive Bits, Inc."]
 name = "excalibur"
 path = "bin/main.rs"
 
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [workspace.dependencies]
 # Local
 bindings = { path = "./crates/bindings", version = "0.1.0" }
@@ -27,15 +24,14 @@ cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
 arbiter-bindings = "0.1.5"
 arbiter-core = "0.10.2"
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
-ethers-core = "2.0.4"
 
 # Ethereum
 revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
 alloy-primitives = { version = "0.6.3", features = ["serde"] }
 alloy-sol-types = "0.6.3"
+alloy-rlp = "0.3.4"
 
-# Can we fix this so that we point to actual versions?
-alloy-rlp = "0.3"
+# Networking
 reqwest = "0.11.24"
 
 ## Config and parsing
@@ -46,7 +42,6 @@ config = "0.14.0"
 
 ## Async
 tokio = { version = "=1.36.0", features = ["macros", "full"] }
-tokio-util = "=0.7.10"
 async-trait = "=0.1.77"
 
 ## Error and logs
@@ -75,29 +70,53 @@ reikna = "=0.12.3"
 linked-hash-map = "=0.5.6"
 directories-next = "=2.0.0"
 
-# time
+# Time
 chrono = { version = "0.4.34", features = ["serde"] }
 
 [dependencies]
-datatypes.workspace = true
+# Local
+bindings.workspace = true
 clients.workspace = true
 cfmm_math.workspace = true
+datatypes.workspace = true
 sim.workspace = true
-clap.workspace = true
+
+arbiter-bindings.workspace = true
+arbiter-core.workspace = true
+
+revm.workspace = true
+ethers.workspace = true
+alloy-primitives.workspace = true
+alloy-sol-types.workspace = true
+alloy-rlp.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+
+reqwest.workspace = true
+chrono.workspace = true
 
 tokio.workspace = true
+async-trait.workspace = true
+
+reikna.workspace = true
+plotters.workspace = true
+
+clap.workspace = true
+
+
+# Env and logs
+directories-next.workspace = true
+dotenv.workspace = true
+uuid.workspace = true
 tracing.workspace = true
 anyhow.workspace = true
-
 tracing-subscriber.workspace = true
-dotenv.workspace = true
+
+# Math
 RustQuant.workspace = true
 statrs.workspace = true
 
-# crates
-
-
-# deps
 iced = { version = "=0.10.0", features = [
     "system",
     "tokio",
@@ -119,32 +138,6 @@ plotters-backend = "=0.3.5"
 plotters-iced = "=0.9.0"
 iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicator.git", rev = "a09296f" }
 url = "=2.5.0"
-
-# workspace crates
-
-# revm
-revm.workspace = true
-
-# alloy
-alloy-primitives.workspace = true
-alloy-sol-types.workspace = true
-alloy-rlp.workspace = true
-reqwest.workspace = true
-
-# workspace deps
-chrono.workspace = true
-arbiter-bindings.workspace = true
-bindings.workspace = true
-async-trait.workspace = true
-reikna.workspace = true
-arbiter-core.workspace = true
-ethers.workspace = true
-directories-next.workspace = true
-plotters.workspace = true
-tokio-util.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-uuid.workspace = true
 
 
 [dev-dependencies]

@@ -3,8 +3,10 @@ use std::sync::Arc;
 use alloy_primitives::{Address, U256};
 use arbiter_core::{environment::Environment, errors::ArbiterCoreError};
 use ethers::types::Bytes;
-use revm::db::{CacheDB, DbAccount, EmptyDB};
-use revm::primitives::{AccountInfo, HashMap as Map};
+use revm::{
+    db::{CacheDB, DbAccount, EmptyDB},
+    primitives::{AccountInfo, HashMap as Map},
+};
 use serde::{Deserialize, Serialize};
 use tokio::{runtime::Builder, sync::Semaphore};
 
