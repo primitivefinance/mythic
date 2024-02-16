@@ -62,6 +62,7 @@ interface IDFMM {
     event Init(
         address indexed account,
         address strategy,
+        address lpToken,
         address indexed tokenX,
         address indexed tokenY,
         uint256 poolId,

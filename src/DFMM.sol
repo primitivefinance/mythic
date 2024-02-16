@@ -103,17 +103,18 @@ contract DFMM is IDFMM {
         _transferFrom(params.tokenX, reserveX);
         _transferFrom(params.tokenY, reserveY);
 
-        emitInit(poolId);
+        emitInit(poolId, address(liquidityToken));
 
         return (poolId, reserveX, reserveY, totalLiquidity - BURNT_LIQUIDITY);
     }
 
-    function emitInit(uint256 poolId) private {
+    function emitInit(uint256 poolId, address lpToken) private {
         Pool memory pool = pools[poolId];
 
         emit Init(
             msg.sender,
             pool.strategy,
+            lpToken,
             pool.tokenX,
             pool.tokenY,
             poolId,

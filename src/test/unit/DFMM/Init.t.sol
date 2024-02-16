@@ -100,6 +100,7 @@ contract DFMMInit is DFMMSetUp {
         emit IDFMM.Init(
             address(this),
             address(strategy),
+            address(0),
             address(tokenX),
             address(tokenY),
             0,
