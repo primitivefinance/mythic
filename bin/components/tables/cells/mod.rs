@@ -198,7 +198,7 @@ where
 
         // If options is Some, then we need to render a select.
         if let Some(options) = self.options {
-            let select = pick_list(options, self.selected, self.on_selected)
+            let select = pick_list(options, self.selected, self.on_select)
                 .style(
                     CustomSelect::new()
                         .hovered()

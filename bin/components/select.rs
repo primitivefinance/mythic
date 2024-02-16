@@ -2,7 +2,7 @@
 
 use std::{borrow::Cow, rc::Rc};
 
-use iced::{widget::pick_list::*, Background, Border};
+use iced::{border, widget::pick_list::*, Background, Border};
 
 use super::*;
 
@@ -28,10 +28,7 @@ impl CustomSelect {
             placeholder_color: TERTIARY_LABEL_COLOR,
             handle_color: Color::WHITE,
             background: SELECT_BG_COLOR.into(),
-            border: Border::default()
-                .radius(5.0)
-                .width(0.0)
-                .color(Default::default()),
+            border: Border::with_radius(5.0)
         };
         Self {
             active: default,
@@ -88,10 +85,10 @@ impl CustomSelect {
         self
     }
 
-    pub fn border_radius(mut self, radius: Border) -> Self {
+    pub fn border_radius(mut self, radius: border::Radius) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_radius = radius,
-            SelectState::Hovered => self.hovered.border_radius = radius,
+            SelectState::Active => self.active.border.radius = radius,
+            SelectState::Hovered => self.hovered.border.radius = radius,
         }
 
         self
@@ -99,8 +96,8 @@ impl CustomSelect {
 
     pub fn border_width(mut self, width: f32) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_width = width,
-            SelectState::Hovered => self.hovered.border_width = width,
+            SelectState::Active => self.active.border.width = width,
+            SelectState::Hovered => self.hovered.border.width = width,
         }
 
         self
@@ -108,8 +105,8 @@ impl CustomSelect {
 
     pub fn border_color(mut self, color: Color) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_color = color,
-            SelectState::Hovered => self.hovered.border_color = color,
+            SelectState::Active => self.active.border.color = color,
+            SelectState::Hovered => self.hovered.border.color = color,
         }
 
         self
@@ -142,7 +139,11 @@ impl CustomMenu {
             appearance: iced::widget::overlay::menu::Appearance {
                 text_color: Color::WHITE,
                 background: MENU_BG_COLOR.into(),
-                border: Border::default().radius(5.0).width(1.0).color(Color::BLACK),
+                border: Border {
+                    radius: 5.0.into(),
+                    width: 1.0,
+                    color: Color::BLACK
+                },
                 selected_text_color: Color::WHITE,
                 selected_background: PRIMARY_COLOR.into(),
             },

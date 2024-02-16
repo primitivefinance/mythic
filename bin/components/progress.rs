@@ -1,13 +1,14 @@
 //! Custom progress bar.
 
 use iced::widget::progress_bar::{self, StyleSheet};
+use iced::border::Radius;
 
 use super::*;
 
 pub struct CustomProgressBar {
     background: iced::Background,
     bar: iced::Background,
-    border_radius: iced::Border,
+    border_radius: Radius,
 }
 
 impl StyleSheet for CustomProgressBar {
@@ -17,7 +18,7 @@ impl StyleSheet for CustomProgressBar {
         progress_bar::Appearance {
             background: self.background,
             bar: self.bar,
-            border_radius: self.border_radius,
+            border_radius: Radius::from(self.border_radius),
         }
     }
 }
@@ -64,7 +65,7 @@ impl CustomProgressBar {
         self
     }
     #[allow(dead_code)]
-    pub fn border_radius(mut self, border_radius: iced::Border) -> Self {
+    pub fn border_radius(mut self, border_radius: iced::border::Radius) -> Self {
         self.border_radius = border_radius;
         self
     }

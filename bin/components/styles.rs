@@ -184,17 +184,17 @@ pub enum Sizes {
 impl From<Sizes> for Border {
     fn from(item: Sizes) -> Self {
         match item {
-            Sizes::Zero => 0.0.into(),
-            Sizes::Xs => 4.0.into(),
-            Sizes::Sm => 8.0.into(),
-            Sizes::Md => 16.0.into(),
-            Sizes::Lg => 24.0.into(),
-            Sizes::Xl => 32.0.into(),
-            Sizes::Xl2 => 56.0.into(),
-            Sizes::Xl3 => 64.0.into(),
-            Sizes::Xl4 => 72.0.into(),
-            Sizes::Xl5 => 96.0.into(),
-            Sizes::Xl6 => 128.0.into(),
+            Sizes::Zero => Border::with_radius(0.0),
+            Sizes::Xs => Border::with_radius(4.0),
+            Sizes::Sm => Border::with_radius(8.0),
+            Sizes::Md => Border::with_radius(16.0),
+            Sizes::Lg => Border::with_radius(24.0),
+            Sizes::Xl => Border::with_radius(32.0),
+            Sizes::Xl2 => Border::with_radius(56.0),
+            Sizes::Xl3 => Border::with_radius(64.0),
+            Sizes::Xl4 => Border::with_radius(72.0),
+            Sizes::Xl5 => Border::with_radius(96.0),
+            Sizes::Xl6 => Border::with_radius(128.0),
         }
     }
 }

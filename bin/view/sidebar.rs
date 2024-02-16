@@ -235,7 +235,7 @@ impl Page {
                 button(
                     Row::new()
                         .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
-                        .push(label(icon_to_char(icon)).icon().build())
+                        .push(label(icon_to_char(icon)).build())
                         .push(app_name.build())
                         .spacing(Sizes::Md),
                 )

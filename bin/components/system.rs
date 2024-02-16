@@ -3,8 +3,7 @@
 use std::collections::BTreeMap;
 
 use iced::{
-    widget::{component, text_input, tooltip, Component},
-    Font,
+    border::{self, Radius}, widget::{component, text_input, tooltip, Component}, Font
 };
 
 use super::{
@@ -257,9 +256,9 @@ impl ExcaliburTheme {
         };
 
         Theme::Custom(Box::new(iced::theme::Custom::new(
-            *"ExcaliburTheme",
+            "ExcaliburTheme".to_owned(),
             palette,
-        )))
+        )).into())
     }
 }
 
@@ -713,13 +712,6 @@ impl ExcaliburText {
         }
     }
 
-    pub fn icon(self) -> Self {
-        Self {
-            font: ExcaliburFonts::Icon,
-            ..self
-        }
-    }
-
     // Alignment
 
     /// Sets text horizontal alignment to left.
@@ -788,7 +780,7 @@ pub fn panel() -> ExcaliburContainer {
 #[derive(Debug, Clone, Copy)]
 pub struct ExcaliburContainer {
     pub background: ExcaliburColor,
-    pub border_radius: Border,
+    pub border_radius: border::Radius,
     pub border_width: f32,
     pub border_color: ExcaliburColor,
     pub text_color: ExcaliburColor,
@@ -798,7 +790,7 @@ impl Default for ExcaliburContainer {
     fn default() -> Self {
         Self {
             background: ExcaliburColor::Transparent,
-            border_radius: Sizes::Sm.into(),
+            border_radius: border::Radius::from(0.0),
             border_width: 0.0,
             border_color: ExcaliburColor::Label(LabelColors::Quaternary),
             text_color: ExcaliburColor::Label(LabelColors::Primary),
@@ -817,10 +809,11 @@ impl container::StyleSheet for ExcaliburContainer {
 
         container::Appearance {
             background: Some(iced::Background::Color(background)),
-            border: Border::default()
-                .color(border_color)
-                .radius(border_radius)
-                .width(border_width),
+            border: Border {
+                color: border_color,
+                radius: Radius::from(border_radius),
+                width: border_width,
+            },
             ..Default::default()
         }
     }
@@ -830,7 +823,7 @@ impl ExcaliburContainer {
     pub fn indicator() -> Self {
         Self {
             background: ExcaliburColor::Primary,
-            border_radius: Sizes::Xs.into(),
+            border_radius: border::Radius::from(0.0),
             border_width: 0.0,
             border_color: ExcaliburColor::Custom(Color::WHITE),
             text_color: ExcaliburColor::Custom(Color::WHITE),
@@ -915,12 +908,8 @@ impl ExcaliburContainer {
         self
     }
 
-    pub fn round(mut self, size: Sizes) -> Self {
-        self.border_radius = size.into();
-        self
-    }
 
-    pub fn border_radius(mut self, size: Border) -> Self {
+    pub fn border_radius(mut self, size: border::Radius) -> Self {
         self.border_radius = size;
         self
     }
@@ -955,7 +944,7 @@ impl ExcaliburContainer {
     #[allow(dead_code)]
     pub fn card(mut self) -> Self {
         self.background = ExcaliburColor::Card;
-        self.border_radius = Sizes::Sm.into();
+        self.border_radius = border::Radius::from(8.0);
         self
     }
 }
@@ -1019,7 +1008,7 @@ impl ExcaliburButton {
     }
 
     /// Overrides all button states with a border radius.
-    pub fn border_radius(self, border_radius: Border) -> Self {
+    pub fn border_radius(self, border_radius: border::Radius) -> Self {
         let style = self
             .style
             .active()

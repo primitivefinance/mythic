@@ -106,7 +106,7 @@ where
     }
 }
 
-impl<Message> Component<Message, Renderer> for CustomInput<Message>
+impl<Message> Component<Message, Theme, Renderer> for CustomInput<Message>
 where
     Message: Default,
 {
@@ -164,7 +164,7 @@ where
         }
     }
 
-    fn view(&self, _state: &Self::State) -> Element<Self::Event, Renderer> {
+    fn view(&self, _state: &Self::State) -> Element<Self::Event, Theme, Renderer> {
         let input = text_input(
             self.placeholder.as_deref().unwrap_or("Type a value..."),
             self.value
@@ -181,7 +181,7 @@ where
     }
 }
 
-impl<'a, Event> From<CustomInput<Event>> for Element<'a, Event, Renderer>
+impl<'a, Event> From<CustomInput<Event>> for Element<'a, Event, Theme, Renderer>
 where
     Event: 'a + Default,
 {
