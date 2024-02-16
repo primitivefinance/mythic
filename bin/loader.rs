@@ -271,11 +271,11 @@ pub async fn load_app(flags: Flags) -> LoadResult {
         // finicky
         if let Some(connected_model) = model.get_current_mut() {
             connected_model.setup(
-                from_ethers_address(exc_client.address().unwrap()),
-                from_ethers_address(lex),
-                from_ethers_address(protocol),
-                from_ethers_address(dev_client.solver.address()),
-                from_ethers_address(strategy),
+                exc_client.address().unwrap(),
+                lex,
+                protocol,
+                dev_client.solver.address(),
+                strategy,
             );
         }
 

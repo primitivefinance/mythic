@@ -5,7 +5,7 @@ use clients::{ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
 
 use super::*;
-use crate::{app::AnvilSave, model::portfolio::EthersAddress};
+use crate::app::AnvilSave;
 
 pub const SANDBOX_LABEL: &str = "sandbox";
 
@@ -27,7 +27,7 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     /// ACTIVE SIGNER
     pub signer: Option<S>,
     /// ANY CONTRACTS
-    pub contracts: HashMap<String, EthersAddress>,
+    pub contracts: HashMap<String, Address>,
     /// HARDWARE
     pub ledger: Option<LedgerClient>,
     /// ARBITER
@@ -60,7 +60,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
     }
 
     /// Adds a new contract to the contracts map.
-    pub fn add_contract(&mut self, name: &str, address: EthersAddress) {
+    pub fn add_contract(&mut self, name: &str, address: Address) {
         self.contracts.insert(name.to_string(), address);
     }
 

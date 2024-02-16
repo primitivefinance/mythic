@@ -5,11 +5,9 @@ pub mod tx_history;
 mod view;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
-use cfmm_math::trading_functions::rmm::{
-    compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust,
-};
 use clients::protocol::{LogNormalF64, PoolInitParamsF64};
 use datatypes::portfolio::coin::Coin;
+use dfmm::rmm::{compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust};
 use iced::{futures::TryFutureExt, subscription, Padding};
 use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
 use RustQuant::{

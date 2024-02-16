@@ -1,5 +1,5 @@
 use reikna::integral::*;
-use statrs::distribution::Continuous;
+use statrs::distribution::{Continuous, ContinuousCDF, Normal};
 
 use super::*;
 

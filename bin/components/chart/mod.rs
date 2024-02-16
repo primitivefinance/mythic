@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use cfmm_math::trading_functions::rmm::{compute_y_given_x_rust, liq_distribution};
+use dfmm::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
     event,
     mouse::{Cursor, Event},
