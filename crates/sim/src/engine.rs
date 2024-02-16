@@ -4,7 +4,7 @@ use alloy_primitives::{Address, U256};
 use arbiter_core::{environment::Environment, errors::ArbiterCoreError};
 use ethers::types::Bytes;
 use revm::db::{CacheDB, DbAccount, EmptyDB};
-use revm_primitives::{AccountInfo, HashMap as Map};
+use revm::primitives::{AccountInfo, HashMap as Map};
 use serde::{Deserialize, Serialize};
 use tokio::{runtime::Builder, sync::Semaphore};
 
@@ -131,7 +131,7 @@ impl From<SnapshotDB> for CacheDB<EmptyDB> {
                 let db_account: DbAccount = v.clone().into();
 
                 (
-                    revm_primitives::Address::from(k.into_array()),
+                    revm::primitives::Address::from(k.into_array()),
                     db_account.clone(),
                 )
             })
@@ -145,7 +145,7 @@ impl From<SnapshotDB> for CacheDB<EmptyDB> {
             .iter()
             .filter(|(_, v)| v.code.is_some())
             .map(|(_, v)| {
-                let hash = revm_primitives::keccak256(v.code.clone().unwrap().bytes());
+                let hash = revm::primitives::keccak256(v.code.clone().unwrap().bytes());
                 (hash, v.code.clone().unwrap())
             })
             .collect();

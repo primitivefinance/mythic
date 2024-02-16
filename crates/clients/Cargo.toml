@@ -13,7 +13,6 @@ coins-ledger = { git = "https://github.com/summa-tx/coins.git", branch = "prestw
 coins-bip32 = { git = "https://github.com/summa-tx/coins.git" }
 
 revm.workspace = true
-revm-primitives.workspace = true
 thiserror.workspace = true
 bindings.workspace = true
 anyhow.workspace = true

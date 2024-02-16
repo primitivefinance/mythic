@@ -14,7 +14,6 @@ clients.workspace = true
 unit-conversions = "0.1.16"
 
 revm.workspace = true
-revm-primitives.workspace = true
 
 itertools.workspace = true
 rand.workspace = true

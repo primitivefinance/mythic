@@ -24,14 +24,13 @@ datatypes = { path = "./crates/datatypes", version = "0.1.0" }
 cfmm_math = { path = "./crates/cfmm_math", version = "0.1.0" }
 
 # External
-arbiter-bindings = { version = "0.1.0" }
-arbiter-core = "0.10.0"
+arbiter-bindings = "0.1.5"
+arbiter-core = "0.10.2"
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 ethers-core = "2.0.4"
 
-# ethereum types
+# Ethereum
 revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
-revm-primitives = { version = "2.0.0" }
 alloy-primitives = { version = "0.6.3", features = ["serde"] }
 alloy-sol-types = "0.6.3"
 
@@ -125,7 +124,6 @@ url = "=2.5.0"
 
 # revm
 revm.workspace = true
-revm-primitives.workspace = true
 
 # alloy
 alloy-primitives.workspace = true
