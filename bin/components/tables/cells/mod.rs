@@ -29,7 +29,6 @@ use iced::{
 };
 
 use self::select::CustomSelect;
-
 use super::components::*;
 use crate::components::system::ExcaliburContainer;
 

@@ -1,12 +1,15 @@
 use datatypes::portfolio::position::{Position, Positions};
-use iced::{advanced::svg, widget::Space, Border, Padding};
+use iced::{
+    advanced::svg,
+    widget::{Space, Svg},
+    Border, Padding,
+};
 
 use super::*;
 use crate::{
     components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburTooltip},
     model::portfolio::AlloyAddress,
 };
-use iced::widget::Svg;
 pub const INVENTORY_HEIGHT: f32 = 600.0;
 
 pub struct Inventory;

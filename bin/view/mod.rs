@@ -79,7 +79,6 @@ pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     menu: &'a sidebar::Sidebar,
     content: T,
 ) -> Element<'a, ViewMessage> {
-
     let underlay = Container::new(Column::new())
         .width(Length::Fixed(100.0))
         .height(Length::Fixed(100.0))
@@ -92,7 +91,7 @@ pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
         .push(app_clock.view_min())
         .push(app_clock.view_average())
         .push(app_clock.view_tbu())
-        .push(app_clock.view_frequency()); 
+        .push(app_clock.view_frequency());
 
     let result = floating_element(underlay.into(), element.into());
 
@@ -109,7 +108,7 @@ pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
             .push(app_clock.view_average())
             .push(app_clock.view_tbu())
             .push(app_clock.view_frequency()),
-     )
+    )
     .anchor(Anchor::SouthWest)
     .offset(20.0)
     .hide(std::env::var("DEV_MODE").is_err());

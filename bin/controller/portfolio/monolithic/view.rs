@@ -1,6 +1,9 @@
 use chrono::Utc;
 use datatypes::portfolio::position::{Position, Positions};
-use iced::{widget::{svg, Space}, Border};
+use iced::{
+    widget::{svg, Space},
+    Border,
+};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
 use self::{create::LiquidityChoices, logos::lp_logo};
@@ -384,36 +387,43 @@ impl MonolithicView {
     where
         Message: 'a,
     {
-        let border= Border::with_radius(9.0);
-        let column= Column::with_children(vec![
-            ExcaliburContainer::default().transparent().light_border()
+        let border = Border::with_radius(9.0);
+        let column = Column::with_children(vec![
+            ExcaliburContainer::default()
+                .transparent()
+                .light_border()
                 .border_radius(border)
-                .build(Row::new()
-                    .spacing(Sizes::Sm)
-                    .width(Length::Fill)
-                    .push(
-                        Column::new()
-                            .width(Length::FillPortion(4))
-                            .push(label(title).secondary().build()),
-                    )
-                    .push(
-                        Column::new()
-                            .width(Length::FillPortion(1))
-                            .push(label(icon_to_char(Info)).icon().secondary().build())
-                            .align_items(alignment::Alignment::End),
-                    ))
+                .build(
+                    Row::new()
+                        .spacing(Sizes::Sm)
+                        .width(Length::Fill)
+                        .push(
+                            Column::new()
+                                .width(Length::FillPortion(4))
+                                .push(label(title).secondary().build()),
+                        )
+                        .push(
+                            Column::new()
+                                .width(Length::FillPortion(1))
+                                .push(label(icon_to_char(Info)).icon().secondary().build())
+                                .align_items(alignment::Alignment::End),
+                        ),
+                )
                 .center_x()
                 .padding(Sizes::Sm)
                 .width(Length::Fill)
                 .into(),
-            ExcaliburContainer::default().transparent().build(element)
+            ExcaliburContainer::default()
+                .transparent()
+                .build(element)
                 .width(Length::Fill)
                 .padding(Sizes::Lg)
                 .center_x()
                 .center_y()
                 .max_height(800.0)
                 .into(),
-            ExcaliburContainer::default().transparent()
+            ExcaliburContainer::default()
+                .transparent()
                 .border_radius(border)
                 .build(Space::new(Length::Fill, 0.0))
                 .center_x()

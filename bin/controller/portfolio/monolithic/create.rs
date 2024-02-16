@@ -5,12 +5,11 @@ use iced::{widget::pick_list, Border, Padding};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
 use self::select::CustomSelect;
-
 use super::*;
 use crate::components::system::{
-        ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburHistogram,
-        ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
-    };
+    ExcaliburButton, ExcaliburChart, ExcaliburColor, ExcaliburContainer, ExcaliburHistogram,
+    ExcaliburInputBuilder, ExcaliburText, ExcaliburTooltip,
+};
 
 #[derive(Debug, Clone, Default, Copy, PartialEq, Eq, Hash)]
 pub enum SubmitState {
@@ -655,11 +654,7 @@ impl FormView {
             .placeholder("Select duration".to_owned());
         Self::form_item(
             "Duration",
-            Column::new().push(
-            select
-                .padding(Sizes::Md)
-                .width(Length::Fill),
-            ),
+            Column::new().push(select.padding(Sizes::Md).width(Length::Fill)),
         )
     }
 
@@ -672,7 +667,7 @@ impl FormView {
     where
         Message: 'a + Default,
     {
-        let select =     pick_list(choice_liquidity, chosen_liquidity, on_select_liquidity)
+        let select = pick_list(choice_liquidity, chosen_liquidity, on_select_liquidity)
             .style(
                 CustomSelect::new()
                     .border_color(ExcaliburColor::Custom(GRAY_600).into())
@@ -695,11 +690,7 @@ impl FormView {
         Self::form_item(
             "Liquidity Type",
             Column::new()
-                .push(
-                    select
-                    .padding(Sizes::Md)
-                    .width(Length::Fill),
-                )
+                .push(select.padding(Sizes::Md).width(Length::Fill))
                 .push(
                     ExcaliburContainer::default()
                         .light_border()

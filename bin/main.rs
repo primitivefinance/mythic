@@ -21,7 +21,8 @@ use iced::{
     executor,
     theme::Palette,
     widget::{button, container, scrollable, text, Column, Row, Text},
-    window::{self, Id}, Application, Command, Element, Length, Settings, Subscription, Theme,
+    window::{self, Id},
+    Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
 pub mod app;
@@ -267,7 +268,10 @@ impl Application for MVP {
             (_, Message::Quit)
             | (
                 _,
-                Message::Event(iced::event::Event::Window(Id::MAIN, iced::window::Event::CloseRequested)),
+                Message::Event(iced::event::Event::Window(
+                    Id::MAIN,
+                    iced::window::Event::CloseRequested,
+                )),
             ) => {
                 let state_cmd = match self.state {
                     State::App(ref mut app) => app.exit().map(Message::Update),

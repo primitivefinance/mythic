@@ -153,9 +153,7 @@ where
 
     Column::new()
         .push(title)
-        .push(
-            pick_list
-        )
+        .push(pick_list)
         .spacing(Sizes::Md as u16)
         .into()
 }
