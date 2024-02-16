@@ -279,8 +279,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
             );
         }
 
-        let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
-        let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
         let tokens = model.user.coins.tokens.clone();
         let coin_x = tokens.iter().find(|c| c.address == token_x);
         let coin_y = tokens.iter().find(|c| c.address == token_y);

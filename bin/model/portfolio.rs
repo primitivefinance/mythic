@@ -42,7 +42,7 @@ use crate::components::chart::{
     coords_to_line_series, CartesianRanges, ChartLineSeries, ChartPoint,
 };
 
-pub const ALLOY_WAD: AlloyU256 = AlloyU256::from_limbs([1_000_000_000_000_000_000, 0, 0, 0]);
+pub const WAD: U256 = U256([1_000_000_000_000_000_000, 0, 0, 0]);
 
 pub enum RawDataModelError {
     CheckedMul,
@@ -128,19 +128,19 @@ pub struct G3MStrategyState<V> {
 /// - dfmm_address must be set to a valid address via `setup` before calling
 ///   `update`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct RawDataModel<A: Ord, V> {
+pub struct RawDataModel{
     // Network id for the chain that this model is connected to / fetching data from.
     pub chain_id: Option<u64>,
     // Signer's public address.
-    pub user_address: Option<A>,
+    pub user_address: Option<Address>,
     // An external exchange address that can be used to fetch pricing info.
-    pub external_exchange_address: Option<A>,
+    pub external_exchange_address: Option<Address>,
     // The address of the DFMM smart contract.
-    pub dfmm_address: Option<A>,
+    pub dfmm_address: Option<Address>,
     // The address of the solver for the log normal strategy.
-    pub log_normal_solver_address: Option<A>,
+    pub log_normal_solver_address: Option<Address>,
     // The address of the solver for the g3m strategy.
-    pub g3m_solver_address: Option<A>,
+    pub g3m_solver_address: Option<Address>,
     // Timestamp of the most recent model update.
     pub last_sync: Option<DateTime<Utc>>,
     // Block number of the most recent model update.
@@ -151,16 +151,16 @@ pub struct RawDataModel<A: Ord, V> {
     pub last_user_history_sync_block: Option<u64>,
     // Balances of tokens held directly by the connected user.
     #[serde(default)]
-    pub user_token_balances: BTreeMap<A, Vec<(u64, V)>>,
+    pub user_token_balances: BTreeMap<Address, Vec<(u64, U256)>>,
     // Tracks the global state of pools.
     pub pool_state: Option<BTreeMap<u64, PoolState>>,
     // Tracks the prices of the tokens in the user_token_balances
     // mapping reported by the external exchange
-    pub external_prices: Option<BTreeMap<A, Vec<(u64, V)>>>,
+    pub external_prices: Option<BTreeMap<Address, Vec<(u64, U256)>>>,
     // Used to filter out the liquidity tokens from the user_token_balances mapping.
-    pub liquidity_token_addresses: Option<Vec<A>>,
+    pub liquidity_token_addresses: Option<Vec<Address>>,
     // Stores the metadata of the tokens being fetched once.
-    pub token_metadata: Option<BTreeMap<A, TokenInfo>>,
+    pub token_metadata: Option<BTreeMap<Address, TokenInfo>>,
 }
 
 sol! {
@@ -216,9 +216,9 @@ pub struct StrategyPosition {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AllocatedPosition {
-    pub token_x_address: AlloyAddress,
-    pub token_y_address: AlloyAddress,
-    pub token_l_address: AlloyAddress,
+    pub token_x_address: Address,
+    pub token_y_address: Address,
+    pub token_l_address: Address,
     pub claimable_balance_x: f64,
     pub claimable_balance_y: f64,
     pub liquidity_balance: f64,
@@ -229,7 +229,7 @@ pub struct AllocatedPosition {
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct UnallocatedPosition {
-    pub token_address: AlloyAddress,
+    pub token_address: Address,
     pub balance: f64,
     pub external_price: f64,
 }
@@ -240,7 +240,7 @@ impl StrategyPosition {
     }
 }
 
-impl RawDataModel<AlloyAddress, AlloyU256> {
+impl RawDataModel {
     // ----- Init model ----- //
 
     /// Creates a completely fresh model with no values set.
@@ -663,18 +663,18 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 )))?;
 
             // todo: need to add an external quote price series.
-            let external_y_price = ALLOY_WAD;
+            let external_y_price = WAD;
 
             let amount_x = amount_x
                 .checked_mul(external_x_price)
                 .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                .checked_div(ALLOY_WAD)
+                .checked_div(WAD)
                 .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
             let amount_y = amount_y
                 .checked_mul(external_y_price)
                 .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                .checked_div(ALLOY_WAD)
+                .checked_div(WAD)
                 .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
             let amount_x = ethers::utils::format_ether(amount_x);
@@ -817,7 +817,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_external_price<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
-    ) -> Result<AlloyU256> {
+    ) -> Result<U256> {
         let external_exchange = self
             .external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
@@ -844,8 +844,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_external_price_of_token<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
-        _token_address: AlloyAddress,
-    ) -> Result<AlloyU256> {
+        _token_address: Address,
+    ) -> Result<U256> {
         let external_exchange = self
             .external_exchange_address
             .ok_or(Error::msg("External exchange address not set"))?;
@@ -873,7 +873,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_reserves_and_liquidity<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
-    ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
+    ) -> Result<(U256, U256, U256)> {
         let protocol = self.protocol(client.clone()).await?;
 
         let total_pools = protocol.nonce().call().await?;
@@ -881,7 +881,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         // Returns early with 0 values if there are no pools.
         // todo: handle this case a little better
         if total_pools.is_zero() {
-            return Ok((AlloyU256::ZERO, AlloyU256::ZERO, AlloyU256::ZERO));
+            return Ok((U256::ZERO, U256::ZERO, U256::ZERO));
         }
 
         let result = protocol.get_reserves_and_liquidity(U256::from(0)).await;
@@ -899,7 +899,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_internal_price<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
-    ) -> Result<AlloyU256> {
+    ) -> Result<U256> {
         let solver = self.get_log_normal_solver(client.clone())?;
         let internal_price = solver
             .internal_price(ethers::types::U256::from(0))
@@ -920,7 +920,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     async fn fetch_strategy_params<M: Middleware + 'static>(
         &self,
         client: Arc<M>,
-    ) -> Result<(AlloyU256, AlloyU256, AlloyU256)> {
+    ) -> Result<(U256, U256, U256)> {
         let solver = self.get_log_normal_solver(client.clone())?;
         let pool_params = solver
             .fetch_pool_params(ethers::types::U256::from(0))
@@ -940,7 +940,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .ok_or(Error::msg(format!("Pool with id {} not found", pool_id)))
     }
 
-    pub fn price_of_token(&self, token_address: AlloyAddress) -> Result<AlloyU256> {
+    pub fn price_of_token(&self, token_address: Address) -> Result<U256> {
         let external_prices = self
             .external_prices
             .as_ref()
@@ -961,7 +961,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(price)
     }
 
-    pub fn get_external_price_of_pool_asset(&self, pool_id: u64) -> Result<AlloyU256> {
+    pub fn get_external_price_of_pool_asset(&self, pool_id: u64) -> Result<U256> {
         let pool_state = self.get_pool_state(pool_id)?;
         let asset_token = pool_state
             .asset_token
@@ -984,7 +984,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         Ok(external_price)
     }
 
-    pub fn get_internal_price_of_pool_asset(&self, pool_id: u64) -> Result<AlloyU256> {
+    pub fn get_internal_price_of_pool_asset(&self, pool_id: u64) -> Result<U256> {
         let pool_state = self.get_pool_state(pool_id)?;
         let internal_price = pool_state
             .internal_price
@@ -997,7 +997,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     // todo: figure out how to get the price of the token we care about/focused on.
-    pub fn get_current_price(&self) -> Result<AlloyU256> {
+    pub fn get_current_price(&self) -> Result<U256> {
         // Get the external price of the ETH token.
         let token_address = self
             .token_metadata
@@ -1023,7 +1023,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the series of USD values for each token the user has with a
     /// non-zero balance.
     #[allow(clippy::type_complexity)]
-    pub fn get_user_balances_usd(&self) -> Result<Vec<(AlloyAddress, Vec<(u64, AlloyU256)>)>> {
+    pub fn get_user_balances_usd(&self) -> Result<Vec<(Address, Vec<(u64, U256)>)>> {
         // Filter the liquidity token addresses from the user_token_balances
         // keys, then separate them into two different vectors of addresses.
         let liquidity_token_addresses = self
@@ -1058,7 +1058,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     let balance_usd = balance
                         .checked_mul(*price)
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                        .checked_div(ALLOY_WAD)
+                        .checked_div(WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
                     // temp override until lex is updated.
@@ -1091,7 +1091,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Computes the amount of reserves claimable in total given all the
     /// liquidity.
     #[allow(clippy::type_complexity)]
-    fn get_reserves(&self, pool_id: u64) -> Result<(Vec<(u64, AlloyU256)>, Vec<(u64, AlloyU256)>)> {
+    fn get_reserves(&self, pool_id: u64) -> Result<(Vec<(u64, U256)>, Vec<(u64, U256)>)> {
         // Get the pool state of the given pool id.
         let pool_state = self.get_pool_state(pool_id)?;
 
@@ -1122,7 +1122,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     // pub fn log_normal_strategy<M: Middleware + 'static>(
     //     &self,
     //     client: Arc<M>,
-    //     address: AlloyAddress,
+    //     address: Address,
     // ) -> Result<LogNormal<M>> {
     //     let strategy = LogNormal::new(address, client.clone());
     //     Ok(strategy)
@@ -1132,7 +1132,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     // pub async fn get_solver<M: Middleware + 'static>(
     //     &self,
     //     client: Arc<M>,
-    //     address: AlloyAddress,
+    //     address: Address,
     // ) -> Result<LogNormalSolver<M>> {
     //     let solver = LogNormalSolver::new(address, client.clone());
     //     Ok(solver)
@@ -1169,18 +1169,18 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             let balance = self.user_token_balances[&token_address]
                 .last()
                 .map(|(_, balance)| balance)
-                .unwrap_or(&AlloyU256::ZERO);
+                .unwrap_or(&U256::ZERO);
 
             let external_price = self.external_prices.as_ref().ok_or(Error::msg(
                 "get_unallocated_positions: External price series not set",
             ))?[&token_address]
                 .last()
                 .map(|(_, price)| price)
-                .unwrap_or(&AlloyU256::ZERO);
+                .unwrap_or(&U256::ZERO);
 
             // todo: temp override until lex is fixed.
             let external_price = match coin.tags.contains(&"stablecoin".to_string()) {
-                true => ALLOY_WAD,
+                true => WAD,
                 false => *external_price,
             };
 
@@ -1197,7 +1197,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Gets the pool id of a given liquidity token.
     pub fn get_pool_id_of_liquidity_token(
         &self,
-        liquidity_token_address: AlloyAddress,
+        liquidity_token_address: Address,
     ) -> Result<u64> {
         let pool_state_map = self.pool_state.as_ref().ok_or(Error::msg(
             "Pool state is not set when attempting to find pool of liquidity token.",
@@ -1240,7 +1240,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             let balance = self.user_token_balances[&liquidity_token]
                 .last()
                 .map(|(_, balance)| balance)
-                .unwrap_or(&AlloyU256::ZERO);
+                .unwrap_or(&U256::ZERO);
             let pool_id = self.get_pool_id_of_liquidity_token(liquidity_token)?;
             let pool_state = self.get_pool_state(pool_id)?.clone();
             let (token_x_address, token_y_address) = (
@@ -1257,27 +1257,27 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             let claimable_assets = claimable_assets
                 .last()
                 .map(|(_, balance)| balance)
-                .unwrap_or(&AlloyU256::ZERO);
+                .unwrap_or(&U256::ZERO);
             let claimable_quotes = claimable_quotes
                 .last()
                 .map(|(_, balance)| balance)
-                .unwrap_or(&AlloyU256::ZERO);
+                .unwrap_or(&U256::ZERO);
             let external_asset_price = self.external_prices.as_ref().ok_or(Error::msg(
                 "get_allocated_positions: External price series not set",
             ))?[&token_x_address]
                 .last()
                 .map(|(_, price)| price)
-                .unwrap_or(&AlloyU256::ZERO);
-            let external_quote_price = ALLOY_WAD; // todo: fix price of other tokens in lex.
+                .unwrap_or(&U256::ZERO);
+            let external_quote_price = WAD; // todo: fix price of other tokens in lex.
             let asset_value = claimable_assets
                 .checked_mul(*external_asset_price)
                 .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                .checked_div(ALLOY_WAD)
+                .checked_div(WAD)
                 .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
             let quote_value = claimable_quotes
                 .checked_mul(external_quote_price)
                 .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                .checked_div(ALLOY_WAD)
+                .checked_div(WAD)
                 .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
             let value = asset_value
                 .checked_add(quote_value)
@@ -1308,11 +1308,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let balance_x = claimable_assets
             .last()
             .map(|(_, balance)| balance)
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
         let balance_y = claimable_quotes
             .last()
             .map(|(_, balance)| balance)
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
 
         let internal_price = pool_state
             .internal_price
@@ -1322,7 +1322,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             ))?
             .last()
             .map(|(_, price)| price)
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
 
         let liquidity = pool_state
             .total_liquidity
@@ -1331,11 +1331,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                 series
                     .last()
                     .map(|(_, liquidity)| liquidity)
-                    .unwrap_or(&AlloyU256::ZERO)
+                    .unwrap_or(&U256::ZERO)
             })
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
 
-        let quote_price = ALLOY_WAD; // todo: fix price of other tokens in lex.
+        let quote_price = WAD; // todo: fix price of other tokens in lex.
         let asset_token = pool_state.asset_token.ok_or(Error::msg(
             "get_position_info: Asset token address not set for pool state",
         ))?;
@@ -1344,7 +1344,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         ))?[&asset_token]
             .last()
             .map(|(_, price)| price)
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
 
         let external_price = format_and_parse(*external_price)?;
         let balance_x = format_and_parse(*balance_x)?;
@@ -1372,7 +1372,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     fn derive_position_value_series(
         &self,
         pool_id: u64,
-    ) -> Result<(Vec<(u64, AlloyU256)>, Vec<(u64, AlloyU256)>)> {
+    ) -> Result<(Vec<(u64, U256)>, Vec<(u64, U256)>)> {
         // Get the pool state of the given pool id.
         let pool_state = self.get_pool_state(pool_id)?;
 
@@ -1397,10 +1397,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // todo: assumes the current price of the quote token is 1, lex needs to be
         // updated to fix this. Make a copy of the quote series but for prices
-        // of ALLOY_WAD
+        // of WAD
         let quote_price_series = claimable_quote_balance_series
             .iter()
-            .map(|(block, _)| (*block, ALLOY_WAD))
+            .map(|(block, _)| (*block, WAD))
             .collect::<Vec<_>>();
 
         // Make new series' which have the computed usd values using the price series'.
@@ -1419,7 +1419,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     let claimable_asset_balance_usd = claimable_asset_balance
                         .checked_mul(*asset_price)
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                        .checked_div(ALLOY_WAD)
+                        .checked_div(WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
                     Ok((*block_balance, claimable_asset_balance_usd))
                 },
@@ -1441,7 +1441,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     let claimable_quote_balance_usd = claimable_quote_balance
                         .checked_mul(*quote_price)
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                        .checked_div(ALLOY_WAD)
+                        .checked_div(WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
                     Ok((*block_balance, claimable_quote_balance_usd))
@@ -1462,7 +1462,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     fn derive_user_allocated_balances(
         &self,
         pool_id: u64,
-    ) -> Result<(Vec<(u64, AlloyU256)>, Vec<(u64, AlloyU256)>)> {
+    ) -> Result<(Vec<(u64, U256)>, Vec<(u64, U256)>)> {
         // Get the pool state of the given pool id.
         let pool_state = self
             .pool_state
@@ -1547,7 +1547,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the price of each lp token in USD using the external prices of
     /// the tokens stored in the external prices mapping.
-    pub fn derive_lp_token_price_series(&self, pool_id: u64) -> Result<Vec<(u64, AlloyU256)>> {
+    pub fn derive_lp_token_price_series(&self, pool_id: u64) -> Result<Vec<(u64, U256)>> {
         let pool_state = self.get_pool_state(pool_id)?.clone();
         let (claimable_assets, claimable_quotes) = self.get_reserves(pool_id)?;
         let claimable_assets_series = claimable_assets.into_iter().collect::<Vec<_>>();
@@ -1556,7 +1556,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             "derive_lp_token_price_series: External price series not set",
         ))?[&pool_state.asset_token.unwrap()]
             .clone();
-        let external_quote_price = ALLOY_WAD; // todo: fix price of other tokens in lex.
+        let external_quote_price = WAD; // todo: fix price of other tokens in lex.
         let total_supply_series = pool_state
             .liquidity_token_total_supply
             .ok_or(Error::msg(
@@ -1602,18 +1602,18 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                     let asset_value = claimable_assets
                         .checked_mul(*external_asset_price)
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                        .checked_div(ALLOY_WAD)
+                        .checked_div(WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
                     let quote_value = claimable_quotes
                         .checked_mul(external_quote_price)
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-                        .checked_div(ALLOY_WAD)
+                        .checked_div(WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
                     let total_value = asset_value
                         .checked_add(quote_value)
                         .ok_or(anyhow!(RawDataModelError::CheckedAdd))?;
                     let price_per_lp = total_value
-                        .checked_mul(ALLOY_WAD)
+                        .checked_mul(WAD)
                         .ok_or(anyhow!(RawDataModelError::CheckedMul))?
                         .checked_div(*total_supply)
                         .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
@@ -1642,19 +1642,19 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let balance_x = self.user_token_balances[&asset_token]
             .last()
             .map(|(_, balance)| balance)
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
 
         let balance_y = self.user_token_balances[&quote_token]
             .last()
             .map(|(_, balance)| balance)
-            .unwrap_or(&AlloyU256::ZERO);
+            .unwrap_or(&U256::ZERO);
         let external_price = self.external_prices.as_ref().ok_or(Error::msg(
             "get_position_info: External price series not set",
         ))?[&asset_token]
             .last()
             .map(|(_, price)| price)
-            .unwrap_or(&AlloyU256::ZERO);
-        let quote_price = ALLOY_WAD; // todo: fix price of other tokens in lex.
+            .unwrap_or(&U256::ZERO);
+        let quote_price = WAD; // todo: fix price of other tokens in lex.
 
         let external_price = format_and_parse(*external_price)?;
         let balance_x = format_and_parse(*balance_x)?;
@@ -1684,13 +1684,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let asset_value = asset_balance_wad
             .checked_mul(asset_price_wad)
             .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-            .checked_div(ALLOY_WAD)
+            .checked_div(WAD)
             .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
         let quote_value = quote_balance_wad
             .checked_mul(quote_price_wad)
             .ok_or(anyhow!(RawDataModelError::CheckedMul))?
-            .checked_div(ALLOY_WAD)
+            .checked_div(WAD)
             .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
         let portfolio_value = asset_value.checked_add(quote_value).ok_or(anyhow!(
@@ -1704,24 +1704,24 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the theoretical portfolio value of a given strategy.
     pub fn compute_portfolio_value_theoretical(
-        asset_price_wad: AlloyU256,
-        quote_price_wad: AlloyU256,
-        total_liquidity_wad: AlloyU256,
-        strike_price_wad: AlloyU256,
-        volatility_percent_wad: AlloyU256,
-        time_remaining_years_wad: AlloyU256,
-    ) -> Result<AlloyU256> {
-        let quote_price = alloy_primitives::utils::format_ether(quote_price_wad);
+        asset_price_wad: U256,
+        quote_price_wad: U256,
+        total_liquidity_wad: U256,
+        strike_price_wad: U256,
+        volatility_percent_wad: U256,
+        time_remaining_years_wad: U256,
+    ) -> Result<U256> {
+        let quote_price = ethers::utils::format_ether(quote_price_wad);
         let quote_price = quote_price.parse::<f64>()?;
-        let price = alloy_primitives::utils::format_ether(asset_price_wad);
+        let price = ethers::utils::format_ether(asset_price_wad);
         let price = price.parse::<f64>()?;
-        let liquidity = alloy_primitives::utils::format_ether(total_liquidity_wad);
+        let liquidity = ethers::utils::format_ether(total_liquidity_wad);
         let liquidity = liquidity.parse::<f64>()?;
-        let strike_price = alloy_primitives::utils::format_ether(strike_price_wad);
+        let strike_price = ethers::utils::format_ether(strike_price_wad);
         let strike_price = strike_price.parse::<f64>()?;
-        let volatility = alloy_primitives::utils::format_ether(volatility_percent_wad);
+        let volatility = ethers::utils::format_ether(volatility_percent_wad);
         let volatility = volatility.parse::<f64>()?;
-        let time_remaining = alloy_primitives::utils::format_ether(time_remaining_years_wad);
+        let time_remaining = ethers::utils::format_ether(time_remaining_years_wad);
         let time_remaining = time_remaining.parse::<f64>()?;
 
         // Get x given price, then l given x, then y given l.
@@ -1731,14 +1731,14 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         let portfolio_value = y * quote_price + x * price;
         let portfolio_value = format!("{}", portfolio_value);
-        let portfolio_value = alloy_primitives::utils::parse_ether(&portfolio_value)?;
+        let portfolio_value = ethers::utils::parse_ether(&portfolio_value)?;
 
         Ok(portfolio_value)
     }
 
     /// Sum of external portfolio value (allocated positions) and unallocated
     /// positions' value.
-    pub fn derive_total_aum(&self, pool_id: u64) -> Result<AlloyU256> {
+    pub fn derive_total_aum(&self, pool_id: u64) -> Result<U256> {
         // todo: this naming is confusing but the external portfolio value is the
         // unallocated value.
         // todo: maybe handle this more explicitly?
@@ -1767,7 +1767,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
         let unallocated_position_value =
             unallocated_values_series
                 .iter()
-                .try_fold(AlloyU256::ZERO, |acc, value| {
+                .try_fold(U256::ZERO, |acc, value| {
                     acc.checked_add(*value)
                         .ok_or_else(|| anyhow!("Failed to add unallocated values"))
                 })?;
@@ -1784,17 +1784,17 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the value of the unallocated positions.
-    pub fn derive_unallocated_position_value(&self, coin_list: CoinList) -> Result<AlloyU256> {
+    pub fn derive_unallocated_position_value(&self, coin_list: CoinList) -> Result<U256> {
         let unallocated_position = self.get_unallocated_positions_info(coin_list)?;
         let unallocated_position_value = unallocated_position.compute_value()?;
         let unallocated_position_value =
-            alloy_primitives::utils::parse_ether(&format!("{}", unallocated_position_value))?;
+            ethers::utils::parse_ether(&format!("{}", unallocated_position_value))?;
         Ok(unallocated_position_value)
     }
 
     /// Computes the portfolio value of the user's strategy deposits according
     /// to an external price.
-    pub fn derive_external_portfolio_value(&self, pool_id: u64) -> Result<AlloyU256> {
+    pub fn derive_external_portfolio_value(&self, pool_id: u64) -> Result<U256> {
         let pool_state = self.get_pool_state(pool_id)?;
         let (asset_token, _quote_token) = (
             pool_state.asset_token.ok_or(Error::msg(
@@ -1812,7 +1812,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             .unwrap()
             .1;
         // todo: hardcoded stablecoin price
-        let quote_price_wad = ALLOY_WAD;
+        let quote_price_wad = WAD;
         let (claimable_assets, claimable_quotes) = self.derive_user_allocated_balances(pool_id)?;
         let (asset_reserve_wad, quote_reserve_wad) = (
             claimable_assets
@@ -1839,7 +1839,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the portfolio value of the user's deposits in a strategy
     /// according to the internal price.
-    pub fn derive_internal_portfolio_value(&self, pool_id: u64) -> Result<AlloyU256> {
+    pub fn derive_internal_portfolio_value(&self, pool_id: u64) -> Result<U256> {
         let pool_state = self.get_pool_state(pool_id)?;
         let internal_price = pool_state
             .internal_price
@@ -1854,7 +1854,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
             "derive_internal_portfolio_value: Quote token not set",
         ))?;
 
-        let quote_price = ALLOY_WAD; // todo: fix quote price
+        let quote_price = WAD; // todo: fix quote price
 
         // todo: using the global reserves of the market for now.
         let (claimable_assets, claimable_quotes) = self.derive_user_allocated_balances(pool_id)?;
@@ -1881,7 +1881,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Computes the theoretical portfolio value given the strategy parameters,
     /// external market price, and amount of liquidity.
-    pub fn derive_theoretical_portfolio_value(&self, pool_id: u64) -> Result<AlloyU256> {
+    pub fn derive_theoretical_portfolio_value(&self, pool_id: u64) -> Result<U256> {
         let pool_state = self.get_pool_state(pool_id)?;
 
         let params = pool_state.log_normal_strategy.ok_or(Error::msg(
@@ -1938,11 +1938,11 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     /// Computes the replication health of the deposited portfolio.
     /// Health = (Internal Portfolio Value) / (Theoretical Portfolio Value)
     pub fn compute_health(
-        internal_portfolio_value_wad: AlloyU256,
-        theoretical_value_wad: AlloyU256,
-    ) -> Result<AlloyU256> {
+        internal_portfolio_value_wad: U256,
+        theoretical_value_wad: U256,
+    ) -> Result<U256> {
         let health = internal_portfolio_value_wad
-            .checked_mul(ALLOY_WAD)
+            .checked_mul(WAD)
             .ok_or(anyhow!(RawDataModelError::CheckedMul))?
             .checked_div(theoretical_value_wad)
             .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
@@ -1951,7 +1951,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Computes the health of the user's portfolio.
-    pub fn derive_portfolio_health(&self) -> Result<AlloyU256> {
+    pub fn derive_portfolio_health(&self) -> Result<U256> {
         let pool_id = 0; // todo: fix pool_id
         let internal_portfolio_value_wad = self.derive_internal_portfolio_value(pool_id)?;
         let theoretical_value_wad = self.derive_theoretical_portfolio_value(pool_id)?;
@@ -1961,7 +1961,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     /// Transforms series data in native types to chart types.
     pub fn transform_series_over_block_number(
-        series: Vec<(u64, AlloyU256)>,
+        series: Vec<(u64, U256)>,
     ) -> Result<(CartesianRanges, ChartLineSeries)> {
         if series.is_empty() {
             return Err(Error::msg("Series is empty"));
@@ -1971,7 +1971,7 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         for (block, value) in series {
             let block = block as f32;
-            let value = alloy_primitives::utils::format_ether(value);
+            let value = ethers::utils::format_ether(value);
             let value = value.parse::<f32>()?;
             transformed.push((block, value));
         }
@@ -1994,13 +1994,13 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
     }
 
     /// Transforms x,y data in native types to chart types.
-    pub fn transform_plot(data: &[(AlloyU256, AlloyU256)]) -> Result<ChartLineSeries> {
+    pub fn transform_plot(data: &[(U256, U256)]) -> Result<ChartLineSeries> {
         let mut transformed = Vec::new();
 
         for (x, y) in data {
-            let x = alloy_primitives::utils::format_ether(*x);
+            let x = ethers::utils::format_ether(*x);
             let x = x.parse::<f32>()?;
-            let y = alloy_primitives::utils::format_ether(*y);
+            let y = ethers::utils::format_ether(*y);
             let y = y.parse::<f32>()?;
             transformed.push((x, y));
         }
@@ -2038,17 +2038,17 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
                         lp_token_price,
                         lp_token_balance
                     ))
-                    .unwrap_or(AlloyU256::ZERO)
-                    .checked_div(ALLOY_WAD)
+                    .unwrap_or(U256::ZERO)
+                    .checked_div(WAD)
                     .ok_or(anyhow!(
-                        "Failed to divide lp token price and ALLOY_WAD: {} / {}",
+                        "Failed to divide lp token price and _WAD: {} / {}",
                         lp_token_price,
-                        ALLOY_WAD
+                        WAD
                     ))
-                    .unwrap_or(AlloyU256::ZERO);
+                    .unwrap_or(U256::ZERO);
                 (*block, portfolio_value)
             })
-            .collect::<Vec<(u64, AlloyU256)>>();
+            .collect::<Vec<(u64, U256)>>();
 
         let mut result = Self::transform_series_over_block_number(series)?;
 
@@ -2067,7 +2067,8 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
         // Combine the vector of (token, balance series) into a single series of (block,
         // balance sum).
-        let mut unallocated_series: Vec<(u64, AlloyU256)> = Vec::new();
+        let mut unallocated_series: Vec<(u64, 
+            U256)> = Vec::new();
         for (_, balance_series) in all_usd_balances {
             for (block, balance) in balance_series {
                 let mut found = false;
@@ -2537,8 +2538,10 @@ impl RawDataModel<AlloyAddress, AlloyU256> {
 
     pub fn get_token_value_and_info(
         &self,
-        _token_address: AlloyAddress,
-    ) -> Result<(Vec<(u64, AlloyU256)>, TokenInfo)> {
+        _token_address: 
+        Address,
+    ) -> Result<(Vec<(u64, 
+        U256)>, TokenInfo)> {
         let usd_balances = self.get_user_balances_usd()?.clone();
 
         let token_data = usd_balances
@@ -2706,8 +2709,10 @@ pub struct HistogramData {
 /// Formats WAD values into stringified floating point decimals, then parses
 /// them into f64.
 /// todo: take an optional decimal argument for using format_units instead.
-pub fn format_and_parse(value: AlloyU256) -> Result<f64> {
-    let formatted = alloy_primitives::utils::format_ether(value);
+pub fn format_and_parse(value: 
+    U256) -> Result<f64> {
+    let formatted = 
+    ethers::utils::format_ether(value);
     formatted.parse::<f64>().map_err(|e| e.into())
 }
 
@@ -2718,9 +2723,8 @@ mod tests {
         prelude::*,
         utils::{Anvil, AnvilInstance},
     };
-    use sim::from_ethers_address;
 
-    use super::{AlloyAddress, AlloyU256, *};
+    use super::{Address, U256, *};
 
     async fn setup() -> anyhow::Result<(
         AnvilInstance,
@@ -2749,7 +2753,7 @@ mod tests {
         println!(
             "IERC20: {:?}",
             IERC20::balanceOfCall {
-                account: AlloyAddress::ZERO,
+                account: Address::ZERO,
             }
         );
 
@@ -2758,7 +2762,7 @@ mod tests {
 
     #[test]
     fn test_decode_returns_bug() {
-        let data = alloy_primitives::Bytes::from(vec![0_u8]);
+        let data = ethers::types::Bytes::from(vec![0_u8]);
         let decoded = IERC20::balanceOfCall::abi_decode_returns(&data, false);
         println!("Decoded: {:?}", decoded);
     }
@@ -2784,17 +2788,14 @@ mod tests {
         let chain_id = anvil.chain_id();
 
         // Now we can fetch the balance of the wallet.
-        let model = RawDataModel::<AlloyAddress, AlloyU256>::new(chain_id);
+        let model = RawDataModel::new(chain_id);
 
-        let converted_address = from_ethers_address(sender);
-        let converted_token_address = from_ethers_address(token.address());
-
-        println!("Fetching balance of: {}", converted_address);
+        println!("Fetching balance of: {}", sender);
         let balance = model
             .fetch_balance_of(
                 client.provider().clone().into(),
-                converted_token_address,
-                converted_address,
+                token.address(),
+                sender,
             )
             .await?;
 
@@ -2824,26 +2825,21 @@ mod tests {
         let chain_id = anvil.chain_id();
 
         // Now we can fetch the balance of the wallet.
-        let mut model = RawDataModel::<AlloyAddress, AlloyU256>::new(chain_id);
+        let mut model = RawDataModel::new(chain_id);
 
-        let converted_address = from_ethers_address(sender);
-        let converted_token_address = from_ethers_address(token.address());
-
-        println!("Fetching balance of: {}", converted_address);
+        println!("Fetching balance of: {}", sender);
         let balance = model
             .fetch_balance_of(
                 client.provider().clone().into(),
-                converted_token_address,
-                converted_address,
+                token.address(),
+                sender,
             )
             .await?;
 
         println!("Balance: {}", balance);
 
         // Update the model.
-        let converted_user_address = from_ethers_address(sender);
-        let converted_token_address = from_ethers_address(token.address());
-        model.user_address = Some(converted_user_address);
+        model.user_address = Some(sender);
 
         model
             .update_token_balance_mapping(client.provider().clone().into())
@@ -2851,7 +2847,7 @@ mod tests {
 
         let saved_balance = model
             .user_token_balances
-            .get(&converted_token_address)
+            .get(&token.address())
             .unwrap()
             .last()
             .unwrap()

@@ -1,6 +1,6 @@
 use std::fmt::{self, Display};
 
-use datatypes::portfolio::coin::Coin;
+use dfmm::portfolio::coin::Coin;
 use iced::Padding;
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 

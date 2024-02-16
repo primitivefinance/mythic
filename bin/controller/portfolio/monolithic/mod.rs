@@ -6,10 +6,9 @@ mod view;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use clients::protocol::{LogNormalF64, PoolInitParamsF64};
-use datatypes::portfolio::coin::Coin;
+use dfmm::portfolio::coin::Coin;
 use dfmm::rmm::{compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust};
 use iced::{futures::TryFutureExt, subscription, Padding};
-use sim::{from_ethers_u256, to_ethers_address, to_ethers_u256};
 use RustQuant::{
     models::GeometricBrownianMotion,
     stochastics::{StochasticProcess, Trajectories},
@@ -21,10 +20,11 @@ use self::{
     tx_history::TxHistory,
     view::{MonolithicPresenter, MonolithicView},
 };
+use ethers::types::Address;
 use super::*;
 use crate::{
     components::system::{ExcaliburChart, ExcaliburContainer},
-    model::portfolio::{format_and_parse, AlloyAddress, ALLOY_WAD},
+    model::portfolio::{format_and_parse, WAD},
     view::portfolio_view::PortfolioPresenter,
 };
 
@@ -34,7 +34,7 @@ pub enum Message {
     Empty,
     StartAllocate,
     Form(FormMessage),
-    SelectPosition(AlloyAddress),
+    SelectPosition(Address),
     AllocateResult(anyhow::Result<Option<TransactionReceipt>, Arc<anyhow::Error>>),
 
     // todo: do we need these on all pages?? maybe just reference the  model.
@@ -87,7 +87,7 @@ pub struct Monolithic {
     chart_presenter: PortfolioPresenter,
     create: create::Form,
     allocate: bool,
-    view_position: Option<AlloyAddress>,
+    view_position: Option<Address>,
     create_status: create::SubmitState,
     price_process: Option<PriceProcess>,
 }
@@ -250,20 +250,17 @@ impl Monolithic {
                         });
 
                         let init_price_wad =
-                            alloy_primitives::utils::parse_ether(&format!("{}", asset_price))
+                            ethers::utils::parse_ether(&format!("{}", asset_price))
                                 .map_err(|err| {
                                     Arc::new(anyhow::anyhow!("Error parsing price: {:?}", err))
                                 })
                                 .unwrap();
-                        let init_price_wad = to_ethers_u256(init_price_wad);
-
-                        let init_reserve_x_wad = to_ethers_u256(
-                            alloy_primitives::utils::parse_ether(&format!("{}", amount_x))
+                        let init_reserve_x_wad =
+                            ethers::utils::parse_ether(&format!("{}", amount_x))
                                 .map_err(|err| {
                                     Arc::new(anyhow::anyhow!("Error parsing amount: {:?}", err))
                                 })
-                                .unwrap(),
-                        );
+                                .unwrap();
 
                         let dfmm = client
                             .dfmm_client
@@ -273,8 +270,8 @@ impl Monolithic {
                         // todo: handle mutable update to the pools array in the protocol client
                         // separately.
                         dfmm.create_position(
-                            to_ethers_address(asset_token),
-                            to_ethers_address(quote_token),
+                            asset_token,
+                            quote_token,
                             init_reserve_x_wad,
                             init_price_wad,
                             payload_params,
@@ -618,7 +615,7 @@ impl std::fmt::Debug for PriceProcess {
 /// note: expects price process step to be incremented before calling this.
 fn price_process_update_after_step(
     process: PriceProcess,
-    exchange: AlloyAddress,
+    exchange: Address,
     client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
 ) -> Command<Message> {
     let mut next_price = None;
@@ -636,24 +633,24 @@ fn price_process_update_after_step(
         async move {
             let next_price = next_price.unwrap_or_default();
             let client = client.clone();
-            let lex = LiquidExchange::new(to_ethers_address(exchange), client);
+            let lex = LiquidExchange::new(exchange, client);
 
             let current_price = lex.price().await?;
             // make the new price a random price +/- 1% of current price.
             let random = 1.0 + (rand::random::<f64>() - 0.5) * 0.01;
             let random =
-                alloy_primitives::utils::parse_ether(format!("{}", random).as_str()).unwrap();
-            let mut new_price = from_ethers_u256(current_price)
+                ethers::utils::parse_ether(format!("{}", random).as_str()).unwrap();
+            let mut new_price = current_price
                 .checked_mul(random)
                 .unwrap()
-                .checked_div(ALLOY_WAD)
+                .checked_div(WAD)
                 .unwrap();
 
             if next_price > 0.0 {
-                new_price = alloy_primitives::utils::parse_ether(&format!("{}", next_price))?;
+                new_price = ethers::utils::parse_ether(&format!("{}", next_price))?;
             }
 
-            let result = lex.set_price(to_ethers_u256(new_price)).send().await?.await;
+            let result = lex.set_price(new_price).send().await?.await;
 
             match result {
                 Ok(_tx) => {

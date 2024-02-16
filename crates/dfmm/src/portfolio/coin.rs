@@ -4,7 +4,7 @@
 //! Why is it not called token? Because it is not a token. It is a coin. A token
 //! could be many things. A coin is a coin.
 
-use alloy_primitives::Address;
+use ethers::types::Address;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
