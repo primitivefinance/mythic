@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf};
 
+use dfmm::settings::{parameters::Single, SimulationConfig};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use sim::settings::{parameters::Single, SimulationConfig};
 
 use super::*;
 

@@ -12,7 +12,13 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use self::{nwd::NWD, position::PositionError};
-use super::TokenData;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct TokenData {
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, PartialOrd)]
 pub struct Portfolio {

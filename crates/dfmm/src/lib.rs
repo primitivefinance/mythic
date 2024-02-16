@@ -2,6 +2,7 @@ pub mod agent;
 pub mod agents;
 pub mod configuration;
 pub mod engine;
+pub mod portfolio;
 pub mod scenarios;
 pub mod settings;
 

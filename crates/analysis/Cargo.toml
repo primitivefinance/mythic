@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bindings.workspace = true
-sim.workspace = true
 arbiter-bindings.workspace = true
+arbiter-core.workspace = true
+
+bindings.workspace = true
+dfmm.workspace = true
+
 anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
@@ -15,10 +18,10 @@ ethers.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 plotters.workspace = true
-arbiter-core.workspace = true
+
 linked-hash-map.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
-rayon = "=1.8.0"
+rayon = "1.8.1"
 tracing-test = "=0.2.4"

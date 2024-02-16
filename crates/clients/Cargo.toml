@@ -6,8 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-datatypes = { path = "../datatypes" }
-
 # ledger transport api
 coins-ledger = { git = "https://github.com/summa-tx/coins.git", branch = "prestwich/more-ledger-refactor" }
 coins-bip32 = { git = "https://github.com/summa-tx/coins.git" }

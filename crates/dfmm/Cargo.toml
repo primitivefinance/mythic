@@ -1,34 +1,33 @@
 [package]
-name = "sim"
+name = "dfmm"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-datatypes.workspace = true
 bindings.workspace = true
 clients.workspace = true
 
-
 unit-conversions = "0.1.16"
-
-revm.workspace = true
 
 itertools.workspace = true
 rand.workspace = true
 
-alloy-primitives.workspace = true
 arbiter-bindings.workspace = true
 arbiter-core.workspace = true
+
+revm.workspace = true
 ethers.workspace = true
+alloy-primitives.workspace = true
 
 tokio.workspace = true
+async-trait.workspace = true
+
+thiserror.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
-thiserror.workspace = true
-async-trait.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
@@ -37,6 +36,9 @@ config.workspace = true
 RustQuant.workspace = true
 statrs.workspace = true
 linked-hash-map.workspace = true
+
+uuid.workspace = true
+chrono.workspace = true
 
 # Historical Data
 rust-gecko = { git = "https://github.com/0xJepsen/rust-gecko.git", branch = "main" }

@@ -5,14 +5,13 @@
 use std::time::Instant;
 
 use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
-use datatypes::portfolio::coin::Coin;
+use dfmm::portfolio::coin::Coin;
 use iced::{
     font,
     widget::{canvas::Cache, column, container, progress_bar},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
-use sim::from_ethers_address;
 
 use crate::{
     app::AnvilSave,
