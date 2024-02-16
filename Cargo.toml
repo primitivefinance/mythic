@@ -140,12 +140,6 @@ iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicat
 url = "=2.5.0"
 
 
-[dev-dependencies]
-# For book
-mdbook = "0.4.35"
-cargo-make = "0.37.2"
-mdbook-katex = "0.5.8"
-
 [dev-dependencies.cargo-husky]
 version = "1"
 default-features = false
