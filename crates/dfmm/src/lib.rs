@@ -89,19 +89,3 @@ impl From<anyhow::Error> for SimulationError {
 fn parse_ether_to_f64(ether: ethers::types::U256) -> Result<f64> {
     Ok(format_ether(ether).parse::<f64>()?)
 }
-
-pub fn to_ethers_address(address: alloy_primitives::Address) -> ethers::types::Address {
-    ethers::types::Address::from(address.into_array())
-}
-
-pub fn from_ethers_address(address: ethers::types::Address) -> alloy_primitives::Address {
-    alloy_primitives::Address::from(address.as_fixed_bytes())
-}
-
-pub fn from_ethers_u256(value: ethers::types::U256) -> alloy_primitives::U256 {
-    alloy_primitives::U256::from(value.as_u128())
-}
-
-pub fn to_ethers_u256(value: alloy_primitives::U256) -> ethers::types::U256 {
-    ethers::types::U256::from_str_radix(value.to_string().as_str(), 10).unwrap()
-}

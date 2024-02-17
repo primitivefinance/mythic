@@ -22,8 +22,6 @@
 
 use std::collections::BTreeMap;
 
-// use alloy_rpc_types::raw_log;
-use alloy_sol_types::sol;
 use anyhow::{anyhow, Error, Result};
 use bindings::{
     arbiter_token::ArbiterToken,
@@ -158,17 +156,6 @@ pub struct DataModel {
     pub liquidity_token_addresses: Option<Vec<Address>>,
     // Stores the metadata of the tokens being fetched once.
     pub token_metadata: Option<BTreeMap<Address, TokenInfo>>,
-}
-
-sol! {
-    #[derive(Debug)]
-    interface IERC20 {
-        function balanceOf(address account) external view returns(uint balance);
-        function name() external view returns(string name);
-        function symbol() external view returns(string symbol);
-        function decimals() external view returns(uint8 decimals);
-        function totalSupply() external view returns(uint);
-    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Hash)]

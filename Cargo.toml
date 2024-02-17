@@ -25,9 +25,6 @@ ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
 # Ethereum
 revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
-alloy-primitives = { version = "0.6.3", features = ["serde"] }
-alloy-sol-types = "0.6.3"
-alloy-rlp = "0.3.4"
 
 # Networking
 reqwest = "0.11.24"
@@ -82,9 +79,6 @@ arbiter-core.workspace = true
 
 revm.workspace = true
 ethers.workspace = true
-alloy-primitives.workspace = true
-alloy-sol-types.workspace = true
-alloy-rlp.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true

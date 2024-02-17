@@ -7,7 +7,6 @@ pub mod user;
 
 use std::{collections::HashMap, fs::File};
 
-use alloy_primitives::ChainId;
 use dfmm::portfolio::{
     coin::Coin,
     position::{Position, PositionLayer, Positions},
@@ -23,9 +22,9 @@ use super::*;
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Model {
-    pub networks: HashMap<ChainId, DataModel>,
+    pub networks: HashMap<u64, DataModel>,
     pub user: UserProfile,
-    pub current: Option<ChainId>,
+    pub current: Option<u64>,
 }
 
 impl Model {

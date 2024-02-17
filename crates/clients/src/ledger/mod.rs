@@ -1,12 +1,14 @@
 pub mod types;
-use alloy_primitives::{hex, Address};
 use coins_ledger::{
     common::{APDUData, APDUResponseCodes},
     errors::LedgerError,
     transports::LedgerAsync,
     APDUCommand, Ledger,
 };
-use ethers::types::{Signature, TransactionRequest, U256};
+use ethers::{
+    types::{Address, Signature, TransactionRequest, U256},
+    utils::hex,
+};
 
 use self::types::*;
 

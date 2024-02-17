@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use alloy_primitives::{Address, U256};
 use arbiter_core::{environment::Environment, errors::ArbiterCoreError};
-use ethers::types::Bytes;
+use ethers::types::{Address, Bytes};
 use revm::{
     db::{CacheDB, DbAccount, EmptyDB},
-    primitives::{AccountInfo, HashMap as Map},
+    primitives::{AccountInfo, HashMap as Map, U256},
 };
 use serde::{Deserialize, Serialize};
 use tokio::{runtime::Builder, sync::Semaphore};
@@ -114,7 +113,11 @@ impl SnapshotDB {
             .accounts
             .iter()
             .map(|(k, v)| {
-                let storage = v.storage.iter().map(|(k, v)| (*k, *v)).collect();
+                let storage = v
+                    .storage
+                    .iter()
+                    .map(|(k, v)| (U256::from(*k), U256::from(*v)))
+                    .collect();
 
                 (Address::from(k.into_array()), storage)
             })
@@ -132,10 +135,7 @@ impl From<SnapshotDB> for CacheDB<EmptyDB> {
             .map(|(k, v)| {
                 let db_account: DbAccount = v.clone().into();
 
-                (
-                    revm::primitives::Address::from(k.into_array()),
-                    db_account.clone(),
-                )
+                (revm::primitives::Address::from(k.0), db_account.clone())
             })
             .collect();
 
