@@ -66,13 +66,13 @@ contract LogNormalTest is Test {
         vm.warp(0);
 
         LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
-            strike: ONE,
-            sigma: ONE,
+            strike: TWO,
+            sigma: 0.25 ether,
             tau: ONE,
             swapFee: TEST_SWAP_FEE,
             controller: address(0)
         });
-        uint256 init_p = ONE;
+        uint256 init_p = TWO;
         uint256 init_x = ONE;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
@@ -89,62 +89,69 @@ contract LogNormalTest is Test {
         _;
     }
 
-    modifier revert_scenario() {
-        vm.warp(0);
-
-        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
-            strike: 0.67323818941934077 ether,
-            sigma: ONE,
-            tau: ONE,
-            swapFee: TEST_SWAP_FEE,
-            controller: address(0)
-        });
-        uint256 init_p = 1329956352651532999;
-        uint256 init_x = 70.658087306013359413 ether;
-        bytes memory initData =
-            solver.getInitialPoolData(init_x, init_p, params);
-
-        IDFMM.InitParams memory initParams = IDFMM.InitParams({
-            strategy: address(logNormal),
-            tokenX: tokenX,
-            tokenY: tokenY,
-            data: initData
-        });
-
-        dfmm.init(initParams);
-
-        _;
-    }
-
     function test_ln_swap_x_in() public basic {
-      bool xIn = true;
-      uint256 amountIn = 0.1 ether;
-      uint256 poolId = dfmm.nonce() - 1;
-      (,,,bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+        bool xIn = true;
+        uint256 amountIn = 0.1 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
 
-      dfmm.swap(poolId, swapData);
+        dfmm.swap(poolId, swapData);
     }
 
     function test_ln_swap_y_in() public basic {
-      bool xIn = false;
-      uint256 amountIn = 0.1 ether;
-      uint256 poolId = dfmm.nonce() - 1;
-      (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
+        bool xIn = false;
+        uint256 amountIn = 0.1 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (,,, bytes memory swapData) = solver.simulateSwap(poolId, xIn, amountIn);
 
-      dfmm.swap(poolId, swapData);
+        dfmm.swap(poolId, swapData);
     }
 
     // todo: write assertApproxEq
     function test_price_formulas() public basic {
         uint256 poolId = dfmm.nonce() - 1;
-        (uint256 rx, uint256 ry, uint256 L) = solver.getReservesAndLiquidity(poolId);
+        (uint256 rx, uint256 ry, uint256 L) =
+            solver.getReservesAndLiquidity(poolId);
         uint256 priceGivenY = solver.getPriceGivenYL(poolId, ry, L);
         uint256 priceGivenX = solver.getPriceGivenXL(poolId, rx, L);
         assertApproxEqAbs(priceGivenY, priceGivenX, 100);
     }
 
+    function test_ln_diff_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLowered = solver.calculateDiffLower(
+            poolId, 1.9 ether, 160_249_195_342_896_967
+        );
 
+        console2.log(diffLowered);
+    }
 
+    function test_ln_diff_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLowered = solver.calculateDiffRaise(
+            poolId, 2.1 ether, 302_756_023_375_108_995
+        );
+
+        console2.log(diffLowered);
+    }
+
+    function test_ln_optimal_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalLower = solver.computeOptimalArbLowerPrice(
+            poolId, 1.9 ether, 0.181424 ether
+        );
+
+        console2.log(optimalLower);
+    }
+
+    function test_ln_optimal_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
+            poolId, 2.1 ether, 0.345156 ether
+        );
+
+        console2.log(optimalRaise);
+    }
 
     // function test_internal_price() public basic {
     //     uint256 internalPrice = solver.internalPrice();

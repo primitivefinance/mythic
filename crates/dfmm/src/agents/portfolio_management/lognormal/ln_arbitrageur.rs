@@ -166,10 +166,21 @@ impl Agent for LnArbitrageur {
                 let x_in = false;
                 let input = self.get_dy().await.unwrap().into_raw();
 
+                let optimal_dy = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input)
+                    .call()
+                    .await
+                    .unwrap();
+
+                info!("optimal_dy: {:?}", optimal_dy);
+
                 let tx = self
                     .0
                     .atomic_arbitrage
-                    .raise_exchange_price(self.0.pool_id, input);
+                    .raise_exchange_price(self.0.pool_id, optimal_dy);
 
                 let output = tx.send().await;
 
@@ -207,13 +218,24 @@ impl Agent for LnArbitrageur {
                 let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
                 let input = self.get_dx().await.unwrap().into_raw();
 
-                let input =
-                    input * liquid_exchange_price / ethers::utils::parse_ether("1").unwrap();
+                let optimal_dx = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .compute_optimal_arb_lower_price(self.0.pool_id, target_price, input)
+                    .call()
+                    .await
+                    .unwrap();
+                info!("optimal_dx: {:?}", optimal_dx);
+
+                let optimal_dx =
+                    optimal_dx * liquid_exchange_price / ethers::utils::parse_ether("1").unwrap();
 
                 let tx = self
                     .0
                     .atomic_arbitrage
-                    .lower_exchange_price(self.0.pool_id, input);
+                    .lower_exchange_price(self.0.pool_id, optimal_dx);
+
                 let output = tx.send().await;
 
                 match output {

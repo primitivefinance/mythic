@@ -7,9 +7,12 @@ import "src/strategies/LogNormal/LogNormalLib.sol";
 import "src/strategies/LogNormal/LogNormal.sol";
 import "../../interfaces/IDFMM.sol";
 import "../BisectionLib.sol";
+import "../../lib/SignedWadMath.sol";
+import "forge-std/console2.sol";
 
 using FixedPointMathLib for uint256;
 using FixedPointMathLib for int256;
+using SignedWadMathLib for int256;
 
 uint256 constant MAX_ITER = 64;
 
@@ -262,5 +265,185 @@ function computeNextRy(
         uint256(EPSILON),
         MAX_ITER,
         findRootY
+    );
+}
+
+function findRootLower(bytes memory data, uint256 v) pure returns (int256) {
+    (
+        uint256 S,
+        uint256 rX,
+        uint256 rY,
+        uint256 L,
+        LogNormal.LogNormalParams memory params
+    ) = abi.decode(
+        data, (uint256, uint256, uint256, uint256, LogNormal.LogNormalParams)
+    );
+    return diffLower({ S: S, rX: rX, rY: rY, L: L, v: v, params: params });
+}
+
+function findRootRaise(bytes memory data, uint256 v) pure returns (int256) {
+    (
+        uint256 S,
+        uint256 rX,
+        uint256 rY,
+        uint256 L,
+        LogNormal.LogNormalParams memory params
+    ) = abi.decode(
+        data, (uint256, uint256, uint256, uint256, LogNormal.LogNormalParams)
+    );
+    return diffRaise({ S: S, rX: rX, rY: rY, L: L, v: v, params: params });
+}
+
+function diffLower(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 v,
+    LogNormal.LogNormalParams memory params
+) pure returns (int256) {
+    (int256 strike, int256 sigma, int256 tau, int256 swapFee) = (
+        int256(params.strike),
+        int256(params.sigma),
+        int256(params.tau),
+        int256(params.swapFee)
+    );
+    int256 sqrtTwo = int256(FixedPointMathLib.sqrt(TWO) * 1e9);
+    int256 sqrtTau = int256(FixedPointMathLib.sqrt(params.tau) * 1e9);
+    int256 iS = int256(S);
+    int256 iX = int256(rX);
+    int256 iL = int256(L);
+    int256 iV = int256(v);
+    int256 gamma = I_ONE - swapFee;
+
+    int256 ierfcNum = I_TWO.wadMul(iX).wadMul(iV + iX);
+    int256 ierfcDen = iL.wadMul(iV + iX - iV.wadMul(gamma));
+    int256 ierfcRes = Gaussian.ierfc(ierfcNum.wadDiv(ierfcDen));
+
+    int256 firstFrac;
+    {
+        int256 firstExp = -(sigma.powWad(I_TWO).wadMul(tau).wadDiv(I_TWO));
+        int256 secondExp =
+            sqrtTwo.wadMul(sigma).wadMul(sqrtTau).wadMul(ierfcRes);
+
+        int256 first = FixedPointMathLib.expWad(firstExp + secondExp);
+        int256 second = strike.wadMul(iX).wadMul(gamma);
+
+        int256 firstNum = first.wadMul(second);
+        int256 firstDen = iV + iX - iV.wadMul(gamma);
+        firstFrac = firstNum.wadDiv(firstDen);
+    }
+
+    int256 secondFrac;
+    {
+        int256 first = strike.wadMul(iL).wadMul(-I_ONE + gamma);
+        int256 erfcFirst = sigma.wadMul(sqrtTau).wadDiv(sqrtTwo);
+        int256 erfcSecond = ierfcRes;
+        int256 num = first.wadMul(Gaussian.erfc(erfcFirst - erfcSecond));
+        int256 den = I_TWO.wadMul(iX);
+        secondFrac = num.wadDiv(den);
+    }
+
+    return -iS + firstFrac + secondFrac;
+}
+
+function diffRaise(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 v,
+    LogNormal.LogNormalParams memory params
+) pure returns (int256) {
+    (int256 strike, int256 sigma, int256 tau, int256 swapFee) = (
+        int256(params.strike),
+        int256(params.sigma),
+        int256(params.tau),
+        int256(params.swapFee)
+    );
+    int256 sqrtTwo = int256(FixedPointMathLib.sqrt(TWO) * 1e9);
+    int256 sqrtTau = int256(FixedPointMathLib.sqrt(params.tau) * 1e9);
+    int256 iS = int256(S);
+    int256 iX = int256(rX);
+    int256 iY = int256(rY);
+    int256 iL = int256(L);
+    int256 iV = int256(v);
+    int256 gamma = I_ONE - swapFee;
+
+    int256 ierfcNum = I_TWO.wadMul(iY).wadMul(iV + iY);
+    int256 ierfcDen = -strike.wadMul(iL).wadMul(iV + iY)
+        + strike.wadMul(iL).wadMul(iV).wadMul(gamma);
+    int256 ierfcRes = Gaussian.ierfc(-ierfcNum.wadDiv(ierfcDen));
+
+    int256 firstFrac;
+    {
+        int256 firstExp = -(sigma.powWad(I_TWO).wadMul(tau).wadDiv(I_TWO));
+        int256 secondExp =
+            sqrtTwo.wadMul(sigma).wadMul(sqrtTau).wadMul(ierfcRes);
+        int256 first = FixedPointMathLib.expWad(firstExp + secondExp);
+        int256 second = iS.wadMul(iY).wadMul(gamma);
+        int256 firstNum = first.wadMul(second);
+        int256 firstDen = strike.wadMul(iV + iY - iV.wadMul(gamma));
+        firstFrac = firstNum.wadDiv(firstDen);
+    }
+
+    int256 secondFrac;
+    {
+        int256 first = iL.wadMul(iS).wadMul(-I_ONE + gamma);
+        int256 erfcFirst = sigma.wadMul(sqrtTau).wadDiv(sqrtTwo);
+        int256 erfcSecond = ierfcRes;
+        int256 num = first.wadMul(Gaussian.erfc(erfcFirst - erfcSecond));
+        int256 den = I_TWO.wadMul(iY);
+        secondFrac = num.wadDiv(den);
+    }
+
+    return -I_ONE + firstFrac + secondFrac;
+}
+
+function computeOptimalLower(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 vUpper,
+    LogNormal.LogNormalParams memory params
+) pure returns (uint256 v) {
+    uint256 upper = vUpper;
+    uint256 lower = 1000;
+    int256 lowerBoundOutput = diffLower(S, rX, rY, L, lower, params);
+    if (lowerBoundOutput < 0) {
+        return 0;
+    }
+    v = bisection(
+        abi.encode(S, rX, rY, L, params),
+        lower,
+        upper,
+        uint256(1),
+        256,
+        findRootLower
+    );
+}
+
+function computeOptimalRaise(
+    uint256 S,
+    uint256 rX,
+    uint256 rY,
+    uint256 L,
+    uint256 vUpper,
+    LogNormal.LogNormalParams memory params
+) pure returns (uint256 v) {
+    uint256 upper = vUpper;
+    uint256 lower = 1000;
+    int256 lowerBoundOutput = diffRaise(S, rX, rY, L, lower, params);
+    if (lowerBoundOutput < 0) {
+        return 0;
+    }
+    v = bisection(
+        abi.encode(S, rX, rY, L, params),
+        lower,
+        upper,
+        uint256(1),
+        256,
+        findRootRaise
     );
 }
