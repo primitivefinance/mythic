@@ -125,7 +125,7 @@ pub struct LogNormalStrategyState<V> {
 /// - dfmm_address must be set to a valid address via `setup` before calling
 ///   `update`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct RawDataModel {
+pub struct DataModel {
     // Network id for the chain that this model is connected to / fetching data from.
     pub chain_id: Option<u64>,
     // Signer's public address.
@@ -237,7 +237,7 @@ impl StrategyPosition {
     }
 }
 
-impl RawDataModel {
+impl DataModel {
     // ----- Init model ----- //
 
     /// Creates a completely fresh model with no values set.
@@ -630,9 +630,6 @@ impl RawDataModel {
             let token_y_metadata =
                 fetch_token_info(client.clone(), pool_state.quote_token.unwrap()).await?;
 
-            let amount_x = U256::from(parsed_log.reserve_x);
-            let amount_y = U256::from(parsed_log.reserve_y);
-
             // Try getting the prices from the series
             let x_token_address = pool_state
                 .asset_token
@@ -654,13 +651,15 @@ impl RawDataModel {
             // todo: need to add an external quote price series.
             let external_y_price = WAD;
 
-            let amount_x = amount_x
+            let amount_x = parsed_log
+                .reserve_x
                 .checked_mul(external_x_price)
                 .ok_or(anyhow!(RawDataModelError::CheckedMul))?
                 .checked_div(WAD)
                 .ok_or(anyhow!(RawDataModelError::CheckedDiv))?;
 
-            let amount_y = amount_y
+            let amount_y = parsed_log
+                .reserve_y
                 .checked_mul(external_y_price)
                 .ok_or(anyhow!(RawDataModelError::CheckedMul))?
                 .checked_div(WAD)
@@ -1686,7 +1685,7 @@ impl RawDataModel {
 
         let portfolio_value = y * quote_price + x * price;
         let portfolio_value = format!("{}", portfolio_value);
-        let portfolio_value = ethers::utils::parse_ether(&portfolio_value)?;
+        let portfolio_value = ethers::utils::parse_ether(portfolio_value)?;
 
         Ok(portfolio_value)
     }
@@ -1743,7 +1742,7 @@ impl RawDataModel {
         let unallocated_position = self.get_unallocated_positions_info(coin_list)?;
         let unallocated_position_value = unallocated_position.compute_value()?;
         let unallocated_position_value =
-            ethers::utils::parse_ether(&format!("{}", unallocated_position_value))?;
+            ethers::utils::parse_ether(format!("{}", unallocated_position_value))?;
         Ok(unallocated_position_value)
     }
 
@@ -2735,8 +2734,6 @@ mod tests {
         let chain_id = anvil.chain_id();
 
         // Now we can fetch the balance of the wallet.
-        let model = RawDataModel::new(chain_id);
-
         println!("Fetching balance of: {}", sender);
         let balance = ArbiterToken::new(token.address(), client.clone())
             .balance_of(sender)
@@ -2769,7 +2766,7 @@ mod tests {
         let chain_id = anvil.chain_id();
 
         // Now we can fetch the balance of the wallet.
-        let mut model = RawDataModel::new(chain_id);
+        let mut model = DataModel::new(chain_id);
 
         println!("Fetching balance of: {}", sender);
         let balance = ArbiterToken::new(token.address(), client.clone())

@@ -2,8 +2,9 @@ use dfmm::portfolio::position::{Position, Positions};
 use iced::{advanced::svg, widget::Space, Padding};
 
 use super::*;
-use crate::
-    components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburTooltip};
+use crate::components::system::{
+    ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburTooltip,
+};
 
 pub const INVENTORY_HEIGHT: f32 = 600.0;
 

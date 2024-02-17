@@ -7,7 +7,6 @@
 use chrono::{DateTime, Utc};
 use dfmm::portfolio::position::Positions;
 
-
 use super::*;
 use crate::components::{
     double_labeled_data,

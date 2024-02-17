@@ -6,8 +6,11 @@ mod view;
 
 use arbiter_bindings::bindings::liquid_exchange::LiquidExchange;
 use clients::protocol::{LogNormalF64, PoolInitParamsF64};
-use dfmm::portfolio::coin::Coin;
-use dfmm::rmm::{compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust};
+use dfmm::{
+    portfolio::coin::Coin,
+    rmm::{compute_value_function, compute_x_given_l_rust, compute_y_given_x_rust},
+};
+use ethers::types::Address;
 use iced::{futures::TryFutureExt, subscription, Padding};
 use RustQuant::{
     models::GeometricBrownianMotion,
@@ -20,7 +23,6 @@ use self::{
     tx_history::TxHistory,
     view::{MonolithicPresenter, MonolithicView},
 };
-use ethers::types::Address;
 use super::*;
 use crate::{
     components::system::{ExcaliburChart, ExcaliburContainer},
@@ -249,14 +251,13 @@ impl Monolithic {
                             controller: Address::zero(),
                         });
 
-                        let init_price_wad =
-                            ethers::utils::parse_ether(&format!("{}", asset_price))
-                                .map_err(|err| {
-                                    Arc::new(anyhow::anyhow!("Error parsing price: {:?}", err))
-                                })
-                                .unwrap();
+                        let init_price_wad = ethers::utils::parse_ether(format!("{}", asset_price))
+                            .map_err(|err| {
+                                Arc::new(anyhow::anyhow!("Error parsing price: {:?}", err))
+                            })
+                            .unwrap();
                         let init_reserve_x_wad =
-                            ethers::utils::parse_ether(&format!("{}", amount_x))
+                            ethers::utils::parse_ether(format!("{}", amount_x))
                                 .map_err(|err| {
                                     Arc::new(anyhow::anyhow!("Error parsing amount: {:?}", err))
                                 })
@@ -638,8 +639,7 @@ fn price_process_update_after_step(
             let current_price = lex.price().await?;
             // make the new price a random price +/- 1% of current price.
             let random = 1.0 + (rand::random::<f64>() - 0.5) * 0.01;
-            let random =
-                ethers::utils::parse_ether(format!("{}", random).as_str()).unwrap();
+            let random = ethers::utils::parse_ether(format!("{}", random).as_str()).unwrap();
             let mut new_price = current_price
                 .checked_mul(random)
                 .unwrap()
@@ -647,7 +647,7 @@ fn price_process_update_after_step(
                 .unwrap();
 
             if next_price > 0.0 {
-                new_price = ethers::utils::parse_ether(&format!("{}", next_price))?;
+                new_price = ethers::utils::parse_ether(format!("{}", next_price))?;
             }
 
             let result = lex.set_price(new_price).send().await?.await;
