@@ -3,6 +3,9 @@
 //! impl in ./lib.rs, which then switches to the runtime App state.
 
 use std::time::Instant;
+use arbiter_engine::world::World;
+use arbiter_core::middleware::ArbiterMiddleware;
+use bindings::dfmm::DFMM;
 
 use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
 use dfmm::portfolio::coin::Coin;
@@ -14,7 +17,7 @@ use iced::{
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
 
 use crate::{
-    app::AnvilSave,
+    app::StateCache,
     components::{
         logos::PhiLogo,
         progress::CustomProgressBar,
@@ -24,10 +27,10 @@ use crate::{
 };
 
 type LoadResult =
-    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
+    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware>), anyhow::Error>;
 
 use self::{
-    middleware::{start_anvil, ExcaliburMiddleware},
+    middleware::ExcaliburMiddleware,
     model::contacts,
 };
 use super::*;
@@ -94,14 +97,20 @@ pub async fn load_app(flags: Flags) -> LoadResult {
     let mut model = load_user_data()?;
 
     // Create a new middleware client to make calls to the network.
-    let mut exc_client = ExcaliburMiddleware::new(None, None, None).await?;
+    let mut exc_client = ExcaliburMiddleware::new().await?;
 
     // Start and connect to an anvil instance.
-    let anvil = start_anvil(None)?;
-    exc_client.connect_anvil(anvil).await?;
+    let mut world = World::new("Excalibur");
+    let env = arbiter_core::environment::Environment::builder().build();
+    let client = ArbiterMiddleware::new(&env, None)?;
 
-    let chain_id = if let Some(anvil) = &exc_client.anvil {
-        anvil.chain_id()
+    // let anvil = start_anvil(None)?;
+
+    let arbiter_client = ArbiterMiddleware::new(&env, None)?;
+    exc_client.arbiter_client = Some(arbiter_client.clone());
+
+    let chain_id = if let Some(client) = &exc_client.arbiter_client {
+        client.chain_id()
     } else {
         31337
     };
@@ -113,10 +122,10 @@ pub async fn load_app(flags: Flags) -> LoadResult {
     model.connect_to_network(client.clone()).await?;
 
     // If profile has an anvil snapshot, load it.
-    let loaded_snapshot = if let Some(AnvilSave {
+    let loaded_snapshot = if let Some(StateCache {
         snapshot,
         block_number,
-    }) = &model.user.anvil_snapshot
+    }) = &model.user.snapshot
     {
         tracing::debug!(
             "Attempting to load snapshot: {}",
@@ -167,17 +176,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
                 }
             }
         }
-
-        // todo: better contract naming/storage management.
-        let protocol_client = ProtocolClient::from_deployed(
-            exc_client.get_client(),
-            *exc_client.contracts.get("protocol").unwrap(),
-            *exc_client.contracts.get("solver").unwrap(),
-            *exc_client.contracts.get("strategy").unwrap(),
-            Address::zero(),
-            Address::zero(),
-        )?;
-        exc_client.connect_dfmm(protocol_client).await?;
     }
 
     // Connect a signer to the client so we can send transactions.
@@ -190,7 +188,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
         let client = exc_client.get_client();
 
         let dev_client = DevClient::deploy(client, sender).await?;
-        exc_client.connect_dfmm(dev_client.protocol.clone()).await?;
 
         let protocol = dev_client.protocol.protocol.address();
         let strategy = dev_client.protocol.ln_strategy.address();

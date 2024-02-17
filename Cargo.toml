@@ -21,6 +21,7 @@ dfmm = { path = "./crates/dfmm", version = "0.1.0" }
 # External
 arbiter-bindings = "0.1.5"
 arbiter-core = "0.10.2"
+arbiter-engine = "0.3.0"
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
 # Ethereum
@@ -76,6 +77,7 @@ dfmm.workspace = true
 
 arbiter-bindings.workspace = true
 arbiter-core.workspace = true
+arbiter-engine.workspace = true
 
 revm.workspace = true
 ethers.workspace = true

@@ -41,11 +41,11 @@ impl From<Message> for view::ViewMessage {
 pub struct PortfolioRoot {
     pub page: Page,
     pub monolithic: monolithic::Monolithic,
-    pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    pub client: Option<Arc<ExcaliburMiddleware>>,
 }
 
 impl PortfolioRoot {
-    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware>>, model: Model) -> Self {
         Self {
             page: Page::default(),
             monolithic: monolithic::Monolithic::new(client.clone(), model.clone()),

@@ -84,8 +84,8 @@ pub enum AppMessage {
 /// All messages for making modifications to the persistent user profile.
 #[derive(Debug)]
 pub enum UserProfileMessage {
-    /// Stores a stringified snapshot of an Anvil instance.
-    SaveAnvilSnapshot(anyhow::Result<AnvilSave>),
+    /// Stores a stringified snapshot of an instance.
+    SaveSnapshot(anyhow::Result<StateCache>),
     /// Adds an address to the contacts list.
     AddAddress(String, Address, contacts::Category),
     /// Removes an address from the contacts list.
@@ -139,7 +139,7 @@ impl Windows {
 /// components will need.
 pub struct App {
     /// Connection to networks.
-    pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    pub client: Arc<ExcaliburMiddleware>,
     /// Data module of the application.
     pub model: Model,
     /// State of the active window and sidebar the user is viewing.
@@ -195,7 +195,7 @@ impl App {
     ///   and a Command to load the application.
     pub fn new(
         model: Model,
-        client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+        client: Arc<ExcaliburMiddleware>,
     ) -> (Self, Command<AppMessage>) {
         let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
         let mut sidebar = Sidebar::new();
@@ -334,7 +334,7 @@ impl App {
     /// application:
     /// 1. It saves the current profile to disk.
     /// 2. It calls the exit function on the currently opened window.
-    /// 3. If the development client is active, it saves a snapshot of the anvil
+    /// 3. If the development client is active, it saves a snapshot of the
     ///    state to the profile.
     ///
     /// # Returns
@@ -353,16 +353,6 @@ impl App {
         let cmd = self.windows.screen.exit();
         commands.push(cmd);
 
-        // If the dev client is Some, call the anvil client using `anvil_dumpState`, and
-        // set the profile's anvil snapshot to the result.
-        if self.client.anvil.is_some() {
-            let cmd = Command::perform(
-                save_snapshot(self.client.clone()),
-                UserProfileMessage::SaveAnvilSnapshot,
-            )
-            .map(AppMessage::UpdateUser);
-            commands.push(cmd);
-        }
 
         Command::batch(commands)
     }
@@ -394,7 +384,7 @@ impl App {
     /// Updates the user profile based on the provided message.
     ///
     /// This function handles various types of UserProfileMessage to update the
-    /// user profile. It can save an anvil snapshot, add or remove
+    /// user profile. It can save a snapshot, add or remove
     /// addresses, clear addresses, add or remove RPCs, and clear RPCs.
     /// After updating the user profile, it saves the profile to disk and logs
     /// the result. It then clones the user's RPCs and returns a Command to
@@ -413,21 +403,21 @@ impl App {
     fn update_user(&mut self, message: UserProfileMessage) -> Command<AppMessage> {
         let model = &mut self.model;
         match message {
-            UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
-                tracing::debug!("Saving anvil snapshot to profile");
+            UserProfileMessage::SaveSnapshot(snapshot) => {
+                tracing::debug!("Saving snapshot to profile");
                 match snapshot {
                     Ok(snapshot) => {
-                        self.model.user.anvil_snapshot = Some(snapshot);
+                        self.model.user.snapshot = Some(snapshot);
                         if let Err(e) = self.model.save() {
-                            tracing::error!("Failed to save anvil snapshot to file: {:?}", e);
+                            tracing::error!("Failed to save snapshot to file: {:?}", e);
                         } else {
-                            tracing::debug!("Saved anvil snapshot to file");
+                            tracing::debug!("Saved snapshot to file");
                         }
                     }
-                    Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
+                    Err(e) => tracing::error!("Failed to save snapshot: {:?}", e),
                 }
 
-                // Exits the application after saving the anvil snapshot.
+                // Exits the application after saving the snapshot.
                 return Command::perform(async {}, |_| AppMessage::QuitReady);
             }
             UserProfileMessage::AddAddress(name, address, category) => {
@@ -791,25 +781,25 @@ impl AppClock {
     }
 }
 
-// AnvilSave is a struct that represents a snapshot of the Anvil state at a
+// StateCache is a struct that represents a snapshot of the  state at a
 // specific block number.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AnvilSave {
-    // snapshot is a string representation of the Anvil state.
+pub struct StateCache {
+    // snapshot is a string representation of the state.
     pub snapshot: String,
     // block_number is the block number at which the snapshot was taken.
     pub block_number: u64,
 }
 
 // save_snapshot is an asynchronous function that attempts to save a snapshot of
-// the Anvil state. It takes an Arc of ExcaliburMiddleware with Ws and
-// LocalWallet as parameters. It returns a Result of AnvilSave.
+// the StateCache. It takes an Arc of ExcaliburMiddleware with Ws and
+// LocalWallet as parameters. It returns a Result of StateCache.
 #[tracing::instrument(skip(client))]
 async fn save_snapshot(
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-) -> anyhow::Result<AnvilSave> {
+    client: Arc<ExcaliburMiddleware>,
+) -> anyhow::Result<StateCache> {
     // Log a debug message indicating that a snapshot save attempt is being made.
-    tracing::debug!("Attempting to save anvil snapshot");
+    tracing::debug!("Attempting to save snapshot");
     // Call the snapshot method on the client and await the result.
     client.snapshot().await
 }

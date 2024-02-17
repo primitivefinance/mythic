@@ -10,7 +10,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tracing;
 
 use super::{contacts::Contacts, rpcs::RPCList};
-use crate::app::AnvilSave;
+use crate::app::StateCache;
 
 pub const PROFILE_FILE_EXTENSION: &str = "json";
 pub const PROFILE_FILE_NAME: &str = "profile";
@@ -169,7 +169,7 @@ pub struct UserProfile {
     pub rpcs: RPCList,
     pub coins: CoinList,
     pub portfolio: Portfolio,
-    pub anvil_snapshot: Option<AnvilSave>,
+    pub snapshot: Option<StateCache>,
 }
 
 impl UserProfile {
@@ -225,7 +225,7 @@ impl Saveable for UserProfile {
             name,
             coins: CoinList::default(),
             portfolio: Portfolio::default(),
-            anvil_snapshot: None,
+            snapshot: None,
         };
 
         serde_json::to_writer_pretty(file, &value)?;

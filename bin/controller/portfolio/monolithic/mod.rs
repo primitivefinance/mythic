@@ -83,7 +83,7 @@ impl From<Message> for <Message as MessageWrapper>::ParentMessage {
 
 #[derive(Debug, Clone, Default)]
 pub struct Monolithic {
-    client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
+    client: Option<Arc<ExcaliburMiddleware>>,
     model: Model,
     presenter: MonolithicPresenter,
     chart_presenter: PortfolioPresenter,
@@ -95,7 +95,7 @@ pub struct Monolithic {
 }
 
 impl Monolithic {
-    pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
+    pub fn new(client: Option<Arc<ExcaliburMiddleware>>, model: Model) -> Self {
         let presenter = MonolithicPresenter::new(model.clone());
         let chart_presenter = PortfolioPresenter::default();
 
@@ -170,17 +170,6 @@ impl Monolithic {
                 let model_clone = self.model.clone();
                 let client = client.clone();
 
-                tracing::info!(
-                    "Sending create position transaction to contract: {:?} from signer: {:?}",
-                    client
-                        .dfmm_client
-                        .clone()
-                        .unwrap()
-                        .protocol
-                        .address()
-                        .clone(),
-                    signer.address()
-                );
                 return Ok(Command::perform(
                     async move {
                         let data_model = model_clone.get_current().unwrap();
@@ -263,10 +252,6 @@ impl Monolithic {
                                 })
                                 .unwrap();
 
-                        let dfmm = client
-                            .dfmm_client
-                            .as_ref()
-                            .unwrap_or_else(|| panic!("No DFMM client in ExcaliburMiddleware"));
 
                         // todo: handle mutable update to the pools array in the protocol client
                         // separately.
