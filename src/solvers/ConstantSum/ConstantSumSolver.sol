@@ -55,9 +55,13 @@ contract ConstantSumSolver {
             uint256 deltaL =
                 fees.mulWadUp(startReserves.L.divWadDown(startReserves.rx));
 
+            // amountOut = amountIn.mulWadDown(
+            //     poolParams.price.mulWadDown(ONE - poolParams.swapFee)
+            //         - poolParams.swapFee
+            // );
+
             amountOut = amountIn.mulWadDown(
-                poolParams.price.mulWadDown(ONE - poolParams.swapFee)
-                    - poolParams.swapFee
+                (ONE + poolParams.price).mulWadDown(poolParams.swapFee) - ONE
             );
 
             console2.log("Fees: ", fees);
