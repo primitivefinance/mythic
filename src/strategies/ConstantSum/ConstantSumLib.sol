@@ -74,9 +74,8 @@ library ConstantSumLib {
         uint256 totalLiquidity,
         uint256 price
     ) internal pure returns (int256) {
-        return int256(
-            reserveX.divWadUp(totalLiquidity)
-                + reserveY.divWadUp(totalLiquidity.mulWadUp(price)) - ONE
-        );
+        return int256(reserveX.divWadUp(totalLiquidity))
+            + int256(reserveY.divWadUp(totalLiquidity.mulWadUp(price)))
+            - int256(ONE);
     }
 }

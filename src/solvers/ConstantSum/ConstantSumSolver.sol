@@ -54,11 +54,19 @@ contract ConstantSumSolver {
             uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
             uint256 deltaL =
                 fees.mulWadUp(startReserves.L.divWadDown(startReserves.rx));
-            uint256 effectiveAmountIn = amountIn - fees;
-            amountOut = effectiveAmountIn.mulWadDown(poolParams.price);
+
+            amountOut = amountIn.mulWadDown(
+                poolParams.price.mulWadDown(ONE - poolParams.swapFee)
+                    - poolParams.swapFee
+            );
+
+            console2.log("Fees: ", fees);
 
             endReserves.rx = startReserves.rx + amountIn;
             endReserves.L = startReserves.L + deltaL;
+
+            console2.log("amountOut: ", amountOut);
+            console2.log("newL: ", endReserves.L);
 
             if (startReserves.ry < amountOut) revert NotEnoughLiquidity();
             endReserves.ry = startReserves.ry - amountOut;
@@ -67,11 +75,19 @@ contract ConstantSumSolver {
             uint256 deltaL =
                 fees.mulWadUp(startReserves.L.divWadDown(startReserves.ry));
             uint256 effectiveAmountIn = amountIn - fees;
+
+            console2.log("Effective amount in: ", effectiveAmountIn);
+
             amountOut =
                 effectiveAmountIn.mulWadDown(ONE.divWadDown(poolParams.price));
 
+            console2.log("Fees: ", fees);
+
             endReserves.ry = startReserves.ry + amountIn;
             endReserves.L = startReserves.L + deltaL;
+
+            console2.log("amountOut: ", amountOut);
+            console2.log("newL: ", endReserves.L);
 
             if (startReserves.rx < amountOut) revert NotEnoughLiquidity();
             endReserves.rx = startReserves.rx - amountOut;

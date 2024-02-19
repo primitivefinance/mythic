@@ -56,6 +56,7 @@ contract ConstantSum is IStrategy {
             abi.decode(data, (uint256, uint256, uint256, ConstantSumParams));
 
         internalParams[poolId].price = params.price;
+        internalParams[poolId].swapFee = params.swapFee;
 
         // Get the trading function and check this is valid
         invariant = ConstantSumLib.tradingFunction(
@@ -96,21 +97,29 @@ contract ConstantSum is IStrategy {
         uint256 fees;
         if (nextRx > startRy) {
             amountIn = nextRx - startRx;
+            console2.log("amountIn in validate: ", amountIn);
             fees = amountIn.mulWadUp(params.swapFee);
+            console2.log("fees in validate: ", fees);
             minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
         } else if (nextRy > startRy) {
             amountIn = nextRy - startRy;
+            console2.log("amountIn in validate: ", amountIn);
             fees = amountIn.mulWadUp(params.swapFee);
+            console2.log("fees in validate: ", fees);
             minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
         } else {
             revert("invalid swap: inputs x and y have the same sign!");
         }
 
         liquidityDelta = int256(nextL) - int256(startL);
+        assert(liquidityDelta >= int256(minLiquidityDelta));
 
+        console2.log("liquidityDelta in validate: ", liquidityDelta);
+        console2.log("price: ", params.price);
         invariant =
             ConstantSumLib.tradingFunction(nextRx, nextRy, nextL, params.price);
 
+        console2.log("invariant in validate: ", invariant);
         valid = -EPSILON < invariant && invariant < EPSILON;
     }
 
