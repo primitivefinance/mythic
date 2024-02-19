@@ -3,6 +3,7 @@ use std::{collections::HashMap, fmt};
 use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
 use clients::{ledger::LedgerClient, protocol::ProtocolClient};
 use dfmm::portfolio::Portfolio;
+use bindings::dfmm::DFMM;
 use ethers::utils::{Anvil, AnvilInstance};
 
 use super::*;
@@ -162,6 +163,16 @@ impl ExcaliburMiddleware {
         );
         self.client = Some(signer_client.clone());
         Ok(())
+    }
+
+    pub async fn create_dfmm_position(&mut self) {
+        let address = self.contracts.get("dfmm").unwrap();
+
+
+        let dfmm = DFMM::new(address, self.client.clone().unwrap());
+        let position = dfmm.create_position().await?;
+        Ok(position)
+    
     }
 
 }
