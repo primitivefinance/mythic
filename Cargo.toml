@@ -18,7 +18,6 @@ path = "bin/main.rs"
 [workspace.dependencies]
 # Local
 bindings = { path = "./crates/bindings", version = "0.1.0" }
-analysis = { path = "./crates/analysis", version = "0.1.0" }
 clients = { path = "./crates/clients", version = "0.1.0" }
 sim = { path = "./crates/sim", version = "0.1.0" }
 datatypes = { path = "./crates/datatypes", version = "0.1.0" }
@@ -33,24 +32,11 @@ ethers-core = "2.0.4"
 # ethereum types
 revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
 revm-primitives = { version = "2.0.0" }
+alloy-primitives = { version = "0.6.3", features = ["serde"] }
+alloy-sol-types = "0.6.3"
 
-alloy-primitives = { version = "0.6.2", features = ["serde"] }
-alloy-sol-types = "0.6.2"
-
-alloy-providers = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-alloy-networks = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-alloy-rpc-client = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61", features = [
-    "pubsub",
-    "ws",
-    "reqwest",
-] }
-alloy-rpc-types = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-alloy-transport-ws = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-alloy-transport-http = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
+# Can we fix this so that we point to actual versions?
 alloy-rlp = "0.3"
-alloy-pubsub = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-alloy-signer = { git = "https://github.com/alloy-rs/alloy.git", rev = "0ba6b61" }
-
 reqwest = "0.11.24"
 
 ## Config and parsing
@@ -89,7 +75,6 @@ reikna = "=0.12.3"
 # Storage
 linked-hash-map = "=0.5.6"
 directories-next = "=2.0.0"
-criterion = "=0.5.1"
 
 # time
 chrono = { version = "0.4.34", features = ["serde"] }
@@ -99,11 +84,7 @@ datatypes.workspace = true
 clients.workspace = true
 cfmm_math.workspace = true
 sim.workspace = true
-
 clap.workspace = true
-
-criterion.workspace = true
-analysis.workspace = true
 
 tokio.workspace = true
 tracing.workspace = true
@@ -149,15 +130,7 @@ revm-primitives.workspace = true
 # alloy
 alloy-primitives.workspace = true
 alloy-sol-types.workspace = true
-alloy-providers.workspace = true
-alloy-networks.workspace = true
-alloy-rpc-client.workspace = true
-alloy-rpc-types.workspace = true
-alloy-transport-ws.workspace = true
 alloy-rlp.workspace = true
-alloy-pubsub.workspace = true
-alloy-transport-http.workspace = true
-alloy-signer.workspace = true
 reqwest.workspace = true
 
 # workspace deps
