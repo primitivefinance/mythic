@@ -63,5 +63,25 @@ contract ConstantSumTest is Test {
 
     function test_constant_sum_init() public basic { }
 
-    function test_constant_sum_swap() public basic { }
+    function test_constant_sum_swap_x_in() public basic {
+        bool xIn = true;
+        uint256 amountIn = 0.1 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (bool valid, uint256 amountOut, bytes memory swapData) =
+            solver.simulateSwap(poolId, xIn, amountIn);
+        console2.log("Valid: ", valid);
+        console2.log("AmountOut: ", amountOut);
+        dfmm.swap(poolId, swapData);
+    }
+
+    function test_constant_sum_swap_y_in() public basic {
+        bool xIn = false;
+        uint256 amountIn = 0.1 ether;
+        uint256 poolId = dfmm.nonce() - 1;
+        (bool valid, uint256 amountOut, bytes memory swapData) =
+            solver.simulateSwap(poolId, xIn, amountIn);
+        console2.log("Valid: ", valid);
+        console2.log("AmountOut: ", amountOut);
+        dfmm.swap(poolId, swapData);
+    }
 }

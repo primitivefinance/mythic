@@ -40,7 +40,7 @@ contract ConstantSumSolver {
         uint256 poolId,
         bool swapXIn,
         uint256 amountIn
-    ) public view returns (bool, uint256, uint256, bytes memory) {
+    ) public view returns (bool, uint256, bytes memory) {
         Reserves memory startReserves;
         Reserves memory endReserves;
         (startReserves.rx, startReserves.ry, startReserves.L) =
@@ -49,13 +49,13 @@ contract ConstantSumSolver {
             IStrategy(strategy).getPoolParams(poolId),
             (ConstantSum.ConstantSumParams)
         );
-
+        uint256 amountOut;
         if (swapXIn) {
             uint256 fees = amountIn.mulWadUp(poolParams.swapFee);
             uint256 deltaL =
                 fees.mulWadUp(startReserves.L.divWadDown(startReserves.rx));
             uint256 effectiveAmountIn = amountIn - fees;
-            uint256 amountOut = effectiveAmountIn.mulWadDown(poolParams.price);
+            amountOut = effectiveAmountIn.mulWadDown(poolParams.price);
 
             endReserves.rx = startReserves.rx + amountIn;
             endReserves.L = startReserves.L + deltaL;
@@ -67,7 +67,7 @@ contract ConstantSumSolver {
             uint256 deltaL =
                 fees.mulWadUp(startReserves.L.divWadDown(startReserves.ry));
             uint256 effectiveAmountIn = amountIn - fees;
-            uint256 amountOut =
+            amountOut =
                 effectiveAmountIn.mulWadDown(ONE.divWadDown(poolParams.price));
 
             endReserves.ry = startReserves.ry + amountIn;
@@ -76,5 +76,11 @@ contract ConstantSumSolver {
             if (startReserves.rx < amountOut) revert NotEnoughLiquidity();
             endReserves.rx = startReserves.rx - amountOut;
         }
+
+        bytes memory swapData =
+            abi.encode(endReserves.rx, endReserves.ry, endReserves.L);
+        (bool valid,,,,,) =
+            IStrategy(strategy).validateSwap(address(this), poolId, swapData);
+        return (valid, amountOut, swapData);
     }
 }
