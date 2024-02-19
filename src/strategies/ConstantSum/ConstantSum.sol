@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "src/interfaces/IDFMM.sol";
 import "src/interfaces/IStrategy.sol";
 import "src/lib/DynamicParamLib.sol";
-import "src/lib/StrategyLib.sol";
+import "./ConstantSumLib.sol";
 
 contract ConstantSum is IStrategy {
     using FixedPointMathLib for uint256;
@@ -30,13 +30,18 @@ contract ConstantSum is IStrategy {
         dfmm = dfmm_;
     }
 
+    modifier onlyDFMM() {
+        if (msg.sender != dfmm) revert NotDFMM();
+        _;
+    }
+
     function init(
         address,
         uint256 poolId,
         bytes calldata data
     )
         public
-        override
+        onlyDFMM
         returns (
             bool valid,
             int256 invariant,
@@ -56,7 +61,8 @@ contract ConstantSum is IStrategy {
             reserveX, reserveY, totalLiquidity, params.price
         );
 
-        // Doing this for now
-        return (true, 0, reserveX, reserveY, totalLiquidity);
+        valid = -EPSILON < invariant && invariant < EPSILON;
+
+        return (valid, invariant, reserveX, reserveY, totalLiquidity);
     }
 }
