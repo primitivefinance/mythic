@@ -10,9 +10,9 @@ pub fn cell_select<'a, Message>(
     selected: Option<String>,
     on_selected: impl Fn(String) -> Message + 'a,
     placeholder: Option<String>,
-) -> PickList<'a, String, Message>
+) -> PickList<'a, String, Vec<String>, Vec<String>, Message>
 where
-    Message: 'static + Default,
+    Message: 'static + Default + std::borrow::Borrow<[std::string::String]>,
 {
     let select = custom_pick_list(options, selected, on_selected, placeholder);
     select

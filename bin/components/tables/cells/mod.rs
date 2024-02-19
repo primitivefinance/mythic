@@ -28,11 +28,11 @@ use iced::{
     Element, Renderer,
 };
 
+use self::select::CustomSelect;
 use super::components::*;
 use crate::components::system::ExcaliburContainer;
 
 pub mod input;
-pub mod select;
 pub mod toggle;
 
 pub fn cell_container<'a, Message>(
@@ -182,8 +182,6 @@ where
             let checkbox = Checkbox::new(
                 self.value.unwrap_or_default(),
                 self.checked.unwrap_or_default(),
-                self.on_checkbox
-                    .unwrap_or_else(|| Box::new(|_| Message::default())),
             );
 
             return (self.containerize)(checkbox.into());
@@ -200,14 +198,14 @@ where
 
         // If options is Some, then we need to render a select.
         if let Some(options) = self.options {
-            let select = select::cell_select(
-                options,
-                self.selected,
-                self.on_select
-                    .unwrap_or_else(|| Box::new(|_| Message::default())),
-                self.placeholder,
-            );
-
+            let select = pick_list(options, self.selected, self.on_select)
+                .style(
+                    CustomSelect::new()
+                        .hovered()
+                        .background(HIGHLIGHTED_CONTAINER_COLOR.into())
+                        .as_custom(),
+                )
+                .placeholder(self.placeholder.unwrap_or("Select an option".to_string()));
             return (self.containerize)(select.into());
         }
 
@@ -230,7 +228,7 @@ where
     }
 }
 
-impl<'a, Message> From<CellBuilder<Message>> for Container<'a, Message, Renderer>
+impl<'a, Message> From<CellBuilder<Message>> for Container<'a, Message>
 where
     Message: 'static + Default,
 {

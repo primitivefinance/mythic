@@ -80,9 +80,9 @@ impl<Message> iced::widget::canvas::Program<Message> for PhiLogo {
             let oval = Path::new(|b| {
                 b.ellipse(arc::Elliptical {
                     radii: [circle_radius, circle_radius * 0.8].into(),
-                    start_angle: 0.0,
-                    end_angle: 2.0 * PI,
-                    rotation: angle,
+                    start_angle: iced::Radians(0.0),
+                    end_angle: iced::Radians(2.0 * PI),
+                    rotation: iced::Radians(angle),
                     center: start,
                 });
             });

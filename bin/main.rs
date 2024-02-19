@@ -21,7 +21,8 @@ use iced::{
     executor,
     theme::Palette,
     widget::{button, container, scrollable, text, Column, Row, Text},
-    window, Application, Command, Element, Length, Settings, Subscription, Theme,
+    window::{self, Id},
+    Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 
 pub mod app;
@@ -263,11 +264,14 @@ impl Application for MVP {
     ///   update.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match (&mut self.state, message) {
-            (_, Message::ForceQuit) => window::close(),
+            (_, Message::ForceQuit) => window::close(Id::MAIN),
             (_, Message::Quit)
             | (
                 _,
-                Message::Event(iced::event::Event::Window(iced::window::Event::CloseRequested)),
+                Message::Event(iced::event::Event::Window(
+                    Id::MAIN,
+                    iced::window::Event::CloseRequested,
+                )),
             ) => {
                 let state_cmd = match self.state {
                     State::App(ref mut app) => app.exit().map(Message::Update),
@@ -356,10 +360,10 @@ impl Application for MVP {
                 State::Loader(loader) => loader.subscription().map(Message::Load),
                 State::App(app) => app.subscription().map(Message::Update),
             },
-            iced::subscription::events_with(|event, _status| {
+            iced::event::listen_with(|event, _status| {
                 if matches!(
                     event,
-                    iced::event::Event::Window(iced::window::Event::CloseRequested)
+                    iced::event::Event::Window(Id::MAIN, iced::window::Event::CloseRequested)
                 ) {
                     Some(Self::Message::Event(event))
                 } else {
@@ -404,9 +408,8 @@ pub fn run(dev_mode: bool) -> iced::Result {
     let mut settings = Settings::with_flags(Flags { dev_mode });
     settings.window.icon = Some(logos::excalibur_logo_2());
     settings.antialiasing = true;
-    settings.exit_on_close_request = false;
     settings.id = Some("excalibur-app".to_string());
-    settings.window.size = (1280, 832);
+    settings.window.size = iced::Size::new(1280f32, 832f32);
     // im kinda confused about this, what logic actually runs, i can't really follow
     // form this point on
     MVP::run(settings)
@@ -414,11 +417,14 @@ pub fn run(dev_mode: bool) -> iced::Result {
 
 /// Returns a custom theme for the application.
 pub fn custom_theme() -> iced::theme::Custom {
-    iced::theme::Custom::new(Palette {
-        background: iced::Color::BLACK,
-        primary: MINT_500,
-        text: PRIMARY_COLOR,
-        success: MINT_500,
-        danger: RED_400,
-    })
+    iced::theme::Custom::new(
+        "CustomTheme".to_owned(),
+        Palette {
+            background: iced::Color::BLACK,
+            primary: MINT_500,
+            text: PRIMARY_COLOR,
+            success: MINT_500,
+            danger: RED_400,
+        },
+    )
 }

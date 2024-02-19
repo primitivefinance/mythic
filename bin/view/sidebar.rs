@@ -2,7 +2,7 @@
 //! The sidebar is the main navigation for the app.
 
 use iced::{widget::Space, Color};
-use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
+use iced_aw::{graphics::icons::icon_to_char, Icon};
 
 use super::{components::button::*, *};
 use crate::components::system::label;
@@ -235,7 +235,7 @@ impl Page {
                 button(
                     Row::new()
                         .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
-                        .push(label(icon_to_char(icon)).icon().build())
+                        .push(label(icon_to_char(icon)).build())
                         .push(app_name.build())
                         .spacing(Sizes::Md),
                 )
@@ -291,7 +291,7 @@ impl Bookmarks {
                     button(
                         Row::new()
                             .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
-                            .push(text(icon_to_char(Icon::TerminalFill)).font(ICON_FONT))
+                            .push(text(icon_to_char(Icon::TerminalFill)))
                             .push(text(x))
                             .spacing(Sizes::Md),
                     )

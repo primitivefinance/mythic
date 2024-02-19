@@ -41,6 +41,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
+use self::{system::ExcaliburContainer, view::screen_layout};
 use super::{
     controller::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
@@ -307,6 +308,46 @@ impl App {
     /// # Returns
     /// * `Element<Message>` - The view of the application.
     pub fn view(&self) -> Element<AppMessage> {
+        // let underlay = Column::new()
+        //     .width(Length::Fixed(100.0))
+        //     .height(Length::Fixed(100.0));
+
+        // let element = Column::new()
+        //     .push(label("Performance").tertiary().caption2().build())
+        //     .push(self.app_clock.view_max())
+        //     .push(self.app_clock.view_min())
+        //     .push(self.app_clock.view_average())
+        //     .push(self.app_clock.view_tbu())
+        //     .push(self.app_clock.view_frequency());
+
+        // let floating_clock = floating_element(underlay.into(), element.into());
+
+        // let content = Container::new(
+        //     Row::new()
+        //         .push(
+        //             Column::new()
+        //                 .push(self.windows.sidebar.view())
+        //                 .push(floating_clock.into())
+        //                 .width(Length::FillPortion(1)),
+        //         )
+        //         .push(
+        //             Column::new()
+        //                 .push(screen_layout(&self.windows.sidebar.page,
+        // self.windows.sidebar.view()))                 
+        // .width(Length::FillPortion(5)),         ),
+        // )
+        // .style(
+        //     ExcaliburContainer::default()
+        //         .background(ExcaliburColor::Background1)
+        //         .theme(),
+        // )
+        //     .width(Length::Fill)
+        //     .height(Length::Fill)
+        //     .center_x()
+        //     .center_y();
+
+        // content.map(AppMessage::View)
+
         view::app_layout(
             &self.app_clock,
             &self.windows.sidebar,

@@ -236,11 +236,8 @@ impl CartesianChart {
     }
 
     pub fn view(&self) -> Element<ChartMessage> {
-        let chart = ChartWidget::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill);
-
-        chart.into()
+        let chart = ChartWidget::new(self).into();
+        chart
     }
 }
 
@@ -1138,11 +1135,8 @@ impl HistogramChart {
     }
 
     pub fn view(&self) -> Element<ChartMessage> {
-        let chart = ChartWidget::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill);
-
-        chart.into()
+        let chart = ChartWidget::new(self);
+        Element::new(chart)
     }
 
     #[allow(dead_code)]

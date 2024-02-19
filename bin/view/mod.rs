@@ -1,5 +1,10 @@
-use iced::widget::{Column, Container, Row};
-use iced_aw::{floating_element::Anchor, helpers::floating_element};
+use iced::{
+    advanced,
+    widget::{Column, Container, Row},
+    Renderer,
+};
+use iced_aw::{floating_element::Anchor, helpers::floating_element, FloatingElement};
+use plotters::element;
 
 use self::sidebar::Page;
 use super::*;
@@ -78,30 +83,44 @@ pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     menu: &'a sidebar::Sidebar,
     content: T,
 ) -> Element<'a, ViewMessage> {
-    let floating_clock = floating_element(
-        Container::new(Column::new())
-            .width(Length::Fixed(100.0))
-            .height(Length::Fixed(100.0))
-            .center_x()
-            .center_y(),
-        Column::new()
-            .push(label("Performance").tertiary().caption2().build())
-            .push(app_clock.view_max())
-            .push(app_clock.view_min())
-            .push(app_clock.view_average())
-            .push(app_clock.view_tbu())
-            .push(app_clock.view_frequency()),
-    )
-    .anchor(Anchor::SouthWest)
-    .offset(20.0)
-    .hide(std::env::var("DEV_MODE").is_err());
+    let underlay: Column<'_, ViewMessage, Theme, Renderer> = Column::new()
+        .width(Length::Fixed(100.0))
+        .height(Length::Fixed(100.0));
+
+    let element: Column<'_, ViewMessage, Theme, Renderer> = Column::new()
+        .push(label("Performance").tertiary().caption2().build())
+        .push(app_clock.view_max())
+        .push(app_clock.view_min())
+        .push(app_clock.view_average())
+        .push(app_clock.view_tbu())
+        .push(app_clock.view_frequency());
+
+    let floating_clock = floating_element(underlay.into(), element.into());
+
+    // let floating_clock = floating_element(
+    //     Container::new(Column::new())
+    //         .width(Length::Fixed(100.0))
+    //         .height(Length::Fixed(100.0))
+    //         .center_x()
+    //         .center_y(),
+    //     Column::new()
+    //         .push(label("Performance").tertiary().caption2().build())
+    //         .push(app_clock.view_max())
+    //         .push(app_clock.view_min())
+    //         .push(app_clock.view_average())
+    //         .push(app_clock.view_tbu())
+    //         .push(app_clock.view_frequency()),
+    // )
+    // .anchor(Anchor::SouthWest)
+    // .offset(20.0)
+    // .hide(std::env::var("DEV_MODE").is_err());
 
     Container::new(
         Row::new()
             .push(
                 Column::new()
                     .push(menu.view())
-                    .push(floating_clock)
+                    .push(floating_clock.into())
                     .width(Length::FillPortion(1)),
             )
             .push(

@@ -1,12 +1,15 @@
 use datatypes::portfolio::position::{Position, Positions};
-use iced::{advanced::svg, widget::Space, Padding};
+use iced::{
+    advanced::svg,
+    widget::{Space, Svg},
+    Border, Padding,
+};
 
 use super::*;
 use crate::{
     components::system::{ExcaliburButton, ExcaliburColor, ExcaliburContainer, ExcaliburTooltip},
     model::portfolio::AlloyAddress,
 };
-
 pub const INVENTORY_HEIGHT: f32 = 600.0;
 
 pub struct Inventory;
@@ -103,7 +106,7 @@ impl Inventory {
                     .push(Self::header("Portfolio", aum))
                     .push(
                         ExcaliburContainer::default()
-                            .border_radius([0.0, 0.0, 8.0, 8.0].into())
+                            .border_radius(Border::with_radius(8.0))
                             .build(
                                 Column::new()
                                     .spacing(Sizes::Sm)
@@ -167,7 +170,7 @@ impl Inventory {
         Message: 'a,
     {
         ExcaliburContainer::default()
-            .border_radius([8.0, 8.0, 0.0, 0.0].into())
+            .border_radius(Border::with_radius(8.0))
             .build(
                 Column::new()
                     .align_items(alignment::Alignment::Center)
@@ -210,7 +213,7 @@ impl Inventory {
         Message: 'a + Clone,
     {
         ExcaliburContainer::default()
-            .border_radius([0.0, 0.0, 8.0, 8.0].into())
+            .border_radius(Border::with_radius(8.0))
             .build(
                 Column::new()
                     .push(
@@ -238,9 +241,7 @@ impl Inventory {
     }
 
     /// Individual inventory cell for each position.
-    pub fn position_layout<'a, Message>(
-        position_data: (Position, iced::widget::Svg<iced::Renderer>),
-    ) -> Container<'a, Message>
+    pub fn position_layout<'a, Message>(position_data: (Position, Svg)) -> Container<'a, Message>
     where
         Message: 'a,
     {

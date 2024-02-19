@@ -7,8 +7,9 @@
 //! predefined button styles.
 
 use iced::{
+    border::Radius,
     widget::button::{Appearance, StyleSheet},
-    Background, BorderRadius, Color,
+    Background, Border, Color, Shadow,
 };
 
 use super::styles::*;
@@ -41,10 +42,9 @@ impl CustomButtonStyle {
         let default = Appearance {
             shadow_offset: Default::default(),
             background: None,
-            border_radius: Default::default(),
-            border_width: 0.0,
-            border_color: Default::default(),
+            border: Border::default(),
             text_color: Color::WHITE,
+            shadow: Shadow::default(),
         };
         Self {
             active: default,
@@ -156,32 +156,32 @@ impl CustomButtonStyle {
         self
     }
 
-    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+    pub fn border_radius(mut self, boarder_radius: Radius) -> Self {
         match self.current_state {
-            ButtonState::Active => self.active.border_radius = radius,
-            ButtonState::Hovered => self.hovered.border_radius = radius,
-            ButtonState::Pressed => self.pressed.border_radius = radius,
-            ButtonState::Disabled => self.disabled.border_radius = radius,
+            ButtonState::Active => self.active.border.radius = boarder_radius,
+            ButtonState::Hovered => self.hovered.border.radius = boarder_radius,
+            ButtonState::Pressed => self.pressed.border.radius = boarder_radius,
+            ButtonState::Disabled => self.disabled.border.radius = boarder_radius,
         }
         self
     }
 
     pub fn border_width(mut self, width: f32) -> Self {
         match self.current_state {
-            ButtonState::Active => self.active.border_width = width,
-            ButtonState::Hovered => self.hovered.border_width = width,
-            ButtonState::Pressed => self.pressed.border_width = width,
-            ButtonState::Disabled => self.disabled.border_width = width,
+            ButtonState::Active => self.active.border.width = width,
+            ButtonState::Hovered => self.hovered.border.width = width,
+            ButtonState::Pressed => self.pressed.border.width = width,
+            ButtonState::Disabled => self.disabled.border.width = width,
         }
         self
     }
 
     pub fn border_color(mut self, color: Color) -> Self {
         match self.current_state {
-            ButtonState::Active => self.active.border_color = color,
-            ButtonState::Hovered => self.hovered.border_color = color,
-            ButtonState::Pressed => self.pressed.border_color = color,
-            ButtonState::Disabled => self.disabled.border_color = color,
+            ButtonState::Active => self.active.border.color = color,
+            ButtonState::Hovered => self.hovered.border.color = color,
+            ButtonState::Pressed => self.pressed.border.color = color,
+            ButtonState::Disabled => self.disabled.border.color = color,
         }
         self
     }
