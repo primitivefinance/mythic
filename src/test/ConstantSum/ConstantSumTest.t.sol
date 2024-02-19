@@ -37,18 +37,18 @@ contract ConstantSumTest is Test {
     modifier basic() {
         vm.warp(0);
 
-        uint256 init_p = ONE * 2;
-
         ConstantSum.ConstantSumParams memory params = ConstantSum
             .ConstantSumParams({
-            price: init_p,
+            price: ONE * 2,
             swapFee: TEST_SWAP_FEE,
             controller: address(0)
         });
 
         uint256 init_x = ONE * 1;
+        uint256 init_y = ONE * 1;
+
         bytes memory initData =
-            solver.getInitialPoolData(init_x, init_p, params);
+            solver.getInitialPoolData(init_x, init_y, params);
 
         IDFMM.InitParams memory initParams = IDFMM.InitParams({
             strategy: address(constantSum),
@@ -60,4 +60,8 @@ contract ConstantSumTest is Test {
         dfmm.init(initParams);
         _;
     }
+
+    function test_constant_sum_init() public basic { }
+
+    function test_constant_sum_swap() public basic { }
 }
