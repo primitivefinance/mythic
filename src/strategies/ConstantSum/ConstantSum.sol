@@ -100,13 +100,13 @@ contract ConstantSum is IStrategy {
             console2.log("amountIn in validate: ", amountIn);
             fees = amountIn.mulWadUp(params.swapFee);
             console2.log("fees in validate: ", fees);
-            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRx);
+            minLiquidityDelta += fees;
         } else if (nextRy > startRy) {
             amountIn = nextRy - startRy;
             console2.log("amountIn in validate: ", amountIn);
             fees = amountIn.mulWadUp(params.swapFee);
             console2.log("fees in validate: ", fees);
-            minLiquidityDelta += fees.mulWadUp(startL).divWadUp(startRy);
+            minLiquidityDelta += fees.divWadUp(params.price);
         } else {
             revert("invalid swap: inputs x and y have the same sign!");
         }

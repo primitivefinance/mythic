@@ -39,11 +39,7 @@ contract ConstantSumTest is Test {
         vm.warp(0);
 
         ConstantSum.ConstantSumParams memory params = ConstantSum
-            .ConstantSumParams({
-            price: ONE * 2,
-            swapFee: TEST_SWAP_FEE,
-            controller: address(0)
-        });
+            .ConstantSumParams({ price: ONE * 2, swapFee: 0, controller: address(0) });
 
         uint256 init_x = ONE * 1;
         uint256 init_y = ONE * 1;
@@ -106,7 +102,7 @@ contract ConstantSumTest is Test {
         assertEq(initL, 1.5 ether);
     }
 
-    function test_constant_sum_swap_x_in() public basic_feeless {
+    function test_constant_sum_swap_x_in_no_fee() public basic_feeless {
         bool xIn = true;
         uint256 amountIn = 0.1 ether;
         uint256 poolId = dfmm.nonce() - 1;
@@ -115,11 +111,26 @@ contract ConstantSumTest is Test {
         console2.log("Valid: ", valid);
         console2.log("AmountOut: ", amountOut);
         assert(valid);
-        assert(amountOut == 200_000_000_000_000_000);
+
+        console2.log("AmountOut: ", amountOut);
+        assertEq(amountOut, 0.2 ether);
+
+        (uint256 endReservesRx, uint256 endReservesRy, uint256 endReservesL) =
+            abi.decode(swapData, (uint256, uint256, uint256));
+
+        console2.log("endReservesRx: ", endReservesRx);
+        assertEq(endReservesRx, 1.1 ether);
+
+        console2.log("endReservesRy: ", endReservesRy);
+        assertEq(endReservesRy, 0.8 ether);
+
+        console2.log("endReservesL: ", endReservesL);
+        assertEq(endReservesL, 1.5 ether);
+
         dfmm.swap(poolId, swapData);
     }
 
-    function test_constant_sum_swap_y_in() public basic_feeless {
+    function test_constant_sum_swap_y_in_no_fee() public basic_feeless {
         bool xIn = false;
         uint256 amountIn = 0.1 ether;
         uint256 poolId = dfmm.nonce() - 1;
@@ -128,7 +139,22 @@ contract ConstantSumTest is Test {
         console2.log("Valid: ", valid);
         console2.log("AmountOut: ", amountOut);
         assert(valid);
-        assert(amountOut == 50_000_000_000_000_000);
+
+        console2.log("AmountOut: ", amountOut);
+        assertEq(amountOut, 0.05 ether);
+
+        (uint256 endReservesRx, uint256 endReservesRy, uint256 endReservesL) =
+            abi.decode(swapData, (uint256, uint256, uint256));
+
+        console2.log("endReservesRx: ", endReservesRx);
+        assertEq(endReservesRx, 0.95 ether);
+
+        console2.log("endReservesRy: ", endReservesRy);
+        assertEq(endReservesRy, 1.1 ether);
+
+        console2.log("endReservesL: ", endReservesL);
+        assertEq(endReservesL, 1.5 ether);
+
         dfmm.swap(poolId, swapData);
     }
 
@@ -159,7 +185,7 @@ contract ConstantSumTest is Test {
         assert(valid);
 
         console2.log("AmountOut: ", amountOut);
-        assertEq(amountOut, 199_100_000_000_000_000);
+        assertEq(amountOut, 0.1994 ether);
 
         (uint256 endReservesRx, uint256 endReservesRy, uint256 endReservesL) =
             abi.decode(swapData, (uint256, uint256, uint256));
@@ -168,10 +194,10 @@ contract ConstantSumTest is Test {
         assertEq(endReservesRx, 1.1 ether);
 
         console2.log("endReservesRy: ", endReservesRy);
-        assertEq(endReservesRy, 0.8009 ether);
+        assertEq(endReservesRy, 0.8006 ether);
 
         console2.log("endReservesL: ", endReservesL);
-        assertEq(endReservesL, 1.50045 ether);
+        assertEq(endReservesL, 1.5003 ether);
 
         dfmm.swap(poolId, swapData);
     }
@@ -185,7 +211,22 @@ contract ConstantSumTest is Test {
         console2.log("Valid: ", valid);
         console2.log("AmountOut: ", amountOut);
         assert(valid);
-        assert(amountOut == 50_000_000_000_000_000);
+
+        console2.log("AmountOut: ", amountOut);
+        assertEq(amountOut, 0.04985 ether);
+
+        (uint256 endReservesRx, uint256 endReservesRy, uint256 endReservesL) =
+            abi.decode(swapData, (uint256, uint256, uint256));
+
+        console2.log("endReservesRx: ", endReservesRx);
+        assertEq(endReservesRx, 0.95015 ether);
+
+        console2.log("endReservesRy: ", endReservesRy);
+        assertEq(endReservesRy, 1.1 ether);
+
+        console2.log("endReservesL: ", endReservesL);
+        assertEq(endReservesL, 1.50015 ether);
+
         dfmm.swap(poolId, swapData);
     }
 }
