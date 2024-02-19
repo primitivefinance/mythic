@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "solmate/tokens/ERC20.sol";
-import "solstat/Gaussian.sol";
 import "src/interfaces/IStrategy.sol";
 import "src/interfaces/IDFMM.sol";
 import "src/solvers/G3M/G3MExtendedLib.sol";
