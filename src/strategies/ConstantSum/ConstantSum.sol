@@ -139,7 +139,7 @@ contract ConstantSum is IStrategy {
 
     // This should literally always work lol
     function validateAllocateOrDeallocate(
-        address sender,
+        address,
         uint256 poolId,
         bytes calldata data
     )
@@ -152,7 +152,19 @@ contract ConstantSum is IStrategy {
             uint256 reserveY,
             uint256 totalLiquidity
         )
-    { }
+    {
+        (reserveX, reserveY, totalLiquidity) =
+            abi.decode(data, (uint256, uint256, uint256));
+
+        invariant = ConstantSumLib.tradingFunction(
+            reserveX,
+            reserveY,
+            totalLiquidity,
+            abi.decode(getPoolParams(poolId), (ConstantSumParams)).price
+        );
+
+        valid = -EPSILON < invariant && invariant < EPSILON;
+    }
 
     function update(
         address sender,

@@ -229,4 +229,60 @@ contract ConstantSumTest is Test {
 
         dfmm.swap(poolId, swapData);
     }
+
+    function test_constant_sum_allocate() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 amountX = 0.1 ether;
+        uint256 amountY = 0.1 ether;
+        (bool valid, bytes memory swapData) =
+            solver.simulateAllocateOrDeallocate(poolId, true, amountX, amountY);
+        console2.log("Valid: ", valid);
+        assert(valid);
+
+        (uint256 endReservesRx, uint256 endReservesRy, uint256 endReservesL) =
+            abi.decode(swapData, (uint256, uint256, uint256));
+
+        console2.log("endReservesRx: ", endReservesRx);
+        assertEq(endReservesRx, 1.1 ether);
+
+        console2.log("endReservesRy: ", endReservesRy);
+        assertEq(endReservesRy, 1.1 ether);
+
+        console2.log("endReservesL: ", endReservesL);
+        assertEq(endReservesL, 1.65 ether);
+
+        dfmm.allocate(poolId, swapData);
+    }
+
+    function test_constant_sum_deallocate() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 amountX = 0.1 ether;
+        uint256 amountY = 0.1 ether;
+        (bool valid, bytes memory swapData) =
+            solver.simulateAllocateOrDeallocate(poolId, false, amountX, amountY);
+        console2.log("Valid: ", valid);
+        assert(valid);
+
+        (uint256 endReservesRx, uint256 endReservesRy, uint256 endReservesL) =
+            abi.decode(swapData, (uint256, uint256, uint256));
+
+        console2.log("endReservesRx: ", endReservesRx);
+        assertEq(endReservesRx, 0.9 ether);
+
+        console2.log("endReservesRy: ", endReservesRy);
+        assertEq(endReservesRy, 0.9 ether);
+
+        console2.log("endReservesL: ", endReservesL);
+        assertEq(endReservesL, 1.35 ether);
+
+        dfmm.deallocate(poolId, swapData);
+    }
+
+    function test_constant_sum_fail_deallocate() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 amountX = 1.2 ether;
+        uint256 amountY = 1.2 ether;
+        vm.expectRevert(ConstantSumSolver.NotEnoughLiquidity.selector);
+        solver.simulateAllocateOrDeallocate(poolId, false, amountX, amountY);
+    }
 }
