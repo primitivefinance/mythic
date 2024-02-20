@@ -1,17 +1,14 @@
-use arbiter_core::data_collection::EventLogger;
+use arbiter_core::events::Logger;
 use clients::protocol::ProtocolClient;
-use revm::db::{CacheDB, EmptyDB};
 
-use self::agents::portfolio_management_agents::{
+use self::agents::portfolio_management::{
     g3m::{dca_g3m_setup, g3m_setup},
     lognormal::ln_setup,
 };
 use super::*;
 use crate::{
     agent::Agents,
-    agents::base_agents::{
-        block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin,
-    },
+    agents::base::{block_admin::BlockAdmin, price_changer::PriceChanger, token_admin::TokenAdmin},
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -27,7 +24,6 @@ pub enum Scenarios {
 pub trait Scenario: Clone + Sync + Send + Sized + Any {
     async fn setup(
         &self,
-        db: Option<CacheDB<EmptyDB>>,
         environment: Environment,
         config: SimulationConfig<Single>,
     ) -> Result<(Agents, usize, Environment), SimulationError>;
@@ -37,17 +33,14 @@ pub trait Scenario: Clone + Sync + Send + Sized + Any {
 impl Scenario for Scenarios {
     async fn setup(
         &self,
-        db: Option<CacheDB<EmptyDB>>,
         environment: Environment,
         config: SimulationConfig<Single>,
     ) -> Result<(Agents, usize, Environment), SimulationError> {
         let scenario_type = config.scenario.clone();
         let (agents, steps, environment) = match scenario_type {
-            Scenarios::Dca => dca_setup(db, environment, config).await?,
-            Scenarios::VolatilityTargeting => {
-                dynamic_weights_setup(db, environment, config).await?
-            }
-            Scenarios::Momentum => dynamic_weights_setup(db, environment, config).await?,
+            Scenarios::Dca => dca_setup(environment, config).await?,
+            Scenarios::VolatilityTargeting => dynamic_weights_setup(environment, config).await?,
+            Scenarios::Momentum => dynamic_weights_setup(environment, config).await?,
         };
 
         Ok((agents, steps, environment))
@@ -55,13 +48,12 @@ impl Scenario for Scenarios {
 }
 
 async fn dca_setup(
-    db: Option<CacheDB<EmptyDB>>,
     environment: Environment,
     config: SimulationConfig<Single>,
 ) -> Result<(Agents, usize, Environment), SimulationError> {
     let mut agents = Agents::new();
 
-    let block_admin = BlockAdmin::new(db, &environment, &config, "block_admin").await?;
+    let block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
     agents.add(block_admin);
 
     let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
@@ -75,7 +67,7 @@ async fn dca_setup(
     let lex_events = price_changer.liquid_exchange.events();
     agents.add(price_changer);
 
-    let base_client = RevmMiddleware::new(&environment, "base".into()).unwrap();
+    let base_client = ArbiterMiddleware::new(&environment, "base".into()).unwrap();
     let base_protocol_client = ProtocolClient::new(
         base_client.clone(),
         token_admin.arbx.address(),
@@ -102,15 +94,15 @@ async fn dca_setup(
     agents.add(dca_swapper);
     agents.add(g3m_arb);
 
-    EventLogger::builder()
+    Logger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
-        .add(lex_events, "lex")
-        .add(base_protocol_client.protocol.events(), "dfmm")
-        .add(token_admin.arbx.events(), "arbx")
-        .add(token_admin.arby.events(), "arby")
-        .add(dca_portfolio_tracker_events, "dca_portfolio_tracker")
-        .add(g3m_arb_events, "g3m_atomic_arbitrage")
+        .with_event(lex_events, "lex")
+        .with_event(base_protocol_client.protocol.events(), "dfmm")
+        .with_event(token_admin.arbx.events(), "arbx")
+        .with_event(token_admin.arby.events(), "arby")
+        .with_event(dca_portfolio_tracker_events, "dca_portfolio_tracker")
+        .with_event(g3m_arb_events, "g3m_atomic_arbitrage")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 
@@ -118,13 +110,12 @@ async fn dca_setup(
 }
 
 async fn dynamic_weights_setup(
-    db: Option<CacheDB<EmptyDB>>,
     environment: Environment,
     config: SimulationConfig<Single>,
 ) -> Result<(Agents, usize, Environment), SimulationError> {
     let mut agents = Agents::new();
 
-    let block_admin = BlockAdmin::new(db, &environment, &config, "block_admin").await?;
+    let block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
     agents.add(block_admin);
 
     let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
@@ -138,7 +129,7 @@ async fn dynamic_weights_setup(
     let lex_events = price_changer.liquid_exchange.events();
     agents.add(price_changer);
 
-    let base_client = RevmMiddleware::new(&environment, "base".into()).unwrap();
+    let base_client = ArbiterMiddleware::new(&environment, "base".into()).unwrap();
     let base_protocol_client = ProtocolClient::new(
         base_client.clone(),
         token_admin.arbx.address(),
@@ -179,15 +170,15 @@ async fn dynamic_weights_setup(
     agents.add(g3m_arb);
     agents.add(g3m_manager);
 
-    EventLogger::builder()
+    Logger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
-        .add(lex_events, "lex")
-        .add(base_protocol_client.protocol.events(), "dfmm")
-        .add(token_admin.arbx.events(), "arbx")
-        .add(token_admin.arby.events(), "arby")
-        .add(g3m_arb_events, "g3m_atomic_arbitrage")
-        .add(ln_arb_events, "ln_atomic_arbitrage")
+        .with_event(lex_events, "lex")
+        .with_event(base_protocol_client.protocol.events(), "dfmm")
+        .with_event(token_admin.arbx.events(), "arbx")
+        .with_event(token_admin.arby.events(), "arby")
+        .with_event(g3m_arb_events, "g3m_atomic_arbitrage")
+        .with_event(ln_arb_events, "ln_atomic_arbitrage")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

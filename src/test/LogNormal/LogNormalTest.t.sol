@@ -66,13 +66,13 @@ contract LogNormalTest is Test {
         vm.warp(0);
 
         LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
-            strike: ONE,
-            sigma: ONE,
+            strike: TWO,
+            sigma: 0.25 ether,
             tau: ONE,
             swapFee: TEST_SWAP_FEE,
             controller: address(0)
         });
-        uint256 init_p = ONE;
+        uint256 init_p = TWO;
         uint256 init_x = ONE;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
@@ -142,6 +142,42 @@ contract LogNormalTest is Test {
         uint256 priceGivenY = solver.getPriceGivenYL(poolId, ry, L);
         uint256 priceGivenX = solver.getPriceGivenXL(poolId, rx, L);
         assertApproxEqAbs(priceGivenY, priceGivenX, 100);
+    }
+
+    function test_ln_diff_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLowered = solver.calculateDiffLower(
+            poolId, 1.9 ether, 160_249_195_342_896_967
+        );
+
+        console2.log(diffLowered);
+    }
+
+    function test_ln_diff_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLowered = solver.calculateDiffRaise(
+            poolId, 2.1 ether, 302_756_023_375_108_995
+        );
+
+        console2.log(diffLowered);
+    }
+
+    function test_ln_optimal_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalLower = solver.computeOptimalArbLowerPrice(
+            poolId, 1.9 ether, 0.181424 ether
+        );
+
+        console2.log(optimalLower);
+    }
+
+    function test_ln_optimal_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
+            poolId, 2.1 ether, 0.345156 ether
+        );
+
+        console2.log(optimalRaise);
     }
 
     // function test_internal_price() public basic {

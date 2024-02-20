@@ -221,6 +221,46 @@ contract G3MSolver {
         );
     }
 
+    function computeOptimalArbLowerPrice(
+        uint256 poolId,
+        uint256 S,
+        uint256 vUpper
+    ) public view returns (uint256) {
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
+        (uint256 rx, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
+        return computeOptimalLower(S, rx, ry, L, vUpper, params);
+    }
+
+    function computeOptimalArbRaisePrice(
+        uint256 poolId,
+        uint256 S,
+        uint256 vUpper
+    ) public view returns (uint256) {
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
+        (uint256 rx, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
+        return computeOptimalRaise(S, rx, ry, L, vUpper, params);
+    }
+
+    function calculateDiffLower(
+        uint256 poolId,
+        uint256 S,
+        uint256 v
+    ) public view returns (int256) {
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
+        (uint256 rx, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
+        return diffLower(S, rx, ry, L, v, params);
+    }
+
+    function calculateDiffRaise(
+        uint256 poolId,
+        uint256 S,
+        uint256 v
+    ) public view returns (int256) {
+        G3M.G3MParams memory params = fetchPoolParams(poolId);
+        (uint256 rx, uint256 ry, uint256 L) = getReservesAndLiquidity(poolId);
+        return diffRaise(S, rx, ry, L, v, params);
+    }
+
     /// @dev Computes the internal price using this strategie's slot parameters.
     function internalPrice(uint256 poolId)
         public

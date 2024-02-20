@@ -12,6 +12,7 @@ import "../helpers/Lex.sol";
 
 contract G3MTest is Test {
     using stdStorage for StdStorage;
+    using FixedPointMathLib for uint256;
 
     DFMM dfmm;
     G3M g3m;
@@ -67,8 +68,8 @@ contract G3MTest is Test {
             swapFee: TEST_SWAP_FEE,
             controller: address(0)
         });
-        uint256 init_p = ONE;
-        uint256 init_x = 1000 ether;
+        uint256 init_p = 1 ether;
+        uint256 init_x = 1 ether;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 
@@ -90,45 +91,122 @@ contract G3MTest is Test {
             solver.simulateSwap(poolId, true, amountIn);
     }
 
-    // function test_internal_price() public basic {
-    //     uint256 internalPrice = solver.internalPrice();
+    function test_diff_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffLowered =
+            solver.calculateDiffLower(poolId, 0.8 ether, 0.114674 ether);
 
-    //     console2.log(internalPrice);
-    // }
+        console2.log(diffLowered);
+    }
 
-    // function test_internal_price_post_y_in() public basic {
-    //     uint256 internalPrice = solver.internalPrice();
-    //     uint256 amountIn = 0.1 ether;
-    //     bool swapXIn = false;
+    function test_diff_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diffRaised =
+            solver.calculateDiffRaise(poolId, 1.2 ether, 0.0921529 ether);
 
-    //     // Try doing simulate swap to see if we get a similar result.
-    //     (bool valid,,, bytes memory payload) =
-    //         solver.simulateSwap(swapXIn, amountIn);
+        console2.log(diffRaised);
+    }
 
-    //     assertEq(valid, true);
+    function test_optimal_raise() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        int256 diff_min = solver.calculateDiffRaise(poolId, 1.2 ether, 1000);
+        int256 diff_max =
+            solver.calculateDiffRaise(poolId, 1.2 ether, 0.0954451 ether);
+        console2.log("min", diff_min);
+        console2.log("max", diff_max);
+        uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
+            poolId, 1.2 ether, 0.0954451 ether
+        );
 
-    //     dfmm.swap(payload);
+        (bool valid, uint256 amountOut, uint256 price, bytes memory swapData) =
+            solver.simulateSwap(poolId, true, optimalRaise);
 
-    //     uint256 postSwapInternalPrice = solver.internalPrice();
+        console2.log(valid);
+        dfmm.swap(poolId, swapData);
+    }
 
-    //     assertGt(postSwapInternalPrice, internalPrice);
-    // }
+    function test_optimal_lower() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalLower = solver.computeOptimalArbLowerPrice(
+            poolId, 0.8 ether, 0.134674 ether
+        );
 
-    // function test_internal_price_post_x_in() public basic {
-    //     uint256 internalPrice = solver.internalPrice();
-    //     uint256 amountIn = 0.1 ether;
-    //     bool swapXIn = true;
+        console2.log(optimalLower);
+    }
 
-    //     // Try doing simulate swap to see if we get a similar result.
-    //     (bool valid,,, bytes memory payload) =
-    //         solver.simulateSwap(swapXIn, amountIn);
+    function test_optimal_lower_profit() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalLower = solver.computeOptimalArbLowerPrice(
+            poolId, 0.98 ether, 0.234674 ether
+        );
 
-    //     assertEq(valid, true);
+        (, uint256 amountOut,,) =
+            solver.simulateSwap(poolId, true, optimalLower);
 
-    //     dfmm.swap(payload);
+        uint256 valueIn = optimalLower.mulWadDown(0.98 ether);
+        uint256 valueOut = amountOut;
+        uint256 profit = valueOut - valueIn;
 
-    //     uint256 postSwapInternalPrice = solver.internalPrice();
+        uint256 marginalIncrease = optimalLower + 100_000_000;
+        uint256 marginalDecrease = optimalLower - 100_000_000;
 
-    //     assertLt(postSwapInternalPrice, internalPrice);
-    // }
+        (, uint256 outIncrease,,) =
+            solver.simulateSwap(poolId, true, marginalIncrease);
+
+        uint256 valueInIncrease = marginalIncrease.mulWadDown(0.98 ether);
+        uint256 valueOutIncrease = outIncrease;
+        uint256 profitIncrease = valueOutIncrease - valueInIncrease;
+
+        (, uint256 outDecrease,,) =
+            solver.simulateSwap(poolId, true, marginalDecrease);
+
+        uint256 valueInDecrease = marginalDecrease.mulWadDown(0.98 ether);
+        uint256 valueOutDecrease = outDecrease;
+        uint256 profitDecrease = valueOutDecrease - valueInDecrease;
+
+        console2.log(profitIncrease);
+        console2.log(profit);
+        console2.log(profitDecrease);
+
+        assertGt(profit, profitIncrease);
+        assertGt(profit, profitDecrease);
+    }
+
+    function test_optimal_raise_profit() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 optimalRaise = solver.computeOptimalArbRaisePrice(
+            poolId, 1.2 ether, 0.0954451 ether
+        );
+
+        (, uint256 amountOut,,) =
+            solver.simulateSwap(poolId, false, optimalRaise);
+
+        uint256 valueIn = optimalRaise;
+        uint256 valueOut = amountOut.mulWadDown(1.2 ether);
+        uint256 profit = valueOut - valueIn;
+
+        uint256 marginalIncrease = optimalRaise + 1_000_000_000;
+        uint256 marginalDecrease = optimalRaise - 1_000_000_000;
+
+        (, uint256 outIncrease,,) =
+            solver.simulateSwap(poolId, false, marginalIncrease);
+
+        uint256 valueInIncrease = marginalIncrease;
+        uint256 valueOutIncrease = outIncrease.mulWadDown(1.2 ether);
+        uint256 profitIncrease = valueOutIncrease - valueInIncrease;
+
+        (, uint256 outDecrease,,) =
+            solver.simulateSwap(poolId, false, marginalDecrease);
+
+        uint256 valueInDecrease = marginalDecrease;
+        uint256 valueOutDecrease = outDecrease.mulWadDown(1.2 ether);
+        uint256 profitDecrease = valueOutDecrease - valueInDecrease;
+
+        console2.log(profitIncrease);
+        console2.log(profit);
+        console2.log(profitDecrease);
+
+        assertGt(profit, profitIncrease);
+        assertGt(profit, profitDecrease);
+    }
 }

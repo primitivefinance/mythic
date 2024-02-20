@@ -1,15 +1,19 @@
-pub mod base_agents;
-pub mod portfolio_management_agents;
+pub mod base;
+pub mod portfolio_management;
 
-use base_agents::{block_admin::*, price_changer::*, token_admin::*};
-use portfolio_management_agents::{
-    base::parameter_manager::*,
-    g3m::{dca_g3m_liquidity_provider::*, g3m_liquidity_provider::*},
-    lognormal::ln_liquidity_provider::*,
+use base::{block_admin::*, token_admin::*};
+use portfolio_management::{base::parameter_manager::*, g3m::dca_g3m_liquidity_provider::*};
+
+use self::portfolio_management::{
+    base::parameter_manager::ParameterManagerParameters,
+    g3m::{
+        dca_g3m_liquidity_provider::DcaG3mLiquidityProviderParameters,
+        dca_swapper::DcaSwapperParameters, g3m_liquidity_provider::G3mLiquidityProviderParameters,
+    },
+    lognormal::ln_liquidity_provider::LogNormalLiquidityProviderParameters,
 };
-
-use self::portfolio_management_agents::g3m::dca_swapper::DcaSwapperParameters;
 use super::*;
+use crate::agents::base::price_changer::PriceChangerParameters;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum AgentParameters<P: Parameterized> {

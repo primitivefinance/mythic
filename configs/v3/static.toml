@@ -1,4 +1,4 @@
-simulation = "RmmVolatilityTargeting"
+scenario = "VolatilityTargeting"
 output_directory = "analysis/rmm/vol_targeting/static"
 
 [agent.block_admin.BlockAdmin]
