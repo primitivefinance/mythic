@@ -30,7 +30,7 @@ contract G3MTest is Test {
         MockERC20(tokenY).mint(address(this), 100_000_000e18);
 
         lex = new Lex(tokenX, tokenY, ONE);
-        dfmm = new DFMM();
+        dfmm = new DFMM(address(0));
         g3m = new G3M(address(dfmm));
         solver = new G3MSolver(address(g3m));
 

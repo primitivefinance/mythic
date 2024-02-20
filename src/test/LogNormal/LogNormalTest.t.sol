@@ -27,7 +27,7 @@ contract LogNormalTest is Test {
         MockERC20(tokenY).mint(address(this), 100_000_000 ether);
 
         lex = new Lex(tokenX, tokenY, ONE);
-        dfmm = new DFMM();
+        dfmm = new DFMM(address(0));
         logNormal = new LogNormal(address(dfmm));
         solver = new LogNormalSolver(address(logNormal));
         MockERC20(tokenX).approve(address(dfmm), type(uint256).max);
@@ -74,6 +74,33 @@ contract LogNormalTest is Test {
         });
         uint256 init_p = TWO;
         uint256 init_x = ONE;
+        bytes memory initData =
+            solver.getInitialPoolData(init_x, init_p, params);
+
+        IDFMM.InitParams memory initParams = IDFMM.InitParams({
+            strategy: address(logNormal),
+            tokenX: tokenX,
+            tokenY: tokenY,
+            data: initData
+        });
+
+        dfmm.init(initParams);
+
+        _;
+    }
+
+    modifier revert_scenario() {
+        vm.warp(0);
+
+        LogNormal.LogNormalParams memory params = LogNormal.LogNormalParams({
+            strike: 0.67323818941934077 ether,
+            sigma: ONE,
+            tau: ONE,
+            swapFee: TEST_SWAP_FEE,
+            controller: address(0)
+        });
+        uint256 init_p = 1_329_956_352_651_532_999;
+        uint256 init_x = 70.658087306013359413 ether;
         bytes memory initData =
             solver.getInitialPoolData(init_x, init_p, params);
 

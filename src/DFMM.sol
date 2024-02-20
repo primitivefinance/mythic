@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "solmate/utils/FixedPointMathLib.sol";
 import "solmate/utils/SafeTransferLib.sol";
+import "solmate/utils/LibString.sol";
+import { WETH } from "solmate/tokens/WETH.sol";
 import "solstat/Units.sol";
 import "./interfaces/IDFMM.sol";
 import "./interfaces/IStrategy.sol";
@@ -23,6 +25,8 @@ contract DFMM is IDFMM {
     /// @inheritdoc IDFMM
     address public immutable lpTokenImplementation;
 
+    address public immutable weth;
+
     /// @dev Part of the reentrancy lock, 1 = unlocked, 2 = locked.
     uint256 private _locked = 1;
 
@@ -37,12 +41,17 @@ contract DFMM is IDFMM {
         _locked = 1;
     }
 
+    receive() external payable {
+        if (msg.sender != weth) revert OnlyWETH();
+    }
+
     /**
      * @dev The implementation of the LPToken contract is also
      * deployed at the same time. It'll be used later to deploy
      * new LPTokens using the [clone factory pattern](https://eips.ethereum.org/EIPS/eip-1167).
      */
-    constructor() {
+    constructor(address weth_) {
+        weth = weth_;
         lpTokenImplementation = address(new LPToken());
         LPToken(lpTokenImplementation).initialize("", "");
     }
@@ -50,6 +59,7 @@ contract DFMM is IDFMM {
     /// @inheritdoc IDFMM
     function init(InitParams calldata params)
         external
+        payable
         lock
         returns (uint256, uint256, uint256, uint256)
     {
@@ -71,8 +81,9 @@ contract DFMM is IDFMM {
 
         LPToken liquidityToken = LPToken(clone(lpTokenImplementation));
 
-        // TODO: Add name / symbol
-        liquidityToken.initialize("", "");
+        string memory tokenMetadata =
+            _prepareTokenMetadata(params.strategy, params.tokenX, params.tokenY);
+        liquidityToken.initialize(tokenMetadata, tokenMetadata);
         liquidityToken.mint(msg.sender, totalLiquidity - BURNT_LIQUIDITY);
         liquidityToken.mint(address(0), BURNT_LIQUIDITY);
 
@@ -92,17 +103,18 @@ contract DFMM is IDFMM {
         _transferFrom(params.tokenX, reserveX);
         _transferFrom(params.tokenY, reserveY);
 
-        emitInit(poolId);
+        emitInit(poolId, address(liquidityToken));
 
         return (poolId, reserveX, reserveY, totalLiquidity - BURNT_LIQUIDITY);
     }
 
-    function emitInit(uint256 poolId) private {
+    function emitInit(uint256 poolId, address lpToken) private {
         Pool memory pool = pools[poolId];
 
         emit Init(
             msg.sender,
             pool.strategy,
+            lpToken,
             pool.tokenX,
             pool.tokenY,
             poolId,
@@ -112,11 +124,28 @@ contract DFMM is IDFMM {
         );
     }
 
+    function _prepareTokenMetadata(
+        address strategy,
+        address tokenX,
+        address tokenY
+    ) internal view returns (string memory) {
+        return string.concat(
+            "DFMM-",
+            IStrategy(strategy).name(),
+            "-",
+            ERC20(tokenX).symbol(),
+            "-",
+            ERC20(tokenY).symbol(),
+            "-",
+            LibString.toString(pools.length)
+        );
+    }
+
     /// @inheritdoc IDFMM
     function allocate(
         uint256 poolId,
         bytes calldata data
-    ) external lock returns (uint256, uint256, uint256) {
+    ) external payable lock returns (uint256, uint256, uint256) {
         (uint256 deltaX, uint256 deltaY, uint256 deltaL) =
             _updatePoolReserves(poolId, true, data);
 
@@ -239,21 +268,44 @@ contract DFMM is IDFMM {
 
     /**
      * @dev Transfers `amount` of `token` from the sender to the contract.
+     * Note that if ETH is present in the contract, it will be wrapped to WETH.
      * @param token Address of the token to transfer.
      * @param amount Amount to transfer expressed in WAD.
      */
     function _transferFrom(address token, uint256 amount) internal {
-        uint256 downscaledAmount =
-            downscaleUp(amount, computeScalingFactor(token));
-        SafeTransferLib.safeTransferFrom(
-            ERC20(token), msg.sender, address(this), downscaledAmount
-        );
+        if (address(this).balance >= amount) {
+            WETH(payable(weth)).deposit{ value: amount }();
+
+            if (address(this).balance > 0) {
+                SafeTransferLib.safeTransferETH(
+                    msg.sender, address(this).balance
+                );
+            }
+        } else {
+            uint256 downscaledAmount =
+                downscaleUp(amount, computeScalingFactor(token));
+            SafeTransferLib.safeTransferFrom(
+                ERC20(token), msg.sender, address(this), downscaledAmount
+            );
+        }
     }
 
+    /**
+     * @dev Transfers `amount of `token` from the contract to the recipient
+     * `to`. Note that WETH is automatically unwrapped to ETH.
+     * @param token Address of the token to transfer.
+     * @param to Address of the recipient.
+     * @param amount Amount to transfer expressed in WAD.
+     */
     function _transfer(address token, address to, uint256 amount) internal {
-        uint256 downscaledAmount =
-            downscaleDown(amount, computeScalingFactor(token));
-        SafeTransferLib.safeTransfer(ERC20(token), to, downscaledAmount);
+        if (token == weth) {
+            WETH(payable(weth)).withdraw(amount);
+            SafeTransferLib.safeTransferETH(to, amount);
+        } else {
+            uint256 downscaledAmount =
+                downscaleDown(amount, computeScalingFactor(token));
+            SafeTransferLib.safeTransfer(ERC20(token), to, downscaledAmount);
+        }
     }
 
     /**
