@@ -27,6 +27,8 @@ interface IDFMM {
 
     // Errors
 
+    error OnlyWETH();
+
     /// @dev Thrown when the invariant is invalid.
     error Invalid(bool negative, uint256 swapConstantGrowth);
 
@@ -60,6 +62,7 @@ interface IDFMM {
     event Init(
         address indexed account,
         address strategy,
+        address lpToken,
         address indexed tokenX,
         address indexed tokenY,
         uint256 poolId,
@@ -125,6 +128,7 @@ interface IDFMM {
      */
     function init(InitParams calldata params)
         external
+        payable
         returns (
             uint256 poolId,
             uint256 reserveX,
@@ -143,7 +147,10 @@ interface IDFMM {
     function allocate(
         uint256 poolId,
         bytes calldata data
-    ) external returns (uint256 deltaX, uint256 deltaY, uint256 deltaL);
+    )
+        external
+        payable
+        returns (uint256 deltaX, uint256 deltaY, uint256 deltaL);
 
     /**
      * @notice Deallocates liquidity from the pool `poolId`.

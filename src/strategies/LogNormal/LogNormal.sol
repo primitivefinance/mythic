@@ -39,6 +39,9 @@ contract LogNormal is IStrategy {
     /// @inheritdoc IStrategy
     address public dfmm;
 
+    /// @inheritdoc IStrategy
+    string public constant name = "LogNormal";
+
     mapping(uint256 => InternalParams) public internalParams;
 
     /// @param dfmm_ Address of the DFMM contract.

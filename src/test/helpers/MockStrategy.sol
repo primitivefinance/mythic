@@ -7,6 +7,8 @@ import "../../interfaces/IStrategy.sol";
 contract MockStrategy is IStrategy {
     address public immutable dfmm;
 
+    string public constant name = "MockStrategy";
+
     constructor(address dfmm_) {
         dfmm = dfmm_;
     }

@@ -22,7 +22,7 @@ contract SetUp is Test {
         tokenY.mint(address(this), 100e18);
 
         lex = new Lex(address(tokenX), address(tokenY), 1 ether);
-        dfmm = new DFMM();
+        dfmm = new DFMM(address(0));
 
         tokenX.approve(address(dfmm), type(uint256).max);
         tokenY.approve(address(dfmm), type(uint256).max);

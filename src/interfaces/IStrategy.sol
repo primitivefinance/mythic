@@ -45,6 +45,15 @@ interface IStrategy {
             uint256 totalLiquidity
         );
 
+    // Getters
+
+    /**
+     * @notice Returns the name of the strategy.
+     * @dev The name of the strategy is included in the name of
+     * the liquidity token.
+     */
+    function name() external view returns (string memory);
+
     function validateAllocateOrDeallocate(
         address sender,
         uint256 poolId,
