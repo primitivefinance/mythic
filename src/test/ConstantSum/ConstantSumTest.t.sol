@@ -285,4 +285,18 @@ contract ConstantSumTest is Test {
         vm.expectRevert(ConstantSumSolver.NotEnoughLiquidity.selector);
         solver.simulateAllocateOrDeallocate(poolId, false, amountX, amountY);
     }
+
+    function test_constant_sum_price_update() public basic {
+        uint256 poolId = dfmm.nonce() - 1;
+        uint256 newPrice = 3 ether;
+        bytes memory data = ConstantSumLib.encodePriceUpdate(newPrice);
+
+        vm.prank(address(0));
+        DFMM(dfmm).update(poolId, data);
+
+        (ConstantSum.ConstantSumParams memory newParams) = abi.decode(
+            constantSum.getPoolParams(poolId), (ConstantSum.ConstantSumParams)
+        );
+        assertEq(newParams.price, 3 ether);
+    }
 }

@@ -32,22 +32,20 @@ library ConstantSumLib {
         return swapFee;
     }
 
-    function encodePriceUpdate(
-        uint256 targetPrice,
-        uint256 targetTimestamp
-    ) internal pure returns (bytes memory) {
-        return abi.encode(
-            ConstantSumUpdateCode.Price, targetPrice, targetTimestamp
-        );
+    function encodePriceUpdate(uint256 newPrice)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(ConstantSumUpdateCode.Price, newPrice);
     }
 
     function decodePriceUpdate(bytes memory data)
         internal
         pure
-        returns (uint256 targetPrice, uint256 targetTimestamp)
+        returns (uint256 newPrice)
     {
-        (, targetPrice, targetTimestamp) =
-            abi.decode(data, (ConstantSumUpdateCode, uint256, uint256));
+        (, newPrice) = abi.decode(data, (ConstantSumUpdateCode, uint256));
     }
 
     function encodeControllerUpdate(address controller)

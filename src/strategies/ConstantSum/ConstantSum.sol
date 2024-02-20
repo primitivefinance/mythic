@@ -170,7 +170,26 @@ contract ConstantSum is IStrategy {
         address sender,
         uint256 poolId,
         bytes calldata data
-    ) external { }
+    ) external onlyDFMM {
+        if (sender != internalParams[poolId].controller) revert InvalidSender();
+        ConstantSumLib.ConstantSumUpdateCode updateCode =
+            abi.decode(data, (ConstantSumLib.ConstantSumUpdateCode));
+
+        if (updateCode == ConstantSumLib.ConstantSumUpdateCode.Price) {
+            internalParams[poolId].price =
+                ConstantSumLib.decodePriceUpdate(data);
+        } else if (updateCode == ConstantSumLib.ConstantSumUpdateCode.SwapFee) {
+            internalParams[poolId].swapFee =
+                ConstantSumLib.decodeFeeUpdate(data);
+        } else if (
+            updateCode == ConstantSumLib.ConstantSumUpdateCode.Controller
+        ) {
+            internalParams[poolId].controller =
+                ConstantSumLib.decodeControllerUpdate(data);
+        } else {
+            revert InvalidUpdateCode();
+        }
+    }
 
     function getPoolParams(uint256 poolId) public view returns (bytes memory) {
         ConstantSumParams memory params;
