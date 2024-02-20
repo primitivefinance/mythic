@@ -88,4 +88,23 @@ contract ConstantSumSolver {
             IStrategy(strategy).validateSwap(address(this), poolId, swapData);
         return (valid, amountOut, swapData);
     }
+
+    function simulateAllocate(
+        uint256 poolId,
+        uint256 amountX,
+        uint256 amountY
+    ) public view returns (Reserves memory endReserves) {
+        Reserves memory startReserves;
+        (startReserves.rx, startReserves.ry, startReserves.L) =
+            IDFMM(IStrategy(strategy).dfmm()).getReservesAndLiquidity(poolId);
+        ConstantSum.ConstantSumParams memory poolParams = abi.decode(
+            IStrategy(strategy).getPoolParams(poolId),
+            (ConstantSum.ConstantSumParams)
+        );
+
+        endReserves.rx = startReserves.rx + amountX;
+        endReserves.ry = startReserves.ry + amountY;
+        endReserves.L =
+            endReserves.rx + endReserves.ry.divWadUp(poolParams.price);
+    }
 }
