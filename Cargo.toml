@@ -10,7 +10,7 @@ authors = ["Primitive Bits, Inc."]
 
 [[bin]]
 name = "excalibur"
-path = "bin/main.rs"
+path = "src/main.rs"
 
 [workspace.dependencies]
 # Local
