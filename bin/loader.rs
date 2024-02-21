@@ -5,14 +5,13 @@
 use std::time::Instant;
 
 use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
-use datatypes::portfolio::coin::Coin;
+use dfmm::portfolio::coin::Coin;
 use iced::{
     font,
     widget::{canvas::Cache, column, container, progress_bar},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
-use sim::from_ethers_address;
 
 use crate::{
     app::AnvilSave,
@@ -272,16 +271,14 @@ pub async fn load_app(flags: Flags) -> LoadResult {
         // finicky
         if let Some(connected_model) = model.get_current_mut() {
             connected_model.setup(
-                from_ethers_address(exc_client.address().unwrap()),
-                from_ethers_address(lex),
-                from_ethers_address(protocol),
-                from_ethers_address(dev_client.solver.address()),
-                from_ethers_address(strategy),
+                exc_client.address().unwrap(),
+                lex,
+                protocol,
+                dev_client.solver.address(),
+                strategy,
             );
         }
 
-        let token_x = alloy_primitives::Address::from(token_x.as_fixed_bytes());
-        let token_y = alloy_primitives::Address::from(token_y.as_fixed_bytes());
         let tokens = model.user.coins.tokens.clone();
         let coin_x = tokens.iter().find(|c| c.address == token_x);
         let coin_y = tokens.iter().find(|c| c.address == token_y);

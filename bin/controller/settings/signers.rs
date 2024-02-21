@@ -1,9 +1,9 @@
 //! Signers are any entity that can sign and execute transactions.
 //! These signers can be used within the app.
 
-use alloy_primitives::Address;
 use anyhow::Error;
 use clients::ledger::{types::DerivationType, *};
+use ethers::types::Address;
 
 use self::system::{ExcaliburContainer, ExcaliburTable};
 use super::*;

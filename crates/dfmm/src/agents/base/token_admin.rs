@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
-use datatypes::TokenData;
 use ethers::types::{Address, U256};
+use portfolio::TokenData;
 
 use super::{agent::*, *};
 

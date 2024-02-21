@@ -132,7 +132,7 @@ fn main() -> Result<()> {
     }
 
     match &args.command {
-        Some(Commands::Simulate { config_path }) => sim::run(config_path, args.verbose)?,
+        Some(Commands::Simulate { config_path }) => dfmm::run(config_path, args.verbose)?,
         Some(Commands::Analyze) => todo!(),
         Some(Commands::Ui) => run(args.dev)?,
         None => run(args.dev)?,

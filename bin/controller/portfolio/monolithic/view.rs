@@ -1,5 +1,5 @@
 use chrono::Utc;
-use datatypes::portfolio::position::{Position, Positions};
+use dfmm::portfolio::position::{Position, Positions};
 use iced::widget::{svg, Space};
 use iced_aw::{graphics::icons::icon_to_char, Icon::Info};
 
@@ -171,7 +171,7 @@ impl MonolithicPresenter {
 
         let aum = self.model.get_current().unwrap().derive_total_aum(pool_id);
         match aum {
-            Ok(data) => alloy_primitives::utils::format_ether(data),
+            Ok(data) => ethers::utils::format_ether(data),
             Err(_) => "N/A Value".to_string(),
         }
     }
@@ -231,7 +231,7 @@ impl MonolithicPresenter {
 
     pub fn get_metrics(
         &self,
-        address: AlloyAddress,
+        address: Address,
     ) -> (ExcaliburText, ExcaliburText, ExcaliburText, ExcaliburText) {
         let position = self
             .model
@@ -266,13 +266,13 @@ impl MonolithicPresenter {
                         .unwrap_or_default();
                     let lp_token_price = lp_token_price
                         .last()
-                        .unwrap_or(&(0, alloy_primitives::utils::parse_ether("0.0").unwrap()))
+                        .unwrap_or(&(0, ethers::utils::parse_ether("0.0").unwrap()))
                         .1;
 
                     Ok(lp_token_price).to_label()
                 }
                 false => match is_stablecoin {
-                    true => Ok(ALLOY_WAD).to_label(),
+                    true => Ok(WAD).to_label(),
                     false => match is_ether {
                         true => connected_model
                             .price_of_token(position.asset.address)
@@ -289,7 +289,7 @@ impl MonolithicPresenter {
             let health = connected_model.derive_portfolio_health();
             let health = match health {
                 Ok(data) => {
-                    let value = alloy_primitives::utils::format_ether(data);
+                    let value = ethers::utils::format_ether(data);
                     match value.parse::<f64>() {
                         Ok(_) => label(value.to_string()).title1().percentage(),
                         Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
@@ -341,7 +341,7 @@ impl MonolithicView {
         unallocated_logos: Vec<svg::Handle>,
         allocated_logos: Vec<svg::Handle>,
         on_allocate: Option<Message>,
-        on_select_position: impl Fn(AlloyAddress) -> Message + 'static,
+        on_select_position: impl Fn(Address) -> Message + 'static,
     ) -> Container<'a, Message>
     where
         Message: 'static + Default + Clone,

@@ -5,9 +5,9 @@
 //! for the [controller](./mod.rs) to render.
 
 use chrono::{DateTime, Utc};
-use datatypes::portfolio::position::Positions;
+use dfmm::portfolio::position::Positions;
 
-use super::{model::portfolio::AlloyU256, *};
+use super::*;
 use crate::components::{
     double_labeled_data,
     system::{label, ExcaliburChart, ExcaliburTable, ExcaliburText},
@@ -18,10 +18,10 @@ pub trait ValueToLabel<V> {
     fn to_label(&self) -> ExcaliburText;
 }
 
-impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
+impl ValueToLabel<Option<U256>> for Option<U256> {
     fn to_label(&self) -> ExcaliburText {
         if let Some(value) = self {
-            let value = alloy_primitives::utils::format_ether(*value);
+            let value = ethers::utils::format_ether(*value);
             match value.parse::<f64>() {
                 Ok(_) => label(&value).quantitative().title1(),
                 Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
@@ -32,10 +32,10 @@ impl ValueToLabel<Option<AlloyU256>> for Option<AlloyU256> {
     }
 }
 
-impl ValueToLabel<Result<AlloyU256, anyhow::Error>> for Result<AlloyU256, anyhow::Error> {
+impl ValueToLabel<Result<U256, anyhow::Error>> for Result<U256, anyhow::Error> {
     fn to_label(&self) -> ExcaliburText {
         if let Ok(value) = self {
-            let value = alloy_primitives::utils::format_ether(*value);
+            let value = ethers::utils::format_ether(*value);
             match value.parse::<f64>() {
                 Ok(_) => label(&value).quantitative().title1(),
                 Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
@@ -222,7 +222,7 @@ impl PortfolioPresenter {
             let data = connected_model.derive_portfolio_health();
             match data {
                 Ok(data) => {
-                    let value = alloy_primitives::utils::format_ether(data);
+                    let value = ethers::utils::format_ether(data);
                     match value.parse::<f64>() {
                         Ok(_) => label(value.to_string()).title1().percentage(),
                         Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
