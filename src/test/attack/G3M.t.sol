@@ -19,7 +19,7 @@ contract G3MAttackTest is Test {
         tokenX.mint(address(this), 100_000 ether);
         tokenY.mint(address(this), 100_000 ether);
 
-        dfmm = new DFMM();
+        dfmm = new DFMM(address(0));
         g3m = new G3M(address(dfmm));
 
         tokenX.approve(address(dfmm), type(uint256).max);
