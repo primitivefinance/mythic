@@ -24,7 +24,7 @@ arbiter-core = "0.10.2"
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
 # Ethereum
-revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
+revm = { version = "6.0.0", features = ["ethersdb", "std", "serde"] }
 
 # Networking
 reqwest = "0.11.24"
