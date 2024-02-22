@@ -6,6 +6,7 @@ pub mod portfolio;
 pub mod rmm;
 pub mod scenarios;
 pub mod settings;
+pub mod position;
 
 use std::{any::Any, path::Path};
 
