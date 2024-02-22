@@ -25,7 +25,7 @@ impl Agent for DcaG3mLiquidityProvider {
         let init_x = parse_ether(self.initial_x_amount)?;
         let init_price = parse_ether(self.initial_price)?;
 
-        let init_params = PoolInitParamsF64::G3M(G3mF64 {
+        let init_params = PoolInitParamsF64::GeometricMean(G3mF64 {
             wx: 0.02,
             swap_fee: 0.003,
             controller: self.client.address(),

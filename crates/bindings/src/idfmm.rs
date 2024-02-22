@@ -69,7 +69,7 @@ pub mod idfmm {
                                 },
                             ],
                             constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::Payable,
                         },
                     ],
                 ),
@@ -242,7 +242,7 @@ pub mod idfmm {
                                 },
                             ],
                             constant: ::core::option::Option::None,
-                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::NonPayable,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::Payable,
                         },
                     ],
                 ),
@@ -530,6 +530,11 @@ pub mod idfmm {
                                     indexed: false,
                                 },
                                 ::ethers::core::abi::ethabi::EventParam {
+                                    name: ::std::borrow::ToOwned::to_owned("lpToken"),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::Address,
+                                    indexed: false,
+                                },
+                                ::ethers::core::abi::ethabi::EventParam {
                                     name: ::std::borrow::ToOwned::to_owned("tokenX"),
                                     kind: ::ethers::core::abi::ethabi::ParamType::Address,
                                     indexed: true,
@@ -700,6 +705,15 @@ pub mod idfmm {
                     ::std::vec![
                         ::ethers::core::abi::ethabi::AbiError {
                             name: ::std::borrow::ToOwned::to_owned("Locked"),
+                            inputs: ::std::vec![],
+                        },
+                    ],
+                ),
+                (
+                    ::std::borrow::ToOwned::to_owned("OnlyWETH"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::AbiError {
+                            name: ::std::borrow::ToOwned::to_owned("OnlyWETH"),
                             inputs: ::std::vec![],
                         },
                     ],
@@ -1024,6 +1038,21 @@ pub mod idfmm {
     )]
     #[etherror(name = "Locked", abi = "Locked()")]
     pub struct Locked;
+    ///Custom Error type `OnlyWETH` with signature `OnlyWETH()` and selector `0x01f180c9`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthError,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[etherror(name = "OnlyWETH", abi = "OnlyWETH()")]
+    pub struct OnlyWETH;
     ///Container type for all of the contract's custom errors
     #[derive(
         Clone,
@@ -1043,6 +1072,7 @@ pub mod idfmm {
         InvalidSwapOutputTransfer(InvalidSwapOutputTransfer),
         InvalidTokens(InvalidTokens),
         Locked(Locked),
+        OnlyWETH(OnlyWETH),
         /// The standard solidity revert string, with selector
         /// Error(string) -- 0x08c379a0
         RevertString(::std::string::String),
@@ -1092,6 +1122,11 @@ pub mod idfmm {
             ) {
                 return Ok(Self::Locked(decoded));
             }
+            if let Ok(decoded) = <OnlyWETH as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::OnlyWETH(decoded));
+            }
             Err(::ethers::core::abi::Error::InvalidData.into())
         }
     }
@@ -1115,6 +1150,9 @@ pub mod idfmm {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Locked(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::OnlyWETH(element) => {
+                    ::ethers::core::abi::AbiEncode::encode(element)
+                }
                 Self::RevertString(s) => ::ethers::core::abi::AbiEncode::encode(s),
             }
         }
@@ -1146,6 +1184,8 @@ pub mod idfmm {
                 _ if selector == <Locked as ::ethers::contract::EthError>::selector() => {
                     true
                 }
+                _ if selector
+                    == <OnlyWETH as ::ethers::contract::EthError>::selector() => true,
                 _ => false,
             }
         }
@@ -1166,6 +1206,7 @@ pub mod idfmm {
                 }
                 Self::InvalidTokens(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Locked(element) => ::core::fmt::Display::fmt(element, f),
+                Self::OnlyWETH(element) => ::core::fmt::Display::fmt(element, f),
                 Self::RevertString(s) => ::core::fmt::Display::fmt(s, f),
             }
         }
@@ -1208,6 +1249,11 @@ pub mod idfmm {
     impl ::core::convert::From<Locked> for IDFMMErrors {
         fn from(value: Locked) -> Self {
             Self::Locked(value)
+        }
+    }
+    impl ::core::convert::From<OnlyWETH> for IDFMMErrors {
+        fn from(value: OnlyWETH) -> Self {
+            Self::OnlyWETH(value)
         }
     }
     #[derive(
@@ -1272,12 +1318,13 @@ pub mod idfmm {
     )]
     #[ethevent(
         name = "Init",
-        abi = "Init(address,address,address,address,uint256,uint256,uint256,uint256)"
+        abi = "Init(address,address,address,address,address,uint256,uint256,uint256,uint256)"
     )]
     pub struct InitFilter {
         #[ethevent(indexed)]
         pub account: ::ethers::core::types::Address,
         pub strategy: ::ethers::core::types::Address,
+        pub lp_token: ::ethers::core::types::Address,
         #[ethevent(indexed)]
         pub token_x: ::ethers::core::types::Address,
         #[ethevent(indexed)]

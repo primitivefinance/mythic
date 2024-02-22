@@ -1,4 +1,4 @@
-pub use log_normal_lib::*;
+pub use lib_string::*;
 /// This module was auto-generated with ethers-rs Abigen.
 /// More information at: <https://github.com/gakonst/ethers-rs>
 #[allow(
@@ -9,7 +9,7 @@ pub use log_normal_lib::*;
     dead_code,
     non_camel_case_types,
 )]
-pub mod log_normal_lib {
+pub mod lib_string {
     #[allow(deprecated)]
     fn __abi() -> ::ethers::core::abi::Abi {
         ::ethers::core::abi::ethabi::Contract {
@@ -22,46 +22,44 @@ pub mod log_normal_lib {
         }
     }
     ///The parsed JSON ABI of the contract.
-    pub static LOGNORMALLIB_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
+    pub static LIBSTRING_ABI: ::ethers::contract::Lazy<::ethers::core::abi::Abi> = ::ethers::contract::Lazy::new(
         __abi,
     );
     #[rustfmt::skip]
-    const __BYTECODE: &[u8] = b"`\x80\x80`@R4`\x1BW`@Q`\x94\x90\x81a\0i\x8290\x81PP\xF3[bF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01Ra7\xB7`\xF1\x1B`d\x82\x01R`\x84\x90\xFD\xFE`\x80`@\x81\x90RbF\x1B\xCD`\xE5\x1B\x81R` `\x84\x90\x81R`5`\xA4R\x7FContract does not have fallback `\xC4Rtnor receive functions`X\x1B`\xE4R\x90\xFD\xFE\xA2dipfsX\"\x12 v\x1C=\x89v\x9D\xAD\x80\xCF\x88\x9E\xE3:\xB7\x94\xEFF\x98\xA6\x15\x81W\0\xB3\x1F\"\xEE\xD0'Q3\ndsolcC\0\x08\x16\x003";
+    const __BYTECODE: &[u8] = b"`\x80\x80`@R4`\x1BW`@Q`\x94\x90\x81a\0i\x8290\x81PP\xF3[bF\x1B\xCD`\xE5\x1B\x81R` `\x04\x82\x01R`\"`$\x82\x01R\x7FEther sent to non-payable functi`D\x82\x01Ra7\xB7`\xF1\x1B`d\x82\x01R`\x84\x90\xFD\xFE`\x80`@\x81\x90RbF\x1B\xCD`\xE5\x1B\x81R` `\x84\x90\x81R`5`\xA4R\x7FContract does not have fallback `\xC4Rtnor receive functions`X\x1B`\xE4R\x90\xFD\xFE\xA2dipfsX\"\x12 9P\xA21\xD4[\x13\"j\xA0\xA5\xDB\xA8\xE1l\x87v\xF2tE\"\xA6\x8B \x91\x1B\xAE\x08L+\xA9\x08dsolcC\0\x08\x16\x003";
     /// The bytecode of the contract.
-    pub static LOGNORMALLIB_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
+    pub static LIBSTRING_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
         __BYTECODE,
     );
     #[rustfmt::skip]
-    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@\x81\x90RbF\x1B\xCD`\xE5\x1B\x81R` `\x84\x90\x81R`5`\xA4R\x7FContract does not have fallback `\xC4Rtnor receive functions`X\x1B`\xE4R\x90\xFD\xFE\xA2dipfsX\"\x12 v\x1C=\x89v\x9D\xAD\x80\xCF\x88\x9E\xE3:\xB7\x94\xEFF\x98\xA6\x15\x81W\0\xB3\x1F\"\xEE\xD0'Q3\ndsolcC\0\x08\x16\x003";
+    const __DEPLOYED_BYTECODE: &[u8] = b"`\x80`@\x81\x90RbF\x1B\xCD`\xE5\x1B\x81R` `\x84\x90\x81R`5`\xA4R\x7FContract does not have fallback `\xC4Rtnor receive functions`X\x1B`\xE4R\x90\xFD\xFE\xA2dipfsX\"\x12 9P\xA21\xD4[\x13\"j\xA0\xA5\xDB\xA8\xE1l\x87v\xF2tE\"\xA6\x8B \x91\x1B\xAE\x08L+\xA9\x08dsolcC\0\x08\x16\x003";
     /// The deployed bytecode of the contract.
-    pub static LOGNORMALLIB_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
+    pub static LIBSTRING_DEPLOYED_BYTECODE: ::ethers::core::types::Bytes = ::ethers::core::types::Bytes::from_static(
         __DEPLOYED_BYTECODE,
     );
-    pub struct LogNormalLib<M>(::ethers::contract::Contract<M>);
-    impl<M> ::core::clone::Clone for LogNormalLib<M> {
+    pub struct LibString<M>(::ethers::contract::Contract<M>);
+    impl<M> ::core::clone::Clone for LibString<M> {
         fn clone(&self) -> Self {
             Self(::core::clone::Clone::clone(&self.0))
         }
     }
-    impl<M> ::core::ops::Deref for LogNormalLib<M> {
+    impl<M> ::core::ops::Deref for LibString<M> {
         type Target = ::ethers::contract::Contract<M>;
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
-    impl<M> ::core::ops::DerefMut for LogNormalLib<M> {
+    impl<M> ::core::ops::DerefMut for LibString<M> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
-    impl<M> ::core::fmt::Debug for LogNormalLib<M> {
+    impl<M> ::core::fmt::Debug for LibString<M> {
         fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-            f.debug_tuple(::core::stringify!(LogNormalLib))
-                .field(&self.address())
-                .finish()
+            f.debug_tuple(::core::stringify!(LibString)).field(&self.address()).finish()
         }
     }
-    impl<M: ::ethers::providers::Middleware> LogNormalLib<M> {
+    impl<M: ::ethers::providers::Middleware> LibString<M> {
         /// Creates a new contract instance with the specified `ethers` client at
         /// `address`. The contract derefs to a `ethers::Contract` object.
         pub fn new<T: Into<::ethers::core::types::Address>>(
@@ -71,7 +69,7 @@ pub mod log_normal_lib {
             Self(
                 ::ethers::contract::Contract::new(
                     address.into(),
-                    LOGNORMALLIB_ABI.clone(),
+                    LIBSTRING_ABI.clone(),
                     client,
                 ),
             )
@@ -107,8 +105,8 @@ pub mod log_normal_lib {
             ::ethers::contract::ContractError<M>,
         > {
             let factory = ::ethers::contract::ContractFactory::new(
-                LOGNORMALLIB_ABI.clone(),
-                LOGNORMALLIB_BYTECODE.clone().into(),
+                LIBSTRING_ABI.clone(),
+                LIBSTRING_BYTECODE.clone().into(),
                 client,
             );
             let deployer = factory.deploy(constructor_args)?;
@@ -117,7 +115,7 @@ pub mod log_normal_lib {
         }
     }
     impl<M: ::ethers::providers::Middleware> From<::ethers::contract::Contract<M>>
-    for LogNormalLib<M> {
+    for LibString<M> {
         fn from(contract: ::ethers::contract::Contract<M>) -> Self {
             Self::new(contract.address(), contract.client())
         }

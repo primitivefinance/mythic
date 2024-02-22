@@ -42,7 +42,7 @@ impl G3mArbitrageur {
             token_admin,
             liquid_exchange_address,
             protocol_client,
-            PoolKind::G3M,
+            PoolKind::GeometricMean,
             pool_id,
         )
         .await?;
@@ -55,7 +55,9 @@ impl G3mArbitrageur {
         let pool_params = self.0.protocol_client.get_params(self.0.pool_id).await?;
 
         let (wx, wy, swap_fee) = match pool_params {
-            PoolParams::G3M(g3m_params) => (g3m_params.w_x, g3m_params.w_y, g3m_params.swap_fee),
+            PoolParams::GeometricMean(g3m_params) => {
+                (g3m_params.w_x, g3m_params.w_y, g3m_params.swap_fee)
+            }
             PoolParams::LogNormal(_) => bail!("Failed to parse G3M params, received LogNormal"),
         };
 

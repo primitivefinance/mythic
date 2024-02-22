@@ -9,8 +9,8 @@ use anyhow::Result;
 use arbiter_core::errors::ArbiterCoreError;
 use bindings::{
     dfmm::{Pool as PoolStruct, DFMM},
-    g3m::G3M,
-    g3m_solver::{G3MSolver, G3Mparams},
+    geometric_mean::GeometricMean,
+    geometric_mean_solver::{GeometricMeanParams, GeometricMeanSolver},
     log_normal::LogNormal,
     log_normal_solver::{LogNormalParams, LogNormalSolver},
     shared_types::InitParams,
@@ -38,13 +38,13 @@ pub struct LogNormalF64 {
 
 #[derive(Debug, Clone)]
 pub enum PoolInitParamsF64 {
-    G3M(G3mF64),
+    GeometricMean(G3mF64),
     LogNormal(LogNormalF64),
 }
 
 #[derive(Debug, Clone)]
 pub enum PoolParams {
-    G3M(G3Mparams),
+    GeometricMean(GeometricMeanParams),
     LogNormal(LogNormalParams),
 }
 
@@ -54,8 +54,8 @@ pub struct ProtocolClient<C> {
     pub protocol: DFMM<C>,
     pub ln_solver: LogNormalSolver<C>,
     pub ln_strategy: LogNormal<C>,
-    pub g_solver: G3MSolver<C>,
-    pub g_strategy: G3M<C>,
+    pub g_solver: GeometricMeanSolver<C>,
+    pub g_strategy: GeometricMean<C>,
 }
 
 impl<C> Clone for ProtocolClient<C> {
@@ -74,12 +74,14 @@ impl<C> Clone for ProtocolClient<C> {
 impl<C: Middleware + 'static> ProtocolClient<C> {
     #[tracing::instrument(level = "trace", ret)]
     pub async fn new(client: Arc<C>, token_x: Address, token_y: Address) -> Result<Self> {
-        let protocol = DFMM::deploy(client.clone(), ())?.send().await?;
+        let protocol = DFMM::deploy(client.clone(), Address::zero())?
+            .send()
+            .await?;
         let ln_strategy = LogNormal::deploy(client.clone(), protocol.address())?
             .send()
             .await?;
 
-        let g_strategy = G3M::deploy(client.clone(), protocol.address())?
+        let g_strategy = GeometricMean::deploy(client.clone(), protocol.address())?
             .send()
             .await?;
 
@@ -87,7 +89,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             .send()
             .await?;
 
-        let g_solver = G3MSolver::deploy(client.clone(), g_strategy.address())?
+        let g_solver = GeometricMeanSolver::deploy(client.clone(), g_strategy.address())?
             .send()
             .await?;
 
@@ -115,8 +117,8 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
             protocol: DFMM::new(protocol_addr, client.clone()),
             ln_strategy: LogNormal::new(ln_strategy_addr, client.clone()),
             ln_solver: LogNormalSolver::new(ln_solver_addr, client.clone()),
-            g_strategy: G3M::new(g_strategy_addr, client.clone()),
-            g_solver: G3MSolver::new(g_solver_addr, client.clone()),
+            g_strategy: GeometricMean::new(g_strategy_addr, client.clone()),
+            g_solver: GeometricMeanSolver::new(g_solver_addr, client.clone()),
         })
     }
 
@@ -142,7 +144,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
 
         let kind = match strategy {
             _ if strategy == ln_address => PoolKind::LogNormal,
-            _ if strategy == g_address => PoolKind::G3M,
+            _ if strategy == g_address => PoolKind::GeometricMean,
             _ => return Err(ArbiterCoreError::MissingDataError),
         };
 
@@ -176,7 +178,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let pool_params = to_init_params_wad(init_params)?;
 
         match pool_params {
-            PoolParams::G3M(g3m_params) => {
+            PoolParams::GeometricMean(g3m_params) => {
                 let init_data = self
                     .g_solver
                     .get_initial_pool_data(init_reserve_x_wad, init_price_wad, g3m_params)
@@ -228,7 +230,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     ) -> Result<InitParams> {
         let pool_params = to_init_params_wad(init_params)?;
         match pool_params {
-            PoolParams::G3M(g3m_params) => {
+            PoolParams::GeometricMean(g3m_params) => {
                 let init_data = self
                     .g_solver
                     .get_initial_pool_data(init_reserve_x_wad, init_price_wad, g3m_params)
@@ -300,7 +302,9 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let pool = self.get_pool(pool_id).await?;
 
         match pool.kind {
-            PoolKind::G3M => Ok(self.g_solver.internal_price(pool_id).call().await.unwrap()),
+            PoolKind::GeometricMean => {
+                Ok(self.g_solver.internal_price(pool_id).call().await.unwrap())
+            }
             PoolKind::LogNormal => Ok(self.ln_solver.internal_price(pool_id).call().await.unwrap()),
         }
     }
@@ -318,7 +322,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
         let pool = self.get_pool(pool_id).await?;
 
         match pool.kind {
-            PoolKind::G3M => Ok(PoolParams::G3M(
+            PoolKind::GeometricMean => Ok(PoolParams::GeometricMean(
                 self.g_solver.fetch_pool_params(pool_id).call().await?,
             )),
             PoolKind::LogNormal => Ok(PoolParams::LogNormal(
@@ -379,12 +383,14 @@ fn to_wad(value: f64) -> U256 {
 
 fn to_init_params_wad(init_params: PoolInitParamsF64) -> Result<PoolParams> {
     match init_params {
-        PoolInitParamsF64::G3M(g3m_params) => Ok(PoolParams::G3M(G3Mparams {
-            w_x: to_wad(g3m_params.wx),
-            w_y: to_wad(1.0) - to_wad(g3m_params.wx),
-            swap_fee: to_wad(g3m_params.swap_fee),
-            controller: g3m_params.controller,
-        })),
+        PoolInitParamsF64::GeometricMean(g3m_params) => {
+            Ok(PoolParams::GeometricMean(GeometricMeanParams {
+                w_x: to_wad(g3m_params.wx),
+                w_y: to_wad(1.0) - to_wad(g3m_params.wx),
+                swap_fee: to_wad(g3m_params.swap_fee),
+                controller: g3m_params.controller,
+            }))
+        }
         PoolInitParamsF64::LogNormal(ln_params) => Ok(PoolParams::LogNormal(LogNormalParams {
             sigma: to_wad(ln_params.sigma),
             strike: to_wad(ln_params.strike),

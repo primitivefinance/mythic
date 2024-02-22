@@ -33,7 +33,7 @@ t_n.fixed = 1.0
 # # The mean for OU 
 process.OU.mean.fixed = 0
 # The volatility for OU 
-process.OU.volatility.fixed = 0.01
+process.OU.volatility.fixed = 0.1
 # The mean reversion rate for OU
 process.OU.theta.fixed = -0.05
 
@@ -49,7 +49,7 @@ initial_x_amount.fixed = 100
 # The initial price of the pair
 initial_price.fixed = 1.0
 # inital parameters
-sigma.fixed = 1.0
+sigma.fixed = 0.1
 tau.fixed = 1.0
 strike_price.fixed = 1.0
 swap_fee.fixed = 0.0005

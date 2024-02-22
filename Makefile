@@ -9,7 +9,7 @@ all:
 
 build:
 	@echo "Building project artifacts."
-	forge bind --via-ir --revert-strings debug -b crates/bindings --crate-name bindings --overwrite --force
+	cd ./lib/DFMM && forge bind --via-ir --revert-strings debug -b ../../crates/bindings --crate-name bindings --overwrite --force
 	@echo "Build complete. You're welcome ya' filthy animal!"
 
 clean:

@@ -2,7 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone, Copy)]
 pub enum PoolKind {
-    G3M,
+    GeometricMean,
     LogNormal,
 }
 

@@ -136,7 +136,7 @@ impl ParameterManager {
         let pool_params = self.protocol_client.get_params(self.pool_id).await?;
         let vol_diff = (portfolio_rv - self.target_volatility).abs();
         match pool_params {
-            PoolParams::G3M(g3m_params) => {
+            PoolParams::GeometricMean(g3m_params) => {
                 let wx = parse_ether_to_f64(g3m_params.w_x)?;
                 let mut new_wx;
                 if portfolio_rv < self.target_volatility {

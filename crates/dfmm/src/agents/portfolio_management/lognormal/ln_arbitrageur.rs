@@ -61,7 +61,7 @@ impl LnArbitrageur {
                 ln_params.tau,
                 ln_params.swap_fee,
             ),
-            PoolParams::G3M(_) => bail!("Failed to parse LogNormal params, received G3M"),
+            PoolParams::GeometricMean(_) => bail!("Failed to parse LogNormal params, received G3M"),
         };
 
         info!("strike: {:?}", format_ether(strike));

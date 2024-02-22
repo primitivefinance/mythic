@@ -185,6 +185,26 @@ pub mod i_strategy {
                     ],
                 ),
                 (
+                    ::std::borrow::ToOwned::to_owned("name"),
+                    ::std::vec![
+                        ::ethers::core::abi::ethabi::Function {
+                            name: ::std::borrow::ToOwned::to_owned("name"),
+                            inputs: ::std::vec![],
+                            outputs: ::std::vec![
+                                ::ethers::core::abi::ethabi::Param {
+                                    name: ::std::string::String::new(),
+                                    kind: ::ethers::core::abi::ethabi::ParamType::String,
+                                    internal_type: ::core::option::Option::Some(
+                                        ::std::borrow::ToOwned::to_owned("string"),
+                                    ),
+                                },
+                            ],
+                            constant: ::core::option::Option::None,
+                            state_mutability: ::ethers::core::abi::ethabi::StateMutability::View,
+                        },
+                    ],
+                ),
+                (
                     ::std::borrow::ToOwned::to_owned("update"),
                     ::std::vec![
                         ::ethers::core::abi::ethabi::Function {
@@ -516,6 +536,14 @@ pub mod i_strategy {
                 .method_hash([115, 203, 45, 3], (sender, pool_id, data))
                 .expect("method not found (this should never happen)")
         }
+        ///Calls the contract's `name` (0x06fdde03) function
+        pub fn name(
+            &self,
+        ) -> ::ethers::contract::builders::ContractCall<M, ::std::string::String> {
+            self.0
+                .method_hash([6, 253, 222, 3], ())
+                .expect("method not found (this should never happen)")
+        }
         ///Calls the contract's `update` (0xacad2989) function
         pub fn update(
             &self,
@@ -798,6 +826,21 @@ pub mod i_strategy {
         pub pool_id: ::ethers::core::types::U256,
         pub data: ::ethers::core::types::Bytes,
     }
+    ///Container type for all input parameters for the `name` function with signature `name()` and selector `0x06fdde03`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthCall,
+        ::ethers::contract::EthDisplay,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    #[ethcall(name = "name", abi = "name()")]
+    pub struct NameCall;
     ///Container type for all input parameters for the `update` function with signature `update(address,uint256,bytes)` and selector `0xacad2989`
     #[derive(
         Clone,
@@ -874,6 +917,7 @@ pub mod i_strategy {
         Dfmm(DfmmCall),
         GetPoolParams(GetPoolParamsCall),
         Init(InitCall),
+        Name(NameCall),
         Update(UpdateCall),
         ValidateAllocateOrDeallocate(ValidateAllocateOrDeallocateCall),
         ValidateSwap(ValidateSwapCall),
@@ -902,6 +946,11 @@ pub mod i_strategy {
                 data,
             ) {
                 return Ok(Self::Init(decoded));
+            }
+            if let Ok(decoded) = <NameCall as ::ethers::core::abi::AbiDecode>::decode(
+                data,
+            ) {
+                return Ok(Self::Name(decoded));
             }
             if let Ok(decoded) = <UpdateCall as ::ethers::core::abi::AbiDecode>::decode(
                 data,
@@ -932,6 +981,7 @@ pub mod i_strategy {
                     ::ethers::core::abi::AbiEncode::encode(element)
                 }
                 Self::Init(element) => ::ethers::core::abi::AbiEncode::encode(element),
+                Self::Name(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::Update(element) => ::ethers::core::abi::AbiEncode::encode(element),
                 Self::ValidateAllocateOrDeallocate(element) => {
                     ::ethers::core::abi::AbiEncode::encode(element)
@@ -951,6 +1001,7 @@ pub mod i_strategy {
                 Self::Dfmm(element) => ::core::fmt::Display::fmt(element, f),
                 Self::GetPoolParams(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Init(element) => ::core::fmt::Display::fmt(element, f),
+                Self::Name(element) => ::core::fmt::Display::fmt(element, f),
                 Self::Update(element) => ::core::fmt::Display::fmt(element, f),
                 Self::ValidateAllocateOrDeallocate(element) => {
                     ::core::fmt::Display::fmt(element, f)
@@ -977,6 +1028,11 @@ pub mod i_strategy {
     impl ::core::convert::From<InitCall> for IStrategyCalls {
         fn from(value: InitCall) -> Self {
             Self::Init(value)
+        }
+    }
+    impl ::core::convert::From<NameCall> for IStrategyCalls {
+        fn from(value: NameCall) -> Self {
+            Self::Name(value)
         }
     }
     impl ::core::convert::From<UpdateCall> for IStrategyCalls {
@@ -1058,6 +1114,20 @@ pub mod i_strategy {
         pub reserve_y: ::ethers::core::types::U256,
         pub total_liquidity: ::ethers::core::types::U256,
     }
+    ///Container type for all return fields from the `name` function with signature `name()` and selector `0x06fdde03`
+    #[derive(
+        Clone,
+        ::ethers::contract::EthAbiType,
+        ::ethers::contract::EthAbiCodec,
+        serde::Serialize,
+        serde::Deserialize,
+        Default,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash
+    )]
+    pub struct NameReturn(pub ::std::string::String);
     ///Container type for all return fields from the `validateAllocateOrDeallocate` function with signature `validateAllocateOrDeallocate(address,uint256,bytes)` and selector `0x8a04bdd5`
     #[derive(
         Clone,

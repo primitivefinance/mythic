@@ -47,7 +47,7 @@ impl Arbitrageur {
         let liquid_exchange = LiquidExchange::new(liquid_exchange_address, client.clone());
 
         let solver = match kind {
-            PoolKind::G3M => protocol_client.g_solver.address(),
+            PoolKind::GeometricMean => protocol_client.g_solver.address(),
             PoolKind::LogNormal => protocol_client.ln_solver.address(),
         };
 
