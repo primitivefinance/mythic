@@ -1,8 +1,11 @@
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 
 use arbiter_bindings::bindings::arbiter_token::ArbiterToken;
 use clients::protocol::{G3mF64, PoolInitParamsF64, ProtocolClient};
-use ethers::{types::U256, utils::parse_ether};
+use ethers::{abi::Event, types::U256, utils::parse_ether};
+use futures::stream::Stream;
+
+use self::position::Position;
 
 use super::{agent::*, *};
 use crate::agents::base::token_admin::TokenAdmin;
@@ -98,6 +101,19 @@ impl G3mLiquidityProvider {
             ))
         }
     }
+}
+
+impl<Event> Position<Event> for G3mLiquidityProvider {
+    type EventStream = Pin<Box<dyn Stream<Item = Event>>>;
+
+    fn stream_value(&self, event: Event) -> f64 {
+        // what chain data do we need to get the value of the position?
+        // does it actually make sense for E to be events 
+        // Change to the right event type
+        todo!()
+    }
+
+
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
