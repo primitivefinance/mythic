@@ -14,6 +14,8 @@ unit-conversions = "0.1.16"
 itertools.workspace = true
 rand.workspace = true
 
+futures.workspace = true
+
 arbiter-bindings.workspace = true
 arbiter-core.workspace = true
 
