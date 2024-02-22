@@ -3,7 +3,7 @@ use clients::protocol::ProtocolClient;
 
 use self::agents::portfolio_management::{
     g3m::{dca_g3m_setup, g3m_setup},
-    lognormal::ln_setup,
+    lognormal::{ln_lst_setup, ln_setup},
 };
 use super::*;
 use crate::{
@@ -16,6 +16,7 @@ pub enum Scenarios {
     Dca,
     VolatilityTargeting,
     Momentum,
+    Lst,
 }
 
 /// Implements the scenario by adding the chosen agents to the simulation's
@@ -41,6 +42,7 @@ impl Scenario for Scenarios {
             Scenarios::Dca => dca_setup(environment, config).await?,
             Scenarios::VolatilityTargeting => dynamic_weights_setup(environment, config).await?,
             Scenarios::Momentum => dynamic_weights_setup(environment, config).await?,
+            Scenarios::Lst => lst_setup(environment, config).await?,
         };
 
         Ok((agents, steps, environment))
@@ -72,7 +74,6 @@ async fn dca_setup(
         base_client.clone(),
         token_admin.arbx.address(),
         token_admin.arby.address(),
-        0.003,
     )
     .await?;
 
@@ -134,7 +135,6 @@ async fn dynamic_weights_setup(
         base_client.clone(),
         token_admin.arbx.address(),
         token_admin.arby.address(),
-        0.003,
     )
     .await?;
 
@@ -178,6 +178,64 @@ async fn dynamic_weights_setup(
         .with_event(token_admin.arbx.events(), "arbx")
         .with_event(token_admin.arby.events(), "arby")
         .with_event(g3m_arb_events, "g3m_atomic_arbitrage")
+        .with_event(ln_arb_events, "ln_atomic_arbitrage")
+        .run()
+        .map_err(|e| SimulationError::GenericError(e.to_string()))?;
+
+    Ok((agents, steps, environment))
+}
+
+async fn lst_setup(
+    environment: Environment,
+    config: SimulationConfig<Single>,
+) -> Result<(Agents, usize, Environment), SimulationError> {
+    let mut agents = Agents::new();
+
+    let block_admin = BlockAdmin::new(&environment, &config, "block_admin").await?;
+    agents.add(block_admin);
+
+    let token_admin = TokenAdmin::new(&environment, &config, "token_admin").await?;
+    agents.add(token_admin.clone());
+
+    let price_changer =
+        PriceChanger::new(&environment, &config, "price_changer", &token_admin).await?;
+    let steps = price_changer.trajectory.paths[0].len() - 1;
+
+    let lex = price_changer.liquid_exchange.address();
+    let lex_events = price_changer.liquid_exchange.events();
+    agents.add(price_changer);
+
+    let base_client = ArbiterMiddleware::new(&environment, "base".into()).unwrap();
+    let base_protocol_client = ProtocolClient::new(
+        base_client.clone(),
+        token_admin.arbx.address(),
+        token_admin.arby.address(),
+    )
+    .await?;
+
+    let ln_pool_id = base_protocol_client.get_next_pool_id().await?;
+
+    let (ln_lp, ln_arb, ln_manager) = ln_lst_setup(
+        &environment,
+        &config,
+        base_protocol_client.clone(),
+        lex,
+        &token_admin,
+        ln_pool_id,
+    )
+    .await?;
+    let ln_arb_events = ln_arb.0.atomic_arbitrage.events();
+    agents.add(ln_lp);
+    agents.add(ln_arb);
+    agents.add(ln_manager);
+
+    Logger::builder()
+        .directory(config.output_directory.clone())
+        .file_name(config.output_file_name.clone().unwrap())
+        .with_event(lex_events, "lex")
+        .with_event(base_protocol_client.protocol.events(), "dfmm")
+        .with_event(token_admin.arbx.events(), "arbx")
+        .with_event(token_admin.arby.events(), "arby")
         .with_event(ln_arb_events, "ln_atomic_arbitrage")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;

@@ -43,3 +43,44 @@ pub async fn ln_setup(
     .await?;
     Ok((lp, arbitrageur, manager))
 }
+
+pub async fn ln_lst_setup(
+    environment: &Environment,
+    config: &SimulationConfig<Single>,
+    protocol_client: ProtocolClient<ArbiterMiddleware>,
+    liquid_exchange_address: Address,
+    token_admin: &TokenAdmin,
+    pool_id: U256,
+) -> Result<(
+    LogNormalLiquidityProvider,
+    LnArbitrageur,
+    LstParameterManager,
+)> {
+    let manager = LstParameterManager::new(
+        environment,
+        config,
+        protocol_client.clone(),
+        "lst_manager",
+        liquid_exchange_address,
+        pool_id,
+    )
+    .await?;
+    let arbitrageur = LnArbitrageur::new(
+        environment,
+        token_admin,
+        liquid_exchange_address,
+        protocol_client.clone(),
+        pool_id,
+    )
+    .await?;
+    let lp = LogNormalLiquidityProvider::new(
+        environment,
+        config,
+        "lst_lp",
+        token_admin,
+        protocol_client.clone(),
+        manager.client.address(),
+    )
+    .await?;
+    Ok((lp, arbitrageur, manager))
+}

@@ -5,7 +5,10 @@ use base::{block_admin::*, token_admin::*};
 use portfolio_management::{base::parameter_manager::*, g3m::dca_g3m_liquidity_provider::*};
 
 use self::portfolio_management::{
-    base::parameter_manager::ParameterManagerParameters,
+    base::{
+        lst_parameter_manager::{LstParameterManager, LstParameterManagerParams},
+        parameter_manager::ParameterManagerParameters,
+    },
     g3m::{
         dca_g3m_liquidity_provider::DcaG3mLiquidityProviderParameters,
         dca_swapper::DcaSwapperParameters, g3m_liquidity_provider::G3mLiquidityProviderParameters,
@@ -25,6 +28,7 @@ pub enum AgentParameters<P: Parameterized> {
     PriceChanger(PriceChangerParameters<P>),
     ParameterManager(ParameterManagerParameters<P>),
     DcaSwapper(DcaSwapperParameters<P>),
+    LstParameterManager(LstParameterManagerParams<P>),
 }
 
 impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
@@ -36,6 +40,13 @@ impl From<AgentParameters<Multiple>> for Vec<AgentParameters<Single>> {
                 parameters
                     .into_iter()
                     .map(AgentParameters::LogNormalLiquidityProvider)
+                    .collect()
+            }
+            AgentParameters::LstParameterManager(parameters) => {
+                let parameters: Vec<LstParameterManagerParams<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(AgentParameters::LstParameterManager)
                     .collect()
             }
             AgentParameters::G3mLiquidityProvider(parameters) => {

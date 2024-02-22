@@ -19,6 +19,7 @@ pub struct LogNormalLiquidityProvider {
     initial_strike: f64,
     initial_sigma: f64,
     initial_tau: f64,
+    swap_fee: f64,
 }
 
 #[async_trait::async_trait]
@@ -32,7 +33,7 @@ impl Agent for LogNormalLiquidityProvider {
             strike: self.initial_strike,
             sigma: self.initial_sigma,
             tau: self.initial_tau,
-            swap_fee: 0.003,
+            swap_fee: self.swap_fee,
             controller: self.controller,
         });
 
@@ -103,6 +104,7 @@ impl LogNormalLiquidityProvider {
                 initial_strike: params.strike_price.0,
                 initial_sigma: params.sigma.0,
                 initial_tau: params.tau.0,
+                swap_fee: params.swap_fee.0,
             })
         } else {
             anyhow::bail!("No parameters found for `LogNormalLiquidityProvider`")
@@ -117,6 +119,7 @@ pub struct LogNormalLiquidityProviderParameters<P: Parameterized> {
     pub strike_price: P,
     pub sigma: P,
     pub tau: P,
+    pub swap_fee: P,
 }
 
 impl From<LogNormalLiquidityProviderParameters<Multiple>>
@@ -128,15 +131,17 @@ impl From<LogNormalLiquidityProviderParameters<Multiple>>
             params.initial_price.parameters(),
             params.strike_price.parameters(),
             params.sigma.parameters(),
-            params.tau.parameters()
+            params.tau.parameters(),
+            params.swap_fee.parameters()
         )
         .map(
-            |(ixa, ip, stk, sig, tau)| LogNormalLiquidityProviderParameters {
+            |(ixa, ip, stk, sig, tau, sf)| LogNormalLiquidityProviderParameters {
                 initial_x_amount: Single(ixa),
                 initial_price: Single(ip),
                 strike_price: Single(stk),
                 sigma: Single(sig),
                 tau: Single(tau),
+                swap_fee: Single(sf),
             },
         )
         .collect()

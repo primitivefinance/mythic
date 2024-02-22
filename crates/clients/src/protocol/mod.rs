@@ -73,12 +73,7 @@ impl<C> Clone for ProtocolClient<C> {
 
 impl<C: Middleware + 'static> ProtocolClient<C> {
     #[tracing::instrument(level = "trace", ret)]
-    pub async fn new(
-        client: Arc<C>,
-        token_x: Address,
-        token_y: Address,
-        swap_fee_percent_wad: f64,
-    ) -> Result<Self> {
+    pub async fn new(client: Arc<C>, token_x: Address, token_y: Address) -> Result<Self> {
         let protocol = DFMM::deploy(client.clone(), ())?.send().await?;
         let ln_strategy = LogNormal::deploy(client.clone(), protocol.address())?
             .send()

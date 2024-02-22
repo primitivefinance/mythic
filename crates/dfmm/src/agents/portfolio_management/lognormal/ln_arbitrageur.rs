@@ -65,8 +65,7 @@ impl LnArbitrageur {
         };
 
         info!("strike: {:?}", format_ether(strike));
-        info!("sigma: {:?}", format_ether(sigma));
-        info!("tau: {:?}", format_ether(tau));
+        info!("lex price: {:?}", format_ether(target_price_wad));
 
         let (strike, sigma, tau, swap_fee) = (
             I256::from_raw(strike),
@@ -196,6 +195,8 @@ impl Agent for LnArbitrageur {
                             "Price Post Swap[LOGNORM]: {:?}",
                             format_ether(internal_price)
                         );
+                        self.0.num_arbs += 1;
+                        info!("Arb Count: {:?}", self.0.num_arbs);
                         output.await?;
                     }
                     Err(e) => {
@@ -250,6 +251,8 @@ impl Agent for LnArbitrageur {
                             "Price Post Swap [LOGNORM]: {:?}",
                             format_ether(internal_price)
                         );
+                        self.0.num_arbs += 1;
+                        info!("Arb Count: {:?}", self.0.num_arbs);
                         output.await?;
                     }
                     Err(e) => {

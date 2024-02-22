@@ -26,6 +26,7 @@ pub struct Arbitrageur {
     pub pool_id: U256,
     pub token_x: ArbiterToken<ArbiterMiddleware>,
     pub token_y: ArbiterToken<ArbiterMiddleware>,
+    pub num_arbs: u64,
 }
 
 impl Arbitrageur {
@@ -96,6 +97,7 @@ impl Arbitrageur {
             pool_id,
             token_x,
             token_y,
+            num_arbs: 0,
         })
     }
 
