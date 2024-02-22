@@ -46,7 +46,7 @@ impl Agent for LstParameterManager {
         self.index += 1;
         let next_strike = self.strike_values[self.index as usize];
         self.protocol_client
-            .set_strike_price(self.pool_id, next_strike, time + self.timestep_size)
+            .set_strike_price(self.pool_id, next_strike, time + 1)
             .await
             .unwrap();
 

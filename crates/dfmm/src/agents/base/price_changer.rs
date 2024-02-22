@@ -224,6 +224,7 @@ pub enum PriceProcess<P: Parameterized> {
     Gbm(GBMParameters<P>),
     #[serde(rename = "OU")]
     Ou(OUParameters<P>),
+    FixedRate(FixedRateParameters<P>),
 }
 
 impl StochasticProcess for PriceProcess<Single> {
@@ -239,6 +240,15 @@ impl StochasticProcess for PriceProcess<Single> {
                 parameters.theta.0,
             )
             .drift(x, t),
+            PriceProcess::FixedRate(parameters) => {
+                let rate = parameters.rate.0;
+                OrnsteinUhlenbeck::new(
+                    move |t| (1.0 + rate).powf(t),
+                    parameters.volatility.0,
+                    parameters.theta.0,
+                )
+                .drift(x, t)
+            }
         }
     }
 
@@ -254,6 +264,15 @@ impl StochasticProcess for PriceProcess<Single> {
                 parameters.theta.0,
             )
             .diffusion(x, t),
+            PriceProcess::FixedRate(parameters) => {
+                let rate = parameters.rate.0;
+                OrnsteinUhlenbeck::new(
+                    move |t| (1.0 + rate).powf(t),
+                    parameters.volatility.0,
+                    parameters.theta.0,
+                )
+                .diffusion(x, t)
+            }
         }
     }
 
@@ -268,6 +287,15 @@ impl StochasticProcess for PriceProcess<Single> {
                 parameters.theta.0,
             )
             .jump(x, t),
+            PriceProcess::FixedRate(parameters) => {
+                let rate = parameters.rate.0;
+                OrnsteinUhlenbeck::new(
+                    move |t| (1.0 + rate).powf(t),
+                    parameters.volatility.0,
+                    parameters.theta.0,
+                )
+                .jump(x, t)
+            }
         }
     }
 }
@@ -282,6 +310,13 @@ impl From<PriceProcess<Multiple>> for Vec<PriceProcess<Single>> {
             PriceProcess::Ou(parameters) => {
                 let parameters: Vec<OUParameters<Single>> = parameters.into();
                 parameters.into_iter().map(PriceProcess::Ou).collect()
+            }
+            PriceProcess::FixedRate(parameters) => {
+                let parameters: Vec<FixedRateParameters<Single>> = parameters.into();
+                parameters
+                    .into_iter()
+                    .map(PriceProcess::FixedRate)
+                    .collect()
             }
         }
     }
@@ -324,6 +359,29 @@ impl From<OUParameters<Multiple>> for Vec<OUParameters<Single>> {
             .map(|(t, m, v)| OUParameters {
                 theta: Single(t),
                 mean: Single(m),
+                volatility: Single(v),
+            })
+            .collect()
+    }
+}
+
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+pub struct FixedRateParameters<P: Parameterized> {
+    pub rate: P,
+    pub theta: P,
+    pub volatility: P,
+}
+
+impl From<FixedRateParameters<Multiple>> for Vec<FixedRateParameters<Single>> {
+    fn from(item: FixedRateParameters<Multiple>) -> Self {
+        let theta = item.theta.parameters();
+        let rate = item.rate.parameters();
+        let volatility = item.volatility.parameters();
+
+        iproduct!(theta, rate.clone(), volatility.clone())
+            .map(|(t, m, v)| FixedRateParameters {
+                theta: Single(t),
+                rate: Single(m),
                 volatility: Single(v),
             })
             .collect()
