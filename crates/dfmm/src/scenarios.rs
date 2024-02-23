@@ -202,7 +202,6 @@ async fn lst_setup(
     let steps = price_changer.trajectory.paths[0].len() - 1;
 
     let lex = price_changer.liquid_exchange.address();
-    let lex_events = price_changer.liquid_exchange.events();
     agents.add(price_changer);
 
     let base_client = ArbiterMiddleware::new(&environment, "base".into()).unwrap();
@@ -224,7 +223,9 @@ async fn lst_setup(
         ln_pool_id,
     )
     .await?;
-    let ln_arb_events = ln_arb.0.atomic_arbitrage.events();
+    let lex_events = ln_arb.0.atomic_arbitrage.log_lex_data_filter();
+    let dfmm_events = ln_arb.0.atomic_arbitrage.log_dfmm_data_filter();
+    let arb_events = ln_arb.0.atomic_arbitrage.log_arb_data_filter();
     agents.add(ln_lp);
     agents.add(ln_arb);
     agents.add(ln_manager);
@@ -232,11 +233,10 @@ async fn lst_setup(
     Logger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
-        .with_event(lex_events, "lex")
-        .with_event(base_protocol_client.protocol.events(), "dfmm")
-        .with_event(token_admin.arbx.events(), "arbx")
-        .with_event(token_admin.arby.events(), "arby")
-        .with_event(ln_arb_events, "ln_atomic_arbitrage")
+        // .with_event(ln_arb_events, "atomic_arbitrage")
+        .with_event(lex_events, "lex_data")
+        .with_event(dfmm_events, "dfmm_data")
+        .with_event(arb_events, "arb_data")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 

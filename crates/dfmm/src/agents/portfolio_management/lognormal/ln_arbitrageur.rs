@@ -159,6 +159,14 @@ impl LnArbitrageur {
 impl Agent for LnArbitrageur {
     #[allow(unused)]
     async fn step(&mut self) -> Result<(), ArbiterCoreError> {
+        self.0
+            .atomic_arbitrage
+            .log_data(self.0.pool_id)
+            .send()
+            .await
+            .unwrap()
+            .await
+            .unwrap();
         match self.0.detect_arbitrage().await.unwrap() {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));

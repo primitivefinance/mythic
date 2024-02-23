@@ -1,4 +1,4 @@
 [submodule "lib/DFMM"]
 	path = lib/DFMM
   url = https://github.com/primitivefinance/DFMM
-  branch = "main"
+  branch = "sim-stable"
