@@ -1,8 +1,12 @@
-use analysis::reader::SimulationData;
-use analysis::visualize::plots::PlotSettings;
-use analysis::visualize::{plots::line::LinePlot, Figure};
+use analysis::{
+    reader::SimulationData,
+    visualize::{
+        plots::{line::LinePlot, PlotSettings},
+        Figure,
+    },
+};
 use bindings::atomic_v2::{
-    LogArbDataFilter, LogDfmmDataFilter, LogLexDataFilter, PriceFilter, ProfitFilter,
+    LogArbDataFilter, LogAssetDataFilter, LogDfmmDataFilter, PriceFilter, ProfitFilter,
 };
 use ethers::utils::format_ether;
 
@@ -15,22 +19,9 @@ pub fn main() {
     let mut figure = Figure::new("test", Some((1500, 1500)));
     let data = SimulationData::new("analysis/lst/0.json").unwrap();
 
-    // Get the vectorized events for the lex contract
-    let lex_price_events = data.get_vectorized_events::<LogLexDataFilter>("lex_data");
-    println!("len: {}", lex_price_events.len());
-    let (x_data, y_data) = lex_price_events
-        .into_iter()
-        .enumerate()
-        .map(|(idx, ev)| (idx as f64, u256_to_f64(ev.price)))
-        .unzip();
-    let settings = PlotSettings::new()
-        .labels("Index", "LEX Price")
-        .title("Price Path");
-    let plot = LinePlot::new(x_data, y_data).settings(settings);
-    figure.add_plot(plot);
-
     // Get the vectorized events for the dfmm contract
-    let atomic_arb_price_events = data.get_vectorized_events::<LogDfmmDataFilter>("dfmm_data");
+    let atomic_arb_price_events =
+        data.get_vectorized_events::<LogDfmmDataFilter>("atomic_arbitrage");
     let (x_data, y_data) = atomic_arb_price_events
         .into_iter()
         .enumerate()
@@ -42,7 +33,35 @@ pub fn main() {
     let plot = LinePlot::new(x_data, y_data).settings(settings);
     figure.add_plot(plot);
 
-    let atomic_arb_profit_events = data.get_vectorized_events::<LogArbDataFilter>("arb_data");
+    // Get the vectorized events for the lex contract
+    let lex_price_events = data.get_vectorized_events::<LogAssetDataFilter>("atomic_arbitrage");
+    println!("len: {}", lex_price_events.len());
+    let (x_data, y_data) = lex_price_events
+        .into_iter()
+        .enumerate()
+        .map(|(idx, ev)| (idx as f64, u256_to_f64(ev.lex_price)))
+        .unzip();
+    let settings = PlotSettings::new()
+        .labels("Index", "LEX Price")
+        .title("Price Path");
+    let plot = LinePlot::new(x_data, y_data).settings(settings);
+    figure.add_plot(plot);
+
+    let lex_price_events = data.get_vectorized_events::<LogAssetDataFilter>("atomic_arbitrage");
+    println!("len: {}", lex_price_events.len());
+    let (x_data, y_data) = lex_price_events
+        .into_iter()
+        .enumerate()
+        .map(|(idx, ev)| (idx as f64, u256_to_f64(ev.timestamp)))
+        .unzip();
+    let settings = PlotSettings::new()
+        .labels("Index", "Timestamp")
+        .title("Price Path");
+    let plot = LinePlot::new(x_data, y_data).settings(settings);
+    figure.add_plot(plot);
+
+    let atomic_arb_profit_events =
+        data.get_vectorized_events::<LogArbDataFilter>("atomic_arbitrage");
     let (x_data, y_data): (Vec<_>, Vec<_>) = atomic_arb_profit_events
         .into_iter()
         .enumerate()

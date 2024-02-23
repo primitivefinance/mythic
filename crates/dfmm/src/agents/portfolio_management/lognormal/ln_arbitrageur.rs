@@ -164,8 +164,6 @@ impl Agent for LnArbitrageur {
             .log_data(self.0.pool_id)
             .send()
             .await
-            .unwrap()
-            .await
             .unwrap();
         match self.0.detect_arbitrage().await.unwrap() {
             Swap::RaiseExchangePrice(target_price) => {

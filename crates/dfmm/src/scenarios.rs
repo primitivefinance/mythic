@@ -223,9 +223,7 @@ async fn lst_setup(
         ln_pool_id,
     )
     .await?;
-    let lex_events = ln_arb.0.atomic_arbitrage.log_lex_data_filter();
-    let dfmm_events = ln_arb.0.atomic_arbitrage.log_dfmm_data_filter();
-    let arb_events = ln_arb.0.atomic_arbitrage.log_arb_data_filter();
+    let ln_arb_events = ln_arb.0.atomic_arbitrage.events();
     agents.add(ln_lp);
     agents.add(ln_arb);
     agents.add(ln_manager);
@@ -233,10 +231,7 @@ async fn lst_setup(
     Logger::builder()
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
-        // .with_event(ln_arb_events, "atomic_arbitrage")
-        .with_event(lex_events, "lex_data")
-        .with_event(dfmm_events, "dfmm_data")
-        .with_event(arb_events, "arb_data")
+        .with_event(ln_arb_events, "atomic_arbitrage")
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 
