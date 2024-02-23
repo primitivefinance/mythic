@@ -81,7 +81,7 @@ impl LstParameterManager {
         if let Some(AgentParameters::LstParameterManager(params)) =
             config.agent_parameters.get(&label).cloned()
         {
-            let times = linspace!(params.t0.0, params.tn.0, params.num_steps.0 as usize);
+            let times = linspace!(params.t0.0, params.tn.0, params.num_steps.0 as usize + 1);
             let strike_values = times
                 .iter()
                 .map(|t| {

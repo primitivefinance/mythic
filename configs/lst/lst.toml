@@ -1,5 +1,5 @@
 scenario = "Lst"
-output_directory = "analysis/lst/static"
+output_directory = "analysis/lst/"
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 10000
@@ -33,7 +33,7 @@ t_n.fixed = 1.0
 # # The mean for OU 
 process.FixedRate.rate.fixed = 0.05
 # The volatility for OU 
-process.FixedRate.volatility.fixed = 0.01
+process.FixedRate.volatility.fixed = 0.005
 # The mean reversion rate for OU
 process.FixedRate.theta.fixed = 20
 
