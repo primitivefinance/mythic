@@ -6,6 +6,7 @@ use clients::protocol::ProtocolClient;
 use ethers::types::Address;
 use itertools::iproduct;
 use settings::parameters::LinspaceParameters;
+use tracing::info;
 
 use super::{agent::*, *};
 
@@ -35,7 +36,7 @@ pub struct LstParameterManager {
     pub protocol_client: ProtocolClient<ArbiterMiddleware>,
     pub pool_id: U256,
     pub strike_values: Vec<f64>,
-    pub timestep_size: u64,
+    pub num_steps: u64,
     pub index: u64,
 }
 
@@ -45,6 +46,7 @@ impl Agent for LstParameterManager {
         let time = self.client.get_block_timestamp().await?.as_u64();
         self.index += 1;
         let next_strike = self.strike_values[self.index as usize];
+        info!("Setting strike price to: {}", next_strike);
         self.protocol_client
             .set_strike_price(self.pool_id, next_strike, time + 1)
             .await
@@ -79,7 +81,7 @@ impl LstParameterManager {
         if let Some(AgentParameters::LstParameterManager(params)) =
             config.agent_parameters.get(&label).cloned()
         {
-            let times = linspace!(params.t0.0, params.tn.0, params.timestep_size.0 as usize);
+            let times = linspace!(params.t0.0, params.tn.0, params.num_steps.0 as usize);
             let strike_values = times
                 .iter()
                 .map(|t| {
@@ -92,7 +94,7 @@ impl LstParameterManager {
                 lex,
                 protocol_client,
                 strike_values,
-                timestep_size: params.timestep_size.0 as u64,
+                num_steps: params.num_steps.0 as u64,
                 pool_id,
                 index: 0,
             })
@@ -108,7 +110,7 @@ impl LstParameterManager {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct LstParameterManagerParams<P: Parameterized> {
     pub rate: P,
-    pub timestep_size: P,
+    pub num_steps: P,
     pub t0: P,
     pub tn: P,
 }
@@ -117,13 +119,13 @@ impl From<LstParameterManagerParams<Multiple>> for Vec<LstParameterManagerParams
     fn from(params: LstParameterManagerParams<Multiple>) -> Self {
         iproduct!(
             params.rate.parameters(),
-            params.timestep_size.parameters(),
+            params.num_steps.parameters(),
             params.t0.parameters(),
             params.tn.parameters()
         )
         .map(|(r, ts, t0, tn)| LstParameterManagerParams {
             rate: Single(r),
-            timestep_size: Single(ts),
+            num_steps: Single(ts),
             t0: Single(t0),
             tn: Single(tn),
         })

@@ -39,7 +39,7 @@ process.FixedRate.theta.fixed = 20
 
 [agent.lst_manager.LstParameterManager]
 rate.fixed = 0.05
-timestep_size.fixed = 10000
+num_steps.fixed = 3162
 t0.fixed = 0.0
 tn.fixed = 1.0
 
