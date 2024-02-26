@@ -232,6 +232,8 @@ async fn lst_setup(
         .directory(config.output_directory.clone())
         .file_name(config.output_file_name.clone().unwrap())
         .with_event(ln_arb_events, "atomic_arbitrage")
+        .metadata(config)
+        .unwrap()
         .run()
         .map_err(|e| SimulationError::GenericError(e.to_string()))?;
 
