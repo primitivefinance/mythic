@@ -117,7 +117,7 @@ iced = { version = "=0.10.0", features = [
     "canvas",
     "svg",
 ] }
-iced_aw = { version = "=0.7.0", default-features = false, features = [
+iced_aw = { version = "=0.8.0", default-features = false, features = [
     "menu",
     "icon_text",
     "icons",
