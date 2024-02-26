@@ -1,0 +1,56 @@
+scenario = "Lst"
+output_directory = "analysis/stable/sweep/"
+max_parallel = 1
+
+[agent.block_admin.BlockAdmin]
+timestep_size = 10000
+
+[agent.token_admin.TokenAdmin.arbx]
+name = "Ether"
+symbol = "ETH"
+decimals = 18
+
+[agent.token_admin.TokenAdmin.arby]
+name = "Staked Ether"
+symbol = "sETH"
+decimals = 18
+
+# Price process parameters
+[agent.price_changer.PriceChanger]
+# True is we want to use historical daily average price data
+backtest = false
+# The seed to use (optional)
+# seed = 1
+# The number of steps in the process
+num_steps = 3162
+# The number of distinct paths to use
+num_paths = 2
+# The initial price of the asset
+initial_price.fixed = 1.0
+# The start time of the process
+t_0.fixed = 0.0
+# The end time of the process
+t_n.fixed = 1.0
+
+process.OU.theta.fixed = 10
+process.OU.volatility.fixed = 0.005
+process.OU.mean.fixed = 1
+
+[agent.lst_manager.LstParameterManager]
+rate.fixed = 0.00
+num_steps.fixed = 3162
+t0.fixed = 0.0
+tn.fixed = 1.0
+
+[agent.lst_lp.LogNormalLiquidityProvider]
+# The amount of `token_x` to provide in ether
+initial_x_amount.fixed = 100
+# The initial price of the pair
+initial_price.fixed = 1.0
+# inital parameters
+sigma.start = 0.001
+sigma.end = 0.05
+sigma.steps = 5
+tau.fixed = 1.0
+strike_price.fixed = 1.0
+swap_fee.fixed = 0.0001

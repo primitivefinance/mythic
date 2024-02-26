@@ -270,6 +270,7 @@ pub async fn run_parallel(
     let slice = std::thread::spawn(move || {
         let rt = Builder::new_multi_thread().build()?;
         let max_parallel = builder.config_builder.config.max_parallel;
+        println!("Max parallel: {:?}", max_parallel);
         let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<Error>));
         let mut builder = builder.clone();
         let semaphore = max_parallel.map(|max| Arc::new(Semaphore::new(max)));
