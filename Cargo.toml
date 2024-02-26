@@ -57,7 +57,7 @@ clap = { version = "4.5.0", features = ["derive"] }
 plotters = "=0.3.5"
 
 # math
-RustQuant = { version = "0.0.45", features = ["seedable"] }
+RustQuant = { version = "0.0.49", features = ["seedable"] }
 statrs = "=0.16.0"
 reikna = "=0.12.3"
 
