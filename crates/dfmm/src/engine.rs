@@ -7,7 +7,7 @@ use revm::{
     primitives::{AccountInfo, HashMap as Map, U256},
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::Semaphore;
+use tokio::{runtime::Builder, sync::Semaphore, task::JoinSet};
 
 use super::*;
 use crate::{
@@ -269,19 +269,33 @@ pub async fn run_parallel(
     let mut builder = builder.clone();
 
     let mut instances = builder.build(scenario).await;
-    let mut handles = vec![];
     let i = instances.len();
+    let mut handles = vec![];
+
+    // let mut set = JoinSet::new();
 
     for _ in 0..i {
         let instance = instances.remove(0);
         let errors_clone = errors.clone();
-        handles.push(tokio::spawn(simulation_task(instance, errors_clone)));
+        let handle = std::thread::spawn(move || {
+            let rt = Builder::new_current_thread()
+                .worker_threads(1)
+                .build()
+                .unwrap();
+            rt.block_on(async {
+                let instance = simulation_task(instance, errors_clone).await.unwrap();
+                instance.stop().unwrap();
+            })
+        });
+        handles.push(handle);
     }
 
     for handle in handles {
-        let instance = handle.await??;
-        instance.stop()?;
+        handle.join().unwrap();
     }
+    // while let Some(res) = set.join_next().await {
+    // let instance = res.unwrap()?;
+    // }
 
     let mut errors = errors.lock().await;
     if errors.len() > 0 {

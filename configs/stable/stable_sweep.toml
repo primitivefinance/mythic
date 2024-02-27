@@ -49,7 +49,7 @@ initial_price.fixed = 1.0
 # inital parameters
 sigma.start = 0.001
 sigma.end = 0.05
-sigma.steps = 5
+sigma.steps = 32
 tau.fixed = 1.0
 strike_price.fixed = 1.0
 swap_fee.fixed = 0.0001
