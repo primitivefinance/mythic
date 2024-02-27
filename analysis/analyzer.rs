@@ -11,13 +11,16 @@ use bindings::atomic_v2::{LogAssetDataFilter, LogDfmmDataFilter};
 use dfmm::agents::AgentParameters;
 use ethers::utils::format_ether;
 use rayon::prelude::*;
+use std::sync::Mutex;
 
 pub fn main() {
     let files = read_dir("analysis/stable/sweep").unwrap();
     // TODO: Turn this into a nice function
-    let mut dataset: HashMap<(String, String), Vec<SimulationData>> = HashMap::new();
-    for file in files {
-        let data = SimulationData::new(&file).unwrap();
+
+    let dataset: Mutex<HashMap<(String, String), Vec<SimulationData>>> = Mutex::new(HashMap::new());
+
+    files.par_iter().for_each(|file| {
+        let data = SimulationData::new(file).unwrap();
         let agent_params = data
             .metadata
             .as_ref()
@@ -33,14 +36,15 @@ pub fn main() {
         } else {
             panic!()
         };
+        let mut dataset = dataset.lock().unwrap();
         match dataset.get_mut(&key) {
             Some(data_vec) => data_vec.push(data),
             None => {
                 dataset.insert(key.clone(), vec![data]);
             }
         }
-    }
-
+    });
+    let dataset = dataset.lock().unwrap();
     println!("{:?}", dataset.keys().collect::<Vec<_>>());
 
     let _: Vec<_> = dataset
