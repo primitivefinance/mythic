@@ -35,7 +35,6 @@ impl BlockAdmin {
         let label: String = label.into();
         let client = ArbiterMiddleware::new(environment, Some(&label))?;
         if let Some(AgentParameters::BlockAdmin(parameters)) = config.agent_parameters.get(&label) {
-            println!("BlockAdminParameters: {:?}", parameters);
             Ok(Self {
                 client: client.clone(),
                 timestep_size: parameters.timestep_size,

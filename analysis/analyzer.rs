@@ -1,26 +1,20 @@
-use std::{
-    collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::Path};
 
 use analysis::{
     reader::SimulationData,
     visualize::{
-        plots::{line::LinePlot, statistical::StatisticalPlot, PlotSettings},
+        plots::{statistical::StatisticalPlot, PlotSettings},
         Figure,
     },
 };
-use bindings::atomic_v2::{
-    LogArbDataFilter, LogAssetDataFilter, LogDfmmDataFilter, PriceFilter, ProfitFilter,
-};
+use bindings::atomic_v2::{LogAssetDataFilter, LogDfmmDataFilter};
 use dfmm::agents::AgentParameters;
 use ethers::utils::format_ether;
 
 pub fn main() {
     let files = read_dir("analysis/stable/sweep").unwrap();
     // TODO: Turn this into a nice function
-    let mut dataset: HashMap<String, Vec<SimulationData>> = HashMap::new();
+    let mut dataset: HashMap<(String, String), Vec<SimulationData>> = HashMap::new();
     for file in files {
         let data = SimulationData::new(&file).unwrap();
         let agent_params = data
@@ -31,7 +25,10 @@ pub fn main() {
             .get("lst_lp")
             .unwrap();
         let key = if let AgentParameters::LogNormalLiquidityProvider(ln_lp_params) = agent_params {
-            format!("{:.3}", ln_lp_params.sigma.0)
+            (
+                format!("{:.5}", ln_lp_params.sigma.0),
+                format!("{:.5}", ln_lp_params.swap_fee.0),
+            )
         } else {
             panic!()
         };
@@ -46,8 +43,11 @@ pub fn main() {
     println!("{:?}", dataset.keys().collect::<Vec<_>>());
 
     for (key, data_vec) in dataset.iter() {
-        println!("Key: {}: ", key);
-        let mut figure = Figure::new(&format!("Sigma = {}", key), Some((1500, 1500)));
+        println!("Key: {:?}: ", key);
+        let mut figure = Figure::new(
+            &format!("Sigma = {}, SwapFee = {}", key.0, key.1),
+            Some((1500, 1500)),
+        );
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
         // TODO: Make getting this sort of thing easier
