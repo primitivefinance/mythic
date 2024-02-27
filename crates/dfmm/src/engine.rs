@@ -7,7 +7,7 @@ use revm::{
     primitives::{AccountInfo, HashMap as Map, U256},
 };
 use serde::{Deserialize, Serialize};
-use tokio::{runtime::Builder, sync::Semaphore};
+use tokio::sync::Semaphore;
 
 use super::*;
 use crate::{
@@ -265,11 +265,8 @@ pub async fn run_parallel(
 ) -> Result<(), Error> {
     tracing::info!("Running simulation tasks in separate thread.");
 
-    let max_parallel = builder.config_builder.config.max_parallel;
-    println!("Max parallel: {:?}", max_parallel);
     let errors = Arc::new(tokio::sync::Mutex::new(vec![] as Vec<Error>));
     let mut builder = builder.clone();
-    let semaphore = max_parallel.map(|max| Arc::new(Semaphore::new(max)));
 
     let mut instances = builder.build(scenario).await;
     let mut handles = vec![];
@@ -278,12 +275,7 @@ pub async fn run_parallel(
     for _ in 0..i {
         let instance = instances.remove(0);
         let errors_clone = errors.clone();
-        let semaphore_clone = semaphore.clone();
-        handles.push(tokio::spawn(simulation_task(
-            instance,
-            semaphore_clone,
-            errors_clone,
-        )));
+        handles.push(tokio::spawn(simulation_task(instance, errors_clone)));
     }
 
     for handle in handles {
@@ -301,7 +293,6 @@ pub async fn run_parallel(
 
 async fn simulation_task(
     instance: ArbiterInstance,
-    semaphore: Option<Arc<Semaphore>>,
     errors: Arc<tokio::sync::Mutex<Vec<Error>>>,
 ) -> Result<ArbiterInstance, Error> {
     let errors_clone = errors.clone();
@@ -310,68 +301,26 @@ async fn simulation_task(
     instance.init().await.unwrap();
 
     warn!("Running simulation task.");
-    if let Some(semaphore) = &semaphore {
-        let permit = semaphore.acquire().await.unwrap();
-        for i in 0..instance.steps {
-            let result: Result<(), ArbiterCoreError> = instance.step().await;
 
-            match result {
-                Err(e) => {
-                    match &e {
-                        ArbiterCoreError::ExecutionRevert { output, .. } => {
-                            tracing::error!(
-                                "Transaction revert at step {} with revert: {:?}",
-                                i,
-                                Bytes::from(output.clone())
-                            );
-                            let mut errors_clone_lock = errors_clone.lock().await;
-                            errors_clone_lock.push(e.into());
+    for i in 0..instance.steps {
+        let result: Result<(), ArbiterCoreError> = instance.step().await;
 
-                            // Drop the permit when the simulation is done.
-                            drop(permit);
+        match result {
+            Err(e) => {
+                tracing::error!(
+                    "Simulation got an error after calling `step` on step {} {:?}",
+                    i,
+                    e
+                );
 
-                            // Exits the simulation.
-                            break;
-                        }
-                        _ => {
-                            tracing::error!("Error at step {} with message: {:?}", i, e);
-                            let mut errors_clone_lock = errors_clone.lock().await;
-                            errors_clone_lock.push(e.into());
+                let mut errors_clone_lock = errors_clone.lock().await;
+                errors_clone_lock.push(e.into());
 
-                            // Drop the permit when the simulation is done.
-                            drop(permit);
-
-                            // Exits the simulation.
-                            break;
-                        }
-                    };
-                }
-                Ok(_) => {
-                    // Continue running the simulation.
-                }
+                // Exits the simulation.
+                break;
             }
-        }
-    } else {
-        for i in 0..instance.steps {
-            let result: Result<(), ArbiterCoreError> = instance.step().await;
-
-            match result {
-                Err(e) => {
-                    tracing::error!(
-                        "Simulation got an error after calling `step` on step {} {:?}",
-                        i,
-                        e
-                    );
-
-                    let mut errors_clone_lock = errors_clone.lock().await;
-                    errors_clone_lock.push(e.into());
-
-                    // Exits the simulation.
-                    break;
-                }
-                Ok(_) => {
-                    // Continue running the simulation.
-                }
+            Ok(_) => {
+                // Continue running the simulation.
             }
         }
     }
