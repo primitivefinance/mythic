@@ -12,10 +12,6 @@ authors = ["Primitive Bits, Inc."]
 name = "excalibur"
 path = "src/main.rs"
 
-[[bin]]
-name = "analyzer"
-path = "analysis/analyzer.rs"
-
 [workspace.dependencies]
 # Local
 analysis = { path = "./crates/analysis", version = "0.1.0" }

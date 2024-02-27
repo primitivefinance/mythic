@@ -1,26 +1,15 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, sync::Mutex};
 
-use analysis::{
-    reader::SimulationData,
-    visualize::{
-        plots::{statistical::StatisticalPlot, PlotSettings},
-        Figure,
-    },
-};
 use bindings::atomic_v2::{LogAssetDataFilter, LogDfmmDataFilter};
 use dfmm::agents::AgentParameters;
-use ethers::utils::format_ether;
+
 use rayon::prelude::*;
-use std::sync::Mutex;
 
-pub fn main() {
-    let files = read_dir("analysis/stable/sweep").unwrap();
-    // TODO: Turn this into a nice function
+use super::*;
 
+pub async fn plot_prices(batch_data: BatchData) {
     let dataset: Mutex<HashMap<(String, String), Vec<SimulationData>>> = Mutex::new(HashMap::new());
-
-    files.par_iter().for_each(|file| {
-        let data = SimulationData::new(file).unwrap();
+    batch_data.data.into_par_iter().for_each(|data| {
         let agent_params = data
             .metadata
             .as_ref()
@@ -44,8 +33,8 @@ pub fn main() {
             }
         }
     });
+
     let dataset = dataset.lock().unwrap();
-    println!("{:?}", dataset.keys().collect::<Vec<_>>());
 
     let _: Vec<_> = dataset
         .par_iter()
@@ -138,33 +127,4 @@ pub fn main() {
             figure.create().unwrap();
         })
         .collect();
-}
-
-pub fn read_dir(dir: &str) -> Result<Vec<String>, String> {
-    let path = Path::new(dir);
-
-    // Check if the path exists and is a directory
-    if !path.is_dir() {
-        return Err("Path does not exist or is not a directory".to_string());
-    }
-
-    let mut file_paths = Vec::new();
-    match fs::read_dir(path) {
-        Ok(entries) => {
-            for entry in entries {
-                match entry {
-                    Ok(e) => file_paths.push(e.path().to_str().unwrap().to_owned()),
-                    Err(err) => return Err(format!("Error reading entry: {}", err)),
-                }
-            }
-        }
-        Err(err) => return Err(format!("Error reading directory: {}", err)),
-    }
-
-    Ok(file_paths)
-}
-
-fn u256_to_f64(value: ethers::types::U256) -> f64 {
-    let str = format_ether(value);
-    str.parse::<f64>().unwrap()
 }

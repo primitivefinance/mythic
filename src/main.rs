@@ -14,6 +14,7 @@
 //! - Switching to new controllers/screens/anything being rendered should
 //!   offload as much logic as possible from `new` to a dedicated `load`.
 //! - Add more rules!
+use analysis::BatchData;
 use ethers::prelude::*;
 use iced::{
     alignment,
@@ -97,12 +98,16 @@ enum Commands {
         config_path: String,
     },
     /// The `Analyze` subcommand is used to run an analysis.
-    Analyze,
+    Analyze {
+        #[clap(index = 1)]
+        data_dir: String,
+    },
     /// The `Ui` subcommand is used to run the user interface.
     Ui,
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     dotenv().ok();
 
     let args = Args::parse();
@@ -133,7 +138,10 @@ fn main() -> Result<()> {
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => dfmm::run(config_path, args.verbose)?,
-        Some(Commands::Analyze) => todo!(),
+        Some(Commands::Analyze { data_dir }) => {
+            let batch_data = BatchData::new(data_dir).await;
+            analysis::commands::plot_prices::plot_prices(batch_data).await
+        }
         Some(Commands::Ui) => run(args.dev)?,
         None => run(args.dev)?,
     }

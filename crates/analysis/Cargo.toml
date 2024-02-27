@@ -21,7 +21,7 @@ plotters.workspace = true
 
 linked-hash-map.workspace = true
 tokio.workspace = true
+rayon.workspace = true
 
 [dev-dependencies]
-rayon = "=1.8.1"
 tracing-test = "=0.2.4"

@@ -1,4 +1,7 @@
-use std::{env, path::PathBuf};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 use dfmm::settings::{parameters::Single, SimulationConfig};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -74,6 +77,30 @@ impl SimulationData {
     }
 }
 
+pub fn read_dir(dir: &str) -> Result<Vec<String>, String> {
+    let path = Path::new(dir);
+
+    // Check if the path exists and is a directory
+    if !path.is_dir() {
+        return Err("Path does not exist or is not a directory".to_string());
+    }
+
+    let mut file_paths = Vec::new();
+    match fs::read_dir(path) {
+        Ok(entries) => {
+            for entry in entries {
+                match entry {
+                    Ok(e) => file_paths.push(e.path().to_str().unwrap().to_owned()),
+                    Err(err) => return Err(format!("Error reading entry: {}", err)),
+                }
+            }
+        }
+        Err(err) => return Err(format!("Error reading directory: {}", err)),
+    }
+
+    Ok(file_paths)
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -94,14 +121,6 @@ mod tests {
         assert!(events.is_some());
         let events = events.unwrap();
         assert_eq!(events.len(), 8);
-    }
-
-    #[test]
-    #[cfg(feature = "rmm")]
-    fn retrieve_vectorized_event_structs() {
-        let simulation_data = SimulationData::new(FILE_NAME).unwrap();
-        let values = simulation_data.get_vectorized_events::<bindings::rmm::SwapFilter>("rmm");
-        assert_eq!(values.len(), 8);
     }
 
     #[test]

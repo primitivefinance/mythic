@@ -1,13 +1,9 @@
-use plotters::{
-    backend::BitMapBackend,
-    coord::{types::RangedCoordf64, Shift},
-    prelude::*,
-};
+use plotters::{backend::BitMapBackend, coord::Shift, prelude::*};
 
-use self::plots::{statistical::StatisticalPlot, Plot};
 use super::*;
 
 pub mod plots;
+pub use plots::*;
 
 pub struct Figure {
     pub file_name: String,

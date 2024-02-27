@@ -4,6 +4,10 @@ pub mod heatmap;
 pub mod line;
 pub mod statistical;
 
+pub use heatmap::*;
+pub use line::*;
+pub use statistical::*;
+
 pub trait Plot {
     fn plot(&self, drawing_area: &DrawingArea<BitMapBackend, Shift>) -> Result<()>;
 }
