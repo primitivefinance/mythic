@@ -1,5 +1,6 @@
-use std::env;
+use std::{collections::HashMap, env};
 
+use dfmm::{agents::AgentParameters, settings::parameters::Single};
 use tokio::{fs, sync::mpsc, task};
 
 use super::*;
@@ -90,6 +91,37 @@ impl BatchData {
         // let errors = errors_receiver.recv().await.unwrap();
 
         Self { data, errors: None }
+    }
+
+    // TODO: Strum could be really useful to pattern match on the enum stuff with CLI input
+    pub fn get_keyed_data<P, T>(
+        &self,
+        agent_id: &str,
+        agent_parameter: impl Fn(&AgentParameters<Single>) -> Option<P>,
+        key_extractor: impl Fn(&P) -> T,
+    ) -> HashMap<T, Vec<SimulationData>>
+    where
+        T: Eq + std::hash::Hash + Clone,
+    {
+        let mut dataset: HashMap<T, Vec<SimulationData>> = HashMap::new();
+        for data in self.data.iter() {
+            let agent_params = data
+                .metadata
+                .as_ref()
+                .unwrap()
+                .agent_parameters
+                .get(agent_id)
+                .unwrap();
+            let param = agent_parameter(agent_params).unwrap();
+            let key = key_extractor(&param);
+            match dataset.get_mut(&key) {
+                Some(data_vec) => data_vec.push(data.clone()),
+                None => {
+                    dataset.insert(key.clone(), vec![data.clone()]);
+                }
+            }
+        }
+        dataset
     }
 }
 
