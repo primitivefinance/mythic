@@ -1,6 +1,5 @@
 scenario = "Lst"
 output_directory = "analysis/stable/sweep/"
-max_parallel = 1
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 10000
