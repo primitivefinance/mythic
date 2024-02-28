@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use arbiter_core::errors::ArbiterCoreError;
+use bindings::atomic_v2::AtomicV2Errors;
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{Address, U256},
@@ -181,7 +182,18 @@ impl Agent for LnArbitrageur {
                 {
                     Ok(optimal_dy) => optimal_dy,
                     Err(e) => {
-                        error!("Error computing optimal_dy: {:?}", e);
+                        let bytes = match e.as_middleware_error().unwrap() {
+                            ArbiterCoreError::ExecutionRevert { output, gas_used } => {
+                                info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                                output
+                            }
+                            _ => {
+                                error!("Error computing optimal_dy: {:?}", e);
+                                return Ok(());
+                            }
+                        };
+                        let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
+                        error!("Error computing optimal_dy: {:?}", err);
                         return Ok(());
                     }
                 };
@@ -241,7 +253,18 @@ impl Agent for LnArbitrageur {
                 {
                     Ok(optimal_dx) => optimal_dx,
                     Err(e) => {
-                        error!("Error computing optimal_dx: {:?}", e);
+                        let bytes = match e.as_middleware_error().unwrap() {
+                            ArbiterCoreError::ExecutionRevert { output, gas_used } => {
+                                info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                                output
+                            }
+                            _ => {
+                                error!("Error computing optimal_dx: {:?}", e);
+                                return Ok(());
+                            }
+                        };
+                        let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
+                        error!("Error computing optimal_dx: {:?}", err);
                         return Ok(());
                     }
                 };
