@@ -1,5 +1,5 @@
 scenario = "Lst"
-output_directory = "data/stable/sweep/"
+output_directory = "analysis/stable/sweep/"
 
 [agent.block_admin.BlockAdmin]
 timestep_size = 10000

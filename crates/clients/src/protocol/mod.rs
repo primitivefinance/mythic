@@ -263,14 +263,7 @@ impl<C: Middleware + 'static> ProtocolClient<C> {
     }
 
     pub async fn initialize_pool(&self, payload: InitParams) -> Result<Option<TransactionReceipt>> {
-        let tx = self
-            .protocol
-            .init(payload)
-            .send()
-            .await?
-            .confirmations(0)
-            .interval(Duration::from_millis(100))
-            .await?;
+        let tx = self.protocol.init(payload).send().await?.await?;
 
         Ok(tx)
     }

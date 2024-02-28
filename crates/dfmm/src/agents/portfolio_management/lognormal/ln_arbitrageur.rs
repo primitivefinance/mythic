@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use arbiter_core::errors::ArbiterCoreError;
-use bindings::atomic_v2::AtomicV2Errors;
+use bindings::{
+    atomic_v2::AtomicV2Errors,
+    log_normal_solver::{LogNormalSolver, LogNormalSolverErrors},
+};
 use clients::protocol::{pool::PoolKind, PoolParams, ProtocolClient};
 use ethers::{
     types::{Address, U256},
@@ -122,7 +125,11 @@ impl LnArbitrageur {
         let dx = (delta - rx) * i_wad * i_wad
             / (((gamma - i_wad) * (i_wad - cdf_p)) / (rx * i_wad / liq) + i_wad);
         info!("dx: {:?}", dx / i_wad);
-        Ok(dx / i_wad)
+        if dx / i_wad > rx {
+            Ok(rx - I256::from(1_000_000))
+        } else {
+            Ok(dx / i_wad)
+        }
     }
 
     // todo (matt): figure out why this returns u256::max sometimes
@@ -152,7 +159,11 @@ impl LnArbitrageur {
             / (((gamma - i_wad) * cdf_p) / (ry * i_wad * i_wad / (strike * liq)) + i_wad);
         info!("dy: {:?}", dy / i_wad);
 
-        Ok(dy / i_wad)
+        if dy / i_wad > ry {
+            return Ok(ry - I256::from(1_000_000));
+        } else {
+            return Ok(dy / i_wad);
+        }
     }
 }
 
@@ -172,6 +183,24 @@ impl Agent for LnArbitrageur {
                 let x_in = false;
                 let input = self.get_dy().await.unwrap().into_raw();
 
+                let ln_params = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .fetch_pool_params(self.0.pool_id)
+                    .call()
+                    .await
+                    .unwrap();
+
+                let reserves = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .get_reserves_and_liquidity(self.0.pool_id)
+                    .call()
+                    .await
+                    .unwrap();
+
                 let optimal_dy = match self
                     .0
                     .protocol_client
@@ -188,12 +217,14 @@ impl Agent for LnArbitrageur {
                                 output
                             }
                             _ => {
-                                error!("Error computing optimal_dy: {:?}", e);
+                                error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}", e, ln_params, reserves);
                                 return Ok(());
                             }
                         };
-                        let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
-                        error!("Error computing optimal_dy: {:?}", err);
+                        let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
+                        // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
+                        // error!("Error computing optimal_dy: {:?}", err);
+                        error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}, with upper bound: {:?}", err, ln_params, reserves, input);
                         return Ok(());
                     }
                 };
@@ -243,6 +274,24 @@ impl Agent for LnArbitrageur {
                 let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
                 let input = self.get_dx().await.unwrap().into_raw();
 
+                let ln_params = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .fetch_pool_params(self.0.pool_id)
+                    .call()
+                    .await
+                    .unwrap();
+
+                let reserves = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .get_reserves_and_liquidity(self.0.pool_id)
+                    .call()
+                    .await
+                    .unwrap();
+
                 let optimal_dx = match self
                     .0
                     .protocol_client
@@ -259,12 +308,14 @@ impl Agent for LnArbitrageur {
                                 output
                             }
                             _ => {
-                                error!("Error computing optimal_dx: {:?}", e);
+                                error!("Error getting optimal_dx: {:?}, with params: {:?}, with reserves: {:?}", e, ln_params, reserves);
                                 return Ok(());
                             }
                         };
-                        let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
-                        error!("Error computing optimal_dx: {:?}", err);
+                        // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
+                        // error!("Error computing optimal_dx: {:?}", err);
+                        let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
+                        error!("Error computing optimal_dx: {:?}, with params: {:?}, with reserves: {:?}, with upper bound: {:?}", err, ln_params, reserves, input);
                         return Ok(());
                     }
                 };
