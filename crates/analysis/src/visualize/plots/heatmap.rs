@@ -2,9 +2,26 @@ use super::*;
 
 #[derive(Clone, Debug)]
 pub struct HeatMapPlot {
+    pub plot_settings: Option<PlotSettings>,
     pub column_data: Vec<f64>,
     pub row_data: Vec<f64>,
     pub value: Vec<Vec<f64>>,
+}
+
+impl HeatMapPlot {
+    pub fn new(column_data: Vec<f64>, row_data: Vec<f64>, value: Vec<Vec<f64>>) -> Self {
+        Self {
+            plot_settings: None,
+            column_data,
+            row_data,
+            value,
+        }
+    }
+
+    pub fn settings(mut self, plot_settings: PlotSettings) -> Self {
+        self.plot_settings = Some(plot_settings);
+        self
+    }
 }
 
 impl Plot for HeatMapPlot {
@@ -77,6 +94,7 @@ mod tests {
     fn add_heatmap_plot() {
         let mut figure = Figure::new("test_add_heatmap_plot", None);
         let heatmap = HeatMapPlot {
+            plot_settings: None,
             column_data: vec![0.0, 1.0, 2.0],
             row_data: vec![0.0, 1.0],
             value: vec![vec![0.0, 1.0, 2.0], vec![0.0, 1.0, 3.0]],
@@ -87,6 +105,7 @@ mod tests {
     fn create_heatmap_plot() {
         let mut figure = Figure::new("test_create_heatmap_plot", None);
         let heatmap = HeatMapPlot {
+            plot_settings: None,
             column_data: vec![0.0, 1.0, 2.0],
             row_data: vec![0.0, 1.0],
             value: vec![vec![2.0, 4.0, 2.0], vec![3.0, 1.0, 5.0]],

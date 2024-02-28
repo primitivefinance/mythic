@@ -101,9 +101,17 @@ enum Commands {
     Analyze {
         #[clap(index = 1)]
         data_dir: String,
+        #[clap(subcommand)]
+        analysis_type: AnalysisType,
     },
     /// The `Ui` subcommand is used to run the user interface.
     Ui,
+}
+
+#[derive(Subcommand)]
+enum AnalysisType {
+    Prices,
+    Heatmap,
 }
 
 #[tokio::main]
@@ -138,9 +146,19 @@ async fn main() -> Result<()> {
 
     match &args.command {
         Some(Commands::Simulate { config_path }) => dfmm::run(config_path, args.verbose)?,
-        Some(Commands::Analyze { data_dir }) => {
+        Some(Commands::Analyze {
+            data_dir,
+            analysis_type,
+        }) => {
             let batch_data = BatchData::new(data_dir).await;
-            analysis::commands::plot_prices::plot_prices(batch_data).await
+            match analysis_type {
+                AnalysisType::Prices => {
+                    analysis::commands::plot_prices::plot_prices(batch_data).await
+                }
+                AnalysisType::Heatmap => {
+                    analysis::commands::plot_heatmap::plot_heatmap(batch_data).await
+                }
+            }
         }
         Some(Commands::Ui) => run(args.dev)?,
         None => run(args.dev)?,
