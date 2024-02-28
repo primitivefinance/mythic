@@ -26,67 +26,72 @@ impl HeatMapPlot {
 
 impl Plot for HeatMapPlot {
     fn plot(&self, drawing_area: &DrawingArea<BitMapBackend, Shift>) -> Result<()> {
-        // We assume that `row_data` and `column_data` are evenly spaced. If not,
-        // additional calculations would be required.
-        let row_interval = if self.row_data.len() > 1 {
-            self.row_data[1] - self.row_data[0]
-        } else {
-            1.0
-        };
-
-        let column_interval = if self.column_data.len() > 1 {
-            self.column_data[1] - self.column_data[0]
-        } else {
-            1.0
-        };
+        let row_interval = self.row_data.get(1).map_or(1.0, |&v| v - self.row_data[0]);
+        let column_interval = self
+            .column_data
+            .get(1)
+            .map_or(1.0, |&v| v - self.column_data[0]);
 
         let mut chart = ChartBuilder::on(drawing_area)
-            .caption("HeatMap", ("sans-serif", 40).into_font())
-            .margin(5)
-            .x_label_area_size(30)
-            .y_label_area_size(30)
+            .caption(
+                self.plot_settings
+                    .as_ref()
+                    .and_then(|s| s.title.clone())
+                    .unwrap_or_default(),
+                ("sans-serif", 40).into_font(),
+            )
+            .margin(10)
+            .x_label_area_size(100)
+            .y_label_area_size(100)
             .build_cartesian_2d(
-                self.column_data[0]..self.column_data.last().unwrap() + column_interval,
-                self.row_data[0]..self.row_data.last().unwrap() + row_interval,
+                self.column_data[0]..*self.column_data.last().unwrap() + column_interval,
+                self.row_data[0]..*self.row_data.last().unwrap() + row_interval,
             )?;
 
-        let max_value = self
-            .value
-            .iter()
-            .flat_map(|row| row.iter())
-            .cloned()
-            .fold(f64::NAN, f64::max);
+        // Customize axis
+        let style = ("sans-serif", 50, &BLACK).into_text_style(drawing_area);
+        chart
+            .configure_mesh()
+            .x_desc(
+                self.plot_settings
+                    .as_ref()
+                    .and_then(|s| s.x_desc.clone())
+                    .unwrap_or_default(),
+            )
+            .y_desc(
+                self.plot_settings
+                    .as_ref()
+                    .and_then(|s| s.y_desc.clone())
+                    .unwrap_or_default(),
+            )
+            .x_labels(self.row_data.len()) // Number of labels on the x-axis
+            .y_labels(self.column_data.len())
+            .x_label_style(style.clone())
+            .y_label_style(style) // Number of labels on the y-axis
+            .draw()?;
 
-        let min_value = self
+        let (min_value, max_value) = self
             .value
             .iter()
             .flat_map(|row| row.iter())
-            .cloned()
-            .fold(f64::INFINITY, f64::min);
+            .fold((f64::INFINITY, f64::NEG_INFINITY), |(min, max), &v| {
+                (v.min(min), v.max(max))
+            });
 
         let value_range = max_value - min_value;
 
-        let colormap = plotters::style::colors::colormaps::Copper {};
-        chart.draw_series(
-            self.clone()
-                .value
-                .iter()
-                .enumerate()
-                .flat_map(|(y_idx, row)| {
-                    row.iter().enumerate().map(move |(x_idx, &value)| {
-                        let normalized_value = (value - min_value) / value_range; // Normalize values
-                        let x = self.column_data[x_idx];
-                        let y = self.row_data[y_idx];
-                        (x, y, normalized_value)
-                    })
-                })
-                .map(|(x, y, normalized_value)| {
-                    Rectangle::new(
-                        [(x, y), (x + column_interval, y + row_interval)],
-                        colormap.get_color(normalized_value).filled(),
-                    )
-                }),
-        )?;
+        chart.draw_series(self.value.iter().enumerate().flat_map(move |(y_idx, row)| {
+            row.iter().enumerate().map(move |(x_idx, &value)| {
+                let colormap = plotters::style::colors::colormaps::Copper {};
+                let normalized_value = (value - min_value) / value_range; // Normalize values
+                let x = self.column_data[x_idx];
+                let y = self.row_data[y_idx];
+                Rectangle::new(
+                    [(x, y), (x + column_interval, y + row_interval)],
+                    colormap.get_color(normalized_value).filled(),
+                )
+            })
+        }))?;
 
         Ok(())
     }

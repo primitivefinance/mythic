@@ -38,11 +38,8 @@ pub async fn plot_heatmap(batch_data: BatchData) {
             })
             .unzip();
         let average_initial_liq = initial_liqs.iter().sum::<f64>() / initial_liqs.len() as f64;
-        println!("Average initial liq for {:?}: {}", key, average_initial_liq);
         let average_final_liq = final_liqs.iter().sum::<f64>() / final_liqs.len() as f64;
-        println!("Average final liq for {:?}: {}", key, average_final_liq);
         let growth = average_final_liq / average_initial_liq;
-        println!("Growth for {:?}: {}", key, growth);
         averages.insert(key.clone(), growth);
     }
 
@@ -91,8 +88,5 @@ fn hashmap_to_heatmap(map: HashMap<(String, String), f64>) -> HeatMapPlot {
 
         value[y_index][x_index] = *val;
     }
-    println!("column_data: {:?}", column_data);
-    println!("row_data: {:?}", row_data);
-    println!("value: {:?}", value);
     HeatMapPlot::new(column_data, row_data, value)
 }
