@@ -57,6 +57,17 @@ impl Plot for HeatMapPlot {
             .cloned()
             .fold(f64::NAN, f64::max);
 
+        let min_value = self
+            .value
+            .iter()
+            .flat_map(|row| row.iter())
+            .cloned()
+            .fold(f64::INFINITY, f64::min);
+
+        let value_range = max_value - min_value;
+
+        let volcano = plotters::style::colors::colormaps::VulcanoHSL {};
+
         chart.draw_series(
             self.clone()
                 .value
@@ -64,18 +75,19 @@ impl Plot for HeatMapPlot {
                 .enumerate()
                 .flat_map(|(y_idx, row)| {
                     row.iter().enumerate().map(move |(x_idx, &value)| {
+                        let normalized_value = (value - min_value) / value_range; // Normalize values
                         let x = self.column_data[x_idx];
                         let y = self.row_data[y_idx];
-                        (x, y, value)
+                        (x, y, normalized_value)
                     })
                 })
-                .map(|(x, y, value)| {
+                .map(|(x, y, normalized_value)| {
                     Rectangle::new(
                         [(x, y), (x + column_interval, y + row_interval)],
                         HSLColor(
-                            240.0 / 360.0 - 240.0 / 360.0 * (value / max_value),
+                            240.0 / 360.0 - 240.0 / 360.0 * normalized_value, // Adjust color mapping
                             0.7,
-                            0.1 + 0.4 * value / max_value,
+                            0.1 + 0.4 * normalized_value,
                         )
                         .filled(),
                     )
