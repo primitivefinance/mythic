@@ -97,7 +97,7 @@ impl BatchData {
     pub fn get_keyed_data<P, T>(
         &self,
         agent_id: &str,
-        agent_parameter: impl Fn(&AgentParameters<Single>) -> Option<P>,
+        param_extractor: impl Fn(&AgentParameters<Single>) -> P,
         key_extractor: impl Fn(&P) -> T,
     ) -> HashMap<T, Vec<SimulationData>>
     where
@@ -112,7 +112,7 @@ impl BatchData {
                 .agent_parameters
                 .get(agent_id)
                 .unwrap();
-            let param = agent_parameter(agent_params).unwrap();
+            let param = param_extractor(agent_params);
             let key = key_extractor(&param);
             match dataset.get_mut(&key) {
                 Some(data_vec) => data_vec.push(data.clone()),

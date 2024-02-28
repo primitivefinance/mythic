@@ -1,48 +1,23 @@
-use std::{collections::HashMap, sync::Mutex};
-
 use bindings::atomic_v2::{LogAssetDataFilter, LogDfmmDataFilter};
-use dfmm::{agents::AgentParameters, settings::parameters::Single};
-
-use rayon::prelude::*;
+use dfmm::{
+    agents::{
+        portfolio_management::lognormal::ln_liquidity_provider::LogNormalLiquidityProviderParameters,
+        AgentParameters,
+    },
+    settings::parameters::Single,
+};
 
 use super::*;
 
 pub async fn plot_prices(batch_data: BatchData) {
-    let dataset: Mutex<HashMap<(String, String), Vec<SimulationData>>> = Mutex::new(HashMap::new());
-    batch_data.data.into_par_iter().for_each(|data| {
-        let agent_params = data
-            .metadata
-            .as_ref()
-            .unwrap()
-            .agent_parameters
-            .get("lst_lp")
-            .unwrap();
-        let key = if let AgentParameters::LogNormalLiquidityProvider(ln_lp_params) = agent_params {
-            (
-                format!("{:.5}", ln_lp_params.sigma.0),
-                format!("{:.5}", ln_lp_params.swap_fee.0),
-            )
-        } else {
-            panic!()
-        };
-        let mut dataset = dataset.lock().unwrap();
-        match dataset.get_mut(&key) {
-            Some(data_vec) => data_vec.push(data),
-            None => {
-                dataset.insert(key.clone(), vec![data]);
-            }
-        }
-    });
-
-    let f = |x: &AgentParameters<Single>| {
-        if let AgentParameters::BlockAdmin(params) = x {
-            Some(*params)
-        } else {
-            None
-        }
+    let param_extractor = |x: &AgentParameters<Single>| match x {
+        AgentParameters::LogNormalLiquidityProvider(params) => *params,
+        _ => unreachable!(),
     };
-
-    let dataset = dataset.lock().unwrap();
+    let key_extractor = |x: &LogNormalLiquidityProviderParameters<Single>| {
+        (format!("{:.5}", x.sigma.0), format!("{:.5}", x.swap_fee.0))
+    };
+    let dataset = batch_data.get_keyed_data("lst_lp", param_extractor, key_extractor);
 
     dataset.par_iter().for_each(|(key, data_vec)| {
         println!("Key: {:?}: ", key);

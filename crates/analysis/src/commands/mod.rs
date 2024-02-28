@@ -1,7 +1,9 @@
 use ethers::utils::format_ether;
 
 use super::*;
+use rayon::prelude::*;
 
+pub mod plot_heatmap;
 pub mod plot_prices;
 
 pub fn u256_to_f64(value: ethers::types::U256) -> f64 {
