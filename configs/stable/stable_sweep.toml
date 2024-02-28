@@ -51,10 +51,10 @@ tau.fixed = 1.0
 strike_price.fixed = 1.0
 
 # SWEEP PARAMS
-sigma.start = 0.001
-sigma.end = 0.005
+sigma.start = 0.0001
+sigma.end = 0.002
 sigma.steps = 5
 
 swap_fee.start = 0.00001
-swap_fee.end = 0.001
+swap_fee.end = 0.0005
 swap_fee.steps = 5

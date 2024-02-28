@@ -171,14 +171,20 @@ impl Agent for LnArbitrageur {
                 let x_in = false;
                 let input = self.get_dy().await.unwrap().into_raw();
 
-                let optimal_dy = self
+                let optimal_dy = match self
                     .0
                     .protocol_client
                     .ln_solver
                     .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input)
                     .call()
                     .await
-                    .unwrap();
+                {
+                    Ok(optimal_dy) => optimal_dy,
+                    Err(e) => {
+                        error!("Error computing optimal_dy: {:?}", e);
+                        return Ok(());
+                    }
+                };
 
                 info!("optimal_dy: {:?}", optimal_dy);
 
@@ -225,14 +231,21 @@ impl Agent for LnArbitrageur {
                 let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
                 let input = self.get_dx().await.unwrap().into_raw();
 
-                let optimal_dx = self
+                let optimal_dx = match self
                     .0
                     .protocol_client
                     .ln_solver
                     .compute_optimal_arb_lower_price(self.0.pool_id, target_price, input)
                     .call()
                     .await
-                    .unwrap();
+                {
+                    Ok(optimal_dx) => optimal_dx,
+                    Err(e) => {
+                        error!("Error computing optimal_dx: {:?}", e);
+                        return Ok(());
+                    }
+                };
+
                 info!("optimal_dx: {:?}", optimal_dx);
 
                 let optimal_dx =

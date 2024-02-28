@@ -64,8 +64,8 @@ impl Plot for HeatMapPlot {
                     .and_then(|s| s.y_desc.clone())
                     .unwrap_or_default(),
             )
-            .x_labels(self.row_data.len()) // Number of labels on the x-axis
-            .y_labels(self.column_data.len())
+            // .x_labels(self.row_data.len()) // Number of labels on the x-axis
+            // .y_labels(self.column_data.len())
             .x_label_style(style.clone())
             .y_label_style(style) // Number of labels on the y-axis
             .draw()?;
