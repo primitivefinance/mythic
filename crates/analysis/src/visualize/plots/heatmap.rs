@@ -66,8 +66,7 @@ impl Plot for HeatMapPlot {
 
         let value_range = max_value - min_value;
 
-        let volcano = plotters::style::colors::colormaps::VulcanoHSL {};
-
+        let colormap = plotters::style::colors::colormaps::Copper {};
         chart.draw_series(
             self.clone()
                 .value
@@ -84,12 +83,7 @@ impl Plot for HeatMapPlot {
                 .map(|(x, y, normalized_value)| {
                     Rectangle::new(
                         [(x, y), (x + column_interval, y + row_interval)],
-                        HSLColor(
-                            240.0 / 360.0 - 240.0 / 360.0 * normalized_value, // Adjust color mapping
-                            0.7,
-                            0.1 + 0.4 * normalized_value,
-                        )
-                        .filled(),
+                        colormap.get_color(normalized_value).filled(),
                     )
                 }),
         )?;
