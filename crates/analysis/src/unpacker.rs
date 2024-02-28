@@ -72,9 +72,15 @@ impl BatchData {
                     //     }
                     // } else {
                     // TODO: Stream out K,V pairs
-                    data_sender
-                        .send(SimulationData::new(path.to_str().unwrap()).unwrap())
-                        .unwrap();
+                    let data = match SimulationData::new(path.to_str().unwrap()) {
+                        Ok(data) => data,
+                        Err(e) => {
+                            println!("Error reading from file: {:?}", path);
+                            return;
+                        }
+                    };
+
+                    data_sender.send(data).unwrap();
                     debug!("Finished reading from file: {:?}", path);
                     // }
                 }));

@@ -26,16 +26,24 @@ pub async fn plot_heatmap(batch_data: BatchData) {
     let mut averages = HashMap::new();
 
     for (key, data_vec) in dataset.iter() {
-        let final_liqs: Vec<f64> = data_vec
+        let (initial_liqs, final_liqs): (Vec<f64>, Vec<f64>) = data_vec
             .iter()
             .map(|data| {
                 let dfmm_events =
                     data.get_vectorized_events::<LogDfmmDataFilter>("atomic_arbitrage");
-                u256_to_f64(dfmm_events.last().unwrap().liq)
+                (
+                    u256_to_f64(dfmm_events[0].liq),
+                    u256_to_f64(dfmm_events.last().unwrap().liq),
+                )
             })
-            .collect();
-        let average = final_liqs.iter().sum::<f64>() / final_liqs.len() as f64;
-        averages.insert(key.clone(), average);
+            .unzip();
+        let average_initial_liq = initial_liqs.iter().sum::<f64>() / initial_liqs.len() as f64;
+        println!("Average initial liq for {:?}: {}", key, average_initial_liq);
+        let average_final_liq = final_liqs.iter().sum::<f64>() / final_liqs.len() as f64;
+        println!("Average final liq for {:?}: {}", key, average_final_liq);
+        let growth = average_final_liq / average_initial_liq;
+        println!("Growth for {:?}: {}", key, growth);
+        averages.insert(key.clone(), growth);
     }
 
     let settings = PlotSettings::new()
@@ -83,6 +91,8 @@ fn hashmap_to_heatmap(map: HashMap<(String, String), f64>) -> HeatMapPlot {
 
         value[y_index][x_index] = *val;
     }
-
+    println!("column_data: {:?}", column_data);
+    println!("row_data: {:?}", row_data);
+    println!("value: {:?}", value);
     HeatMapPlot::new(column_data, row_data, value)
 }
