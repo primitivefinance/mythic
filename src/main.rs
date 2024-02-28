@@ -24,6 +24,7 @@ use iced::{
     widget::{button, container, scrollable, text, Column, Row, Text},
     window, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
+use tokio::runtime::Runtime;
 
 pub mod app;
 mod components;
@@ -114,8 +115,7 @@ enum AnalysisType {
     Heatmap,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     dotenv().ok();
 
     let args = Args::parse();
@@ -150,15 +150,18 @@ async fn main() -> Result<()> {
             data_dir,
             analysis_type,
         }) => {
-            let batch_data = BatchData::new(data_dir).await;
-            match analysis_type {
-                AnalysisType::Prices => {
-                    analysis::commands::plot_prices::plot_prices(batch_data).await
+            let rt = Runtime::new().unwrap();
+            rt.block_on(async {
+                let batch_data = BatchData::new(data_dir).await;
+                match analysis_type {
+                    AnalysisType::Prices => {
+                        analysis::commands::plot_prices::plot_prices(batch_data).await
+                    }
+                    AnalysisType::Heatmap => {
+                        analysis::commands::plot_heatmap::plot_heatmap(batch_data).await
+                    }
                 }
-                AnalysisType::Heatmap => {
-                    analysis::commands::plot_heatmap::plot_heatmap(batch_data).await
-                }
-            }
+            });
         }
         Some(Commands::Ui) => run(args.dev)?,
         None => run(args.dev)?,
