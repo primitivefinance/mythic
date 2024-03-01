@@ -115,7 +115,7 @@ impl LnArbitrageur {
 
         if res > two {
             let next_dx = (liq - rx) / gamma;
-            Ok(next_dx - 10_000)
+            Ok(next_dx - 1_000)
         } else {
             Ok(dx)
         }
@@ -143,15 +143,14 @@ impl LnArbitrageur {
         let inner_p = log_p * i_wad / sigma + (sigma / 2);
         let cdf_p = self.0.atomic_arbitrage.cdf(inner_p).call().await?;
         let delta = liq * (i_wad - cdf_p) / i_wad;
-        let dx = (delta - rx) * i_wad * i_wad
-            / (((gamma - i_wad) * (i_wad - cdf_p)) / (rx * i_wad / liq) + i_wad);
-        info!("dx: {:?}", dx / i_wad);
-        if dx / i_wad > rx {
-            Ok(rx - I256::from(1_000_000_000))
-        } else {
-            let valid_dx = self.assert_valid_dx(dx / i_wad, rx, liq, gamma, i_wad)?;
-            Ok(valid_dx)
-        }
+        let num = (delta - rx) * i_wad;
+        let den_a = ((gamma - i_wad) * (i_wad - cdf_p)) / i_wad;
+        let den_b = (rx * i_wad / liq) + i_wad;
+        let dx = num / ((den_a * i_wad / den_b) + i_wad);
+
+        let valid_dx = self.assert_valid_dx(dx, rx, liq, gamma, i_wad)?;
+
+        Ok(valid_dx)
     }
 
     pub fn assert_valid_dy(
@@ -170,7 +169,7 @@ impl LnArbitrageur {
 
         if res > two {
             let next_dy = (((strike * liq) / i_wad) - ry) / gamma;
-            Ok(next_dy - 10_000)
+            Ok(next_dy - 1_000)
         } else {
             Ok(dy)
         }
@@ -199,16 +198,16 @@ impl LnArbitrageur {
         let inner_p = log_p * i_wad / sigma - (sigma / 2);
         let cdf_p = self.0.atomic_arbitrage.cdf(inner_p).call().await?;
         let delta = (liq * strike) / i_wad * (cdf_p) / i_wad;
-        let dy = (delta - ry) * i_wad * i_wad
-            / (((gamma - i_wad) * cdf_p) / (ry * i_wad * i_wad / (strike * liq)) + i_wad);
-        info!("dy: {:?}", dy / i_wad);
+        let num = (delta - ry) * i_wad;
+        let den_a = ((gamma - i_wad) * cdf_p) / i_wad;
+        println!("den_a: {:?}", den_a);
+        let den_b = ry * i_wad / ((strike * liq) / i_wad);
+        println!("den_b: {:?}", den_b);
+        let dy = num / ((den_a * i_wad / den_b) + i_wad);
+        println!("dy: {:?}", dy);
 
-        if dy / i_wad > ry {
-            return Ok(ry - I256::from(1_000_000));
-        } else {
-            let valid_dy = self.assert_valid_dy(dy / i_wad, ry, liq, strike, gamma, i_wad)?;
-            return Ok(valid_dy);
-        }
+        let valid_dy = self.assert_valid_dy(dy, ry, liq, strike, gamma, i_wad)?;
+        return Ok(valid_dy);
     }
 }
 
@@ -269,14 +268,23 @@ impl Agent for LnArbitrageur {
                                 output
                             }
                             _ => {
-                                error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}, target_price: {:?}, current_price: {:?}", e, ln_params, reserves, target_price, current_price);
+                                error!(
+                                    "Error computing optimal_dy: {:?}, with params: {:?}, with
+                                reserves: {:?}, target_price: {:?}, current_price: {:?}",
+                                    e, ln_params, reserves, target_price, current_price
+                                );
                                 return Ok(());
                             }
                         };
                         let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
                         // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
                         // error!("Error computing optimal_dy: {:?}", err);
-                        error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}, with upper bound: {:?}, target_price: {:?}, current_price: {:?}", err, ln_params, reserves, input, target_price, current_price);
+                        error!(
+                            "Error computing optimal_dy: {:?}, with params: {:?}, with
+                        reserves: {:?}, with upper bound: {:?}, target_price: {:?},
+                        current_price: {:?}",
+                            err, ln_params, reserves, input, target_price, current_price
+                        );
                         return Ok(());
                     }
                 };
@@ -344,6 +352,13 @@ impl Agent for LnArbitrageur {
                     .await
                     .unwrap();
 
+                let current_price = self
+                    .0
+                    .protocol_client
+                    .get_internal_price(self.0.pool_id)
+                    .await
+                    .unwrap();
+
                 let optimal_dx = match self
                     .0
                     .protocol_client
@@ -360,14 +375,23 @@ impl Agent for LnArbitrageur {
                                 output
                             }
                             _ => {
-                                error!("Error getting optimal_dx: {:?}, with params: {:?}, with reserves: {:?}", e, ln_params, reserves);
+                                error!(
+                                    "Error getting optimal_dx: {:?}, with params: {:?}, with
+                                reserves: {:?}, target_price: {:?}, current_price: {:?}",
+                                    e, ln_params, reserves, target_price, current_price
+                                );
                                 return Ok(());
                             }
                         };
                         // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
                         // error!("Error computing optimal_dx: {:?}", err);
                         let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
-                        error!("Error computing optimal_dx: {:?}, with params: {:?}, with reserves: {:?}, with upper bound: {:?}", err, ln_params, reserves, input);
+                        error!(
+                            "Error computing optimal_dx: {:?}, with params: {:?}, with
+                        reserves: {:?}, with upper bound: {:?}, target_price: {:?},
+                        current_price: {:?}",
+                            err, ln_params, reserves, input, target_price, current_price
+                        );
                         return Ok(());
                     }
                 };
