@@ -200,11 +200,11 @@ impl LnArbitrageur {
         let delta = (liq * strike) / i_wad * (cdf_p) / i_wad;
         let num = (delta - ry) * i_wad;
         let den_a = ((gamma - i_wad) * cdf_p) / i_wad;
-        println!("den_a: {:?}", den_a);
+        //        println!("den_a: {:?}", den_a);
         let den_b = ry * i_wad / ((strike * liq) / i_wad);
-        println!("den_b: {:?}", den_b);
+        //       println!("den_b: {:?}", den_b);
         let dy = num / ((den_a * i_wad / den_b) + i_wad);
-        println!("dy: {:?}", dy);
+        //      println!("dy: {:?}", dy);
 
         let valid_dy = self.assert_valid_dy(dy, ry, liq, strike, gamma, i_wad)?;
         return Ok(valid_dy);
