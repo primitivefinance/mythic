@@ -100,6 +100,27 @@ impl LnArbitrageur {
         })
     }
 
+    pub fn assert_valid_dx(
+        &self,
+        dx: I256,
+        rx: I256,
+        liq: I256,
+        gamma: I256,
+        i_wad: I256,
+    ) -> Result<I256> {
+        let two = I256::from_raw(WAD * U256::from(2));
+        let a = (two * (dx + rx)) / i_wad;
+        let b = liq + dx - (dx * gamma) / i_wad;
+        let res = (a * i_wad) / (b);
+
+        if res > two {
+            let next_dx = (liq - rx) / gamma;
+            Ok(next_dx - 10_000)
+        } else {
+            Ok(dx)
+        }
+    }
+
     pub async fn get_dx(&self) -> Result<I256> {
         let ArbInputs {
             i_wad,
@@ -126,9 +147,32 @@ impl LnArbitrageur {
             / (((gamma - i_wad) * (i_wad - cdf_p)) / (rx * i_wad / liq) + i_wad);
         info!("dx: {:?}", dx / i_wad);
         if dx / i_wad > rx {
-            Ok(rx - I256::from(1_000_000))
+            Ok(rx - I256::from(1_000_000_000))
         } else {
-            Ok(dx / i_wad)
+            let valid_dx = self.assert_valid_dx(dx / i_wad, rx, liq, gamma, i_wad)?;
+            Ok(valid_dx)
+        }
+    }
+
+    pub fn assert_valid_dy(
+        &self,
+        dy: I256,
+        ry: I256,
+        liq: I256,
+        strike: I256,
+        gamma: I256,
+        i_wad: I256,
+    ) -> Result<I256> {
+        let two = I256::from_raw(WAD * U256::from(2));
+        let a = (two * (dy + ry)) / i_wad;
+        let b = (strike * liq) / i_wad + dy - (dy * gamma) / i_wad;
+        let res = (a * i_wad) / b;
+
+        if res > two {
+            let next_dy = (((strike * liq) / i_wad) - ry) / gamma;
+            Ok(next_dy - 10_000)
+        } else {
+            Ok(dy)
         }
     }
 
@@ -162,7 +206,8 @@ impl LnArbitrageur {
         if dy / i_wad > ry {
             return Ok(ry - I256::from(1_000_000));
         } else {
-            return Ok(dy / i_wad);
+            let valid_dy = self.assert_valid_dy(dy / i_wad, ry, liq, strike, gamma, i_wad)?;
+            return Ok(valid_dy);
         }
     }
 }
@@ -201,6 +246,13 @@ impl Agent for LnArbitrageur {
                     .await
                     .unwrap();
 
+                let current_price = self
+                    .0
+                    .protocol_client
+                    .get_internal_price(self.0.pool_id)
+                    .await
+                    .unwrap();
+
                 let optimal_dy = match self
                     .0
                     .protocol_client
@@ -217,14 +269,14 @@ impl Agent for LnArbitrageur {
                                 output
                             }
                             _ => {
-                                error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}", e, ln_params, reserves);
+                                error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}, target_price: {:?}, current_price: {:?}", e, ln_params, reserves, target_price, current_price);
                                 return Ok(());
                             }
                         };
                         let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
                         // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
                         // error!("Error computing optimal_dy: {:?}", err);
-                        error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}, with upper bound: {:?}", err, ln_params, reserves, input);
+                        error!("Error computing optimal_dy: {:?}, with params: {:?}, with reserves: {:?}, with upper bound: {:?}, target_price: {:?}, current_price: {:?}", err, ln_params, reserves, input, target_price, current_price);
                         return Ok(());
                     }
                 };
