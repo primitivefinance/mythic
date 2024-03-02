@@ -107,7 +107,7 @@ impl LnArbitrageur {
         liq: I256,
         gamma: I256,
         i_wad: I256,
-    ) -> Result<I256> {
+    ) -> Result<U256> {
         let two = I256::from_raw(WAD * U256::from(2));
         let a = (two * (dx + rx)) / i_wad;
         let b = liq + dx - (dx * gamma) / i_wad;
@@ -115,13 +115,15 @@ impl LnArbitrageur {
 
         if res > two {
             let next_dx = (liq - rx) / gamma;
-            Ok(next_dx - 1_000)
-        } else {
+            let (sign, dx) = next_dx.into_sign_and_abs();
+
             Ok(dx)
+        } else {
+            Ok(dx.into_raw())
         }
     }
 
-    pub async fn get_dx(&self) -> Result<I256> {
+    pub async fn get_dx(&self) -> Result<U256> {
         let ArbInputs {
             i_wad,
             target_price_wad,
@@ -149,7 +151,6 @@ impl LnArbitrageur {
         let dx = num / ((den_a * i_wad / den_b) + i_wad);
 
         let valid_dx = self.assert_valid_dx(dx, rx, liq, gamma, i_wad)?;
-
         Ok(valid_dx)
     }
 
@@ -161,22 +162,22 @@ impl LnArbitrageur {
         strike: I256,
         gamma: I256,
         i_wad: I256,
-    ) -> Result<I256> {
-        let two = I256::from_raw(WAD * U256::from(2));
-        let a = (two * (dy + ry)) / i_wad;
-        let b = (strike * liq) / i_wad + dy - (dy * gamma) / i_wad;
+    ) -> Result<U256> {
+        let a = dy + ry;
+        let b = (strike * liq) / i_wad + (i_wad - gamma) * dy / i_wad;
         let res = (a * i_wad) / b;
 
-        if res > two {
-            let next_dy = (((strike * liq) / i_wad) - ry) / gamma;
-            Ok(next_dy - 1_000)
+        if res > i_wad {
+            let next_dy = ((strike * liq) - ry * i_wad) / gamma;
+            let (sign, dy) = next_dy.into_sign_and_abs();
+            Ok(dy - 1_000)
         } else {
-            Ok(dy)
+            Ok(dy.into_raw())
         }
     }
 
     // todo (matt): figure out why this returns u256::max sometimes
-    pub async fn get_dy(&self) -> Result<I256> {
+    pub async fn get_dy(&self) -> Result<U256> {
         let ArbInputs {
             i_wad,
             target_price_wad,
@@ -225,7 +226,7 @@ impl Agent for LnArbitrageur {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));
                 let x_in = false;
-                let input = self.get_dy().await.unwrap().into_raw();
+                let input = self.get_dy().await.unwrap();
 
                 let ln_params = self
                     .0
@@ -273,7 +274,7 @@ impl Agent for LnArbitrageur {
                                 reserves: {:?}, target_price: {:?}, current_price: {:?}",
                                     e, ln_params, reserves, target_price, current_price
                                 );
-                                return Ok(());
+                                panic!();
                             }
                         };
                         let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
@@ -281,11 +282,25 @@ impl Agent for LnArbitrageur {
                         // error!("Error computing optimal_dy: {:?}", err);
                         error!(
                             "Error computing optimal_dy: {:?}, with params: {:?}, with
-                        reserves: {:?}, with upper bound: {:?}, target_price: {:?},
-                        current_price: {:?}",
-                            err, ln_params, reserves, input, target_price, current_price
+                reserves: {:?}, with upper bound: {:?}, target_price: {:?},
+                current_price: {:?}",
+                            err.clone(),
+                            ln_params,
+                            reserves,
+                            input,
+                            target_price,
+                            current_price
                         );
-                        return Ok(());
+                        match err {
+                            LogNormalSolverErrors::BisectionLib_RootOutsideBounds(result) => {
+                                // Return the max amount of dy the pool can handle which is L - ry
+
+                                ln_params.strike * reserves.1 / WAD - reserves.0 - 1
+                            }
+                            _ => {
+                                panic!("An unexpected error happened: {:?}", err);
+                            }
+                        }
                     }
                 };
 
@@ -332,7 +347,7 @@ impl Agent for LnArbitrageur {
 
                 let x_in = true;
                 let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
-                let input = self.get_dx().await.unwrap().into_raw();
+                let input = self.get_dx().await.unwrap();
 
                 let ln_params = self
                     .0
@@ -380,7 +395,7 @@ impl Agent for LnArbitrageur {
                                 reserves: {:?}, target_price: {:?}, current_price: {:?}",
                                     e, ln_params, reserves, target_price, current_price
                                 );
-                                return Ok(());
+                                panic!();
                             }
                         };
                         // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
@@ -388,11 +403,24 @@ impl Agent for LnArbitrageur {
                         let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
                         error!(
                             "Error computing optimal_dx: {:?}, with params: {:?}, with
-                        reserves: {:?}, with upper bound: {:?}, target_price: {:?},
-                        current_price: {:?}",
-                            err, ln_params, reserves, input, target_price, current_price
+                reserves: {:?}, with upper bound: {:?}, target_price: {:?},
+                current_price: {:?}",
+                            err.clone(),
+                            ln_params,
+                            reserves,
+                            input,
+                            target_price,
+                            current_price
                         );
-                        return Ok(());
+                        match err {
+                            LogNormalSolverErrors::BisectionLib_RootOutsideBounds(result) => {
+                                // Return the max amount of dx the pool can handle which is L - rx
+                                reserves.2 - reserves.0 - 1
+                            }
+                            _ => {
+                                panic!("An unexpected error happened: {:?}", err);
+                            }
+                        }
                     }
                 };
 
