@@ -100,22 +100,35 @@ impl LnArbitrageur {
         })
     }
 
-    pub fn assert_valid_dx(
-        &self,
-        dx: I256,
-        rx: I256,
-        liq: I256,
-        gamma: I256,
-        i_wad: I256,
-    ) -> Result<U256> {
+    pub async fn assert_valid_dx(&self, dx: I256) -> Result<U256> {
+        let i_wad = I256::from_raw(WAD);
+        let params = self
+            .0
+            .protocol_client
+            .ln_solver
+            .fetch_pool_params(self.0.pool_id)
+            .call()
+            .await
+            .unwrap();
+
+        let gamma = I256::from_raw(WAD - params.swap_fee);
+        let (rx, ry, liq) = self
+            .0
+            .protocol_client
+            .ln_solver
+            .get_reserves_and_liquidity(self.0.pool_id)
+            .call()
+            .await
+            .unwrap();
+
         let two = I256::from_raw(WAD * U256::from(2));
-        let a = (two * (dx + rx)) / i_wad;
-        let b = liq + dx - (dx * gamma) / i_wad;
+        let a = (two * (dx + I256::from_raw(rx))) / i_wad;
+        let b = I256::from_raw(liq) + dx - (dx * gamma) / i_wad;
         let res = (a * i_wad) / (b);
 
         if res > two {
-            let next_dx = (liq - rx) / gamma;
-            let (sign, dx) = next_dx.into_sign_and_abs();
+            let next_dx = (I256::from_raw(liq) - I256::from_raw(rx)) / gamma;
+            let (_, dx) = next_dx.into_sign_and_abs();
 
             Ok(dx)
         } else {
@@ -123,92 +136,39 @@ impl LnArbitrageur {
         }
     }
 
-    pub async fn get_dx(&self) -> Result<U256> {
-        let ArbInputs {
-            i_wad,
-            target_price_wad,
-            strike,
-            sigma,
-            tau: _,
-            gamma,
-            rx,
-            ry: _,
-            liq,
-        } = self.get_arb_inputs().await?;
-
-        let log_p = self
+    pub async fn assert_valid_dy(&self, dy: I256) -> Result<U256> {
+        let i_wad = I256::from_raw(WAD);
+        let params = self
             .0
-            .atomic_arbitrage
-            .log(target_price_wad * i_wad / strike)
+            .protocol_client
+            .ln_solver
+            .fetch_pool_params(self.0.pool_id)
             .call()
-            .await?;
-        let inner_p = log_p * i_wad / sigma + (sigma / 2);
-        let cdf_p = self.0.atomic_arbitrage.cdf(inner_p).call().await?;
-        let delta = liq * (i_wad - cdf_p) / i_wad;
-        let num = (delta - rx) * i_wad;
-        let den_a = ((gamma - i_wad) * (i_wad - cdf_p)) / i_wad;
-        let den_b = (rx * i_wad / liq) + i_wad;
-        let dx = num / ((den_a * i_wad / den_b) + i_wad);
+            .await
+            .unwrap();
 
-        let valid_dx = self.assert_valid_dx(dx, rx, liq, gamma, i_wad)?;
-        Ok(valid_dx)
-    }
+        let gamma = I256::from_raw(WAD - params.swap_fee);
+        let strike = I256::from_raw(params.strike);
+        let (rx, ry, liq) = self
+            .0
+            .protocol_client
+            .ln_solver
+            .get_reserves_and_liquidity(self.0.pool_id)
+            .call()
+            .await
+            .unwrap();
 
-    pub fn assert_valid_dy(
-        &self,
-        dy: I256,
-        ry: I256,
-        liq: I256,
-        strike: I256,
-        gamma: I256,
-        i_wad: I256,
-    ) -> Result<U256> {
-        let a = dy + ry;
-        let b = (strike * liq) / i_wad + (i_wad - gamma) * dy / i_wad;
+        let a = dy + I256::from_raw(ry);
+        let b = (strike * I256::from_raw(liq)) / i_wad + (i_wad - gamma) * dy / i_wad;
         let res = (a * i_wad) / b;
 
         if res > i_wad {
-            let next_dy = ((strike * liq) - ry * i_wad) / gamma;
-            let (sign, dy) = next_dy.into_sign_and_abs();
+            let next_dy = ((strike * I256::from_raw(liq)) - I256::from_raw(ry) * i_wad) / gamma;
+            let (_, dy) = next_dy.into_sign_and_abs();
             Ok(dy - 1_000)
         } else {
             Ok(dy.into_raw())
         }
-    }
-
-    // todo (matt): figure out why this returns u256::max sometimes
-    pub async fn get_dy(&self) -> Result<U256> {
-        let ArbInputs {
-            i_wad,
-            target_price_wad,
-            strike,
-            sigma,
-            tau: _,
-            gamma,
-            rx: _,
-            ry,
-            liq,
-        } = self.get_arb_inputs().await?;
-
-        let log_p = self
-            .0
-            .atomic_arbitrage
-            .log(target_price_wad * i_wad / strike)
-            .call()
-            .await?;
-        let inner_p = log_p * i_wad / sigma - (sigma / 2);
-        let cdf_p = self.0.atomic_arbitrage.cdf(inner_p).call().await?;
-        let delta = (liq * strike) / i_wad * (cdf_p) / i_wad;
-        let num = (delta - ry) * i_wad;
-        let den_a = ((gamma - i_wad) * cdf_p) / i_wad;
-        //        println!("den_a: {:?}", den_a);
-        let den_b = ry * i_wad / ((strike * liq) / i_wad);
-        //       println!("den_b: {:?}", den_b);
-        let dy = num / ((den_a * i_wad / den_b) + i_wad);
-        //      println!("dy: {:?}", dy);
-
-        let valid_dy = self.assert_valid_dy(dy, ry, liq, strike, gamma, i_wad)?;
-        return Ok(valid_dy);
     }
 }
 
@@ -226,7 +186,16 @@ impl Agent for LnArbitrageur {
             Swap::RaiseExchangePrice(target_price) => {
                 info!("Signal[RAISE PRICE]: {:?}", format_ether(target_price));
                 let x_in = false;
-                let input = self.get_dy().await.unwrap();
+                let input = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .get_dy_given_s(self.0.pool_id, target_price)
+                    .call()
+                    .await
+                    .unwrap();
+
+                let input = self.assert_valid_dy(input).await.unwrap();
 
                 let ln_params = self
                     .0
@@ -334,6 +303,7 @@ impl Agent for LnArbitrageur {
                             e.as_middleware_error().unwrap()
                         {
                             info!("[LOGNORM]: Swap failed");
+
                             debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }
@@ -346,8 +316,16 @@ impl Agent for LnArbitrageur {
                 );
 
                 let x_in = true;
-                let liquid_exchange_price = self.0.liquid_exchange.price().call().await.unwrap();
-                let input = self.get_dx().await.unwrap();
+
+                let input = self
+                    .0
+                    .protocol_client
+                    .ln_solver
+                    .get_dx_given_s(self.0.pool_id, target_price)
+                    .call()
+                    .await
+                    .unwrap();
+                let input = self.assert_valid_dx(input).await.unwrap();
 
                 let ln_params = self
                     .0
@@ -426,8 +404,7 @@ impl Agent for LnArbitrageur {
 
                 info!("optimal_dx: {:?}", optimal_dx);
 
-                let optimal_dx =
-                    optimal_dx * liquid_exchange_price / ethers::utils::parse_ether("1").unwrap();
+                let optimal_dx = optimal_dx * target_price / WAD;
 
                 let tx = self
                     .0
@@ -457,6 +434,7 @@ impl Agent for LnArbitrageur {
                             e.as_middleware_error().unwrap()
                         {
                             info!("[LOGNORM]: Swap failed");
+                            let hex = ethers::utils::hex::encode(output);
                             debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
                         }
                     }

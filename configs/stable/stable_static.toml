@@ -19,7 +19,7 @@ decimals = 18
 # True is we want to use historical daily average price data
 backtest = false
 # The seed to use (optional)
-# seed = 1
+seed = 1
 # The number of steps in the process
 num_steps = 3162
 # The number of distinct paths to use
@@ -32,7 +32,7 @@ t_0.fixed = 0.0
 t_n.fixed = 1.0
 
 process.OU.theta.fixed = 10
-process.OU.volatility.fixed = 0.001
+process.OU.volatility.fixed = 0.0005
 process.OU.mean.fixed = 1
 
 [agent.lst_manager.LstParameterManager]
@@ -50,4 +50,4 @@ initial_price.fixed = 1.0
 sigma.fixed = 0.000100000000000000
 tau.fixed = 1.0
 strike_price.fixed = 1.0
-swap_fee.fixed = 0.000336666666666666
+swap_fee.fixed = 0.0001
