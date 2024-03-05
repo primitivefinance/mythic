@@ -165,7 +165,7 @@ impl LnArbitrageur {
         if res > i_wad {
             let next_dy = ((strike * I256::from_raw(liq)) - I256::from_raw(ry) * i_wad) / gamma;
             let (_, dy) = next_dy.into_sign_and_abs();
-            Ok(dy - 1_000)
+            Ok(dy)
         } else {
             Ok(dy.into_raw())
         }
@@ -222,89 +222,87 @@ impl Agent for LnArbitrageur {
                     .await
                     .unwrap();
 
-                let optimal_dy = match self
-                    .0
-                    .protocol_client
-                    .ln_solver
-                    .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input)
-                    .call()
-                    .await
-                {
-                    Ok(optimal_dy) => optimal_dy,
-                    Err(e) => {
-                        let bytes = match e.as_middleware_error().unwrap() {
-                            ArbiterCoreError::ExecutionRevert { output, gas_used } => {
-                                info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
-                                output
-                            }
-                            _ => {
-                                error!(
-                                    "Error computing optimal_dy: {:?}, with params: {:?}, with
+                if input > U256::from(0) {
+                    let optimal_dy = match self
+                        .0
+                        .protocol_client
+                        .ln_solver
+                        .compute_optimal_arb_raise_price(self.0.pool_id, target_price, input - 1000)
+                        .call()
+                        .await
+                    {
+                        Ok(optimal_dy) => optimal_dy,
+                        Err(e) => {
+                            let bytes = match e.as_middleware_error().unwrap() {
+                                ArbiterCoreError::ExecutionRevert { output, gas_used } => {
+                                    info!(
+                                        "Execution revert: {:?} Gas Used: {:?}",
+                                        output, gas_used
+                                    );
+                                    output
+                                }
+                                _ => {
+                                    error!(
+                                        "Error computing optimal_dy: {:?}, with params: {:?}, with
                                 reserves: {:?}, target_price: {:?}, current_price: {:?}",
-                                    e, ln_params, reserves, target_price, current_price
-                                );
-                                panic!();
-                            }
-                        };
-                        let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
-                        // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
-                        // error!("Error computing optimal_dy: {:?}", err);
-                        error!(
-                            "Error computing optimal_dy: {:?}, with params: {:?}, with
+                                        e, ln_params, reserves, target_price, current_price
+                                    );
+                                    panic!();
+                                }
+                            };
+                            let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
+                            error!(
+                                "Error computing optimal_dy: {:?}, with params: {:?}, with
                 reserves: {:?}, with upper bound: {:?}, target_price: {:?},
                 current_price: {:?}",
-                            err.clone(),
-                            ln_params,
-                            reserves,
-                            input,
-                            target_price,
-                            current_price
-                        );
-                        match err {
-                            LogNormalSolverErrors::BisectionLib_RootOutsideBounds(result) => {
-                                // Return the max amount of dy the pool can handle which is L - ry
-
-                                ln_params.strike * reserves.1 / WAD - reserves.0 - 1
-                            }
-                            _ => {
-                                panic!("An unexpected error happened: {:?}", err);
-                            }
+                                err.clone(),
+                                ln_params,
+                                reserves,
+                                input,
+                                target_price,
+                                current_price
+                            );
+                            U256::from(1)
                         }
-                    }
-                };
+                    };
 
-                info!("optimal_dy: {:?}", optimal_dy);
+                    info!("optimal_dy: {:?}", optimal_dy);
 
-                let tx = self
-                    .0
-                    .atomic_arbitrage
-                    .raise_exchange_price(self.0.pool_id, optimal_dy);
+                    let tx = self
+                        .0
+                        .atomic_arbitrage
+                        .raise_exchange_price(self.0.pool_id, optimal_dy);
 
-                let output = tx.send().await;
+                    let output = tx.send().await;
 
-                match output {
-                    Ok(output) => {
-                        let internal_price = self
-                            .0
-                            .protocol_client
-                            .get_internal_price(self.0.pool_id)
-                            .await?;
-                        info!("Price Post Swap[LEX]: {:?}", format_ether(target_price));
-                        info!(
-                            "Price Post Swap[LOGNORM]: {:?}",
-                            format_ether(internal_price)
-                        );
-                        self.0.num_arbs += 1;
-                        info!("Arb Count: {:?}", self.0.num_arbs);
-                        output.await?;
-                    }
-                    Err(e) => {
-                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
-                            e.as_middleware_error().unwrap()
-                        {
-                            info!("[LOGNORM]: Swap failed");
+                    match output {
+                        Ok(output) => {
+                            let internal_price = self
+                                .0
+                                .protocol_client
+                                .get_internal_price(self.0.pool_id)
+                                .await?;
+                            info!("Price Post Swap[LEX]: {:?}", format_ether(target_price));
+                            info!(
+                                "Price Post Swap[LOGNORM]: {:?}",
+                                format_ether(internal_price)
+                            );
+                            self.0.num_arbs += 1;
+                            info!("Arb Count: {:?}", self.0.num_arbs);
+                            output.await?;
+                        }
+                        Err(e) => {
+                            if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
+                                e.as_middleware_error().unwrap()
+                            {
+                                info!("[LOGNORM]: Swap failed");
 
-                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                                error!(
+                                    "Execution revert: {:?} Gas Used: {:?}",
+                                    ethers::utils::hex::encode(output),
+                                    gas_used
+                                );
+                            }
                         }
                     }
                 }
@@ -352,90 +350,87 @@ impl Agent for LnArbitrageur {
                     .await
                     .unwrap();
 
-                let optimal_dx = match self
-                    .0
-                    .protocol_client
-                    .ln_solver
-                    .compute_optimal_arb_lower_price(self.0.pool_id, target_price, input)
-                    .call()
-                    .await
-                {
-                    Ok(optimal_dx) => optimal_dx,
-                    Err(e) => {
-                        let bytes = match e.as_middleware_error().unwrap() {
-                            ArbiterCoreError::ExecutionRevert { output, gas_used } => {
-                                info!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
-                                output
-                            }
-                            _ => {
-                                error!(
-                                    "Error getting optimal_dx: {:?}, with params: {:?}, with
+                if input > U256::from(0) {
+                    let optimal_dx = match self
+                        .0
+                        .protocol_client
+                        .ln_solver
+                        .compute_optimal_arb_lower_price(self.0.pool_id, target_price, input - 1000)
+                        .call()
+                        .await
+                    {
+                        Ok(optimal_dx) => optimal_dx,
+                        Err(e) => {
+                            let bytes = match e.as_middleware_error().unwrap() {
+                                ArbiterCoreError::ExecutionRevert { output, gas_used } => {
+                                    info!(
+                                        "Execution revert: {:?} Gas Used: {:?}",
+                                        output, gas_used
+                                    );
+                                    output
+                                }
+                                _ => {
+                                    error!(
+                                        "Error getting optimal_dx: {:?}, with params: {:?}, with
                                 reserves: {:?}, target_price: {:?}, current_price: {:?}",
-                                    e, ln_params, reserves, target_price, current_price
-                                );
-                                panic!();
-                            }
-                        };
-                        // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
-                        // error!("Error computing optimal_dx: {:?}", err);
-                        let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
-                        error!(
-                            "Error computing optimal_dx: {:?}, with params: {:?}, with
+                                        e, ln_params, reserves, target_price, current_price
+                                    );
+                                    panic!();
+                                }
+                            };
+                            // let err = AtomicV2Errors::decode_with_selector(bytes).unwrap();
+                            // error!("Error computing optimal_dx: {:?}", err);
+                            let err = LogNormalSolverErrors::decode_with_selector(bytes).unwrap();
+                            error!(
+                                "Error computing optimal_dx: {:?}, with params: {:?}, with
                 reserves: {:?}, with upper bound: {:?}, target_price: {:?},
                 current_price: {:?}",
-                            err.clone(),
-                            ln_params,
-                            reserves,
-                            input,
-                            target_price,
-                            current_price
-                        );
-                        match err {
-                            LogNormalSolverErrors::BisectionLib_RootOutsideBounds(result) => {
-                                // Return the max amount of dx the pool can handle which is L - rx
-                                reserves.2 - reserves.0 - 1
-                            }
-                            _ => {
-                                panic!("An unexpected error happened: {:?}", err);
-                            }
+                                err.clone(),
+                                ln_params,
+                                reserves,
+                                input,
+                                target_price,
+                                current_price
+                            );
+                            U256::from(1)
                         }
-                    }
-                };
+                    };
 
-                info!("optimal_dx: {:?}", optimal_dx);
+                    info!("optimal_dx: {:?}", optimal_dx);
 
-                let optimal_dx = optimal_dx * target_price / WAD;
+                    let optimal_dx = optimal_dx * target_price / WAD;
 
-                let tx = self
-                    .0
-                    .atomic_arbitrage
-                    .lower_exchange_price(self.0.pool_id, optimal_dx);
+                    let tx = self
+                        .0
+                        .atomic_arbitrage
+                        .lower_exchange_price(self.0.pool_id, optimal_dx);
 
-                let output = tx.send().await;
+                    let output = tx.send().await;
 
-                match output {
-                    Ok(output) => {
-                        let internal_price = self
-                            .0
-                            .protocol_client
-                            .get_internal_price(self.0.pool_id)
-                            .await?;
-                        info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
-                        info!(
-                            "Price Post Swap [LOGNORM]: {:?}",
-                            format_ether(internal_price)
-                        );
-                        self.0.num_arbs += 1;
-                        info!("Arb Count: {:?}", self.0.num_arbs);
-                        output.await?;
-                    }
-                    Err(e) => {
-                        if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
-                            e.as_middleware_error().unwrap()
-                        {
-                            info!("[LOGNORM]: Swap failed");
-                            let hex = ethers::utils::hex::encode(output);
-                            debug!("Execution revert: {:?} Gas Used: {:?}", output, gas_used);
+                    match output {
+                        Ok(output) => {
+                            let internal_price = self
+                                .0
+                                .protocol_client
+                                .get_internal_price(self.0.pool_id)
+                                .await?;
+                            info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                            info!(
+                                "Price Post Swap [LOGNORM]: {:?}",
+                                format_ether(internal_price)
+                            );
+                            self.0.num_arbs += 1;
+                            info!("Arb Count: {:?}", self.0.num_arbs);
+                            output.await?;
+                        }
+                        Err(e) => {
+                            if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
+                                e.as_middleware_error().unwrap()
+                            {
+                                info!("[LOGNORM]: Swap failed");
+                                let hex = ethers::utils::hex::encode(output);
+                                error!("Execution revert: {:?} Gas Used: {:?}", hex, gas_used);
+                            }
                         }
                     }
                 }
