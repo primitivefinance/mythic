@@ -19,11 +19,11 @@ decimals = 18
 # True is we want to use historical daily average price data
 backtest = false
 # The seed to use (optional)
-seed = 1
+# seed = 1
 # The number of steps in the process
 num_steps = 3162
 # The number of distinct paths to use
-num_paths = 1
+num_paths = 10
 # The initial price of the asset
 initial_price.fixed = 1.0
 # The start time of the process
@@ -51,10 +51,10 @@ tau.fixed = 1.0
 strike_price.fixed = 1.0
 
 # SWEEP PARAMS
-sigma.start = 0.0001
-sigma.end = 0.002
-sigma.steps = 8
+sigma.start = 0.00001
+sigma.end = 0.0001
+sigma.steps = 10
 
 swap_fee.start = 0.00001
-swap_fee.end = 0.0004
-swap_fee.steps = 8
+swap_fee.end = 0.0001
+swap_fee.steps = 10

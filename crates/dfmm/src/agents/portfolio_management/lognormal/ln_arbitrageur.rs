@@ -266,42 +266,43 @@ impl Agent for LnArbitrageur {
                         }
                     };
 
-                    info!("optimal_dy: {:?}", optimal_dy);
+                    if optimal_dy > U256::from(0) {
+                        error!("optimal_dy: {:?}", optimal_dy);
+                        let tx = self
+                            .0
+                            .atomic_arbitrage
+                            .raise_exchange_price(self.0.pool_id, optimal_dy);
 
-                    let tx = self
-                        .0
-                        .atomic_arbitrage
-                        .raise_exchange_price(self.0.pool_id, optimal_dy);
+                        let output = tx.send().await;
 
-                    let output = tx.send().await;
-
-                    match output {
-                        Ok(output) => {
-                            let internal_price = self
-                                .0
-                                .protocol_client
-                                .get_internal_price(self.0.pool_id)
-                                .await?;
-                            info!("Price Post Swap[LEX]: {:?}", format_ether(target_price));
-                            info!(
-                                "Price Post Swap[LOGNORM]: {:?}",
-                                format_ether(internal_price)
-                            );
-                            self.0.num_arbs += 1;
-                            info!("Arb Count: {:?}", self.0.num_arbs);
-                            output.await?;
-                        }
-                        Err(e) => {
-                            if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
-                                e.as_middleware_error().unwrap()
-                            {
-                                info!("[LOGNORM]: Swap failed");
-
-                                error!(
-                                    "Execution revert: {:?} Gas Used: {:?}",
-                                    ethers::utils::hex::encode(output),
-                                    gas_used
+                        match output {
+                            Ok(output) => {
+                                let internal_price = self
+                                    .0
+                                    .protocol_client
+                                    .get_internal_price(self.0.pool_id)
+                                    .await?;
+                                info!("Price Post Swap[LEX]: {:?}", format_ether(target_price));
+                                info!(
+                                    "Price Post Swap[LOGNORM]: {:?}",
+                                    format_ether(internal_price)
                                 );
+                                self.0.num_arbs += 1;
+                                info!("Arb Count: {:?}", self.0.num_arbs);
+                                output.await?;
+                            }
+                            Err(e) => {
+                                if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
+                                    e.as_middleware_error().unwrap()
+                                {
+                                    info!("[LOGNORM]: Swap failed");
+
+                                    error!(
+                                        "Execution revert: {:?} Gas Used: {:?}",
+                                        ethers::utils::hex::encode(output),
+                                        gas_used
+                                    );
+                                }
                             }
                         }
                     }
@@ -396,40 +397,41 @@ impl Agent for LnArbitrageur {
                         }
                     };
 
-                    info!("optimal_dx: {:?}", optimal_dx);
+                    if optimal_dx > U256::from(0) {
+                        error!("optimal_dx: {:?}", optimal_dx);
+                        let optimal_dx = optimal_dx * target_price / WAD;
 
-                    let optimal_dx = optimal_dx * target_price / WAD;
+                        let tx = self
+                            .0
+                            .atomic_arbitrage
+                            .lower_exchange_price(self.0.pool_id, optimal_dx);
 
-                    let tx = self
-                        .0
-                        .atomic_arbitrage
-                        .lower_exchange_price(self.0.pool_id, optimal_dx);
+                        let output = tx.send().await;
 
-                    let output = tx.send().await;
-
-                    match output {
-                        Ok(output) => {
-                            let internal_price = self
-                                .0
-                                .protocol_client
-                                .get_internal_price(self.0.pool_id)
-                                .await?;
-                            info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
-                            info!(
-                                "Price Post Swap [LOGNORM]: {:?}",
-                                format_ether(internal_price)
-                            );
-                            self.0.num_arbs += 1;
-                            info!("Arb Count: {:?}", self.0.num_arbs);
-                            output.await?;
-                        }
-                        Err(e) => {
-                            if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
-                                e.as_middleware_error().unwrap()
-                            {
-                                info!("[LOGNORM]: Swap failed");
-                                let hex = ethers::utils::hex::encode(output);
-                                error!("Execution revert: {:?} Gas Used: {:?}", hex, gas_used);
+                        match output {
+                            Ok(output) => {
+                                let internal_price = self
+                                    .0
+                                    .protocol_client
+                                    .get_internal_price(self.0.pool_id)
+                                    .await?;
+                                info!("Price Post Swap [LEX]: {:?}", format_ether(target_price));
+                                info!(
+                                    "Price Post Swap [LOGNORM]: {:?}",
+                                    format_ether(internal_price)
+                                );
+                                self.0.num_arbs += 1;
+                                info!("Arb Count: {:?}", self.0.num_arbs);
+                                output.await?;
+                            }
+                            Err(e) => {
+                                if let ArbiterCoreError::ExecutionRevert { gas_used, output } =
+                                    e.as_middleware_error().unwrap()
+                                {
+                                    info!("[LOGNORM]: Swap failed");
+                                    let hex = ethers::utils::hex::encode(output);
+                                    error!("Execution revert: {:?} Gas Used: {:?}", hex, gas_used);
+                                }
                             }
                         }
                     }
