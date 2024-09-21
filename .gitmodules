@@ -1,7 +1,0 @@
-[submodule "lib/solstat"]
-	path = lib/solstat
-	url = https://github.com/primitivefinance/solstat
-	branch = "update-forge-std"
-[submodule "lib/DFMM"]
-	path = lib/DFMM
-	url = https://github.com/primitivefinance/DFMM
