@@ -5,7 +5,6 @@
 //! for the [controller](./mod.rs) to render.
 
 use chrono::{DateTime, Utc};
-use dfmm::portfolio::position::Positions;
 
 use super::*;
 use crate::components::{
@@ -91,89 +90,12 @@ impl PortfolioPresenter {
     /// Updates the model and syncs the chart data to match the model.
     pub fn update(&mut self, model: Model) {
         self.model = model;
-        self.sync_portfolio_value_series();
-        self.sync_portfolio_strategy_points();
-
-        // Update static if needed.
-        if self.static_needs_update() {
-            self.sync_portfolio_strategy_curve();
-        }
+        // todo: sync charts
     }
 
     /// Returns true if the static chart data is empty.
     pub fn static_needs_update(&self) -> bool {
         self.portfolio_strategy_plot.chart.series.is_empty()
-    }
-
-    /// Does not update the model, only updates the chart data to match the
-    /// existing model.
-    /// todo: these can be computationally costly, we should only do this when
-    /// the model changes or the user forces it.
-    pub fn sync_portfolio_strategy_curve(&mut self) {
-        if let Some(connected_model) = self.model.get_current() {
-            let pool_id = 0;
-            let data = connected_model.derive_portfolio_strategy_plot(pool_id);
-            let data = match data {
-                Ok(data) => data,
-                Err(_) => {
-                    return;
-                }
-            };
-
-            self.portfolio_strategy_plot.override_series(data.1);
-            self.portfolio_strategy_plot.update_x_range(data.0.x_range);
-            self.portfolio_strategy_plot.update_y_range(data.0.y_range);
-            // Only happens once.
-            self.portfolio_strategy_plot.override_ranges_flag(true);
-        }
-    }
-
-    /// Syncs the currently connected model's notable points on the strategy
-    /// plot.
-    pub fn sync_portfolio_strategy_points(&mut self) {
-        let pool_id = 0;
-
-        if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.derive_portfolio_strategy_points(pool_id);
-            let data = match data {
-                Ok(data) => data,
-                Err(_) => {
-                    return;
-                }
-            };
-
-            self.portfolio_strategy_plot.override_points(data);
-        }
-    }
-
-    /// Does not update the model, only updates the chart data to match the
-    /// existing model.
-    /// todo: these can be computationally costly, we should only do this
-    /// when the model changes or the user forces it.
-    /// Only updates the connected model.
-    pub fn sync_portfolio_value_series(&mut self) {
-        let pool_id = 0;
-        if let Some(connected_model) = self.model.get_current() {
-            // Get the series data.
-            let data = connected_model.derive_portfolio_value_series(pool_id);
-            let data = match data {
-                Ok(data) => data,
-                Err(e) => {
-                    tracing::warn!(
-                        "Failed to get portfolio value series when trying to sync: {:}",
-                        e
-                    );
-                    return;
-                }
-            };
-
-            // todo: make series toggleable.
-            self.portfolio_value_series.override_series(vec![data.1]);
-            self.portfolio_value_series.update_x_range(data.0.x_range);
-            self.portfolio_value_series.update_y_range(data.0.y_range);
-            // Only happens once.
-            self.portfolio_value_series.override_ranges_flag(true);
-        }
     }
 
     pub fn get_block_number(&self) -> Option<u64> {
@@ -182,67 +104,6 @@ impl PortfolioPresenter {
     #[allow(dead_code)]
     pub fn get_block_timestamp(&self) -> Option<DateTime<Utc>> {
         self.model.get_current().and_then(|x| x.last_sync)
-    }
-
-    // todo: make this easier to fetch
-    #[allow(dead_code)]
-    pub fn get_internal_price(&self) -> ExcaliburText {
-        let pool_id = 0;
-        self.model
-            .get_current()
-            .map(|x| x.get_internal_price_of_pool_asset(pool_id).unwrap())
-            .to_label()
-    }
-
-    // todo: make this easier to fetch
-    pub fn get_external_price(&self) -> ExcaliburText {
-        let pool_id = 0;
-        self.model
-            .get_current()
-            .map(|x| {
-                x.get_external_price_of_pool_asset(pool_id)
-                    .unwrap_or_default()
-            })
-            .to_label()
-    }
-
-    pub fn get_internal_portfolio_value(&self) -> ExcaliburText {
-        let pool_id = 0; // todo: fix poolid
-        if let Some(connected_model) = self.model.get_current() {
-            connected_model
-                .derive_internal_portfolio_value(pool_id)
-                .to_label()
-        } else {
-            label("N/A").title1().secondary()
-        }
-    }
-
-    pub fn get_portfolio_health(&self) -> ExcaliburText {
-        if let Some(connected_model) = self.model.get_current() {
-            let data = connected_model.derive_portfolio_health();
-            match data {
-                Ok(data) => {
-                    let value = ethers::utils::format_ether(data);
-                    match value.parse::<f64>() {
-                        Ok(_) => label(value.to_string()).title1().percentage(),
-                        Err(_) => label("Failed to parse U256 as float.").caption().tertiary(),
-                    }
-                }
-                Err(_) => label("N/A").title1().secondary(),
-            }
-        } else {
-            label("N/A").title1().secondary()
-        }
-    }
-
-    pub fn get_external_portfolio_value(&self) -> ExcaliburText {
-        if let Some(connected_model) = self.model.get_current() {
-            connected_model
-                .derive_external_portfolio_value(0)
-                .to_label()
-        } else {
-            label("N/A").title1().secondary()
-        }
     }
 
     pub fn get_last_sync_timestamp(&self) -> ExcaliburText {
@@ -267,29 +128,6 @@ impl PortfolioPresenter {
         } else {
             label("Block: N/A").caption().tertiary()
         }
-    }
-
-    pub fn get_positions(&self) -> Positions {
-        let portfolio = self.model.user.portfolio.clone();
-        let position_x = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .find(|x| x.asset.symbol == "X")
-            .cloned()
-            .unwrap_or_default();
-
-        let position_y = portfolio
-            .clone()
-            .positions
-            .0
-            .iter()
-            .find(|x| x.asset.symbol == "Y")
-            .cloned()
-            .unwrap_or_default();
-
-        vec![position_x, position_y].into()
     }
 }
 
@@ -540,75 +378,5 @@ impl DataView {
         Message: 'a,
     {
         self.data_title_caption(data, "External AUM".to_string(), "USD".to_string())
-    }
-    #[allow(dead_code)]
-    pub fn get_positions_table<Message>(&self, positions: Positions) -> Element<'_, Message>
-    where
-        Message: 'static + Default + Clone,
-    {
-        let (table_builder, cell_data) = self.get_positions_table_builder(positions);
-        table_builder.build_custom(cell_data).into()
-    }
-
-    /// Responsible for creating a table builder for the positions.
-    /// It takes a `Positions` object as input and returns a tuple of
-    /// `ExcaliburTable` and a 2D vector of `CellBuilder`.
-    /// The `ExcaliburTable` is a custom table object that allows for the
-    /// creation of a table with custom headers and cell data. The 2D vector
-    /// of `CellBuilder` represents the cell data for each row in the table.
-    ///
-    /// The function iterates over each position in the `Positions` object and
-    /// extracts the asset symbol, cost, balance, and weight. If all these
-    /// values are present, they are formatted as strings and added to the cell
-    /// data.
-    ///
-    /// If no positions are present, an empty cell with a "No data" label is
-    /// added to the cell data. Finally, an `ExcaliburTable` is created with
-    /// headers "Asset", "Price", "Balance", and "Weight", and the cell data is
-    /// returned.
-    pub fn get_positions_table_builder<Message>(
-        &self,
-        positions: Positions,
-    ) -> (ExcaliburTable<Message>, Vec<Vec<CellBuilder<Message>>>)
-    where
-        Message: 'static + Default + Clone,
-    {
-        let mut cell_data: Vec<Vec<CellBuilder<Message>>> = vec![];
-
-        for position in positions.0 {
-            let asset = position.asset.symbol;
-            let cost = position.cost;
-            let balance = position.balance;
-            let weight = position.weight;
-
-            if let (Some(cost), Some(balance), Some(weight)) = (cost, balance, weight) {
-                let cost = format!("{}", cost);
-                let balance = format!("{}", balance);
-                let weight = format!("{}", weight);
-
-                cell_data.push(vec![
-                    CellBuilder::new().child(label(&asset).body().build()),
-                    CellBuilder::new().child(label(&cost).quantitative().build()),
-                    CellBuilder::new().child(label(&balance).quantitative().build()),
-                    CellBuilder::new().child(label(&weight).percentage().build()),
-                ]);
-            }
-        }
-
-        // If no positions add an empty cell with "no data" label.
-        if cell_data.is_empty() {
-            cell_data.push(vec![
-                CellBuilder::new().child(label("No data").secondary().build())
-            ]);
-        }
-
-        (
-            ExcaliburTable::new()
-                .header("Asset")
-                .header("Price")
-                .header("Balance")
-                .header("Weight"),
-            cell_data,
-        )
     }
 }

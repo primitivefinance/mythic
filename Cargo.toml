@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*", "documentation"]
+members = []
 
 [package]
 name = "excalibur"
@@ -13,10 +13,6 @@ name = "excalibur"
 path = "src/main.rs"
 
 [workspace.dependencies]
-# Local
-bindings = { path = "./crates/bindings", version = "0.1.0" }
-clients = { path = "./crates/clients", version = "0.1.0" }
-dfmm = { path = "./crates/dfmm", version = "0.1.0" }
 
 # External
 arbiter-bindings = "0.1.5"
@@ -30,7 +26,7 @@ revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
 reqwest = "0.11.24"
 
 ## Config and parsing
-serde = "=1.0.197"
+serde = "=1.0.203"
 serde_json = "=1.0.114"
 serde_with = { version = "3.6.1", features = ["chrono_0_4"] }
 config = "0.14.0"
@@ -44,7 +40,7 @@ tracing = "=0.1.40"
 tracing-subscriber = { version = "=0.3.18", features = ["env-filter"] }
 tracing-futures = { version = "=0.2.5", default-features = false }
 anyhow = "=1.0.80"
-thiserror = "=1.0.57"
+thiserror = "=1.0.61"
 
 itertools = "0.12.1"
 rand = "=0.8.5"
@@ -69,11 +65,6 @@ directories-next = "=2.0.0"
 chrono = { version = "0.4.34", features = ["serde"] }
 
 [dependencies]
-# Local
-bindings.workspace = true
-clients.workspace = true
-dfmm.workspace = true
-
 arbiter-bindings.workspace = true
 arbiter-core.workspace = true
 
@@ -138,7 +129,7 @@ resources = ["assets/"]
 icon = ["assets/logos/excalibur_logo_2.png"]
 
 # macOS specific
-category = "public.app-category.finance"
+category = "public.app-category.utilities"
 copyright = "Copyright (c) 2024 Primitive Bits, Inc."
 minimum_system_version = "10.14"
 osx_url_schemes = ["xyz.primitive.excalibur"]

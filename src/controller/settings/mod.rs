@@ -3,7 +3,6 @@
 
 pub mod contacts;
 pub mod rpc;
-pub mod signers;
 
 use anyhow::anyhow;
 use iced::widget::Container;
@@ -21,7 +20,6 @@ pub enum Message {
     Empty,
     Route(Pages),
     Rpc(rpc::Message),
-    Signers(signers::Message),
     Contacts(contacts::Message),
 }
 
@@ -59,7 +57,6 @@ pub enum Pages {
 pub struct SettingsScreen {
     pub active: Pages,
     pub rpc: rpc::RpcManagement,
-    pub signers: signers::SignerManagement,
     pub contacts: contacts::ContactsManagement,
 }
 
@@ -68,28 +65,18 @@ impl SettingsScreen {
         Self {
             active: Pages::default(),
             rpc: rpc::RpcManagement::new(user.rpcs.clone()),
-            signers: signers::SignerManagement::new(),
             contacts: contacts::ContactsManagement::new(),
         }
     }
 
     pub fn pages(&self) -> Vec<NavigationStep<RootViewMessage>> {
-        vec![
-            NavigationStep::new(
-                Icon::Lightning,
-                "RPC",
-                Message::Route(Pages::Rpc).into(),
-                self.active == Pages::Rpc,
-                false,
-            ),
-            NavigationStep::new(
-                Icon::Wallet,
-                "Wallets",
-                Message::Route(Pages::Signers).into(),
-                self.active == Pages::Signers,
-                false,
-            ),
-        ]
+        vec![NavigationStep::new(
+            Icon::Lightning,
+            "RPC",
+            Message::Route(Pages::Rpc).into(),
+            self.active == Pages::Rpc,
+            false,
+        )]
     }
 
     fn switch_page(&mut self, page: Pages) -> Command<Message> {
@@ -171,10 +158,6 @@ impl State for SettingsScreen {
                     }
                     _ => self.rpc.update(message).map(|x| Message::Rpc(x).into()),
                 },
-                Message::Signers(message) => self
-                    .signers
-                    .update(message)
-                    .map(|x| Message::Signers(x).into()),
 
                 Message::Contacts(message) => self
                     .contacts
@@ -194,7 +177,6 @@ impl State for SettingsScreen {
 
         let nav_content = match self.active {
             Pages::Rpc => self.rpc.view().map(move |x| Message::Rpc(x).into()),
-            Pages::Signers => self.signers.view().map(move |x| Message::Signers(x).into()),
             _ => Column::new().into(),
         };
 

@@ -2,16 +2,13 @@
 //! tasks. Once these complete they emit a message back to the iced Application
 //! impl in ./lib.rs, which then switches to the runtime App state.
 
-use std::time::Instant;
-
-use clients::{dev::DevClient, ledger::LedgerClient, protocol::ProtocolClient};
-use dfmm::portfolio::coin::Coin;
 use iced::{
     font,
     widget::{canvas::Cache, column, container, progress_bar},
     Length,
 };
 use iced_aw::graphics::icons::ICON_FONT_BYTES;
+use std::time::Instant;
 
 use crate::{
     app::AnvilSave,
@@ -94,7 +91,7 @@ pub async fn load_app(flags: Flags) -> LoadResult {
     let mut model = load_user_data()?;
 
     // Create a new middleware client to make calls to the network.
-    let mut exc_client = ExcaliburMiddleware::new(None, None, None).await?;
+    let mut exc_client = ExcaliburMiddleware::new(None, None).await?;
 
     // Start and connect to an anvil instance.
     let anvil = start_anvil(None)?;
@@ -168,149 +165,13 @@ pub async fn load_app(flags: Flags) -> LoadResult {
             }
         }
 
-        // todo: better contract naming/storage management.
-        let protocol_client = ProtocolClient::from_deployed(
-            exc_client.get_client(),
-            *exc_client.contracts.get("protocol").unwrap(),
-            *exc_client.contracts.get("solver").unwrap(),
-            *exc_client.contracts.get("strategy").unwrap(),
-            Address::zero(),
-            Address::zero(),
-        )?;
-        exc_client.connect_dfmm(protocol_client).await?;
+        // todo: load connections
     }
 
     // Connect a signer to the client so we can send transactions.
     let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
     let sender = signer.address();
     exc_client.connect_signer(signer).await?;
-
-    // If we are loading a fresh instance, deploy the contracts.
-    if !loaded_snapshot {
-        let client = exc_client.get_client();
-
-        let dev_client = DevClient::deploy(client, sender).await?;
-        exc_client.connect_dfmm(dev_client.protocol.clone()).await?;
-
-        let protocol = dev_client.protocol.protocol.address();
-        let strategy = dev_client.protocol.ln_strategy.address();
-        let token_x = dev_client.token_x.address();
-        let token_y = dev_client.token_y.address();
-        let solver = dev_client.solver.address();
-        let lex = dev_client.liquid_exchange.address();
-
-        exc_client.add_contract("protocol", protocol);
-        exc_client.add_contract("strategy", strategy);
-        exc_client.add_contract("solver", solver);
-        exc_client.add_contract("token_x", token_x);
-        exc_client.add_contract("token_y", token_y);
-        exc_client.add_contract("lex", lex);
-
-        model.user.contacts.add(
-            protocol,
-            contacts::ContactValue {
-                label: "protocol".to_string(),
-                class: contacts::Class::Contract,
-                ..Default::default()
-            },
-            contacts::Category::Untrusted,
-        );
-
-        model.user.contacts.add(
-            strategy,
-            contacts::ContactValue {
-                label: "strategy".to_string(),
-                class: contacts::Class::Contract,
-                ..Default::default()
-            },
-            contacts::Category::Trusted,
-        );
-
-        model.user.contacts.add(
-            token_x,
-            contacts::ContactValue {
-                label: "token_x".to_string(),
-                class: contacts::Class::Contract,
-                ..Default::default()
-            },
-            contacts::Category::Untrusted,
-        );
-
-        model.user.contacts.add(
-            token_y,
-            contacts::ContactValue {
-                label: "token_y".to_string(),
-                class: contacts::Class::Contract,
-                ..Default::default()
-            },
-            contacts::Category::Untrusted,
-        );
-
-        model.user.contacts.add(
-            lex,
-            contacts::ContactValue {
-                label: "lex".to_string(),
-                class: contacts::Class::Contract,
-                ..Default::default()
-            },
-            contacts::Category::Untrusted,
-        );
-
-        model.user.contacts.add(
-            solver,
-            contacts::ContactValue {
-                label: "solver".to_string(),
-                class: contacts::Class::Contract,
-                ..Default::default()
-            },
-            contacts::Category::Untrusted,
-        );
-
-        tracing::info!("Loaded contacts: {:?}", model.user.contacts);
-        // TODO(matt): Create a shared type so that the order of the arguments isn't
-        // finicky
-        if let Some(connected_model) = model.get_current_mut() {
-            connected_model.setup(
-                exc_client.address().unwrap(),
-                lex,
-                protocol,
-                dev_client.solver.address(),
-                strategy,
-            );
-        }
-
-        let tokens = model.user.coins.tokens.clone();
-        let coin_x = tokens.iter().find(|c| c.address == token_x);
-        let coin_y = tokens.iter().find(|c| c.address == token_y);
-
-        if coin_x.is_none() {
-            let coin: Coin = Coin {
-                name: "Token X".to_string(),
-                symbol: "TKNX".to_string(),
-                address: token_x,
-                decimals: 18,
-                chain_id,
-                logo_uri: "".to_string(),
-                tags: vec!["mock".to_string(), "ether".to_string()],
-            };
-            model.user.coins += coin;
-        }
-
-        if coin_y.is_none() {
-            let coin: Coin = Coin {
-                name: "Token Y".to_string(),
-                symbol: "TKNY".to_string(),
-                address: token_y,
-                decimals: 18,
-                chain_id,
-                logo_uri: "".to_string(),
-                tags: vec!["mock".to_string(), "stablecoin".to_string()],
-            };
-            model.user.coins += coin;
-        }
-
-        model.save()?;
-    }
 
     // Add the default signer to the contacts book, if there is a signer.
     if let Some(address) = exc_client.address() {
@@ -327,26 +188,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
     }
 
     Ok((model, Arc::new(exc_client)))
-}
-
-/// Attempts to establish a new connection with the Ledger hardware wallet.
-/// If the connection is successful, it returns an instance of the LedgerClient.
-/// If the connection fails, it logs a warning, creates a new default ledger,
-/// and returns None.
-#[tracing::instrument(level = "debug")]
-pub async fn connect_ledger() -> Option<LedgerClient> {
-    let ledger =
-        LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0)).await;
-
-    match ledger {
-        Ok(ledger) => Some(ledger),
-        Err(e) => {
-            tracing::warn!("Failed to connect to ledger: {:?}", e);
-            tracing::info!("Creating a new default ledger.");
-
-            None
-        }
-    }
 }
 
 /// Placeholder function for any future async calls we might want to do.

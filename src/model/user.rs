@@ -4,7 +4,6 @@
 use std::{fs::File, path::PathBuf};
 
 use anyhow::Result;
-use dfmm::portfolio::{coin_list::CoinList, Portfolio};
 use directories_next::{self, ProjectDirs};
 use serde::{de::DeserializeOwned, Serialize};
 use tracing;
@@ -167,18 +166,10 @@ pub struct UserProfile {
     pub name: Option<String>,
     pub contacts: Contacts,
     pub rpcs: RPCList,
-    pub coins: CoinList,
-    pub portfolio: Portfolio,
     pub anvil_snapshot: Option<AnvilSave>,
 }
 
-impl UserProfile {
-    /// Updates the portfolio of this profile and saves to file.
-    pub fn update_portfolio(&mut self, portfolio: &Portfolio) -> Result<()> {
-        self.portfolio = portfolio.clone();
-        Ok(())
-    }
-}
+impl UserProfile {}
 
 impl Saveable for UserProfile {
     const EXTENSION: &'static str = PROFILE_FILE_EXTENSION;
@@ -223,8 +214,6 @@ impl Saveable for UserProfile {
             contacts: Contacts::new(),
             rpcs: RPCList::new(),
             name,
-            coins: CoinList::default(),
-            portfolio: Portfolio::default(),
             anvil_snapshot: None,
         };
 

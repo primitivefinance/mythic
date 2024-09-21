@@ -6,12 +6,6 @@ pub mod rpcs;
 pub mod user;
 
 use std::{collections::HashMap, fs::File};
-
-use dfmm::portfolio::{
-    coin::Coin,
-    position::{Position, PositionLayer, Positions},
-    weight::Weight,
-};
 use uuid::Uuid;
 
 use self::{
@@ -96,143 +90,8 @@ impl Model {
 
         let chain_id = self.current.unwrap();
         let model = self.networks.get_mut(&chain_id).unwrap();
-        let coin_list = self.user.coins.clone();
-        let unallocated_positions = model.get_unallocated_positions(coin_list.clone())?;
-        let allocated_positions = model.get_allocated_positions()?;
 
-        // Clones the user's current portfolio to mutate it.
-        let mut portfolio = self.user.portfolio.clone();
-
-        // Construct the portfolio by combining the value of all positions to derive the
-        // weights of each individual position.
-        // todo: ignore the token x and token y values of a liquidity position, and just
-        // use the liquidity token as its own position.
-
-        // Build a list of all individual positions, which are tokens, from the
-        // unallocated and allocated positions.
-        let position_tokens = unallocated_positions
-            .iter()
-            .map(|position| position.token_address)
-            .chain(
-                allocated_positions
-                    .iter()
-                    .map(|position| position.token_l_address),
-            )
-            .collect::<Vec<Address>>();
-
-        // Find the total value of all of these positions by looping over each position,
-        // and multiplying its balance by price.
-        let total_value = unallocated_positions
-            .iter()
-            .map(|pos| {
-                let balance = pos.balance;
-                let price = pos.external_price;
-                balance * price
-            })
-            .sum::<f64>()
-            + allocated_positions
-                .iter()
-                .map(|pos| {
-                    let balance = pos.liquidity_balance;
-                    let price = pos.liquidity_value;
-                    balance * price
-                })
-                .sum::<f64>();
-
-        // Create the data type `Position` to be entered into the portfolio using the
-        // total value to compute its weight, for each position token.
-        let mut positions = vec![];
-
-        tracing::info!("Position tokens are: {:?}", position_tokens);
-        for token in position_tokens {
-            let mut is_allocated = false;
-            let (balance, price) = if let Some(position) = unallocated_positions
-                .iter()
-                .find(|pos| pos.token_address == token)
-            {
-                (position.balance, position.external_price)
-            } else if let Some(position) = allocated_positions
-                .iter()
-                .find(|pos| pos.token_l_address == token)
-            {
-                is_allocated = true;
-                (
-                    position.liquidity_balance,
-                    position.liquidity_value / position.liquidity_balance,
-                )
-            } else {
-                continue;
-            };
-
-            let weight = balance * price / total_value;
-
-            let coin = coin_list
-                .tokens
-                .iter()
-                .find(|coin| coin.address == token)
-                .cloned();
-
-            // If coin is None, then we need to insert the coin into the coinlist using its
-            // token metadata in the portfolio model.
-            let coin_metadata = model
-                .clone()
-                .token_metadata
-                .unwrap()
-                .get(&token)
-                .ok_or_else(|| {
-                    anyhow::anyhow!("Failed to get token metadata for token: {:?}", token)
-                })?
-                .clone();
-
-            // Add the coin to the coinlist.
-            let coin = match coin {
-                Some(coin) => coin,
-                None => {
-                    // If no coin is available, create a new one using its existing metadata.
-
-                    let mut coin = Coin::new(
-                        coin_metadata.symbol,
-                        coin_metadata.name,
-                        coin_metadata.decimals,
-                    );
-                    coin.address = token;
-                    coin.chain_id = chain_id;
-                    coin.tags = vec!["lp".to_string()];
-
-                    // Add the coin to the coinlist of the user.
-                    // todo: this is kind of hidden for a big operation and should have an
-                    // intermediary function to manage the coinlist updates.
-                    self.user.coins.tokens.push(coin.clone());
-
-                    coin
-                }
-            };
-
-            let layer = match is_allocated {
-                true => PositionLayer::Liquidity,
-                false => PositionLayer::RawBalance,
-            };
-
-            let position = Position::new(
-                coin,
-                Some(price),
-                Some(balance),
-                Some(Weight {
-                    id: Uuid::new_v4(),
-                    value: weight,
-                }),
-                None,
-            )
-            .layer(layer);
-
-            positions.push(position);
-        }
-
-        // Workaround to NaN errors in portfolio position changes is to override the
-        // positions directly.
-        portfolio.positions = Positions::new(positions);
-
-        self.user.update_portfolio(&portfolio)
+        Ok(())
     }
 
     /// Updates the currently connected model with the latest data from the
@@ -267,16 +126,6 @@ impl Model {
         // Exit early if no network is actively connected.
         if self.current.is_none() {
             return Ok(());
-        }
-
-        let coin_list = self.user.coins.clone();
-
-        // For each coin, add it to the token balance mapping.
-        for coin in coin_list.tokens.clone() {
-            let coin = coin.clone();
-            let chain_id = self.current.unwrap();
-            let network = self.networks.get_mut(&chain_id).unwrap();
-            network.add_token(coin.address)?;
         }
 
         Ok(())

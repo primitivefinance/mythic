@@ -1,8 +1,5 @@
-use std::{collections::HashMap, fmt};
-
-use arbiter_core::{environment::Environment, middleware::ArbiterMiddleware};
-use clients::{ledger::LedgerClient, protocol::ProtocolClient};
 use ethers::utils::{Anvil, AnvilInstance};
+use std::{collections::HashMap, fmt};
 
 use super::*;
 use crate::app::AnvilSave;
@@ -28,16 +25,8 @@ pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
     pub signer: Option<S>,
     /// ANY CONTRACTS
     pub contracts: HashMap<String, Address>,
-    /// HARDWARE
-    pub ledger: Option<LedgerClient>,
-    /// ARBITER
-    pub arbiter: Option<Environment>,
-    /// ARBITER CLIENT
-    pub arbiter_client: Option<Arc<ArbiterMiddleware>>,
     /// ANVIL
     pub anvil: Option<AnvilInstance>,
-    /// PROTOCOL
-    pub dfmm_client: Option<ProtocolClient<NetworkClient<P, S>>>,
 }
 
 impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
@@ -67,37 +56,7 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
     /// Creates a connection to a ledger device.
     #[tracing::instrument(skip(self), level = "debug")]
     pub async fn connect_ledger(&mut self) -> anyhow::Result<()> {
-        let ledger =
-            LedgerClient::new_connection(clients::ledger::types::DerivationType::LedgerLive(0))
-                .await;
-
-        let ledger = match ledger {
-            Ok(ledger) => Some(ledger),
-            Err(e) => {
-                tracing::warn!("Could not connect to ledger: {:?}", e);
-                None
-            }
-        };
-
-        self.ledger = ledger;
-        Ok(())
-    }
-
-    /// Connects the middleware to an arbiter `Environment`.
-    /// Must use the method `arbiter_client` field to make
-    /// blockchain calls to arbiter with.
-    #[tracing::instrument(skip(self), level = "debug")]
-    pub async fn connect_arbiter(
-        &mut self,
-        arbiter: Environment,
-        seed: Option<&str>,
-    ) -> anyhow::Result<()> {
-        let arbiter_client = ArbiterMiddleware::new(&arbiter, seed)?;
-
-        self.arbiter = Some(arbiter);
-        self.arbiter_client = Some(arbiter_client.clone());
-
-        Ok(())
+        todo!()
     }
 
     /// Executes the `anvil_dumpState` rpc call on the anvil instance.
@@ -143,7 +102,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
     ///   is running.
     pub async fn new(
         anvil: Option<AnvilInstance>,
-        arbiter: Option<Environment>,
         signer: Option<LocalWallet>,
     ) -> anyhow::Result<Self> {
         let mut anvil_client = None;
@@ -159,14 +117,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             ));
         }
 
-        let mut arbiter_client = None;
-        if let Some(arbiter_instance) = arbiter.as_ref() {
-            arbiter_client = Some(ArbiterMiddleware::new(
-                arbiter_instance,
-                Some(SANDBOX_LABEL),
-            )?);
-        }
-
         let mut client = None;
         if let Some(anvil_client) = anvil_client.clone() {
             client = Some(anvil_client);
@@ -176,11 +126,7 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
             client,
             signer,
             contracts: HashMap::new(),
-            ledger: None,
-            arbiter,
-            arbiter_client,
             anvil,
-            dfmm_client: None,
         })
     }
 
@@ -214,11 +160,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         );
         self.client = Some(signer_client.clone());
 
-        // Override the dfmm_client if it exists with the new signer.
-        if let Some(dfmm_client) = self.dfmm_client.as_ref() {
-            self.dfmm_client = Some(dfmm_client.clone().connect(signer_client.clone())?);
-        }
-
         Ok(())
     }
 
@@ -237,16 +178,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         self.client = Some(client);
         self.signer = Some(signer);
 
-        Ok(())
-    }
-
-    /// Connects the middleware to the dfmm protocol client.
-    #[tracing::instrument(skip(self), level = "debug")]
-    pub async fn connect_dfmm(
-        &mut self,
-        client: ProtocolClient<NetworkClient<Ws, LocalWallet>>,
-    ) -> anyhow::Result<()> {
-        self.dfmm_client = Some(client);
         Ok(())
     }
 }
@@ -270,14 +201,6 @@ pub fn start_anvil(chain_id: Option<u64>) -> anyhow::Result<AnvilInstance> {
     Ok(anvil)
 }
 
-/// Spawns a new Arbiter instance.
-#[allow(dead_code)]
-pub fn start_arbiter() -> anyhow::Result<Environment> {
-    let arbiter = Environment::builder().build();
-
-    Ok(arbiter)
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -297,7 +220,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn test_excalibur_local() -> anyhow::Result<()> {
-        let client = ExcaliburMiddleware::new(None, None, None).await?;
+        let client = ExcaliburMiddleware::new(None, None).await?;
 
         let anvil = client.anvil.as_ref().unwrap();
 

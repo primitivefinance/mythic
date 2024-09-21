@@ -3,9 +3,6 @@
 //! To accomplish that we need to update the plot as the x and y ranges change
 //! with the user's scrolling or dragging.
 
-use std::collections::BTreeMap;
-
-use dfmm::rmm::{compute_y_given_x_rust, liq_distribution};
 use iced::{
     event,
     mouse::{Cursor, Event},
@@ -14,6 +11,7 @@ use iced::{
 };
 use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
 use plotters_iced::{Chart, ChartWidget};
+use std::collections::BTreeMap;
 
 /// A point to plot on the chart.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1345,48 +1343,6 @@ fn near_boundaries(
         left,
     }
 }
-#[allow(dead_code)]
-pub fn basic_log_normal_curve() -> Vec<(f32, f32)> {
-    let x_min = 0.0;
-    let x_max = 1.0;
-    let liquidity = 1.0;
-    let strike = 1.0;
-    let sigma = 1.0;
-    let time_to_expiry = 1.0;
-
-    let mut points = vec![];
-
-    let mut x = x_min;
-    while x < x_max {
-        let y = compute_y_given_x_rust(x, liquidity, strike, sigma, time_to_expiry);
-        points.push((x, y));
-        x += 0.01;
-    }
-
-    points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect()
-}
-
-/// Plot the points of the basic normal liq distribution.
-#[allow(dead_code)]
-pub fn basic_liq_dist_curve() -> Vec<(f32, f32)> {
-    let x_min = 0.01;
-    let x_max = 1.0;
-    let liquidity = 1.0;
-    let strike = 1.0;
-    let sigma = 1.0;
-    let time_to_expiry = 1.0;
-
-    let mut points = vec![];
-
-    let mut x = x_min;
-    while x < x_max {
-        let y = liq_distribution(x, liquidity, strike, sigma, time_to_expiry);
-        points.push((x, y));
-        x += 0.01;
-    }
-
-    points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect()
-}
 
 impl From<ChartLine> for ChartLineSeries {
     fn from(line: ChartLine) -> Self {
@@ -1441,72 +1397,4 @@ mod tests {
     use statrs::assert_almost_eq;
 
     use super::*;
-
-    #[test]
-    fn test_basic_log_normal_curve() {
-        let points = basic_log_normal_curve();
-        for (x, y) in &points {
-            println!("({}, {})", x, y);
-        }
-        assert_eq!(points.len(), 100);
-    }
-
-    #[test]
-    fn test_liquidity_distribution_plot() {
-        let points = basic_liq_dist_curve();
-        for (x, y) in &points {
-            println!("({}, {})", x, y);
-        }
-        assert_eq!(points.len(), 100);
-    }
-
-    #[test]
-    fn test_derivative_liq_distribution() {
-        // Loop over from x min to x max,
-        // and compute the derivative of the liq distribution.
-        // make sure the derivative makes sense!
-
-        let x_min = 0.00001;
-        let x_max = 1.0;
-        let liquidity = 1.0;
-        let strike = 1.0;
-        let sigma = 2.0;
-        let time_to_expiry = 1.0;
-
-        let mut points = vec![];
-
-        let mut x = x_min;
-        while x < x_max {
-            let y = liq_distribution(x, liquidity, strike, sigma, time_to_expiry);
-            points.push((x, y));
-            x += 0.01;
-        }
-
-        let mut points: Vec<(f32, f32)> =
-            points.iter().map(|(x, y)| (*x as f32, *y as f32)).collect();
-
-        let mut prev = points.remove(0);
-
-        for (x, y) in points {
-            let dy = y - prev.1;
-            let dx = x - prev.0;
-            let slope = dy / dx;
-            println!("({}, {})", x, slope);
-            prev = (x, y);
-        }
-    }
-
-    #[test]
-    fn test_liquidity_distribution() {
-        let x = 0.05;
-        let liquidity = 1.0;
-        let strike = 1.0;
-        let sigma = 1.0;
-        let time_to_expiry = 1.0;
-
-        let depth = liq_distribution(x, liquidity, strike, sigma, time_to_expiry);
-        println!("depth: {}", depth);
-
-        assert_almost_eq!(depth, 0.354, 1e-3);
-    }
 }

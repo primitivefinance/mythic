@@ -8,10 +8,7 @@ use iced::{
 };
 
 use super::{
-    chart::{
-        basic_liq_dist_curve, basic_log_normal_curve, coords_to_line_series, CartesianChart,
-        ChartLineSeries, ChartPoint, HistogramChart,
-    },
+    chart::{coords_to_line_series, CartesianChart, ChartLineSeries, ChartPoint, HistogramChart},
     *,
 };
 
@@ -1337,27 +1334,6 @@ impl ExcaliburChart {
 
     pub fn override_ranges_flag(&mut self, flag: bool) {
         self.chart.override_ranges = flag;
-    }
-
-    // Chart templates
-    #[allow(dead_code)]
-    pub fn rmm_trading_fn(mut self) -> Self {
-        let log_normal_plot = basic_log_normal_curve();
-        let mut series = coords_to_line_series(log_normal_plot);
-        series.legend = "Log Normal".to_string();
-
-        let liq_dist_plot = basic_liq_dist_curve();
-        let mut series2 = coords_to_line_series(liq_dist_plot);
-        series2.legend = "Liq. Dist.".to_string();
-        series2.color = plotters::style::colors::full_palette::DEEPPURPLE_400;
-
-        let lines: Vec<ChartLineSeries> = vec![series, series2];
-
-        self.chart.extend_many_series(lines);
-        self = self.x_range((-0.1, 1.0));
-        self = self.y_range((-0.1, 1.0));
-
-        self
     }
 }
 
