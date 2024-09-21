@@ -5,7 +5,7 @@ members = []
 name = "excalibur"
 version = "0.2.0"
 edition = "2021"
-description = "Excalibur: An alternative entrypoint to DeFi."
+description = "Excalibur is a native desktop client for smart contracts."
 authors = ["Primitive Bits, Inc."]
 
 [[bin]]
@@ -13,10 +13,6 @@ name = "excalibur"
 path = "src/main.rs"
 
 [workspace.dependencies]
-
-# External
-arbiter-bindings = "0.1.5"
-arbiter-core = "0.10.2"
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
 # Ethereum
@@ -65,9 +61,6 @@ directories-next = "=2.0.0"
 chrono = { version = "0.4.34", features = ["serde"] }
 
 [dependencies]
-arbiter-bindings.workspace = true
-arbiter-core.workspace = true
-
 revm.workspace = true
 ethers.workspace = true
 
@@ -123,8 +116,8 @@ url = "=2.5.0"
 [package.metadata.bundle]
 name = "Excalibur"
 identifier = "xyz.primitive.excalibur"
-short_description = "Excalibur: An alternative entrypoint to DeFi."
-long_description = "Excalibur: An alternative entrypoint to DeFi."
+short_description = "Excalibur is a native desktop client for smart contracts."
+long_description = "Excalibur is a native desktop client for smart contracts."
 resources = ["assets/"]
 icon = ["assets/logos/excalibur_logo_2.png"]
 

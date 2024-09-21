@@ -1,5 +1,3 @@
-//! Contacts are all the addresses that can be interacted with in the app.
-
 use super::*;
 use crate::components::system::label;
 

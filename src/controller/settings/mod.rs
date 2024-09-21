@@ -1,6 +1,3 @@
-//! Settings has all user settings and preferences, including rpc, signer, and
-//! contacts management.
-
 pub mod contacts;
 pub mod rpc;
 
@@ -31,14 +28,12 @@ impl MessageWrapperView for Message {
     type ParentMessage = RootViewMessage;
 }
 
-// normal message which are not clone
 impl From<Message> for <Message as MessageWrapper>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::View(view::ViewMessage::Settings(message))
     }
 }
 
-// for view messages which are clone
 impl From<Message> for <Message as MessageWrapperView>::ParentMessage {
     fn from(message: Message) -> Self {
         Self::Settings(message)

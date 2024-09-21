@@ -20,18 +20,9 @@ use crate::{
 pub enum Message {
     #[default]
     Empty,
-
-    // todo: do we need these on all pages?? maybe just reference the  model.
-    // I think we should use this pattern called the translator pattern:
-    // https://medium.com/@alex.lew/the-translator-pattern-a-model-for-child-to-parent-communication-in-elm-f4bfaa1d3f98
     UpdateDataModel(Result<Model, Arc<anyhow::Error>>),
-    // Trigger a re-sync
     SyncModel(Block<ethers::types::H256>),
-
-    // placeholder
     Refresh,
-
-    // Updates the price process, temp, todo: replace with real price.
     UpdatePriceProcess,
 }
 
@@ -69,7 +60,6 @@ impl Monolithic {
         let presenter = view::MonolithicPresenter::new(model.clone());
         let chart_presenter = PortfolioPresenter::default();
 
-        // todo: integrate a live price process instead of this one!
         let process = Some(PriceProcess {
             trajectories: GeometricBrownianMotion::new(0.05, 0.9)
                 .euler_maruyama(1.0, 0.0, 1.0, 1000, 1, false),
@@ -87,16 +77,12 @@ impl Monolithic {
     }
 
     pub fn handle_updated_model(&mut self, updated_model: Model) -> Command<Message> {
-        // Update the model
         self.model = updated_model.clone();
 
-        // Update presenter
         self.presenter.update(updated_model.clone());
 
-        // Update charts
         self.chart_presenter.update(updated_model.clone());
 
-        // Re-cache historical txs.
         let txs = self.presenter.get_historical_txs();
         self.presenter.cache_historical_txs(txs);
 
@@ -138,10 +124,8 @@ impl State for Monolithic {
                         .map(|x| x.external_exchange_address)
                         .unwrap_or_else(|| None),
                 ) {
-                    // Step the price process.
                     self.price_process.as_mut().unwrap().step += 1;
 
-                    // Update the price of the exchange based on the new step.
                     return price_process_update_after_step(
                         self.price_process.clone().unwrap(),
                         exchange,
@@ -182,11 +166,8 @@ impl State for Monolithic {
             let provider = client.get_client();
             let mut subscriptions: Vec<Subscription<Message>> = vec![];
 
-            // Fetches the most recent block and updates the model.
             subscriptions.push(listen_to_blocks(provider));
 
-            // Steps the price process forward.
-            // todo: remove this in favor of a live price feed.
             if self.price_process.clone().is_some() {
                 let s1 = iced::time::every(std::time::Duration::from_secs(5))
                     .map(|_| Self::AppMessage::UpdatePriceProcess);
@@ -200,8 +181,6 @@ impl State for Monolithic {
     }
 }
 
-/// Fetches the most recent block and updates the model with the state in the
-/// new block.
 pub fn listen_to_blocks(
     provider: Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>,
 ) -> Subscription<Message> {
@@ -221,7 +200,6 @@ pub fn listen_to_blocks(
     )
 }
 
-/// For testing the UI with a "live" price.
 pub struct PriceProcess {
     pub trajectories: Trajectories,
     pub step: usize,
@@ -250,11 +228,6 @@ impl std::fmt::Debug for PriceProcess {
     }
 }
 
-/// This function will step the price process forward and update the price of
-/// the liquid exchange in the development environment. We should eventually
-/// replace this with a live price feed.
-///
-/// note: expects price process step to be incremented before calling this.
 fn price_process_update_after_step(
     process: PriceProcess,
     exchange: Address,

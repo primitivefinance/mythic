@@ -1,8 +1,3 @@
-//! Mini service for organizing and managing contacts.
-//! Contacts are any address that the user wants to keep track of.
-//! Contacts are organized into categories, which are defined by the
-//! `Category` enum.
-
 pub mod classification;
 pub mod list;
 
@@ -64,7 +59,6 @@ impl Contacts {
         self.books.get(&category)
     }
 
-    // todo: add benches for this...
     pub fn get_class_list(&self, class: Class) -> Option<ContactList> {
         let all = self
             .list_all()

@@ -1,7 +1,3 @@
-//! A list of contacts is a simple key value store.
-//! The key is the address, and the value is the label.
-//! The label is a user defined string that is used to identify the address.
-
 use std::{collections::BTreeMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -17,7 +13,6 @@ pub struct ContactValue {
     pub artifact: Option<PathBuf>,
 }
 
-/// A group list of contacts, sorted and stored by address key.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct ContactList {
     addresses: BTreeMap<ContactKey, ContactValue>,
@@ -58,7 +53,6 @@ impl ContactList {
         self.addresses.len()
     }
 
-    /// Try to add a String to the list.
     pub fn try_add(
         &mut self,
         address: String,

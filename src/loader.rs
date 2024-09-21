@@ -1,7 +1,3 @@
-//! The application starts in the Loader state which executes async loading
-//! tasks. Once these complete they emit a message back to the iced Application
-//! impl in ./lib.rs, which then switches to the runtime App state.
-
 use iced::{
     font,
     widget::{canvas::Cache, column, container, progress_bar},
@@ -50,12 +46,8 @@ pub struct Loader {
     pub logo: PhiLogo,
 }
 
-/// This function attempts to load user data into a model. If it fails, it
-/// creates a new default model. It then logs the loaded model's user name and
-/// file path.
 #[tracing::instrument(level = "debug")]
 pub fn load_user_data() -> anyhow::Result<Model> {
-    // first log we see on start up comes from here
     let model = Model::load(None);
     let model = match model {
         Ok(model) => model,
@@ -76,24 +68,16 @@ pub fn load_user_data() -> anyhow::Result<Model> {
     Ok(model)
 }
 
-/// Contracts that we start up the client with
-/// ORDER MATTERS HERE WHICH IS VERY BIG BAD.
 const CONTRACT_NAMES: [&str; 6] = [
     "protocol", "strategy", "token_x", "token_y", "lex", "solver",
 ];
 
-/// Loads any async data or disk data into the application's state types.
-/// On load, the application will emit the Ready message to the root
-/// application, which will then open the App.
 #[tracing::instrument(level = "debug")]
 pub async fn load_app(flags: Flags) -> LoadResult {
-    // Load the user's save or create a new one.
     let mut model = load_user_data()?;
 
-    // Create a new middleware client to make calls to the network.
     let mut exc_client = ExcaliburMiddleware::new(None, None).await?;
 
-    // Start and connect to an anvil instance.
     let anvil = start_anvil(None)?;
     exc_client.connect_anvil(anvil).await?;
 
@@ -105,11 +89,8 @@ pub async fn load_app(flags: Flags) -> LoadResult {
 
     let client = exc_client.get_client();
 
-    // todo: try the connection to the sandbox next
-    // Connect the model to the desired network.
     model.connect_to_network(client.clone()).await?;
 
-    // If profile has an anvil snapshot, load it.
     let loaded_snapshot = if let Some(AnvilSave {
         snapshot,
         block_number,
@@ -144,10 +125,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
         false
     };
 
-    // To synchronize a loaded snapshot with the necessary state:
-    // 1. Get the "saved" addresses from the user's contact book.
-    // 2. Sync the addresses to the exc_client.
-    // 3. Sync the addresses to the model.
     if loaded_snapshot {
         for name in CONTRACT_NAMES.iter() {
             if let Some(contracts) = model
@@ -155,8 +132,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
                 .contacts
                 .get_class_list(contacts::Class::Contract)
             {
-                // If the contract value's label contains the name, add it to the exc_client.
-                // todo: need better loading of contracts from storage.
                 for (address, contact) in contracts.get_all() {
                     if contact.label == *name {
                         exc_client.add_contract(name, *address);
@@ -164,16 +139,12 @@ pub async fn load_app(flags: Flags) -> LoadResult {
                 }
             }
         }
-
-        // todo: load connections
     }
 
-    // Connect a signer to the client so we can send transactions.
     let signer = exc_client.signer.clone().unwrap().with_chain_id(chain_id);
     let sender = signer.address();
     exc_client.connect_signer(signer).await?;
 
-    // Add the default signer to the contacts book, if there is a signer.
     if let Some(address) = exc_client.address() {
         model.user.contacts.add(
             address,
@@ -190,7 +161,6 @@ pub async fn load_app(flags: Flags) -> LoadResult {
     Ok((model, Arc::new(exc_client)))
 }
 
-/// Placeholder function for any future async calls we might want to do.
 pub async fn connect_to_server() -> anyhow::Result<()> {
     Ok(())
 }
@@ -198,16 +168,6 @@ pub async fn connect_to_server() -> anyhow::Result<()> {
 pub const DAGGER_SQUARE_FONT_BYTES: &[u8] = include_bytes!("../assets/fonts/DAGGERSQUARE.otf");
 
 impl Loader {
-    /// Creates a new Loader with the given flags and returns a tuple of the
-    /// Loader and a Command. The Command triggers the next step in the main
-    /// application loop by emitting the Loaded message. The Loader is
-    /// initialized with a progress of 0.0, a feedback message of "Loading
-    /// profile", and a logo. The max_load_ticks is calculated as the
-    /// product of max_load_seconds and ticks_per_s. The function also
-    /// attempts to connect to the server and load the icon and brand fonts.
-    /// If any of these operations fail, a LoadingFailed message is returned.
-    /// If all operations are successful, a tuple of the Loader and a Command is
-    /// returned.
     pub fn new(flags: Flags) -> (Self, Command<LoaderMessage>) {
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
@@ -255,17 +215,10 @@ impl Loader {
         )
     }
 
-    /// Takes in the application flags and returns a command to load the
-    /// application. The loading process is performed asynchronously.
     fn load(&mut self, flags: Flags) -> Command<LoaderMessage> {
         Command::perform(load_app(flags), LoaderMessage::Ready)
     }
 
-    /// Updates the state of the loader based on the received message.
-    /// This function handles different types of messages and updates the
-    /// loader's state accordingly. For example, it updates the progress of
-    /// the loading process, handles connection status, and initiates the
-    /// loading process.
     pub fn update(&mut self, message: LoaderMessage) -> Command<LoaderMessage> {
         self.logo.cache.clear();
 
@@ -293,12 +246,6 @@ impl Loader {
         }
     }
 
-    /// Returns a string that represents the current progress of the loading
-    /// process. The progress is represented by different stages of the
-    /// loading process. The stages are: "Initiated loading procedure...",
-    /// "Starting sandbox environment...", "Connected. Deploying contracts
-    /// in sandbox...", "Initializing sandbox state...", and "Launching
-    /// Excalibur...".
     pub fn get_progress_feedback(&self) -> String {
         let s_curve_result = s_curve(self.progress);
         let progress = (s_curve_result * 4.0) as usize;
@@ -312,12 +259,6 @@ impl Loader {
         }
     }
 
-    /// This function generates a view of the loading screen.
-    /// It displays a progress bar that updates based on the loading progress.
-    /// It also displays a random symbol from a collection of Greek and currency
-    /// symbols. The symbol changes with each update of the progress bar.
-    /// The function also displays a feedback message that corresponds to the
-    /// current stage of the loading process.
     pub fn view(&self) -> Element<LoaderMessage> {
         let all_symbols = GREEK_SYMBOLS
             .iter()
@@ -368,7 +309,6 @@ impl Loader {
         .into()
     }
 
-    // Every 25ms update the progress bar by 0.001.
     pub fn subscription(&self) -> Subscription<LoaderMessage> {
         iced::time::every(std::time::Duration::from_millis(25)).map(|_| LoaderMessage::Tick)
     }

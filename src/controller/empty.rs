@@ -1,5 +1,3 @@
-//! Empty is a default screen if no app is selected.
-
 use iced::widget::Container;
 
 use super::*;

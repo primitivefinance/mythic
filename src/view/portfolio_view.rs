@@ -1,9 +1,3 @@
-//! In the Model-view-controller architecture the view is
-//! ["Any representation of information such as a chart, diagram or table."](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller).
-//!
-//! The portfolio view takes in the portfolio's data model and builds components
-//! for the [controller](./mod.rs) to render.
-
 use chrono::{DateTime, Utc};
 
 use super::*;
@@ -45,24 +39,14 @@ impl ValueToLabel<Result<U256, anyhow::Error>> for Result<U256, anyhow::Error> {
     }
 }
 
-/// Responsible for transforming the model data into components for the view to
-/// handle, e.g. converting an `AlloyU256` into a `ExcaliburText` that can be
-/// shown to the user.
 #[derive(Debug, Clone)]
 pub struct PortfolioPresenter {
     model: Model,
-    /// Value series is a live chart of portfolio value wrt. time.
-    /// Therefore, it is continuously updated.
     pub portfolio_value_series: ExcaliburChart,
-    /// Strategy plot can be computationally expensive. It is also static most
-    /// of the time, so it is cached and only force updated on user request.
     pub portfolio_strategy_plot: ExcaliburChart,
 }
 
 impl Default for PortfolioPresenter {
-    /// Makes `new` ExcaliburCharts so that the series and points are not set.
-    /// The default ExcaliburChart sets a line series and single point,
-    /// which affects the starting ranges of the chart.
     fn default() -> Self {
         Self {
             model: Model::default(),
@@ -87,13 +71,10 @@ impl PortfolioPresenter {
         }
     }
 
-    /// Updates the model and syncs the chart data to match the model.
     pub fn update(&mut self, model: Model) {
         self.model = model;
-        // todo: sync charts
     }
 
-    /// Returns true if the static chart data is empty.
     pub fn static_needs_update(&self) -> bool {
         self.portfolio_strategy_plot.chart.series.is_empty()
     }
@@ -131,20 +112,11 @@ impl PortfolioPresenter {
     }
 }
 
-/// View all of the underlying data from the model for the portfolio dashboard.
-///
-/// Important! Make sure the chart starts completely blank (not default), this
-/// will make sure the initial ranges are set correctly.
 #[derive(Debug, Clone, Default)]
 pub struct DataView;
 
 #[allow(dead_code)]
 impl DataView {
-    /// Creates a layout for the portfolio metrics. It takes in various
-    /// parameters such as the strategy plot, strategy plot title, external
-    /// price, external and internal AUM, portfolio health, sync timestamp,
-    /// and sync block. It returns a container with the portfolio metrics layout
-    /// and chart layout.
     #[allow(clippy::too_many_arguments)]
     pub fn metrics_layout<'a, Message>(
         &'a self,
@@ -176,10 +148,6 @@ impl DataView {
             .padding(Sizes::Md)
     }
 
-    /// Creates a layout for the portfolio metrics. It takes in various
-    /// parameters such as the external price, external and internal AUM,
-    /// portfolio health, and sync block. It returns a row with the
-    /// portfolio metrics layout.
     pub fn portfolio_metrics_layout<'a, Message>(
         &'a self,
         external_price: ExcaliburText,
@@ -208,10 +176,6 @@ impl DataView {
             )
     }
 
-    /// Creates a layout that includes a live chart and a greeting message for
-    /// the user. It takes in various parameters such as the live chart,
-    /// user greeting and message, chart title, and sync timestamp.
-    /// It returns a container with the layout.
     pub fn chart_and_greet_layout<'a, Message>(
         &'a self,
         live_chart: &'a ExcaliburChart,
@@ -233,7 +197,6 @@ impl DataView {
             .padding(Sizes::Md)
     }
 
-    /// Creates a layout that includes a greeting message for the user.
     pub fn user_message_layout<'a, Message>(
         &'a self,
         user_greeting: ExcaliburText,
@@ -254,7 +217,6 @@ impl DataView {
             )
     }
 
-    /// Creates a layout for the chart.
     pub fn chart_layout<'a, Message>(
         &'a self,
         chart: &'a ExcaliburChart,
@@ -271,7 +233,6 @@ impl DataView {
             .push(sync_timestamp.build())
     }
 
-    /// Creates a layout for the table.
     pub fn table_layout<'a, Message>(
         &'a self,
         table_title: ExcaliburText,
@@ -307,8 +268,6 @@ impl DataView {
             )
     }
 
-    // Individual data elements.
-    /// Standard view for a single data element with a title and caption.
     pub fn data_title_caption<'a, Message>(
         &self,
         data: ExcaliburText,
@@ -336,8 +295,6 @@ impl DataView {
     {
         let caption = format!("ETH/USD @ {}", block_number.unwrap_or(0));
 
-        // todo: add a tooltip to the caption
-        // todo: get the proper caption too!
         self.data_title_caption(data, "Price".to_string(), caption)
     }
 
@@ -371,8 +328,6 @@ impl DataView {
         )
     }
 
-    /// todo: this is a hack because right now all the reserves == all the
-    /// deposits.
     pub fn tvl<'a, Message>(&self, data: ExcaliburText) -> Element<'a, Message>
     where
         Message: 'a,

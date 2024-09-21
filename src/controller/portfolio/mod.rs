@@ -1,5 +1,3 @@
-//! Controller for managing the portfolio view.
-
 pub mod monolithic;
 
 use iced::widget::Container;
@@ -35,9 +33,6 @@ impl From<Message> for view::ViewMessage {
     }
 }
 
-/// Intermediary controller that manages the controllers related to portfolio
-/// management. Responsible for catching requests to update the root model and
-/// pushing them to the root controller.
 pub struct PortfolioRoot {
     pub page: Page,
     pub monolithic: monolithic::Monolithic,

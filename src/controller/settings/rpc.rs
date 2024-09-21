@@ -1,6 +1,3 @@
-//! Rpcs can be selected and used for different underlying blockchain calls.
-//! These rpcs are used within the app.
-
 use std::collections::HashMap;
 
 use iced::Padding;
@@ -96,7 +93,6 @@ impl RpcManagement {
         self.form_feedback = None;
     }
 
-    /// Converts the form input into a chain packet, if the form is valid.
     #[tracing::instrument(skip(self), level = "trace")]
     pub fn get_chain_packet(&self) -> anyhow::Result<RPCValue, anyhow::Error> {
         if let Some(chain_packet) = &self.chain_packet {

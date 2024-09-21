@@ -11,28 +11,15 @@ use crate::{
 
 pub mod portfolio_view;
 pub mod sidebar;
-// TODO: execution is not complete
-// pub mod execute;
 
-/// All controllers emit View messages. These get drilled down to the original
-/// controller that emitted them.
-///
-/// This enables controllers to communicate with controllers above them because
-/// the view messages start at the root application controller.
 #[derive(Debug, Clone, Default)]
 pub enum ViewMessage {
     #[default]
     Empty,
-    // Root controller messages are "caught" in flight in the application's
-    // update function. Controllers can indirectly communicate with the root application
-    // this way.
     Root(RootMessage),
 
-    // Children controllers emit their own messages that they expect to get back and process on
-    // their own.
     Portfolio(portfolio::Message),
 
-    // Settings view for global application settings.
     Settings(settings::Message),
 }
 
@@ -40,15 +27,10 @@ pub enum ViewMessage {
 pub enum RootMessage {
     #[default]
     Empty,
-    // Exit the application safely, saving all persistent data before exiting.
     SaveAndExit,
-    // Confirm exit application
     ConfirmExit,
-    // Route to a new page.
     Route(sidebar::Route),
-    // Copy to clipboard.
     CopyToClipboard(String),
-    // Updates the model.
     ModelSyncRequest,
 }
 
@@ -66,13 +48,6 @@ impl From<ViewMessage> for app::AppMessage {
     }
 }
 
-/// Root layout that is rendered by the root application.
-///
-/// Renders two components in a row:
-/// - Sidebar menu
-/// - Content
-///
-/// Content is wrapped by its own layout.
 pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     app_clock: &'a AppClock,
     menu: &'a sidebar::Sidebar,
@@ -122,7 +97,6 @@ pub fn app_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     .into()
 }
 
-/// For rendering content inside a screen that implements [`State`].
 pub fn screen_layout<'a, T: Into<Element<'a, ViewMessage>>>(
     _window: &'a Page,
     content: T,

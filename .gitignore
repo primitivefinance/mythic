@@ -7,27 +7,6 @@ Cargo.lock~serde
 .env
 .vscode/
 
-# foundry
-cache/
-out/
-
-# python
-.DS_store
-__pycache__
-
-# data
-*.csv
-*.json
-!analysis/test.json
-!analysis/src/tests/output/0.json
-!analysis/src/tests/output/1.json
-!analysis/src/tests/output/errors.json
-*.pdf
-
-# notes
-journal/book/*
-book/*
-
 # ui
 *.svg
 !assets/logos/*.svg

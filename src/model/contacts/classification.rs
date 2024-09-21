@@ -2,7 +2,6 @@ use std::{borrow::Cow, fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-/// A category classification defined by the user for user experience.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, Hash)]
 pub enum Category {
     Trusted,
@@ -64,7 +63,6 @@ impl From<Cow<'_, str>> for Category {
     }
 }
 
-/// A user defined type for an address, not enforced or validated.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Class {

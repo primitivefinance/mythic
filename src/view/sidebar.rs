@@ -1,6 +1,3 @@
-//! Renders a title, a list of route-able pages, and bookmarks.
-//! The sidebar is the main navigation for the app.
-
 use iced::{widget::Space, Color};
 use iced_aw::{graphics::icons::icon_to_char, Icon, ICON_FONT};
 
@@ -11,9 +8,6 @@ use crate::components::system::label;
 const SYMBOL: &str = "φ";
 const TITLE: &str = "Excalibur";
 
-/// Defines all the possible locations that can be directly routed to in the
-/// app. For example, routing to a page will display that page. Routing to a
-/// bookmark will route to a specific application state.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Route {
     #[default]
@@ -27,7 +21,6 @@ pub enum Route {
 pub enum Location {
     #[default]
     Empty,
-    /// Routes to the portfolio dashboard with the given portfolio name.
     Portfolio(String),
 }
 
@@ -35,8 +28,6 @@ impl MessageWrapper for Route {
     type ParentMessage = app::AppMessage;
 }
 
-/// For converting a `Route` into a `view::Message` that can be sent to the view
-/// to update the UI.
 impl MessageWrapperView for Route {
     type ParentMessage = view::ViewMessage;
 }
@@ -71,7 +62,6 @@ impl Sidebar {
 }
 
 impl Sidebar {
-    /// Renders a section header with a label.
     #[allow(dead_code)]
     pub fn section<'a>(&self, header: String) -> Row<'a, view::ViewMessage> {
         Row::new()
@@ -86,7 +76,6 @@ impl Sidebar {
             .width(Length::Fill)
     }
 
-    /// Renders the inner column below the sidebar's header section.
     pub fn layout(&self) -> Element<'_, view::ViewMessage> {
         let mut column = Column::new();
         column = column.push(self.page.view().map(|x| x.into()));
@@ -117,7 +106,6 @@ impl controller::State for Sidebar {
         }
     }
 
-    /// Renders the full sidebar.
     fn view(&self) -> Element<'_, Self::ViewMessage> {
         let title = Column::new()
             .push(
@@ -157,7 +145,6 @@ impl controller::State for Sidebar {
     }
 }
 
-/// Defines all the possible pages that can be routed to in the app.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Page {
     Empty,
@@ -167,11 +154,9 @@ pub enum Page {
     Exit,
 }
 
-/// Icon, Name, Message, Selected
 pub type PageTab = (Icon, String, Route, bool);
 
 impl Page {
-    /// Returns the name of the page.
     pub fn name(&self) -> String {
         match self {
             Page::Empty => "Select App".to_string(),
@@ -181,7 +166,6 @@ impl Page {
         }
     }
 
-    /// Returns the icon of the page.
     pub fn icon(&self) -> Icon {
         match self {
             Page::Empty => Icon::TerminalFill,
@@ -208,13 +192,6 @@ impl Page {
         all
     }
 
-    /// Generates the view for the sidebar navigation.
-    /// It creates a column of buttons, each representing a page in the
-    /// application. For each page, it creates a button with an icon, name,
-    /// and a message that is sent when the button is pressed. If the page
-    /// is currently selected, the button is styled differently to indicate
-    /// this. The function returns an Element that can be displayed in the
-    /// user interface.
     pub fn view<'a>(&self) -> Element<'a, Route> {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::tabs(self) {
@@ -253,8 +230,6 @@ impl Page {
     }
 }
 
-/// todo: implement bookmark editing and better route management.
-/// todo: currently not used.
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub struct Bookmarks {
     current: String,
@@ -262,7 +237,6 @@ pub struct Bookmarks {
 }
 
 impl Bookmarks {
-    // todo: this is hacky, but it works for now.
     pub const PORTFOLIO_URL: &'static str = "portfolio";
     pub const PORTFOLIO_EXTENSION: &'static str = ".portfolio.json";
 

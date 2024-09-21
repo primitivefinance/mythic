@@ -1,5 +1,3 @@
-//! All network related preferences and settings.
-
 use std::{
     collections::HashMap,
     io::{Read, Write},

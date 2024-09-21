@@ -91,9 +91,6 @@ impl MonolithicView {
             .width(Length::Fill)
     }
 
-    /// Single container with a header, tooltip icon, and body content.
-    /// Body content fills the remaining space.
-    /// Light gray border surrounds the container, with no background.
     #[allow(dead_code)]
     pub fn item_layout<'a, Message>(
         title: impl ToString,
@@ -130,8 +127,6 @@ impl MonolithicView {
             ))
     }
 
-    /// Stacks three containers into a compact card with a max_height.
-    /// Expects containers to be edited already except for border radius.
     #[allow(clippy::too_many_arguments)]
     pub fn stacked_containers<'a, Message>(
         header: ExcaliburContainer,

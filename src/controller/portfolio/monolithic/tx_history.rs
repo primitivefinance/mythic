@@ -69,7 +69,6 @@ impl TxHistory {
             ]);
         }
 
-        // If the table is empty, add a placeholder row.
         if cells.is_empty() {
             cells.push(vec![CellBuilder::new().child(
                 label("No transactions to show")

@@ -6,26 +6,12 @@ use crate::app::AnvilSave;
 
 pub const SANDBOX_LABEL: &str = "sandbox";
 
-/// Standard client that excalibur uses.
 pub type NetworkClient<P, S> = SignerMiddleware<Provider<P>, S>;
 
-/// Connects users to networks.
-/// - Anvil instance is optional and can be connected via `connect_anvil`.
-/// - Arbiter is optional and can be connected via `connect_arbiter`.
-/// - Ledger is optional and can be connected via `connect_ledger`.
-/// - Active client is the currently existing connection.
-/// - Active signer is the currently existing signer (if there is one).
-/// - Contracts are a stateful map of human readable contract identifiers to
-///   addresses.
-/// - note: if AnvilInstance is some, then the client is the client for Anvil.
 pub struct ExcaliburMiddleware<P: PubsubClient, S: Signer> {
-    /// ACTIVE CLIENT CONNECTION
     pub client: Option<Arc<NetworkClient<P, S>>>,
-    /// ACTIVE SIGNER
     pub signer: Option<S>,
-    /// ANY CONTRACTS
     pub contracts: HashMap<String, Address>,
-    /// ANVIL
     pub anvil: Option<AnvilInstance>,
 }
 
@@ -38,28 +24,23 @@ impl fmt::Debug for ExcaliburMiddleware<Ws, LocalWallet> {
 }
 
 impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
-    /// Returns a ref to the unwrapped client
     pub fn get_client(&self) -> Arc<NetworkClient<P, S>> {
         self.client.as_ref().unwrap().clone()
     }
 
-    /// Returns the address of the signer, if there is one.
     pub fn address(&self) -> Option<Address> {
         self.signer.as_ref().map(|signer| signer.address())
     }
 
-    /// Adds a new contract to the contracts map.
     pub fn add_contract(&mut self, name: &str, address: Address) {
         self.contracts.insert(name.to_string(), address);
     }
 
-    /// Creates a connection to a ledger device.
     #[tracing::instrument(skip(self), level = "debug")]
     pub async fn connect_ledger(&mut self) -> anyhow::Result<()> {
         todo!()
     }
 
-    /// Executes the `anvil_dumpState` rpc call on the anvil instance.
     pub async fn snapshot(&self) -> anyhow::Result<AnvilSave> {
         if self.anvil.is_some() {
             let block_number = self
@@ -92,14 +73,6 @@ impl<P: PubsubClient, S: Signer> ExcaliburMiddleware<P, S> {
 }
 
 impl ExcaliburMiddleware<Ws, LocalWallet> {
-    /// Creates a new Excalibur middleware instance, setting the anvil and/or
-    /// arbiter instances if provided.
-    /// - If anvil is available, then the client is automatically connected to
-    ///   an anvil provider.
-    /// - If arbiter is available, then the the arbiter client is automatically
-    ///   connected and available to use.
-    /// - Else, no client is connected and it must be connected to while the app
-    ///   is running.
     pub async fn new(
         anvil: Option<AnvilInstance>,
         signer: Option<LocalWallet>,
@@ -130,7 +103,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         })
     }
 
-    /// Connects to a network via a websocket endpoint.
     #[tracing::instrument(skip(self), level = "debug")]
     pub async fn connect_ws(&mut self, endpoint: &str, chain_id: u64) -> anyhow::Result<()> {
         let signer = self.signer.clone().unwrap();
@@ -145,8 +117,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         Ok(())
     }
 
-    /// Connects a signer to the client.
-    /// todo: replacing the client like this... are there side effects?
     #[tracing::instrument(skip(self), level = "debug")]
     pub async fn connect_signer(&mut self, signer: LocalWallet) -> anyhow::Result<()> {
         let provider = self.client.as_ref().unwrap().provider().clone();
@@ -163,7 +133,6 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
         Ok(())
     }
 
-    /// Connects the middleware to a running anvil instance.
     #[tracing::instrument(skip(self, anvil), level = "debug")]
     pub async fn connect_anvil(&mut self, anvil: AnvilInstance) -> anyhow::Result<()> {
         let signer = LocalWallet::from(anvil.keys()[0].clone());
@@ -182,13 +151,9 @@ impl ExcaliburMiddleware<Ws, LocalWallet> {
     }
 }
 
-/// Spawns a new anvil instance.
-/// note: Requires anvil to be installed and available in the path.
 pub fn start_anvil(chain_id: Option<u64>) -> anyhow::Result<AnvilInstance> {
     let home_dir = std::env::var("HOME").unwrap_or_default();
     let binary_path = format!("{}/.foundry/bin/anvil", home_dir);
-
-    // todo: throw an error if the binary doesn't exist
 
     let chain_id = chain_id.unwrap_or(31337_u64);
     let anvil = Anvil::default()
