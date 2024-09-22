@@ -427,7 +427,7 @@ mod tests {
     fn test_tracer_with_channel() {
         let tracer = setup_with_channel();
 
-        let message = "1id Hello from Excalibur!";
+        let message = "1id Hello from Mythic!";
 
         tracing::info!(message);
 

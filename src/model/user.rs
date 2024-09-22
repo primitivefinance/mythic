@@ -12,7 +12,7 @@ pub const PROFILE_FILE_EXTENSION: &str = "json";
 pub const PROFILE_FILE_NAME: &str = "profile";
 pub const QUALIFIER: &str = "xyz.primitive";
 pub const ORGANIZATION: &str = "Primitive";
-pub const APPLICATION: &str = "Excalibur";
+pub const APPLICATION: &str = "Mythic";
 
 pub fn get_project_dir() -> Option<ProjectDirs> {
     ProjectDirs::from(QUALIFIER, ORGANIZATION, APPLICATION)
@@ -71,7 +71,7 @@ pub trait Saveable: Serialize + DeserializeOwned + Sized {
 
         if !dir.exists() {
             println!("Creating profile directory: {:?}", dir.as_path());
-            std::fs::create_dir(dir.as_path()).expect("Failed to create profile directory.");
+            std::fs::create_dir_all(dir.as_path()).expect("Failed to create profile directory.");
         }
 
         dir

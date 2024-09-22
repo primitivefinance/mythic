@@ -6,7 +6,7 @@ use crate::components::system::label;
 
 #[allow(dead_code)]
 const SYMBOL: &str = "φ";
-const TITLE: &str = "Excalibur";
+const TITLE: &str = "Mythic";
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
 pub enum Route {

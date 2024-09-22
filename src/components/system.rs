@@ -1,4 +1,4 @@
-//! Entire Excalibur component system.
+//! Entire Mythic component system.
 
 use std::collections::BTreeMap;
 
@@ -144,7 +144,7 @@ const PLACEHOLDER_LABEL: Color = Color::from_rgb(
     0x9A as f32 / 255.0,
 );
 
-/// Available colors in Excalibur
+/// Available colors in Mythic
 /// - Background1 - Primary background color
 /// - Background2 - Secondary background color
 /// - Primary - Primary color, e.g. button bg fill.
@@ -255,7 +255,7 @@ impl ExcaliburTheme {
     }
 }
 
-/// Sizing of text in Excalibur.
+/// Sizing of text in Mythic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Typography {
     Title1 = 28,
@@ -349,7 +349,7 @@ impl From<ExcaliburFonts> for Font {
     }
 }
 
-/// For constructing any text rendered in Excalibur.
+/// For constructing any text rendered in Mythic.
 #[derive(Debug, Clone)]
 pub struct ExcaliburText {
     pub value: String,
@@ -373,7 +373,7 @@ impl Default for ExcaliburText {
     }
 }
 
-/// For constructing any text rendered in Excalibur.
+/// For constructing any text rendered in Mythic.
 pub fn label(value: impl ToString) -> ExcaliburText {
     ExcaliburText::new(value)
 }
@@ -402,7 +402,7 @@ pub fn format_number(num: f64) -> (String, QuantitativeColors) {
 }
 
 impl ExcaliburText {
-    /// For constructing any text rendered in Excalibur.
+    /// For constructing any text rendered in Mythic.
     pub fn new(value: impl ToString) -> Self {
         Self {
             value: value.to_string(),
@@ -771,7 +771,7 @@ impl<Message> From<ExcaliburText> for Element<'_, Message> {
     }
 }
 
-/// For constructing Excalibur containers.
+/// For constructing Mythic containers.
 #[allow(dead_code)]
 pub fn panel() -> ExcaliburContainer {
     ExcaliburContainer::default()
@@ -1120,7 +1120,7 @@ impl ExcaliburButton {
     }
 }
 
-/// Constructs a table using the table builder to be used across Excalibur.
+/// Constructs a table using the table builder to be used across Mythic.
 /// Uses predefined sizes, colors, and fonts.
 /// todo: static lifetime kind of bad?
 pub struct ExcaliburTable<Message: Default>
@@ -1223,7 +1223,7 @@ impl<Message: Default + Clone> ExcaliburTable<Message> {
     }
 }
 
-/// Simple template for a Card built from the Excalibur components.
+/// Simple template for a Card built from the Mythic components.
 #[allow(dead_code)]
 pub struct Card;
 
@@ -1239,7 +1239,7 @@ impl Card {
     }
 }
 
-/// For constructing charts in Excalibur!
+/// For constructing charts in Mythic!
 #[derive(Debug, Clone, Default)]
 pub struct ExcaliburChart {
     pub chart: CartesianChart,
@@ -1259,7 +1259,7 @@ impl ExcaliburChart {
     // Configuring the chart
     #[allow(dead_code)]
     pub fn series_color(mut self, index: usize, color: ExcaliburColor) -> Self {
-        // Convert the Excalibur color into a plotters RGBA color.
+        // Convert the Mythic color into a plotters RGBA color.
         let color = color.color();
         let converted_color = plotters::style::RGBColor(
             (color.r * 255.0) as u8,
@@ -1825,7 +1825,7 @@ impl text_input::StyleSheet for CustomInputStyle {
     }
 }
 
-/// A customizable tooltip with Excalibur styling.
+/// A customizable tooltip with Mythic styling.
 ///
 /// How to use this component:
 /// - Create a new or default tooltip.

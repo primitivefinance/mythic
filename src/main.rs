@@ -30,9 +30,9 @@ use model::Model;
 use styles::*;
 
 #[derive(Parser)]
-#[clap(name = "Excalibur")]
+#[clap(name = "Mythic")]
 #[clap(version = env!("CARGO_PKG_VERSION"))]
-#[clap(about = "Excalibur is a native desktop client for smart contracts.", long_about = None)]
+#[clap(about = "Mythic is a native desktop client for smart contracts.", long_about = None)]
 #[clap(author)]
 struct Args {
     #[command(subcommand)]
@@ -66,7 +66,7 @@ fn main() -> Result<()> {
         3 => tracing::Level::DEBUG,
         _ => tracing::Level::TRACE,
     };
-    let mut filter = format!("excalibur={}", log_level);
+    let mut filter = format!("mythic={}", log_level);
 
     if args.ui {
         filter.push_str(&format!(",ui={}", log_level));
@@ -123,8 +123,8 @@ impl Application for MVP {
 
     fn title(&self) -> String {
         match &self.state {
-            State::Loader(_) => String::from("Loading Excalibur"),
-            State::App(_) => String::from("Excalibur"),
+            State::Loader(_) => String::from("Loading Mythic"),
+            State::App(_) => String::from("Mythic"),
         }
     }
 
@@ -203,7 +203,7 @@ pub fn run(dev_mode: bool) -> iced::Result {
     settings.window.icon = Some(logos::excalibur_logo_2());
     settings.antialiasing = true;
     settings.exit_on_close_request = false;
-    settings.id = Some("excalibur-app".to_string());
+    settings.id = Some("mythic-app".to_string());
     settings.window.size = (1280, 832);
     MVP::run(settings)
 }

@@ -255,7 +255,7 @@ impl Loader {
             1 => "Starting sandbox environment...".to_string(),
             2 => "Connected. Deploying contracts in sandbox...".to_string(),
             3 => "Initializing sandbox state...".to_string(),
-            _ => "Launching Excalibur...".to_string(),
+            _ => "Launching Mythic...".to_string(),
         }
     }
 

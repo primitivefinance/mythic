@@ -2,14 +2,14 @@
 members = ["crates/mythic_charts", "crates/mythic_iced"]
 
 [package]
-name = "excalibur"
+name = "mythic"
 version = "0.2.0"
 edition = "2021"
-description = "Excalibur is a native desktop client for smart contracts."
+description = "Mythic is a native desktop client for smart contracts."
 authors = ["Primitive Bits, Inc."]
 
 [[bin]]
-name = "excalibur"
+name = "mythic"
 path = "src/main.rs"
 
 [workspace.dependencies]
@@ -121,10 +121,10 @@ iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicat
 url = "=2.5.0"
 
 [package.metadata.bundle]
-name = "Excalibur"
-identifier = "xyz.primitive.excalibur"
-short_description = "Excalibur is a native desktop client for smart contracts."
-long_description = "Excalibur is a native desktop client for smart contracts."
+name = "Mythic"
+identifier = "xyz.primitive.mythic"
+short_description = "Mythic is a native desktop client for smart contracts."
+long_description = "Mythic is a native desktop client for smart contracts."
 resources = ["assets/"]
 icon = ["assets/logos/excalibur_logo_2.png"]
 
@@ -132,12 +132,12 @@ icon = ["assets/logos/excalibur_logo_2.png"]
 category = "public.app-category.utilities"
 copyright = "Copyright (c) 2024 Primitive Bits, Inc."
 minimum_system_version = "10.14"
-osx_url_schemes = ["xyz.primitive.excalibur"]
+osx_url_schemes = ["xyz.primitive.mythic"]
 
 # Windows specific
-product_name = "Excalibur"
+product_name = "Mythic"
 manufacturer = "Primitive Bits, Inc."
 
 # Linux specific
-package_name = "excalibur"
+package_name = "mythic"
 package_version = "0.1.0"
