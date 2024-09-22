@@ -1,6 +1,6 @@
 # Mythic
 
-Mythic is a native desktop client for smart contracts.
+Mythic is a native blockchain navigator.
 
 ## Build & Run Locally
 

@@ -32,7 +32,7 @@ use styles::*;
 #[derive(Parser)]
 #[clap(name = "Mythic")]
 #[clap(version = env!("CARGO_PKG_VERSION"))]
-#[clap(about = "Mythic is a native desktop client for smart contracts.", long_about = None)]
+#[clap(about = "Mythic is a native blockchain navigator.", long_about = None)]
 #[clap(author)]
 struct Args {
     #[command(subcommand)]

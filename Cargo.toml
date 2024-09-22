@@ -5,7 +5,7 @@ members = ["crates/mythic_charts", "crates/mythic_iced"]
 name = "mythic"
 version = "0.2.0"
 edition = "2021"
-description = "Mythic is a native desktop client for smart contracts."
+description = "Mythic is a native blockchain navigator."
 authors = ["Primitive Bits, Inc."]
 
 [[bin]]
@@ -123,8 +123,8 @@ url = "=2.5.0"
 [package.metadata.bundle]
 name = "Mythic"
 identifier = "xyz.primitive.mythic"
-short_description = "Mythic is a native desktop client for smart contracts."
-long_description = "Mythic is a native desktop client for smart contracts."
+short_description = "Mythic is a native blockchain navigator."
+long_description = "Mythic is a native blockchain navigator."
 resources = ["assets/"]
 icon = ["assets/logos/excalibur_logo_2.png"]
 
