@@ -3,7 +3,7 @@ members = ["crates/mythic_charts", "crates/mythic_iced"]
 
 [package]
 name = "mythic"
-version = "0.0.1"
+version = "0.1.0"
 edition = "2021"
 description = "Mythic is a native blockchain navigator."
 authors = ["Primitive Bits, Inc."]
@@ -17,8 +17,8 @@ path = "src/main.rs"
 
 [workspace.dependencies]
 
-mythic_charts = { path = "crates/mythic_charts" }
-mythic_iced = { path = "crates/mythic_iced" }
+mythic_charts = { path = "crates/mythic_charts", version = "0.1.0" }
+mythic_iced = { path = "crates/mythic_iced", version = "0.1.0" }
 
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
