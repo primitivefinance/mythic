@@ -18,7 +18,6 @@ path = "src/main.rs"
 [workspace.dependencies]
 
 mythic_charts = { path = "crates/mythic_charts", version = "0.1.0" }
-mythic_iced = { path = "crates/mythic_iced", version = "0.1.0" }
 
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
@@ -69,7 +68,6 @@ chrono = { version = "0.4.34", features = ["serde"] }
 
 [dependencies]
 mythic_charts.workspace = true
-mythic_iced.workspace = true
 
 revm.workspace = true
 ethers.workspace = true
