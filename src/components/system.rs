@@ -2,15 +2,13 @@
 
 use std::collections::BTreeMap;
 
+use super::*;
 use iced::{
-    widget::{component, text_input, tooltip, Component},
-    Font,
+    theme::Palette,
+    widget::{component, text_input, tooltip, Component, Text},
+    Color, Font,
 };
-
-use super::{
-    chart::{coords_to_line_series, CartesianChart, ChartLineSeries, ChartPoint, HistogramChart},
-    *,
-};
+use mythic_charts::prelude::*;
 
 const BG1: Color = Color::from_rgb(
     0x04 as f32 / 255.0,
@@ -1254,7 +1252,7 @@ impl ExcaliburChart {
         }
     }
 
-    pub fn build(&self) -> Element<'_, chart::ChartMessage> {
+    pub fn build(&self) -> Element<'_, mythic_charts::ChartMessage> {
         self.chart.view()
     }
 
@@ -1349,7 +1347,7 @@ impl ExcaliburHistogram {
         }
     }
 
-    pub fn build(&self) -> Element<'_, chart::ChartMessage> {
+    pub fn build(&self) -> Element<'_, mythic_charts::ChartMessage> {
         self.chart.view()
     }
 

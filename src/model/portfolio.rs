@@ -5,9 +5,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use super::*;
-use crate::components::chart::{
-    coords_to_line_series, CartesianRanges, ChartLineSeries, ChartPoint,
-};
+use mythic_charts::{coords_to_line_series, CartesianRanges, ChartLineSeries, ChartPoint};
 
 pub const WAD: U256 = U256([1_000_000_000_000_000_000, 0, 0, 0]);
 

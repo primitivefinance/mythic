@@ -1,5 +1,5 @@
 [workspace]
-members = []
+members = ["crates/mythic_charts", "crates/mythic_iced"]
 
 [package]
 name = "excalibur"
@@ -13,6 +13,10 @@ name = "excalibur"
 path = "src/main.rs"
 
 [workspace.dependencies]
+
+mythic_charts = { path = "crates/mythic_charts" }
+mythic_iced = { path = "crates/mythic_iced" }
+
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
 # Ethereum
@@ -61,6 +65,9 @@ directories-next = "=2.0.0"
 chrono = { version = "0.4.34", features = ["serde"] }
 
 [dependencies]
+mythic_charts.workspace = true
+mythic_iced.workspace = true
+
 revm.workspace = true
 ethers.workspace = true
 

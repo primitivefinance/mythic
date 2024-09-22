@@ -9,7 +9,7 @@ use iced::{
     widget::canvas::{self},
     Element, Length, Point,
 };
-use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
+pub use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
 use plotters_iced::{Chart, ChartWidget};
 use std::collections::BTreeMap;
 
@@ -1390,11 +1390,4 @@ impl From<(f32, f32)> for ChartPoint {
             ..Default::default()
         }
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use statrs::assert_almost_eq;
-
-    use super::*;
 }
