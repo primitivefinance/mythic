@@ -12,8 +12,7 @@ use self::tx_history::TxHistory;
 use super::*;
 use crate::{
     components::system::{ExcaliburChart, ExcaliburContainer},
-    model::portfolio::{format_and_parse, WAD},
-    view::portfolio_view::PortfolioPresenter,
+    data::portfolio::{format_and_parse, WAD},
 };
 
 #[derive(Debug, Clone, Default)]
@@ -51,14 +50,12 @@ pub struct Monolithic {
     client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
     model: Model,
     presenter: view::MonolithicPresenter,
-    chart_presenter: PortfolioPresenter,
     price_process: Option<PriceProcess>,
 }
 
 impl Monolithic {
     pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         let presenter = view::MonolithicPresenter::new(model.clone());
-        let chart_presenter = PortfolioPresenter::default();
 
         let process = Some(PriceProcess {
             trajectories: GeometricBrownianMotion::new(0.05, 0.9)
@@ -71,7 +68,6 @@ impl Monolithic {
             client,
             model,
             presenter,
-            chart_presenter,
             price_process: process,
         }
     }
@@ -80,8 +76,6 @@ impl Monolithic {
         self.model = updated_model.clone();
 
         self.presenter.update(updated_model.clone());
-
-        self.chart_presenter.update(updated_model.clone());
 
         let txs = self.presenter.get_historical_txs();
         self.presenter.cache_historical_txs(txs);

@@ -4,18 +4,18 @@ use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use super::{
-    controller::{empty::EmptyScreen, exit::ExitScreen, Screen},
+    pages::{empty::EmptyScreen, exit::ExitScreen, Screen},
     *,
 };
 use crate::{
     components::system::{label, ExcaliburColor},
-    controller::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
-    middleware::ExcaliburMiddleware,
-    model::{
+    data::{
         contacts::{self, ContactValue},
         rpcs::RPCValue,
         user::Saveable,
     },
+    middleware::ExcaliburMiddleware,
+    pages::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
     view::sidebar::Sidebar,
 };
 
@@ -83,8 +83,6 @@ pub struct App {
     pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     pub model: Model,
     pub windows: Windows,
-
-    pub app_clock: AppClock,
 }
 
 impl App {
@@ -100,7 +98,6 @@ impl App {
                 client,
                 model,
                 windows: Windows::new(dashboard, sidebar),
-                app_clock: AppClock::new(),
             },
             Command::perform(async {}, |_| AppMessage::Load),
         )
@@ -115,8 +112,6 @@ impl App {
     }
 
     pub fn update(&mut self, message: AppMessage) -> Command<AppMessage> {
-        self.app_clock.update();
-
         app_span().in_scope(|| match message {
             AppMessage::Load => self.load(),
             AppMessage::QuitReady => Command::none(),
@@ -155,12 +150,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<AppMessage> {
-        view::app_layout(
-            &self.app_clock,
-            &self.windows.sidebar,
-            self.windows.screen.view(),
-        )
-        .map(AppMessage::View)
+        view::app_layout(&self.windows.sidebar, self.windows.screen.view()).map(AppMessage::View)
     }
 
     pub fn subscription(&self) -> Subscription<AppMessage> {
@@ -299,214 +289,6 @@ impl App {
         cmds.push(load_cmd);
 
         Command::batch(cmds)
-    }
-}
-
-#[derive(Debug)]
-pub struct AppClock {
-    pub last_update: std::time::Instant,
-    pub total_updates: usize,
-    pub total_time: Duration,
-    pub updates: Vec<Update>,
-}
-
-#[derive(Debug)]
-pub struct Update {
-    pub time: std::time::Instant,
-    pub duration: Duration,
-}
-
-impl Default for AppClock {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl AppClock {
-    pub fn new() -> Self {
-        Self {
-            last_update: std::time::Instant::now(),
-            total_updates: 0,
-            total_time: Duration::from_secs(0),
-            updates: Vec::new(),
-        }
-    }
-
-    pub fn update(&mut self) {
-        let now = std::time::Instant::now();
-        let elapsed = now.duration_since(self.last_update);
-        self.last_update = now;
-        self.total_updates += 1;
-        self.total_time += elapsed;
-
-        self.updates.push(Update {
-            time: now,
-            duration: elapsed,
-        });
-    }
-
-    pub fn average_cycle(&self, window_duration: Duration) -> Duration {
-        let now = std::time::Instant::now();
-        let window_start = now - window_duration;
-
-        let updates_in_window = self
-            .updates
-            .iter()
-            .filter(|update| update.time >= window_start)
-            .collect::<Vec<_>>();
-
-        if updates_in_window.is_empty() {
-            return Duration::from_secs(0);
-        }
-
-        let total_time_in_window: Duration =
-            updates_in_window.iter().map(|update| update.duration).sum();
-
-        total_time_in_window / updates_in_window.len() as u32
-    }
-
-    pub fn max_update_time(&self) -> Duration {
-        self.updates
-            .iter()
-            .map(|update| update.duration)
-            .max()
-            .unwrap_or(Duration::from_secs(0))
-    }
-
-    pub fn min_update_time(&self) -> Duration {
-        self.updates
-            .iter()
-            .map(|update| update.duration)
-            .min()
-            .unwrap_or(Duration::from_secs(0))
-    }
-
-    pub fn update_frequency(&self, window_duration: Duration) -> f64 {
-        let updates_in_window = self
-            .updates
-            .iter()
-            .filter(|update| update.time >= std::time::Instant::now() - window_duration)
-            .count();
-        updates_in_window as f64 / window_duration.as_secs_f64()
-    }
-
-    pub fn time_between_updates(&self) -> Option<Duration> {
-        self.updates
-            .iter()
-            .rev()
-            .take(2)
-            .collect::<Vec<_>>()
-            .windows(2)
-            .next()
-            .map(|window| window[0].time - window[1].time)
-    }
-
-    pub fn view_tbu<Message>(&self) -> Element<'_, Message> {
-        let tbu_value = self
-            .time_between_updates()
-            .unwrap_or(Duration::from_secs(0))
-            .as_millis();
-        let tbu = format!("dur:  {}ms", tbu_value);
-        label(tbu)
-            .tertiary()
-            .caption2()
-            .custom_format(move |_| {
-                if tbu_value > 5_000 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        1.0, 0.0, 0.0, 0.05,
-                    )))
-                } else {
-                    None
-                }
-            })
-            .into()
-    }
-
-    pub fn view_max<Message>(&self) -> Element<'_, Message> {
-        let max_value = self.max_update_time().as_millis();
-        let max = format!("max:  {}ms", max_value);
-        label(max)
-            .tertiary()
-            .caption2()
-            .custom_format(move |_| {
-                if max_value > 10_000 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        1.0, 0.0, 0.0, 0.05,
-                    )))
-                } else if max_value > 5_000 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        0.0, 0.8, 0.2, 0.05,
-                    )))
-                } else if max_value < 5_000 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        0.0, 1.0, 0.0, 0.05,
-                    )))
-                } else {
-                    None
-                }
-            })
-            .into()
-    }
-
-    pub fn view_min<Message>(&self) -> Element<'_, Message> {
-        let min = self.min_update_time().as_millis();
-        let min = format!("min:  {}ms", min);
-        label(min).tertiary().caption2().into()
-    }
-
-    pub fn view_frequency<Message>(&self) -> Element<'_, Message> {
-        let frequency_value = self.update_frequency(Duration::from_secs(30));
-        let frequency = format!("freq:  {:.2}", frequency_value);
-        label(frequency)
-            .tertiary()
-            .caption2()
-            .custom_format(move |_| {
-                if frequency_value > 10.0 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        1.0, 0.0, 0.0, 0.05,
-                    )))
-                } else if frequency_value < 2.0 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        0.0, 1.0, 0.0, 0.05,
-                    )))
-                } else {
-                    None
-                }
-            })
-            .into()
-    }
-
-    pub fn view_average<Message>(&self) -> Element<'_, Message> {
-        let average_value = self.average_cycle(Duration::from_secs(30)).as_millis();
-        let average = format!("avg.:  {}ms", average_value);
-        label(average)
-            .tertiary()
-            .caption2()
-            .custom_format(move |_| {
-                if average_value > 2_500 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        1.0, 0.0, 0.0, 0.05,
-                    )))
-                } else if average_value > 1_000 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        0.0, 0.8, 0.2, 0.05,
-                    )))
-                } else if average_value < 1_000 {
-                    Some(ExcaliburColor::Custom(iced::Color::from_rgba(
-                        0.0, 1.0, 0.0, 0.05,
-                    )))
-                } else {
-                    None
-                }
-            })
-            .into()
-    }
-
-    #[allow(dead_code)]
-    pub fn view<Message>(&self) -> Element<'_, Message> {
-        let average = self.average_cycle(Duration::from_secs(30));
-        let average = format!("update time/s:  {}ms", average.as_millis());
-        label(average).tertiary().caption2().into()
     }
 }
 

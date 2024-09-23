@@ -6,7 +6,7 @@ use crate::{
         system::{ExcaliburColor, ExcaliburContainer, ExcaliburTable},
         tables::{builder::TableBuilder, cells::CellBuilder},
     },
-    model::portfolio::HistoricalTx,
+    data::portfolio::HistoricalTx,
 };
 
 #[derive(Debug, Clone, Default)]

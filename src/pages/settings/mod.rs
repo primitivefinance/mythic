@@ -1,4 +1,3 @@
-pub mod contacts;
 pub mod rpc;
 
 use anyhow::anyhow;
@@ -8,7 +7,7 @@ use iced_aw::Icon;
 use super::*;
 use crate::{
     app::{RootMessage, RootViewMessage, UserProfileMessage},
-    model::user::UserProfile,
+    data::user::UserProfile,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -17,7 +16,6 @@ pub enum Message {
     Empty,
     Route(Pages),
     Rpc(rpc::Message),
-    Contacts(contacts::Message),
 }
 
 impl MessageWrapper for Message {
@@ -52,7 +50,6 @@ pub enum Pages {
 pub struct SettingsScreen {
     pub active: Pages,
     pub rpc: rpc::RpcManagement,
-    pub contacts: contacts::ContactsManagement,
 }
 
 impl SettingsScreen {
@@ -60,7 +57,6 @@ impl SettingsScreen {
         Self {
             active: Pages::default(),
             rpc: rpc::RpcManagement::new(user.rpcs.clone()),
-            contacts: contacts::ContactsManagement::new(),
         }
     }
 
@@ -154,10 +150,6 @@ impl State for SettingsScreen {
                     _ => self.rpc.update(message).map(|x| Message::Rpc(x).into()),
                 },
 
-                Message::Contacts(message) => self
-                    .contacts
-                    .update(message)
-                    .map(|x| Message::Contacts(x).into()),
                 Message::Route(page) => self.switch_page(page).map(|x| x.into()),
                 _ => Command::none(),
             }

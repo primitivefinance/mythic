@@ -3,7 +3,7 @@ members = ["crates/*"]
 
 [package]
 name = "mythic"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Mythic is a native blockchain navigator."
 authors = ["Primitive Bits, Inc."]

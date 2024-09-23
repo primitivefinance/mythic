@@ -12,7 +12,7 @@ use crate::{
         system::{label, ExcaliburButton},
         tables::builder::TableBuilder,
     },
-    model::rpcs::{RPCList, RPCValue},
+    data::rpcs::{RPCList, RPCValue},
 };
 
 #[derive(Debug, Clone)]

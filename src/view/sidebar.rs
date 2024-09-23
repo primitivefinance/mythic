@@ -5,7 +5,6 @@ use super::{components::button::*, *};
 use crate::components::system::label;
 
 #[allow(dead_code)]
-const SYMBOL: &str = "φ";
 const TITLE: &str = "Mythic";
 
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
@@ -13,7 +12,6 @@ pub enum Route {
     #[default]
     Empty,
     Page(Page),
-    Bookmarks(Bookmarks),
     Open(Location),
 }
 
@@ -48,7 +46,6 @@ impl From<Route> for <Route as MessageWrapperView>::ParentMessage {
 pub struct Sidebar {
     pub state: Route,
     pub page: Page,
-    pub bookmarks: Bookmarks,
 }
 
 impl Sidebar {
@@ -56,7 +53,6 @@ impl Sidebar {
         Self {
             state: Route::Empty,
             page: Page::Empty,
-            bookmarks: Bookmarks::new(),
         }
     }
 }
@@ -86,7 +82,7 @@ impl Sidebar {
     }
 }
 
-impl controller::State for Sidebar {
+impl pages::State for Sidebar {
     type AppMessage = Route;
     type ViewMessage = view::ViewMessage;
 
@@ -96,10 +92,6 @@ impl controller::State for Sidebar {
         match message {
             Route::Page(page) => {
                 self.page = page;
-                Command::none()
-            }
-            Route::Bookmarks(bookmark) => {
-                self.bookmarks = bookmark;
                 Command::none()
             }
             _ => Command::none(),
@@ -227,56 +219,5 @@ impl Page {
             .spacing(Sizes::Xs)
             .align_items(alignment::Alignment::Center)
             .into()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
-pub struct Bookmarks {
-    current: String,
-    bookmarks: Vec<String>,
-}
-
-impl Bookmarks {
-    pub const PORTFOLIO_URL: &'static str = "portfolio";
-    pub const PORTFOLIO_EXTENSION: &'static str = ".portfolio.json";
-
-    pub fn new() -> Self {
-        let bookmarks = vec!["Main.portfolio.json".to_string()];
-        Self {
-            current: bookmarks[0].clone(),
-            bookmarks,
-        }
-    }
-
-    pub fn bookmark_route(url: &String) -> Route {
-        match url {
-            x if x.contains(Self::PORTFOLIO_URL) => Route::Open(Location::Portfolio(
-                x.replace(Self::PORTFOLIO_EXTENSION, ""),
-            )),
-            _ => Route::Empty,
-        }
-    }
-
-    pub fn view<'a>(&self) -> Element<'a, Route> {
-        Column::with_children(
-            self.bookmarks
-                .iter()
-                .map(|x| {
-                    button(
-                        Row::new()
-                            .push(Space::with_width(Length::Fixed(Sizes::Xs.into())))
-                            .push(text(icon_to_char(Icon::TerminalFill)).font(ICON_FONT))
-                            .push(text(x))
-                            .spacing(Sizes::Md),
-                    )
-                    .width(Length::Fill)
-                    .on_press(Self::bookmark_route(x))
-                    .style(route_button_style(Color::TRANSPARENT).as_custom())
-                    .padding(Sizes::Sm)
-                    .into()
-                })
-                .collect::<Vec<Element<'a, Route>>>(),
-        )
-        .into()
     }
 }

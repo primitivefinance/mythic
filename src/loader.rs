@@ -13,15 +13,15 @@ use crate::{
         progress::CustomProgressBar,
         system::{label, ExcaliburContainer},
     },
-    model::user::Saveable,
+    data::user::Saveable,
 };
 
 type LoadResult =
     anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
 
 use self::{
+    data::contacts,
     middleware::{start_anvil, ExcaliburMiddleware},
-    model::contacts,
 };
 use super::*;
 

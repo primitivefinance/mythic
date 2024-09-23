@@ -1,5 +1,5 @@
 use super::{cells::CellBuilder, *};
-use crate::controller::portfolio::monolithic::tx_history::TxHistory;
+use crate::pages::portfolio::monolithic::tx_history::TxHistory;
 
 /// Very basic table row with two cells, a label and text input.
 #[allow(dead_code)]

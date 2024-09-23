@@ -9,8 +9,7 @@ use crate::{
         logos::{ether_logo, usdc_logo},
         system::{ExcaliburContainer, ExcaliburHistogram, ExcaliburText},
     },
-    model::portfolio::HistoricalTx,
-    view::portfolio_view::ValueToLabel,
+    data::portfolio::HistoricalTx,
 };
 
 #[derive(Debug, Clone, Default)]

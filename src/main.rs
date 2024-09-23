@@ -10,10 +10,10 @@ use iced::{
 
 pub mod app;
 mod components;
-mod controller;
+mod data;
 mod loader;
 mod middleware;
-mod model;
+mod pages;
 mod tracer;
 mod view;
 
@@ -23,10 +23,10 @@ use anyhow::Result;
 use app::{App, AppMessage};
 use clap::{ArgAction, Parser, Subcommand};
 use components::{system::ExcaliburTheme, *};
-use controller::*;
+use data::Model;
 use dotenv::dotenv;
 use loader::{Loader, LoaderMessage};
-use model::Model;
+use pages::*;
 use styles::*;
 
 #[derive(Parser)]
