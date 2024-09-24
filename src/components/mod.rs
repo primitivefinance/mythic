@@ -13,6 +13,7 @@ pub mod select;
 pub mod styles;
 pub mod system;
 pub mod tables;
+pub mod transactions;
 
 use std::borrow::Cow;
 

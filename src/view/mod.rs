@@ -13,7 +13,7 @@ pub enum ViewMessage {
     Empty,
     Root(RootMessage),
 
-    Portfolio(portfolio::Message),
+    Dashboard(dashboard::Message),
 
     Settings(settings::Message),
 }

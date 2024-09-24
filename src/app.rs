@@ -3,10 +3,7 @@ use std::time::Duration;
 use serde::{Deserialize, Serialize};
 use tracing::Span;
 
-use super::{
-    pages::{empty::EmptyPage, exit::ExitPage, Page},
-    *,
-};
+use super::*;
 use crate::{
     components::system::{label, ExcaliburColor},
     data::{
@@ -15,9 +12,12 @@ use crate::{
         user::Saveable,
     },
     middleware::ExcaliburMiddleware,
-    pages::{portfolio::PortfolioRootPage, settings::SettingsPage},
     view::header::Header,
     view::navigation::NavEvent,
+};
+
+use crate::pages::{
+    dashboard::Dashboard, empty::EmptyPage, exit::ExitPage, settings::SettingsPage, Page,
 };
 
 pub fn app_span() -> Span {
@@ -91,7 +91,7 @@ impl App {
         model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<AppMessage>) {
-        let dashboard = PortfolioRootPage::new(Some(client.clone()), model.clone()).into();
+        let dashboard = Dashboard::new().into();
         let mut header = Header::new();
         header.current_nav = view::navigation::Navigation::Dashboard;
         (
@@ -274,9 +274,7 @@ impl App {
 
                 match page {
                     view::navigation::Navigation::Empty => EmptyPage::new().into(),
-                    view::navigation::Navigation::Dashboard => {
-                        PortfolioRootPage::new(Some(self.client.clone()), self.model.clone()).into()
-                    }
+                    view::navigation::Navigation::Dashboard => Dashboard::new().into(),
                     view::navigation::Navigation::Settings => {
                         SettingsPage::new(self.model.user.clone()).into()
                     }

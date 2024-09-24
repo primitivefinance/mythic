@@ -1,5 +1,16 @@
+use iced::widget::Space;
+
 use super::{cells::CellBuilder, *};
-use crate::pages::portfolio::monolithic::tx_history::TxHistory;
+
+pub fn separator<'a, Message>() -> Container<'a, Message>
+where
+    Message: 'a,
+{
+    ExcaliburContainer::default()
+        .background(ExcaliburColor::Custom(GRAY_600))
+        .build(Space::new(Length::Fill, 1.0))
+        .width(Length::Fill)
+}
 
 /// Very basic table row with two cells, a label and text input.
 #[allow(dead_code)]
@@ -148,7 +159,7 @@ where
 
         if let (Some(_border_bottom), false) = (self.border_bottom, self.is_last) {
             row = Row::new()
-                .push(Column::new().push(row).push(TxHistory::separator()))
+                .push(Column::new().push(row).push(separator()))
                 .align_items(alignment::Alignment::Center)
                 .spacing(self.spacing.unwrap_or_default())
                 .padding(self.padding.unwrap_or_default());

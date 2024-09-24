@@ -2,9 +2,9 @@
 
 use super::*;
 
+pub mod dashboard;
 pub mod empty;
 pub mod exit;
-pub mod portfolio;
 pub mod settings;
 
 pub trait MessageWrapper: Sized {

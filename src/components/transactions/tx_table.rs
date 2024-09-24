@@ -1,13 +1,10 @@
-use iced::widget::Space;
+use iced::widget::{Column, Container, Space};
+use iced::{Element, Length};
 
-use super::*;
-use crate::{
-    components::{
-        system::{ExcaliburColor, ExcaliburContainer, ExcaliburTable},
-        tables::{builder::TableBuilder, cells::CellBuilder},
-    },
-    data::portfolio::HistoricalTx,
-};
+use crate::components::styles::{Sizes, GRAY_600};
+use crate::components::system::{label, ExcaliburColor, ExcaliburContainer, ExcaliburTable};
+use crate::components::tables::{builder::TableBuilder, cells::CellBuilder};
+use crate::data::portfolio;
 
 #[derive(Debug, Clone, Default)]
 pub struct TxHistory;
@@ -48,7 +45,7 @@ impl TxHistory {
             .width(Length::Fill)
     }
 
-    pub fn table<'a, Message>(txs: &Vec<HistoricalTx>) -> TableBuilder<Message>
+    pub fn table<'a, Message>(txs: &Vec<portfolio::HistoricalTx>) -> TableBuilder<Message>
     where
         Message: 'a + Clone + Default,
     {
