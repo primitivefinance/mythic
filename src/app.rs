@@ -16,7 +16,8 @@ use crate::{
     },
     middleware::ExcaliburMiddleware,
     pages::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
-    view::sidebar::Sidebar,
+    view::header::Header,
+    view::navigation::NavEvent,
 };
 
 pub fn app_span() -> Span {
@@ -31,7 +32,7 @@ pub enum AppMessage {
     QuitReady,
     View(view::ViewMessage),
     UpdateUser(UserProfileMessage),
-    SwitchWindow(view::sidebar::Route),
+    SwitchWindow(NavEvent),
     ModelSyncResult(Result<Model, Arc<anyhow::Error>>),
 }
 
@@ -61,21 +62,21 @@ impl From<UserProfileMessage> for AppMessage {
 
 pub struct Windows {
     pub screen: Screen,
-    pub sidebar: Sidebar,
+    pub header: Header,
 }
 
 impl Default for Windows {
     fn default() -> Self {
         Self {
             screen: EmptyScreen::new().into(),
-            sidebar: Sidebar::new(),
+            header: Header::new(),
         }
     }
 }
 
 impl Windows {
-    pub fn new(screen: Screen, sidebar: Sidebar) -> Self {
-        Self { screen, sidebar }
+    pub fn new(screen: Screen, header: Header) -> Self {
+        Self { screen, header }
     }
 }
 
@@ -91,13 +92,13 @@ impl App {
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<AppMessage>) {
         let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
-        let mut sidebar = Sidebar::new();
-        sidebar.page = view::sidebar::Page::Portfolio;
+        let mut header = Header::new();
+        header.current_nav = view::navigation::Navigation::Dashboard;
         (
             Self {
                 client,
                 model,
-                windows: Windows::new(dashboard, sidebar),
+                windows: Windows::new(dashboard, header),
             },
             Command::perform(async {}, |_| AppMessage::Load),
         )
@@ -105,7 +106,7 @@ impl App {
 
     pub fn load(&mut self) -> Command<AppMessage> {
         let cmds = vec![
-            self.windows.sidebar.load().map(|x| x.into()),
+            self.windows.header.load().map(|x| x.into()),
             self.windows.screen.load().map(|x| x),
         ];
         Command::batch(cmds)
@@ -150,7 +151,7 @@ impl App {
     }
 
     pub fn view(&self) -> Element<AppMessage> {
-        view::app_layout(&self.windows.sidebar, self.windows.screen.view()).map(AppMessage::View)
+        view::document::body(&self.windows.header, self.windows.screen.view()).map(AppMessage::View)
     }
 
     pub fn subscription(&self) -> Subscription<AppMessage> {
@@ -256,30 +257,30 @@ impl App {
     }
 
     #[allow(unreachable_patterns)]
-    fn switch_window(&mut self, navigate_to: &view::sidebar::Route) -> Command<AppMessage> {
+    fn switch_window(&mut self, navigate_to: &view::navigation::NavEvent) -> Command<AppMessage> {
         let mut cmds = Vec::new();
 
         let exit_cmd = self.windows.screen.exit();
         cmds.push(exit_cmd);
 
         self.windows.screen = match navigate_to {
-            view::sidebar::Route::Page(page) => {
+            view::navigation::NavEvent::Navigate(page) => {
                 cmds.push(
                     self.windows
-                        .sidebar
-                        .update(view::sidebar::Route::Page(*page))
+                        .header
+                        .update(view::navigation::NavEvent::Navigate(*page))
                         .map(|x| x.into()),
                 );
 
                 match page {
-                    view::sidebar::Page::Empty => EmptyScreen::new().into(),
-                    view::sidebar::Page::Portfolio => {
+                    view::navigation::Navigation::Empty => EmptyScreen::new().into(),
+                    view::navigation::Navigation::Dashboard => {
                         PortfolioRoot::new(Some(self.client.clone()), self.model.clone()).into()
                     }
-                    view::sidebar::Page::Settings => {
+                    view::navigation::Navigation::Settings => {
                         SettingsScreen::new(self.model.user.clone()).into()
                     }
-                    view::sidebar::Page::Exit => ExitScreen::new(true).into(),
+                    view::navigation::Navigation::Exit => ExitScreen::new(true).into(),
                 }
             }
             _ => EmptyScreen::new().into(),
