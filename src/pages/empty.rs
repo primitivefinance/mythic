@@ -3,27 +3,27 @@ use iced::widget::Container;
 use super::*;
 use crate::components::system::label;
 
-pub struct EmptyScreen;
+pub struct EmptyPage;
 
-impl Default for EmptyScreen {
+impl Default for EmptyPage {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl EmptyScreen {
+impl EmptyPage {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl From<EmptyScreen> for Screen {
-    fn from(screen: EmptyScreen) -> Self {
-        Screen::new(Box::new(screen))
+impl From<EmptyPage> for Page {
+    fn from(screen: EmptyPage) -> Self {
+        Page::new(Box::new(screen))
     }
 }
 
-impl State for EmptyScreen {
+impl Lifecycle for EmptyPage {
     type AppMessage = app::AppMessage;
     type ViewMessage = view::ViewMessage;
 

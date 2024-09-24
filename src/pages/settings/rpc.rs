@@ -227,7 +227,7 @@ impl RpcManagement {
     }
 }
 
-impl State for RpcManagement {
+impl Lifecycle for RpcManagement {
     type AppMessage = Message;
     type ViewMessage = Message;
 

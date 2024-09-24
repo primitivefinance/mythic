@@ -84,7 +84,7 @@ impl Monolithic {
     }
 }
 
-impl State for Monolithic {
+impl Lifecycle for Monolithic {
     type AppMessage = Message;
     type ViewMessage = Message;
 

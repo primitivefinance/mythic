@@ -5,7 +5,7 @@ use iced::{Element, Length};
 
 use super::header;
 use crate::components::system::{ExcaliburColor, ExcaliburContainer};
-use crate::pages::State;
+use crate::pages::Lifecycle;
 use crate::view::ViewMessage;
 
 pub fn body<'a, T: Into<Element<'a, ViewMessage>>>(

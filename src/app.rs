@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use tracing::Span;
 
 use super::{
-    pages::{empty::EmptyScreen, exit::ExitScreen, Screen},
+    pages::{empty::EmptyPage, exit::ExitPage, Page},
     *,
 };
 use crate::{
@@ -15,7 +15,7 @@ use crate::{
         user::Saveable,
     },
     middleware::ExcaliburMiddleware,
-    pages::{portfolio::PortfolioRoot, settings::SettingsScreen, State},
+    pages::{portfolio::PortfolioRootPage, settings::SettingsPage},
     view::header::Header,
     view::navigation::NavEvent,
 };
@@ -61,21 +61,21 @@ impl From<UserProfileMessage> for AppMessage {
 }
 
 pub struct Windows {
-    pub screen: Screen,
+    pub screen: Page,
     pub header: Header,
 }
 
 impl Default for Windows {
     fn default() -> Self {
         Self {
-            screen: EmptyScreen::new().into(),
+            screen: EmptyPage::new().into(),
             header: Header::new(),
         }
     }
 }
 
 impl Windows {
-    pub fn new(screen: Screen, header: Header) -> Self {
+    pub fn new(screen: Page, header: Header) -> Self {
         Self { screen, header }
     }
 }
@@ -91,7 +91,7 @@ impl App {
         model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
     ) -> (Self, Command<AppMessage>) {
-        let dashboard = PortfolioRoot::new(Some(client.clone()), model.clone()).into();
+        let dashboard = PortfolioRootPage::new(Some(client.clone()), model.clone()).into();
         let mut header = Header::new();
         header.current_nav = view::navigation::Navigation::Dashboard;
         (
@@ -273,17 +273,17 @@ impl App {
                 );
 
                 match page {
-                    view::navigation::Navigation::Empty => EmptyScreen::new().into(),
+                    view::navigation::Navigation::Empty => EmptyPage::new().into(),
                     view::navigation::Navigation::Dashboard => {
-                        PortfolioRoot::new(Some(self.client.clone()), self.model.clone()).into()
+                        PortfolioRootPage::new(Some(self.client.clone()), self.model.clone()).into()
                     }
                     view::navigation::Navigation::Settings => {
-                        SettingsScreen::new(self.model.user.clone()).into()
+                        SettingsPage::new(self.model.user.clone()).into()
                     }
-                    view::navigation::Navigation::Exit => ExitScreen::new(true).into(),
+                    view::navigation::Navigation::Exit => ExitPage::new(true).into(),
                 }
             }
-            _ => EmptyScreen::new().into(),
+            _ => EmptyPage::new().into(),
         };
 
         let load_cmd = self.windows.screen.load();

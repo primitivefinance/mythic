@@ -1,3 +1,5 @@
+//! Traits for implementing sub-sections of the app with their own lifecycle and messages.
+
 use super::*;
 
 pub mod empty;
@@ -13,7 +15,7 @@ pub trait MessageWrapperView: Sized {
     type ParentMessage: From<Self> + Clone;
 }
 
-pub trait State {
+pub trait Lifecycle {
     type ViewMessage: MessageWrapperView;
 
     type AppMessage: MessageWrapper;
@@ -37,35 +39,36 @@ pub trait State {
     }
 }
 
-type WindowScreen = dyn State<ViewMessage = view::ViewMessage, AppMessage = app::AppMessage>;
+type DynamicLifecycle =
+    dyn Lifecycle<ViewMessage = view::ViewMessage, AppMessage = app::AppMessage>;
 
-pub struct Screen(pub Box<WindowScreen>);
+pub struct Page(pub Box<DynamicLifecycle>);
 
-impl Screen {
-    pub fn new(state: Box<WindowScreen>) -> Self {
+impl Page {
+    pub fn new(state: Box<DynamicLifecycle>) -> Self {
         Self(state)
     }
 
-    pub fn view(&self) -> Element<'_, <WindowScreen as State>::ViewMessage> {
+    pub fn view(&self) -> Element<'_, <DynamicLifecycle as Lifecycle>::ViewMessage> {
         self.0.view()
     }
 
     pub fn update(
         &mut self,
-        message: <WindowScreen as State>::AppMessage,
-    ) -> Command<<WindowScreen as State>::AppMessage> {
+        message: <DynamicLifecycle as Lifecycle>::AppMessage,
+    ) -> Command<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.update(message)
     }
 
-    pub fn subscription(&self) -> Subscription<<WindowScreen as State>::AppMessage> {
+    pub fn subscription(&self) -> Subscription<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.subscription()
     }
 
-    pub fn load(&self) -> Command<<WindowScreen as State>::AppMessage> {
+    pub fn load(&self) -> Command<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.load()
     }
 
-    pub fn exit(&mut self) -> Command<<WindowScreen as State>::AppMessage> {
+    pub fn exit(&mut self) -> Command<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.exit()
     }
 }

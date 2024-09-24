@@ -14,7 +14,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone, Default)]
-pub enum Page {
+pub enum PortfolioState {
     #[allow(dead_code)]
     Empty,
     #[default]
@@ -33,29 +33,29 @@ impl From<Message> for view::ViewMessage {
     }
 }
 
-pub struct PortfolioRoot {
-    pub page: Page,
+pub struct PortfolioRootPage {
+    pub state: PortfolioState,
     pub monolithic: monolithic::Monolithic,
     pub client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>,
 }
 
-impl PortfolioRoot {
+impl PortfolioRootPage {
     pub fn new(client: Option<Arc<ExcaliburMiddleware<Ws, LocalWallet>>>, model: Model) -> Self {
         Self {
-            page: Page::default(),
+            state: PortfolioState::default(),
             monolithic: monolithic::Monolithic::new(client.clone(), model.clone()),
             client,
         }
     }
 }
 
-impl From<PortfolioRoot> for Screen {
-    fn from(screen: PortfolioRoot) -> Self {
-        Screen::new(Box::new(screen))
+impl From<PortfolioRootPage> for Page {
+    fn from(screen: PortfolioRootPage) -> Self {
+        Page::new(Box::new(screen))
     }
 }
 
-impl State for PortfolioRoot {
+impl Lifecycle for PortfolioRootPage {
     type AppMessage = app::AppMessage;
     type ViewMessage = view::ViewMessage;
 
@@ -97,9 +97,9 @@ impl State for PortfolioRoot {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let content = match self.page.clone() {
-            Page::Empty => Column::new().push(label("Select a page").build()).into(),
-            Page::Monolithic => self
+        let content = match self.state.clone() {
+            PortfolioState::Empty => Column::new().push(label("Select a state").build()).into(),
+            PortfolioState::Monolithic => self
                 .monolithic
                 .view()
                 .map(|x| Message::Monolithic(x).into()),
@@ -116,8 +116,8 @@ impl State for PortfolioRoot {
         // todo: fix the subscriptions!
         // Need to understand how they are broken
         // need subscriptions to fetch new blocks, new price path, etc.
-        Subscription::batch(vec![match self.page {
-            Page::Monolithic => self
+        Subscription::batch(vec![match self.state {
+            PortfolioState::Monolithic => self
                 .monolithic
                 .subscription()
                 .map(|x| Message::Monolithic(x).into()),

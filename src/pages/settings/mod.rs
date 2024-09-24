@@ -47,12 +47,12 @@ pub enum Pages {
     Contacts,
 }
 
-pub struct SettingsScreen {
+pub struct SettingsPage {
     pub active: Pages,
     pub rpc: rpc::RpcManagement,
 }
 
-impl SettingsScreen {
+impl SettingsPage {
     pub fn new(user: UserProfile) -> Self {
         Self {
             active: Pages::default(),
@@ -76,13 +76,13 @@ impl SettingsScreen {
     }
 }
 
-impl From<SettingsScreen> for Screen {
-    fn from(screen: SettingsScreen) -> Self {
-        Screen::new(Box::new(screen))
+impl From<SettingsPage> for Page {
+    fn from(screen: SettingsPage) -> Self {
+        Page::new(Box::new(screen))
     }
 }
 
-impl State for SettingsScreen {
+impl Lifecycle for SettingsPage {
     type AppMessage = RootMessage;
     type ViewMessage = RootViewMessage;
 

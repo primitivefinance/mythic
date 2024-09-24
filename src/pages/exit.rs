@@ -3,23 +3,23 @@ use iced::widget::Container;
 use super::*;
 use crate::components::system::label;
 
-pub struct ExitScreen {
+pub struct ExitPage {
     pub show_confirm: bool,
 }
 
-impl ExitScreen {
+impl ExitPage {
     pub fn new(show_confirm: bool) -> Self {
         Self { show_confirm }
     }
 }
 
-impl From<ExitScreen> for Screen {
-    fn from(screen: ExitScreen) -> Self {
-        Screen::new(Box::new(screen))
+impl From<ExitPage> for Page {
+    fn from(screen: ExitPage) -> Self {
+        Page::new(Box::new(screen))
     }
 }
 
-impl State for ExitScreen {
+impl Lifecycle for ExitPage {
     type AppMessage = app::AppMessage;
     type ViewMessage = view::ViewMessage;
 

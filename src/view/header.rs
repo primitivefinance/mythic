@@ -35,7 +35,7 @@ impl Header {
     }
 }
 
-impl pages::State for Header {
+impl Lifecycle for Header {
     type AppMessage = NavEvent;
     type ViewMessage = view::ViewMessage;
 
