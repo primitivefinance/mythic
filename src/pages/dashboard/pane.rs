@@ -1,9 +1,9 @@
 use iced::widget::{button, pane_grid, scrollable, text, Column, Container, Row};
-use iced::{Element, Fill, Size};
+use iced::{Center, Element, Fill, Size};
 
 #[derive(Clone, Copy)]
 pub struct Pane {
-    id: usize,
+    pub id: usize,
     pub is_pinned: bool,
 }
 
@@ -23,8 +23,8 @@ pub fn view_content<'a>(
     size: Size,
 ) -> Element<'a, super::Message> {
     let button = |label, message| {
-        button(text(label).width(iced::Length::Fill).size(16))
-            .width(iced::Length::Fill)
+        button(text(label).width(Fill).align_x(Center).size(16))
+            .width(Fill)
             .padding(8)
             .on_press(message)
     };
@@ -38,13 +38,19 @@ pub fn view_content<'a>(
             "Spit vertical",
             super::Message::Split(pane_grid::Axis::Vertical, pane),
         ))
+        .push_maybe(if total_panes > 1 && !is_pinned {
+            Some(button("Close", super::Message::Close(pane)).style(button::danger))
+        } else {
+            None
+        })
         .spacing(5)
-        .max_width(10);
+        .max_width(160);
 
     let content = Column::new()
         .push(text(format!("{}x{}", size.width, size.height)).size(24))
         .push(controls)
-        .spacing(10);
+        .spacing(10)
+        .align_x(Center);
 
     Container::new(scrollable(content))
         .center_y(Fill)
@@ -58,21 +64,33 @@ pub fn view_controls<'a>(
     is_pinned: bool,
     is_maximized: bool,
 ) -> Element<'a, super::Message> {
-    let row = Row::new().push(if total_panes > 1 {
-        let (content, message) = if is_maximized {
-            ("Restore", super::Message::Restore)
-        } else {
-            ("Maximize", super::Message::Maximize(pane))
-        };
+    let row = Row::new()
+        .push_maybe(if total_panes > 1 {
+            let (content, message) = if is_maximized {
+                ("Restore", super::Message::Restore)
+            } else {
+                ("Maximize", super::Message::Maximize(pane))
+            };
 
-        button(text(content).size(14)).padding(3).on_press(message)
-    } else {
-        button(text("n/a").width(iced::Length::Fill))
-    });
+            Some(
+                button(text(content).size(14))
+                    .style(button::secondary)
+                    .padding(3)
+                    .on_press(message),
+            )
+        } else {
+            None
+        })
+        .spacing(5);
 
     let close = button(text("Close").size(14))
+        .style(button::danger)
         .padding(3)
-        .on_press(super::Message::Close(pane));
+        .on_press_maybe(if total_panes > 1 && !is_pinned {
+            Some(super::Message::Close(pane))
+        } else {
+            None
+        });
 
     row.push(close).into()
 }
