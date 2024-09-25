@@ -1,5 +1,5 @@
 use iced::widget::{button, pane_grid, scrollable, text, Column, Container, Row};
-use iced::{Element, Size};
+use iced::{Element, Fill, Size};
 
 #[derive(Clone, Copy)]
 pub struct Pane {
@@ -47,7 +47,7 @@ pub fn view_content<'a>(
         .spacing(10);
 
     Container::new(scrollable(content))
-        .center_y()
+        .center_y(Fill)
         .padding(5)
         .into()
 }

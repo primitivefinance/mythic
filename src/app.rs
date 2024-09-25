@@ -1,24 +1,24 @@
-use std::time::Duration;
-
+use ethers::prelude::*;
+use iced::{Element, Subscription, Task};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tracing::Span;
 
-use super::*;
-use crate::{
-    components::system::{label, ExcaliburColor},
-    data::{
-        contacts::{self, ContactValue},
-        rpcs::RPCValue,
-        user::Saveable,
-    },
-    middleware::ExcaliburMiddleware,
-    view::header::Header,
-    view::navigation::NavEvent,
+use crate::data::{
+    contacts::{self, ContactValue},
+    rpcs::RPCValue,
+    user::Saveable,
+    Model,
 };
-
+use crate::middleware::ExcaliburMiddleware;
 use crate::pages::{
-    dashboard::Dashboard, empty::EmptyPage, exit::ExitPage, settings::SettingsPage, Page,
+    dashboard::Dashboard,
+    empty::EmptyPage,
+    exit::ExitPage,
+    settings::{self, SettingsPage},
+    Lifecycle, MessageWrapper, Page,
 };
+use crate::view::{self, header::Header, navigation::NavEvent};
 
 pub fn app_span() -> Span {
     tracing::debug_span!("App")
@@ -90,7 +90,7 @@ impl App {
     pub fn new(
         model: Model,
         client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-    ) -> (Self, Command<AppMessage>) {
+    ) -> (Self, Task<AppMessage>) {
         let dashboard = Dashboard::new().into();
         let mut header = Header::new();
         header.current_nav = view::navigation::Navigation::Dashboard;
@@ -100,22 +100,22 @@ impl App {
                 model,
                 windows: Windows::new(dashboard, header),
             },
-            Command::perform(async {}, |_| AppMessage::Load),
+            Task::perform(async {}, |_| AppMessage::Load),
         )
     }
 
-    pub fn load(&mut self) -> Command<AppMessage> {
+    pub fn load(&mut self) -> Task<AppMessage> {
         let cmds = vec![
             self.windows.header.load().map(|x| x.into()),
             self.windows.screen.load().map(|x| x),
         ];
-        Command::batch(cmds)
+        Task::batch(cmds)
     }
 
-    pub fn update(&mut self, message: AppMessage) -> Command<AppMessage> {
+    pub fn update(&mut self, message: AppMessage) -> Task<AppMessage> {
         app_span().in_scope(|| match message {
             AppMessage::Load => self.load(),
-            AppMessage::QuitReady => Command::none(),
+            AppMessage::QuitReady => Task::none(),
             AppMessage::ModelSyncResult(Ok(model)) => {
                 self.model = model.clone();
 
@@ -128,7 +128,7 @@ impl App {
                     "Critical failure - sync model threw an error while updating: {:?}",
                     e
                 );
-                Command::none()
+                Task::none()
             }
             AppMessage::UpdateUser(msg) => self.update_user(msg),
             AppMessage::View(view::ViewMessage::Root(msg)) => match msg {
@@ -136,7 +136,7 @@ impl App {
                 view::RootMessage::Route(route) => self.switch_window(&route),
                 view::RootMessage::CopyToClipboard(contents) => iced::clipboard::write(contents),
                 view::RootMessage::SaveAndExit => self.exit(),
-                view::RootMessage::Empty => Command::none(),
+                view::RootMessage::Empty => Task::none(),
                 view::RootMessage::ConfirmExit => {
                     tracing::debug!("Confirming exit");
                     self.windows
@@ -158,33 +158,33 @@ impl App {
         self.windows.screen.subscription()
     }
 
-    pub fn exit(&mut self) -> Command<AppMessage> {
+    pub fn exit(&mut self) -> Task<AppMessage> {
         let result = self.model.save();
         match result {
             Ok(_) => tracing::info!("Saved profile to disk"),
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
         }
 
-        let mut commands = Vec::new();
+        let mut Tasks = Vec::new();
         let cmd = self.windows.screen.exit();
-        commands.push(cmd);
+        Tasks.push(cmd);
 
         if self.client.anvil.is_some() {
-            let cmd = Command::perform(
+            let cmd = Task::perform(
                 save_snapshot(self.client.clone()),
                 UserProfileMessage::SaveAnvilSnapshot,
             )
             .map(AppMessage::UpdateUser);
-            commands.push(cmd);
+            Tasks.push(cmd);
         }
 
-        Command::batch(commands)
+        Task::batch(Tasks)
     }
 
-    fn sync_model(&mut self) -> Command<AppMessage> {
+    fn sync_model(&mut self) -> Task<AppMessage> {
         let model = self.model.clone();
         let provider = self.client.get_client();
-        Command::perform(
+        Task::perform(
             async move {
                 let mut model = model;
                 model.update(provider).await?;
@@ -194,7 +194,7 @@ impl App {
         )
     }
 
-    fn update_user(&mut self, message: UserProfileMessage) -> Command<AppMessage> {
+    fn update_user(&mut self, message: UserProfileMessage) -> Task<AppMessage> {
         let model = &mut self.model;
         match message {
             UserProfileMessage::SaveAnvilSnapshot(snapshot) => {
@@ -211,7 +211,7 @@ impl App {
                     Err(e) => tracing::error!("Failed to save anvil snapshot: {:?}", e),
                 }
 
-                return Command::perform(async {}, |_| AppMessage::QuitReady);
+                return Task::perform(async {}, |_| AppMessage::QuitReady);
             }
             UserProfileMessage::AddAddress(name, address, category) => {
                 model.user.contacts.add(
@@ -250,14 +250,16 @@ impl App {
         }
 
         let rpcs = model.user.rpcs.clone();
-        Command::perform(async {}, move |_| {
-            view::ViewMessage::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(rpcs)))
+        Task::perform(async {}, move |_| {
+            view::ViewMessage::Settings(settings::Message::Rpc(settings::rpc::Message::Sync(
+                rpcs.clone(),
+            )))
         })
         .map(|x| x.into())
     }
 
     #[allow(unreachable_patterns)]
-    fn switch_window(&mut self, navigate_to: &view::navigation::NavEvent) -> Command<AppMessage> {
+    fn switch_window(&mut self, navigate_to: &view::navigation::NavEvent) -> Task<AppMessage> {
         let mut cmds = Vec::new();
 
         let exit_cmd = self.windows.screen.exit();
@@ -287,7 +289,7 @@ impl App {
         let load_cmd = self.windows.screen.load();
         cmds.push(load_cmd);
 
-        Command::batch(cmds)
+        Task::batch(cmds)
     }
 }
 

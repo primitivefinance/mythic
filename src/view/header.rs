@@ -30,7 +30,7 @@ impl Header {
         column = column.push(self.current_nav.view().map(|x| x.into()));
         column
             .spacing(Sizes::Xs)
-            .align_items(alignment::Alignment::Center)
+            .align_x(alignment::Alignment::Center)
             .into()
     }
 }
@@ -39,15 +39,15 @@ impl Lifecycle for Header {
     type AppMessage = NavEvent;
     type ViewMessage = view::ViewMessage;
 
-    fn update(&mut self, message: NavEvent) -> Command<NavEvent> {
+    fn update(&mut self, message: NavEvent) -> Task<NavEvent> {
         self.last_event = message.clone();
 
         match message {
             NavEvent::Navigate(to) => {
                 self.current_nav = to;
-                Command::none()
+                Task::none()
             }
-            _ => Command::none(),
+            _ => Task::none(),
         }
     }
 
@@ -56,11 +56,11 @@ impl Lifecycle for Header {
             .push(
                 Row::new()
                     .spacing(Sizes::Sm)
-                    .align_items(alignment::Alignment::Center)
+                    .align_y(alignment::Alignment::Center)
                     .push(label(TITLE).title3().branding().build()),
             )
             .padding(Sizes::Lg)
-            .align_items(alignment::Alignment::Center)
+            .align_x(alignment::Alignment::Center)
             .width(Length::Fill);
 
         Container::new(
@@ -70,11 +70,11 @@ impl Lifecycle for Header {
                         Container::new(Column::new())
                             .width(Length::Fill)
                             .height(Length::Fixed(1.0))
-                            .style(
+                            .style(move |_theme| {
                                 ExcaliburContainer::default()
                                     .background_iced(Color::BLACK)
-                                    .theme(),
-                            ),
+                                    .theme()
+                            }),
                     ),
                 )
                 .push(

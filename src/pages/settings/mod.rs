@@ -2,7 +2,8 @@ pub mod rpc;
 
 use anyhow::anyhow;
 use iced::widget::Container;
-use iced_aw::Icon;
+use iced::Fill;
+use iced_aw::Bootstrap;
 
 use super::*;
 use crate::{
@@ -62,7 +63,7 @@ impl SettingsPage {
 
     pub fn pages(&self) -> Vec<NavigationStep<RootViewMessage>> {
         vec![NavigationStep::new(
-            Icon::Lightning,
+            Bootstrap::Lightning,
             "RPC",
             Message::Route(Pages::Rpc).into(),
             self.active == Pages::Rpc,
@@ -70,9 +71,9 @@ impl SettingsPage {
         )]
     }
 
-    fn switch_page(&mut self, page: Pages) -> Command<Message> {
+    fn switch_page(&mut self, page: Pages) -> Task<Message> {
         self.active = page;
-        Command::none()
+        Task::none()
     }
 }
 
@@ -86,11 +87,11 @@ impl Lifecycle for SettingsPage {
     type AppMessage = RootMessage;
     type ViewMessage = RootViewMessage;
 
-    fn load(&self) -> Command<Self::AppMessage> {
-        Command::none()
+    fn load(&self) -> Task<Self::AppMessage> {
+        Task::none()
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Task<Self::AppMessage> {
         if let Self::AppMessage::View(view::ViewMessage::Settings(message)) = message {
             match message {
                 Message::Rpc(message) => match message {
@@ -104,15 +105,15 @@ impl Lifecycle for SettingsPage {
                             }
 
                             commands.push(
-                                Command::perform(async {}, move |_| {
-                                    app::UserProfileMessage::RemoveRPC(name)
+                                Task::perform(async {}, move |_| {
+                                    app::UserProfileMessage::RemoveRPC(name.clone())
                                 })
                                 .map(|x| x.into()),
                             );
                         }
 
                         commands.push(self.rpc.update(message).map(|x| Message::Rpc(x).into()));
-                        Command::batch(commands)
+                        Task::batch(commands)
                     }
                     rpc::Message::Submit => {
                         let chain = self.rpc.get_chain_packet();
@@ -126,21 +127,24 @@ impl Lifecycle for SettingsPage {
 
                                 let mut commands = vec![];
                                 commands.push(
-                                    Command::perform(async {}, |_| {
-                                        UserProfileMessage::AddRPC(chain)
+                                    Task::perform(async {}, move |_| {
+                                        UserProfileMessage::AddRPC(chain.clone())
                                     })
                                     .map(|x| x.into()),
                                 );
                                 commands
                                     .push(self.rpc.update(message).map(|x| Message::Rpc(x).into()));
-                                Command::batch(commands)
+                                Task::batch(commands)
                             }
                             Err(e) => {
                                 tracing::error!("Failed to submit new RPC packet: {:?}", e);
 
-                                Command::perform(async {}, move |_| {
+                                Task::perform(async {}, move |_| {
                                     view::ViewMessage::Settings(settings::Message::Rpc(
-                                        settings::rpc::Message::Feedback(anyhow!(e).into()),
+                                        settings::rpc::Message::Feedback(
+                                            anyhow!("failed to submit new RPC packet".to_string())
+                                                .into(),
+                                        ),
                                     ))
                                 })
                                 .map(|x| x.into())
@@ -151,10 +155,10 @@ impl Lifecycle for SettingsPage {
                 },
 
                 Message::Route(page) => self.switch_page(page).map(|x| x.into()),
-                _ => Command::none(),
+                _ => Task::none(),
             }
         } else {
-            Command::none()
+            Task::none()
         }
     }
 
@@ -174,10 +178,10 @@ impl Lifecycle for SettingsPage {
         );
 
         Container::new(content)
-            .center_x()
+            .center_x(Fill)
             .padding(Sizes::Lg)
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .width(Fill)
+            .height(Fill)
             .into()
     }
 }

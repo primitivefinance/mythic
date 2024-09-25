@@ -1,4 +1,5 @@
 use iced::widget::Container;
+use iced::Fill;
 
 use super::*;
 use crate::components::system::label;
@@ -23,16 +24,16 @@ impl Lifecycle for ExitPage {
     type AppMessage = app::AppMessage;
     type ViewMessage = view::ViewMessage;
 
-    fn load(&self) -> Command<Self::AppMessage> {
-        Command::none()
+    fn load(&self) -> Task<Self::AppMessage> {
+        Task::none()
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Task<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::ViewMessage::Root(message)) => match message {
                 view::RootMessage::ConfirmExit => {
                     self.show_confirm = false;
-                    Command::perform(async { Ok::<(), ()>(()) }, |_| {
+                    Task::perform(async { Ok::<(), ()>(()) }, |_| {
                         Self::AppMessage::View(view::ViewMessage::Root(
                             view::RootMessage::SaveAndExit,
                         ))
@@ -40,12 +41,12 @@ impl Lifecycle for ExitPage {
                 }
                 view::RootMessage::SaveAndExit => {
                     self.show_confirm = true;
-                    Command::none()
+                    Task::none()
                 }
-                _ => Command::none(),
+                _ => Task::none(),
             },
 
-            _ => Command::none(),
+            _ => Task::none(),
         }
     }
 
@@ -59,15 +60,15 @@ impl Lifecycle for ExitPage {
                         .on_press(Self::ViewMessage::Root(view::RootMessage::ConfirmExit)),
                 )
                 .spacing(Sizes::Sm)
-                .align_items(alignment::Alignment::Center),
+                .align_x(alignment::Alignment::Center),
             false => Column::new().push(label("Saving and exiting...").title2().build()),
         };
 
         Container::new(content)
-            .center_x()
-            .center_y()
-            .width(Length::Fill)
-            .height(Length::Fill)
+            .center_x(Fill)
+            .center_y(Fill)
+            .width(Fill)
+            .height(Fill)
             .into()
     }
 }

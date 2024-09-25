@@ -1,6 +1,6 @@
 [package]
 name = "mythic_charts"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Chart library for Mythic built on Iced and Plotters."
 license = "MIT"
@@ -8,7 +8,7 @@ repository = "https://github.com/primitivefinance/mythic"
 readme = "README.md"
 
 [dependencies]
-iced = { version = "=0.10.0" }
+iced = { version = "=0.13.1" }
 plotters = { version = "=0.3.5" }
 plotters-backend = { version = "=0.3.5" }
-plotters-iced = { version = "=0.9.0" }
+plotters-iced = { version = "=0.11.0" }

@@ -7,7 +7,7 @@ use iced::{
     event,
     mouse::{Cursor, Event},
     widget::canvas::{self},
-    Element, Length, Point,
+    Element, Fill, Point,
 };
 pub use plotters::{coord::ReverseCoordTranslate, prelude::*, style::colors};
 use plotters_iced::{Chart, ChartWidget};
@@ -234,9 +234,7 @@ impl CartesianChart {
     }
 
     pub fn view(&self) -> Element<ChartMessage> {
-        let chart = ChartWidget::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill);
+        let chart = ChartWidget::new(self).width(Fill).height(Fill);
 
         chart.into()
     }
@@ -1136,9 +1134,7 @@ impl HistogramChart {
     }
 
     pub fn view(&self) -> Element<ChartMessage> {
-        let chart = ChartWidget::new(self)
-            .width(Length::Fill)
-            .height(Length::Fill);
+        let chart = ChartWidget::new(self).width(Fill).height(Fill);
 
         chart.into()
     }

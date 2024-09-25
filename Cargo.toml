@@ -17,7 +17,7 @@ path = "src/main.rs"
 
 [workspace.dependencies]
 
-mythic_charts = { path = "crates/mythic_charts", version = "0.1.0" }
+mythic_charts = { path = "crates/mythic_charts", version = "0.2.0" }
 
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
 
@@ -99,25 +99,19 @@ tracing-subscriber.workspace = true
 RustQuant.workspace = true
 statrs.workspace = true
 
-iced = { version = "=0.10.0", features = [
+iced = { version = "=0.13.1", default-features = true, features = [
     "system",
     "tokio",
     "lazy",
     "image",
-    "palette",
     "advanced",
     "canvas",
     "svg",
 ] }
-iced_aw = { version = "=0.7.0", default-features = false, features = [
-    "menu",
-    "icon_text",
-    "icons",
-    "spinner",
-    "floating_element",
-] }
+iced_core = { version = "=0.13.1" }
+iced_aw = { version = "=0.10.0", default-features = true }
 plotters-backend = "=0.3.5"
-plotters-iced = "=0.9.0"
+plotters-iced = "=0.11.0"
 url = "=2.5.0"
 
 [package.metadata.bundle]

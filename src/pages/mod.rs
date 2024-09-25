@@ -22,20 +22,20 @@ pub trait Lifecycle {
 
     fn view(&self) -> Element<'_, Self::ViewMessage>;
 
-    fn update(&mut self, _message: Self::AppMessage) -> Command<Self::AppMessage> {
-        Command::none()
+    fn update(&mut self, _message: Self::AppMessage) -> Task<Self::AppMessage> {
+        Task::none()
     }
 
     fn subscription(&self) -> Subscription<Self::AppMessage> {
         Subscription::none()
     }
 
-    fn load(&self) -> Command<Self::AppMessage> {
-        Command::none()
+    fn load(&self) -> Task<Self::AppMessage> {
+        Task::none()
     }
 
-    fn exit(&mut self) -> Command<Self::AppMessage> {
-        Command::none()
+    fn exit(&mut self) -> Task<Self::AppMessage> {
+        Task::none()
     }
 }
 
@@ -56,7 +56,7 @@ impl Page {
     pub fn update(
         &mut self,
         message: <DynamicLifecycle as Lifecycle>::AppMessage,
-    ) -> Command<<DynamicLifecycle as Lifecycle>::AppMessage> {
+    ) -> Task<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.update(message)
     }
 
@@ -64,11 +64,11 @@ impl Page {
         self.0.subscription()
     }
 
-    pub fn load(&self) -> Command<<DynamicLifecycle as Lifecycle>::AppMessage> {
+    pub fn load(&self) -> Task<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.load()
     }
 
-    pub fn exit(&mut self) -> Command<<DynamicLifecycle as Lifecycle>::AppMessage> {
+    pub fn exit(&mut self) -> Task<<DynamicLifecycle as Lifecycle>::AppMessage> {
         self.0.exit()
     }
 }

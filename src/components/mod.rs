@@ -5,37 +5,25 @@
 //! All the components that combine these parts and the styling system live in
 //! here.
 
-pub mod button;
-pub mod input;
 pub mod logos;
 pub mod progress;
 pub mod select;
 pub mod styles;
 pub mod system;
-pub mod tables;
 pub mod transactions;
 
-use std::borrow::Cow;
-
-use button::*;
-use iced::{
-    widget::{pick_list, Button, Container},
-    BorderRadius, Color, Element, Padding, Renderer,
-};
-use iced_aw::{
-    graphics::icons::{self, icon_to_char},
-    Icon, ICON_FONT,
-};
-use input::*;
+use iced::widget::{button, container, pick_list, text, Button, Column, Container, Row, Text};
+use iced::{alignment, Color, Element, Fill, Length, Padding, Renderer};
 use styles::*;
 
-use self::{
-    select::custom_pick_list,
-    system::{label, ExcaliburButton, ExcaliburColor, ExcaliburContainer},
-    tables::{builder::TableBuilder, cells::CellBuilder, columns::ColumnBuilder, rows::RowBuilder},
+use iced_aw::{
+    BOOTSTRAP_FONT,
+    {bootstrap::icon_to_char, Bootstrap},
 };
-// These components should return View messages.
-use super::{view::ViewMessage, *};
+
+use self::system::{label, ExcaliburButton, ExcaliburColor, ExcaliburContainer};
+
+use crate::view;
 
 /// Renders a tab-like button
 #[allow(dead_code)]
@@ -43,24 +31,12 @@ pub fn tab_button<'a, Message>(active: bool, label: String) -> iced::widget::But
 where
     Message: 'a,
 {
-    let content = text(label)
+    let content = iced::widget::text(label)
         .size(16)
-        .horizontal_alignment(iced::alignment::Horizontal::Center)
-        .vertical_alignment(iced::alignment::Vertical::Center)
-        .style(Color::WHITE);
-    let tab_button_style = CustomButtonStyle::new()
-        .border_radius(5.0.into())
-        .background_color(Color::TRANSPARENT)
-        .hovered()
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(38, 36, 45))
-        .pressed()
-        .border_radius(5.0.into())
-        .background_color(Color::from_rgb8(38, 36, 50))
-        .disabled()
-        .border_radius(5.0.into())
-        .background_color(DISABLED_COLOR)
-        .text_color(DISABLED_TEXT_GRAY);
+        .align_x(iced::alignment::Horizontal::Center)
+        .align_y(iced::alignment::Vertical::Center)
+        .color(Color::WHITE);
+
     button(with_lower_indicator(
         active,
         Column::new().push(content).padding(Padding {
@@ -70,7 +46,6 @@ where
             left: 5.0,
         }),
     ))
-    .style(tab_button_style.as_custom())
 }
 
 pub fn with_lower_indicator<'a, Message>(
@@ -82,7 +57,7 @@ where
 {
     let indicator = if toggle {
         container(Column::new())
-            .style(ExcaliburContainer::indicator().theme())
+            .style(move |_theme| ExcaliburContainer::indicator().theme())
             .height(Length::Fixed(2.0))
     } else {
         container(Column::new()).height(Length::Fixed(2.0))
@@ -91,72 +66,17 @@ where
     Column::new()
         .push(elem)
         .push(indicator.width(Length::Fixed(100.0)))
-        .align_items(alignment::Alignment::Center)
+        .align_x(alignment::Alignment::Center)
 }
 #[allow(dead_code)]
 pub fn copyable_text<'a, E: Into<Element<'a, view::ViewMessage>>>(
     label: E,
     value: String,
 ) -> iced::widget::Button<'a, view::ViewMessage> {
-    let copy_button = button(label)
-        .style(
-            CustomButtonStyle::text(&iced::Theme::Dark)
-                .hovered()
-                .border_radius(5.0.into())
-                .background(Some(SEMI_TRANSPARENT_HIGHLIGHT_CONTAINER.into()))
-                .pressed()
-                .border_radius(5.0.into())
-                .background(Some(MENU_BG_COLOR.into()))
-                .as_custom(),
-        )
-        .padding(0)
-        .on_press(view::ViewMessage::Root(view::RootMessage::CopyToClipboard(
-            value,
-        )));
+    let copy_button = button(label).padding(0).on_press(view::ViewMessage::Root(
+        view::RootMessage::CopyToClipboard(value),
+    ));
     copy_button
-}
-
-/// Renders a label and text input inside a column.
-#[allow(dead_code)]
-pub fn labeled_input<'a, Message>(
-    text: String,
-    value: Option<String>,
-    placeholder: String,
-    on_change: impl Fn(Option<String>) -> Message + 'static,
-) -> Column<'a, Message>
-where
-    Message: 'static,
-{
-    let title = label(text).secondary().build();
-    let input = create_input_component(value, on_change, placeholder);
-
-    Column::new().push(title).push(input).spacing(Sizes::Md)
-}
-
-/// Column with a label and pick list field.
-#[allow(dead_code)]
-pub fn labeled_select<'a, Message, T>(
-    title: String,
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
-    on_selected: impl Fn(T) -> Message + 'a,
-) -> Element<'a, Message>
-where
-    Message: 'a,
-    T: ToString + Eq + 'static + Clone,
-    [T]: ToOwned<Owned = Vec<T>>,
-{
-    let title = label(title).title3().build();
-
-    Column::new()
-        .push(title)
-        .push(
-            custom_pick_list(options, selected, on_selected, None)
-                .padding(Sizes::Md as u16)
-                .width(Length::Fill),
-        )
-        .spacing(Sizes::Md as u16)
-        .into()
 }
 
 /// For use in the instructions container.
@@ -209,11 +129,10 @@ where
     }
 
     let mut submit: Button<'a, Message> = ExcaliburButton::new()
-        .primary()
         .build(
-            text(&action.unwrap_or_else(|| "Submit".to_string()))
+            iced::widget::text(action.unwrap_or("Submit".to_string()))
                 .width(Length::Fill)
-                .horizontal_alignment(alignment::Horizontal::Center),
+                .align_x(alignment::Horizontal::Center),
         )
         .padding(Sizes::Md)
         .width(Length::Fill);
@@ -227,8 +146,8 @@ where
         .caption2()
         .secondary()
         .build()
-        .horizontal_alignment(alignment::Horizontal::Center)
-        .vertical_alignment(alignment::Vertical::Center);
+        .align_x(alignment::Horizontal::Center)
+        .align_y(alignment::Vertical::Center);
 
     // Card::new(
     // Column::new()
@@ -242,7 +161,7 @@ where
     Container::new(
         Row::new()
             .spacing(Sizes::Md)
-            .align_items(alignment::Alignment::Center)
+            .align_y(alignment::Alignment::Center)
             .push(inner.width(Length::FillPortion(2)))
             .push(
                 Column::new()
@@ -327,16 +246,16 @@ impl<'a, Message> DualColumn<'a, Message> {
     pub fn build(self) -> Row<'a, Message> {
         let mut row = Row::new();
 
-        let mut first_column = Column::with_children(self.column_1.into_iter().collect())
+        let mut first_column = Column::with_children(self.column_1.into_iter())
             .width(Length::FillPortion(2))
-            .align_items(
+            .align_x(
                 self.column_1_alignment
                     .unwrap_or(alignment::Alignment::Start),
             );
 
-        let mut second_column = Column::with_children(self.column_2.into_iter().collect())
+        let mut second_column = Column::with_children(self.column_2.into_iter())
             .width(Length::FillPortion(2))
-            .align_items(self.column_2_alignment.unwrap_or(alignment::Alignment::End));
+            .align_x(self.column_2_alignment.unwrap_or(alignment::Alignment::End));
 
         if let Some(spacing) = self.spacing {
             first_column = first_column.spacing(spacing);
@@ -371,18 +290,18 @@ where
         .push(
             Column::new()
                 .width(Length::FillPortion(2))
-                .align_items(alignment::Alignment::Start)
+                .align_x(alignment::Alignment::Start)
                 .push(key),
         )
         .push(
             Column::new()
                 .width(Length::FillPortion(2))
-                .align_items(alignment::Alignment::End)
+                .align_x(alignment::Alignment::End)
                 .push(value),
         );
     row = row
         .spacing(Sizes::Md as u16)
-        .align_items(alignment::Alignment::Center);
+        .align_y(alignment::Alignment::Center);
     row
 }
 
@@ -398,18 +317,16 @@ where
         .push(
             Column::new()
                 .width(Length::FillPortion(2))
-                .align_items(alignment::Alignment::Start)
+                .align_x(alignment::Alignment::Start)
                 .push(elem_1),
         )
         .push(
             Column::new()
                 .width(Length::FillPortion(2))
-                .align_items(alignment::Alignment::End)
+                .align_x(alignment::Alignment::End)
                 .push(elem_2),
         );
-    row = row
-        .spacing(Sizes::Md)
-        .align_items(alignment::Alignment::Center);
+    row = row.spacing(Sizes::Md).align_y(alignment::Alignment::Center);
     row
 }
 
@@ -444,19 +361,15 @@ where
 
 #[allow(dead_code)]
 pub fn custom_icon_button<'a>(
-    icon: icons::Icon,
+    icon: Bootstrap,
     font_size: u16,
-) -> iced::widget::Button<'a, ViewMessage> {
+) -> iced::widget::Button<'a, view::ViewMessage> {
     let content = text(icon_to_char(icon))
-        .font(ICON_FONT)
+        .font(BOOTSTRAP_FONT)
         .size(font_size)
-        .style(Color::WHITE);
-    let control_button_style = CustomButtonStyle::new()
-        .background_color(Color::TRANSPARENT)
-        .hovered()
-        .background_color(PRIMARY_COLOR)
-        .border_radius(5.0.into());
-    button(content).style(control_button_style.as_custom())
+        .color(Color::WHITE);
+
+    button(content)
 }
 
 /// An individual navigation step that can be rendered in a list of steps.
@@ -465,7 +378,7 @@ pub struct NavigationStep<Message>
 where
     Message: Clone + Default,
 {
-    pub icon: Icon,
+    pub icon: Bootstrap,
     pub cta: String,
     pub on_press: Message,
     pub active: bool,
@@ -477,7 +390,13 @@ where
     Message: Clone + Default,
 {
     /// Creates a new navigation step.
-    pub fn new(icon: Icon, cta: &str, on_press: Message, active: bool, disabled: bool) -> Self {
+    pub fn new(
+        icon: Bootstrap,
+        cta: &str,
+        on_press: Message,
+        active: bool,
+        disabled: bool,
+    ) -> Self {
         Self {
             icon,
             cta: cta.to_string(),
@@ -488,12 +407,12 @@ where
     }
 }
 
-impl Default for NavigationStep<ViewMessage> {
+impl Default for NavigationStep<view::ViewMessage> {
     fn default() -> Self {
         Self {
-            icon: Icon::Check,
+            icon: Bootstrap::Check,
             cta: "Default".to_string(),
-            on_press: ViewMessage::default(),
+            on_press: view::ViewMessage::default(),
             active: false,
             disabled: false,
         }
@@ -521,18 +440,18 @@ where
     {
         let mut row = Row::new()
             .spacing(Sizes::Sm)
-            .align_items(alignment::Alignment::Center);
+            .align_y(alignment::Alignment::Center);
         if active {
             row = row.push(
                 container(Column::new())
                     .width(Length::Fixed(Sizes::Xs.into()))
                     .height(Length::Fixed(Sizes::Xl.into()))
-                    .style(ExcaliburContainer::indicator().theme()),
+                    .style(|_theme| ExcaliburContainer::indicator().theme()),
             );
         }
 
         row = row
-            .push(text(icon_to_char(icon)).font(ICON_FONT))
+            .push(iced::widget::text(icon_to_char(icon)).font(BOOTSTRAP_FONT))
             .push(label(&cta).title3().build());
 
         let bg_color = match active {
@@ -540,10 +459,7 @@ where
             false => Color::TRANSPARENT,
         };
 
-        let mut row = button(row)
-            .padding(Sizes::Sm)
-            .style(route_button_style(bg_color).as_custom())
-            .width(Length::Fill);
+        let mut row = button(row).padding(Sizes::Sm).width(Length::Fill);
 
         // Disable the button if it has an empty message.
         if !disabled {
@@ -567,10 +483,10 @@ pub fn quadrant_container<'a, Message>(
 where
     Message: 'a,
 {
-    let top_left = Container::new(top_left).center_x().center_y();
-    let top_right = Container::new(top_right).center_x().center_y();
-    let bottom_left = Container::new(bottom_left).center_x().center_y();
-    let bottom_right = Container::new(bottom_right).center_x().center_y();
+    let top_left = Container::new(top_left).center_x(Fill).center_y(Fill);
+    let top_right = Container::new(top_right).center_x(Fill).center_y(Fill);
+    let bottom_left = Container::new(bottom_left).center_x(Fill).center_y(Fill);
+    let bottom_right = Container::new(bottom_right).center_x(Fill).center_y(Fill);
 
     let mut content = Column::new()
         .push(
@@ -578,22 +494,19 @@ where
                 .height(Length::FillPortion(2))
                 .push(top_left.width(Length::FillPortion(2)))
                 .push(top_right.width(Length::FillPortion(2)))
-                .align_items(alignment::Alignment::Center),
+                .align_y(alignment::Alignment::Center),
         )
         .push(
             Row::new()
                 .height(Length::FillPortion(2))
                 .push(bottom_left.width(Length::FillPortion(2)))
                 .push(bottom_right.width(Length::FillPortion(2)))
-                .align_items(alignment::Alignment::Center),
+                .align_y(alignment::Alignment::Center),
         )
-        .align_items(alignment::Alignment::Center)
+        .align_x(alignment::Alignment::Center)
         .spacing(Sizes::Md);
 
-    content = content
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(Sizes::Md);
+    content = content.width(Fill).height(Fill).padding(Sizes::Md);
 
     container(content)
 }

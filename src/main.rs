@@ -2,13 +2,12 @@ use ethers::prelude::*;
 use iced::{
     alignment,
     event::Event,
-    executor,
     theme::Palette,
-    widget::{button, container, scrollable, text, Column, Row, Text},
-    window, Application, Command, Element, Length, Settings, Subscription, Theme,
+    widget::{button, container, text, Column, Row, Text},
+    window, Element, Length, Settings, Subscription, Task, Theme,
 };
 
-pub mod app;
+mod app;
 mod components;
 mod data;
 mod loader;
@@ -103,13 +102,8 @@ pub struct Flags {
     pub dev_mode: bool,
 }
 
-impl Application for MVP {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = Flags;
-
-    fn new(flags: Flags) -> (MVP, Command<Message>) {
+impl MVP {
+    fn new(flags: Flags) -> (MVP, Task<Message>) {
         let tracer = tracer::setup_with_channel();
         if flags.dev_mode {
             std::env::set_var("DEV_MODE", "true");
@@ -128,9 +122,9 @@ impl Application for MVP {
         }
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match (&mut self.state, message) {
-            (_, Message::ForceQuit) => window::close(),
+            (_, Message::ForceQuit) => window::get_latest().then(|id| window::close(id.unwrap())),
             (_, Message::Quit)
             | (
                 _,
@@ -138,10 +132,10 @@ impl Application for MVP {
             ) => {
                 let state_cmd = match self.state {
                     State::App(ref mut app) => app.exit().map(Message::Update),
-                    _ => Command::perform(async {}, |()| Message::ForceQuit),
+                    _ => Task::perform(async {}, |()| Message::ForceQuit),
                 };
 
-                Command::batch(vec![state_cmd])
+                Task::batch(vec![state_cmd])
             }
             (State::Loader(l), Message::Load(msg)) => match msg {
                 loader::LoaderMessage::Ready(Ok((model, client))) => {
@@ -152,22 +146,22 @@ impl Application for MVP {
                 }
                 loader::LoaderMessage::Ready(Err(error_message)) => {
                     tracing::error!("Failed to load app: {}", error_message);
-                    Command::none()
+                    Task::none()
                 }
-                loader::LoaderMessage::Quit => Command::perform(async {}, |()| Message::ForceQuit),
+                loader::LoaderMessage::Quit => Task::perform(async {}, |()| Message::ForceQuit),
                 _ => l.update(msg).map(Message::Load),
             },
             (State::App(app), Message::Update(msg)) => {
                 if let app::AppMessage::QuitReady = msg {
-                    return Command::perform(async {}, |()| Message::ForceQuit);
+                    return Task::perform(async {}, |()| Message::ForceQuit);
                 }
                 app.update(msg).map(Message::Update)
             }
-            _ => Command::none(),
+            _ => Task::none(),
         }
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<Message> {
         match &self.state {
             State::Loader(loader) => loader.view().map(Message::Load),
             State::App(app) => app.view().map(Message::Update),
@@ -180,15 +174,10 @@ impl Application for MVP {
                 State::Loader(loader) => loader.subscription().map(Message::Load),
                 State::App(app) => app.subscription().map(Message::Update),
             },
-            iced::subscription::events_with(|event, _status| {
-                if matches!(
-                    event,
-                    iced::event::Event::Window(iced::window::Event::CloseRequested)
-                ) {
-                    Some(Self::Message::Event(event))
-                } else {
-                    None
-                }
+            window::close_requests().map(|_| {
+                Message::Event(iced::event::Event::Window(
+                    iced::window::Event::CloseRequested,
+                ))
             }),
         ])
     }
@@ -199,21 +188,30 @@ impl Application for MVP {
 }
 
 pub fn run(dev_mode: bool) -> iced::Result {
-    let mut settings = Settings::with_flags(Flags { dev_mode });
-    settings.window.icon = Some(logos::excalibur_logo_2());
-    settings.antialiasing = true;
-    settings.exit_on_close_request = false;
-    settings.id = Some("mythic-app".to_string());
-    settings.window.size = (1280, 832);
-    MVP::run(settings)
+    iced::application(MVP::title, MVP::update, MVP::view)
+        .subscription(MVP::subscription)
+        .theme(MVP::theme)
+        .window(window::Settings {
+            size: iced::Size::new(1280.0, 832.0),
+            icon: Some(logos::excalibur_logo_2()),
+            ..Default::default()
+        })
+        .exit_on_close_request(false)
+        .antialiasing(true)
+        .font(include_bytes!("../assets/fonts/DAGGERSQUARE.otf").as_slice())
+        .font(iced_aw::BOOTSTRAP_FONT_BYTES)
+        .run_with(move || MVP::new(Flags { dev_mode }))
 }
 
 pub fn custom_theme() -> iced::theme::Custom {
-    iced::theme::Custom::new(Palette {
-        background: iced::Color::BLACK,
-        primary: MINT_500,
-        text: PRIMARY_COLOR,
-        success: MINT_500,
-        danger: RED_400,
-    })
+    iced::theme::Custom::new(
+        "main".to_string(),
+        Palette {
+            background: iced::Color::BLACK,
+            primary: MINT_500,
+            text: PRIMARY_COLOR,
+            success: MINT_500,
+            danger: RED_400,
+        },
+    )
 }

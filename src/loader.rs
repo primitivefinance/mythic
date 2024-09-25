@@ -1,11 +1,16 @@
+use ethers::prelude::*;
 use iced::{
-    font,
-    widget::{canvas::Cache, column, container, progress_bar},
-    Length,
+    alignment,
+    widget::{canvas::Cache, column, container, progress_bar, Column, Row},
+    Element, Fill, Length, Subscription, Task,
 };
-use iced_aw::graphics::icons::ICON_FONT_BYTES;
+use std::sync::Arc;
 use std::time::Instant;
 
+use super::Flags;
+use crate::components::styles::{ByteScale, Sizes};
+use crate::data::{contacts, user::Saveable, Model};
+use crate::middleware::{self, start_anvil, ExcaliburMiddleware};
 use crate::{
     app::AnvilSave,
     components::{
@@ -13,17 +18,10 @@ use crate::{
         progress::CustomProgressBar,
         system::{label, ExcaliburContainer},
     },
-    data::user::Saveable,
 };
 
 type LoadResult =
     anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
-
-use self::{
-    data::contacts,
-    middleware::{start_anvil, ExcaliburMiddleware},
-};
-use super::*;
 
 #[derive(Debug)]
 pub enum LoaderMessage {
@@ -168,7 +166,7 @@ pub async fn connect_to_server() -> anyhow::Result<()> {
 pub const DAGGER_SQUARE_FONT_BYTES: &[u8] = include_bytes!("../assets/fonts/DAGGERSQUARE.otf");
 
 impl Loader {
-    pub fn new(flags: Flags) -> (Self, Command<LoaderMessage>) {
+    pub fn new(flags: Flags) -> (Self, Task<LoaderMessage>) {
         let max_load_seconds = 5.0;
         let ticks_per_s = 40.0;
 
@@ -185,8 +183,8 @@ impl Loader {
                     cache: Cache::default(),
                 },
             },
-            Command::batch(vec![
-                Command::perform(connect_to_server(), |res| {
+            Task::batch(vec![
+                Task::perform(connect_to_server(), |res| {
                     if let Err(e) = res {
                         tracing::error!("Failed to connect to server: {:?}", e);
                         return LoaderMessage::LoadingFailed;
@@ -194,32 +192,16 @@ impl Loader {
 
                     LoaderMessage::Connected
                 }),
-                font::load(ICON_FONT_BYTES).map(move |res| {
-                    if let Err(e) = res {
-                        tracing::error!("Failed to load icon font: {:?}", e);
-                        return LoaderMessage::LoadingFailed;
-                    }
-
-                    LoaderMessage::IconFontLoaded
-                }),
-                font::load(DAGGER_SQUARE_FONT_BYTES).map(move |res| {
-                    if let Err(e) = res {
-                        tracing::error!("Failed to load icon font: {:?}", e);
-                        return LoaderMessage::LoadingFailed;
-                    }
-
-                    LoaderMessage::BrandFontLoaded
-                }),
-                Command::perform(async {}, move |_| LoaderMessage::Loaded(flags)),
+                Task::perform(async {}, move |_| LoaderMessage::Loaded(flags)),
             ]),
         )
     }
 
-    fn load(&mut self, flags: Flags) -> Command<LoaderMessage> {
-        Command::perform(load_app(flags), LoaderMessage::Ready)
+    fn load(&mut self, flags: Flags) -> Task<LoaderMessage> {
+        Task::perform(load_app(flags), LoaderMessage::Ready)
     }
 
-    pub fn update(&mut self, message: LoaderMessage) -> Command<LoaderMessage> {
+    pub fn update(&mut self, message: LoaderMessage) -> Task<LoaderMessage> {
         self.logo.cache.clear();
 
         match message {
@@ -227,22 +209,22 @@ impl Loader {
                 self.feedback = self.get_progress_feedback();
 
                 if !self.screen_open {
-                    return Command::none();
+                    return Task::none();
                 }
 
                 self.load_ticks += 1.0;
 
                 self.progress = self.load_ticks / self.max_load_ticks;
 
-                Command::none()
+                Task::none()
             }
             LoaderMessage::Connected => {
                 self.screen_open = true;
                 self.load_ticks = 0.0;
-                Command::none()
+                Task::none()
             }
             LoaderMessage::Loaded(flags) => self.load(flags),
-            _ => Command::none(),
+            _ => Task::none(),
         }
     }
 
@@ -272,40 +254,40 @@ impl Loader {
             container(
                 column![
                     progress_bar(0.0..=1.0, s_curve(self.progress))
-                        .style(CustomProgressBar::theme())
+                        .style(move |_| CustomProgressBar::new().style())
                         .height(Length::Fixed(Sizes::Md.into())),
                     Row::new()
                         .push(
                             Column::new()
                                 .push(label(random_symbol).secondary().build())
-                                .align_items(alignment::Alignment::Start)
+                                .align_x(alignment::Alignment::Start)
                                 .width(Length::FillPortion(1)),
                         )
                         .push(
                             Column::new()
                                 .push(label(&self.feedback).secondary().build())
-                                .align_items(alignment::Alignment::End)
+                                .align_x(alignment::Alignment::End)
                                 .width(Length::FillPortion(3))
                         )
-                        .align_items(alignment::Alignment::Center)
+                        .align_y(alignment::Alignment::Center)
                         .spacing(Sizes::Sm)
-                        .width(Length::Fill)
+                        .width(Fill)
                 ]
                 .padding(Sizes::Sm)
-                .align_items(alignment::Alignment::End)
+                .align_x(alignment::Alignment::End)
                 .spacing(Sizes::Sm),
             )
             .max_width(ByteScale::Xl6 as u32 as f32),
         )
-        .style(
+        .style(|_theme| {
             ExcaliburContainer::default()
                 .background_iced(iced::Color::BLACK)
-                .theme(),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
+                .theme()
+        })
+        .width(Fill)
+        .height(Fill)
+        .center_x(Fill)
+        .center_y(Fill)
         .into()
     }
 

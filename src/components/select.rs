@@ -1,44 +1,53 @@
 //! All custom select components and widgets.
 
-use std::{borrow::Cow, rc::Rc};
+use std::{
+    borrow::{Borrow, Cow},
+    rc::Rc,
+};
 
 use iced::{widget::pick_list::*, Background};
 
 use super::*;
 
-pub fn custom_pick_list<'a, Message, T>(
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
+pub fn custom_pick_list<'a, T, L, V, Message>(
+    options: L,
+    selected: Option<V>,
     on_selected: impl Fn(T) -> Message + 'a,
     placeholder: Option<String>,
-) -> PickList<'a, T, Message>
+) -> PickList<'a, T, L, V, Message>
 where
-    T: ToString + Eq + 'static,
+    T: ToString + Eq + 'static + Clone,
     [T]: ToOwned<Owned = Vec<T>>,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
+    Message: Clone,
 {
     pick_list(options, selected, on_selected)
-        .style(
+        .style(|theme, status| {
             CustomSelect::new()
                 .hovered()
                 .background(HIGHLIGHTED_CONTAINER_COLOR.into())
-                .as_custom(),
-        )
+                .style_fn(theme, status)
+        })
         .placeholder(placeholder.unwrap_or("Select an option".to_string()))
 }
 #[allow(dead_code)]
-pub fn excalibur_select<'a, Message, T>(
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
+pub fn excalibur_select<'a, T, L, V, Message>(
+    options: L,
+    selected: Option<V>,
     on_selected: impl Fn(T) -> Message + 'a,
     placeholder: impl ToString,
-    border_radius: Option<BorderRadius>,
-) -> PickList<'a, T, Message>
+    border_radius: Option<iced::border::Radius>,
+) -> PickList<'a, T, L, V, Message>
 where
-    T: ToString + Eq + 'static,
+    T: ToString + Eq + 'static + Clone,
     [T]: ToOwned<Owned = Vec<T>>,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
+    Message: Clone,
 {
     pick_list(options, selected, on_selected)
-        .style(
+        .style(move |theme, status| {
             CustomSelect::new()
                 .border_color(ExcaliburColor::Custom(GRAY_600).into())
                 .border_width(1.0)
@@ -53,15 +62,15 @@ where
                 .text_color(ExcaliburColor::Label(system::LabelColors::Highlight).into())
                 .placeholder_color(ExcaliburColor::Label(system::LabelColors::Tertiary).into())
                 .background(ExcaliburColor::Background4.into())
-                .as_custom(),
-        )
+                .style_fn(theme, status)
+        })
         .placeholder(placeholder.to_string())
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct CustomSelect {
-    pub active: Appearance,
-    pub hovered: Appearance,
+    pub active: iced::widget::pick_list::Style,
+    pub hovered: iced::widget::pick_list::Style,
     pub current_state: SelectState,
 }
 
@@ -75,14 +84,17 @@ pub enum SelectState {
 #[allow(dead_code)]
 impl CustomSelect {
     pub fn new() -> Self {
-        let default = Appearance {
+        let default = iced::widget::pick_list::Style {
             text_color: SECONDARY_COLOR,
             placeholder_color: TERTIARY_LABEL_COLOR,
             handle_color: Color::WHITE,
             background: SELECT_BG_COLOR.into(),
-            border_radius: 5.0.into(),
-            border_width: 0.0,
-            border_color: Default::default(),
+            border: iced::Border {
+                radius: 5.0.into(),
+                width: 0.0,
+                color: Default::default(),
+                ..iced::Border::default()
+            },
         };
         Self {
             active: default,
@@ -139,10 +151,10 @@ impl CustomSelect {
         self
     }
 
-    pub fn border_radius(mut self, radius: BorderRadius) -> Self {
+    pub fn border_radius(mut self, radius: iced::border::Radius) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_radius = radius,
-            SelectState::Hovered => self.hovered.border_radius = radius,
+            SelectState::Active => self.active.border.radius = radius,
+            SelectState::Hovered => self.hovered.border.radius = radius,
         }
 
         self
@@ -150,8 +162,8 @@ impl CustomSelect {
 
     pub fn border_width(mut self, width: f32) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_width = width,
-            SelectState::Hovered => self.hovered.border_width = width,
+            SelectState::Active => self.active.border.width = width,
+            SelectState::Hovered => self.hovered.border.width = width,
         }
 
         self
@@ -159,54 +171,48 @@ impl CustomSelect {
 
     pub fn border_color(mut self, color: Color) -> Self {
         match self.current_state {
-            SelectState::Active => self.active.border_color = color,
-            SelectState::Hovered => self.hovered.border_color = color,
+            SelectState::Active => self.active.border.color = color,
+            SelectState::Hovered => self.hovered.border.color = color,
         }
 
         self
     }
 
-    pub fn as_custom(&self) -> iced::theme::PickList {
-        iced::theme::PickList::Custom(Rc::new(*self), Rc::new(CustomMenu::new()))
-    }
-}
-
-impl StyleSheet for CustomSelect {
-    type Style = iced::Theme;
-
-    fn active(&self, _style: &Self::Style) -> Appearance {
-        self.active
-    }
-
-    fn hovered(&self, _style: &Self::Style) -> Appearance {
-        self.hovered
+    pub fn style_fn(
+        &self,
+        _theme: &iced::Theme,
+        _status: iced::widget::pick_list::Status,
+    ) -> iced::widget::pick_list::Style {
+        match self.current_state {
+            SelectState::Active => self.active,
+            SelectState::Hovered => self.hovered,
+        }
     }
 }
 
 pub struct CustomMenu {
-    pub appearance: iced::widget::overlay::menu::Appearance,
+    pub appearance: iced::widget::overlay::menu::Style,
 }
 
 impl CustomMenu {
     pub fn new() -> Self {
         Self {
-            appearance: iced::widget::overlay::menu::Appearance {
+            appearance: iced::widget::overlay::menu::Style {
                 text_color: Color::WHITE,
                 background: MENU_BG_COLOR.into(),
-                border_width: 1.0,
-                border_radius: 5.0.into(),
-                border_color: Color::BLACK,
+                border: iced::Border {
+                    width: 1.0,
+                    color: Color::BLACK,
+                    radius: 5.0.into(),
+                    ..iced::Border::default()
+                },
                 selected_text_color: Color::WHITE,
                 selected_background: PRIMARY_COLOR.into(),
             },
         }
     }
-}
 
-impl iced::widget::overlay::menu::StyleSheet for CustomMenu {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _style: &Self::Style) -> iced::widget::overlay::menu::Appearance {
+    fn appearance(&self) -> iced::widget::overlay::menu::Style {
         self.appearance
     }
 }

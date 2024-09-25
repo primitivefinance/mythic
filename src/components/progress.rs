@@ -1,26 +1,8 @@
 //! Custom progress bar.
 
-use iced::widget::progress_bar::{self, StyleSheet};
+use iced::widget::progress_bar;
 
 use super::*;
-
-pub struct CustomProgressBar {
-    background: iced::Background,
-    bar: iced::Background,
-    border_radius: iced::BorderRadius,
-}
-
-impl StyleSheet for CustomProgressBar {
-    type Style = iced::Theme;
-
-    fn appearance(&self, _theme: &<Self as StyleSheet>::Style) -> progress_bar::Appearance {
-        progress_bar::Appearance {
-            background: self.background,
-            bar: self.bar,
-            border_radius: self.border_radius,
-        }
-    }
-}
 
 pub const PROGRESS_BAR_BACKGROUND: Color = Color::from_rgb(
     0x1d as f32 / 255.0,
@@ -35,6 +17,11 @@ pub const PROGRESS_BAR_FOREGROUND: Color = Color::from_rgb(
 );
 
 pub const PROGRESS_BAR_BORDER_RADIUS: f32 = 5.0;
+pub struct CustomProgressBar {
+    background: iced::Background,
+    bar: iced::Background,
+    border_radius: iced::border::Radius,
+}
 
 impl Default for CustomProgressBar {
     fn default() -> Self {
@@ -64,14 +51,19 @@ impl CustomProgressBar {
         self
     }
     #[allow(dead_code)]
-    pub fn border_radius(mut self, border_radius: iced::BorderRadius) -> Self {
+    pub fn border_radius(mut self, border_radius: iced::border::Radius) -> Self {
         self.border_radius = border_radius;
         self
     }
 
-    pub fn theme() -> iced::theme::ProgressBar {
-        iced::theme::ProgressBar::Custom(Box::from(Self {
-            ..Default::default()
-        }))
+    pub fn style(&self) -> progress_bar::Style {
+        progress_bar::Style {
+            background: self.background,
+            bar: self.bar,
+            border: iced::Border {
+                radius: self.border_radius,
+                ..iced::Border::default()
+            },
+        }
     }
 }

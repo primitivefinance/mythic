@@ -2,10 +2,10 @@
 
 use iced::widget::{Column, Row, Space};
 use iced::{Color, Element, Length};
-use iced_aw::{graphics::icons::icon_to_char, Icon};
+
+use iced_aw::{bootstrap::icon_to_char, Bootstrap};
 
 use super::*;
-use crate::components::button::*;
 use crate::components::system::label;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Default, Hash)]
@@ -28,7 +28,7 @@ pub enum NavEvent {
     Navigate(Navigation),
 }
 
-pub type NavItem = (Icon, String, NavEvent, bool);
+pub type NavItem = (Bootstrap, String, NavEvent, bool);
 
 impl Navigation {
     pub fn label(&self) -> String {
@@ -40,12 +40,12 @@ impl Navigation {
         }
     }
 
-    pub fn icon(&self) -> Icon {
+    pub fn icon(&self) -> Bootstrap {
         match self {
-            Navigation::Empty => Icon::TerminalFill,
-            Navigation::Dashboard => Icon::House,
-            Navigation::Settings => Icon::Gear,
-            Navigation::Exit => Icon::X,
+            Navigation::Empty => Bootstrap::TerminalFill,
+            Navigation::Dashboard => Bootstrap::House,
+            Navigation::Settings => Bootstrap::Gear,
+            Navigation::Exit => Bootstrap::X,
         }
     }
 
@@ -68,10 +68,8 @@ impl Navigation {
         let mut column = Column::new();
         for (icon, name, msg, selected) in Self::items(self) {
             let style = match selected {
-                true => route_button_style(Color::TRANSPARENT)
-                    .hovered()
-                    .background(Some(Color::TRANSPARENT.into())),
-                false => route_button_style(Color::TRANSPARENT),
+                true => iced::widget::button::primary,
+                false => iced::widget::button::secondary,
             };
 
             let mut app_name = label(name);
@@ -90,14 +88,14 @@ impl Navigation {
                 )
                 .width(Length::Fill)
                 .on_press(msg)
-                .style(style.as_custom())
+                .style(style)
                 .padding(Sizes::Sm),
             );
         }
 
         column
             .spacing(Sizes::Xs)
-            .align_items(alignment::Alignment::Center)
+            .align_x(alignment::Alignment::Center)
             .into()
     }
 }

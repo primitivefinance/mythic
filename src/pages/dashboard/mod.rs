@@ -54,18 +54,18 @@ impl Lifecycle for Dashboard {
     type AppMessage = app::AppMessage;
     type ViewMessage = view::ViewMessage;
 
-    fn load(&self) -> Command<Self::AppMessage> {
-        Command::none()
+    fn load(&self) -> Task<Self::AppMessage> {
+        Task::none()
     }
 
-    fn update(&mut self, message: Self::AppMessage) -> Command<Self::AppMessage> {
+    fn update(&mut self, message: Self::AppMessage) -> Task<Self::AppMessage> {
         match message {
             Self::AppMessage::View(view::ViewMessage::Dashboard(message)) => match message {
-                Message::Empty => Command::none(),
+                Message::Empty => Task::none(),
                 Message::Split(axis, pane) => {
                     let result = self
                         .panes
-                        .split(axis, &pane, pane::Pane::new(self.panes_created));
+                        .split(axis, pane, pane::Pane::new(self.panes_created));
 
                     if let Some((pane, _)) = result {
                         self.focus = Some(pane);
@@ -73,18 +73,18 @@ impl Lifecycle for Dashboard {
 
                     self.panes_created += 1;
 
-                    Command::none()
+                    Task::none()
                 }
                 Message::TogglePin(pane) => {
-                    if let Some(pane::Pane { is_pinned, .. }) = self.panes.get_mut(&pane) {
+                    if let Some(pane::Pane { is_pinned, .. }) = self.panes.get_mut(pane) {
                         *is_pinned = !*is_pinned;
                     }
 
-                    Command::none()
+                    Task::none()
                 }
-                _ => Command::none(),
+                _ => Task::none(),
             },
-            _ => Command::none(),
+            _ => Task::none(),
         }
     }
 
@@ -96,14 +96,15 @@ impl Lifecycle for Dashboard {
             PaneGrid::new(&self.panes, |id, pane, is_maximized| {
                 let is_focused = focus == Some(id);
 
-                let pin_button: iced::widget::Button<'_, Self::ViewMessage> =
-                    button(text(if pane.is_pinned { "unpin" } else { "pin" }).size(14))
-                        .on_press(Message::TogglePin(id).into())
-                        .padding(3);
+                let pin_button: iced::widget::Button<'_, Self::ViewMessage> = button(
+                    iced::widget::text(if pane.is_pinned { "unpin" } else { "pin" }).size(14),
+                )
+                .on_press(Message::TogglePin(id).into())
+                .padding(3);
 
                 let title = Row::new()
                     .push(pin_button)
-                    .push(text(format!("Pane {}", "1".to_string())))
+                    .push(iced::widget::text(format!("Pane {}", "1".to_string())))
                     .spacing(5);
 
                 let title_bar = pane_grid::TitleBar::new(title).controls(

@@ -1,7 +1,7 @@
 //! Layout for the application.
 use iced::alignment;
 use iced::widget::{Column, Container, Row};
-use iced::{Element, Length};
+use iced::{Element, Fill, Length};
 
 use super::header;
 use crate::components::system::{ExcaliburColor, ExcaliburContainer};
@@ -25,26 +25,26 @@ pub fn body<'a, T: Into<Element<'a, ViewMessage>>>(
                     .width(Length::FillPortion(5)),
             ),
     )
-    .style(
+    .style(move |_theme| {
         ExcaliburContainer::default()
             .background(ExcaliburColor::Background1)
-            .theme(),
-    )
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .center_x()
-    .center_y()
+            .theme()
+    })
+    .width(Fill)
+    .height(Fill)
+    .center_x(Fill)
+    .center_y(Fill)
     .into()
 }
 
 pub fn page_layout<'a, T: Into<Element<'a, ViewMessage>>>(content: T) -> Element<'a, ViewMessage> {
     Container::new(content)
-        .center_x()
-        .center_y()
+        .center_x(Fill)
+        .center_y(Fill)
         .align_x(alignment::Horizontal::Center)
         .align_y(alignment::Vertical::Center)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .style(ExcaliburContainer::default().middle_bottom().theme())
+        .width(Fill)
+        .height(Fill)
+        .style(move |_theme| ExcaliburContainer::default().middle_bottom().theme())
         .into()
 }
