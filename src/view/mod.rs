@@ -3,6 +3,7 @@ use iced::widget::{Column, Container, Row};
 use super::*;
 use crate::components::system::ExcaliburContainer;
 
+pub mod connect;
 pub mod document;
 pub mod header;
 pub mod navigation;
@@ -26,6 +27,7 @@ pub enum RootMessage {
     ConfirmExit,
     Route(navigation::NavEvent),
     CopyToClipboard(String),
+    Connect(connect::Message),
     ModelSyncRequest,
 }
 

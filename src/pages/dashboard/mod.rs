@@ -1,45 +1,39 @@
+use app::SharedState;
 use iced::widget::{
     pane_grid::{self, PaneGrid},
     responsive, Column, Container,
 };
 
 use super::*;
-use crate::components::system::label;
+use crate::components::system::ExcaliburContainer;
 
-pub mod pane;
+use crate::components::panes;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Message {
     #[default]
     Empty,
 
-    Split(pane_grid::Axis, pane_grid::Pane),
-    SplitFocused(pane_grid::Axis),
-    FocusAdjacent(pane_grid::Direction),
-    Clicked(pane_grid::Pane),
-    Dragged(pane_grid::DragEvent),
-    Resized(pane_grid::ResizeEvent),
-    TogglePin(pane_grid::Pane),
-    Maximize(pane_grid::Pane),
-    Restore,
-    Close(pane_grid::Pane),
-    CloseFocused,
+    Panes(panes::Message),
 }
 
 pub struct Dashboard {
-    panes: pane_grid::State<pane::Pane>,
+    panes: pane_grid::State<panes::Pane>,
     panes_created: usize,
     focus: Option<pane_grid::Pane>,
+
+    shared_state: SharedState,
 }
 
 impl Dashboard {
-    pub fn new() -> Self {
-        let (panes, _) = pane_grid::State::new(pane::Pane::new(0));
+    pub fn new(shared_state: SharedState) -> Self {
+        let (panes, _) = pane_grid::State::new(panes::Pane::new(0));
 
         Self {
             panes,
             panes_created: 1,
             focus: None,
+            shared_state,
         }
     }
 }
@@ -73,87 +67,105 @@ impl Lifecycle for Dashboard {
         match message {
             Self::AppMessage::View(view::ViewMessage::Dashboard(message)) => match message {
                 Message::Empty => Task::none(),
-                Message::Split(axis, pane) => {
-                    let result = self
-                        .panes
-                        .split(axis, pane, pane::Pane::new(self.panes_created));
+                Message::Panes(message) => match message {
+                    panes::Message::Open(pane_type) => {
+                        if let Some(focus) = self.focus {
+                            let new_pane =
+                                panes::Pane::new_with_type(self.panes_created, pane_type);
+                            let result =
+                                self.panes.split(pane_grid::Axis::Vertical, focus, new_pane);
 
-                    if let Some((pane, _)) = result {
-                        self.focus = Some(pane);
+                            if let Some((pane, _)) = result {
+                                self.focus = Some(pane);
+                            }
+
+                            self.panes_created += 1;
+                        }
+                        Task::none()
                     }
-
-                    self.panes_created += 1;
-
-                    Task::none()
-                }
-                Message::SplitFocused(axis) => {
-                    if let Some(pane) = self.focus {
+                    panes::Message::Split(axis, pane) => {
                         let result =
                             self.panes
-                                .split(axis, pane, pane::Pane::new(self.panes_created));
+                                .split(axis, pane, panes::Pane::new(self.panes_created));
 
                         if let Some((pane, _)) = result {
                             self.focus = Some(pane);
                         }
 
                         self.panes_created += 1;
-                    }
 
-                    Task::none()
-                }
-                Message::FocusAdjacent(direction) => {
-                    if let Some(pane) = self.focus {
-                        if let Some(adjacent) = self.panes.adjacent(pane, direction) {
-                            self.focus = Some(adjacent);
+                        Task::none()
+                    }
+                    panes::Message::SplitFocused(axis) => {
+                        if let Some(pane) = self.focus {
+                            let result =
+                                self.panes
+                                    .split(axis, pane, panes::Pane::new(self.panes_created));
+
+                            if let Some((pane, _)) = result {
+                                self.focus = Some(pane);
+                            }
+
+                            self.panes_created += 1;
                         }
+
+                        Task::none()
                     }
-                    Task::none()
-                }
-                Message::Clicked(pane) => {
-                    self.focus = Some(pane);
-                    Task::none()
-                }
-                Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
-                    self.panes.resize(split, ratio);
-                    Task::none()
-                }
-                Message::Dragged(pane_grid::DragEvent::Dropped { pane, target }) => {
-                    self.panes.drop(pane, target);
-                    Task::none()
-                }
-                Message::TogglePin(pane) => {
-                    if let Some(pane::Pane { is_pinned, .. }) = self.panes.get_mut(pane) {
-                        *is_pinned = !*is_pinned;
+                    panes::Message::FocusAdjacent(direction) => {
+                        if let Some(pane) = self.focus {
+                            if let Some(adjacent) = self.panes.adjacent(pane, direction) {
+                                self.focus = Some(adjacent);
+                            }
+                        }
+                        Task::none()
                     }
-                    Task::none()
-                }
-                Message::Maximize(pane) => {
-                    self.panes.maximize(pane);
-                    Task::none()
-                }
-                Message::Restore => {
-                    self.panes.restore();
-                    Task::none()
-                }
-                Message::Close(pane) => {
-                    if let Some((_, sibling)) = self.panes.close(pane) {
-                        self.focus = Some(sibling);
+                    panes::Message::Clicked(pane) => {
+                        self.focus = Some(pane);
+                        Task::none()
                     }
-                    Task::none()
-                }
-                Message::CloseFocused => {
-                    if let Some(pane) = self.focus {
-                        if let Some(pane::Pane { is_pinned, .. }) = self.panes.get(pane) {
-                            if !is_pinned {
-                                if let Some((_, sibling)) = self.panes.close(pane) {
-                                    self.focus = Some(sibling);
+                    panes::Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
+                        self.panes.resize(split, ratio);
+                        Task::none()
+                    }
+                    panes::Message::Dragged(pane_grid::DragEvent::Dropped { pane, target }) => {
+                        self.panes.drop(pane, target);
+                        Task::none()
+                    }
+                    panes::Message::TogglePin(pane) => {
+                        if let Some(panes::Pane { is_pinned, .. }) = self.panes.get_mut(pane) {
+                            *is_pinned = !*is_pinned;
+                        }
+                        Task::none()
+                    }
+                    panes::Message::Maximize(pane) => {
+                        self.panes.maximize(pane);
+                        Task::none()
+                    }
+                    panes::Message::Restore => {
+                        self.panes.restore();
+                        Task::none()
+                    }
+                    panes::Message::Close(pane) => {
+                        if let Some((_, sibling)) = self.panes.close(pane) {
+                            self.focus = Some(sibling);
+                        }
+                        Task::none()
+                    }
+                    panes::Message::CloseFocused => {
+                        if let Some(pane) = self.focus {
+                            if let Some(panes::Pane { is_pinned, .. }) = self.panes.get(pane) {
+                                if !is_pinned {
+                                    if let Some((_, sibling)) = self.panes.close(pane) {
+                                        self.focus = Some(sibling);
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    Task::none()
-                }
+                        Task::none()
+                    }
+                    _ => Task::none(),
+                },
                 _ => Task::none(),
             },
             _ => Task::none(),
@@ -164,6 +176,12 @@ impl Lifecycle for Dashboard {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
+        let state = self.shared_state.read().unwrap();
+        tracing::debug!("State: {:?}", state);
+
+        let block_number = state.get::<u64>("block_number").unwrap_or_default();
+        tracing::debug!("Block number: {}", block_number);
+
         let grid: PaneGrid<'_, Self::ViewMessage> =
             PaneGrid::new(&self.panes, |id, pane, is_maximized| {
                 let is_focused = focus == Some(id);
@@ -171,7 +189,7 @@ impl Lifecycle for Dashboard {
                 let pin_button: iced::widget::Button<'_, Self::ViewMessage> = button(
                     iced::widget::text(if pane.is_pinned { "unpin" } else { "pin" }).size(14),
                 )
-                .on_press(Message::TogglePin(id).into())
+                .on_press(panes::Message::TogglePin(id).into())
                 .padding(3);
 
                 let title = Row::new()
@@ -186,13 +204,13 @@ impl Lifecycle for Dashboard {
 
                 let title_bar = pane_grid::TitleBar::new(title)
                     .controls(pane_grid::Controls::dynamic(
-                        pane::view_controls(id, total_panes, pane.is_pinned, is_maximized)
+                        panes::basic::view_controls(id, total_panes, pane.is_pinned, is_maximized)
                             .map(|x| x.into()),
                         button(text("X").size(14))
                             .style(button::danger)
                             .padding(3)
                             .on_press_maybe(if total_panes > 1 && !pane.is_pinned {
-                                Some(Message::Close(id).into())
+                                Some(panes::Message::Close(id).into())
                             } else {
                                 None
                             }),
@@ -204,8 +222,19 @@ impl Lifecycle for Dashboard {
                         style::title_bar_active
                     });
 
-                pane_grid::Content::new(responsive(move |size| {
-                    pane::view_content(id, total_panes, pane.is_pinned, size).map(|x| x.into())
+                pane_grid::Content::new(responsive(move |size| match pane.pane_type {
+                    panes::PaneType::Basic => {
+                        panes::basic::view_content(id, total_panes, pane.is_pinned, size)
+                            .map(|x| x.into())
+                    }
+                    panes::PaneType::Blocks => panes::blocks::view_blocks(
+                        id,
+                        total_panes,
+                        pane.is_pinned,
+                        size,
+                        block_number,
+                    )
+                    .map(|x| x.into()),
                 }))
                 .title_bar(title_bar)
                 .style(if is_focused {
@@ -217,11 +246,12 @@ impl Lifecycle for Dashboard {
             .width(Length::Fill)
             .height(Length::Fill)
             .spacing(10)
-            .on_click(|x| Message::Clicked(x).into())
-            .on_drag(|x| Message::Dragged(x).into())
-            .on_resize(10, |x| Message::Resized(x).into());
+            .on_click(|x| panes::Message::Clicked(x).into())
+            .on_drag(|x| panes::Message::Dragged(x).into())
+            .on_resize(10, |x| panes::Message::Resized(x).into());
 
-        Container::new(grid)
+        ExcaliburContainer::default()
+            .build(grid)
             .width(Length::Fill)
             .height(Length::Fill)
             .padding(10)
@@ -245,16 +275,36 @@ impl From<Message> for view::ViewMessage {
     }
 }
 
+impl From<panes::Message> for Message {
+    fn from(message: panes::Message) -> Self {
+        Self::Panes(message)
+    }
+}
+
+impl From<panes::Message> for view::ViewMessage {
+    fn from(message: panes::Message) -> Self {
+        Self::Dashboard(message.into())
+    }
+}
+
 mod style {
+    use crate::components::system::{ExcaliburColor, LabelColors};
     use iced::widget::container;
     use iced::{Border, Theme};
+
+    use super::GRAY_600;
 
     pub fn title_bar_active(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         container::Style {
-            text_color: Some(palette.background.strong.text),
-            background: Some(palette.background.strong.color.into()),
+            text_color: Some(ExcaliburColor::Label(LabelColors::Secondary).color()),
+            background: Some(ExcaliburColor::Background4.into()),
+            border: Border {
+                width: 2.0,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -263,8 +313,13 @@ mod style {
         let palette = theme.extended_palette();
 
         container::Style {
-            text_color: Some(palette.primary.strong.text),
-            background: Some(palette.primary.strong.color.into()),
+            text_color: Some(ExcaliburColor::Label(LabelColors::Primary).color()),
+            background: Some(ExcaliburColor::Card.into()),
+            border: Border {
+                width: 2.0,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -273,10 +328,10 @@ mod style {
         let palette = theme.extended_palette();
 
         container::Style {
-            background: Some(palette.background.weak.color.into()),
+            background: Some(ExcaliburColor::Background2.into()),
             border: Border {
                 width: 2.0,
-                color: palette.background.strong.color,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
                 ..Border::default()
             },
             ..Default::default()
@@ -287,10 +342,10 @@ mod style {
         let palette = theme.extended_palette();
 
         container::Style {
-            background: Some(palette.background.weak.color.into()),
+            background: Some(ExcaliburColor::Background2.into()),
             border: Border {
                 width: 2.0,
-                color: palette.primary.strong.color,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
                 ..Border::default()
             },
             ..Default::default()

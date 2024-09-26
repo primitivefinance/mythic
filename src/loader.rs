@@ -1,4 +1,3 @@
-use ethers::prelude::*;
 use iced::{
     alignment,
     widget::{canvas::Cache, column, container, progress_bar, Column, Row},
@@ -8,20 +7,18 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use super::Flags;
-use crate::components::styles::{ByteScale, Sizes};
-use crate::data::{contacts, user::Saveable, Model};
-use crate::middleware::{self, start_anvil, ExcaliburMiddleware};
+use crate::components::{
+    logos::PhiLogo,
+    progress::CustomProgressBar,
+    system::{label, ExcaliburContainer},
+};
+use crate::data::{user::Saveable, Model};
 use crate::{
-    app::AnvilSave,
-    components::{
-        logos::PhiLogo,
-        progress::CustomProgressBar,
-        system::{label, ExcaliburContainer},
-    },
+    blockchain::AlloyClient,
+    components::styles::{ByteScale, Sizes},
 };
 
-type LoadResult =
-    anyhow::Result<(Model, Arc<middleware::ExcaliburMiddleware<Ws, LocalWallet>>), anyhow::Error>;
+type LoadResult = anyhow::Result<(Model, Arc<AlloyClient>), anyhow::Error>;
 
 #[derive(Debug)]
 pub enum LoaderMessage {
@@ -74,7 +71,7 @@ const CONTRACT_NAMES: [&str; 6] = [
 pub async fn load_app(flags: Flags) -> LoadResult {
     let mut model = load_user_data()?;
 
-    let mut exc_client = ExcaliburMiddleware::new(None, None).await?;
+    /* let mut exc_client = ExcaliburMiddleware::new(None, None).await?;
 
     let anvil = start_anvil(None)?;
     exc_client.connect_anvil(anvil).await?;
@@ -154,7 +151,10 @@ pub async fn load_app(flags: Flags) -> LoadResult {
             contacts::Category::Trusted,
         );
         model.save()?;
-    }
+    } */
+
+    let mut exc_client = AlloyClient::default();
+    //exc_client.connect("ws://127.0.0.1:8545").await?;
 
     Ok((model, Arc::new(exc_client)))
 }
@@ -233,7 +233,7 @@ impl Loader {
         let progress = (s_curve_result * 4.0) as usize;
 
         match progress {
-            0 => "Initiated loading procedure...".to_string(),
+            0 => "Loading...".to_string(),
             1 => "Starting sandbox environment...".to_string(),
             2 => "Connected. Deploying contracts in sandbox...".to_string(),
             3 => "Initializing sandbox state...".to_string(),

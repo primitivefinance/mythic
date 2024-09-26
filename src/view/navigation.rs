@@ -1,7 +1,7 @@
 //! Navigation is a component for switching between pages like the settings or dashboard.
 
 use iced::widget::{Column, Row, Space};
-use iced::{Color, Element, Length};
+use iced::{Element, Length};
 
 use iced_aw::{bootstrap::icon_to_char, Bootstrap};
 

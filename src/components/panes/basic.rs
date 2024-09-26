@@ -1,20 +1,10 @@
-use iced::widget::{button, pane_grid, scrollable, text, Column, Container, Row};
+//! Debugging panes
+
+use iced::widget::{button, pane_grid, scrollable, text, Column, Row};
 use iced::{Center, Element, Fill, Size};
 
-#[derive(Clone, Copy)]
-pub struct Pane {
-    pub id: usize,
-    pub is_pinned: bool,
-}
-
-impl Pane {
-    pub fn new(id: usize) -> Self {
-        Self {
-            id,
-            is_pinned: false,
-        }
-    }
-}
+use super::PaneType;
+use crate::components::system::ExcaliburContainer;
 
 pub fn view_content<'a>(
     pane: pane_grid::Pane,
@@ -38,6 +28,7 @@ pub fn view_content<'a>(
             "Spit vertical",
             super::Message::Split(pane_grid::Axis::Vertical, pane),
         ))
+        .push(button("Blocks", super::Message::Open(PaneType::Blocks)))
         .push_maybe(if total_panes > 1 && !is_pinned {
             Some(button("Close", super::Message::Close(pane)).style(button::danger))
         } else {
@@ -52,7 +43,8 @@ pub fn view_content<'a>(
         .spacing(10)
         .align_x(Center);
 
-    Container::new(scrollable(content))
+    ExcaliburContainer::default()
+        .build(scrollable(content))
         .center_y(Fill)
         .padding(5)
         .into()

@@ -1,16 +1,19 @@
 use ethers::prelude::*;
 use iced::{Element, Subscription, Task};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 use tracing::Span;
 
+use crate::blockchain::{self, AlloyClient};
 use crate::data::{
     contacts::{self, ContactValue},
     rpcs::RPCValue,
     user::Saveable,
     Model,
 };
-use crate::middleware::ExcaliburMiddleware;
 use crate::pages::{
     dashboard::Dashboard,
     empty::EmptyPage,
@@ -18,7 +21,7 @@ use crate::pages::{
     settings::{self, SettingsPage},
     Lifecycle, MessageWrapper, Page,
 };
-use crate::view::{self, header::Header, navigation::NavEvent};
+use crate::view::{self, connect::Connect, header::Header, navigation::NavEvent};
 
 pub fn app_span() -> Span {
     tracing::debug_span!("App")
@@ -28,12 +31,28 @@ pub fn app_span() -> Span {
 pub enum AppMessage {
     #[default]
     Empty,
+
     Load,
     QuitReady,
     View(view::ViewMessage),
     UpdateUser(UserProfileMessage),
     SwitchWindow(NavEvent),
     ModelSyncResult(Result<Model, Arc<anyhow::Error>>),
+
+    State(StateEvent),
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum StateEvent {
+    #[default]
+    Empty,
+    Update(String, Value),
+}
+
+impl From<StateEvent> for AppMessage {
+    fn from(event: StateEvent) -> Self {
+        AppMessage::State(event)
+    }
 }
 
 #[derive(Debug)]
@@ -63,6 +82,7 @@ impl From<UserProfileMessage> for AppMessage {
 pub struct Windows {
     pub screen: Page,
     pub header: Header,
+    pub connect: Connect,
 }
 
 impl Default for Windows {
@@ -70,35 +90,72 @@ impl Default for Windows {
         Self {
             screen: EmptyPage::new().into(),
             header: Header::new(),
+            connect: Connect::default(),
         }
     }
 }
 
 impl Windows {
-    pub fn new(screen: Page, header: Header) -> Self {
-        Self { screen, header }
+    pub fn new(screen: Page, header: Header, connect: Connect) -> Self {
+        Self {
+            screen,
+            header,
+            connect,
+        }
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct AppState {
+    data: HashMap<String, Value>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self {
+            data: HashMap::new(),
+        }
+    }
+
+    pub fn insert<T: Serialize>(&mut self, key: String, value: T) {
+        self.data.insert(key, serde_json::to_value(value).unwrap());
+    }
+
+    pub fn get<T: DeserializeOwned>(&self, key: &str) -> Option<T> {
+        self.data
+            .get(key)
+            .and_then(|v| serde_json::from_value(v.clone()).ok())
+    }
+
+    pub fn subscription(client: Arc<AlloyClient>) -> Subscription<AppMessage> {
+        let client = client.clone();
+        Subscription::run_with_id("block_number", blockchain::listen_for_blocks(client))
+    }
+}
+
+pub type SharedState = Arc<RwLock<AppState>>;
+
 pub struct App {
-    pub client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
+    pub client: Arc<AlloyClient>,
     pub model: Model,
     pub windows: Windows,
+
+    pub state: SharedState,
 }
 
 impl App {
-    pub fn new(
-        model: Model,
-        client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-    ) -> (Self, Task<AppMessage>) {
-        let dashboard = Dashboard::new().into();
+    pub fn new(model: Model, client: Arc<AlloyClient>) -> (Self, Task<AppMessage>) {
+        let state = Arc::new(RwLock::new(AppState::new()));
+        let dashboard = Dashboard::new(state.clone()).into();
         let mut header = Header::new();
         header.current_nav = view::navigation::Navigation::Dashboard;
+        let connect = Connect::new(client.clone());
         (
             Self {
                 client,
                 model,
-                windows: Windows::new(dashboard, header),
+                windows: Windows::new(dashboard, header, connect),
+                state,
             },
             Task::perform(async {}, |_| AppMessage::Load),
         )
@@ -144,18 +201,51 @@ impl App {
                         .update(AppMessage::View(view::ViewMessage::Root(msg)))
                         .map(|x| x)
                 }
+                view::RootMessage::Connect(msg) => match msg {
+                    view::connect::Message::UpdateClient(ref client) => {
+                        let client = client.clone();
+                        tracing::debug!("Updated client: {:?}", client.provider.is_some());
+                        self.client = Arc::new(client);
+                        self.windows.connect.update(msg)
+                    }
+                    _ => self.windows.connect.update(msg),
+                },
             },
-
+            AppMessage::State(event) => {
+                match event {
+                    StateEvent::Update(key, value) => {
+                        if let Ok(mut state) = self.state.write() {
+                            tracing::debug!("Successfully updated state: {} = {:?}", key, value);
+                            state.insert(key, value);
+                        } else {
+                            tracing::error!("Failed to update state");
+                        }
+                    }
+                    _ => {}
+                }
+                Task::none()
+            }
             _ => self.windows.screen.update(message),
         })
     }
 
     pub fn view(&self) -> Element<AppMessage> {
-        view::document::body(&self.windows.header, self.windows.screen.view()).map(AppMessage::View)
+        view::document::body(
+            &self.windows.connect,
+            &self.windows.header,
+            self.windows.screen.view(),
+        )
+        .map(AppMessage::View)
     }
 
     pub fn subscription(&self) -> Subscription<AppMessage> {
-        self.windows.screen.subscription()
+        let mut subscriptions = vec![self.windows.screen.subscription()];
+
+        if self.client.provider.is_some() {
+            subscriptions.push(AppState::subscription(self.client.clone()));
+        }
+
+        Subscription::batch(subscriptions)
     }
 
     pub fn exit(&mut self) -> Task<AppMessage> {
@@ -165,29 +255,29 @@ impl App {
             Err(e) => tracing::error!("Failed to save profile to disk: {:?}", e),
         }
 
-        let mut Tasks = Vec::new();
+        let mut tasks = Vec::new();
         let cmd = self.windows.screen.exit();
-        Tasks.push(cmd);
+        tasks.push(cmd);
 
-        if self.client.anvil.is_some() {
+        if self.client.provider.is_some() {
             let cmd = Task::perform(
                 save_snapshot(self.client.clone()),
                 UserProfileMessage::SaveAnvilSnapshot,
             )
             .map(AppMessage::UpdateUser);
-            Tasks.push(cmd);
+            tasks.push(cmd);
         }
 
-        Task::batch(Tasks)
+        Task::batch(tasks)
     }
 
     fn sync_model(&mut self) -> Task<AppMessage> {
         let model = self.model.clone();
-        let provider = self.client.get_client();
+        //let provider = self.client.get_client();
         Task::perform(
             async move {
                 let mut model = model;
-                model.update(provider).await?;
+                //model.update(provider).await?;
                 Ok(model)
             },
             AppMessage::ModelSyncResult,
@@ -276,7 +366,9 @@ impl App {
 
                 match page {
                     view::navigation::Navigation::Empty => EmptyPage::new().into(),
-                    view::navigation::Navigation::Dashboard => Dashboard::new().into(),
+                    view::navigation::Navigation::Dashboard => {
+                        Dashboard::new(self.state.clone()).into()
+                    }
                     view::navigation::Navigation::Settings => {
                         SettingsPage::new(self.model.user.clone()).into()
                     }
@@ -300,9 +392,7 @@ pub struct AnvilSave {
 }
 
 #[tracing::instrument(skip(client))]
-async fn save_snapshot(
-    client: Arc<ExcaliburMiddleware<Ws, LocalWallet>>,
-) -> anyhow::Result<AnvilSave> {
+async fn save_snapshot(client: Arc<AlloyClient>) -> anyhow::Result<AnvilSave> {
     tracing::debug!("Attempting to save anvil snapshot");
     client.snapshot().await
 }

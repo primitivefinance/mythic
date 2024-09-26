@@ -6,6 +6,7 @@
 //! here.
 
 pub mod logos;
+pub mod panes;
 pub mod progress;
 pub mod select;
 pub mod styles;

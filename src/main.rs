@@ -3,11 +3,12 @@ use iced::{
     alignment,
     event::Event,
     theme::Palette,
-    widget::{button, container, text, Column, Row, Text},
+    widget::{button, text, Column, Row},
     window, Element, Length, Settings, Subscription, Task, Theme,
 };
 
 mod app;
+mod blockchain;
 mod components;
 mod data;
 mod loader;
@@ -22,7 +23,6 @@ use anyhow::Result;
 use app::{App, AppMessage};
 use clap::{ArgAction, Parser, Subcommand};
 use components::{system::ExcaliburTheme, *};
-use data::Model;
 use dotenv::dotenv;
 use loader::{Loader, LoaderMessage};
 use pages::*;

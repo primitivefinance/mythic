@@ -52,21 +52,21 @@ impl Lifecycle for Header {
     }
 
     fn view(&self) -> Element<'_, Self::ViewMessage> {
-        let title = Column::new()
-            .push(
-                Row::new()
-                    .spacing(Sizes::Sm)
-                    .align_y(alignment::Alignment::Center)
-                    .push(label(TITLE).title3().branding().build()),
-            )
-            .padding(Sizes::Lg)
-            .align_x(alignment::Alignment::Center)
-            .width(Length::Fill);
+        /* let title = Column::new()
+        .push(
+            Row::new()
+                .spacing(Sizes::Sm)
+                .align_y(alignment::Alignment::Center)
+                .push(label(TITLE).title3().branding().build()),
+        )
+        .padding(Sizes::Lg)
+        .align_x(alignment::Alignment::Center)
+        .width(Length::Fill); */
 
         Container::new(
             Column::new()
                 .push(
-                    Column::new().push(title).push(
+                    Column::new().push(
                         Container::new(Column::new())
                             .width(Length::Fill)
                             .height(Length::Fixed(1.0))
