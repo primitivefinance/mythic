@@ -10,6 +10,7 @@ use iced::{
 mod app;
 mod blockchain;
 mod components;
+mod contracts;
 mod data;
 mod loader;
 mod middleware;

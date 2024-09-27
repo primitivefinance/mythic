@@ -28,6 +28,11 @@ impl AlloyClient {
         let ws = WsConnect::new(rpc_url);
         let provider = ProviderBuilder::new().on_ws(ws).await?;
 
+        // Polling begins after the first transaction and continues to monitor for all future pending transactions until the provider is dropped.
+        provider
+            .client()
+            .set_poll_interval(std::time::Duration::from_millis(10_000));
+
         Ok(Self {
             provider: Some(Arc::new(provider)),
         })

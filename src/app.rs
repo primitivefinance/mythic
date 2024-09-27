@@ -146,7 +146,7 @@ pub struct App {
 impl App {
     pub fn new(model: Model, client: Arc<AlloyClient>) -> (Self, Task<AppMessage>) {
         let state = Arc::new(RwLock::new(AppState::new()));
-        let dashboard = Dashboard::new(state.clone()).into();
+        let dashboard = Dashboard::new(client.clone(), state.clone()).into();
         let mut header = Header::new();
         header.current_nav = view::navigation::Navigation::Dashboard;
         let connect = Connect::new(client.clone());
@@ -205,8 +205,22 @@ impl App {
                     view::connect::Message::UpdateClient(ref client) => {
                         let client = client.clone();
                         tracing::debug!("Updated client: {:?}", client.provider.is_some());
+
                         self.client = Arc::new(client);
-                        self.windows.connect.update(msg)
+
+                        // Client is overwritten so the original Arc<..> is stale.
+                        // todo: fix connection switching to prevent stale issue or make this propagation better.
+                        Task::batch(vec![
+                            self.windows.screen.update(
+                                view::ViewMessage::Dashboard(
+                                    crate::pages::dashboard::Message::UpdateClient(
+                                        self.client.clone(),
+                                    ),
+                                )
+                                .into(),
+                            ),
+                            self.windows.connect.update(msg),
+                        ])
                     }
                     _ => self.windows.connect.update(msg),
                 },
@@ -367,7 +381,7 @@ impl App {
                 match page {
                     view::navigation::Navigation::Empty => EmptyPage::new().into(),
                     view::navigation::Navigation::Dashboard => {
-                        Dashboard::new(self.state.clone()).into()
+                        Dashboard::new(self.client.clone(), self.state.clone()).into()
                     }
                     view::navigation::Navigation::Settings => {
                         SettingsPage::new(self.model.user.clone()).into()

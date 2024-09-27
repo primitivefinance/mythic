@@ -29,6 +29,7 @@ pub fn view_content<'a>(
             super::Message::Split(pane_grid::Axis::Vertical, pane),
         ))
         .push(button("Blocks", super::Message::Open(PaneType::Blocks)))
+        .push(button("Weth", super::Message::Open(PaneType::Weth)))
         .push_maybe(if total_panes > 1 && !is_pinned {
             Some(button("Close", super::Message::Close(pane)).style(button::danger))
         } else {

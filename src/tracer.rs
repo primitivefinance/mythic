@@ -117,6 +117,7 @@ impl<S: Subscriber + for<'a> LookupSpan<'a>> TraceConfigBuilder<S> {
                     && !metadata.target().starts_with("cosmic_text")
                     && !metadata.target().starts_with("tokio_tungstenite")
                     && !metadata.target().starts_with("tungstenite")
+                    && !metadata.target().starts_with("iced_graphics")
                     && metadata.level() <= &tracing::Level::TRACE
             }))
             .boxed()
