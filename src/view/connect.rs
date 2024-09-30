@@ -8,7 +8,7 @@ use std::sync::Arc;
 use super::blockchain::AlloyClient;
 use super::{AppMessage, ViewMessage};
 use crate::components::styles::Sizes;
-use crate::components::system::{label, ExcaliburButton, ExcaliburContainer};
+use crate::components::system::{label, ExcaliburContainer};
 use crate::pages::MessageWrapper;
 use crate::view::RootMessage;
 
@@ -38,8 +38,6 @@ impl Default for Connect {
         }
     }
 }
-
-const TITLE: &str = "Mythic";
 
 pub async fn refresh_client_connection(rpc_url: String) -> Result<AlloyClient, anyhow::Error> {
     AlloyClient::default().connect(&rpc_url).await
@@ -94,24 +92,11 @@ impl Connect {
     }
 
     pub fn view(&self) -> Element<'_, ViewMessage> {
-        let title = Column::new()
-            .push(
-                Row::new()
-                    .spacing(Sizes::Sm)
-                    .align_y(Center)
-                    .push(label(TITLE).title3().branding().build()),
-            )
-            .padding(Sizes::Lg)
-            .align_x(Center)
-            .width(Fill);
-
         let row_container = Row::new()
-            .push(title.width(iced::Length::FillPortion(1)))
             .push(
                 Column::new()
                     .width(iced::Length::FillPortion(5))
                     .align_x(iced::Alignment::End)
-                    .padding(Sizes::Lg)
                     .push(
                         Row::new()
                             .push(Row::new().width(iced::Length::FillPortion(3)))
@@ -139,13 +124,20 @@ impl Connect {
                             .spacing(Sizes::Md),
                     ),
             )
-            .align_y(Center)
-            .spacing(Sizes::Lg);
+            .align_y(Center);
 
         ExcaliburContainer::default()
             .middle_top()
+            .sharp()
             .build(row_container)
-            .height(80.0)
+            .padding(iced::Padding {
+                top: Sizes::Sm.into(),
+                right: Sizes::Md.into(),
+                bottom: Sizes::Sm.into(),
+                left: Sizes::Md.into(),
+            })
+            .height(super::header::TITLE_BAR_HEIGHT)
+            .width(Fill)
             .into()
     }
 }

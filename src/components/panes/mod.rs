@@ -118,3 +118,71 @@ impl Pane {
         }
     }
 }
+
+pub mod style {
+    use crate::components::styles::GRAY_600;
+    use crate::components::system::{ExcaliburColor, LabelColors};
+    use iced::widget::container;
+    use iced::{Border, Theme};
+
+    pub const PANE_ID_COLOR_UNFOCUSED: iced::Color = iced::Color::from_rgb(
+        0xFF as f32 / 255.0,
+        0xC7 as f32 / 255.0,
+        0xC7 as f32 / 255.0,
+    );
+    pub const PANE_ID_COLOR_FOCUSED: iced::Color = iced::Color::from_rgb(
+        0xFF as f32 / 255.0,
+        0x47 as f32 / 255.0,
+        0x47 as f32 / 255.0,
+    );
+
+    pub fn title_bar_active(theme: &Theme) -> container::Style {
+        container::Style {
+            text_color: Some(ExcaliburColor::Label(LabelColors::Secondary).color()),
+            background: Some(ExcaliburColor::Background4.into()),
+            border: Border {
+                width: 2.0,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
+                ..Border::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    pub fn title_bar_focused(theme: &Theme) -> container::Style {
+        container::Style {
+            text_color: Some(ExcaliburColor::Label(LabelColors::Primary).color()),
+            background: Some(ExcaliburColor::Card.into()),
+            border: Border {
+                width: 2.0,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
+                ..Border::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    pub fn pane_active(theme: &Theme) -> container::Style {
+        container::Style {
+            background: Some(ExcaliburColor::Background2.into()),
+            border: Border {
+                width: 2.0,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
+                ..Border::default()
+            },
+            ..Default::default()
+        }
+    }
+
+    pub fn pane_focused(theme: &Theme) -> container::Style {
+        container::Style {
+            background: Some(ExcaliburColor::Background2.into()),
+            border: Border {
+                width: 2.0,
+                color: ExcaliburColor::Custom(GRAY_600).into(),
+                ..Border::default()
+            },
+            ..Default::default()
+        }
+    }
+}

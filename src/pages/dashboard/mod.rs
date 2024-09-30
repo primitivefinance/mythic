@@ -47,17 +47,6 @@ impl Dashboard {
     }
 }
 
-const PANE_ID_COLOR_UNFOCUSED: iced::Color = iced::Color::from_rgb(
-    0xFF as f32 / 255.0,
-    0xC7 as f32 / 255.0,
-    0xC7 as f32 / 255.0,
-);
-const PANE_ID_COLOR_FOCUSED: iced::Color = iced::Color::from_rgb(
-    0xFF as f32 / 255.0,
-    0x47 as f32 / 255.0,
-    0x47 as f32 / 255.0,
-);
-
 impl From<Dashboard> for Page {
     fn from(screen: Dashboard) -> Self {
         Page::new(Box::new(screen))
@@ -213,10 +202,8 @@ impl Lifecycle for Dashboard {
         let total_panes = self.panes.len();
 
         let state = self.shared_state.read().unwrap();
-        tracing::debug!("State: {:?}", state);
 
         let block_number = state.get::<u64>("block_number").unwrap_or_default();
-        tracing::debug!("Block number: {}", block_number);
 
         let grid: PaneGrid<'_, Self::ViewMessage> =
             PaneGrid::new(&self.panes, |id, pane, is_maximized| {
@@ -232,9 +219,9 @@ impl Lifecycle for Dashboard {
                     .push(pin_button)
                     .push("Pane")
                     .push(text(pane.id.to_string()).color(if is_focused {
-                        PANE_ID_COLOR_FOCUSED
+                        panes::style::PANE_ID_COLOR_FOCUSED
                     } else {
-                        PANE_ID_COLOR_UNFOCUSED
+                        panes::style::PANE_ID_COLOR_UNFOCUSED
                     }))
                     .spacing(5);
 
@@ -253,9 +240,9 @@ impl Lifecycle for Dashboard {
                     ))
                     .padding(10)
                     .style(if is_focused {
-                        style::title_bar_focused
+                        panes::style::title_bar_focused
                     } else {
-                        style::title_bar_active
+                        panes::style::title_bar_active
                     });
 
                 pane_grid::Content::new(responsive(move |size| match pane.pane_type {
@@ -285,9 +272,9 @@ impl Lifecycle for Dashboard {
                 }))
                 .title_bar(title_bar)
                 .style(if is_focused {
-                    style::pane_focused
+                    panes::style::pane_focused
                 } else {
-                    style::pane_active
+                    panes::style::pane_active
                 })
             })
             .width(Length::Fill)
@@ -337,71 +324,5 @@ impl From<panes::Message> for view::ViewMessage {
 impl From<panes::Message> for app::AppMessage {
     fn from(message: panes::Message) -> Self {
         Self::View(message.into())
-    }
-}
-
-mod style {
-    use crate::components::system::{ExcaliburColor, LabelColors};
-    use iced::widget::container;
-    use iced::{Border, Theme};
-
-    use super::GRAY_600;
-
-    pub fn title_bar_active(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        container::Style {
-            text_color: Some(ExcaliburColor::Label(LabelColors::Secondary).color()),
-            background: Some(ExcaliburColor::Background4.into()),
-            border: Border {
-                width: 2.0,
-                color: ExcaliburColor::Custom(GRAY_600).into(),
-                ..Border::default()
-            },
-            ..Default::default()
-        }
-    }
-
-    pub fn title_bar_focused(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        container::Style {
-            text_color: Some(ExcaliburColor::Label(LabelColors::Primary).color()),
-            background: Some(ExcaliburColor::Card.into()),
-            border: Border {
-                width: 2.0,
-                color: ExcaliburColor::Custom(GRAY_600).into(),
-                ..Border::default()
-            },
-            ..Default::default()
-        }
-    }
-
-    pub fn pane_active(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        container::Style {
-            background: Some(ExcaliburColor::Background2.into()),
-            border: Border {
-                width: 2.0,
-                color: ExcaliburColor::Custom(GRAY_600).into(),
-                ..Border::default()
-            },
-            ..Default::default()
-        }
-    }
-
-    pub fn pane_focused(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
-
-        container::Style {
-            background: Some(ExcaliburColor::Background2.into()),
-            border: Border {
-                width: 2.0,
-                color: ExcaliburColor::Custom(GRAY_600).into(),
-                ..Border::default()
-            },
-            ..Default::default()
-        }
     }
 }
