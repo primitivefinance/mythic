@@ -11,7 +11,7 @@ use iced::{
 
 use crate::components::styles::MINT_500;
 
-/// Placeholder for the Excalibur logo.
+/// Placeholder for the Mythic logo.
 #[allow(dead_code)]
 const EXCALIBUR_LOGO: &[u8] = include_bytes!("../../assets/logos/excalibur_logo.png");
 
@@ -80,9 +80,9 @@ impl<Message> iced::widget::canvas::Program<Message> for PhiLogo {
             let oval = Path::new(|b| {
                 b.ellipse(arc::Elliptical {
                     radii: [circle_radius, circle_radius * 0.8].into(),
-                    start_angle: 0.0,
-                    end_angle: 2.0 * PI,
-                    rotation: angle,
+                    start_angle: 0.0.into(),
+                    end_angle: (2.0 * PI).into(),
+                    rotation: angle.into(),
                     center: start,
                 });
             });

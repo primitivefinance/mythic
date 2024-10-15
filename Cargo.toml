@@ -1,36 +1,31 @@
 [workspace]
-members = ["crates/*", "documentation"]
+members = ["crates/*"]
 
 [package]
-name = "excalibur"
+name = "mythic"
 version = "0.2.0"
 edition = "2021"
-description = "Excalibur: An alternative entrypoint to DeFi."
+description = "Mythic is a native blockchain navigator."
 authors = ["Primitive Bits, Inc."]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/primitivefinance/mythic"
+readme = "README.md"
 
 [[bin]]
-name = "excalibur"
+name = "mythic"
 path = "src/main.rs"
 
 [workspace.dependencies]
-# Local
-bindings = { path = "./crates/bindings", version = "0.1.0" }
-clients = { path = "./crates/clients", version = "0.1.0" }
-dfmm = { path = "./crates/dfmm", version = "0.1.0" }
 
-# External
-arbiter-bindings = "0.1.5"
-arbiter-core = "0.10.2"
+mythic_charts = { path = "crates/mythic_charts", version = "0.2.0" }
+
 ethers = { version = "=2.0.13", features = ["ws", "openssl", "rustls"] }
-
-# Ethereum
-revm = { version = "5.0.0", features = ["ethersdb", "std", "serde"] }
 
 # Networking
 reqwest = "0.11.24"
 
 ## Config and parsing
-serde = "=1.0.197"
+serde = "=1.0.203"
 serde_json = "=1.0.114"
 serde_with = { version = "3.6.1", features = ["chrono_0_4"] }
 config = "0.14.0"
@@ -44,7 +39,7 @@ tracing = "=0.1.40"
 tracing-subscriber = { version = "=0.3.18", features = ["env-filter"] }
 tracing-futures = { version = "=0.2.5", default-features = false }
 anyhow = "=1.0.80"
-thiserror = "=1.0.57"
+thiserror = "=1.0.61"
 
 itertools = "0.12.1"
 rand = "=0.8.5"
@@ -69,15 +64,8 @@ directories-next = "=2.0.0"
 chrono = { version = "0.4.34", features = ["serde"] }
 
 [dependencies]
-# Local
-bindings.workspace = true
-clients.workspace = true
-dfmm.workspace = true
+mythic_charts.workspace = true
 
-arbiter-bindings.workspace = true
-arbiter-core.workspace = true
-
-revm.workspace = true
 ethers.workspace = true
 
 serde.workspace = true
@@ -107,46 +95,41 @@ tracing-subscriber.workspace = true
 RustQuant.workspace = true
 statrs.workspace = true
 
-iced = { version = "=0.10.0", features = [
+iced = { version = "=0.13.1", default-features = true, features = [
     "system",
     "tokio",
     "lazy",
     "image",
-    "palette",
     "advanced",
     "canvas",
     "svg",
 ] }
-iced_aw = { version = "=0.7.0", default-features = false, features = [
-    "menu",
-    "icon_text",
-    "icons",
-    "spinner",
-    "floating_element",
-] }
+iced_core = { version = "=0.13.1" }
+iced_aw = { version = "=0.10.0", default-features = true }
 plotters-backend = "=0.3.5"
-plotters-iced = "=0.9.0"
-iced-loading-indicator = { git = "https://github.com/BB-301/iced-loading-indicator.git", rev = "a09296f" }
+plotters-iced = "=0.11.0"
 url = "=2.5.0"
+alloy = { version = "0.3.6", features = ["full"] }
+futures-util = "0.3.30"
 
 [package.metadata.bundle]
-name = "Excalibur"
-identifier = "xyz.primitive.excalibur"
-short_description = "Excalibur: An alternative entrypoint to DeFi."
-long_description = "Excalibur: An alternative entrypoint to DeFi."
+name = "Mythic"
+identifier = "xyz.primitive.mythic"
+short_description = "Mythic is a native blockchain navigator."
+long_description = "Mythic is a native blockchain navigator."
 resources = ["assets/"]
 icon = ["assets/logos/excalibur_logo_2.png"]
 
 # macOS specific
-category = "public.app-category.finance"
+category = "public.app-category.utilities"
 copyright = "Copyright (c) 2024 Primitive Bits, Inc."
 minimum_system_version = "10.14"
-osx_url_schemes = ["xyz.primitive.excalibur"]
+osx_url_schemes = ["xyz.primitive.mythic"]
 
 # Windows specific
-product_name = "Excalibur"
+product_name = "Mythic"
 manufacturer = "Primitive Bits, Inc."
 
 # Linux specific
-package_name = "excalibur"
+package_name = "mythic"
 package_version = "0.1.0"

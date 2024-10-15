@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use iced::{BorderRadius, Color, Font, Padding};
+use iced::{border::Radius as BorderRadius, Color, Font, Padding};
 
 pub const GRAY_100: Color = Color::from_rgb(
     0x15 as f32 / 255.0,
@@ -148,20 +148,20 @@ pub const FONT_YU_GOTHIC_UI: Font = Font {
     family: iced::font::Family::Name("Yu Gothic UI"),
     weight: iced::font::Weight::Semibold,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false,
+    style: iced::font::Style::Normal,
 };
 pub const FONT_BOLD: Font = Font {
     family: iced::font::Family::Name("Arial"),
     weight: iced::font::Weight::Bold,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false,
+    style: iced::font::Style::Normal,
 };
 
 pub const FONT_SEMIBOLD: Font = Font {
     family: iced::font::Family::Name("Arial"),
     weight: iced::font::Weight::Semibold,
     stretch: iced::font::Stretch::Normal,
-    monospaced: false,
+    style: iced::font::Style::Normal,
 };
 
 /// Sizes for spacing, padding, etc.
